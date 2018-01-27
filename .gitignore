@@ -2,8 +2,6 @@
 logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # JS Sourcemaps
 *.js.map
@@ -13,3 +11,6 @@ node_modules/
 
 # Build output
 dist
+
+# Avoid all the package-lock.json noise
+package-lock.json
