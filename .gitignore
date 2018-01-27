@@ -4,7 +4,6 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
 
 # JS Sourcemaps
 *.js.map
@@ -12,3 +11,5 @@ package-lock.json
 # Node dependencies
 node_modules/
 
+# Build output
+dist

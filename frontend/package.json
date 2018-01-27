@@ -1,0 +1,24 @@
+{
+  "name": "pipelines-frontend",
+  "version": "0.0.1",
+  "description": "Frontend package for ML Pipeline Management",
+  "main": "dist/index.html",
+  "dependencies": {},
+  "devDependencies": {
+    "json-server": "^0.12.1"
+  },
+  "scripts": {
+    "build": "mkdir -p dist && cp src/* dist",
+    "dev": "json-server -q --watch mock-backend/mock-db.json --static ./dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/googleprivate/ml.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/googleprivate/ml/issues"
+  },
+  "homepage": "https://github.com/googleprivate/ml#readme"
+}

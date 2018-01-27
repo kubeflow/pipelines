@@ -1,0 +1,51 @@
+{
+  "_templates": [
+    {
+      "id": 1,
+      "name": "Unstructured text",
+      "author": "user1",
+      "tags": [
+        "text",
+        "experiment"
+      ],
+      "description": "An awesome unstructured text pipeline template.",
+      "location": "gcs://pipelines_bucket/structured_text1",
+      "sharedWith": "team1"
+    },
+    {
+      "id": 2,
+      "name": "Image classification",
+      "author": "user2",
+      "tags": [
+        "image",
+        "classification"
+      ],
+      "description": "An awesome image classification pipeline template.",
+      "location": "gcs://pipelines_bucket/image_classification1",
+      "sharedWith": "team2"
+    }
+  ],
+  "_instances": [
+    {
+      "id": 1,
+      "name": "Unstructured text experiment 1",
+      "template": 1,
+      "parametersValues": {
+        "x": 10,
+        "y": 20
+      },
+      "starts": 1517087010898,
+      "ends": -1,
+      "recurring": false
+    }
+  ],
+  "_runs": [
+    {
+      "id": 1,
+      "instance": 1,
+      "started": 1517087013000,
+      "state": "running",
+      "ended": -1
+    }
+  ]
+}
