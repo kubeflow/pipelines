@@ -3,13 +3,24 @@
   "version": "0.0.1",
   "description": "Frontend package for ML Pipeline Management",
   "main": "dist/index.html",
-  "dependencies": {},
+  "dependencies": {
+    "@polymer/paper-button": "^3.0.0-pre.6",
+    "@polymer/polymer": "next",
+    "@webcomponents/webcomponentsjs": "^1.0.8"
+  },
   "devDependencies": {
-    "json-server": "^0.12.1"
+    "@leavittsoftware/polymer-ts": "^3.0.0-pre.3",
+    "clean-webpack-plugin": "^0.1.16",
+    "html-loader": "^0.5.1",
+    "html-webpack-plugin": "^2.30.1",
+    "json-server": "^0.12.1",
+    "ts-loader": "^2.3.4",
+    "typescript": "^2.4.2",
+    "webpack": "^3.5.5"
   },
   "scripts": {
-    "build": "mkdir -p dist && cp src/* dist",
-    "dev": "json-server -q --watch mock-backend/mock-db.json --static ./dist"
+    "prod": "webpack --config webpack.prod.config.js",
+    "dev": "webpack -w --config webpack.dev.config.js"
   },
   "repository": {
     "type": "git",
