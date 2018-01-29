@@ -1,1 +1,1 @@
-import './components';
+import './components/top-bar/top-bar.html';

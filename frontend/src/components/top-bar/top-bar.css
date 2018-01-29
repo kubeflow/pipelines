@@ -1,0 +1,16 @@
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #173e56;
+  color: white;
+  padding: 10px 20px;
+  font-family: monospace;
+  margin-bottom: 15px;
+}
+
+.top-bar .right button {
+  background: white;
+  border: none;
+  padding: 5px 20px;
+}

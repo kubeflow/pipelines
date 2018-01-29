@@ -1,4 +1,3 @@
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const path = require('path');
@@ -17,19 +16,19 @@ module.exports = {
     ]
   },
   module: {
-    rules: [
+    loaders: [
+      {
+        test: /\.ts$/,
+        loader: 'ts-loader',
+        exclude: /node_modules/
+      },
       {
         test: /\.html$/,
         use: [
-          { loader: 'polymer-webpack-loader' }
+          { loader: 'wc-loader', options: { root: '/' } },
         ]
-      },
-      {
-        test: /\.ts?$/,
-        use: 'ts-loader',
-        exclude: /node_modules/
       }
-    ]
+    ],
   },
   plugins: [
     new CleanWebpackPlugin(['dist'], { verbose: true, root: path.resolve(__dirname) }),
