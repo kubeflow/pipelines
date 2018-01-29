@@ -1,6 +1,20 @@
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
+const jsonServer = require('json-server')
 const path = require('path');
+
+// Run mock backend server
+const server = jsonServer.create();
+const router = jsonServer.router('mock-backend/mock-db.json');
+const middlewares = jsonServer.defaults({
+  static: './dist',
+});
+
+server.use(middlewares);
+server.use(router);
+server.listen(3000, () => {
+  console.log('Mock backend server is running at :3000')
+});
 
 module.exports = {
   entry: path.resolve(__dirname, 'src/index.ts'),

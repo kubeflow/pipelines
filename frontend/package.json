@@ -12,6 +12,7 @@
     "bower": "^1.8.2",
     "clean-webpack-plugin": "^0.1.16",
     "copy-webpack-plugin": "^4.0.1",
+    "json-server": "^0.12.1",
     "polymer-webpack-loader": "^2.0.0",
     "ts-loader": "^2.3.4",
     "typescript": "^2.4.2",
