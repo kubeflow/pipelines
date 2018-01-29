@@ -1,23 +1,37 @@
-<div class="top-bar">
-  <div class="left">ML Pipeline Management Console</div>
-  <div class="right">
-    <paper-button>Button</paper-button>
-  </div>
-  <style>
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: #173e56;
-      color: white;
-      padding: 10px 20px;
-      margin-bottom: 15px;
-    }
+<link rel="import" href="../../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
 
-    .top-bar .right button {
-      background: white;
-      border: none;
-      padding: 5px 20px;
+<dom-module id="my-top-bar">
+  <template>
+    <div class="top-bar">
+      <div class="left">ML Pipeline Management Console</div>
+      <div class="right">
+        <paper-button>Button</paper-button>
+      </div>
+      <style>
+        .top-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background-color: #173e56;
+          color: white;
+          padding: 10px 20px;
+          margin-bottom: 15px;
+        }
+
+        .top-bar .right button {
+          background: white;
+          border: none;
+          padding: 5px 20px;
+        }
+      </style>
+    </div>
+  </template>
+
+  <script>
+    class MyTopBar extends Polymer.Element {
+      static get is() { return 'my-top-bar'; }
     }
-  </style>
-</div>
+    window.customElements.define(MyTopBar.is, MyTopBar);
+  </script>
+</dom-module>

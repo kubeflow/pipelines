@@ -1,6 +1,54 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Hello World</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
   <body>
     <my-top-bar></my-top-bar>
-    Hello Pipelinez!
+    <my-element></my-element>
+
+    <!--
+      Feature detect Custom Elements support. If the browser DOES support Custom
+      Elements then we need to load the custom-elements-es5-adapter because
+      our project code has been transpiled from ES2015 to ES5 and native Custom
+      Elements expect elements will be registered as classes.
+    -->
+    <!-- <div id="ce-es5-shim">
+      <script type="text/javascript">
+        if (!window.customElements) {
+          var ceShimContainer = document.querySelector('#ce-es5-shim');
+          ceShimContainer.parentElement.removeChild(ceShimContainer);
+        }
+      </script>
+      <script type="text/javascript" src="../bower_components/webcomponentsjs/custom-elements-es5-adapter.js"></script>
+    </div> -->
+    
+    <!--
+      Use the webcomponents-loader script which will feature detect which Web
+      Components features are missing and lazy load the appropriate polyfills.
+      When we hear the 'WebComponentsReady' event from the polyfill bundle we can
+      insert our 'bundle.js'.
+    -->
+    <script>
+      (function() {
+        document.addEventListener('WebComponentsReady', function componentsReady() {
+          document.removeEventListener('WebComponentsReady', componentsReady, false);
+          var script = document.createElement('script');
+          script.src = 'app.js';
+          var refScript = document.getElementsByTagName('script')[0];
+          refScript.parentNode.insertBefore(script, refScript);
+        }, false);
+      })();
+    </script>
+    <script src="../bower_components/webcomponentsjs/webcomponents-loader.js"></script>
+
+    <!--
+      IMPORTANT: Make sure you set the inject: false option in HTMLWebpackPlugin
+      so it doesn't try to insert bundle.js. We're handling loading it ourselves
+      up above.
+    -->
+
   </body>
 </html>

@@ -6,8 +6,9 @@ npm-debug.log*
 # JS Sourcemaps
 *.js.map
 
-# Node dependencies
+# Dependencies
 node_modules/
+bower_components/
 
 # Build output
 dist
