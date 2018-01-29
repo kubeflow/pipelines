@@ -19,7 +19,8 @@
     "webpack": "^3.0.0"
   },
   "scripts": {
-    "dev": "webpack -w"
+    "dev": "webpack -w",
+    "postinstall": "bower install"
   },
   "repository": {
     "type": "git",
