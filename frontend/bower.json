@@ -1,18 +1,12 @@
 {
-  "name": "ml-pipelines-frontend",
-  "private": true,
-  "description": "Frontend for the ML Pipeline Management system",
+  "name": "pipelines-frontend-resources",
   "ignore": [
     "**/.*",
     "node_modules",
-    "bower_components",
-    "test",
-    "tests"
+    "bower_components"
   ],
   "dependencies": {
     "polymer": "^2.4.0",
-    "bower": "*",
-    "install": "^1.0.4",
     "paper-button": "PolymerElements/paper-button#^2.0.0"
   }
 }

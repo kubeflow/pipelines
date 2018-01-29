@@ -3,17 +3,12 @@
   "version": "0.0.1",
   "description": "Frontend package for ML Pipeline Management",
   "main": "dist/index.html",
-  "dependencies": {
-    "@polymer/paper-button": "^3.0.0-pre.6",
-    "@polymer/polymer": "next",
-    "@webcomponents/webcomponentsjs": "^1.0.8"
-  },
+  "dependencies": {},
   "devDependencies": {
     "bower": "^1.8.2",
     "clean-webpack-plugin": "^0.1.16",
     "copy-webpack-plugin": "^4.0.1",
     "json-server": "^0.12.1",
-    "polymer-webpack-loader": "^2.0.0",
     "ts-loader": "^2.3.4",
     "typescript": "^2.4.2",
     "wc-loader": "^1.1.12",
