@@ -14,8 +14,9 @@
     "copy-webpack-plugin": "^4.0.1",
     "html-webpack-plugin": "^2.29.0",
     "polymer-webpack-loader": "^2.0.0",
+    "ts-loader": "^2.3.4",
     "typescript": "^2.4.2",
-    "webpack": "^3.0.0",
+    "webpack": "^3.0.0"
   },
   "scripts": {
     "dev": "webpack -w"

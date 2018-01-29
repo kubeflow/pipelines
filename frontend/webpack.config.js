@@ -4,12 +4,13 @@ const CleanWebpackPlugin = require('clean-webpack-plugin');
 const path = require('path');
 
 module.exports = {
-  entry: path.resolve(__dirname, 'src/index.js'),
+  entry: path.resolve(__dirname, 'src/index.ts'),
   output: {
     filename: 'app.js',
     path: path.resolve(__dirname, 'dist')
   },
   resolve: {
+    extensions: ['.ts', '.js'],
     modules: [
       path.resolve(__dirname, 'node_modules'),
       path.resolve(__dirname, 'bower_components')
@@ -23,6 +24,11 @@ module.exports = {
           { loader: 'polymer-webpack-loader' }
         ]
       },
+      {
+        test: /\.ts?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
+      }
     ]
   },
   plugins: [
