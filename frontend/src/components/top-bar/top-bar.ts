@@ -4,7 +4,6 @@ import Utils from '../../utils';
 
 class TopBar extends Polymer.Element {
   static get is() {
-    Utils.log();
     return 'top-bar';
   }
 }

@@ -20,7 +20,8 @@ module.exports = {
   entry: path.resolve(__dirname, 'src/index.ts'),
   output: {
     filename: 'app.js',
-    path: path.resolve(__dirname, 'dist')
+    path: path.resolve(__dirname, 'dist'),
+    publicPath: '/',
   },
   devtool: 'inline-source-map',
   resolve: {
