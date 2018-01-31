@@ -22,6 +22,7 @@ module.exports = {
     filename: 'app.js',
     path: path.resolve(__dirname, 'dist')
   },
+  devtool: 'inline-source-map',
   resolve: {
     extensions: ['.ts', '.js'],
     modules: [
