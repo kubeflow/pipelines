@@ -43,7 +43,7 @@ module.exports = {
       {
         test: /\.html$/,
         use: [
-          { loader: 'wc-loader', options: { root: '/' } },
+          { loader: 'wc-loader', options: { root: '/', minify: true } },
         ]
       },
       {
@@ -57,7 +57,7 @@ module.exports = {
             },
           }],
         }),
-			},
+      },
     ],
   },
   plugins: [
