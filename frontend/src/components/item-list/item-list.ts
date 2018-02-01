@@ -152,7 +152,7 @@ class ItemClickEvent extends CustomEvent {
  * If the "disable-selection" attribute is specified, the checkboxes are
  * hidden, and clicking items does not select them.
  */
-class ItemList extends Polymer.Element {
+export default class ItemList extends Polymer.Element {
 
   /**
    * List of data rows, each implementing the row interface

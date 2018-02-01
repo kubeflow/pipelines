@@ -6,11 +6,11 @@ const path = require('path');
 // Run mock backend server
 const server = jsonServer.create();
 const router = jsonServer.router('mock-backend/mock-db.json');
-const middlewares = jsonServer.defaults({
+const staticsMiddleware = jsonServer.defaults({
   static: './dist',
 });
 
-server.use(middlewares);
+server.use(staticsMiddleware);
 server.use(router);
 server.listen(3000, () => {
   console.log('Mock backend server is running at :3000')
@@ -54,6 +54,15 @@ module.exports = {
     }, {
       from: path.resolve(__dirname, 'index.html'),
       to: 'index.html',
+    }, {
+      from: path.resolve(__dirname, 'src/styles/reset.css'),
+      to: 'reset.css',
+    }, {
+      from: path.resolve(__dirname, 'src/styles/colors.css'),
+      to: 'colors.css',
+    }, {
+      from: path.resolve(__dirname, 'src/styles/common.css'),
+      to: 'common.css',
     }])
   ]
 };
