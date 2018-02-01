@@ -2,6 +2,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const jsonServer = require('json-server')
 const path = require('path');
+const webpack = require('webpack');
 
 // Run mock backend server
 const server = jsonServer.create();
@@ -17,9 +18,12 @@ server.listen(3000, () => {
 });
 
 module.exports = {
-  entry: path.resolve(__dirname, 'src/index.ts'),
+  entry: {
+    app: path.resolve(__dirname, 'src/index.ts'),
+    polymer: ["polymer"],
+  },
   output: {
-    filename: 'app.js',
+    filename: '[name].js',
     path: path.resolve(__dirname, 'dist'),
     publicPath: '/',
   },
@@ -43,7 +47,13 @@ module.exports = {
         use: [
           { loader: 'wc-loader', options: { root: '/' } },
         ]
-      }
+      },
+      {
+        test: /\.css$/,
+        use: [
+          { loader: 'css-loader' },
+        ]
+			},
     ],
   },
   plugins: [
@@ -55,14 +65,11 @@ module.exports = {
       from: path.resolve(__dirname, 'index.html'),
       to: 'index.html',
     }, {
-      from: path.resolve(__dirname, 'src/styles/reset.css'),
-      to: 'reset.css',
-    }, {
-      from: path.resolve(__dirname, 'src/styles/colors.css'),
-      to: 'colors.css',
-    }, {
-      from: path.resolve(__dirname, 'src/styles/common.css'),
-      to: 'common.css',
-    }])
+      from: path.resolve(__dirname, 'src/styles'),
+      to: 'styles',
+    }]),
+    new webpack.optimize.CommonsChunkPlugin({
+      name: 'polymer'
+    }),
   ]
 };
