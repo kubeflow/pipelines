@@ -19,12 +19,9 @@ server.listen(3000, () => {
 });
 
 module.exports = {
-  entry: {
-    app: path.resolve(__dirname, 'src/index.ts'),
-    polymer: ["polymer"],
-  },
+  entry: path.resolve(__dirname, 'src/index.ts'),
   output: {
-    filename: '[name].js',
+    filename: 'app.js',
     path: path.resolve(__dirname, 'dist'),
     publicPath: '/',
   },
@@ -72,9 +69,6 @@ module.exports = {
       from: path.resolve(__dirname, 'index.html'),
       to: 'index.html',
     }]),
-    new webpack.optimize.CommonsChunkPlugin({
-      name: 'polymer'
-    }),
     new ExtractTextPlugin('styles.css'),
   ]
 };
