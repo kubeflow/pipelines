@@ -1,6 +1,7 @@
 /// <reference path="../../../bower_components/polymer/types/lib/elements/dom-repeat.d.ts" />
 
 import Utils from '../../utils';
+import { customElement } from '../../decorators';
 
 type ColumnType = Date|number|string;
 
@@ -152,6 +153,7 @@ class ItemClickEvent extends CustomEvent {
  * If the "disable-selection" attribute is specified, the checkboxes are
  * hidden, and clicking items does not select them.
  */
+@customElement
 export default class ItemList extends Polymer.Element {
 
   /**
@@ -202,8 +204,6 @@ export default class ItemList extends Polymer.Element {
     column: -1,  // index of current sort column
   };
   private _lastSelectedIndex = -1;
-
-  static get is() { return 'item-list'; }
 
   static get properties() {
     return {
@@ -258,8 +258,9 @@ export default class ItemList extends Polymer.Element {
     super.ready();
 
     // Add box-shadow to header container on scroll
-    const container = this.$.listContainer as HTMLDivElement;
-    const headerContainer = this.$.headerContainer as HTMLDivElement;
+    // TODO: workaround for https://github.com/Polymer/polymer/issues/5074
+    const container = (this.$.listContainer as any) as HTMLDivElement;
+    const headerContainer = (this.$.headerContainer as any) as HTMLDivElement;
     container.addEventListener('scroll', () => {
       const yOffset = Math.min(container.scrollTop / 20, 5);
       const shadow = '0px ' + yOffset + 'px 10px -5px #ccc';
@@ -610,5 +611,3 @@ export default class ItemList extends Polymer.Element {
   }
 
 }
-
-customElements.define(ItemList.is, ItemList);
