@@ -4,27 +4,23 @@
     <meta charset="utf-8">
     <title>Pipelinezzz</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="styles.css">
+    <script src="bower_components/webcomponentsjs/webcomponents-loader.js"></script>
   </head>
   <body>
     <top-bar></top-bar>
+    <item-list></item-list>
 
-    <!--
-      Use the webcomponents-loader script which will feature detect which Web
-      Components features are missing and lazy load the appropriate polyfills.
-      When we hear the 'WebComponentsReady' event from the polyfill bundle we can
-      insert our 'bundle.js'.
-    -->
     <script>
-      (function() {
-        document.addEventListener('WebComponentsReady', function componentsReady() {
-          document.removeEventListener('WebComponentsReady', componentsReady, false);
-          var script = document.createElement('script');
-          script.src = 'app.js';
-          var refScript = document.getElementsByTagName('script')[0];
-          refScript.parentNode.insertBefore(script, refScript);
-        }, false);
-      })();
+      // Wait until customElements have been installed, which can take a while on browsers
+      // that don't natively support it, then source the app bundle.
+      document.addEventListener('WebComponentsReady', function componentsReady() {
+        document.removeEventListener('WebComponentsReady', componentsReady, false);
+        const appScript = document.createElement('script');
+        appScript.src = 'app.js';
+        const refScript = document.getElementsByTagName('script')[0];
+        refScript.parentNode.insertBefore(appScript, refScript);
+      }, false);
     </script>
-    <script src="bower_components/webcomponentsjs/webcomponents-loader.js"></script>
   </body>
 </html>

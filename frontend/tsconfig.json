@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "experimentalDecorators": true,
     "module": "commonjs",
-    "sourceMap": true,
+    "noImplicitAny": false,
     "outDir": "./dist/",
-    "rootDir": "./src/",
+    "sourceMap": true,
     "strict": true,
-    "noImplicitAny": false
+    "target": "es2015"
   },
   "include": [
     "bower_components/polymer/types/polymer.d.ts"
