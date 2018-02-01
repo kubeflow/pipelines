@@ -1,5 +1,6 @@
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const jsonServer = require('json-server')
 const path = require('path');
 const webpack = require('webpack');
@@ -50,9 +51,15 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: [
-          { loader: 'css-loader' },
-        ]
+        use: ExtractTextPlugin.extract({
+          use: [{
+            loader: 'css-loader',
+            options: {
+              sourceMap: true,
+              minimize: true
+            },
+          }],
+        }),
 			},
     ],
   },
@@ -64,12 +71,10 @@ module.exports = {
     }, {
       from: path.resolve(__dirname, 'index.html'),
       to: 'index.html',
-    }, {
-      from: path.resolve(__dirname, 'src/styles'),
-      to: 'styles',
     }]),
     new webpack.optimize.CommonsChunkPlugin({
       name: 'polymer'
     }),
+    new ExtractTextPlugin('styles.css'),
   ]
 };
