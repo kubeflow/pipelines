@@ -1,9 +1,9 @@
 /// <reference path="../../../bower_components/polymer/types/polymer.d.ts" />
 /// <reference path="../../../bower_components/polymer/types/lib/utils/templatize.d.ts" />
 import * as Utils from '../../modules/utils';
-import { customElement } from '../../decorators';
 import PageElement from '../../modules/page_element';
 import { ROUTE_EVENT, RouteEvent } from '../../modules/events';
+import { customElement } from '../../decorators';
 
 @customElement
 export default class PipelinesDashboard extends Polymer.Element {

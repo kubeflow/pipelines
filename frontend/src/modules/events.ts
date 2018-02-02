@@ -7,7 +7,7 @@ export class DomRepeatMouseEvent extends MouseEvent {
 }
 
 export const ROUTE_EVENT = 'route';
-export class RouteEvent extends CustomEvent {
+export class RouteEvent extends CustomEvent<any> {
   public detail: {
     path: string,
   }

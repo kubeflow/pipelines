@@ -3,10 +3,11 @@
     "experimentalDecorators": true,
     "module": "commonjs",
     "noImplicitAny": false,
-    "outDir": "./dist/",
     "noUnusedLocals": true,
+    "outDir": "./dist/",
     "sourceMap": true,
     "strict": true,
+    "strictPropertyInitialization": false,
     "target": "es2015"
   },
   "include": [
