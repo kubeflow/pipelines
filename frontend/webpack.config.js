@@ -1,21 +1,14 @@
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
-const jsonServer = require('json-server')
+const jsonServer = require('json-server');
 const path = require('path');
 const webpack = require('webpack');
 
-// Run mock backend server
-const server = jsonServer.create();
-const router = jsonServer.router('mock-backend/mock-db.json');
-const staticsMiddleware = jsonServer.defaults({
-  static: './dist',
-});
-
-server.use(staticsMiddleware);
-server.use(router);
+// Start static and mock backend server
+const server = require('./server');
 server.listen(3000, () => {
-  console.log('Mock backend server is running at :3000')
+  console.log('Server started at :3000');
 });
 
 module.exports = {

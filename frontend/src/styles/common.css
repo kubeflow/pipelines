@@ -1,6 +1,34 @@
+@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:400,700|Open+Sans:400,700|Material+Icons);
 @import './reset.css';
-@import './colors.css';
+@import './vars.css';
 
 body {
   background-color: var(--bg-color);
+  color: var(--fg-color);
+  font-size: var(--font-size);
+}
+
+hr {
+  margin:0 auto; 
+  border:0px none transparent; 
+  border-top:1px solid var(--line-color);
+}
+
+/* Custom elements common styling */
+:host {
+  display: block;
+  font-family: 'Open Sans', Helvetica, sans-serif;
+}
+
+.unstyled-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.block {
+  display: block;
+}
+
+paper-button:hover {
+  @apply --shadow-elevation-3dp;
 }

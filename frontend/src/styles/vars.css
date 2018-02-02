@@ -1,0 +1,10 @@
+:root {
+  --bg-color: #eee;
+  --fg-color: #444;
+  --fg-color-strong: black;
+  --accent-color: #173e56;
+  --line-color: #ddd;
+
+  --font-size: 14px;
+  --font-size-strong: 16px;
+}

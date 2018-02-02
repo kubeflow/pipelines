@@ -1,10 +1,16 @@
 .top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
   background-color: var(--accent-color);
-  color: var(--fg-color);
-  padding: 10px 20px;
+  color: #eee;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
   font-family: monospace;
-  margin-bottom: 15px;
+  height: 48px;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  padding-left: 20px;
 }

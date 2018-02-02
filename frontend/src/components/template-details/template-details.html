@@ -1,0 +1,25 @@
+<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+
+<dom-module id="template-details">
+  <template>
+    <link rel="stylesheet" href="../../styles/vars.css">
+    <link rel="stylesheet" href="../../styles/common.css">
+    <link rel="stylesheet" href="./template-details.css">
+
+    <paper-button class="back-button" raised on-click="_back">
+      <iron-icon icon="chevron-left"></iron-icon>
+      Back
+    </paper-button>
+
+    <div class="template-name">[[template.name]]</div>
+    <hr>
+    <div class="template-location">
+      <a href="/template/[[template.location]]">[[template.location]]</a>
+    </div>
+    <div class="template-tags">[[template.tags]]</div>
+  </template>
+</dom-module>
+
+<script src="template-details.ts"></script>

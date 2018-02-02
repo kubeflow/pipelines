@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <title>Pipelinezzz</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="styles.css">
-    <script src="bower_components/webcomponentsjs/webcomponents-loader.js"></script>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/bower_components/webcomponentsjs/webcomponents-loader.js"></script>
   </head>
   <body>
     <top-bar></top-bar>
-    <item-list></item-list>
+    <pipelines-dashboard></pipelines-dashboard>
 
     <script>
       // Wait until customElements have been installed, which can take a while on browsers
@@ -17,7 +17,7 @@
       document.addEventListener('WebComponentsReady', function componentsReady() {
         document.removeEventListener('WebComponentsReady', componentsReady, false);
         const appScript = document.createElement('script');
-        appScript.src = 'app.js';
+        appScript.src = '/app.js';
         const refScript = document.getElementsByTagName('script')[0];
         refScript.parentNode.insertBefore(appScript, refScript);
       }, false);

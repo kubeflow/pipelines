@@ -11,8 +11,9 @@
     "css-loader": "^0.28.9",
     "extract-text-webpack-plugin": "^3.0.2",
     "json-server": "^0.12.1",
+    "postcss-loader": "^2.0.10",
     "ts-loader": "^2.3.4",
-    "typescript": "^2.4.2",
+    "typescript": "^2.7.1",
     "wc-loader": "^1.1.12",
     "webpack": "^3.0.0"
   },

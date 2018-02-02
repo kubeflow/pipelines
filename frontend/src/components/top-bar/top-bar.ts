@@ -1,4 +1,4 @@
-import Utils from '../../utils';
+/// <reference path="../../../bower_components/polymer/types/polymer.d.ts" />
 import { customElement } from '../../decorators';
 
 @customElement
