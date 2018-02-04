@@ -6,3 +6,22 @@ export function customElement(clazz: any) {
 
   window.customElements.define(tagName, clazz);
 }
+
+export interface PropertyOptions {
+  type: any;
+}
+
+export function property(options: PropertyOptions) {
+  return (proto: any, propName: any) => {
+    const type = options.type;
+    if (!proto.constructor.hasOwnProperty('properties')) {
+      proto.constructor.properties = {};
+    }
+    proto.constructor.properties[propName] = {
+      type,
+      notify: false,
+      reflectToAttribute: false,
+      readOnly: false,
+    };
+  };
+}

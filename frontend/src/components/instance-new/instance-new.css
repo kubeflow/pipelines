@@ -1,0 +1,14 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+:host {
+  padding: 30px;
+}
+
+.container {
+  background-color: #eee;
+}
+
+paper-input {
+  width: 200px;
+}

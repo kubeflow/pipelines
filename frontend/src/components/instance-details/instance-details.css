@@ -12,26 +12,22 @@ div {
   white-space: nowrap;
 }
 
-.back-button, .configure-button {
+.back-button {
   background-color: white;
   margin: 15px 0;
-  min-width: 90px;
+  width: 90px;
 }
 
-.template-name {
+.instance-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);
   font-weight: bold;
 }
 
-.template-location, .template-tags {
+.instance-tags {
   padding: 5px;
 }
 
 hr {
   margin: 20px 0;
-}
-
-.configure-button {
-  float: right;
 }

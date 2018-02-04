@@ -1,16 +1,19 @@
 {
   "compilerOptions": {
+    "baseUrl": "./",
     "experimentalDecorators": true,
+    "lib": [ "es2017", "es6", "es5", "dom" ],
     "module": "commonjs",
-    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noImplicitThis": true,
     "noUnusedLocals": true,
     "outDir": "./dist/",
-    "sourceMap": true,
     "strict": true,
-    "strictPropertyInitialization": false,
+    "strictNullChecks": true,
     "target": "es2015"
   },
   "include": [
-    "bower_components/polymer/types/polymer.d.ts"
+    "./src"
   ]
 }

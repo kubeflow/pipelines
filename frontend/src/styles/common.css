@@ -20,13 +20,21 @@ hr {
   font-family: 'Open Sans', Helvetica, sans-serif;
 }
 
-.unstyled-link {
+.unstyled {
   text-decoration: none;
   color: inherit;
 }
 
 .block {
   display: block;
+}
+
+.inline {
+  display: inline;
+}
+
+.strong {
+  font-weight: bold;
 }
 
 paper-button:hover {

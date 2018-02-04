@@ -1,13 +1,19 @@
-import Template from '../modules/template';
+import Template from '../lib/template';
 
-export class DomRepeatMouseEvent extends MouseEvent {
+export class TemplateClickEvent extends MouseEvent {
   public model: {
     template: Template,
   };
 }
 
+export class InstanceClickEvent extends MouseEvent {
+  public model: {
+    instance: Template,
+  };
+}
+
 export const ROUTE_EVENT = 'route';
-export class RouteEvent extends CustomEvent<any> {
+export class RouteEvent extends CustomEvent {
   public detail: {
     path: string,
   }

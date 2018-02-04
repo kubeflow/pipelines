@@ -1,0 +1,25 @@
+<dom-module id="instance-new">
+  <template>
+    <link rel="stylesheet" href="./instance-new.css">
+
+    <div>Configure new pipeline instance:</div>
+    <div class="container">
+      <paper-input id="templateId" label="Template">[[templateId]]</paper-input>
+      <paper-input id="name" label="Instance Name"></paper-input>
+      <paper-input id="description" label="Description"></paper-input>
+      <paper-input id="starts" label="Starts"></paper-input>
+      <app-datepicker-dialog></app-datepicker-dialog>
+      <paper-input id="ends" label="Ends"></paper-input>
+      <br>
+      <br>
+      <div>Parameters:</div>
+      <template is="dom-repeat" items="[[template.parameterValues]]" as="param">
+        <div>
+          <span class="string">[[param.name]]</span>
+          <span>[[param.value]]</span>
+        </div>
+      </template>
+
+    </div>
+  </template>
+</dom-module>

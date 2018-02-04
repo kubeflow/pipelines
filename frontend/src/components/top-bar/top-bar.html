@@ -1,16 +1,19 @@
-<link rel="import" href="../../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../../bower_components/polymer/polymer-element.html">
-<link rel="import" href="../../../bower_components/paper-button/paper-button.html">
-
 <dom-module id="top-bar">
   <template>
-    <link rel="stylesheet" href="../../styles/vars.css">
-    <link rel="stylesheet" href="../../styles/common.css">
+
     <link rel="stylesheet" href="./top-bar.css">
     <div class="top-bar">
-      <a href="/templates" class="unstyled-link">ML Pipeline Management Console</a>
+      <a id="logo" href="/templates" class="unstyled left">ML Pipeline Management Console</a>
+      <div class="middle"></div>
+      <div class="right">
+        <a id="templatesBtn" class="unstyled" href="/templates">
+          <paper-button>Pipeline Templates</paper-button>
+        </a>
+        <a id="instancesBtn" class="unstyled" href="/instances">
+          <paper-button>Template Instances</paper-button>
+        </a>
+      </div>
     </div>
+
   </template>
 </dom-module>
-
-<script src="top-bar.ts"></script>

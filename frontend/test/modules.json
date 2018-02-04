@@ -1,0 +1,10 @@
+[
+  {
+    "module": "top-bar",
+    "dir": "src/components/top-bar"
+  },
+  {
+    "module": "apis",
+    "dir": "src/lib"
+  }
+]

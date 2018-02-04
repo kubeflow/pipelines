@@ -1,29 +1,53 @@
-const CleanWebpackPlugin = require('clean-webpack-plugin');
+const Clean = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 const setupServerMockup = require('./mock-backend/server');
 
+const modulesToTest = require('./test/modules');
+const entries = {};
+const plugins = [
+  new CopyWebpackPlugin([{
+    from: path.resolve(__dirname, 'bower_components/webcomponentsjs/*.js'),
+    to: 'bower_components/webcomponentsjs/[name].[ext]'
+  }]),
+  new CopyWebpackPlugin([{
+    from: path.resolve(__dirname, 'bower_components/web-component-tester/*.js'),
+    to: 'bower_components/web-component-tester/[name].[ext]'
+  }]),
+  new Clean(['test/dist']),
+];
+
+modulesToTest.forEach((e) => {
+  entries[e.module] = path.resolve(__dirname, e.dir, e.module + '-test');
+  plugins.push(new HtmlWebpackPlugin({
+    inject: true,
+    template: path.resolve(__dirname, 'test/test.ejs'),
+    chunks: [e.module],
+    filename: e.module + '-test.html'
+  }));
+});
+
 module.exports = {
-  entry: {
-    index: path.resolve(__dirname, 'src/index.ts'),
-  },
+  entry: entries,
   output: {
-    filename: 'app.js',
-    path: path.resolve(__dirname, 'dist')
+    filename: '[name]_test.js',
+    path: path.resolve(__dirname, 'test/dist')
   },
   resolve: {
     modules: [
       path.resolve(__dirname, 'bower_components'),
       path.resolve(__dirname, 'node_modules'),
+
     ],
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.html']
   },
-  // devtool: 'inline-source-map',
+  externals: {
+    'sinon': 'sinon',
+  },
   module: {
     rules: [
-      // Intentionally leaving out .js files, **typescriptify all the things!**
       {
         test: /\.html$/,
         loader: 'polymer-webpack-loader',
@@ -58,17 +82,7 @@ module.exports = {
       },
     ]
   },
-  plugins: [
-    new CopyWebpackPlugin([{
-      from: path.resolve(__dirname, 'bower_components/webcomponentsjs/*.js'),
-      to: 'bower_components/webcomponentsjs/[name].[ext]'
-    }, {
-      from: path.resolve(__dirname, 'index.html'),
-      to: 'index.html',
-    }]),
-    new CleanWebpackPlugin(['dist']),
-    new ExtractTextPlugin('styles.css'),
-  ],
+  plugins,
   devServer: {
     contentBase: path.join(__dirname),
     compress: true,

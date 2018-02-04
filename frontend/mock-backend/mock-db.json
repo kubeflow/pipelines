@@ -10,6 +10,7 @@
       ],
       "description": "An awesome unstructured text pipeline template.",
       "location": "gcs://pipelines_bucket/structured_text1",
+      "parameters": ["x", "y"],
       "sharedWith": "team1"
     },
     {
@@ -22,21 +23,25 @@
       ],
       "description": "An awesome image classification pipeline template.",
       "location": "gcs://pipelines_bucket/image_classification1",
+      "parameters": ["x", "y"],
       "sharedWith": "team2"
     }
   ],
   "_instances": [
     {
+      "author": "user1",
+      "description": "Try 10 and 20 for parameters",
       "id": 1,
       "name": "Unstructured text experiment 1",
-      "template": 1,
+      "templateId": 1,
       "parametersValues": {
         "x": 10,
         "y": 20
       },
       "starts": 1517087010898,
       "ends": -1,
-      "recurring": false
+      "recurring": false,
+      "tags": []
     }
   ],
   "_runs": [

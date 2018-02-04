@@ -1,0 +1,18 @@
+<dom-module id="app-shell">
+  <template>
+    <link rel="stylesheet" href="../../styles/vars.css">
+    <link rel="stylesheet" href="../../styles/common.css">
+
+    <!--Router-->
+    <app-location route="{{route}}"></app-location>
+    <app-route route="{{route}}"></app-route>
+
+    <iron-pages id="pages" selected="{{page}}" attr-for-selected="path">
+      <instance-details path="instances/details"></instance-details>
+      <instance-list path="instances"></instance-list>
+      <instance-new path="instances/new"></instance-new>
+      <template-details path="templates/details"></template-details>
+      <template-list path="templates"></template-list>
+    </iron-pages>
+  </template>
+</dom-module>
