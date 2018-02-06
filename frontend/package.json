@@ -15,7 +15,10 @@
     "css-loader": "^0.28.9",
     "extract-text-webpack-plugin": "^3.0.2",
     "html-webpack-plugin": "^2.30.1",
+    "jasmine": "^2.9.0",
+    "pixelmatch": "^4.0.2",
     "polymer-webpack-loader": "^2.0.0",
+    "puppeteer": "^1.0.0",
     "reflect-metadata": "^0.1.10",
     "ts-loader": "^2.3.7",
     "typescript": "2.6.2",
@@ -27,9 +30,7 @@
     "build": "webpack",
     "tsc": "tsc",
     "dev": "webpack-dev-server",
-    "pretest": "webpack --config webpack.test.js",
-    "test": "wct --skip-plugin=local --configFile wct.conf.js",
-    "doc": "typedoc --entryPoint src/index.ts --out  doc/ src/"
+    "test": "jasmine test/ui/test_spec.js"
   },
   "repository": {
     "type": "git",

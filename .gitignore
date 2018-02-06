@@ -15,3 +15,7 @@ dist
 
 # Avoid all the package-lock.json noise
 package-lock.json
+
+# UI test outputs
+frontend/test/ui/broken
+
