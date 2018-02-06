@@ -20,6 +20,12 @@ hr {
   font-family: 'Open Sans', Helvetica, sans-serif;
 }
 
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .unstyled {
   text-decoration: none;
   color: inherit;

@@ -5,17 +5,14 @@
   padding: 30px;
 }
 
-div {
-  line-height: 22px;
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .back-button, .configure-button {
   background-color: white;
   margin: 15px 0;
   min-width: 90px;
+}
+
+.configure-button {
+  float: right;
 }
 
 .template-name {
@@ -30,8 +27,4 @@ div {
 
 hr {
   margin: 20px 0;
-}
-
-.configure-button {
-  float: right;
 }

@@ -1,48 +1,12 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
+@import '../template-list/template-list.css';
 
 :host {
   padding: 30px;
 }
 
-.container {
-  background-color: #eee;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  -ms-flex-wrap: wrap;
-      flex-wrap: wrap;
-}
-
-.card {
-  background-color: #fff;
-  border-radius: 2px;
-  border: solid 1px #ccc;
-  height: 250px;
-  -webkit-box-shadow: 0 0 5px 0px #ddd;
-          box-shadow: 0 0 5px 0px #ddd;
-  margin: 20px;
-  padding: 20px;
-  -webkit-transition: -webkit-box-shadow 0.3s ease-in-out;
-  transition: -webkit-box-shadow 0.3s ease-in-out;
-  transition: box-shadow 0.3s ease-in-out;
-  transition: box-shadow 0.3s ease-in-out, -webkit-box-shadow 0.3s ease-in-out;
-  width: 350px;
-}
-
-.card:hover {
-  @apply --shadow-elevation-3dp;
-  cursor: pointer;
-}
-
-.card div {
-  line-height: 22px;
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.template-name {
+.instance-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);
   font-weight: bold;
@@ -51,6 +15,6 @@
   text-decoration: none;
 }
 
-.template-location, .template-tags {
+.template-tags {
   padding: 5px;
 }

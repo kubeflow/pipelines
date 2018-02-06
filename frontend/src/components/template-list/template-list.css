@@ -35,13 +35,6 @@
   cursor: pointer;
 }
 
-.card div {
-  line-height: 22px;
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .template-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);

@@ -20,7 +20,7 @@ module.exports = {
     ],
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.html']
   },
-  // devtool: 'inline-source-map',
+  devtool: 'inline-source-map',
   module: {
     rules: [
       // Intentionally leaving out .js files, **typescriptify all the things!**
