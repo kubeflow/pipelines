@@ -6,3 +6,4 @@ ML Pipeline Components
 * [Analyze](xgboost/dataproc/analyze.py)
 * [Transform](xgboost/dataproc/transform.py)
 * [Distributed Train](xgboost/dataproc/train.py)
+* [Delete Cluster](xgboost/dataproc/delete_cluster.py)
