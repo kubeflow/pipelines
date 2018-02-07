@@ -4,14 +4,22 @@
 
     <div>Configure new pipeline instance:</div>
     <div class="container">
-      <paper-input id="templateId" label="Template">[[templateId]]</paper-input>
+      <div class="flex">
+        <paper-input id="templateId" label="Template" value="[#[[template.id]]] [[template.name]]">
+        </paper-input>
+        <a class="template-link" href="/templates/details/[[template.id]]">Go To Template</a>
+      </div>
       <paper-input id="name" label="Instance Name"></paper-input>
       <paper-input id="description" label="Description"></paper-input>
-      <div id="startsContainer">
-        <paper-input id="starts" label="Starts" value="[[startDate]]" on-click="_pickStartDate"></paper-input>
+      <div class="flex">
+        <paper-input id="starts" label="Starts" value="[[startDate]]"></paper-input>
+        <paper-icon-button icon="date-range" on-click="_pickStartDate" tabindex="-1">
+        </paper-icon-button>
       </div>
-      <div id="endsContainer">
-        <paper-input id="ends" label="Ends" value="[[endDate]]" on-click="_pickEndDate"></paper-input>
+      <div class="flex">
+        <paper-input id="ends" label="Ends" value="[[endDate]]"></paper-input>
+        <paper-icon-button icon="date-range" on-click="_pickEndDate" tabindex="-1">
+        </paper-icon-button>
       </div>
       <br>
       <br>

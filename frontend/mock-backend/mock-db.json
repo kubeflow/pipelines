@@ -1,5 +1,5 @@
 {
-  "_templates": [
+  "templates": [
     {
       "id": 1,
       "name": "Unstructured text",
@@ -10,7 +10,10 @@
       ],
       "description": "An awesome unstructured text pipeline template.",
       "location": "gcs://pipelines_bucket/structured_text1",
-      "parameters": ["x", "y"],
+      "parameters": [
+        "x",
+        "y"
+      ],
       "sharedWith": "team1"
     },
     {
@@ -23,18 +26,40 @@
       ],
       "description": "An awesome image classification pipeline template.",
       "location": "gcs://pipelines_bucket/image_classification1",
-      "parameters": ["x", "y"],
+      "parameters": [
+        "x",
+        "y"
+      ],
       "sharedWith": "team2"
     }
   ],
-  "_instances": [
+  "instances": [
     {
       "author": "user1",
-      "description": "Try 10 and 20 for parameters",
+      "description": "Try a sweep for x",
       "id": 1,
       "name": "Unstructured text experiment 1",
       "templateId": 1,
-      "parametersValues": {
+      "parameterValues": {
+        "x": 10,
+        "y": {
+          "from": 10,
+          "to": 80,
+          "step": 10
+        }
+      },
+      "starts": 1517087010898,
+      "ends": -1,
+      "recurring": false,
+      "tags": []
+    },
+    {
+      "author": "user1",
+      "description": "Try 10 and 20 for parameters",
+      "id": 2,
+      "name": "Unstructured text experiment 1",
+      "templateId": 1,
+      "parameterValues": {
         "x": 10,
         "y": 20
       },
@@ -44,13 +69,114 @@
       "tags": []
     }
   ],
-  "_runs": [
+  "runs": [
     {
       "id": 1,
-      "instance": 1,
-      "started": 1517087013000,
-      "state": "running",
-      "ended": -1
+      "instanceId": 1,
+      "parameterValues": {
+        "x": 10,
+        "y": 20
+      },
+      "progress": 100,
+      "start": 1517087013000,
+      "end": 1517087015000,
+      "state": "completed"
+    },
+    {
+      "id": 2,
+      "instanceId": 1,
+      "parameterValues": {
+        "x": 20,
+        "y": 20
+      },
+      "progress": 100,
+      "start": 1517087013000,
+      "end": 1517087214500,
+      "state": "completed"
+    },
+    {
+      "id": 3,
+      "instanceId": 1,
+      "parameterValues": {
+        "x": 30,
+        "y": 20
+      },
+      "progress": 80,
+      "start": 1517087013000,
+      "end": 1517087028000,
+      "state": "errored"
+    },
+    {
+      "id": 4,
+      "instanceId": 1,
+      "parameterValues": {
+        "x": 40,
+        "y": 20
+      },
+      "progress": 70,
+      "start": 1517087013000,
+      "end": -1,
+      "state": "running"
+    },
+    {
+      "id": 5,
+      "instanceId": 1,
+      "parameterValues": {
+        "x": 50,
+        "y": 20
+      },
+      "progress": 40,
+      "start": 1517087013000,
+      "end": -1,
+      "state": "running"
+    },
+    {
+      "id": 6,
+      "instanceId": 1,
+      "parameterValues": {
+        "x": 60,
+        "y": 20
+      },
+      "progress": 15,
+      "start": 1517087013000,
+      "end": -1,
+      "state": "running"
+    },
+    {
+      "id": 7,
+      "instanceId": 1,
+      "parameterValues": {
+        "x": 70,
+        "y": 20
+      },
+      "progress": 20,
+      "start": 1517087013000,
+      "end": -1,
+      "state": "running"
+    },
+    {
+      "id": 8,
+      "instanceId": 1,
+      "parameterValues": {
+        "x": 80,
+        "y": 20
+      },
+      "progress": 0,
+      "start": 1517087013000,
+      "end": -1,
+      "state": "not started"
+    },
+    {
+      "id": 9,
+      "instanceId": 2,
+      "parameterValues": {
+        "x": 80,
+        "y": 20
+      },
+      "progress": 50,
+      "start": 1517087013000,
+      "end": -1,
+      "state": "running"
     }
   ]
 }

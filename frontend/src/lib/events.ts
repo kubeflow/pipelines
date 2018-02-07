@@ -1,4 +1,6 @@
 import Template from '../lib/template';
+import Run from 'src/lib/run';
+import { Instance } from 'src/lib/instance';
 
 export class TemplateClickEvent extends MouseEvent {
   public model: {
@@ -8,7 +10,13 @@ export class TemplateClickEvent extends MouseEvent {
 
 export class InstanceClickEvent extends MouseEvent {
   public model: {
-    instance: Template,
+    instance: Instance,
+  };
+}
+
+export class RunClickEvent extends MouseEvent {
+  public model: {
+    run: Run,
   };
 }
 

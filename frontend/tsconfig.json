@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": "./",
     "experimentalDecorators": true,
-    "lib": [ "es2017", "es6", "es5", "dom" ],
+    "lib": [ "es2017", "es6", "es5", "dom", "dom.iterable" ],
     "module": "commonjs",
     "moduleResolution": "node",
     "noImplicitAny": true,

@@ -1,0 +1,33 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+:host {
+  padding: 30px;
+}
+
+.run {
+  background-color: white;
+  @apply --shadow-elevation-2dp;
+  margin: 20px;
+  padding: 10px;
+}
+
+.run:hover {
+  @apply --shadow-elevation-3dp;
+}
+
+.left, .middle {
+  flex-grow: 1;
+}
+
+.state-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--fg-color);
+}
+
+paper-progress {
+  --paper-progress-active-color: var(--progress-color);
+  --paper-progress-height: 10px;
+  margin: 7px;
+}

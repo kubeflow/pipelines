@@ -2,11 +2,6 @@
   <template>
     <link rel="stylesheet" href="./instance-details.css">
 
-    <paper-button class="back-button" raised on-click="_back">
-      <iron-icon icon="chevron-left"></iron-icon>
-      Back
-    </paper-button>
-
     <div class="instance-name">[[instance.name]]</div>
     <hr>
 
@@ -30,17 +25,35 @@
       <span class="instance-ends">[[instance.ends]]</span>
     </div>
 
-    <template is="dom-repeat" items="[[instance.parameterValues]]" as="param">
-      <div>
-        <span class="string">[[param.name]]</span>
-        <span>[[param.value]]</span>
-      </div>
-    </template>
+    <div>
+      <span class="strong">Parameters</span>
+      <tr>
+        <template is="dom-repeat" items="[[_paramsToArray(instance.parameterValues)]]" as="param">
+          <li>
+            <span class="string">[[param.name]]:</span>
+            <template is="dom-if" if="[[_isSweepParam(param)]]">
+              From: [[param.value.from]], To: [[param.value.to]], Step: [[param.value.step]]
+              <span class="strong">[Sweep]</span>
+            </template>
+            <template is="dom-if" if="[[!_isSweepParam(param)]]">
+              <span>[[param.value]]</span>
+            </template>
+          </li>
+        </template>
+      </tr>
+    </div>
 
     <div>
       <span class="strong">Tags:</span>
       <span class="instance-tags">[[instance.tags]]</span>
     </div>
+
+    <a class="unstyled" href="/runs?instanceId=[[instance.id]]">
+      <paper-button class="runs-button" raised>
+        Instance Runs
+        <iron-icon icon="chevron-right"></iron-icon>
+      </paper-button>
+    </a>
 
   </template>
 </dom-module>

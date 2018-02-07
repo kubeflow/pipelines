@@ -1,0 +1,50 @@
+<dom-module id="run-list">
+  <template>
+    <link rel="stylesheet" href="./run-list.css">[[pageTitle]]
+    <template id="runsRepeatTemplate" is="dom-repeat" items="[[runs]]" as="run">
+      <div class="run flex" on-click="_navigate">
+        <div class="left">
+          <div>
+            <span class="strong run-id">#[[run.id]]</span>
+            <a href="/instances/details/[[run.instanceId]]">(Instance #[[run.instanceId]])</a>
+          </div>
+          <div>
+            <span class="strong">Start Date:</span>
+            <span class="run-starts">[[_dateToString(run.start)]]</span>
+          </div>
+          <div>
+            <span class="strong">End Date:</span>
+            <span class="run-ends">[[_dateToString(run.end)]]</span>
+          </div>
+          <div>
+            <span class="strong">Run time:</span>
+            <span class="run-ends">[[_getRuntime(run.start, run.end, run.state)]]</span>
+          </div>
+        </div>
+        <div class="middle">
+          <div>
+            <span class="strong">Parameters:</span>
+            <tr>
+              <template is="dom-repeat" items="[[_paramsToArray(run.parameterValues)]]" as="param">
+                <li>
+                  <span class="string">[[param.name]]:</span>
+                  <span>[[param.value]]</span>
+                </li>
+              </template>
+            </tr>
+          </div>
+        </div>
+        <div class="right">
+          <div class="flex">
+            <iron-icon class="state-icon" icon=[[_getStateIcon(run.state)]]></iron-icon>
+            <paper-progress value="[[run.progress]]"></paper-progress>
+          </div>
+          <div>
+            <span class="state">[[_getState(run.state)]]</span>
+          </div>
+        </div>
+    </template>
+    </div>
+    </div>
+  </template>
+</dom-module>

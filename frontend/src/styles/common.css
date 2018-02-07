@@ -39,6 +39,10 @@ hr {
   display: inline;
 }
 
+.flex {
+  display: flex;
+}
+
 .strong {
   font-weight: bold;
 }

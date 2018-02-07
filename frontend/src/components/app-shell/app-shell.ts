@@ -8,6 +8,7 @@ import 'paper-styles/paper-styles.html';
 import '../instance-details/instance-details';
 import '../instance-list/instance-list';
 import '../instance-new/instance-new';
+import '../run-list/run-list';
 import '../template-details/template-details';
 import '../template-list/template-list';
 import * as Utils from '../../lib/utils';
@@ -42,14 +43,14 @@ export default class AppShell extends Polymer.Element {
         // If there's only one part, that's the page name. If there's more,
         // the page name is the first two, to allow for things like templates/details
         // and job/details. The rest are the argument to that page.
-        const args = parts.splice(2);
+        const args = parts.splice(2).join('/');
         let pageName = `${parts.join('/')}`;
         // For root '/', return the default page: templates
         if (!pageName) {
           pageName = 'templates';
         }
         const pageEl = this._getPageElement(pageName);
-        pageEl.refresh(args.join('/'));
+        pageEl.refresh(args, (this.route as any).__queryParams);
         this.page = pageName;
       } else {
         Utils.log.error(`Bad path: ${newPath}`)

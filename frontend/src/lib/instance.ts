@@ -1,7 +1,4 @@
-export interface Parameter {
-  name: string;
-  value: string | number;
-}
+import { Parameter } from "src/lib/parameter";
 
 export interface Instance {
   author: string;

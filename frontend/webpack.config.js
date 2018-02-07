@@ -3,7 +3,6 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
-const setupServerMockup = require('./mock-backend/server');
 
 module.exports = {
   entry: {
@@ -74,7 +73,6 @@ module.exports = {
     compress: true,
     overlay: true,
     port: 3000,
-    before: setupServerMockup,
     // Serve index.html for any unrecognized path
     historyApiFallback: true,
   },

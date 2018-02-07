@@ -1,21 +1,28 @@
 import 'polymer/polymer.html';
 
 import 'app-datepicker/app-datepicker-dialog.html';
+import 'iron-icons/iron-icons.html';
 import 'paper-input/paper-input.html';
 
 import * as Apis from '../../lib/apis';
 import PageElement from '../../lib/page_element';
-import { Instance } from '../../lib/instance';
-import { InstanceClickEvent, RouteEvent } from '../../lib/events';
 import { customElement, property } from '../../decorators';
 
 import './instance-new.html';
+import Template from 'src/lib/template';
+
+interface NewInstanceQueryParams {
+  templateId?: string;
+}
 
 @customElement
 export default class InstanceNew extends Polymer.Element implements PageElement {
 
-  @property({ type: Array })
-  public instances: Instance[] = [];
+  @property({ type: String })
+  public instanceId = '';
+
+  @property({ type: Object })
+  public template: Template;
 
   @property({ type: String })
   public startDate = '';
@@ -23,13 +30,14 @@ export default class InstanceNew extends Polymer.Element implements PageElement 
   @property({ type: String })
   public endDate = '';
 
-  public async refresh(_: string) {
-    this.instances = await Apis.getInstances();
-  }
-
-  protected _navigate(ev: InstanceClickEvent) {
-    const index = ev.model.instance.id;
-    this.dispatchEvent(new RouteEvent(`/instances/details/${index}`));
+  public async refresh(_: string, queryParams: NewInstanceQueryParams) {
+    let id = undefined;
+    if (queryParams.templateId) {
+      id = Number.parseInt(queryParams.templateId);
+      if (!isNaN(id)) {
+        this.template = await Apis.getTemplate(id);
+      }
+    }
   }
 
   protected _pickStartDate() {

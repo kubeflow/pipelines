@@ -7,7 +7,6 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 import PageElement from '../../lib/page_element';
 import Template from '../../lib/template';
-import { RouteEvent } from '../../lib/events';
 import { customElement, property } from '../../decorators';
 
 import './template-details.html';
@@ -21,15 +20,11 @@ export default class TemplateDetails extends Polymer.Element implements PageElem
   public async refresh(path: string) {
     if (path !== '') {
       const id = Number.parseInt(path);
-      if (id === NaN) {
+      if (isNaN(id)) {
         Utils.log.error(`Bad template path: ${id}`);
         return;
       }
       this.template = await Apis.getTemplate(id);
     }
-  }
-
-  protected _back() {
-    this.dispatchEvent(new RouteEvent('/templates'));
   }
 }

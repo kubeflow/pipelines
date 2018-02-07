@@ -5,10 +5,15 @@
   padding: 30px;
 }
 
-.back-button {
+.back-button, .runs-button {
   background-color: white;
   margin: 15px 0;
   width: 90px;
+}
+
+.runs-button {
+  float: right;
+  width: 150px;
 }
 
 .instance-name {

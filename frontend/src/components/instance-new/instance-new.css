@@ -10,13 +10,14 @@
 }
 
 paper-input {
-  width: 200px;
+  width: 300px;
 }
 
-#startsContainer, #endsContainer {
-  position: relative;
+paper-icon-button, paper-icon-button {
+  align-self: flex-end;
 }
 
-#datepicker {
-  @apply --shadow-elevation-3dp;
+.template-link {
+  align-self: flex-end;
+  margin: 5px 10px;
 }
