@@ -7,9 +7,12 @@
       <paper-input id="templateId" label="Template">[[templateId]]</paper-input>
       <paper-input id="name" label="Instance Name"></paper-input>
       <paper-input id="description" label="Description"></paper-input>
-      <paper-input id="starts" label="Starts"></paper-input>
-      <app-datepicker-dialog></app-datepicker-dialog>
-      <paper-input id="ends" label="Ends"></paper-input>
+      <div id="startsContainer">
+        <paper-input id="starts" label="Starts" value="[[startDate]]" on-click="_pickStartDate"></paper-input>
+      </div>
+      <div id="endsContainer">
+        <paper-input id="ends" label="Ends" value="[[endDate]]" on-click="_pickEndDate"></paper-input>
+      </div>
       <br>
       <br>
       <div>Parameters:</div>
@@ -19,7 +22,9 @@
           <span>[[param.value]]</span>
         </div>
       </template>
-
     </div>
+    <app-datepicker-dialog modal id="startDatepicker" date="{{startDate}}"></app-datepicker-dialog>
+    <app-datepicker-dialog modal id="endDatepicker" date="{{endDate}}"></app-datepicker-dialog>
+
   </template>
 </dom-module>

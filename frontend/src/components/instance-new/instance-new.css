@@ -12,3 +12,11 @@
 paper-input {
   width: 200px;
 }
+
+#startsContainer, #endsContainer {
+  position: relative;
+}
+
+#datepicker {
+  @apply --shadow-elevation-3dp;
+}

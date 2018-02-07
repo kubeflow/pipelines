@@ -12,3 +12,11 @@ export class log {
     console.error(...args);
   }
 }
+
+export function listenOnce(element: Node, eventName: string, cb: Function) {
+  const listener = (e: Event) => {
+    e.target.removeEventListener(e.type, listener);
+    return cb(e);
+  };
+  element.addEventListener(eventName, listener);
+}
