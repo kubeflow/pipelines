@@ -1,10 +1,10 @@
-export interface SweepValue {
-  from: number;
-  to: number;
-  step: number;
-}
+export type ParameterValue = string | number;
 
 export interface Parameter {
   name: string;
-  value: string | number | SweepValue;
+  isSweep: boolean;
+  value: ParameterValue;
+  from: number;
+  to: number;
+  step: number;
 }

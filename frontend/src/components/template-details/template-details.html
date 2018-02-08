@@ -27,6 +27,18 @@
       <span class="template-tags">[[template.sharedWith]]</span>
     </div>
 
+    <div>
+      <span class="strong">Parameters:</span>
+      <tr>
+        <template is="dom-repeat" items="[[template.parameters]]" as="param">
+          <li>
+            <span class="strong">[[param.name]]:</span>
+            <span>[[param.description]]</span>
+          </li>
+        </template>
+      </tr>
+    </div>
+
     <a class="unstyled" href="/instances/new?templateId=[[template.id]]">
       <paper-button class="configure-button" raised>
         Configure

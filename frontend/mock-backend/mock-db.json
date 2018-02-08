@@ -11,8 +11,14 @@
       "description": "An awesome unstructured text pipeline template.",
       "location": "gcs://pipelines_bucket/structured_text1",
       "parameters": [
-        "x",
-        "y"
+        {
+          "name": "x",
+          "description": "The x parameter description."
+        },
+        {
+          "name": "y",
+          "description": "The y parameter description. This can be very long!"
+        }
       ],
       "sharedWith": "team1"
     },
@@ -27,8 +33,14 @@
       "description": "An awesome image classification pipeline template.",
       "location": "gcs://pipelines_bucket/image_classification1",
       "parameters": [
-        "x",
-        "y"
+        {
+          "name": "x",
+          "description": "The x parameter"
+        },
+        {
+          "name": "y",
+          "description": "The y parameter"
+        }
       ],
       "sharedWith": "team2"
     }
@@ -40,14 +52,19 @@
       "id": 1,
       "name": "Unstructured text experiment 1",
       "templateId": 1,
-      "parameterValues": {
-        "x": 10,
-        "y": {
+      "parameters": [
+        {
+          "name": "x",
+          "value": 10
+        },
+        {
+          "name": "y",
+          "isSweep": true,
           "from": 10,
           "to": 80,
           "step": 10
         }
-      },
+      ],
       "starts": 1517087010898,
       "ends": -1,
       "recurring": false,
@@ -59,10 +76,16 @@
       "id": 2,
       "name": "Unstructured text experiment 1",
       "templateId": 1,
-      "parameterValues": {
-        "x": 10,
-        "y": 20
-      },
+      "parameters": [
+        {
+          "name": "x",
+          "value": 10
+        },
+        {
+          "name": "y",
+          "value": 20
+        }
+      ],
       "starts": 1517087010898,
       "ends": -1,
       "recurring": false,

@@ -9,7 +9,7 @@
         </paper-input>
         <a class="template-link" href="/templates/details/[[template.id]]">Go To Template</a>
       </div>
-      <paper-input id="name" label="Instance Name"></paper-input>
+      <paper-input id="name" label="Instance Name" autofocus></paper-input>
       <paper-input id="description" label="Description"></paper-input>
       <div class="flex">
         <paper-input id="starts" label="Starts" value="[[startDate]]"></paper-input>
@@ -23,16 +23,41 @@
       </div>
       <br>
       <br>
-      <div>Parameters:</div>
-      <template is="dom-repeat" items="[[template.parameterValues]]" as="param">
-        <div>
-          <span class="string">[[param.name]]</span>
-          <span>[[param.value]]</span>
-        </div>
-      </template>
+
+      <div>
+        <span class="strong">Parameters</span>
+        <template is="dom-repeat" items="{{parameterValues}}" as="param">
+          <div>
+            <span class="strong">[[param.name]] |</span> [[param.description]]
+          </div>
+          <div class="flex param-container">
+            <paper-checkbox class="param-checkbox" checked="{{param.isSweep}}">
+              Sweep
+            </paper-checkbox>
+            <template is="dom-if" if="[[param.isSweep]]">
+              From:
+              <paper-input class="param-input" value="{{param.from}}" no-label-float></paper-input>
+              To:
+              <paper-input class="param-input" value="{{param.to}}" no-label-float></paper-input>
+              Step:
+              <paper-input class="param-input" value="{{param.step}}" no-label-float></paper-input>
+            </template>
+            <template is="dom-if" if="[[!param.isSweep]]">
+              Value:
+              <paper-input class="param-input" value="{{param.value}}" no-label-float></paper-input>
+            </template>
+          </div>
+        </template>
+      </div>
+
     </div>
     <app-datepicker-dialog modal id="startDatepicker" date="{{startDate}}"></app-datepicker-dialog>
     <app-datepicker-dialog modal id="endDatepicker" date="{{endDate}}"></app-datepicker-dialog>
+
+    <paper-button class="run-button" raised>
+      Run
+      <iron-icon icon="chevron-right"></iron-icon>
+    </paper-button>
 
   </template>
 </dom-module>

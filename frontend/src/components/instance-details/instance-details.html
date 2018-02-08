@@ -28,14 +28,14 @@
     <div>
       <span class="strong">Parameters</span>
       <tr>
-        <template is="dom-repeat" items="[[_paramsToArray(instance.parameterValues)]]" as="param">
+        <template is="dom-repeat" items="[[instance.parameters]]" as="param">
           <li>
-            <span class="string">[[param.name]]:</span>
-            <template is="dom-if" if="[[_isSweepParam(param)]]">
-              From: [[param.value.from]], To: [[param.value.to]], Step: [[param.value.step]]
+            <span class="strong">[[param.name]]:</span>
+            <template is="dom-if" if="[[param.isSweep]]">
+              From: [[param.from]], To: [[param.to]], Step: [[param.step]]
               <span class="strong">[Sweep]</span>
             </template>
-            <template is="dom-if" if="[[!_isSweepParam(param)]]">
+            <template is="dom-if" if="[[!param.isSweep]]">
               <span>[[param.value]]</span>
             </template>
           </li>

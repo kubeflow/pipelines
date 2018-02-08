@@ -4,6 +4,7 @@ export default interface Template {
   id: number;
   location: string;
   name: string;
+  parameters: { name: string, description: string }[];
   sharedWith: string;
   tags: string[];
 }

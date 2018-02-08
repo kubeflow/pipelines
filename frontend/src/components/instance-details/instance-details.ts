@@ -9,7 +9,6 @@ import { Instance } from '../../lib/instance';
 import { customElement, property } from '../../decorators';
 
 import './instance-details.html';
-import { Parameter } from 'src/lib/parameter';
 
 @customElement
 export default class InstanceDetails extends Polymer.Element implements PageElement {
@@ -29,18 +28,6 @@ export default class InstanceDetails extends Polymer.Element implements PageElem
   }
 
   protected _paramsToArray(paramsObject: { [key: string]: string | number }) {
-    if (!paramsObject) {
-      return [];
-    }
-    return Object.keys(paramsObject).map(k => {
-      return {
-        'name': k,
-        'value': paramsObject[k],
-      };
-    });
-  }
-
-  protected _isSweepParam(param: Parameter) {
-    return Utils.isSweepParameter(param);
+    return Utils.objectToArray(paramsObject);
   }
 }
