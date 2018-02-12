@@ -3,6 +3,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
+const indexServer = require('./mock-backend/index-server');
 
 module.exports = {
   entry: {
@@ -69,10 +70,17 @@ module.exports = {
     new ExtractTextPlugin('styles.css'),
   ],
   devServer: {
+    before: indexServer,
     contentBase: path.join(__dirname),
     compress: true,
     overlay: true,
     port: 3000,
+    proxy: {
+      '/_api': {
+        target: 'http://localhost:3001',
+        pathRewrite: {'^/_api': ''},
+      },
+    },
     // Serve index.html for any unrecognized path
     historyApiFallback: true,
   },

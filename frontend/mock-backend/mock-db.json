@@ -103,7 +103,44 @@
       "progress": 100,
       "start": 1517087013000,
       "end": 1517087015000,
-      "state": "completed"
+      "state": "completed",
+      "steps": [
+        {
+          "name": "Input",
+          "start": 1517087013000,
+          "end": 1517087015000,
+          "state": "completed",
+          "outputs": "/_ftp/1.input"
+        },
+        {
+          "name": "Analysis",
+          "start": 1517087013000,
+          "end": 1517087015000,
+          "state": "completed",
+          "outputs": "/_ftp/2.analysis"
+        },
+        {
+          "name": "Transformation",
+          "start": 1517087013000,
+          "end": 1517087015000,
+          "state": "completed",
+          "outputs": "/_ftp/3.transform"
+        },
+        {
+          "name": "Training",
+          "start": 1517087013000,
+          "end": 1517087015000,
+          "state": "completed",
+          "outputs": "/_ftp/4.train"
+        },
+        {
+          "name": "Evaluation",
+          "start": 1517087013000,
+          "end": 1517087015000,
+          "state": "completed",
+          "outputs": "/_ftp/5.evaluation"
+        }
+      ]
     },
     {
       "id": 2,

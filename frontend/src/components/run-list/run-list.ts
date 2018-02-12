@@ -9,8 +9,8 @@ import 'iron-icons/device-icons.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 import PageElement from '../../lib/page_element';
-import Run from '../../lib/run';
-import { RunClickEvent } from '../../lib/events';
+import { Run } from '../../lib/run';
+import { RunClickEvent, RouteEvent } from '../../lib/events';
 import { customElement, property } from '../../decorators';
 
 import './run-list.html';
@@ -51,20 +51,12 @@ export default class RunList extends Polymer.Element implements PageElement {
   }
 
   protected _navigate(ev: RunClickEvent) {
-    // const index = ev.model.run.id;
-    // this.dispatchEvent(new RouteEvent(`/runs/details/${index}`));
+    const index = ev.model.run.id;
+    this.dispatchEvent(new RouteEvent(`/runs/details/${index}`));
   }
 
-  protected _paramsToArray(paramsObject: { [key: string]: string | number }) {
-    if (!paramsObject) {
-      return [];
-    }
-    return Object.keys(paramsObject).map(k => {
-      return {
-        'name': k,
-        'value': paramsObject[k],
-      };
-    });
+  protected _paramsToArray(paramsObject: {}) {
+    return Utils.objectToArray(paramsObject);
   }
 
   protected _dateToString(date: number) {

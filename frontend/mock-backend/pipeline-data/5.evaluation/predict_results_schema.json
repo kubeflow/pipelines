@@ -1,0 +1,22 @@
+[
+  {
+    "type": "FLOAT", 
+    "name": "ACTION"
+  }, 
+  {
+    "type": "FLOAT", 
+    "name": "NONE"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "predicted"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "target"
+  }, 
+  {
+    "type": "INTEGER", 
+    "name": "unique_key"
+  }
+]

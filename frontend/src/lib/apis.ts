@@ -1,7 +1,8 @@
 import Template from "./template";
 import { Instance } from "./instance";
-import Run from "src/lib/run";
+import { Run } from "src/lib/run";
 import * as config from './config';
+import { FileDescriptor } from "src/components/file-browser/file-browser";
 
 const backendUrl = config.default.api;
 
@@ -54,8 +55,23 @@ export async function getRuns(instanceId?: number): Promise<Run[]> {
 /**
  * Gets the details of a certain pipeline instance run fiven its id.
  */
-export async function getRun(id: number): Promise<Run[]> {
+export async function getRun(id: number): Promise<Run> {
   const response = await fetch(backendUrl + `/runs/${id}`);
-  const runs: Run[] = await response.json();
-  return runs;
+  return await response.json();
+}
+
+/**
+ * List files at a given path from content service.
+ */
+export async function listFiles(path: string): Promise<FileDescriptor[]> {
+  const response = await fetch(path);
+  return await response.json();
+}
+
+/**
+ * Read file from storage using backend.
+ */
+export async function readFile(path: string): Promise<string> {
+  const response = await fetch(path);
+  return await response.text();
 }

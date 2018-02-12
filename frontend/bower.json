@@ -18,6 +18,8 @@
     "paper-input": "PolymerElements/paper-input#^2.1.0",
     "app-datepicker": "motss/app-datepicker#^2.11.2",
     "web-animations-js": "^2.3.1",
-    "paper-progress": "PolymerElements/paper-progress#^2.0.1"
+    "paper-progress": "PolymerElements/paper-progress#^2.0.1",
+    "paper-tabs": "PolymerElements/paper-tabs#^2.0.0",
+    "paper-dialog": "PolymerElements/paper-dialog#^2.0.1"
   }
 }

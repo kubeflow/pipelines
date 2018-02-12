@@ -1,0 +1,108 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+:host {
+  display: flex;
+  flex-flow: column;
+  padding: 30px;
+}
+
+.instance-name {
+  color: var(--fg-color-strong);
+  flex-grow: 1;
+  font-size: var(--font-size-strong);
+  font-weight: bold;
+}
+
+.left-column {
+  min-width: 300px;
+}
+
+.instance-tags {
+  padding: 5px;
+}
+
+.state-icon {
+  color: var(--fg-color);
+  height: 20px;
+  width: 20px;
+}
+
+paper-progress {
+  --paper-progress-active-color: var(--progress-color);
+  --paper-progress-height: 10px;
+  margin: 7px;
+}
+
+paper-tabs {
+  --paper-tab-ink: var(--accent-color);
+  --paper-tabs-selection-bar-color: var(--accent-color);
+  height: 35px;
+  margin-top: 10px;
+}
+
+paper-tab:not(:first-child) {
+  border-left: 1px solid var(--line-color);
+}
+
+file-browser {
+  border: 1px solid #ddd;
+  flex-grow: 1;
+}
+
+.preview-button {
+  align-self: center;
+  margin-top: 10px;
+  width: 100px;
+}
+
+#previewDialog {
+  display: flex;
+  flex-flow: column;
+  max-height: 70vh;
+  max-width: 70vw;
+  min-height: 40vh;
+  min-width: 40vw;
+}
+
+#dialogTitle {
+  margin: 15px;
+  flex: auto 0 0;
+}
+
+#preview {
+  border-bottom: 1px solid var(--line-color);
+  border-top: 1px solid var(--line-color);
+  flex-grow: 1;
+  padding: 20px;
+  max-height: 100%;
+  overflow: auto;
+}
+
+#preview table,
+#preview tr,
+#preview td {
+  border: 1px solid #ddd;
+  padding: 5px;
+  white-space: nowrap;
+}
+
+.dialog-buttons {
+  flex: auto 0 0;
+  margin: 10px;
+  text-align: center;
+}
+
+.json-pretty {
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  line-height: 16px;
+}
+
+.json-key {
+  color: var(--neutral-color);
+}
+
+.json-boolean,
+.json-number {
+  color: var(--accent-color);
+}

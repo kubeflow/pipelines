@@ -49,3 +49,10 @@ export function objectToArray(obj: {}) {
     };
   });
 }
+
+export function getAncestorElementWithClass(element: HTMLElement, className: string) {
+  while (!element.classList.contains(className) && element.parentElement) {
+    element = element.parentElement;
+  }
+  return element;
+}

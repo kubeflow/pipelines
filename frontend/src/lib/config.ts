@@ -1,9 +1,11 @@
 const config = {
   production: {
     api: '',
+    ftp: '',
   },
   dev: {
-    api: 'http://localhost:3001',
+    api: '/_api',
+    ftp: '/_ftp',
   },
 }
 

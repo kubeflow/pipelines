@@ -1,0 +1,52 @@
+[
+  {
+    "type": "INTEGER", 
+    "name": "unique_key", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "category", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "descript", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "pddistrict", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "resolution", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "FLOAT", 
+    "name": "longitude", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "FLOAT", 
+    "name": "latitude", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "hour", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "weekday", 
+    "mode": "NULLABLE"
+  }, 
+  {
+    "type": "STRING", 
+    "name": "day", 
+    "mode": "NULLABLE"
+  }
+]

@@ -14,6 +14,7 @@
 
 .run:hover {
   @apply --shadow-elevation-3dp;
+  cursor: pointer;
 }
 
 .left, .middle {

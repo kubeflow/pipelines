@@ -35,10 +35,3 @@ paper-icon-button, paper-icon-button {
   margin-left: 10px;
   width: 100px;
 }
-
-.run-button {
-  background-color: var(--accent-color);
-  margin: 15px 0;
-  min-width: 90px;
-  color: white;
-}

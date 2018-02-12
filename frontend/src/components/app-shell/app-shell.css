@@ -1,0 +1,17 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+:host {
+  display: flex;
+  flex-flow: column;
+}
+
+iron-pages {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+}
+
+iron-pages .iron-selected {
+  flex-grow: 1;
+}

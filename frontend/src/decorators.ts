@@ -25,3 +25,12 @@ export function property(options: PropertyOptions) {
     };
   };
 }
+
+export function observe(...targets: string[]) {
+  return (proto: any, propName: string): any => {
+    if (!proto.constructor.hasOwnProperty('observers')) {
+      proto.constructor.observers = [];
+    }
+    proto.constructor.observers.push(`${propName}(${targets.join(',')})`);
+  }
+}

@@ -1,0 +1,89 @@
+<dom-module id="run-details">
+  <template>
+    <link rel="stylesheet" href="./run-details.css">
+
+    <div class="flex">
+      <div class="instance-name">[[instance.name]]</div>
+      <div class="right">
+        <div class="flex">
+          <iron-icon class="state-icon" icon=[[_getStateIcon(run.state)]]></iron-icon>
+          <paper-progress id="progress" value="[[run.progress]]"></paper-progress>
+        </div>
+        <div>
+          <span class="state">[[_getState(run.state)]]</span>
+        </div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="flex">
+      <div class="left-column">
+        <div>
+          <span class="strong">Template:</span>
+          <span class="instance-templateId">[[instance.templateId]]</span>
+        </div>
+
+        <div>
+          <span class="strong">Description:</span>
+          <span class="instance-Description">[[instance.description]]</span>
+        </div>
+
+        <div>
+          <span class="strong">Start</span>
+          <span class="run-start">[[run.start]]</span>
+        </div>
+
+        <div>
+          <span class="strong">End</span>
+          <span class="run-end">[[run.end]]</span>
+        </div>
+
+        <div>
+          <span class="strong">Run time</span>
+          <span class="run-end">[[_getRuntime(run.start, run.end, run.state)]]</span>
+        </div>
+      </div>
+
+      <div>
+        <div>
+          <span class="strong">Parameters</span>
+          <tr>
+            <template is="dom-repeat" items="[[_getParameterArray(run.parameterValues)]]" as="param">
+              <li>
+                <span class="strong">[[param.name]]:</span>
+                <span>[[param.value]]</span>
+              </li>
+            </template>
+          </tr>
+        </div>
+
+        <div>
+          <span class="strong">Tags:</span>
+          <span class="instance-tags">[[instance.tags]]</span>
+        </div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="strong">Pipeline Steps:</div>
+    <paper-tabs id="stepTabs" class="no-shrink" on-selected-changed="_stepSelected">
+      <template is="dom-repeat" items="[[run.steps]]" as="step">
+        <paper-tab>[[step.name]]</paper-tab>
+      </template>
+    </paper-tabs>
+    <file-browser id="fileBrowser"></file-browser>
+
+    <paper-button class="action-button preview-button" on-click="_preview">Preview</paper-button>
+
+    <paper-dialog with-backdrop id="previewDialog">
+      <div id="dialogTitle" class="strong"></div>
+      <div id="preview"></div>
+      <div class="dialog-buttons">
+        <paper-button dialog-confirm autofocus>Close</paper-button>
+      </div>
+    </paper-dialog>
+
+  </template>
+</dom-module>

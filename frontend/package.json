@@ -3,10 +3,14 @@
   "version": "0.0.1",
   "description": "Frontend package for ML Pipeline Management",
   "main": "dist/index.html",
-  "dependencies": {},
+  "dependencies": {
+    "d3": "^4.13.0",
+    "json-pretty-html": "^1.0.2"
+  },
   "devDependencies": {
     "@types/assert": "0.0.31",
     "@types/chai": "^4.0.4",
+    "@types/d3": "^4.12.0",
     "@types/mocha": "^2.2.43",
     "@types/sinon": "^2.3.6",
     "bower": "^1.8.2",
@@ -28,7 +32,7 @@
     "webpack-dev-server": "^2.9.1"
   },
   "scripts": {
-    "api": "json-server -w -q mock-backend/mock-db.json --port 3001",
+    "api": "json-server -w -q mock-backend/mock-db.json -p 3001",
     "build": "webpack",
     "dev": "concurrently -k -r \"npm run api\" \"webpack-dev-server\"",
     "postinstall": "bower install",

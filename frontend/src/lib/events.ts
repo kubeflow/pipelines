@@ -1,5 +1,5 @@
-import Template from '../lib/template';
-import Run from 'src/lib/run';
+import Template from 'src/lib/template';
+import { Run } from 'src/lib/run';
 import { Instance } from 'src/lib/instance';
 
 export class TemplateClickEvent extends MouseEvent {
@@ -36,5 +36,11 @@ export class RouteEvent extends CustomEvent {
     });
 
     super(ROUTE_EVENT, eventInit);
+  }
+}
+
+export class TabSelectedEvent extends CustomEvent {
+  public detail: {
+    value: number;
   }
 }

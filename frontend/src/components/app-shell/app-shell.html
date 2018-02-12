@@ -1,7 +1,6 @@
 <dom-module id="app-shell">
   <template>
-    <link rel="stylesheet" href="../../styles/vars.css">
-    <link rel="stylesheet" href="../../styles/common.css">
+    <link rel="stylesheet" href="./app-shell.css">
 
     <!--Router-->
     <app-location route="{{route}}"></app-location>
@@ -11,6 +10,7 @@
       <instance-details path="instances/details"></instance-details>
       <instance-list path="instances"></instance-list>
       <instance-new path="instances/new"></instance-new>
+      <run-details path="runs/details"></run-details>
       <run-list path="runs"></run-list>
       <template-details path="templates/details"></template-details>
       <template-list path="templates"></template-list>

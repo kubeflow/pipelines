@@ -5,16 +5,6 @@
   padding: 30px;
 }
 
-.back-button, .configure-button {
-  background-color: white;
-  margin: 15px 0;
-  min-width: 90px;
-}
-
-.configure-button {
-  float: right;
-}
-
 .template-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);
@@ -23,8 +13,4 @@
 
 .template-location, .template-tags {
   padding: 5px;
-}
-
-hr {
-  margin: 20px 0;
 }

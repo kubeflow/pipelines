@@ -144,7 +144,7 @@ describe('UI tests', function () {
     const configureBtn = await page.evaluateHandle(
       `document.querySelector('app-shell')
        .shadowRoot.querySelector('template-details')
-       .shadowRoot.querySelector('.configure-button')`);
+       .shadowRoot.querySelector('.action-button')`);
     await configureBtn.click();
     await page.waitFor(500);
     await takeScreenshotsAndDiff('configure-template');

@@ -26,8 +26,4 @@ export default class InstanceDetails extends Polymer.Element implements PageElem
       this.instance = await Apis.getInstance(id);
     }
   }
-
-  protected _paramsToArray(paramsObject: { [key: string]: string | number }) {
-    return Utils.objectToArray(paramsObject);
-  }
 }

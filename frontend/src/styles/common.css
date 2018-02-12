@@ -2,16 +2,17 @@
 @import './reset.css';
 @import './vars.css';
 
-body {
+html, body {
+  height: 100%;
   background-color: var(--bg-color);
   color: var(--fg-color);
   font-size: var(--font-size);
 }
 
 hr {
-  margin:0 auto; 
-  border:0px none transparent; 
-  border-top:1px solid var(--line-color);
+  margin: 20px 0; 
+  border: 0px none transparent; 
+  border-top: 1px solid var(--line-color);
 }
 
 /* Custom elements common styling */
@@ -41,6 +42,11 @@ hr {
 
 .flex {
   display: flex;
+  flex-shrink: 0;
+}
+
+.no-shrink {
+  flex-shrink: 0;
 }
 
 .strong {
@@ -49,4 +55,10 @@ hr {
 
 paper-button:hover {
   @apply --shadow-elevation-3dp;
+}
+
+.action-button {
+  background-color: var(--accent-color);
+  color: white;
+  min-width: 90px;
 }

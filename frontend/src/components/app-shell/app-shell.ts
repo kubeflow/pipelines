@@ -8,6 +8,7 @@ import 'paper-styles/paper-styles.html';
 import '../instance-details/instance-details';
 import '../instance-list/instance-list';
 import '../instance-new/instance-new';
+import '../run-details/run-details';
 import '../run-list/run-list';
 import '../template-details/template-details';
 import '../template-list/template-list';

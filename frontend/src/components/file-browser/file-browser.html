@@ -1,0 +1,21 @@
+<dom-module id="file-browser">
+  <template>
+    <link rel="stylesheet" href="./file-browser.css">
+
+    <div class="path">
+      <span class="strong">Path:</span>
+      <template is="dom-repeat" items="[[breadcrumbs]]" as="crumb">
+        /<span class="crumb" on-click="_crumbClicked">[[crumb.name]]</span>
+      </template>
+    </div>
+    <div class="files">
+      <template id="filesDomRepeat" is="dom-repeat" items="[[files]]" as="file">
+        <div class="file" on-click="_fileClicked" on-dblclick="_fileDoubleClicked">
+          <iron-icon class="file-icon" icon="[[file.icon]]"></iron-icon>
+          <span class="file-name">[[file.name]]</spandiv>
+        </div>
+      </template>
+    </div>
+
+  </template>
+</dom-module>
