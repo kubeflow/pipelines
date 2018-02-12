@@ -1,5 +1,4 @@
 import Template from "./template";
-import { Instance } from "./instance";
 import { Run } from "src/lib/run";
 import * as config from './config';
 import { FileDescriptor } from "src/components/file-browser/file-browser";
@@ -24,36 +23,19 @@ export async function getTemplate(id: number): Promise<Template> {
 }
 
 /**
- * Gets a list of the pipeline template instances defined on the backend.
+ * Gets a list of all the pipeline template runs from the backend.
+ * If an template id is specified, only the runs defined with this
+ * template id are returned.
  */
-export async function getInstances(): Promise<Instance[]> {
-  const response = await fetch(backendUrl + '/instances');
-  const instances: Instance[] = await response.json();
-  return instances;
-}
-
-/**
- * Gets the details of a certain template instance given its id.
- */
-export async function getInstance(id: number): Promise<Instance> {
-  const response = await fetch(backendUrl + `/instances/${id}`);
-  return await response.json();
-}
-
-/**
- * Gets a list of all the pipeline instance runs from the backend.
- * If an instance id is specified, only the runs defined with this
- * instance id are returned.
- */
-export async function getRuns(instanceId?: number): Promise<Run[]> {
-  const path = '/runs' + (instanceId !== undefined ? '?instanceId=' + instanceId : '');
+export async function getRuns(templateId?: number): Promise<Run[]> {
+  const path = '/runs' + (templateId !== undefined ? '?templateId=' + templateId : '');
   const response = await fetch(backendUrl + path);
   const runs: Run[] = await response.json();
   return runs;
 }
 
 /**
- * Gets the details of a certain pipeline instance run fiven its id.
+ * Gets the details of a certain pipeline template run fiven its id.
  */
 export async function getRun(id: number): Promise<Run> {
   const response = await fetch(backendUrl + `/runs/${id}`);

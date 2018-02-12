@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="./run-details.css">
 
     <div class="flex">
-      <div class="instance-name">[[instance.name]]</div>
+      <div class="template-name">[[template.name]]</div>
       <div class="right">
         <div class="flex">
           <iron-icon class="state-icon" icon=[[_getStateIcon(run.state)]]></iron-icon>
@@ -21,12 +21,12 @@
       <div class="left-column">
         <div>
           <span class="strong">Template:</span>
-          <span class="instance-templateId">[[instance.templateId]]</span>
+          <span class="template-id">[[template.id]]</span>
         </div>
 
         <div>
           <span class="strong">Description:</span>
-          <span class="instance-Description">[[instance.description]]</span>
+          <span class="run-description">[[run.description]]</span>
         </div>
 
         <div>
@@ -60,7 +60,7 @@
 
         <div>
           <span class="strong">Tags:</span>
-          <span class="instance-tags">[[instance.tags]]</span>
+          <span class="template-tags">[[template.tags]]</span>
         </div>
       </div>
     </div>

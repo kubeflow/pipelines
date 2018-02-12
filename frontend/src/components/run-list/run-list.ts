@@ -23,7 +23,7 @@ const progressCssColors = {
 };
 
 interface RunsQueryParams {
-  instanceId?: string;
+  templateId?: string;
 }
 
 @customElement
@@ -37,15 +37,15 @@ export default class RunList extends Polymer.Element implements PageElement {
 
   public async refresh(_: string, queryParams: RunsQueryParams) {
     let id = undefined;
-    if (queryParams.instanceId) {
-      id = Number.parseInt(queryParams.instanceId);
+    if (queryParams.templateId) {
+      id = Number.parseInt(queryParams.templateId);
       if (isNaN(id)) {
         id = undefined;
       }
     }
     this.runs = await Apis.getRuns(id);
     if (id !== undefined) {
-      this.pageTitle = `Run list for instance ${id}:`;
+      this.pageTitle = `Run list for template ${id}:`;
     }
     this._colorProgressBars();
   }

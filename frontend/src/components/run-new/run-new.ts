@@ -9,19 +9,16 @@ import * as Apis from '../../lib/apis';
 import PageElement from '../../lib/page_element';
 import { customElement, property } from '../../decorators';
 
-import './instance-new.html';
-import Template from 'src/lib/template';
-import { Parameter } from 'src/lib/parameter';
+import './run-new.html';
+import Template from '../../lib/template';
+import { Parameter } from '../../lib/parameter';
 
-interface NewInstanceQueryParams {
+interface NewRunQueryParams {
   templateId?: string;
 }
 
 @customElement
-export default class InstanceNew extends Polymer.Element implements PageElement {
-
-  @property({ type: String })
-  public instanceId = '';
+export default class RunNew extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
   public template: Template;
@@ -35,7 +32,7 @@ export default class InstanceNew extends Polymer.Element implements PageElement 
   @property({ type: Object })
   public parameterValues: Parameter[];
 
-  public async refresh(_: string, queryParams: NewInstanceQueryParams) {
+  public async refresh(_: string, queryParams: NewRunQueryParams) {
     let id = undefined;
     if (queryParams.templateId) {
       id = Number.parseInt(queryParams.templateId);

@@ -7,7 +7,7 @@
   padding: 30px;
 }
 
-.instance-name {
+.template-name {
   color: var(--fg-color-strong);
   flex-grow: 1;
   font-size: var(--font-size-strong);
@@ -18,7 +18,7 @@
   min-width: 300px;
 }
 
-.instance-tags {
+.template-tags {
   padding: 5px;
 }
 

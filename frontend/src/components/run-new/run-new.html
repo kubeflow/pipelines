@@ -1,15 +1,15 @@
-<dom-module id="instance-new">
+<dom-module id="run-new">
   <template>
-    <link rel="stylesheet" href="./instance-new.css">
+    <link rel="stylesheet" href="./run-new.css">
 
-    <div>Configure new pipeline instance:</div>
+    <div>Configure new pipeline run:</div>
     <div class="container">
       <div class="flex">
         <paper-input id="templateId" label="Template" value="[#[[template.id]]] [[template.name]]">
         </paper-input>
         <a class="template-link" href="/templates/details/[[template.id]]">Go To Template</a>
       </div>
-      <paper-input id="name" label="Instance Name" autofocus></paper-input>
+      <paper-input id="name" label="Run Name" autofocus></paper-input>
       <paper-input id="description" label="Description"></paper-input>
       <div class="flex">
         <paper-input id="starts" label="Starts" value="[[startDate]]"></paper-input>

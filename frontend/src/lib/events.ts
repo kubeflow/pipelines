@@ -1,16 +1,9 @@
-import Template from 'src/lib/template';
-import { Run } from 'src/lib/run';
-import { Instance } from 'src/lib/instance';
+import Template from '../lib/template';
+import { Run } from '../lib/run';
 
 export class TemplateClickEvent extends MouseEvent {
   public model: {
     template: Template,
-  };
-}
-
-export class InstanceClickEvent extends MouseEvent {
-  public model: {
-    instance: Instance,
   };
 }
 

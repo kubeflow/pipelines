@@ -16,9 +16,9 @@ import { customElement, property } from '../../decorators';
 import { select as d3select, csvParseRows } from 'd3';
 
 import './run-details.html';
-import { Instance } from '../../lib/instance';
 import { TabSelectedEvent } from 'src/lib/events';
 import FileBrowser from '../file-browser/file-browser';
+import Template from '../../lib/template';
 
 const progressCssColors = {
   completed: '--success-color',
@@ -31,7 +31,7 @@ const progressCssColors = {
 export default class RunDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
-  public instance: Instance | null = null;
+  public template: Template | null = null;
 
   @property({ type: Object })
   public run: Run | null = null;
@@ -44,7 +44,7 @@ export default class RunDetails extends Polymer.Element implements PageElement {
         return;
       }
       this.run = await Apis.getRun(id);
-      this.instance = await Apis.getInstance(this.run.instanceId);
+      this.template = await Apis.getTemplate(this.run.templateId);
 
       (this.$.stepTabs as any).selected = 0;
       this._colorProgressBar();
