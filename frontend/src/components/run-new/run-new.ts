@@ -1,24 +1,24 @@
-import 'polymer/polymer.html';
-
 import 'app-datepicker/app-datepicker-dialog.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-checkbox/paper-checkbox.html';
 import 'paper-input/paper-input.html';
+import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
-import PageElement from '../../lib/page_element';
-import { customElement, property } from '../../decorators';
 
 import './run-new.html';
-import Template from '../../lib/template';
+
+import { customElement, property } from '../../decorators';
+import { PageElement } from '../../lib/page_element';
 import { Parameter } from '../../lib/parameter';
+import { Template } from '../../lib/template';
 
 interface NewRunQueryParams {
   templateId?: string;
 }
 
 @customElement
-export default class RunNew extends Polymer.Element implements PageElement {
+export class RunNew extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
   public template: Template;
@@ -33,13 +33,13 @@ export default class RunNew extends Polymer.Element implements PageElement {
   public parameterValues: Parameter[];
 
   public async refresh(_: string, queryParams: NewRunQueryParams) {
-    let id = undefined;
+    let id;
     if (queryParams.templateId) {
       id = Number.parseInt(queryParams.templateId);
       if (!isNaN(id)) {
         this.template = await Apis.getTemplate(id);
 
-        this.parameterValues = this.template.parameters.map(p => {
+        this.parameterValues = this.template.parameters.map((p) => {
           return {
             description: p.description,
             from: 0,

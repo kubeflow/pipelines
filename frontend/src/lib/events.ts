@@ -1,5 +1,5 @@
-import Template from '../lib/template';
 import { Run } from '../lib/run';
+import { Template } from '../lib/template';
 
 export class TemplateClickEvent extends MouseEvent {
   public model: {
@@ -17,7 +17,7 @@ export const ROUTE_EVENT = 'route';
 export class RouteEvent extends CustomEvent {
   public detail: {
     path: string,
-  }
+  };
   constructor(path: string) {
     const eventInit = {
       bubbles: true,
@@ -35,5 +35,5 @@ export class RouteEvent extends CustomEvent {
 export class TabSelectedEvent extends CustomEvent {
   public detail: {
     value: number;
-  }
+  };
 }

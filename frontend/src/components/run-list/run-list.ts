@@ -1,17 +1,17 @@
 /// <reference path="../../../bower_components/polymer/types/lib/elements/dom-repeat.d.ts" />
 
-import 'polymer/polymer.html';
-
-import 'paper-progress/paper-progress.html';
-import 'iron-icons/iron-icons.html';
 import 'iron-icons/device-icons.html';
+import 'iron-icons/iron-icons.html';
+import 'paper-progress/paper-progress.html';
+import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
-import PageElement from '../../lib/page_element';
-import { Run } from '../../lib/run';
-import { RunClickEvent, RouteEvent } from '../../lib/events';
+
 import { customElement, property } from '../../decorators';
+import { RouteEvent, RunClickEvent } from '../../lib/events';
+import { PageElement } from '../../lib/page_element';
+import { Run } from '../../lib/run';
 
 import './run-list.html';
 
@@ -27,16 +27,16 @@ interface RunsQueryParams {
 }
 
 @customElement
-export default class RunList extends Polymer.Element implements PageElement {
+export class RunList extends Polymer.Element implements PageElement {
 
   @property({ type: Array })
   public runs: Run[] = [];
 
-  @property({type:String})
+  @property({ type: String })
   public pageTitle = 'Run list:';
 
   public async refresh(_: string, queryParams: RunsQueryParams) {
-    let id = undefined;
+    let id;
     if (queryParams.templateId) {
       id = Number.parseInt(queryParams.templateId);
       if (isNaN(id)) {
@@ -68,11 +68,11 @@ export default class RunList extends Polymer.Element implements PageElement {
   }
 
   protected _getStateIcon(state: string) {
-    switch(state) {
+    switch (state) {
       case 'running': return 'device:access-time';
       case 'completed': return 'check';
       case 'not started': return 'sort';
-      case 'errored': return 'error-outline';
+      default: return 'error-outline';
     }
   }
 
@@ -91,7 +91,7 @@ export default class RunList extends Polymer.Element implements PageElement {
     // on its elements here.
     (Polymer.dom as any).flush();
     const runsRepeatTemplate = this.$.runsRepeatTemplate as Polymer.DomRepeat;
-    (this.shadowRoot as ShadowRoot).querySelectorAll('.run').forEach(runEl => {
+    (this.shadowRoot as ShadowRoot).querySelectorAll('.run').forEach((runEl) => {
       const model = runsRepeatTemplate.modelForElement(runEl as HTMLElement);
       let color = '';
       switch ((model as any).run.state) {

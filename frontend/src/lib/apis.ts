@@ -1,9 +1,10 @@
-import Template from "./template";
-import { Run } from "src/lib/run";
-import * as config from './config';
-import { FileDescriptor } from "src/components/file-browser/file-browser";
+import { config } from './config';
 
-const backendUrl = config.default.api;
+import { FileDescriptor } from 'src/components/file-browser/file-browser';
+import { Run } from 'src/lib/run';
+import { Template } from './template';
+
+const backendUrl = config.api;
 
 /**
  * Gets a list of the pipeline templates defined on the backend.

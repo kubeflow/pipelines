@@ -54,7 +54,7 @@ module.exports = {
       },
       {
         test: /\.ts$/,
-        use: 'ts-loader',
+        use: ['ts-loader', 'tslint-loader'],
       },
     ]
   },

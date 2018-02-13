@@ -1,7 +1,7 @@
 export function customElement(clazz: any) {
   const tagName = clazz.name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   Object.defineProperty(clazz, 'is', {
-    get: () => { return tagName; },
+    get: () => tagName,
   });
 
   window.customElements.define(tagName, clazz);
@@ -18,10 +18,10 @@ export function property(options: PropertyOptions) {
       proto.constructor.properties = {};
     }
     proto.constructor.properties[propName] = {
-      type,
       notify: false,
-      reflectToAttribute: false,
       readOnly: false,
+      reflectToAttribute: false,
+      type,
     };
   };
 }
@@ -32,5 +32,5 @@ export function observe(...targets: string[]) {
       proto.constructor.observers = [];
     }
     proto.constructor.observers.push(`${propName}(${targets.join(',')})`);
-  }
+  };
 }

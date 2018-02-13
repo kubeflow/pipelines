@@ -10,15 +10,16 @@ import '../run-list/run-list';
 import '../run-new/run-new';
 import '../template-details/template-details';
 import '../template-list/template-list';
-import * as Utils from '../../lib/utils';
-import PageElement from '../../lib/page_element';
-import { ROUTE_EVENT, RouteEvent } from '../../lib/events';
-import { customElement, property } from '../../decorators';
-
 import './app-shell.html';
 
+import * as Utils from '../../lib/utils';
+
+import { customElement, property } from '../../decorators';
+import { ROUTE_EVENT, RouteEvent } from '../../lib/events';
+import { PageElement } from '../../lib/page_element';
+
 @customElement
-export default class AppShell extends Polymer.Element {
+export class AppShell extends Polymer.Element {
 
   @property({ type: String })
   public page = '';
@@ -52,7 +53,7 @@ export default class AppShell extends Polymer.Element {
         pageEl.refresh(args, (this.route as any).__queryParams);
         this.page = pageName;
       } else {
-        Utils.log.error(`Bad path: ${newPath}`)
+        Utils.log.error(`Bad path: ${newPath}`);
       }
     }
   }

@@ -1,18 +1,18 @@
-import * as Apis from './apis';
 import * as sinon from 'sinon';
+import * as Apis from './apis';
 
 const testTemplates = [{
-  "id": 1,
-  "name": "Unstructured text",
-  "author": "user1",
-  "tags": [
-    "text",
-    "experiment"
+  author: 'user1',
+  description: 'An awesome unstructured text pipeline template.',
+  id: 1,
+  location: 'gcs://pipelines_bucket/structured_text1',
+  name: 'Unstructured text',
+  parameters: ['x', 'y'],
+  sharedWith: 'team1',
+  tags: [
+    'text',
+    'experiment'
   ],
-  "description": "An awesome unstructured text pipeline template.",
-  "location": "gcs://pipelines_bucket/structured_text1",
-  "parameters": ["x", "y"],
-  "sharedWith": "team1"
 }];
 
 describe('My API', () => {

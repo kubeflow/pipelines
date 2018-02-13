@@ -27,12 +27,15 @@
     "puppeteer": "^1.0.0",
     "reflect-metadata": "^0.1.10",
     "ts-loader": "^2.3.7",
+    "tslint": "^5.9.1",
+    "tslint-loader": "^3.5.3",
     "typescript": "2.6.2",
     "webpack": "^3.6.0",
     "webpack-dev-server": "^2.9.1"
   },
   "scripts": {
     "api": "json-server -w -q mock-backend/mock-db.json -p 3001",
+    "lint": "tslint -p tsconfig.json",
     "build": "webpack",
     "dev": "concurrently -k -r \"npm run api\" \"webpack-dev-server\"",
     "postinstall": "bower install",

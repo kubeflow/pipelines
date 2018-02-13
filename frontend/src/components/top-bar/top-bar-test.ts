@@ -1,12 +1,13 @@
 import 'paper-button/paper-button.html';
 import './top-bar-test.html';
-import TopBar from './top-bar';
 
-declare function fixture<T>(element: string): T
+import { TopBar } from './top-bar';
+
+declare function fixture<T>(element: string): T;
 let testElement: TopBar;
 let shadowRoot: ShadowRoot;
 
-describe('top-bar', function () {
+describe('top-bar', () => {
   beforeEach(() => {
     testElement = fixture<TopBar>('testFixture');
     shadowRoot = testElement.shadowRoot as ShadowRoot;

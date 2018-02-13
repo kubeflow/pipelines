@@ -1,12 +1,11 @@
-import 'polymer/polymer.html';
-
-import 'polymer/polymer-element.html';
 import 'paper-button/paper-button.html';
+import 'polymer/polymer-element.html';
+import 'polymer/polymer.html';
 
 import { customElement } from '../../decorators';
 
 import './top-bar.html';
 
 @customElement
-export default class TopBar extends Polymer.Element {
+export class TopBar extends Polymer.Element {
 }

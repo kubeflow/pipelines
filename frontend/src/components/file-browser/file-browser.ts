@@ -1,7 +1,7 @@
-import 'polymer/polymer.html';
-import 'polymer/polymer-element.html';
-import 'iron-icons/iron-icons';
 import 'iron-icons/editor-icons';
+import 'iron-icons/iron-icons';
+import 'polymer/polymer-element.html';
+import 'polymer/polymer.html';
 
 import { customElement, observe, property } from '../../decorators';
 
@@ -39,7 +39,7 @@ interface Breadcrumb {
 }
 
 @customElement
-export default class FileBrowser extends Polymer.Element {
+export class FileBrowser extends Polymer.Element {
 
   @property({ type: String })
   path = '';
@@ -54,22 +54,22 @@ export default class FileBrowser extends Polymer.Element {
   protected async _pathChanged(newPath: string) {
     if (newPath) {
       this.files = await Apis.listFiles(newPath);
-      this.files.forEach(f => {
+      this.files.forEach((f) => {
         f.icon = f.isDirectory ? 'folder' : 'editor:insert-drive-file';
         f.selected = false;
       });
       (Polymer.dom as any).flush();
       (this.shadowRoot as ShadowRoot).querySelectorAll('.file').forEach(
-        e => e.classList.remove('selected'));
+        (e) => e.classList.remove('selected'));
 
-      const parts = this.path.split('/').filter(p => !!p);
+      const parts = this.path.split('/').filter((p) => !!p);
       this.breadcrumbs = [];
       parts.forEach((p, i) => {
         this.breadcrumbs.push({
           name: p,
           path: '/' + parts.slice(0, i + 1).join('/'),
         });
-      })
+      });
     }
   }
 
@@ -100,7 +100,7 @@ export default class FileBrowser extends Polymer.Element {
       this.set(`files.${i}.selected`, false);
     }
     (this.shadowRoot as ShadowRoot).querySelectorAll('.file').forEach(
-      f => f.classList.remove('selected')
+      (f) => f.classList.remove('selected')
     );
   }
 }

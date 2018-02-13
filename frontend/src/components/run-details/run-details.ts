@@ -1,24 +1,25 @@
-import 'polymer/polymer.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
 import 'paper-dialog/paper-dialog.html';
 import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
+import 'polymer/polymer.html';
 
 import '../file-browser/file-browser';
+import './run-details.html';
+
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
-import PageElement from '../../lib/page_element';
+
+import { csvParseRows, select as d3select } from 'd3';
 // @ts-ignore
 import prettyJson from 'json-pretty-html';
-import { Run } from '../../lib/run';
-import { customElement, property } from '../../decorators';
-import { select as d3select, csvParseRows } from 'd3';
-
-import './run-details.html';
 import { TabSelectedEvent } from 'src/lib/events';
-import FileBrowser from '../file-browser/file-browser';
-import Template from '../../lib/template';
+import { customElement, property } from '../../decorators';
+import { PageElement } from '../../lib/page_element';
+import { Run } from '../../lib/run';
+import { Template } from '../../lib/template';
+import { FileBrowser } from '../file-browser/file-browser';
 
 const progressCssColors = {
   completed: '--success-color',
@@ -28,7 +29,7 @@ const progressCssColors = {
 };
 
 @customElement
-export default class RunDetails extends Polymer.Element implements PageElement {
+export class RunDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
   public template: Template | null = null;
@@ -83,7 +84,7 @@ export default class RunDetails extends Polymer.Element implements PageElement {
       case 'running': return 'device:access-time';
       case 'completed': return 'check';
       case 'not started': return 'sort';
-      case 'errored': return 'error-outline';
+      default: return 'error-outline';
     }
   }
 
@@ -99,7 +100,7 @@ export default class RunDetails extends Polymer.Element implements PageElement {
 
   protected async _preview() {
     const browser = this.$.fileBrowser as FileBrowser;
-    const selectedFiles = browser.files.filter(f => f.selected);
+    const selectedFiles = browser.files.filter((f) => f.selected);
     if (selectedFiles.length !== 1) {
       return;
     }
@@ -113,7 +114,7 @@ export default class RunDetails extends Polymer.Element implements PageElement {
     } else if (fileName.endsWith('.txt')) {
       (this.$.preview as HTMLElement).innerText = data;
     } else if (fileName.endsWith('.csv')) {
-      var parsedCSV = csvParseRows(data, (r, i) => {
+      const parsedCSV = csvParseRows(data, (r, i) => {
         if (i < 10) {
           return r;
         }
@@ -121,16 +122,16 @@ export default class RunDetails extends Polymer.Element implements PageElement {
 
       this.$.preview.innerHTML = '';
       await d3select(this.$.preview)
-        .append("table")
+        .append('table')
 
-        .selectAll("tr")
+        .selectAll('tr')
         .data(parsedCSV).enter()
-        .append("tr")
+        .append('tr')
 
-        .selectAll("td")
-        .data(function (d) { return d; }).enter()
-        .append("td")
-        .text(function (d) { return d; });
+        .selectAll('td')
+        .data((d) => d).enter()
+        .append('td')
+        .text((d) => d);
     } else {
       Utils.log.error('No render method can be inferred from file name: ' + fileName);
       return;

@@ -1,15 +1,16 @@
-import 'polymer/polymer.html';
 import 'polymer/polymer-element.html';
+import 'polymer/polymer.html';
 
-import { customElement, property, observe } from '../../decorators';
+import { customElement, observe, property } from '../../decorators';
 
 import './data-plotter.html';
 
 import * as Apis from '../../lib/apis';
-import { select as d3select, csvParseRows } from 'd3';
+
+import { csvParseRows, select as d3select } from 'd3';
 
 @customElement
-export default class DataPlotter extends Polymer.Element {
+export class DataPlotter extends Polymer.Element {
   @property({ type: String })
   filePath = '';
 
@@ -17,19 +18,19 @@ export default class DataPlotter extends Polymer.Element {
   protected async _filePathChanged(newFilePath: string) {
     if (newFilePath) {
       const data = await Apis.readFile(newFilePath);
-      var parsedCSV = csvParseRows(data);
+      const parsedCSV = csvParseRows(data);
 
       d3select(this.$.plot)
-        .append("table")
+        .append('table')
 
-        .selectAll("tr")
+        .selectAll('tr')
         .data(parsedCSV).enter()
-        .append("tr")
+        .append('tr')
 
-        .selectAll("td")
-        .data(function (d) { return d; }).enter()
-        .append("td")
-        .text(function (d) { return d; });
+        .selectAll('td')
+        .data((d) => d).enter()
+        .append('td')
+        .text((d) => d);
     }
   }
 }

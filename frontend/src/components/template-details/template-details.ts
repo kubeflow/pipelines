@@ -1,18 +1,18 @@
-import 'polymer/polymer.html';
-
 import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
+import 'polymer/polymer.html';
+
+import { customElement, property } from '../../decorators';
+import { PageElement } from '../../lib/page_element';
+import { Template } from '../../lib/template';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
-import PageElement from '../../lib/page_element';
-import Template from '../../lib/template';
-import { customElement, property } from '../../decorators';
 
 import './template-details.html';
 
 @customElement
-export default class TemplateDetails extends Polymer.Element implements PageElement {
+export class TemplateDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
   public template: Template | null = null;
