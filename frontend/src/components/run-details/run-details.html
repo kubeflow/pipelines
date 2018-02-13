@@ -67,23 +67,25 @@
 
     <hr>
 
-    <div class="strong">Pipeline Steps:</div>
-    <paper-tabs id="stepTabs" class="no-shrink" on-selected-changed="_stepSelected">
-      <template is="dom-repeat" items="[[run.steps]]" as="step">
-        <paper-tab>[[step.name]]</paper-tab>
-      </template>
-    </paper-tabs>
-    <file-browser id="fileBrowser"></file-browser>
+    <div class="steps" hidden$="[[!run.steps]]">
+      <div class="strong">Pipeline Steps:</div>
+      <paper-tabs id="stepTabs" class="no-shrink" on-selected-changed="_stepSelected">
+        <template is="dom-repeat" items="[[run.steps]]" as="step">
+          <paper-tab>[[step.name]]</paper-tab>
+        </template>
+      </paper-tabs>
+      <file-browser id="fileBrowser"></file-browser>
 
-    <paper-button class="action-button preview-button" on-click="_preview">Preview</paper-button>
+      <paper-button class="action-button preview-button" on-click="_preview">Preview</paper-button>
 
-    <paper-dialog with-backdrop id="previewDialog">
-      <div id="dialogTitle" class="strong"></div>
-      <div id="preview"></div>
-      <div class="dialog-buttons">
-        <paper-button dialog-confirm autofocus>Close</paper-button>
-      </div>
-    </paper-dialog>
+      <paper-dialog with-backdrop id="previewDialog">
+        <div id="dialogTitle" class="strong"></div>
+        <div id="preview"></div>
+        <div class="dialog-buttons">
+          <paper-button dialog-confirm autofocus>Close</paper-button>
+        </div>
+      </paper-dialog>
+    </div>
 
   </template>
 </dom-module>

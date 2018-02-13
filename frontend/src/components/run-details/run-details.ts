@@ -49,19 +49,15 @@ export class RunDetails extends Polymer.Element implements PageElement {
 
       (this.$.stepTabs as any).selected = 0;
       this._colorProgressBar();
+
+      if (this.run.steps) {
+        this._switchToStep(0);
+      }
     }
   }
 
   protected _stepSelected(e: TabSelectedEvent) {
-    if (!this.run) {
-      return;
-    }
-    const step = this.run.steps[e.detail.value];
-    if (!step) {
-      Utils.log.error('Could not retrieve selected step #' + e.detail.value);
-      return;
-    }
-    (this.$.fileBrowser as FileBrowser).path = step.outputs;
+    this._switchToStep(e.detail.value);
   }
 
   protected _getParameterArray(params: {}) {
@@ -162,5 +158,17 @@ export class RunDetails extends Polymer.Element implements PageElement {
     (this.$.progress as any).updateStyles({
       '--paper-progress-active-color': `var(${color})`,
     });
+  }
+
+  private _switchToStep(index: number) {
+    if (!this.run || !this.run.steps) {
+      return;
+    }
+    const step = this.run.steps[index];
+    if (!step) {
+      Utils.log.error('Could not retrieve selected step #' + index);
+      return;
+    }
+    (this.$.fileBrowser as FileBrowser).path = step.outputs;
   }
 }
