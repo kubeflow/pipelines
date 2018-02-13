@@ -19,3 +19,7 @@ package-lock.json
 # UI test outputs
 frontend/test/ui/broken
 
+# IDE
+.idea/
+
+.DS_Store
