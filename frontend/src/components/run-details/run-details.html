@@ -76,15 +76,28 @@
       </paper-tabs>
       <file-browser id="fileBrowser"></file-browser>
 
-      <paper-button class="action-button preview-button" on-click="_preview">Preview</paper-button>
+      <div class="flex action-buttons">
+        <paper-button class="action-button" on-click="_preview">Preview</paper-button>
+        <paper-button class="action-button" on-click="_plot">Plot</paper-button>
+      </div>
 
-      <paper-dialog with-backdrop id="previewDialog">
-        <div id="dialogTitle" class="strong"></div>
-        <div id="preview"></div>
-        <div class="dialog-buttons">
-          <paper-button dialog-confirm autofocus>Close</paper-button>
-        </div>
-      </paper-dialog>
+      <div class="dialogs">
+        <paper-dialog with-backdrop id="previewDialog">
+          <div id="previewTitle" class="strong"></div>
+          <div id="preview"></div>
+          <div class="dialog-buttons">
+            <paper-button dialog-confirm autofocus>Close</paper-button>
+          </div>
+        </paper-dialog>
+
+        <paper-dialog with-backdrop id="plotDialog">
+          <div id="plotTitle" class="strong"></div>
+          <div id="plot"></div>
+          <div class="dialog-buttons">
+            <paper-button dialog-confirm autofocus>Close</paper-button>
+          </div>
+        </paper-dialog>
+      </div>
     </div>
 
   </template>

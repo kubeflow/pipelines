@@ -1,6 +1,11 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
+:host {
+  display: flex;
+  flex-flow: column;
+}
+
 .path {
   padding: 10px;
   background-color: #f3f3f3;
@@ -8,10 +13,10 @@
 }
 
 .crumb {
+  color: var(--selected-color);
   cursor: pointer;
   margin: 5px;
   padding: 3px;
-  color: var(--selected-color);
 }
 
 .crumb:hover {
@@ -21,7 +26,9 @@
 
 .files {
   display: flex;
+  flex-grow: 1;
   flex-wrap: wrap;
+  overflow: auto;
   padding-top: 20px;
 }
 

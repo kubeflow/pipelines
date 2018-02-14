@@ -5,6 +5,7 @@ import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 
+import '../data-plotter/data-plotter';
 import '../file-browser/file-browser';
 import './run-details.html';
 
@@ -19,6 +20,7 @@ import { customElement, property } from '../../decorators';
 import { PageElement } from '../../lib/page_element';
 import { Run } from '../../lib/run';
 import { Template } from '../../lib/template';
+import { DataPlotter } from '../data-plotter/data-plotter';
 import { FileBrowser } from '../file-browser/file-browser';
 
 const progressCssColors = {
@@ -27,6 +29,8 @@ const progressCssColors = {
   notStarted: '',
   running: '--progress-color',
 };
+
+const PREVIEW_LINES_COUNT = 10;
 
 @customElement
 export class RunDetails extends Polymer.Element implements PageElement {
@@ -103,20 +107,19 @@ export class RunDetails extends Polymer.Element implements PageElement {
     const fileName = selectedFiles[0].name;
     const path = browser.path + '/' + fileName;
     const data = await Apis.readFile(path);
+    this.$.preview.innerHTML = '';
 
-    (this.$.dialogTitle as any).innerText = 'Preview for file: ' + path;
+    (this.$.previewTitle as any).innerText = 'Preview for file: ' + path;
     if (fileName.endsWith('.json')) {
       this.$.preview.innerHTML = prettyJson(JSON.parse(data));
     } else if (fileName.endsWith('.txt')) {
       (this.$.preview as HTMLElement).innerText = data;
     } else if (fileName.endsWith('.csv')) {
-      const parsedCSV = csvParseRows(data, (r, i) => {
-        if (i < 10) {
-          return r;
-        }
-      });
+      const parsedCSV = csvParseRows(data);
+      (this.$.previewTitle as any).innerText +=
+        `. Showing ${PREVIEW_LINES_COUNT} out of ${parsedCSV.length} lines`;
+      parsedCSV.splice(PREVIEW_LINES_COUNT);
 
-      this.$.preview.innerHTML = '';
       await d3select(this.$.preview)
         .append('table')
 
@@ -135,6 +138,60 @@ export class RunDetails extends Polymer.Element implements PageElement {
 
     (this.$.previewDialog as any).open();
     (this.$.previewDialog as any).center();
+  }
+
+  protected async _plot() {
+    const browser = this.$.fileBrowser as FileBrowser;
+    const selectedFiles = browser.files.filter((f) => f.selected);
+    if (selectedFiles.length !== 1) {
+      return;
+    }
+    const fileName = selectedFiles[0].name;
+    const path = browser.path + '/' + fileName;
+    this.$.plot.innerHTML = '';
+
+    // TODO(yebrahim): use a better way to get the output type
+    if (fileName === 'confusion_matrix.json') {
+      const data = JSON.parse(await Apis.readFile(path));
+
+      const matrix = data.matrix as number[][];
+      const headers = data.headers as string[];
+
+      // Validate inputs
+      if (!headers || !matrix) {
+        Utils.log.error(
+          'Confusion matrix JSON file should contain both "matrix" and "headers" fields');
+        return;
+      }
+      if (!Array.isArray(headers) || !Array.isArray(matrix) || !Array.isArray(matrix[0])) {
+        Utils.log.error('Both matrix and headers fields should be arrays');
+        return;
+      }
+      if (typeof matrix[0][0] !== 'number' || typeof headers[0] !== 'string') {
+        Utils.log.error('Matrix data should be numeric, headers should be strings');
+        return;
+      }
+
+      const accentColor = getComputedStyle(this).getPropertyValue('--accent-color');
+      const d = new DataPlotter(this.$.plot as HTMLElement);
+      await d.plotConfusionMatrix(data.matrix, data.headers, accentColor);
+
+      (this.$.plotTitle as any).innerText = 'Confusion matrix plot from file: ' + path;
+      (this.$.plotDialog as any).open();
+      (this.$.plotDialog as any).center();
+
+    } else if (fileName === 'roc.csv') {
+      const data = csvParseRows(await Apis.readFile(path));
+      const d = new DataPlotter(this.$.plot as HTMLElement);
+      await d.plotRocCurve(data);
+      (this.$.plotTitle as any).innerText = 'ROC curve from file: ' + path;
+    } else {
+      Utils.log.error('No plot method can be inferred from file name: ' + fileName);
+      return;
+    }
+
+    (this.$.plotDialog as any).open();
+    (this.$.plotDialog as any).center();
   }
 
   private _colorProgressBar() {
