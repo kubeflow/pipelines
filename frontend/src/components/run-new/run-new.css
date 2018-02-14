@@ -6,7 +6,7 @@
 }
 
 .container {
-  background-color: #eee;
+  background-color: var(--bg-color);
 }
 
 paper-input {

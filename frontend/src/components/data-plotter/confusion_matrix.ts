@@ -239,7 +239,7 @@ export function drawStatsTable(container: HTMLElement, data: number[][]) {
     })
     .enter()
     .append('td')
-    .attr('style', 'font-family: Courier') // sets the font style
+    .attr('style', 'font-family: monospace') // sets the font style
     .html((d) => d.value);
 
   return table;

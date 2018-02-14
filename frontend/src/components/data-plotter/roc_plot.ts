@@ -5,6 +5,7 @@ export interface RocOptions {
   height: number;
   margin: number;
   width: number;
+  lineColor: string;
 }
 
 /**
@@ -19,6 +20,7 @@ export function drawROC(container: HTMLElement, config: RocOptions) {
   const margin = config.margin;
   const width = config.width;
   const height = config.height;
+  const lineColor = config.lineColor;
   const svg = d3.select(container)
     .append('svg')
     .attr('width', width + 2 * margin)
@@ -42,7 +44,7 @@ export function drawROC(container: HTMLElement, config: RocOptions) {
     .attr('transform', 'translate(0,' + height + ')')
     .call(d3.axisBottom(x) as any)
     .append('text')
-    .attr('fill', '#000')
+    .attr('fill', lineColor)
     .attr('x', width - margin)
     .attr('y', 35)
     .style('font-size', '12px')
@@ -51,7 +53,7 @@ export function drawROC(container: HTMLElement, config: RocOptions) {
   svg.append('g')
     .call(d3.axisLeft(y) as any)
     .append('text')
-    .attr('fill', '#000')
+    .attr('fill', lineColor)
     .attr('transform', 'rotate(-90)')
     .attr('y', -30)
     .style('font-size', '12px')

@@ -149,6 +149,7 @@ export class RunDetails extends Polymer.Element implements PageElement {
     const fileName = selectedFiles[0].name;
     const path = browser.path + '/' + fileName;
     this.$.plot.innerHTML = '';
+    const lineColor = getComputedStyle(this).getPropertyValue('--fg-color');
 
     // TODO(yebrahim): use a better way to get the output type
     if (fileName === 'confusion_matrix.json') {
@@ -172,9 +173,8 @@ export class RunDetails extends Polymer.Element implements PageElement {
         return;
       }
 
-      const accentColor = getComputedStyle(this).getPropertyValue('--accent-color');
       const d = new DataPlotter(this.$.plot as HTMLElement);
-      await d.plotConfusionMatrix(data.matrix, data.headers, accentColor);
+      await d.plotConfusionMatrix(data.matrix, data.headers, lineColor);
 
       (this.$.plotTitle as any).innerText = 'Confusion matrix plot from file: ' + path;
       (this.$.plotDialog as any).open();
@@ -183,7 +183,7 @@ export class RunDetails extends Polymer.Element implements PageElement {
     } else if (fileName === 'roc.csv') {
       const data = csvParseRows(await Apis.readFile(path));
       const d = new DataPlotter(this.$.plot as HTMLElement);
-      await d.plotRocCurve(data);
+      await d.plotRocCurve(data, lineColor);
       (this.$.plotTitle as any).innerText = 'ROC curve from file: ' + path;
     } else {
       Utils.log.error('No plot method can be inferred from file name: ' + fileName);

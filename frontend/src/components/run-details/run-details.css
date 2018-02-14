@@ -15,6 +15,7 @@
 }
 
 .left-column {
+  margin-right: 30px;
   min-width: 300px;
 }
 
@@ -52,7 +53,7 @@ paper-tab:not(:first-child) {
 }
 
 file-browser {
-  border: 1px solid #ddd;
+  border: 1px solid var(--line-color);
   flex-grow: 1;
 }
 
@@ -72,7 +73,8 @@ file-browser {
 
 #plotTitle, #previewTitle {
   flex: auto 0 0;
-  margin: 15px;
+  margin: 25px;
+  text-align: center;
 }
 
 #preview, #plot {
@@ -87,11 +89,15 @@ file-browser {
 .dialogs tr,
 .dialogs td,
 .dialogs th {
-  border: 1px solid #ddd;
+  border: 1px solid var(--line-color);
   min-width: 75px;
   padding: 5px;
   text-align: center;
   white-space: nowrap;
+}
+
+.dialogs tr:hover {
+  background-color: var(--bg-color);
 }
 
 .dialogs th {
@@ -104,7 +110,7 @@ file-browser {
 
 .axis line, .axis path {
   fill: none;
-  stroke: #000;
+  stroke: var(--fg-color);
 }
 
 .line {
@@ -120,7 +126,7 @@ file-browser {
 }
 
 .json-pretty {
-  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-family: monospace;
   line-height: 16px;
 }
 

@@ -29,10 +29,11 @@ export class DataPlotter {
     });
   }
 
-  public plotRocCurve(data: string[][]) {
+  public plotRocCurve(data: string[][], lineColor = '#000') {
     const rocChartOptions = {
       data,
       height: 350,
+      lineColor,
       margin: 50,
       width: 550,
     };
