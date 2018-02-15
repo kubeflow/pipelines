@@ -102,7 +102,7 @@ describe('UI tests', function () {
     const card = await page.evaluateHandle(
       `document.querySelector('app-shell')
        .shadowRoot.querySelector('run-list')
-       .shadowRoot.querySelector('.container .card')`);
+       .shadowRoot.querySelector('.run')`);
     await card.hover();
     await page.waitFor(500);
     await takeScreenshotsAndDiff('run-card-hover');
@@ -113,7 +113,7 @@ describe('UI tests', function () {
     const card = await page.evaluateHandle(
       `document.querySelector('app-shell')
        .shadowRoot.querySelector('run-list')
-       .shadowRoot.querySelector('.container .card')`);
+       .shadowRoot.querySelector('.run')`);
     await card.click();
     await page.waitFor(500);
     await takeScreenshotsAndDiff('run-details');

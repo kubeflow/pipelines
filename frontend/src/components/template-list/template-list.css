@@ -6,7 +6,7 @@
 }
 
 .container {
-  background-color: #eee;
+  background-color: var(--bg-color);
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -15,9 +15,9 @@
 }
 
 .card {
-  background-color: #fff;
+  background-color: var(--white);
   border-radius: 2px;
-  border: solid 1px #ccc;
+  border: solid 1px var(--line-color-darker);
   height: 250px;
   -webkit-box-shadow: 0 0 5px 0px #ddd;
           box-shadow: 0 0 5px 0px #ddd;

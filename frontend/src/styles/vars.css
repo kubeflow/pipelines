@@ -1,14 +1,18 @@
 :root {
-  --bg-color: #eee;
+  --bg-color: #f6f6f6;
+  --bg-color-darker: #f0f0f0;
   --fg-color: #444;
   --fg-color-strong: black;
   --accent-color: #173e56;
-  --line-color: #ddd;
+  --line-color: #e7e7e7;
+  --line-color-darker: #ddd;
+  --hover-bg-color: #ddd;
   --neutral-color: #777;
   --success-color: #71d271;
   --fail-color: #fb4343;
   --progress-color: #6f97d4;
   --selected-color: #4b82cc;
+  --white: #fff;
 
   --font-size: 14px;
   --font-size-strong: 16px;

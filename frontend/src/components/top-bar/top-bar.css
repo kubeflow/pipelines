@@ -6,7 +6,7 @@
       -ms-flex-align: center;
           align-items: center;
   background-color: var(--accent-color);
-  color: #eee;
+  color: var(--bg-color);
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;

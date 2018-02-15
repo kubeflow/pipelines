@@ -8,20 +8,20 @@
 
 .path {
   padding: 10px;
-  background-color: #f3f3f3;
-  border-bottom: 1px solid #ddd;
+  background-color: var(--bg-color-darker);
+  border-bottom: 1px solid var(--line-color);
 }
 
 .crumb {
   color: var(--selected-color);
   cursor: pointer;
   margin: 5px;
-  padding: 3px;
+  padding: 5px;
 }
 
 .crumb:hover {
   border-radius: 4px;
-  background-color: #ddd;
+  background-color: var(--hover-bg-color);
 }
 
 .files {
