@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/googleprivate/ml/webserver/src/dao"
-	"github.com/googleprivate/ml/webserver/src/util"
+	"github.com/golang/glog"
+	"github.com/googleprivate/ml/apiserver/src/dao"
+	"github.com/googleprivate/ml/apiserver/src/util"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
 )
 
@@ -18,7 +18,7 @@ type APIHandler struct {
 }
 
 func (a APIHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
-	log.Printf("get a list template call")
+	glog.Infof("get apiHandler list template call")
 
 	templates, err := a.templateDao.ListTemplate()
 	if err != nil {
@@ -30,7 +30,7 @@ func (a APIHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (a APIHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
+func (a APIHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
 	template, err := a.templateDao.GetTemplate(vars["template"])
@@ -45,12 +45,12 @@ func (a APIHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
 
 // Creates the restful Container and defines the routes the API will serve
 func CreateRestAPIHandler(clientManager ClientManager) http.Handler {
-	apiHandler := APIHandler {
-		templateDao: dao.NewTemplateDao(clientManager.db),
+	apiHandler := APIHandler{
+		templateDao: clientManager.templateDao,
 	}
 
 	route := mux.NewRouter()
 	route.Path(listTemplates).Methods(http.MethodGet).HandlerFunc(apiHandler.ListTemplates)
-	route.Path(getTemplate).Methods(http.MethodGet).HandlerFunc(apiHandler.GetTemplates)
+	route.Path(getTemplate).Methods(http.MethodGet).HandlerFunc(apiHandler.GetTemplate)
 	return route
 }

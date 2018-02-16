@@ -2,7 +2,7 @@ package dao
 
 import (
 	"errors"
-	"github.com/googleprivate/ml/webserver/src/message"
+	"github.com/googleprivate/ml/apiserver/src/message"
 )
 
 type FakeTemplateDao struct {

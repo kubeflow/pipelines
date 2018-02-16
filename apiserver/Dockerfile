@@ -1,8 +1,9 @@
 FROM golang
 
 ARG GOPATH=/go
-ARG WEBSERVER_HOME=${GOPATH}/src/github.com/googleprivate/ml/webserver
-ARG DBPATH=/go/src/github.com/googleprivate/ml/webserver/db
+ARG APISERVER_HOME=${GOPATH}/src/github.com/googleprivate/ml/apiserver
+ARG DBPATH=${APISERVER_HOME}/db
+ARG BINPATH=${GOPATH}/bin
 
 RUN set -ex \
     && apt-get update -yqq \
@@ -11,25 +12,25 @@ RUN set -ex \
         libsqlite3-dev
 
 
-RUN mkdir -p ${WEBSERVER_HOME}
+RUN mkdir -p ${APISERVER_HOME}
 
-COPY src/ ${WEBSERVER_HOME}/src
-COPY db/ ${WEBSERVER_HOME}/db
-COPY config/ ${WEBSERVER_HOME}/config
-
+COPY src/ ${APISERVER_HOME}/src
+COPY db/ ${APISERVER_HOME}/db
+COPY config/ ${APISERVER_HOME}/config
+COPY entrypoint.sh /script/entrypoint.sh
+RUN chmod -R a+rx /script
 
 RUN export GOPATH=${GOPATH} \
-    && export PATH=${GOPATH}/bin:$PATH \
-    && cd ${WEBSERVER_HOME}/src \
+    && export PATH=${BINPATH}:$PATH \
+    && cd ${APISERVER_HOME}/src \
     && go get ./... \
-    && go build -o /go/bin/webserver *.go
+    && go build -o ${BINPATH}/apiserver *.go
 
 # Initialize sqlite3 db
-RUN sqlite3 {DBPATH}/pipelines.db < {DBPATH}/pipelines.sql
+RUN sqlite3 ${BINPATH}/pipelines.db < ${DBPATH}/pipelines.sql
 
-# Expose webserver port
+# Expose apiserver port
 EXPOSE 8888
 
-# Start the webserver
-CMD webserver --config=/go/src/github.com/googleprivate/ml/webserver/config/config.json
-
+# Start the apiserver
+CMD apiserver --config=/go/src/github.com/googleprivate/ml/apiserver/config/config.json

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
@@ -29,36 +29,36 @@ type Config struct {
 }
 
 func DefaultHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("get a new default request")
+	glog.Infof("get a new default request")
 	w.Write([]byte("Nothing is here. \n"))
 }
 
 func main() {
 	flag.Parse()
 
-	log.Printf("starting web server")
+	glog.Infof("starting web server")
 
 	var config Config
 	if *configPath != "" {
 		b, err := ioutil.ReadFile(*configPath)
 		if err != nil {
-			log.Fatalf("Failed to read config at %s: %v", *configPath, err)
+			glog.Fatalf("Failed to read config at %s: %v", *configPath, err)
 		}
 		if err := json.Unmarshal(b, &config); err != nil {
-			log.Fatalf("Failed to parse config file at %s: %v", *configPath, err)
+			glog.Fatalf("Failed to parse config file at %s: %v", *configPath, err)
 		}
 	}
 
 	router := mux.NewRouter()
 
-	cm := NewClientManager(config)
-	restAPIHandler := CreateRestAPIHandler(cm)
+	clientManager := NewClientManager(config)
+	restAPIHandler := CreateRestAPIHandler(clientManager)
 	router.PathPrefix(apiRouter).Handler(http.StripPrefix(apiRouter, restAPIHandler))
 
 	// TODO: Better exception handling
 	router.HandleFunc("/", DefaultHandler)
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *portFlag), router))
+	glog.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *portFlag), router))
 
-	cm.End()
+	clientManager.End()
 }

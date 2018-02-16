@@ -1,6 +1,6 @@
 {
   "DBConfig": {
     "DriverName": "sqlite3",
-    "DataSourceName": "/go/src/github.com/googleprivate/ml/webserver/db/pipelines.db"
+    "DataSourceName": "/go/bin/pipelines.db"
   }
 }

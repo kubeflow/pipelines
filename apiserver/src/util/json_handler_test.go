@@ -14,8 +14,8 @@ type FooStruct struct {
 
 func TestHandleJSONPayload(t *testing.T) {
 	w := httptest.NewRecorder()
-	f := FooStruct{Foo: "abc", Bar: "def"}
-	HandleJSONPayload(w, f)
+	foo := FooStruct{Foo: "abc", Bar: "def"}
+	HandleJSONPayload(w, foo)
 	if w.Header().Get("Content-Type") != "application/json" {
 		t.Errorf("Response header is not set up correctly")
 	}

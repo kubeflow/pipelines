@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/googleprivate/ml/webserver/src/dao"
+	"github.com/googleprivate/ml/apiserver/src/dao"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -62,7 +62,7 @@ func TestGetTemplate(t *testing.T) {
 
 	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
 	rr := httptest.NewRecorder()
-	handler.GetTemplates(rr, req)
+	handler.GetTemplate(rr, req)
 
 	// Check the status code is what we expect.
 	if status := rr.Code; status != http.StatusOK {
@@ -85,7 +85,7 @@ func TestGetTemplateReturnError(t *testing.T) {
 
 	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
 	rr := httptest.NewRecorder()
-	handler.GetTemplates(rr, req)
+	handler.GetTemplate(rr, req)
 
 	// Check the status code is what we expect.
 	if status := rr.Code; status != http.StatusInternalServerError {

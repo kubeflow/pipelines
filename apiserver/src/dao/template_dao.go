@@ -3,8 +3,8 @@ package dao
 import (
 	"database/sql"
 	"errors"
-	"github.com/googleprivate/ml/webserver/src/message"
-	"github.com/googleprivate/ml/webserver/src/util"
+	"github.com/googleprivate/ml/apiserver/src/message"
+	"github.com/googleprivate/ml/apiserver/src/util"
 )
 
 type TemplateDaoInterface interface {
