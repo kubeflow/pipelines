@@ -45,7 +45,7 @@ func (a APIHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
 
 // Creates the restful Container and defines the routes the API will serve
 func CreateRestAPIHandler(clientManager ClientManager) http.Handler {
-	apiHandler := APIHandler{
+	apiHandler := APIHandler {
 		templateDao: dao.NewTemplateDao(clientManager.db),
 	}
 

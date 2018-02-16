@@ -28,6 +28,6 @@ func TestHandleJSONPayloadErr(t *testing.T) {
 	w := httptest.NewRecorder()
 	HandleJSONPayload(w, math.Inf(1))
 	if w.Code != http.StatusInternalServerError {
-		t.Errorf("Response status is not set up correctly. Expecting an internal server erorr")
+		t.Errorf("Response status is not set up correctly. Expecting an internal server error")
 	}
 }

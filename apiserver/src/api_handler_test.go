@@ -1,40 +1,15 @@
 package main
 
 import (
-	"github.com/googleprivate/ml/webserver/src/message"
+	"github.com/googleprivate/ml/webserver/src/dao"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"errors"
 )
-
-type FakeTemplateDao struct {
-}
-
-func (dao *FakeTemplateDao) ListTemplate() ([]message.Template, error) {
-	templates := []message.Template{{Id: 123, Description: "first description"}, {Id: 456, Description: "second description"}}
-	return templates, nil
-}
-
-func (dao *FakeTemplateDao) GetTemplate(templateId string) (message.Template, error) {
-	template := message.Template{Id: 123, Description: "first description"}
-	return template, nil
-}
-
-type FakeBadTemplateDao struct {
-}
-
-func (dao *FakeBadTemplateDao ) ListTemplate() ([]message.Template, error) {
-	return nil, errors.New("there is no template here")
-}
-
-func (dao *FakeBadTemplateDao ) GetTemplate(templateId string) (message.Template, error) {
-	return message.Template{}, errors.New("there is no template here")
-}
 
 func TestListTemplate(t *testing.T) {
 	handler := &APIHandler{
-		templateDao: &FakeTemplateDao{},
+		templateDao: &dao.FakeTemplateDao{},
 	}
 	req, err := http.NewRequest("GET", "/templates", nil)
 	if err != nil {
@@ -58,7 +33,7 @@ func TestListTemplate(t *testing.T) {
 func TestListTemplateReturnError(t *testing.T) {
 
 	handler := &APIHandler{
-		templateDao: &FakeBadTemplateDao{},
+		templateDao: &dao.FakeBadTemplateDao{},
 	}
 	req, err := http.NewRequest("GET", "/templates", nil)
 	if err != nil {
@@ -78,7 +53,7 @@ func TestListTemplateReturnError(t *testing.T) {
 
 func TestGetTemplate(t *testing.T) {
 	handler := &APIHandler{
-		templateDao: &FakeTemplateDao{},
+		templateDao: &dao.FakeTemplateDao{},
 	}
 	req, err := http.NewRequest("GET", "/templates/123", nil)
 	if err != nil {
@@ -101,7 +76,7 @@ func TestGetTemplate(t *testing.T) {
 
 func TestGetTemplateReturnError(t *testing.T) {
 	handler := &APIHandler{
-		templateDao: &FakeBadTemplateDao{},
+		templateDao: &dao.FakeBadTemplateDao{},
 	}
 	req, err := http.NewRequest("GET", "/templates/123", nil)
 	if err != nil {

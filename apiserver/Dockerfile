@@ -2,6 +2,7 @@ FROM golang
 
 ARG GOPATH=/go
 ARG WEBSERVER_HOME=${GOPATH}/src/github.com/googleprivate/ml/webserver
+ARG DBPATH=/go/src/github.com/googleprivate/ml/webserver/db
 
 RUN set -ex \
     && apt-get update -yqq \
@@ -23,5 +24,12 @@ RUN export GOPATH=${GOPATH} \
     && go get ./... \
     && go build -o /go/bin/webserver *.go
 
+# Initialize sqlite3 db
+RUN sqlite3 {DBPATH}/pipelines.db < {DBPATH}/pipelines.sql
+
 # Expose webserver port
 EXPOSE 8888
+
+# Start the webserver
+CMD webserver --config=/go/src/github.com/googleprivate/ml/webserver/config/config.json
+

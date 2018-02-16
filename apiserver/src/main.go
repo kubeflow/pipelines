@@ -55,7 +55,7 @@ func main() {
 	restAPIHandler := CreateRestAPIHandler(cm)
 	router.PathPrefix(apiRouter).Handler(http.StripPrefix(apiRouter, restAPIHandler))
 
-	// TODO: Static contents.
+	// TODO: Better exception handling
 	router.HandleFunc("/", DefaultHandler)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *portFlag), router))
