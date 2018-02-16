@@ -19,6 +19,9 @@ package-lock.json
 # UI test outputs
 frontend/test/ui/broken
 
+# sqlite db
+*.db
+
 # IDE
 .idea/
 
