@@ -45,11 +45,54 @@
       "sharedWith": "team2"
     }
   ],
+  "instances": [
+    {
+      "author": "user1",
+      "description": "Try 10 for x",
+      "id": 1,
+      "name": "Unstructured text experiment 1",
+      "templateId": 1,
+      "parameterValues": [
+        {
+          "name": "x",
+          "value": 10
+        },
+        {
+          "name": "y",
+          "value": 20
+        }
+      ],
+      "starts": 1517087010898,
+      "ends": -1,
+      "recurring": false,
+      "tags": []
+    },
+    {
+      "author": "user1",
+      "description": "Try 10 and 20 for parameters",
+      "id": 2,
+      "name": "Unstructured text experiment 1",
+      "templateId": 1,
+      "parameterValues": [
+        {
+          "name": "x",
+          "value": 10
+        },
+        {
+          "name": "y",
+          "value": 20
+        }
+      ],
+      "starts": 1517087010898,
+      "ends": -1,
+      "recurring": false,
+      "tags": []
+    }
+  ],
   "runs": [
     {
       "id": 1,
-      "description": "try 20 and 20 for x and y values",
-      "templateId": 1,
+      "instanceId": 1,
       "parameterValues": {
         "x": 10,
         "y": 20
@@ -98,8 +141,7 @@
     },
     {
       "id": 2,
-      "description": "try 20 and 20 for x and y values",
-      "templateId": 1,
+      "instanceId": 1,
       "parameterValues": {
         "x": 20,
         "y": 20
@@ -111,8 +153,7 @@
     },
     {
       "id": 3,
-      "description": "try 20 and 20 for x and y values",
-      "templateId": 1,
+      "instanceId": 1,
       "parameterValues": {
         "x": 30,
         "y": 20
@@ -124,8 +165,7 @@
     },
     {
       "id": 4,
-      "description": "try 20 and 20 for x and y values",
-      "templateId": 1,
+      "instanceId": 1,
       "parameterValues": {
         "x": 40,
         "y": 20
@@ -137,8 +177,7 @@
     },
     {
       "id": 5,
-      "description": "try 20 and 20 for x and y values",
-      "templateId": 1,
+      "instanceId": 1,
       "parameterValues": {
         "x": 50,
         "y": 20
@@ -150,8 +189,7 @@
     },
     {
       "id": 6,
-      "description": "try 20 and 20 for x and y values",
-      "templateId": 1,
+      "instanceId": 1,
       "parameterValues": {
         "x": 60,
         "y": 20
@@ -163,8 +201,7 @@
     },
     {
       "id": 7,
-      "description": "try 20 and 20 for x and y values",
-      "templateId": 1,
+      "instanceId": 1,
       "parameterValues": {
         "x": 70,
         "y": 20
@@ -176,8 +213,7 @@
     },
     {
       "id": 8,
-      "description": "try 20 and 20 for x and y values",
-      "templateId": 1,
+      "instanceId": 1,
       "parameterValues": {
         "x": 80,
         "y": 20
@@ -189,19 +225,7 @@
     },
     {
       "id": 9,
-      "templateId": 2,
-      "parameterValues": {
-        "x": 80,
-        "y": 20
-      },
-      "progress": 50,
-      "start": 1517087013000,
-      "end": -1,
-      "state": "running"
-    },
-    {
-      "id": 10,
-      "templateId": 2,
+      "instanceId": 2,
       "parameterValues": {
         "x": 80,
         "y": 20

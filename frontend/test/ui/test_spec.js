@@ -74,49 +74,49 @@ describe('UI tests', function () {
     await takeScreenshotsAndDiff('templates');
   });
 
-  it('can interact with runs button with hover', async () => {
+  it('can interact with instances button with hover', async () => {
     await waitForCustomElement(page, 'top-bar');
-    const runsBtn = await page.evaluateHandle(`
-      document.querySelector('top-bar').$.runsBtn`);
+    const instancesBtn = await page.evaluateHandle(`
+      document.querySelector('top-bar').$.instancesBtn`);
       
-    await runsBtn.hover();
+    await instancesBtn.hover();
     await page.waitFor(500); // wait for hover effect (0.3s)
-    await takeScreenshotsAndDiff('runsBtn-hover');
+    await takeScreenshotsAndDiff('instancesBtn-hover');
   });
 
-  it('loads runs page when its button is clicked', async () => {
+  it('loads instances page when its button is clicked', async () => {
     await waitForCustomElement(page, 'top-bar');
-    const runsBtn = await page.evaluateHandle(`
-      document.querySelector('top-bar').$.runsBtn`);
+    const instancesBtn = await page.evaluateHandle(`
+      document.querySelector('top-bar').$.instancesBtn`);
       
-    await runsBtn.click();
+    await instancesBtn.click();
     await page.waitForFunction(
       `document.querySelector('app-shell')
-       .shadowRoot.querySelector('run-list')`);
+       .shadowRoot.querySelector('instance-list')`);
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('runs');
+    await takeScreenshotsAndDiff('instances');
   });
 
-  it('can interact with runs page cards', async () => {
+  it('can interact with instance page cards', async () => {
     await waitForCustomElement(page, 'top-bar');
     const card = await page.evaluateHandle(
       `document.querySelector('app-shell')
-       .shadowRoot.querySelector('run-list')
-       .shadowRoot.querySelector('.run')`);
+       .shadowRoot.querySelector('instance-list')
+       .shadowRoot.querySelector('.container .card')`);
     await card.hover();
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('run-card-hover');
+    await takeScreenshotsAndDiff('instance-card-hover');
   });
 
-  it('loads run details of the clicked run card', async () => {
+  it('loads instance details of the clicked instance card', async () => {
     await waitForCustomElement(page, 'top-bar');
     const card = await page.evaluateHandle(
       `document.querySelector('app-shell')
-       .shadowRoot.querySelector('run-list')
-       .shadowRoot.querySelector('.run')`);
+       .shadowRoot.querySelector('instance-list')
+       .shadowRoot.querySelector('.container .card')`);
     await card.click();
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('run-details');
+    await takeScreenshotsAndDiff('instance-details');
   });
 
   it('navigates back to templates if the topbar logo is clicked', async () => {

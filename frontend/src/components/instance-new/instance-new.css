@@ -5,10 +5,6 @@
   padding: 30px;
 }
 
-.container {
-  background-color: var(--bg-color);
-}
-
 paper-input {
   width: 300px;
 }
@@ -19,19 +15,20 @@ paper-icon-button, paper-icon-button {
 
 .template-link {
   align-self: flex-end;
-  margin: 5px 10px;
+  margin: 6px 10px;
 }
 
-.param-container {
-  align-items: center;
-}
-
-.param-checkbox {
-  margin-right: 15px;
-  --paper-checkbox-unchecked-color: var(--neutral-color);
+.param-name {
+  height: 42px;
+  padding: 20px 0;
 }
 
 .param-input {
   margin-left: 10px;
   width: 100px;
+}
+
+.param-description {
+  max-width: 60%;
+  padding: 20px;
 }

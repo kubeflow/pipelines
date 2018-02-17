@@ -1,0 +1,12 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+:host {
+  padding: 30px;
+}
+
+.instance-name {
+  color: var(--fg-color-strong);
+  font-size: var(--font-size-strong);
+  font-weight: bold;
+}

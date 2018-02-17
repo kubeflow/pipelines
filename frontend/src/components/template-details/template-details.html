@@ -3,8 +3,6 @@
     <link rel="stylesheet" href="./template-details.css">
 
     <div class="template-name">[[template.name]]</div>
-    <a href="/runs?templateId=[[template.id]]">
-      See all runs for this template
     </a>
     <hr>
 
@@ -44,7 +42,7 @@
 
     <hr>
 
-    <a class="unstyled" href="/runs/new?templateId=[[template.id]]">
+    <a class="unstyled" href="/instances/new?templateId=[[template.id]]">
       <paper-button class="action-button" raised>
         Configure
         <iron-icon icon="chevron-right"></iron-icon>

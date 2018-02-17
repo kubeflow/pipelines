@@ -5,23 +5,22 @@ import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 
-import '../data-plotter/data-plotter';
-import '../file-browser/file-browser';
-import './run-details.html';
-
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { csvParseRows, select as d3select } from 'd3';
 // @ts-ignore
 import prettyJson from 'json-pretty-html';
-import { TabSelectedEvent } from 'src/lib/events';
 import { customElement, property } from '../../decorators';
+import { TabSelectedEvent } from '../../lib/events';
+import { Instance } from '../../lib/instance';
 import { PageElement } from '../../lib/page_element';
 import { Run } from '../../lib/run';
-import { Template } from '../../lib/template';
 import { DataPlotter } from '../data-plotter/data-plotter';
 import { FileBrowser } from '../file-browser/file-browser';
+
+import '../file-browser/file-browser';
+import './run-details.html';
 
 const progressCssColors = {
   completed: '--success-color',
@@ -36,7 +35,7 @@ const PREVIEW_LINES_COUNT = 10;
 export class RunDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
-  public template: Template | null = null;
+  public instance: Instance | null = null;
 
   @property({ type: Object })
   public run: Run | null = null;
@@ -49,7 +48,7 @@ export class RunDetails extends Polymer.Element implements PageElement {
         return;
       }
       this.run = await Apis.getRun(id);
-      this.template = await Apis.getTemplate(this.run.templateId);
+      this.instance = await Apis.getInstance(this.run.instanceId);
 
       (this.$.stepTabs as any).selected = 0;
       this._colorProgressBar();
