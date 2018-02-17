@@ -7,7 +7,7 @@
   padding: 30px;
 }
 
-.template-name {
+.instance-name {
   color: var(--fg-color-strong);
   flex-grow: 1;
   font-size: var(--font-size-strong);
@@ -17,10 +17,6 @@
 .left-column {
   margin-right: 30px;
   min-width: 300px;
-}
-
-.template-tags {
-  padding: 5px;
 }
 
 .state-icon {

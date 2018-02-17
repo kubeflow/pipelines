@@ -1,0 +1,48 @@
+<dom-module id="instance-new">
+  <template>
+    <link rel="stylesheet" href="./instance-new.css">
+
+    <div>Configure new pipeline instance:</div>
+    <div class="flex">
+      <paper-input id="templateId" label="Template" value="[#[[template.id]]] [[template.name]]">
+      </paper-input>
+      <a class="template-link" href="/templates/details/[[template.id]]">Go To Template</a>
+    </div>
+    <paper-input id="name" label="Instance Name" autofocus></paper-input>
+    <paper-input id="description" label="Description"></paper-input>
+    <div class="flex">
+      <paper-input id="starts" label="Starts" value="[[startDate]]"></paper-input>
+      <paper-icon-button icon="date-range" on-click="_pickStartDate" tabindex="-1">
+      </paper-icon-button>
+    </div>
+    <div class="flex">
+      <paper-input id="ends" label="Ends" value="[[endDate]]"></paper-input>
+      <paper-icon-button icon="date-range" on-click="_pickEndDate" tabindex="-1">
+      </paper-icon-button>
+    </div>
+    <br>
+    <br>
+
+    <div>
+      <span class="strong">Parameters</span>
+      <template is="dom-repeat" items="{{parameters}}" as="param">
+        <div class="flex param-container">
+          <span class="strong param-name">[[param.name]]: </span>
+          <paper-input class="param-input" value="{{param.value}}" no-label-float></paper-input>
+          <span class="param-description">[[param.description]]</span>
+        </div>
+      </template>
+    </div>
+
+    <app-datepicker-dialog modal id="startDatepicker" date="{{startDate}}"></app-datepicker-dialog>
+    <app-datepicker-dialog modal id="endDatepicker" date="{{endDate}}"></app-datepicker-dialog>
+
+    <hr>
+
+    <paper-button class="action-button" raised>
+      Run
+      <iron-icon icon="chevron-right"></iron-icon>
+    </paper-button>
+
+  </template>
+</dom-module>

@@ -1,0 +1,28 @@
+<dom-module id="instance-list">
+  <template>
+    <link rel="stylesheet" href="./instance-list.css">
+
+    Available pipeline template instances:
+    <div class="container">
+      <template is="dom-repeat" items="[[instances]]" as="instance">
+        <div class="card" on-click="_navigate">
+          <div class="instance-name ellipsis">[[instance.name]]</div>
+          <hr>
+          <div>
+            <span class="strong">Description: </span>
+            <span class="ellipsis">[[instance.description]]</span>
+          </div>
+          <div>
+            <span class="strong">Starts: </span>[[instance.starts]]
+          </div>
+          <div>
+            <span class="strong">Ends: </span>[[instance.ends]]
+          </div>
+          <div>
+            <span class="strong">Tags: </span>[[instance.tags]]
+          </div>
+        </div>
+      </template>
+    </div>
+  </template>
+</dom-module>

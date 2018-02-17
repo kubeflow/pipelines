@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="./run-details.css">
 
     <div class="flex">
-      <div class="template-name">[[template.name]]</div>
+      <div class="instance-name">[[instance.name]]</div>
       <div class="right">
         <div class="flex">
           <iron-icon class="state-icon" icon=[[_getStateIcon(run.state)]]></iron-icon>
@@ -20,28 +20,23 @@
     <div class="flex">
       <div class="left-column">
         <div>
-          <span class="strong">Template:</span>
-          <span class="template-id">[[template.id]]</span>
+          <span class="strong">Template: </span>[[instance.templateId]]
         </div>
 
         <div>
-          <span class="strong">Description:</span>
-          <span class="run-description">[[run.description]]</span>
+          <span class="strong">Description: </span>[[instance.description]]
         </div>
 
         <div>
-          <span class="strong">Start</span>
-          <span class="run-start">[[run.start]]</span>
+          <span class="strong">Start: </span>[[run.start]]
         </div>
 
         <div>
-          <span class="strong">End</span>
-          <span class="run-end">[[run.end]]</span>
+          <span class="strong">End: </span>[[run.end]]
         </div>
 
         <div>
-          <span class="strong">Run time</span>
-          <span class="run-end">[[_getRuntime(run.start, run.end, run.state)]]</span>
+          <span class="strong">Run time: </span>[[_getRuntime(run.start, run.end, run.state)]]
         </div>
       </div>
 
@@ -49,18 +44,16 @@
         <div>
           <span class="strong">Parameters</span>
           <tr>
-            <template is="dom-repeat" items="[[_getParameterArray(run.parameterValues)]]" as="param">
+            <template is="dom-repeat" items="[[instance.parameterValues]]" as="param">
               <li>
-                <span class="strong">[[param.name]]:</span>
-                <span>[[param.value]]</span>
+                <span class="strong">[[param.name]]:</span>[[param.value]]
               </li>
             </template>
           </tr>
         </div>
 
         <div>
-          <span class="strong">Tags:</span>
-          <span class="template-tags">[[template.tags]]</span>
+          <span class="strong">Tags: </span>[[instance.tags]]
         </div>
       </div>
     </div>
