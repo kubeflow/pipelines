@@ -1,6 +1,6 @@
 {
   "DBConfig": {
     "DriverName": "sqlite3",
-    "DataSourceName": "/go/bin/pipelines.db"
+    "DataSourceName": "/bin/pipelines.db"
   }
 }

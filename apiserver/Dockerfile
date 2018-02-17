@@ -3,7 +3,7 @@ FROM golang
 ARG GOPATH=/go
 ARG APISERVER_HOME=${GOPATH}/src/github.com/googleprivate/ml/apiserver
 ARG DBPATH=${APISERVER_HOME}/db
-ARG BINPATH=${GOPATH}/bin
+ARG BINPATH=/bin
 
 RUN set -ex \
     && apt-get update -yqq \
@@ -17,13 +17,13 @@ RUN mkdir -p ${APISERVER_HOME}
 COPY src/ ${APISERVER_HOME}/src
 COPY db/ ${APISERVER_HOME}/db
 COPY config/ ${APISERVER_HOME}/config
-COPY entrypoint.sh /script/entrypoint.sh
-RUN chmod -R a+rx /script
 
 RUN export GOPATH=${GOPATH} \
     && export PATH=${BINPATH}:$PATH \
     && cd ${APISERVER_HOME}/src \
     && go get ./... \
+    # previous command doesn't automatically pick this lib up
+    && go get github.com/iris-contrib/httpexpect \
     && go build -o ${BINPATH}/apiserver *.go
 
 # Initialize sqlite3 db
@@ -34,3 +34,4 @@ EXPOSE 8888
 
 # Start the apiserver
 CMD apiserver --config=/go/src/github.com/googleprivate/ml/apiserver/config/config.json
+

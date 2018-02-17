@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/golang/glog"
-	"github.com/gorilla/mux"
 	"io/ioutil"
-	"net/http"
+
+	"github.com/golang/glog"
+	"github.com/kataras/iris"
 )
 
 const (
-	apiRouter = "/api"
+	apiRouterPrefix = "/apis/v1alpha1"
 )
 
 var (
@@ -28,16 +28,20 @@ type Config struct {
 	DBConfig DBConfig
 }
 
-func DefaultHandler(w http.ResponseWriter, r *http.Request) {
-	glog.Infof("get a new default request")
-	w.Write([]byte("Nothing is here. \n"))
-}
-
 func main() {
 	flag.Parse()
-
 	glog.Infof("starting web server")
 
+	config := getConfig()
+	clientManager := NewClientManager(config)
+
+	app := newApp(clientManager)
+	app.Run(iris.Addr(fmt.Sprintf(":%d", *portFlag)), iris.WithOptimizations)
+
+	clientManager.End()
+}
+
+func getConfig() Config {
 	var config Config
 	if *configPath != "" {
 		b, err := ioutil.ReadFile(*configPath)
@@ -48,17 +52,5 @@ func main() {
 			glog.Fatalf("Failed to parse config file at %s: %v", *configPath, err)
 		}
 	}
-
-	router := mux.NewRouter()
-
-	clientManager := NewClientManager(config)
-	restAPIHandler := CreateRestAPIHandler(clientManager)
-	router.PathPrefix(apiRouter).Handler(http.StripPrefix(apiRouter, restAPIHandler))
-
-	// TODO: Better exception handling
-	router.HandleFunc("/", DefaultHandler)
-
-	glog.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *portFlag), router))
-
-	clientManager.End()
+	return config
 }

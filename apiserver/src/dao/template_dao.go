@@ -3,6 +3,7 @@ package dao
 import (
 	"database/sql"
 	"errors"
+
 	"github.com/googleprivate/ml/apiserver/src/message"
 	"github.com/googleprivate/ml/apiserver/src/util"
 )

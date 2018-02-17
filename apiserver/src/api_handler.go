@@ -1,56 +1,65 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/apiserver/src/dao"
-	"github.com/googleprivate/ml/apiserver/src/util"
-	"github.com/gorilla/mux"
-	"net/http"
+	"github.com/kataras/iris"
 )
 
 const (
 	listTemplates = "/templates"
-	getTemplate   = "/templates/{template}"
+	getTemplate   = "/templates/{id:string}"
 )
 
 type APIHandler struct {
 	templateDao dao.TemplateDaoInterface
 }
 
-func (a APIHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
-	glog.Infof("get apiHandler list template call")
+func (a APIHandler) ListTemplates(ctx iris.Context) {
+	glog.Infof("List template called")
 
 	templates, err := a.templateDao.ListTemplate()
 	if err != nil {
-		util.HandleError(w, err)
+		ctx.StatusCode(http.StatusInternalServerError)
 		return
 	}
 
-	util.HandleJSONPayload(w, templates)
-	w.WriteHeader(http.StatusOK)
+	ctx.JSON(templates)
 }
 
-func (a APIHandler) GetTemplate(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+func (a APIHandler) GetTemplate(ctx iris.Context) {
+	glog.Infof("Get template called")
+
+	id := ctx.Params().Get("id")
 	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
-	template, err := a.templateDao.GetTemplate(vars["template"])
+	template, err := a.templateDao.GetTemplate(id)
+
 	if err != nil {
-		util.HandleError(w, err)
+		ctx.StatusCode(http.StatusInternalServerError)
 		return
 	}
 
-	util.HandleJSONPayload(w, template)
-	w.WriteHeader(http.StatusOK)
+	ctx.JSON(template)
 }
 
-// Creates the restful Container and defines the routes the API will serve
-func CreateRestAPIHandler(clientManager ClientManager) http.Handler {
+func newApp(clientManager ClientManager) *iris.Application {
 	apiHandler := APIHandler{
 		templateDao: clientManager.templateDao,
 	}
+	app := iris.New()
 
-	route := mux.NewRouter()
-	route.Path(listTemplates).Methods(http.MethodGet).HandlerFunc(apiHandler.ListTemplates)
-	route.Path(getTemplate).Methods(http.MethodGet).HandlerFunc(apiHandler.GetTemplate)
-	return route
+	// registers a custom handler for 404 not found http (error) status code,
+	// fires when route not found or manually by ctx.StatusCode(iris.StatusNotFound).
+	app.OnErrorCode(iris.StatusNotFound, notFoundHandler)
+
+	apiRouter := app.Party(apiRouterPrefix)
+	apiRouter.Get(listTemplates, apiHandler.ListTemplates)
+	apiRouter.Get(getTemplate, apiHandler.GetTemplate)
+	return app
+}
+
+func notFoundHandler(ctx iris.Context) {
+	ctx.HTML("Nothing is here.")
 }
