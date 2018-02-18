@@ -12,9 +12,3 @@ func CheckErr(err error) {
 		glog.Fatalf("%v", err)
 	}
 }
-
-// HandleError handles error statuses for external requests.
-func HandleError(w http.ResponseWriter, err error) {
-	// TODO(yangpa): Error handling by status enum.
-	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-}
