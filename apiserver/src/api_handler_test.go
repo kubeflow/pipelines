@@ -1,9 +1,8 @@
 package main
 
 import (
-	"testing"
-
 	"errors"
+	"testing"
 
 	"github.com/googleprivate/ml/apiserver/src/message"
 	"github.com/kataras/iris"
