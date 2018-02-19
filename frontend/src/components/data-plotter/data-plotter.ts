@@ -1,36 +1,42 @@
 import 'polymer/polymer-element.html';
 import 'polymer/polymer.html';
 
-import { customElement, observe, property } from '../../decorators';
+import { drawMatrix, drawStatsTable } from './confusion_matrix';
+import { drawROC } from './roc_plot';
 
-import './data-plotter.html';
+export enum PLOT_TYPE {
+  CONFUSION_MATRIX,
+}
 
-import * as Apis from '../../lib/apis';
+export class DataPlotter {
+  private _plotElement: HTMLElement;
 
-import { csvParseRows, select as d3select } from 'd3';
+  constructor(plotElement: HTMLElement) {
+    this._plotElement = plotElement;
+  }
 
-@customElement
-export class DataPlotter extends Polymer.Element {
-  @property({ type: String })
-  filePath = '';
+  public plotConfusionMatrix(data: number[][], labels: string[], accentColor: string) {
+    // Render the statistics table
+    drawStatsTable(this._plotElement, data);
 
-  @observe('filePath')
-  protected async _filePathChanged(newFilePath: string) {
-    if (newFilePath) {
-      const data = await Apis.readFile(newFilePath);
-      const parsedCSV = csvParseRows(data);
+    // Render the matrix
+    drawMatrix({
+      container: this._plotElement,
+      data,
+      endColor: accentColor,
+      labels,
+      startColor: '#ffffff',
+    });
+  }
 
-      d3select(this.$.plot)
-        .append('table')
-
-        .selectAll('tr')
-        .data(parsedCSV).enter()
-        .append('tr')
-
-        .selectAll('td')
-        .data((d) => d).enter()
-        .append('td')
-        .text((d) => d);
-    }
+  public plotRocCurve(data: string[][], lineColor = '#000') {
+    const rocChartOptions = {
+      data,
+      height: 350,
+      lineColor,
+      margin: 50,
+      width: 550,
+    };
+    drawROC(this._plotElement, rocChartOptions);
   }
 }

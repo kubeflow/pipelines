@@ -7,7 +7,7 @@
   padding: 30px;
 }
 
-.template-name {
+.instance-name {
   color: var(--fg-color-strong);
   flex-grow: 1;
   font-size: var(--font-size-strong);
@@ -15,11 +15,8 @@
 }
 
 .left-column {
+  margin-right: 30px;
   min-width: 300px;
-}
-
-.template-tags {
-  padding: 5px;
 }
 
 .state-icon {
@@ -52,31 +49,31 @@ paper-tab:not(:first-child) {
 }
 
 file-browser {
-  border: 1px solid #ddd;
+  border: 1px solid var(--line-color);
   flex-grow: 1;
 }
 
-.preview-button {
-  align-self: center;
-  margin-top: 10px;
-  width: 100px;
+.action-buttons {
+  justify-content: center;
+  margin: 10px;
 }
 
-#previewDialog {
+#previewDialog, #plotDialog {
   display: flex;
   flex-flow: column;
-  max-height: 70vh;
-  max-width: 70vw;
+  max-height: 80vh;
+  max-width: 80vw;
   min-height: 40vh;
   min-width: 40vw;
 }
 
-#dialogTitle {
-  margin: 15px;
+#plotTitle, #previewTitle {
   flex: auto 0 0;
+  margin: 25px;
+  text-align: center;
 }
 
-#preview {
+#preview, #plot {
   border-bottom: 1px solid var(--line-color);
   border-top: 1px solid var(--line-color);
   flex-grow: 1;
@@ -84,12 +81,38 @@ file-browser {
   overflow: auto;
 }
 
-#preview table,
-#preview tr,
-#preview td {
-  border: 1px solid #ddd;
+.dialogs table,
+.dialogs tr,
+.dialogs td,
+.dialogs th {
+  border: 1px solid var(--line-color);
+  min-width: 75px;
   padding: 5px;
+  text-align: center;
   white-space: nowrap;
+}
+
+.dialogs tr:hover {
+  background-color: var(--bg-color);
+}
+
+.dialogs th {
+  font-weight: bold;
+}
+
+.axis text {
+  font: 10px sans-serif;
+}
+
+.axis line, .axis path {
+  fill: none;
+  stroke: var(--fg-color);
+}
+
+.line {
+  fill: none;
+  stroke: var(--progress-color);
+  stroke-width: 2px;
 }
 
 .dialog-buttons {
@@ -99,7 +122,7 @@ file-browser {
 }
 
 .json-pretty {
-  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-family: monospace;
   line-height: 16px;
 }
 

@@ -7,9 +7,11 @@
     <app-route route="{{route}}"></app-route>
 
     <iron-pages id="pages" selected="{{page}}" attr-for-selected="path">
+      <instance-details path="instances/details"></instance-details>
+      <instance-list path="instances"></instance-list>
+      <instance-new path="instances/new"></instance-new>
       <run-details path="runs/details"></run-details>
       <run-list path="runs"></run-list>
-      <run-new path="runs/new"></run-new>
       <template-details path="templates/details"></template-details>
       <template-list path="templates"></template-list>
     </iron-pages>

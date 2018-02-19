@@ -9,12 +9,10 @@ export interface RunStep {
 export interface Run {
   end: Date;
   id: number;
+  instanceId: number;
   parameterValues: { [key: string]: number | string };
   progress: number;
-  recurring: boolean;
-  recurringIntervalHours: number;
   start: Date;
   state: 'not started' | 'running' | 'errored' | 'completed';
   steps: RunStep[];
-  templateId: number;
 }
