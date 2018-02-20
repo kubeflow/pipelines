@@ -33,5 +33,5 @@ RUN sqlite3 ${BINPATH}/pipelines.db < ${DBPATH}/pipelines.sql
 EXPOSE 8888
 
 # Start the apiserver
-#CMD apiserver --config=/go/src/ml/apiserver/config/config.json
+CMD apiserver --config=/go/src/ml/apiserver/config/config.json
 
