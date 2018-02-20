@@ -1,7 +1,7 @@
 FROM golang
 
 ARG GOPATH=/go
-ARG APISERVER_HOME=${GOPATH}/src/github.com/googleprivate/ml/apiserver
+ARG APISERVER_HOME=${GOPATH}/src/ml/apiserver
 ARG DBPATH=${APISERVER_HOME}/db
 ARG BINPATH=/bin
 
@@ -22,8 +22,8 @@ RUN export GOPATH=${GOPATH} \
     && export PATH=${BINPATH}:$PATH \
     && cd ${APISERVER_HOME}/src \
     && go get ./... \
-    # previous command doesn't automatically pick this lib up
     && go get github.com/iris-contrib/httpexpect \
+    && go get golang.org/x/tools/cmd/goimports \
     && go build -o ${BINPATH}/apiserver *.go
 
 # Initialize sqlite3 db
@@ -33,5 +33,5 @@ RUN sqlite3 ${BINPATH}/pipelines.db < ${DBPATH}/pipelines.sql
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/go/src/github.com/googleprivate/ml/apiserver/config/config.json
+#CMD apiserver --config=/go/src/ml/apiserver/config/config.json
 

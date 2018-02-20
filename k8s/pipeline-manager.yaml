@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pipeline-manager
+spec:
+  containers:
+    - name: pipeline-manager
+      image: pipeline-manager
+      imagePullPolicy: Never
+      ports:
+      - containerPort: 8888

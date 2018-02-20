@@ -4,20 +4,20 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/googleprivate/ml/apiserver/src/message"
-	"github.com/googleprivate/ml/apiserver/src/util"
+	"ml/apiserver/src/message/pipelinemanager"
+	"ml/apiserver/src/util"
 )
 
 type TemplateDaoInterface interface {
-	ListTemplate() ([]message.Template, error)
-	GetTemplate(templateId string) (message.Template, error)
+	ListTemplates() ([]pipelinemanager.Template, error)
+	GetTemplate(templateId string) (pipelinemanager.Template, error)
 }
 
 type TemplateDao struct {
 	db *sql.DB
 }
 
-func (dao *TemplateDao) ListTemplate() ([]message.Template, error) {
+func (dao *TemplateDao) ListTemplates() ([]pipelinemanager.Template, error) {
 	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
 	rows, err := dao.db.Query("SELECT * FROM template")
 
@@ -25,10 +25,10 @@ func (dao *TemplateDao) ListTemplate() ([]message.Template, error) {
 		return nil, err
 	}
 
-	var templates []message.Template
+	var templates []pipelinemanager.Template
 
 	for rows.Next() {
-		var t message.Template
+		var t pipelinemanager.Template
 		err = rows.Scan(&t.Id, &t.Description)
 		util.CheckErr(err)
 		templates = append(templates, t)
@@ -36,10 +36,10 @@ func (dao *TemplateDao) ListTemplate() ([]message.Template, error) {
 	return templates, nil
 }
 
-func (dao *TemplateDao) GetTemplate(templateId string) (message.Template, error) {
+func (dao *TemplateDao) GetTemplate(templateId string) (pipelinemanager.Template, error) {
 	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
 	rows, err := dao.db.Query("SELECT * FROM template WHERE id=" + templateId)
-	var t message.Template
+	var t pipelinemanager.Template
 	if err != nil {
 		return t, err
 	}
