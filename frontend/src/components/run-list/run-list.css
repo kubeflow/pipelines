@@ -10,10 +10,11 @@
   @apply --shadow-elevation-2dp;
   margin: 20px;
   padding: 10px;
+  transition: box-shadow 0.3s;
 }
 
 .run:hover {
-  @apply --shadow-elevation-3dp;
+  @apply --shadow-elevation-6dp;
   cursor: pointer;
 }
 

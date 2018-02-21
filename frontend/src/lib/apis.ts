@@ -41,6 +41,21 @@ export async function getInstance(id: number): Promise<Instance> {
 }
 
 /**
+ * Sends a new instance request to the backend.
+ */
+export async function newInstance(instance: Instance) {
+  const response = await fetch(backendUrl + '/instances', {
+    body: JSON.stringify(instance),
+    cache: 'no-cache',
+    headers: {
+      'content-type': 'application/json'
+    },
+    method: 'POST'
+  });
+  return await response.json();
+}
+
+/**
  * Gets a list of all the pipeline instance runs from the backend.
  * If an instance id is specified, only the runs defined with this
  * instance id are returned.
