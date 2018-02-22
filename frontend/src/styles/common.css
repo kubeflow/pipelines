@@ -62,3 +62,7 @@ paper-button:hover {
   color: white;
   min-width: 90px;
 }
+
+[hidden] {
+  display: none !important;
+}

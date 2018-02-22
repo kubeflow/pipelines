@@ -34,13 +34,15 @@
       </template>
     </div>
 
+    <paper-input id="tags" label="Tags"></paper-input>
+
     <app-datepicker-dialog modal id="startDatepicker" date="{{startDate}}"></app-datepicker-dialog>
     <app-datepicker-dialog modal id="endDatepicker" date="{{endDate}}"></app-datepicker-dialog>
 
     <hr>
 
-    <paper-button class="action-button" raised>
-      Run
+    <paper-button class="action-button" raised on-click="_deploy">
+      Deploy
       <iron-icon icon="chevron-right"></iron-icon>
     </paper-button>
 

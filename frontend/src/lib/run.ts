@@ -1,3 +1,5 @@
+import { ParameterValue } from '../lib/parameter';
+
 export interface RunStep {
   name: string;
   start: number;
@@ -7,12 +9,14 @@ export interface RunStep {
 }
 
 export interface Run {
-  end: Date;
+  end: number;
   id: number;
   instanceId: number;
-  parameterValues: { [key: string]: number | string };
+  parameterValues: { [key: string]: ParameterValue };
   progress: number;
-  start: Date;
+  recurring: boolean;
+  recurringIntervalHours: number;
+  start: number;
   state: 'not started' | 'running' | 'errored' | 'completed';
   steps: RunStep[];
 }
