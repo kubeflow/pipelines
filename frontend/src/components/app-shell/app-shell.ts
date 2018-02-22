@@ -8,10 +8,10 @@ import 'paper-styles/paper-styles.html';
 import '../instance-details/instance-details';
 import '../instance-list/instance-list';
 import '../instance-new/instance-new';
+import '../package-details/package-details';
+import '../package-list/package-list';
 import '../run-details/run-details';
 import '../run-list/run-list';
-import '../template-details/template-details';
-import '../template-list/template-list';
 import './app-shell.html';
 
 import * as Utils from '../../lib/utils';
@@ -51,13 +51,13 @@ export class AppShell extends Polymer.Element {
           const parts = newPath.substr(1).split('/');
           if (parts.length) {
             // If there's only one part, that's the page name. If there's more,
-            // the page name is the first two, to allow for things like templates/details
+            // the page name is the first two, to allow for things like packages/details
             // and job/details. The rest are the argument to that page.
             const args = parts.splice(2).join('/');
             let pageName = `${parts.join('/')}`;
-            // For root '/', return the default page: templates
+            // For root '/', return the default page: packages
             if (!pageName) {
-              pageName = 'templates';
+              pageName = 'packages';
             }
             const pageEl = this._getPageElement(pageName);
             pageEl.refresh(args, (this.route as any).__queryParams);

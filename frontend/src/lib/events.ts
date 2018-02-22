@@ -1,10 +1,10 @@
 import { Instance } from '../lib/instance';
+import { PipelinePackage } from '../lib/pipeline_package';
 import { Run } from '../lib/run';
-import { Template } from '../lib/template';
 
-export class TemplateClickEvent extends MouseEvent {
+export class PackageClickEvent extends MouseEvent {
   public model: {
-    template: Template,
+    package: PipelinePackage,
   };
 }
 

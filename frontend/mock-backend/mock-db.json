@@ -1,5 +1,5 @@
 {
-  "templates": [
+  "packages": [
     {
       "id": 1,
       "name": "Unstructured text",
@@ -8,7 +8,7 @@
         "text",
         "experiment"
       ],
-      "description": "An awesome unstructured text pipeline template.",
+      "description": "An awesome unstructured text pipeline package.",
       "location": "gcs://pipelines_bucket/structured_text1",
       "parameters": [
         {
@@ -30,7 +30,7 @@
         "image",
         "classification"
       ],
-      "description": "An awesome image classification pipeline template.",
+      "description": "An awesome image classification pipeline package.",
       "location": "gcs://pipelines_bucket/image_classification1",
       "parameters": [
         {
@@ -51,7 +51,7 @@
       "description": "Try 10 for x",
       "id": 1,
       "name": "Unstructured text experiment 1",
-      "templateId": 1,
+      "packageId": 1,
       "parameterValues": [
         {
           "name": "x",
@@ -72,7 +72,7 @@
       "description": "Try 10 and 20 for parameters",
       "id": 2,
       "name": "Unstructured text experiment 1",
-      "templateId": 1,
+      "packageId": 1,
       "parameterValues": [
         {
           "name": "x",
