@@ -5,7 +5,7 @@
   padding: 30px;
 }
 
-.run {
+.job {
   background-color: white;
   @apply --shadow-elevation-2dp;
   margin: 20px;
@@ -13,7 +13,7 @@
   transition: box-shadow 0.3s;
 }
 
-.run:hover {
+.job:hover {
   @apply --shadow-elevation-6dp;
   cursor: pointer;
 }
