@@ -6,10 +6,10 @@ export interface Instance {
   ends: number;
   id?: number;
   name: string;
+  packageId: number;
   parameterValues: Parameter[];
   recurring: boolean;
   recurringIntervalHours: number;
   starts: number;
   tags: string[];
-  templateId: number;
 }

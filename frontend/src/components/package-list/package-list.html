@@ -1,0 +1,19 @@
+<dom-module id="package-list">
+  <template>
+
+    <link rel="stylesheet" href="./package-list.css"> Available pipeline packages:
+    <div class="container">
+      <template is="dom-repeat" items="[[packages]]" as="package">
+        <div class="card" on-click="_navigate">
+          <div class="package-name">[[package.name]]</div>
+          <div>[[package.description]]</div>
+          <hr>
+          <div><a href="/package/[[package.location]]">[[package.location]]</a></div>
+          <div>Tags: [[package.tags]]</div>
+          <div>By: [[package.author]]</div>
+        </div>
+      </template>
+    </div>
+
+  </template>
+</dom-module>

@@ -5,12 +5,12 @@
   padding: 30px;
 }
 
-.template-name {
+.package-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);
   font-weight: bold;
 }
 
-.template-location, .template-tags {
+.package-location, .package-tags {
   padding: 5px;
 }

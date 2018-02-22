@@ -1,6 +1,6 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
-@import '../template-list/template-list.css';
+@import '../package-list/package-list.css';
 
 :host {
   padding: 30px;

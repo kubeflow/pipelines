@@ -1,6 +1,6 @@
 import { ParameterDescription } from './parameter';
 
-export interface Template {
+export interface PipelinePackage {
   author: string;
   description: string;
   id: number;

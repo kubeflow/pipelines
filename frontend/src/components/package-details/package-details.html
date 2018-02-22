@@ -1,37 +1,37 @@
-<dom-module id="template-details">
+<dom-module id="package-details">
   <template>
-    <link rel="stylesheet" href="./template-details.css">
+    <link rel="stylesheet" href="./package-details.css">
 
-    <div class="template-name">[[template.name]]</div>
+    <div class="package-name">[[package.name]]</div>
     </a>
     <hr>
 
     <div>
       <span class="strong">Author:</span>
-      <span class="template-tags">[[template.author]]</span>
+      <span class="package-tags">[[package.author]]</span>
     </div>
 
     <div>
       <span class="strong">Location:</span>
-      <span class="template-location">
-        <a href="[[template.location]]" target="_blank">[[template.location]]</a>
+      <span class="package-location">
+        <a href="[[package.location]]" target="_blank">[[package.location]]</a>
       </span>
     </div>
 
     <div>
       <span class="strong">Tags:</span>
-      <span class="template-tags">[[template.tags]]</span>
+      <span class="package-tags">[[package.tags]]</span>
     </div>
 
     <div>
       <span class="strong">Shared With:</span>
-      <span class="template-tags">[[template.sharedWith]]</span>
+      <span class="package-tags">[[package.sharedWith]]</span>
     </div>
 
     <div>
       <span class="strong">Parameters:</span>
       <tr>
-        <template is="dom-repeat" items="[[template.parameters]]" as="param">
+        <template is="dom-repeat" items="[[package.parameters]]" as="param">
           <li>
             <span class="strong">[[param.name]]:</span>
             <span>[[param.description]]</span>
@@ -42,7 +42,7 @@
 
     <hr>
 
-    <a class="unstyled" href="/instances/new?templateId=[[template.id]]">
+    <a class="unstyled" href="/instances/new?packageId=[[package.id]]">
       <paper-button class="action-button" raised>
         Configure
         <iron-icon icon="chevron-right"></iron-icon>
