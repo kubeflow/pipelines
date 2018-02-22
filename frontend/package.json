@@ -8,11 +8,7 @@
     "json-pretty-html": "^1.0.2"
   },
   "devDependencies": {
-    "@types/assert": "0.0.31",
-    "@types/chai": "^4.0.4",
     "@types/d3": "^4.12.0",
-    "@types/mocha": "^2.2.43",
-    "@types/sinon": "^2.3.6",
     "bower": "^1.8.2",
     "clean-webpack-plugin": "^0.1.16",
     "concurrently": "^3.5.1",
@@ -20,11 +16,8 @@
     "css-loader": "^0.28.9",
     "extract-text-webpack-plugin": "^3.0.2",
     "html-webpack-plugin": "^2.30.1",
-    "jasmine": "^2.9.0",
     "json-server": "^0.12.1",
-    "pixelmatch": "^4.0.2",
     "polymer-webpack-loader": "^2.0.0",
-    "puppeteer": "^1.0.0",
     "reflect-metadata": "^0.1.10",
     "ts-loader": "^2.3.7",
     "tslint": "^5.9.1",
@@ -35,11 +28,11 @@
   },
   "scripts": {
     "api": "json-server -w -q mock-backend/mock-db.json -p 3001",
-    "lint": "tslint -p tsconfig.json",
     "build": "webpack",
     "dev": "concurrently -k -r \"npm run api\" \"webpack-dev-server\"",
+    "lint": "tslint -p tsconfig.json",
     "postinstall": "bower install",
-    "test": "jasmine test/ui/test_spec.js",
+    "start": "npm run dev",
     "tsc": "tsc"
   },
   "repository": {

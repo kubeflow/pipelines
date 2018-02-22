@@ -16,8 +16,8 @@ const writeDiff = false;
 TIMEOUT_INTERVAL = 10 * 1000;
 
 const misMatchThreshold = 0.1;
-const goldenPathPrefix = 'test/ui/golden';
-const brokenPathPrefix = 'test/ui/broken';
+const goldenPathPrefix = 'ui/golden';
+const brokenPathPrefix = 'ui/broken';
 
 if (!fs.existsSync(brokenPathPrefix)) {
   fs.mkdirSync(brokenPathPrefix);
@@ -68,12 +68,6 @@ describe('UI tests', function () {
     page.waitFor(1000);
   });
 
-  it('loads templates page', async () => {
-    await waitForCustomElement(page, 'top-bar');
-    await waitForCustomElement(page, 'app-shell');
-    await takeScreenshotsAndDiff('templates');
-  });
-
   it('can interact with instances button with hover', async () => {
     await waitForCustomElement(page, 'top-bar');
     const instancesBtn = await page.evaluateHandle(`
@@ -119,35 +113,35 @@ describe('UI tests', function () {
     await takeScreenshotsAndDiff('instance-details');
   });
 
-  it('navigates back to templates if the topbar logo is clicked', async () => {
+  it('navigates back to packages if the topbar logo is clicked', async () => {
     await waitForCustomElement(page, 'top-bar');
     const logo = await page.evaluateHandle(
       `document.querySelector('top-bar').$.logo`);
     await logo.click();
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('templates-from-topbar');
+    await takeScreenshotsAndDiff('packages-from-topbar');
   });
 
-  it('loads template details of the clicked template card', async () => {
+  it('loads package details of the clicked package card', async () => {
     await waitForCustomElement(page, 'top-bar');
     const card = await page.evaluateHandle(
       `document.querySelector('app-shell')
-       .shadowRoot.querySelector('template-list')
-       .shadowRoot.querySelector('.container .card')`);
+       .shadowRoot.querySelector('package-list')
+       .shadowRoot.querySelector('.container .card .package-name')`);
     await card.click();
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('template-details');
+    await takeScreenshotsAndDiff('package-details');
   });
 
-  it('loads template configure page of the current template', async () => {
+  it('loads package configure page of the current package', async () => {
     await waitForCustomElement(page, 'top-bar');
     const configureBtn = await page.evaluateHandle(
       `document.querySelector('app-shell')
-       .shadowRoot.querySelector('template-details')
+       .shadowRoot.querySelector('package-details')
        .shadowRoot.querySelector('.action-button')`);
     await configureBtn.click();
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('configure-template');
+    await takeScreenshotsAndDiff('configure-package');
   });
 
   afterAll(async () => {

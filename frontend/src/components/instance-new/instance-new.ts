@@ -13,17 +13,17 @@ import { RouteEvent } from '../../lib/events';
 import { Instance } from '../../lib/instance';
 import { PageElement } from '../../lib/page_element';
 import { Parameter } from '../../lib/parameter';
-import { Template } from '../../lib/template';
+import { PipelinePackage } from '../../lib/pipeline_package';
 
 interface NewInstanceQueryParams {
-  templateId?: string;
+  packageId?: string;
 }
 
 @customElement
 export class InstanceNew extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
-  public template: Template;
+  public package: PipelinePackage;
 
   @property({ type: String })
   public startDate = '';
@@ -36,12 +36,12 @@ export class InstanceNew extends Polymer.Element implements PageElement {
 
   public async refresh(_: string, queryParams: NewInstanceQueryParams) {
     let id;
-    if (queryParams.templateId) {
-      id = Number.parseInt(queryParams.templateId);
+    if (queryParams.packageId) {
+      id = Number.parseInt(queryParams.packageId);
       if (!isNaN(id)) {
-        this.template = await Apis.getTemplate(id);
+        this.package = await Apis.getPackage(id);
 
-        this.parameters = this.template.parameters.map((p) => {
+        this.parameters = this.package.parameters.map((p) => {
           return {
             description: p.description,
             name: p.name,
@@ -68,12 +68,12 @@ export class InstanceNew extends Polymer.Element implements PageElement {
       description: (this.$.description as HTMLInputElement).value,
       ends: Date.parse(this.endDate),
       name: (this.$.name as HTMLInputElement).value,
+      packageId: this.package.id,
       parameterValues: this.parameters,
       recurring: false,
       recurringIntervalHours: 0,
       starts: Date.parse(this.startDate),
       tags: (this.$.tags as HTMLInputElement).value.split(','),
-      templateId: this.template.id,
     };
     await Apis.newInstance(newInstance);
 

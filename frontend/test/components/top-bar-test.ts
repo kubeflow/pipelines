@@ -19,15 +19,15 @@ describe('top-bar', () => {
     assert.equal(logo.innerHTML, 'ML Pipeline Management Console');
   });
 
-  it('redirects to templates page when logo is pressed', () => {
+  it('redirects to packages page when logo is pressed', () => {
     const logo = testElement.querySelector('#logo') as HTMLAnchorElement;
-    assert.equal(logo.href, '/templates');
+    assert.equal(logo.href, '/packages');
   });
 
-  it('should include template list button', () => {
-    const templatesBtn =
-      shadowRoot.querySelector('#templatesBtn') as HTMLAnchorElement;
-    assert.equal(templatesBtn.innerText, 'PIPELINE TEMPLATES');
-    assert.equal(templatesBtn.href, '/templates');
+  it('should include package list button', () => {
+    const packagesBtn =
+      shadowRoot.querySelector('#packagesBtn') as HTMLAnchorElement;
+    assert.equal(packagesBtn.innerText, 'PIPELINES GALLERY');
+    assert.equal(packagesBtn.href, '/packages');
   });
 });

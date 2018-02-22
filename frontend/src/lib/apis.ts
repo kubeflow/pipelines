@@ -2,29 +2,29 @@ import { FileDescriptor } from '../components/file-browser/file-browser';
 import { Instance } from '../lib/instance';
 import { Run } from '../lib/run';
 import { config } from './config';
-import { Template } from './template';
+import { PipelinePackage } from './pipeline_package';
 
 const backendUrl = config.api;
 
 /**
- * Gets a list of the pipeline templates defined on the backend.
+ * Gets a list of the pipeline packages defined on the backend.
  */
-export async function getTemplates(): Promise<Template[]> {
-  const response = await fetch(backendUrl + '/templates');
-  const templates: Template[] = await response.json();
-  return templates;
+export async function getPackages(): Promise<PipelinePackage[]> {
+  const response = await fetch(backendUrl + '/packages');
+  const packages: PipelinePackage[] = await response.json();
+  return packages;
 }
 
 /**
- * Gets the details of a certain template given its id.
+ * Gets the details of a certain package given its id.
  */
-export async function getTemplate(id: number): Promise<Template> {
-  const response = await fetch(backendUrl + `/templates/${id}`);
+export async function getPackage(id: number): Promise<PipelinePackage> {
+  const response = await fetch(backendUrl + `/packages/${id}`);
   return await response.json();
 }
 
 /**
- * Gets a list of the pipeline template instances defined on the backend.
+ * Gets a list of the pipeline package instances defined on the backend.
  */
 export async function getInstances(): Promise<Instance[]> {
   const response = await fetch(backendUrl + '/instances');
@@ -33,7 +33,7 @@ export async function getInstances(): Promise<Instance[]> {
 }
 
 /**
- * Gets the details of a certain template instance given its id.
+ * Gets the details of a certain package instance given its id.
  */
 export async function getInstance(id: number): Promise<Instance> {
   const response = await fetch(backendUrl + `/instances/${id}`);
