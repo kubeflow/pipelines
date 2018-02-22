@@ -53,7 +53,7 @@ func (dao *FakeBadJobDao) ListJobs() ([]pipelinemanager.Job, error) {
 func initApiHandlerTest() *iris.Application {
 	clientManager := ClientManager{
 		packageDao: &FakePackageDao{},
-		jobDao:      &FakeJobDao{},
+		jobDao:     &FakeJobDao{},
 	}
 	return newApp(clientManager)
 }
@@ -61,7 +61,7 @@ func initApiHandlerTest() *iris.Application {
 func initBadApiHandlerTest() *iris.Application {
 	clientManager := ClientManager{
 		packageDao: &FakeBadPackageDao{},
-		jobDao:      &FakeBadJobDao{},
+		jobDao:     &FakeBadJobDao{},
 	}
 	return newApp(clientManager)
 }
@@ -90,11 +90,11 @@ func TestGetPackageReturnError(t *testing.T) {
 
 func TestListJobs(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest())
-	e.GET("/apis/v1alpha1/jobs").Expect().Status(httptest.StatusOK).
+	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK).
 		Body().Equal("[{\"name\":\"job1\",\"createdAt\":\"\",\"startedAt\":\"\",\"finishedAt\":\"\",\"status\":\"Failed\"},{\"name\":\"job2\",\"createdAt\":\"\",\"startedAt\":\"\",\"finishedAt\":\"\",\"status\":\"Succeeded\"}]")
 }
 
 func TestListJobsReturnError(t *testing.T) {
 	e := httptest.New(t, initBadApiHandlerTest())
-	e.GET("/apis/v1alpha1/jobs").Expect().Status(httptest.StatusInternalServerError)
+	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusInternalServerError)
 }

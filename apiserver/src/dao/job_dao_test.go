@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/message/argo"
 	"encoding/json"
+	"ml/apiserver/src/message/argo"
+	"ml/apiserver/src/message/pipelinemanager"
 )
 
 type FakeArgoClient struct {

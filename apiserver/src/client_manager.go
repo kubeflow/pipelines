@@ -30,9 +30,9 @@ type Config struct {
 
 // Container for all service clients
 type ClientManager struct {
-	db          *sql.DB
+	db         *sql.DB
 	packageDao dao.PackageDaoInterface
-	jobDao      dao.JobDaoInterface
+	jobDao     dao.JobDaoInterface
 }
 
 func (clientManager *ClientManager) Init(config Config) {
