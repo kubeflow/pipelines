@@ -3,8 +3,13 @@
   "version": "0.0.1",
   "description": "Test package for ML Pipeline Management frontend",
   "dependencies": {
+    "@types/assert": "0.0.31",
+    "@types/chai": "^4.0.4",
+    "@types/mocha": "^2.2.43",
+    "@types/sinon": "^2.3.6",
     "concurrently": "^3.5.1",
     "jasmine": "^2.9.0",
+    "pixelmatch": "^4.0.2",
     "puppeteer": "^1.0.0",
     "start-server-and-test": "^1.0.1"
   },

@@ -66,13 +66,6 @@ describe('UI tests', function () {
     await waitForCustomElement(page, 'top-bar');
     await waitForCustomElement(page, 'app-shell');
     page.waitFor(1000);
-    jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
-  });
-
-  it('loads packages page', async () => {
-    await waitForCustomElement(page, 'top-bar');
-    await waitForCustomElement(page, 'app-shell');
-    await takeScreenshotsAndDiff('packages');
   });
 
   it('can interact with instances button with hover', async () => {

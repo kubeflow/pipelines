@@ -5,8 +5,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 const indexServer = require('./mock-backend/index-server');
 
-process.title = 'ml-pipelines-frontend';
-
 module.exports = {
   entry: {
     index: path.resolve(__dirname, 'src/index.ts'),
