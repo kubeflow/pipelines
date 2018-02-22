@@ -148,7 +148,7 @@ export class RunDetails extends Polymer.Element implements PageElement {
     const fileName = selectedFiles[0].name;
     const path = browser.path + '/' + fileName;
     this.$.plot.innerHTML = '';
-    const lineColor = getComputedStyle(this).getPropertyValue('--fg-color');
+    const lineColor = getComputedStyle(this).getPropertyValue('--accent-color');
 
     // TODO(yebrahim): use a better way to get the output type
     if (fileName === 'confusion_matrix.json') {

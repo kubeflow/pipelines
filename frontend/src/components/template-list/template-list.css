@@ -44,6 +44,6 @@
   text-decoration: none;
 }
 
-.template-location, .template-tags {
-  padding: 5px;
+.card div {
+  padding: 5px 10px;
 }
