@@ -8,51 +8,51 @@ import (
 	"ml/apiserver/src/util"
 )
 
-type TemplateDaoInterface interface {
-	ListTemplates() ([]pipelinemanager.Template, error)
-	GetTemplate(templateId string) (pipelinemanager.Template, error)
+type PackageDaoInterface interface {
+	ListPackages() ([]pipelinemanager.Package, error)
+	GetPackage(packageId string) (pipelinemanager.Package, error)
 }
 
-type TemplateDao struct {
+type PackageDao struct {
 	db *sql.DB
 }
 
-func (dao *TemplateDao) ListTemplates() ([]pipelinemanager.Template, error) {
+func (dao *PackageDao) ListPackages() ([]pipelinemanager.Package, error) {
 	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
-	rows, err := dao.db.Query("SELECT * FROM template")
+	rows, err := dao.db.Query("SELECT * FROM package")
 
 	if err != nil {
 		return nil, err
 	}
 
-	var templates []pipelinemanager.Template
+	var packages []pipelinemanager.Package
 
 	for rows.Next() {
-		var t pipelinemanager.Template
+		var t pipelinemanager.Package
 		err = rows.Scan(&t.Id, &t.Description)
 		util.CheckErr(err)
-		templates = append(templates, t)
+		packages = append(packages, t)
 	}
-	return templates, nil
+	return packages, nil
 }
 
-func (dao *TemplateDao) GetTemplate(templateId string) (pipelinemanager.Template, error) {
+func (dao *PackageDao) GetPackage(packageId string) (pipelinemanager.Package, error) {
 	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
-	rows, err := dao.db.Query("SELECT * FROM template WHERE id=" + templateId)
-	var t pipelinemanager.Template
+	rows, err := dao.db.Query("SELECT * FROM package WHERE id=" + packageId)
+	var t pipelinemanager.Package
 	if err != nil {
 		return t, err
 	}
 
 	if !rows.Next() {
-		return t, errors.New("template not found")
+		return t, errors.New("package not found")
 	}
 
 	err = rows.Scan(&t.Id, &t.Description)
 	return t, err
 }
 
-// factory function for template DAO
-func NewTemplateDao(db *sql.DB) *TemplateDao {
-	return &TemplateDao{db: db}
+// factory function for package DAO
+func NewPackageDao(db *sql.DB) *PackageDao {
+	return &PackageDao{db: db}
 }

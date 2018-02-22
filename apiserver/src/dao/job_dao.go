@@ -10,16 +10,16 @@ import (
 	"github.com/golang/glog"
 )
 
-type RunDaoInterface interface {
-	ListRuns() ([]pipelinemanager.Run, error)
+type JobDaoInterface interface {
+	ListJobs() ([]pipelinemanager.Job, error)
 }
 
-type RunDao struct {
+type JobDao struct {
 	argoClient ArgoClientInterface
 }
 
-func (dao *RunDao) ListRuns() ([]pipelinemanager.Run, error) {
-	var runs []pipelinemanager.Run
+func (dao *JobDao) ListJobs() ([]pipelinemanager.Job, error) {
+	var jobs []pipelinemanager.Job
 
 	bodyBytes, _ := dao.argoClient.Request("GET", "workflows")
 
@@ -29,14 +29,14 @@ func (dao *RunDao) ListRuns() ([]pipelinemanager.Run, error) {
 	}
 
 	for _, workflow := range workflows.Items {
-		run := message.Convert(workflow)
-		runs = append(runs, run)
+		job := message.Convert(workflow)
+		jobs = append(jobs, job)
 	}
 
-	return runs, nil
+	return jobs, nil
 }
 
-// factory function for template DAO
-func NewRunDao(argoClient ArgoClientInterface) *RunDao {
-	return &RunDao{argoClient}
+// factory function for package DAO
+func NewJobDao(argoClient ArgoClientInterface) *JobDao {
+	return &JobDao{argoClient}
 }

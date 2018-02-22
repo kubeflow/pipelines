@@ -5,13 +5,13 @@ type Workflows struct {
 }
 
 type Workflow struct {
-	Metadata WorkflowMetadata `json:"Metadata"`
-	Status   WorkflowStatus   `json:"Status"`
+	Metadata WorkflowMetadata `json:"metadata"`
+	Status   WorkflowStatus   `json:"status"`
 }
 
 type WorkflowMetadata struct {
-	Name              string `json:"Name"`
-	CreationTimestamp string `json:"CreationTimestamp"`
+	Name              string `json:"name"`
+	CreationTimestamp string `json:"creationTimestamp"`
 }
 
 type WorkflowStatus struct {

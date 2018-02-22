@@ -1,7 +1,7 @@
 - Make sure minikube and kubectl are installed
 - Make sure Argo is installed and started.
 - Git clone the repository under ${GOPATH}/src, as recommended by golang. 
-- Point minikube to use docker deamon on the host machine by running 
+- Point minikube to use docker daemon on the host machine by running 
 ```
 eval $(minikube docker-env)
 ```

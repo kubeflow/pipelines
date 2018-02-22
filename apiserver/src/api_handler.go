@@ -10,60 +10,62 @@ import (
 )
 
 const (
-	listTemplates = "/templates"
-	getTemplate   = "/templates/{id:string}"
-	// TODO runs should instead have resource path of /schedules/{id:string}/runs.
-	listRuns = "/runs"
+	apiRouterPrefix = "/apis/v1alpha1"
+
+  listPackages = "/packages"
+	getPackage   = "/packages/{id:string}"
+	// TODO(yangpa) jobs should instead have resource path of /pipeline/{id:string}/jobs.
+	listJobs = "/jobs"
 )
 
 type APIHandler struct {
-	templateDao dao.TemplateDaoInterface
-	runDao      dao.RunDaoInterface
+	packageDao dao.PackageDaoInterface
+	jobDao     dao.JobDaoInterface
 }
 
-func (a APIHandler) ListTemplates(ctx iris.Context) {
-	glog.Infof("List templates called")
+func (a APIHandler) ListPackages(ctx iris.Context) {
+	glog.Infof("List packages called")
 
-	templates, err := a.templateDao.ListTemplates()
+	packages, err := a.packageDao.ListPackages()
 	if err != nil {
 		ctx.StatusCode(http.StatusInternalServerError)
 		return
 	}
 
-	ctx.JSON(templates)
+	ctx.JSON(packages)
 }
 
-func (a APIHandler) GetTemplate(ctx iris.Context) {
-	glog.Infof("Get template called")
+func (a APIHandler) GetPackage(ctx iris.Context) {
+	glog.Infof("Get package called")
 
 	id := ctx.Params().Get("id")
 	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
-	template, err := a.templateDao.GetTemplate(id)
+	pkg, err := a.packageDao.GetPackage(id)
 
 	if err != nil {
 		ctx.StatusCode(http.StatusInternalServerError)
 		return
 	}
 
-	ctx.JSON(template)
+	ctx.JSON(pkg)
 }
 
-func (a APIHandler) ListRuns(ctx iris.Context) {
-	glog.Infof("List runs called")
+func (a APIHandler) ListJobs(ctx iris.Context) {
+	glog.Infof("List jobs called")
 
-	runs, err := a.runDao.ListRuns()
+	jobs, err := a.jobDao.ListJobs()
 	if err != nil {
 		ctx.StatusCode(http.StatusInternalServerError)
 		return
 	}
 
-	ctx.JSON(runs)
+	ctx.JSON(jobs)
 }
 
 func newApp(clientManager ClientManager) *iris.Application {
 	apiHandler := APIHandler{
-		templateDao: clientManager.templateDao,
-		runDao:      clientManager.runDao,
+		packageDao: clientManager.packageDao,
+		jobDao:     clientManager.jobDao,
 	}
 	app := iris.New()
 
@@ -72,9 +74,9 @@ func newApp(clientManager ClientManager) *iris.Application {
 	app.OnErrorCode(iris.StatusNotFound, notFoundHandler)
 
 	apiRouter := app.Party(apiRouterPrefix)
-	apiRouter.Get(listTemplates, apiHandler.ListTemplates)
-	apiRouter.Get(getTemplate, apiHandler.GetTemplate)
-	apiRouter.Get(listRuns, apiHandler.ListRuns)
+	apiRouter.Get(listPackages, apiHandler.ListPackages)
+	apiRouter.Get(getPackage, apiHandler.GetPackage)
+	apiRouter.Get(listJobs, apiHandler.ListJobs)
 	return app
 }
 

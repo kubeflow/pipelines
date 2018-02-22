@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	argoURLTemplate = "https://%v:%v/apis/argoproj.io/v1alpha1/namespaces/default/%v"
+	argoURLPackage = "https://%v:%v/apis/argoproj.io/v1alpha1/namespaces/default/%v"
 )
 
 type ArgoClientInterface interface {
@@ -34,7 +34,7 @@ func initClient() http.Client {
 func (ac *ArgoClient) Request(method string, api string) ([]byte, error) {
 	client := initClient()
 
-	requestUrl := fmt.Sprintf(argoURLTemplate, ac.K8ServiceHost, ac.K8TCPPort, api)
+	requestUrl := fmt.Sprintf(argoURLPackage, ac.K8ServiceHost, ac.K8TCPPort, api)
 	req, err := http.NewRequest(method, requestUrl, nil)
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %v", ac.K8Token))
 

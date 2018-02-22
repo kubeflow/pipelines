@@ -8,10 +8,6 @@ import (
 	"github.com/kataras/iris"
 )
 
-const (
-	apiRouterPrefix = "/apis/v1alpha1"
-)
-
 var (
 	portFlag   = flag.Int("port", 8888, "Port to listen on")
 	configPath = flag.String("config", "", "Path to JSON file containing config")

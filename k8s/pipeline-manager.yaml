@@ -1,11 +1,22 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: pipeline-manager
+  labels:
+    app: pipeline-manager
 spec:
-  containers:
-    - name: pipeline-manager
-      image: pipeline-manager
-      imagePullPolicy: Never
-      ports:
-      - containerPort: 8888
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pipeline-manager
+  template:
+    metadata:
+      labels:
+        app: pipeline-manager
+    spec:
+      containers:
+      - name: pipeline-manager-api-server
+        image: pipeline-manager-api-server
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8888

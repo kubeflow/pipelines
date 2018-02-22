@@ -31,8 +31,8 @@ type Config struct {
 // Container for all service clients
 type ClientManager struct {
 	db          *sql.DB
-	templateDao dao.TemplateDaoInterface
-	runDao      dao.RunDaoInterface
+	packageDao dao.PackageDaoInterface
+	jobDao      dao.JobDaoInterface
 }
 
 func (clientManager *ClientManager) Init(config Config) {
@@ -44,12 +44,12 @@ func (clientManager *ClientManager) Init(config Config) {
 	db, err := sql.Open(dbConfig.DriverName, dbConfig.DataSourceName)
 	util.CheckErr(err)
 	clientManager.db = db
-	clientManager.templateDao = dao.NewTemplateDao(db)
+	clientManager.packageDao = dao.NewPackageDao(db)
 
 	argoClient := getArgoClient()
-	clientManager.runDao = dao.NewRunDao(argoClient)
+	clientManager.jobDao = dao.NewJobDao(argoClient)
 
-	glog.Infof("initializing client manager successfully")
+	glog.Infof("initialized client manager successfully")
 }
 
 func (clientManager *ClientManager) End() {

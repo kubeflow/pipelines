@@ -10,91 +10,91 @@ import (
 	"github.com/kataras/iris/httptest"
 )
 
-type FakeTemplateDao struct{}
+type FakePackageDao struct{}
 
-func (dao *FakeTemplateDao) ListTemplates() ([]pipelinemanager.Template, error) {
-	templates := []pipelinemanager.Template{
+func (dao *FakePackageDao) ListPackages() ([]pipelinemanager.Package, error) {
+	packages := []pipelinemanager.Package{
 		{Id: 123, Description: "first description"},
 		{Id: 456, Description: "second description"}}
-	return templates, nil
+	return packages, nil
 }
 
-func (dao *FakeTemplateDao) GetTemplate(templateId string) (pipelinemanager.Template, error) {
-	template := pipelinemanager.Template{Id: 123, Description: "first description"}
-	return template, nil
+func (dao *FakePackageDao) GetPackage(packageId string) (pipelinemanager.Package, error) {
+	pkg := pipelinemanager.Package{Id: 123, Description: "first description"}
+	return pkg, nil
 }
 
-type FakeBadTemplateDao struct {
+type FakeBadPackageDao struct {
 }
 
-func (dao *FakeBadTemplateDao) ListTemplates() ([]pipelinemanager.Template, error) {
-	return nil, errors.New("there is no template here")
+func (dao *FakeBadPackageDao) ListPackages() ([]pipelinemanager.Package, error) {
+	return nil, errors.New("there is no package here")
 }
 
-func (dao *FakeBadTemplateDao) GetTemplate(templateId string) (pipelinemanager.Template, error) {
-	return pipelinemanager.Template{}, errors.New("there is no template here")
+func (dao *FakeBadPackageDao) GetPackage(packageId string) (pipelinemanager.Package, error) {
+	return pipelinemanager.Package{}, errors.New("there is no package here")
 }
 
-type FakeRunDao struct{}
+type FakeJobDao struct{}
 
-func (dao *FakeRunDao) ListRuns() ([]pipelinemanager.Run, error) {
-	runs := []pipelinemanager.Run{
-		{Name: "run1", Status: "Failed"},
-		{Name: "run2", Status: "Succeeded"}}
-	return runs, nil
+func (dao *FakeJobDao) ListJobs() ([]pipelinemanager.Job, error) {
+	jobs := []pipelinemanager.Job{
+		{Name: "job1", Status: "Failed"},
+		{Name: "job2", Status: "Succeeded"}}
+	return jobs, nil
 }
 
-type FakeBadRunDao struct{}
+type FakeBadJobDao struct{}
 
-func (dao *FakeBadRunDao) ListRuns() ([]pipelinemanager.Run, error) {
-	return nil, errors.New("there is no run here")
+func (dao *FakeBadJobDao) ListJobs() ([]pipelinemanager.Job, error) {
+	return nil, errors.New("there is no job here")
 }
 
 func initApiHandlerTest() *iris.Application {
 	clientManager := ClientManager{
-		templateDao: &FakeTemplateDao{},
-		runDao:      &FakeRunDao{},
+		packageDao: &FakePackageDao{},
+		jobDao:      &FakeJobDao{},
 	}
 	return newApp(clientManager)
 }
 
 func initBadApiHandlerTest() *iris.Application {
 	clientManager := ClientManager{
-		templateDao: &FakeBadTemplateDao{},
-		runDao:      &FakeBadRunDao{},
+		packageDao: &FakeBadPackageDao{},
+		jobDao:      &FakeBadJobDao{},
 	}
 	return newApp(clientManager)
 }
 
-func TestListTemplates(t *testing.T) {
+func TestListPackages(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest())
-	e.GET("/apis/v1alpha1/templates").Expect().Status(httptest.StatusOK).
+	e.GET("/apis/v1alpha1/packages").Expect().Status(httptest.StatusOK).
 		Body().Equal("[{\"id\":123,\"description\":\"first description\"},{\"id\":456,\"description\":\"second description\"}]")
 }
 
-func TestListTemplatesReturnError(t *testing.T) {
+func TestListPackagesReturnError(t *testing.T) {
 	e := httptest.New(t, initBadApiHandlerTest())
-	e.GET("/apis/v1alpha1/templates").Expect().Status(httptest.StatusInternalServerError)
+	e.GET("/apis/v1alpha1/packages").Expect().Status(httptest.StatusInternalServerError)
 }
 
-func TestGetTemplate(t *testing.T) {
+func TestGetPackage(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest())
-	e.GET("/apis/v1alpha1/templates/123").Expect().Status(httptest.StatusOK).
+	e.GET("/apis/v1alpha1/packages/123").Expect().Status(httptest.StatusOK).
 		Body().Equal("{\"id\":123,\"description\":\"first description\"}")
 }
 
-func TestGetTemplateReturnError(t *testing.T) {
+func TestGetPackageReturnError(t *testing.T) {
 	e := httptest.New(t, initBadApiHandlerTest())
-	e.GET("/apis/v1alpha1/templates/123").Expect().Status(httptest.StatusInternalServerError)
+	e.GET("/apis/v1alpha1/packages/123").Expect().Status(httptest.StatusInternalServerError)
 }
 
-func TestListRuns(t *testing.T) {
+func TestListJobs(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest())
-	e.GET("/apis/v1alpha1/runs").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"name\":\"run1\",\"createdAt\":\"\",\"startedAt\":\"\",\"finishedAt\":\"\",\"status\":\"Failed\"},{\"name\":\"run2\",\"createdAt\":\"\",\"startedAt\":\"\",\"finishedAt\":\"\",\"status\":\"Succeeded\"}]")
+	e.GET("/apis/v1alpha1/jobs").Expect().Status(httptest.StatusOK).
+		Body().Equal("[{\"name\":\"job1\",\"createdAt\":\"\",\"startedAt\":\"\",\"finishedAt\":\"\",\"status\":\"Failed\"},{\"name\":\"job2\",\"createdAt\":\"\",\"startedAt\":\"\",\"finishedAt\":\"\",\"status\":\"Succeeded\"}]")
 }
 
-func TestListRunsReturnError(t *testing.T) {
+func TestListJobsReturnError(t *testing.T) {
 	e := httptest.New(t, initBadApiHandlerTest())
-	e.GET("/apis/v1alpha1/runs").Expect().Status(httptest.StatusInternalServerError)
+	e.GET("/apis/v1alpha1/jobs").Expect().Status(httptest.StatusInternalServerError)
 }
