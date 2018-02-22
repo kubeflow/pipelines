@@ -1,0 +1,6 @@
+{
+  "DBConfig": {
+    "DriverName": "sqlite3",
+    "DataSourceName": "/bin/pipelines.db"
+  }
+}
