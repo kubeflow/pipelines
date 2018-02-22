@@ -16,8 +16,8 @@ const writeDiff = false;
 TIMEOUT_INTERVAL = 10 * 1000;
 
 const misMatchThreshold = 0.1;
-const goldenPathPrefix = 'test/ui/golden';
-const brokenPathPrefix = 'test/ui/broken';
+const goldenPathPrefix = 'ui/golden';
+const brokenPathPrefix = 'ui/broken';
 
 if (!fs.existsSync(brokenPathPrefix)) {
   fs.mkdirSync(brokenPathPrefix);
@@ -66,6 +66,7 @@ describe('UI tests', function () {
     await waitForCustomElement(page, 'top-bar');
     await waitForCustomElement(page, 'app-shell');
     page.waitFor(1000);
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
   });
 
   it('loads packages page', async () => {

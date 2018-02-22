@@ -1,0 +1,16 @@
+{
+  "name": "pipelines-frontend-test",
+  "version": "0.0.1",
+  "description": "Test package for ML Pipeline Management frontend",
+  "dependencies": {
+    "concurrently": "^3.5.1",
+    "jasmine": "^2.9.0",
+    "puppeteer": "^1.0.0",
+    "start-server-and-test": "^1.0.1"
+  },
+  "scripts": {
+    "start": "cd .. && npm start",
+    "test": "sleep 3 && jasmine ui/test_spec.js",
+    "ci": "start-server-and-test http://localhost:3000"
+  }
+}
