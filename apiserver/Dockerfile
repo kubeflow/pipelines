@@ -21,10 +21,10 @@ COPY config/ ${APISERVER_HOME}/config
 ENV GOPATH ${GOPATH}
 ENV PATH ${BINPATH}:$PATH
 RUN go get ./... \
-    # previous command doesn't automatically pick this lib up
     && go get github.com/iris-contrib/httpexpect \
-    && go get golang.org/x/tools/cmd/goimports \
-    && go build -o ${BINPATH}/apiserver ${APISERVER_HOME}/src/*.go
+    && go get golang.org/x/tools/cmd/goimports
+
+RUN go build -o ${BINPATH}/apiserver ${APISERVER_HOME}/src/*.go
 
 # Initialize sqlite3 db
 RUN sqlite3 ${BINPATH}/pipelines.db < ${DBPATH}/pipelines.sql

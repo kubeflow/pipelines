@@ -5,13 +5,19 @@ import (
 	"testing"
 
 	"ml/apiserver/src/message/pipelinemanager"
+	"ml/apiserver/src/message/argo"
+	"encoding/json"
 )
 
 type FakeArgoClient struct {
 }
 
 func (ac *FakeArgoClient) Request(method string, api string) ([]byte, error) {
-	body := "{\"items\":[{\"metadata\":{\"creationTimestamp\":\"2018-02-08T02:19:01Z\",\"name\":\"artifact-passing-5sd2d\"},\"status\":{\"finishedAt\":\"2018-02-08T02:19:04Z\",\"message\":\"step group artifact-passing-5sd2d[0] was unsuccessful\",\"nodes\":{\"artifact-passing-5sd2d\":{\"children\":[\"artifact-passing-5sd2d-4291870024\"],\"finishedAt\":\"2018-02-08T02:19:04Z\",\"id\":\"artifact-passing-5sd2d\",\"message\":\"step group artifact-passing-5sd2d[0] was unsuccessful\",\"name\":\"artifact-passing-5sd2d\",\"phase\":\"Failed\",\"startedAt\":\"2018-02-08T02:19:01Z\"}},\"phase\":\"Failed\",\"startedAt\":\"2018-02-08T02:19:01Z\"}}]}"
+	workflow := &argo.Workflows{
+		Items: []argo.Workflow{
+			{Metadata: argo.WorkflowMetadata{Name: "artifact-passing-5sd2d", CreationTimestamp: "2018-02-08T02:19:01Z"},
+				Status: argo.WorkflowStatus{StartTimestamp: "2018-02-08T02:19:01Z", FinishTimestamp: "2018-02-08T02:19:04Z", Status: "Failed"}}}}
+	body, _ := json.Marshal(workflow)
 	return []byte(body), nil
 }
 

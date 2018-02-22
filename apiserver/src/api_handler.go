@@ -15,7 +15,7 @@ const (
   listPackages = "/packages"
 	getPackage   = "/packages/{id:string}"
 	// TODO(yangpa) jobs should instead have resource path of /pipeline/{id:string}/jobs.
-	listJobs = "pipeline/{id:string}/jobs"
+	listJobs = "/pipelines/{id:string}/jobs"
 )
 
 type APIHandler struct {
