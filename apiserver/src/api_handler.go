@@ -1,9 +1,8 @@
 package main
 
 import (
-	"net/http"
-
 	"ml/apiserver/src/dao"
+	"net/http"
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"

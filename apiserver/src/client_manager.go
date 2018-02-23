@@ -4,10 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
-	"os"
-
 	"ml/apiserver/src/dao"
 	"ml/apiserver/src/util"
+	"os"
 
 	"github.com/golang/glog"
 	_ "github.com/mattn/go-sqlite3"

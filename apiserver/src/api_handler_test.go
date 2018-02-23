@@ -2,9 +2,8 @@ package main
 
 import (
 	"errors"
-	"testing"
-
 	"ml/apiserver/src/message/pipelinemanager"
+	"testing"
 
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/httptest"
@@ -91,7 +90,7 @@ func TestGetPackageReturnError(t *testing.T) {
 func TestListJobs(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest())
 	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"name\":\"job1\",\"createdAt\":\"\",\"startedAt\":\"\",\"finishedAt\":\"\",\"status\":\"Failed\"},{\"name\":\"job2\",\"createdAt\":\"\",\"startedAt\":\"\",\"finishedAt\":\"\",\"status\":\"Succeeded\"}]")
+		Body().Equal("[{\"name\":\"job1\",\"status\":\"Failed\"},{\"name\":\"job2\",\"status\":\"Succeeded\"}]")
 }
 
 func TestListJobsReturnError(t *testing.T) {
