@@ -31,7 +31,7 @@ const progressCssColors = {
 
 const PREVIEW_LINES_COUNT = 10;
 
-@customElement
+@customElement('job-details')
 export class JobDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })

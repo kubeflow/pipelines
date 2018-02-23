@@ -1,10 +1,8 @@
-export function customElement(clazz: any) {
-  const tagName = clazz.name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-  Object.defineProperty(clazz, 'is', {
-    get: () => tagName,
-  });
-
-  window.customElements.define(tagName, clazz);
+export function customElement(tagname: string) {
+  return (clazz: any) => {
+    Object.defineProperty(clazz, 'is', { value: tagname });
+    window.customElements.define(clazz.is!, clazz);
+  };
 }
 
 export interface PropertyOptions {

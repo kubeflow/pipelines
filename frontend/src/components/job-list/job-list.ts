@@ -26,7 +26,7 @@ interface JobsQueryParams {
   instanceId?: string;
 }
 
-@customElement
+@customElement('job-list')
 export class JobList extends Polymer.Element implements PageElement {
 
   @property({ type: Array })

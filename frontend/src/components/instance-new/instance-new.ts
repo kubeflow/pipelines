@@ -19,7 +19,7 @@ interface NewInstanceQueryParams {
   packageId?: string;
 }
 
-@customElement
+@customElement('instance-new')
 export class InstanceNew extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
