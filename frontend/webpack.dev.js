@@ -2,6 +2,7 @@ const common = require('./webpack.common.js');
 const indexServer = require('./mock-backend/index-server');
 const merge = require('webpack-merge');
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = merge(common, {
   devtool: 'inline-source-map',
@@ -20,4 +21,9 @@ module.exports = merge(common, {
     // Serve index.html for any unrecognized path
     historyApiFallback: true,
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify('dev')
+    }),
+  ],
 });
