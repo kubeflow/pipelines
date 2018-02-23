@@ -26,8 +26,13 @@ interface JobsQueryParams {
   instanceId?: string;
 }
 
+<<<<<<< HEAD:frontend/src/components/job-list/job-list.ts
 @customElement('job-list')
 export class JobList extends Polymer.Element implements PageElement {
+=======
+@customElement('run-list')
+export class RunList extends Polymer.Element implements PageElement {
+>>>>>>> add webpack prod config:frontend/src/components/run-list/run-list.ts
 
   @property({ type: Array })
   public jobs: Job[] = [];
