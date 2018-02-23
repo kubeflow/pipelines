@@ -6,6 +6,6 @@ import { customElement } from '../../decorators';
 
 import './top-bar.html';
 
-@customElement
+@customElement('top-bar')
 export class TopBar extends Polymer.Element {
 }

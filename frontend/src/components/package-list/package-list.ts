@@ -9,7 +9,7 @@ import { PipelinePackage } from '../../lib/pipeline_package';
 
 import './package-list.html';
 
-@customElement
+@customElement('package-list')
 export class PackageList extends Polymer.Element implements PageElement {
 
   @property({ type: Array })

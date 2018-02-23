@@ -1,6 +1,6 @@
 import { ParameterValue } from '../lib/parameter';
 
-export interface RunStep {
+export interface JobStep {
   name: string;
   start: number;
   end: number;
@@ -8,7 +8,7 @@ export interface RunStep {
   outputs: string;
 }
 
-export interface Run {
+export interface Job {
   end: number;
   id: number;
   instanceId: number;
@@ -18,5 +18,5 @@ export interface Run {
   recurringIntervalHours: number;
   start: number;
   state: 'not started' | 'running' | 'errored' | 'completed';
-  steps: RunStep[];
+  steps: JobStep[];
 }

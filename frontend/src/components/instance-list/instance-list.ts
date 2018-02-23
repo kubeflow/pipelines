@@ -8,7 +8,7 @@ import { PageElement } from '../../lib/page_element';
 
 import './instance-list.html';
 
-@customElement
+@customElement('instance-list')
 export class InstanceList extends Polymer.Element implements PageElement {
 
   @property({ type: Array })

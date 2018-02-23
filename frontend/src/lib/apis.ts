@@ -1,6 +1,6 @@
 import { FileDescriptor } from '../components/file-browser/file-browser';
 import { Instance } from '../lib/instance';
-import { Run } from '../lib/run';
+import { Job } from '../lib/job';
 import { config } from './config';
 import { PipelinePackage } from './pipeline_package';
 
@@ -56,22 +56,22 @@ export async function newInstance(instance: Instance) {
 }
 
 /**
- * Gets a list of all the pipeline instance runs from the backend.
- * If an instance id is specified, only the runs defined with this
+ * Gets a list of all the pipeline instance jobs from the backend.
+ * If an instance id is specified, only the jobs defined with this
  * instance id are returned.
  */
-export async function getRuns(instanceId?: number): Promise<Run[]> {
-  const path = '/runs' + (instanceId !== undefined ? '?instanceId=' + instanceId : '');
+export async function getJobs(instanceId?: number): Promise<Job[]> {
+  const path = '/jobs' + (instanceId !== undefined ? '?instanceId=' + instanceId : '');
   const response = await fetch(backendUrl + path);
-  const runs: Run[] = await response.json();
-  return runs;
+  const jobs: Job[] = await response.json();
+  return jobs;
 }
 
 /**
- * Gets the details of a certain pipeline instance run fiven its id.
+ * Gets the details of a certain pipeline instance job given its id.
  */
-export async function getRun(id: number): Promise<Run> {
-  const response = await fetch(backendUrl + `/runs/${id}`);
+export async function getJob(id: number): Promise<Job> {
+  const response = await fetch(backendUrl + `/jobs/${id}`);
   return await response.json();
 }
 
