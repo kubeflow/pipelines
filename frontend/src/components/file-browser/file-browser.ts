@@ -38,7 +38,7 @@ interface Breadcrumb {
   path: string;
 }
 
-@customElement
+@customElement('file-browser')
 export class FileBrowser extends Polymer.Element {
 
   @property({ type: String })

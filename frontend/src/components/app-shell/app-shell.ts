@@ -20,7 +20,7 @@ import { customElement, property } from '../../decorators';
 import { ROUTE_EVENT, RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
 
-@customElement
+@customElement('app-shell')
 export class AppShell extends Polymer.Element {
 
   @property({ type: String })
