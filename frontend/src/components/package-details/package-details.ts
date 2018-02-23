@@ -11,7 +11,7 @@ import * as Utils from '../../lib/utils';
 
 import './package-details.html';
 
-@customElement
+@customElement('package-details')
 export class PackageDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })

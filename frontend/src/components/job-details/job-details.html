@@ -1,16 +1,16 @@
-<dom-module id="run-details">
+<dom-module id="job-details">
   <template>
-    <link rel="stylesheet" href="./run-details.css">
+    <link rel="stylesheet" href="./job-details.css">
 
     <div class="flex">
       <div class="instance-name">[[instance.name]]</div>
       <div class="right">
         <div class="flex">
-          <iron-icon class="state-icon" icon=[[_getStateIcon(run.state)]]></iron-icon>
-          <paper-progress id="progress" value="[[run.progress]]"></paper-progress>
+          <iron-icon class="state-icon" icon=[[_getStateIcon(job.state)]]></iron-icon>
+          <paper-progress id="progress" value="[[job.progress]]"></paper-progress>
         </div>
         <div>
-          <span class="state">[[_getState(run.state)]]</span>
+          <span class="state">[[_getState(job.state)]]</span>
         </div>
       </div>
     </div>
@@ -28,15 +28,15 @@
         </div>
 
         <div>
-          <span class="strong">Start: </span>[[run.start]]
+          <span class="strong">Start: </span>[[job.start]]
         </div>
 
         <div>
-          <span class="strong">End: </span>[[run.end]]
+          <span class="strong">End: </span>[[job.end]]
         </div>
 
         <div>
-          <span class="strong">Run time: </span>[[_getRuntime(run.start, run.end, run.state)]]
+          <span class="strong">Run time: </span>[[_getRuntime(job.start, job.end, job.state)]]
         </div>
       </div>
 
@@ -60,10 +60,10 @@
 
     <hr>
 
-    <div class="steps" hidden$="[[!run.steps]]">
+    <div class="steps" hidden$="[[!job.steps]]">
       <div class="strong">Pipeline Steps:</div>
       <paper-tabs id="stepTabs" class="no-shrink" on-selected-changed="_stepSelected">
-        <template is="dom-repeat" items="[[run.steps]]" as="step">
+        <template is="dom-repeat" items="[[job.steps]]" as="step">
           <paper-tab>[[step.name]]</paper-tab>
         </template>
       </paper-tabs>

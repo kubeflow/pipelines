@@ -89,7 +89,7 @@
       "tags": []
     }
   ],
-  "runs": [
+  "jobs": [
     {
       "id": 1,
       "instanceId": 1,

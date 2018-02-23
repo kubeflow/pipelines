@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@types/d3": "^4.12.0",
+    "babel-minify-webpack-plugin": "^0.3.0",
     "bower": "^1.8.2",
     "clean-webpack-plugin": "^0.1.16",
     "concurrently": "^3.5.1",
@@ -24,12 +25,13 @@
     "tslint-loader": "^3.5.3",
     "typescript": "2.6.2",
     "webpack": "^3.6.0",
-    "webpack-dev-server": "^2.9.1"
+    "webpack-dev-server": "^2.9.1",
+    "webpack-merge": "^4.1.2"
   },
   "scripts": {
     "api": "json-server -w -q mock-backend/mock-db.json -p 3001",
-    "build": "webpack",
-    "dev": "concurrently -k -r \"npm run api\" \"webpack-dev-server\"",
+    "build": "webpack --config webpack.prod.js",
+    "dev": "concurrently -k -r \"npm run api\" \"webpack-dev-server --config webpack.dev.js\"",
     "lint": "tslint -p tsconfig.json",
     "postinstall": "bower install",
     "start": "npm run dev",
