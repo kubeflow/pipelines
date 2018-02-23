@@ -1,23 +1,36 @@
 package dao
 
 import (
-	"reflect"
 	"testing"
 
 	"encoding/json"
 	"ml/apiserver/src/message/argo"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
+	"reflect"
 	"ml/apiserver/src/message/pipelinemanager"
 )
+
+var ct, st, ft time.Time
+
+var body []byte
 
 type FakeArgoClient struct {
 }
 
+func init() {
+	ct, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
+	st, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
+	ft, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
+}
+
 func (ac *FakeArgoClient) Request(method string, api string) ([]byte, error) {
-	workflow := &argo.Workflows{
+
+	workflow := &argo.WorkflowList{
 		Items: []argo.Workflow{
-			{Metadata: argo.WorkflowMetadata{Name: "artifact-passing-5sd2d", CreationTimestamp: "2018-02-08T02:19:01Z"},
-				Status: argo.WorkflowStatus{StartTimestamp: "2018-02-08T02:19:01Z", FinishTimestamp: "2018-02-08T02:19:04Z", Status: "Failed"}}}}
-	body, _ := json.Marshal(workflow)
+			{ObjectMeta: v1.ObjectMeta{Name: "artifact-passing-5sd2d", CreationTimestamp: v1.Time{Time: ct}},
+				Status: argo.WorkflowStatus{StartedAt: v1.Time{Time: st}, FinishedAt: v1.Time{Time: ft}, Phase: "Failed"}}}}
+	body, _ = json.Marshal(workflow)
 	return []byte(body), nil
 }
 
@@ -33,9 +46,10 @@ func TestListJobs(t *testing.T) {
 	if len(jobs) != 1 {
 		t.Errorf("Error parsing jobs. Get %d jobs", len(jobs))
 	}
-	job := jobs[0]
-	jobExpect := pipelinemanager.Job{Name: "artifact-passing-5sd2d", CreationTimestamp: "2018-02-08T02:19:01Z",
-		StartTimestamp: "2018-02-08T02:19:01Z", FinishTimestamp: "2018-02-08T02:19:04Z", Status: "Failed"}
+	job, _ := json.Marshal(jobs[0])
+	jobExpect, _ := json.Marshal(pipelinemanager.Job{Name: "artifact-passing-5sd2d", CreationTimestamp: ct,
+		StartTimestamp: st, FinishTimestamp: ft, Status: "Failed"})
+
 	if !reflect.DeepEqual(job, jobExpect) {
 		t.Errorf("Unexpecte Job parsed. Expect %v. Got %v", job, jobExpect)
 	}

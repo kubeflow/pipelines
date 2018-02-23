@@ -23,7 +23,7 @@ func (dao *JobDao) ListJobs() ([]pipelinemanager.Job, error) {
 
 	bodyBytes, _ := dao.argoClient.Request("GET", "workflows")
 
-	var workflows argo.Workflows
+	var workflows argo.WorkflowList
 	if err := json.Unmarshal(bodyBytes, &workflows); err != nil {
 		glog.Fatalf("Failed to parse workflows: %v", err)
 	}
