@@ -10,7 +10,7 @@ import * as Utils from '../../lib/utils';
 
 import './instance-details.html';
 
-@customElement
+@customElement('instance-details')
 export class InstanceDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })

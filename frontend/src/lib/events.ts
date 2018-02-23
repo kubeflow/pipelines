@@ -1,6 +1,6 @@
 import { Instance } from '../lib/instance';
+import { Job } from '../lib/job';
 import { PipelinePackage } from '../lib/pipeline_package';
-import { Run } from '../lib/run';
 
 export class PackageClickEvent extends MouseEvent {
   public model: {
@@ -14,9 +14,9 @@ export class InstanceClickEvent extends MouseEvent {
   };
 }
 
-export class RunClickEvent extends MouseEvent {
+export class JobClickEvent extends MouseEvent {
   public model: {
-    run: Run,
+    job: Job,
   };
 }
 

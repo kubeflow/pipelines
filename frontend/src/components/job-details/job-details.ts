@@ -14,13 +14,13 @@ import prettyJson from 'json-pretty-html';
 import { customElement, property } from '../../decorators';
 import { TabSelectedEvent } from '../../lib/events';
 import { Instance } from '../../lib/instance';
+import { Job } from '../../lib/job';
 import { PageElement } from '../../lib/page_element';
-import { Run } from '../../lib/run';
 import { DataPlotter } from '../data-plotter/data-plotter';
 import { FileBrowser } from '../file-browser/file-browser';
 
 import '../file-browser/file-browser';
-import './run-details.html';
+import './job-details.html';
 
 const progressCssColors = {
   completed: '--success-color',
@@ -31,29 +31,29 @@ const progressCssColors = {
 
 const PREVIEW_LINES_COUNT = 10;
 
-@customElement
-export class RunDetails extends Polymer.Element implements PageElement {
+@customElement('job-details')
+export class JobDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
   public instance: Instance | null = null;
 
   @property({ type: Object })
-  public run: Run | null = null;
+  public job: Job | null = null;
 
   public async refresh(path: string) {
     if (path !== '') {
       const id = Number.parseInt(path);
       if (isNaN(id)) {
-        Utils.log.error(`Bad run path: ${id}`);
+        Utils.log.error(`Bad job path: ${id}`);
         return;
       }
-      this.run = await Apis.getRun(id);
-      this.instance = await Apis.getInstance(this.run.instanceId);
+      this.job = await Apis.getJob(id);
+      this.instance = await Apis.getInstance(this.job.instanceId);
 
       (this.$.stepTabs as any).selected = 0;
       this._colorProgressBar();
 
-      if (this.run.steps) {
+      if (this.job.steps) {
         this._switchToStep(0);
       }
     }
@@ -194,11 +194,11 @@ export class RunDetails extends Polymer.Element implements PageElement {
   }
 
   private _colorProgressBar() {
-    if (!this.run) {
+    if (!this.job) {
       return;
     }
     let color = '';
-    switch (this.run.state) {
+    switch (this.job.state) {
       case 'running':
         color = progressCssColors.running;
         break;
@@ -217,10 +217,10 @@ export class RunDetails extends Polymer.Element implements PageElement {
   }
 
   private _switchToStep(index: number) {
-    if (!this.run || !this.run.steps) {
+    if (!this.job || !this.job.steps) {
       return;
     }
-    const step = this.run.steps[index];
+    const step = this.job.steps[index];
     if (!step) {
       Utils.log.error('Could not retrieve selected step #' + index);
       return;
