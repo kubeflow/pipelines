@@ -8,10 +8,10 @@ import 'paper-styles/paper-styles.html';
 import '../instance-details/instance-details';
 import '../instance-list/instance-list';
 import '../instance-new/instance-new';
+import '../job-details/job-details';
+import '../job-list/job-list';
 import '../package-details/package-details';
 import '../package-list/package-list';
-import '../run-details/run-details';
-import '../run-list/run-list';
 import './app-shell.html';
 
 import * as Utils from '../../lib/utils';

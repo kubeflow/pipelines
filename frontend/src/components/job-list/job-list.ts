@@ -9,11 +9,11 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from '../../decorators';
-import { RouteEvent, RunClickEvent } from '../../lib/events';
+import { JobClickEvent, RouteEvent } from '../../lib/events';
+import { Job } from '../../lib/job';
 import { PageElement } from '../../lib/page_element';
-import { Run } from '../../lib/run';
 
-import './run-list.html';
+import './job-list.html';
 
 const progressCssColors = {
   completed: '--success-color',
@@ -22,20 +22,20 @@ const progressCssColors = {
   running: '--progress-color',
 };
 
-interface RunsQueryParams {
+interface JobsQueryParams {
   instanceId?: string;
 }
 
 @customElement
-export class RunList extends Polymer.Element implements PageElement {
+export class JobList extends Polymer.Element implements PageElement {
 
   @property({ type: Array })
-  public runs: Run[] = [];
+  public jobs: Job[] = [];
 
   @property({ type: String })
-  public pageTitle = 'Run list:';
+  public pageTitle = 'Job list:';
 
-  public async refresh(_: string, queryParams: RunsQueryParams) {
+  public async refresh(_: string, queryParams: JobsQueryParams) {
     let id;
     if (queryParams.instanceId) {
       id = Number.parseInt(queryParams.instanceId);
@@ -43,16 +43,16 @@ export class RunList extends Polymer.Element implements PageElement {
         id = undefined;
       }
     }
-    this.runs = await Apis.getRuns(id);
+    this.jobs = await Apis.getJobs(id);
     if (id !== undefined) {
-      this.pageTitle = `Run list for instance ${id}:`;
+      this.pageTitle = `Job list for instance ${id}:`;
     }
     this._colorProgressBars();
   }
 
-  protected _navigate(ev: RunClickEvent) {
-    const index = ev.model.run.id;
-    this.dispatchEvent(new RouteEvent(`/runs/details/${index}`));
+  protected _navigate(ev: JobClickEvent) {
+    const index = ev.model.job.id;
+    this.dispatchEvent(new RouteEvent(`/jobs/details/${index}`));
   }
 
   protected _paramsToArray(paramsObject: {}) {
@@ -90,11 +90,11 @@ export class RunList extends Polymer.Element implements PageElement {
     // Make sure the dom-repeat element is flushed, because we iterate
     // on its elements here.
     (Polymer.dom as any).flush();
-    const runsRepeatTemplate = this.$.runsRepeatTemplate as Polymer.DomRepeat;
-    (this.shadowRoot as ShadowRoot).querySelectorAll('.run').forEach((runEl) => {
-      const model = runsRepeatTemplate.modelForElement(runEl as HTMLElement);
+    const jobsRepeatTemplate = this.$.jobsRepeatTemplate as Polymer.DomRepeat;
+    (this.shadowRoot as ShadowRoot).querySelectorAll('.job').forEach((jobEl) => {
+      const model = jobsRepeatTemplate.modelForElement(jobEl as HTMLElement);
       let color = '';
-      switch ((model as any).run.state) {
+      switch ((model as any).job.state) {
         case 'running':
           color = progressCssColors.running;
           break;
@@ -107,7 +107,7 @@ export class RunList extends Polymer.Element implements PageElement {
           color = progressCssColors.errored;
           break;
       }
-      (runEl.querySelector('paper-progress') as any).updateStyles({
+      (jobEl.querySelector('paper-progress') as any).updateStyles({
         '--paper-progress-active-color': `var(${color})`,
       });
     });
