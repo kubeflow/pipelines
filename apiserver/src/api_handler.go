@@ -2,7 +2,7 @@ package main
 
 import (
 	"ml/apiserver/src/dao"
-	"net/http"
+	"ml/apiserver/src/util"
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
@@ -13,8 +13,7 @@ const (
 
 	listPackages = "/packages"
 	getPackage   = "/packages/{id:string}"
-	// TODO(yangpa) jobs should instead have resource path of /pipeline/{id:string}/jobs.
-	listJobs = "/pipelines/{id:string}/jobs"
+	listJobs     = "/pipelines/{id:string}/jobs"
 )
 
 type APIHandler struct {
@@ -27,7 +26,7 @@ func (a APIHandler) ListPackages(ctx iris.Context) {
 
 	packages, err := a.packageDao.ListPackages()
 	if err != nil {
-		ctx.StatusCode(http.StatusInternalServerError)
+		util.HandleError("ListPackages", ctx, err)
 		return
 	}
 
@@ -42,7 +41,7 @@ func (a APIHandler) GetPackage(ctx iris.Context) {
 	pkg, err := a.packageDao.GetPackage(id)
 
 	if err != nil {
-		ctx.StatusCode(http.StatusInternalServerError)
+		util.HandleError("GetPackage", ctx, err)
 		return
 	}
 
@@ -54,7 +53,7 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 
 	jobs, err := a.jobDao.ListJobs()
 	if err != nil {
-		ctx.StatusCode(http.StatusInternalServerError)
+		util.HandleError("ListJobs", ctx, err)
 		return
 	}
 
