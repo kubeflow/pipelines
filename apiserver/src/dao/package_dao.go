@@ -3,7 +3,6 @@ package dao
 import (
 	"database/sql"
 	"errors"
-
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
 )
@@ -22,7 +21,7 @@ func (dao *PackageDao) ListPackages() ([]pipelinemanager.Package, error) {
 	rows, err := dao.db.Query("SELECT * FROM package")
 
 	if err != nil {
-		return nil, err
+		return nil, util.NewInternalError("Failed to query the package table. Error:<%s>", err.Error())
 	}
 
 	var packages []pipelinemanager.Package
@@ -30,7 +29,9 @@ func (dao *PackageDao) ListPackages() ([]pipelinemanager.Package, error) {
 	for rows.Next() {
 		var t pipelinemanager.Package
 		err = rows.Scan(&t.Id, &t.Description)
-		util.CheckErr(err)
+		if err != nil {
+			return nil, util.NewInternalError("Failed to parse the package row. Error:<%s>", err.Error())
+		}
 		packages = append(packages, t)
 	}
 	return packages, nil

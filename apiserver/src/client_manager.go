@@ -4,10 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/ioutil"
-	"os"
-
 	"ml/apiserver/src/dao"
 	"ml/apiserver/src/util"
+	"os"
 
 	"github.com/golang/glog"
 	_ "github.com/mattn/go-sqlite3"
@@ -42,7 +41,7 @@ func (clientManager *ClientManager) Init(config Config) {
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
 	db, err := sql.Open(dbConfig.DriverName, dbConfig.DataSourceName)
-	util.CheckErr(err)
+	util.TerminateIfError(err)
 	clientManager.db = db
 	clientManager.packageDao = dao.NewPackageDao(db)
 
