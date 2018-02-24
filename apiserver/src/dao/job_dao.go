@@ -5,8 +5,7 @@ import (
 	"ml/apiserver/src/message"
 	"ml/apiserver/src/message/argo"
 	"ml/apiserver/src/message/pipelinemanager"
-
-	"github.com/golang/glog"
+	"ml/apiserver/src/util"
 )
 
 type JobDaoInterface interface {
@@ -24,7 +23,7 @@ func (dao *JobDao) ListJobs() ([]pipelinemanager.Job, error) {
 
 	var workflows argo.WorkflowList
 	if err := json.Unmarshal(bodyBytes, &workflows); err != nil {
-		glog.Fatalf("Failed to parse workflows: %v", err)
+		return jobs, &util.InternalError{Message: "Failed to parse the workflows returned from K8s CRD"}
 	}
 
 	for _, workflow := range workflows.Items {

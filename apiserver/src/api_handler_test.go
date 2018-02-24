@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errors"
 	"ml/apiserver/src/message/pipelinemanager"
+	"ml/apiserver/src/util"
 	"testing"
 
 	"github.com/kataras/iris"
@@ -27,11 +27,11 @@ type FakeBadPackageDao struct {
 }
 
 func (dao *FakeBadPackageDao) ListPackages() ([]pipelinemanager.Package, error) {
-	return nil, errors.New("there is no package here")
+	return nil, util.NewInternalError("there is no package here")
 }
 
 func (dao *FakeBadPackageDao) GetPackage(packageId string) (pipelinemanager.Package, error) {
-	return pipelinemanager.Package{}, errors.New("there is no package here")
+	return pipelinemanager.Package{}, util.NewInternalError("there is no package here")
 }
 
 type FakeJobDao struct{}
@@ -46,7 +46,7 @@ func (dao *FakeJobDao) ListJobs() ([]pipelinemanager.Job, error) {
 type FakeBadJobDao struct{}
 
 func (dao *FakeBadJobDao) ListJobs() ([]pipelinemanager.Job, error) {
-	return nil, errors.New("there is no job here")
+	return nil, util.NewInternalError("there is no job here")
 }
 
 func initApiHandlerTest() *iris.Application {
