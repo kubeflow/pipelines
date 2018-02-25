@@ -31,13 +31,8 @@ const progressCssColors = {
 
 const PREVIEW_LINES_COUNT = 10;
 
-<<<<<<< HEAD:frontend/src/components/job-details/job-details.ts
 @customElement('job-details')
 export class JobDetails extends Polymer.Element implements PageElement {
-=======
-@customElement('run-details')
-export class RunDetails extends Polymer.Element implements PageElement {
->>>>>>> add webpack prod config:frontend/src/components/run-details/run-details.ts
 
   @property({ type: Object })
   public instance: Instance | null = null;
