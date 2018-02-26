@@ -20,6 +20,8 @@ import { customElement, property } from '../../decorators';
 import { ROUTE_EVENT, RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
 
+const defaultPage = 'pipelines';
+
 @customElement('app-shell')
 export class AppShell extends Polymer.Element {
 
@@ -55,9 +57,9 @@ export class AppShell extends Polymer.Element {
             // and job/details. The rest are the argument to that page.
             const args = parts.splice(2).join('/');
             let pageName = `${parts.join('/')}`;
-            // For root '/', return the default page: packages
+            // For root '/', return the default page
             if (!pageName) {
-              pageName = 'packages';
+              pageName = defaultPage;
             }
             const pageEl = this._getPageElement(pageName);
             pageEl.refresh(args, (this.route as any).__queryParams);
