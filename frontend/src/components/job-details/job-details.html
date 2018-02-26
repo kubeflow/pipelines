@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="./job-details.css">
 
     <div class="flex">
-      <div class="instance-name">[[instance.name]]</div>
+      <div class="pipeline-name">[[pipeline.name]]</div>
       <div class="right">
         <div class="flex">
           <iron-icon class="state-icon" icon=[[_getStateIcon(job.state)]]></iron-icon>
@@ -20,11 +20,11 @@
     <div class="flex">
       <div class="left-column">
         <div>
-          <span class="strong">Pipeline Package: </span>[[instance.packageId]]
+          <span class="strong">Pipeline Package: </span>[[pipeline.packageId]]
         </div>
 
         <div>
-          <span class="strong">Description: </span>[[instance.description]]
+          <span class="strong">Description: </span>[[pipeline.description]]
         </div>
 
         <div>
@@ -44,7 +44,7 @@
         <div>
           <span class="strong">Parameters</span>
           <tr>
-            <template is="dom-repeat" items="[[instance.parameterValues]]" as="param">
+            <template is="dom-repeat" items="[[pipeline.parameterValues]]" as="param">
               <li>
                 <span class="strong">[[param.name]]:</span>[[param.value]]
               </li>
@@ -53,7 +53,7 @@
         </div>
 
         <div>
-          <span class="strong">Tags: </span>[[instance.tags]]
+          <span class="strong">Tags: </span>[[pipeline.tags]]
         </div>
       </div>
     </div>

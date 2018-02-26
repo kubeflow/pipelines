@@ -5,13 +5,13 @@ import 'app-route/app-route.html';
 import 'iron-pages/iron-pages.html';
 import 'paper-styles/paper-styles.html';
 
-import '../instance-details/instance-details';
-import '../instance-list/instance-list';
-import '../instance-new/instance-new';
 import '../job-details/job-details';
 import '../job-list/job-list';
 import '../package-details/package-details';
 import '../package-list/package-list';
+import '../pipeline-details/pipeline-details';
+import '../pipeline-list/pipeline-list';
+import '../pipeline-new/pipeline-new';
 import './app-shell.html';
 
 import * as Utils from '../../lib/utils';

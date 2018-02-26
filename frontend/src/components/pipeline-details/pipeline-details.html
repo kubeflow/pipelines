@@ -1,0 +1,46 @@
+<dom-module id="pipeline-details">
+  <template>
+    <link rel="stylesheet" href="./pipeline-details.css">
+
+    <div class="pipeline-name">[[pipeline.name]]</div>
+    <hr>
+
+    <div>
+      <span class="strong">Pipeline Package:</span>[[pipeline.packageId]]
+    </div>
+    <div>
+      <span class="strong">Description:</span>[[pipeline.description]]
+    </div>
+    <div>
+      <span class="strong">Starts</span>[[pipeline.starts]]
+    </div>
+    <div>
+      <span class="strong">Ends</span>[[pipeline.ends]]
+    </div>
+
+    <div>
+      <span class="strong">Parameters</span>
+      <tr>
+        <template is="dom-repeat" items="[[pipeline.parameterValues]]" as="param">
+          <li>
+            <span class="strong">[[param.name]]:</span>[[param.value]]
+          </li>
+        </template>
+      </tr>
+    </div>
+
+    <div>
+      <span class="strong">Tags:</span>[[pipeline.tags]]
+    </div>
+
+    <hr>
+
+    <a class="unstyled" href="/jobs?pipelineId=[[pipeline.id]]">
+      <paper-button class="action-button" raised>
+        Pipeline Jobs
+        <iron-icon icon="chevron-right"></iron-icon>
+      </paper-button>
+    </a>
+
+  </template>
+</dom-module>

@@ -4,26 +4,26 @@ import 'polymer/polymer.html';
 
 import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
-import { Instance } from '../../lib/instance';
 import { PageElement } from '../../lib/page_element';
+import { Pipeline } from '../../lib/pipeline';
 import * as Utils from '../../lib/utils';
 
-import './instance-details.html';
+import './pipeline-details.html';
 
-@customElement('instance-details')
-export class InstanceDetails extends Polymer.Element implements PageElement {
+@customElement('pipeline-details')
+export class PipelineDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
-  public instance: Instance | null = null;
+  public pipeline: Pipeline | null = null;
 
   public async refresh(path: string) {
     if (path !== '') {
       const id = Number.parseInt(path);
       if (isNaN(id)) {
-        Utils.log.error(`Bad instance path: ${id}`);
+        Utils.log.error(`Bad pipeline path: ${id}`);
         return;
       }
-      this.instance = await Apis.getInstance(id);
+      this.pipeline = await Apis.getPipeline(id);
     }
   }
 }
