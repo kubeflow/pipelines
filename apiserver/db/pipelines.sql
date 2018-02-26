@@ -1,7 +1,5 @@
 CREATE TABLE `package` (
-    `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-    `description` VARCHAR(64) NULL
+  `id`          VARCHAR(64) PRIMARY KEY,
+  `name`        VARCHAR(64) NOT NULL,
+  `description` VARCHAR(64)
 );
-
-INSERT INTO "package" VALUES(1,'I am the first package');
-INSERT INTO "package" VALUES(2,'I am the second package');
