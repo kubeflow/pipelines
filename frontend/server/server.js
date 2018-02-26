@@ -11,7 +11,6 @@ Usage: node server.js <static-dir> [port].
 
 const staticDir = path.resolve(process.argv[2]);
 const port = process.argv[3] || 3000;
-
 const apiServerAddress = process.env.API_SERVER_ADDRESS || 'http://localhost:3001';
 
 app.use(express.static(staticDir));
@@ -24,6 +23,6 @@ app.get('*', (req, res) => {
   res.sendFile(path.resolve(staticDir, 'index.html'));
 });
 
-app.listen(3000, () => {
+app.listen(port, () => {
   console.log('Server listening at http://localhost:' + port);
 });
