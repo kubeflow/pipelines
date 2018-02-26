@@ -9,58 +9,67 @@ import (
 	"github.com/kataras/iris/httptest"
 )
 
-type FakePackageDao struct{}
+type FakePackageStore struct{}
 
-func (dao *FakePackageDao) ListPackages() ([]pipelinemanager.Package, error) {
+func (s *FakePackageStore) ListPackages() ([]pipelinemanager.Package, error) {
 	packages := []pipelinemanager.Package{
-		{Id: 123, Description: "first description"},
-		{Id: 456, Description: "second description"}}
+		{Id: "123", Name: "Package123"},
+		{Id: "456", Name: "Package456"}}
 	return packages, nil
 }
 
-func (dao *FakePackageDao) GetPackage(packageId string) (pipelinemanager.Package, error) {
-	pkg := pipelinemanager.Package{Id: 123, Description: "first description"}
+func (s *FakePackageStore) GetPackage(packageId string) (pipelinemanager.Package, error) {
+	pkg := pipelinemanager.Package{Id: "123", Name: "Package123"}
 	return pkg, nil
 }
-
-type FakeBadPackageDao struct {
+func (s *FakePackageStore) CreatePackage(pipelinemanager.Package) error {
+	// TODO
+	return nil
 }
 
-func (dao *FakeBadPackageDao) ListPackages() ([]pipelinemanager.Package, error) {
+type FakeBadPackageStore struct {
+}
+
+func (s *FakeBadPackageStore) ListPackages() ([]pipelinemanager.Package, error) {
 	return nil, util.NewInternalError("there is no package here")
 }
 
-func (dao *FakeBadPackageDao) GetPackage(packageId string) (pipelinemanager.Package, error) {
+func (s *FakeBadPackageStore) GetPackage(packageId string) (pipelinemanager.Package, error) {
 	return pipelinemanager.Package{}, util.NewInternalError("there is no package here")
 }
 
-type FakeJobDao struct{}
+func (s *FakeBadPackageStore) CreatePackage(pipelinemanager.Package) error {
+	// TODO
+	return nil
+}
 
-func (dao *FakeJobDao) ListJobs() ([]pipelinemanager.Job, error) {
+type FakeJobStore struct{}
+
+func (s *FakeJobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	jobs := []pipelinemanager.Job{
 		{Name: "job1", Status: "Failed"},
 		{Name: "job2", Status: "Succeeded"}}
 	return jobs, nil
 }
 
-type FakeBadJobDao struct{}
+type FakeBadJobStore struct{}
 
-func (dao *FakeBadJobDao) ListJobs() ([]pipelinemanager.Job, error) {
+func (s *FakeBadJobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	return nil, util.NewInternalError("there is no job here")
 }
 
 func initApiHandlerTest() *iris.Application {
 	clientManager := ClientManager{
-		packageDao: &FakePackageDao{},
-		jobDao:     &FakeJobDao{},
+		packageStore: &FakePackageStore{},
+		jobStore:     &FakeJobStore{},
 	}
 	return newApp(clientManager)
 }
 
 func initBadApiHandlerTest() *iris.Application {
 	clientManager := ClientManager{
-		packageDao: &FakeBadPackageDao{},
-		jobDao:     &FakeBadJobDao{},
+		packageStore: &FakeBadPackageStore{},
+		jobStore:     &FakeBadJobStore{},
 	}
 	return newApp(clientManager)
 }
@@ -68,7 +77,7 @@ func initBadApiHandlerTest() *iris.Application {
 func TestListPackages(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest())
 	e.GET("/apis/v1alpha1/packages").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"id\":123,\"description\":\"first description\"},{\"id\":456,\"description\":\"second description\"}]")
+		Body().Equal("[{\"id\":\"123\",\"name\":\"Package123\"},{\"id\":\"456\",\"name\":\"Package456\"}]")
 }
 
 func TestListPackagesReturnError(t *testing.T) {
@@ -79,7 +88,7 @@ func TestListPackagesReturnError(t *testing.T) {
 func TestGetPackage(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest())
 	e.GET("/apis/v1alpha1/packages/123").Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"id\":123,\"description\":\"first description\"}")
+		Body().Equal("{\"id\":\"123\",\"name\":\"Package123\"}")
 }
 
 func TestGetPackageReturnError(t *testing.T) {

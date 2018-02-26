@@ -6,9 +6,10 @@ import (
 )
 
 func Convert(workflow argo.Workflow) pipelinemanager.Job {
-	return pipelinemanager.Job{Name: workflow.ObjectMeta.Name,
-		CreationTimestamp: &workflow.ObjectMeta.CreationTimestamp.Time,
-		StartTimestamp:    &workflow.Status.StartedAt.Time,
-		FinishTimestamp:   &workflow.Status.FinishedAt.Time,
-		Status:            string(workflow.Status.Phase)}
+	return pipelinemanager.Job{
+		Name:     workflow.ObjectMeta.Name,
+		CreateAt: &workflow.ObjectMeta.CreationTimestamp.Time,
+		StartAt:  &workflow.Status.StartedAt.Time,
+		FinishAt: &workflow.Status.FinishedAt.Time,
+		Status:   string(workflow.Status.Phase)}
 }

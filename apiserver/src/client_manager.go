@@ -1,14 +1,16 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io/ioutil"
-	"ml/apiserver/src/dao"
 	"ml/apiserver/src/util"
 	"os"
 
+	"ml/apiserver/src/storage"
+	"ml/apiserver/src/storage/packagemanager"
+
 	"github.com/golang/glog"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -29,24 +31,33 @@ type Config struct {
 
 // Container for all service clients
 type ClientManager struct {
-	db         *sql.DB
-	packageDao dao.PackageDaoInterface
-	jobDao     dao.JobDaoInterface
+	db             *sqlx.DB
+	packageStore   storage.PackageStoreInterface
+	jobStore       storage.JobStoreInterface
+	packageManager packagemanager.PackageManagerInterface
 }
 
 func (clientManager *ClientManager) Init(config Config) {
 	glog.Infof("initializing client manager")
 
 	dbConfig := config.DBConfig
+
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
-	db, err := sql.Open(dbConfig.DriverName, dbConfig.DataSourceName)
+	// sqlx.Connect() also pings the database trying to connect and fail fast if connection failed.
+	db, err := sqlx.Connect(dbConfig.DriverName, dbConfig.DataSourceName)
 	util.TerminateIfError(err)
-	clientManager.db = db
-	clientManager.packageDao = dao.NewPackageDao(db)
 
+	// Initiate package store
+	clientManager.db = db
+	clientManager.packageStore = storage.NewPackageStore(db)
+
+	// Initiate job store
 	argoClient := getArgoClient()
-	clientManager.jobDao = dao.NewJobDao(argoClient)
+	clientManager.jobStore = storage.NewJobStore(argoClient)
+
+	// Initiate package manager
+	clientManager.packageManager = &packagemanager.PersistentVolumePackageManager{VolumeLocation: "/usr/share/pipeline/package/"}
 
 	glog.Infof("initialized client manager successfully")
 }
@@ -71,7 +82,7 @@ func getConfig(configPath string) Config {
 }
 
 // Get Argo's K8s CRD API client.
-func getArgoClient() dao.ArgoClientInterface {
+func getArgoClient() storage.ArgoClientInterface {
 	k8ServiceHost := os.Getenv(k8sServiceHost)
 	if k8ServiceHost == "" {
 		glog.Fatalf("Kubernetes Service Host is not found.")
@@ -90,7 +101,7 @@ func getArgoClient() dao.ArgoClientInterface {
 	if len(k8TokenByte) == 0 {
 		glog.Fatalf("Reading Kubernetes Token file failed. No token found.")
 	}
-	return &dao.ArgoClient{K8ServiceHost: k8ServiceHost, K8TCPPort: k8TCPPort, K8Token: string(k8TokenByte)}
+	return &storage.ArgoClient{K8ServiceHost: k8ServiceHost, K8TCPPort: k8TCPPort, K8Token: string(k8TokenByte)}
 }
 
 // NewClientManager creates and Init a new instance of ClientManager

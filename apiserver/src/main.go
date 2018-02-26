@@ -20,7 +20,12 @@ func main() {
 	clientManager := NewClientManager(*configPath)
 
 	app := newApp(clientManager)
-	app.Run(iris.Addr(fmt.Sprintf(":%d", *portFlag)), iris.WithOptimizations)
+
+	app.Run(
+		iris.Addr(fmt.Sprintf(":%d", *portFlag)),
+		iris.WithOptimizations,
+		// Post limit at 32MB.
+		iris.WithPostMaxMemory(32<<20))
 
 	clientManager.End()
 }

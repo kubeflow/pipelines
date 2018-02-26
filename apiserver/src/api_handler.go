@@ -1,30 +1,36 @@
 package main
 
 import (
-	"ml/apiserver/src/dao"
+	"ml/apiserver/src/message/pipelinemanager"
+	"ml/apiserver/src/storage"
+	"ml/apiserver/src/storage/packagemanager"
 	"ml/apiserver/src/util"
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
+	"github.com/rs/xid"
 )
 
 const (
 	apiRouterPrefix = "/apis/v1alpha1"
 
-	listPackages = "/packages"
-	getPackage   = "/packages/{id:string}"
-	listJobs     = "/pipelines/{id:string}/jobs"
+	listPackages  = "/packages"
+	getPackage    = "/packages/{id:string}"
+	uploadPackage = "/packages/upload"
+
+	listJobs = "/pipelines/{id:string}/jobs"
 )
 
 type APIHandler struct {
-	packageDao dao.PackageDaoInterface
-	jobDao     dao.JobDaoInterface
+	packageStore   storage.PackageStoreInterface
+	jobStore       storage.JobStoreInterface
+	packageManager packagemanager.PackageManagerInterface
 }
 
 func (a APIHandler) ListPackages(ctx iris.Context) {
 	glog.Infof("List packages called")
 
-	packages, err := a.packageDao.ListPackages()
+	packages, err := a.packageStore.ListPackages()
 	if err != nil {
 		util.HandleError("ListPackages", ctx, err)
 		return
@@ -38,7 +44,7 @@ func (a APIHandler) GetPackage(ctx iris.Context) {
 
 	id := ctx.Params().Get("id")
 	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
-	pkg, err := a.packageDao.GetPackage(id)
+	pkg, err := a.packageStore.GetPackage(id)
 
 	if err != nil {
 		util.HandleError("GetPackage", ctx, err)
@@ -48,10 +54,33 @@ func (a APIHandler) GetPackage(ctx iris.Context) {
 	ctx.JSON(pkg)
 }
 
+func (a APIHandler) UploadPackage(ctx iris.Context) {
+	glog.Infof("Upload package called")
+
+	// Get the file from the request.
+	file, info, err := ctx.FormFile("packagefile")
+
+	if err != nil {
+		util.HandleError("UploadPackage", ctx, err)
+		return
+	}
+
+	defer file.Close()
+	err = a.packageManager.StorePackage(file, info)
+	if err != nil {
+		util.HandleError("UploadPackage", ctx, err)
+		return
+	}
+
+	pkg := pipelinemanager.Package{Id: xid.New().String(), Name: info.Filename}
+	a.packageStore.CreatePackage(pkg)
+	ctx.JSON(pkg)
+}
+
 func (a APIHandler) ListJobs(ctx iris.Context) {
 	glog.Infof("List jobs called")
 
-	jobs, err := a.jobDao.ListJobs()
+	jobs, err := a.jobStore.ListJobs()
 	if err != nil {
 		util.HandleError("ListJobs", ctx, err)
 		return
@@ -62,8 +91,9 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 
 func newApp(clientManager ClientManager) *iris.Application {
 	apiHandler := APIHandler{
-		packageDao: clientManager.packageDao,
-		jobDao:     clientManager.jobDao,
+		packageStore:   clientManager.packageStore,
+		jobStore:       clientManager.jobStore,
+		packageManager: clientManager.packageManager,
 	}
 	app := iris.New()
 
@@ -72,8 +102,13 @@ func newApp(clientManager ClientManager) *iris.Application {
 	app.OnErrorCode(iris.StatusNotFound, notFoundHandler)
 
 	apiRouter := app.Party(apiRouterPrefix)
+
+	// Packages
 	apiRouter.Get(listPackages, apiHandler.ListPackages)
 	apiRouter.Get(getPackage, apiHandler.GetPackage)
+	apiRouter.Post(uploadPackage, apiHandler.UploadPackage)
+
+	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)
 	return app
 }
