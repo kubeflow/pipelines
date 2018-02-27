@@ -24,6 +24,24 @@ export async function getPackage(id: number): Promise<PipelinePackage> {
 }
 
 /**
+ * Uploads the given package file to the backend, and gets back a PipelinePackage
+ * object with its metadata parsed.
+ */
+export async function uploadPackage(packageData: any): Promise<PipelinePackage> {
+  const pkg: PipelinePackage = {
+    author: 'test author',
+    description: 'test description',
+    location: 'local',
+    name: 'test name',
+    parameters: [],
+  };
+  // TODO.
+  return new Promise((resolve, _) => {
+    setTimeout(() => resolve(), 1000);
+  }).then(() => pkg);
+}
+
+/**
  * Gets a list of the pipeline package pipelines defined on the backend.
  */
 export async function getPipelines(): Promise<Pipeline[]> {

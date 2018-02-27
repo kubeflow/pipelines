@@ -3,10 +3,18 @@
 
 :host {
   padding: 30px;
+  position: relative;
 }
 
+paper-dropdown-menu-light,
 paper-input {
   width: 300px;
+}
+
+paper-item {
+  cursor: default;
+  padding: 0 30px;
+  white-space: nowrap; /* To avoid a flicker when items first show up */
 }
 
 paper-icon-button, paper-icon-button {
@@ -31,4 +39,19 @@ paper-icon-button, paper-icon-button {
 .param-description {
   max-width: 60%;
   padding: 20px;
+}
+
+.overlay {
+  background-color: #ffffff78;
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+paper-spinner {
+  position: absolute;
+  left: calc(50% - 50px / 2);
+  top: calc(50% - 50px / 2);
 }

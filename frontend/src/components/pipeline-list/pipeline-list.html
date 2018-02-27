@@ -1,8 +1,6 @@
 <dom-module id="pipeline-list">
   <template>
-    <link rel="stylesheet" href="./pipeline-list.css">
-
-    Scheduled Pipelines:
+    <link rel="stylesheet" href="./pipeline-list.css"> Scheduled Pipelines:
     <div class="container">
       <template is="dom-repeat" items="[[pipelines]]" as="pipeline">
         <div class="card" on-click="_navigate">
@@ -24,5 +22,9 @@
         </div>
       </template>
     </div>
+    <paper-button class="action-button" on-click="_create">
+      <iron-icon icon="add"></iron-icon>
+      Create
+    </paper-button>
   </template>
 </dom-module>

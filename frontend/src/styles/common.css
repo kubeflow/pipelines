@@ -41,6 +41,7 @@ hr {
 }
 
 .flex {
+  align-items: baseline;
   display: flex;
   flex-shrink: 0;
 }
@@ -60,6 +61,7 @@ paper-button:hover {
 .action-button {
   background-color: var(--accent-color);
   color: white;
+  max-height: 42px;
   min-width: 90px;
 }
 
