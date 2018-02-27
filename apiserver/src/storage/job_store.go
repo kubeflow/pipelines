@@ -23,7 +23,7 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 
 	var workflows argo.WorkflowList
 	if err := json.Unmarshal(bodyBytes, &workflows); err != nil {
-		return jobs, util.NewInternalError("Failed to parse the workflows returned from K8s CRD")
+		return jobs, util.NewInternalError("Failed to get jobs", "Failed to parse the workflows returned from K8s CRD.", err.Error())
 	}
 
 	for _, workflow := range workflows.Items {

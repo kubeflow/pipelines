@@ -4,10 +4,11 @@ import (
 	"mime/multipart"
 )
 
+// Manager managing acutal package file.
 type PackageManagerInterface interface {
-	// Store the package file
-	StorePackage(file multipart.File, fileHeader *multipart.FileHeader) error
+	// Create the package file
+	CreatePackageFile(file multipart.File, fileHeader *multipart.FileHeader) error
 
 	// Get the package file
-	GetPackage(fileName string) (multipart.File, error)
+	GetPackageFile(fileName string) ([]byte, error)
 }

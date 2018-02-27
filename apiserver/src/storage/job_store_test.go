@@ -19,9 +19,9 @@ type FakeArgoClient struct {
 }
 
 func init() {
-	ct, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
-	st, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
-	ft, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
+	ct, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
+	st, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
+	ft, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
 }
 
 func (ac *FakeArgoClient) Request(method string, api string) ([]byte, error) {

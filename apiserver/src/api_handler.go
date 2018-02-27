@@ -17,6 +17,7 @@ const (
 	listPackages  = "/packages"
 	getPackage    = "/packages/{id:string}"
 	uploadPackage = "/packages/upload"
+	getTemplate   = "/packages/{id:string}/templates"
 
 	listJobs = "/pipelines/{id:string}/jobs"
 )
@@ -43,11 +44,10 @@ func (a APIHandler) GetPackage(ctx iris.Context) {
 	glog.Infof("Get package called")
 
 	id := ctx.Params().Get("id")
-	// TODO(yangpa): Ignore the implementation. Use ORM to fetch data later
 	pkg, err := a.packageStore.GetPackage(id)
 
 	if err != nil {
-		util.HandleError("GetPackage", ctx, err)
+		util.HandleError("GetPackageFile", ctx, err)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 	glog.Infof("Upload package called")
 
 	// Get the file from the request.
-	file, info, err := ctx.FormFile("packagefile")
+	file, info, err := ctx.FormFile("uploadfile")
 
 	if err != nil {
 		util.HandleError("UploadPackage", ctx, err)
@@ -66,15 +66,37 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 	}
 
 	defer file.Close()
-	err = a.packageManager.StorePackage(file, info)
+	err = a.packageManager.CreatePackageFile(file, info)
 	if err != nil {
 		util.HandleError("UploadPackage", ctx, err)
 		return
 	}
 
 	pkg := pipelinemanager.Package{Id: xid.New().String(), Name: info.Filename}
-	a.packageStore.CreatePackage(pkg)
+	err = a.packageStore.CreatePackage(pkg)
+	if err != nil {
+		util.HandleError("UploadPackage", ctx, err)
+		return
+	}
 	ctx.JSON(pkg)
+}
+
+func (a APIHandler) GetTemplate(ctx iris.Context) {
+	glog.Infof("Get template called")
+
+	id := ctx.Params().Get("id")
+	pkg, err := a.packageStore.GetPackage(id)
+	if err != nil {
+		util.HandleError("GetTemplate", ctx, err)
+		return
+	}
+
+	file, err := a.packageManager.GetPackageFile(pkg.Name)
+	if err != nil {
+		util.HandleError("GetTemplate", ctx, err)
+		return
+	}
+	ctx.Write(file)
 }
 
 func (a APIHandler) ListJobs(ctx iris.Context) {
@@ -107,6 +129,7 @@ func newApp(clientManager ClientManager) *iris.Application {
 	apiRouter.Get(listPackages, apiHandler.ListPackages)
 	apiRouter.Get(getPackage, apiHandler.GetPackage)
 	apiRouter.Post(uploadPackage, apiHandler.UploadPackage)
+	apiRouter.Get(getTemplate, apiHandler.GetTemplate)
 
 	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)

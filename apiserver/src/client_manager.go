@@ -57,6 +57,7 @@ func (clientManager *ClientManager) Init(config Config) {
 	clientManager.jobStore = storage.NewJobStore(argoClient)
 
 	// Initiate package manager
+	// TODO(yangpa): make it configurable
 	clientManager.packageManager = &packagemanager.PersistentVolumePackageManager{VolumeLocation: "/usr/share/pipeline/package/"}
 
 	glog.Infof("initialized client manager successfully")

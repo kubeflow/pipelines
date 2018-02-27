@@ -4,6 +4,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	Kind      string = "Workflow"
+)
+
 // NodePhase is a label for the condition of a node at the current time.
 type NodePhase string
 
@@ -12,7 +16,9 @@ type NodePhase string
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Workflow struct {
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
+	Spec              WorkflowSpec   `json:"spec"`
 	Status            WorkflowStatus `json:"status"`
 }
 

@@ -22,7 +22,7 @@ func (s *PackageStore) ListPackages() ([]pipelinemanager.Package, error) {
 	err := s.db.Select(&packages, "SELECT * FROM package ORDER BY package.name")
 
 	if err != nil {
-		return nil, util.NewInternalError("Failed to list packages. Error:<%s>", err.Error())
+		return nil, util.NewInternalError("Failed to list packages", err.Error())
 	}
 	return packages, nil
 }
@@ -31,7 +31,8 @@ func (s *PackageStore) GetPackage(packageId string) (pipelinemanager.Package, er
 	var pkg pipelinemanager.Package
 	err := s.db.Get(&pkg, "SELECT * FROM package WHERE id = $1", packageId)
 	if err != nil {
-		return pkg, util.NewInternalError("Failed to get the package. Error:<%s>", err.Error())
+		// Error returns when no package found.
+		return pkg, util.NewResourceNotFoundError("Package", packageId)
 	}
 	return pkg, nil
 }
@@ -39,7 +40,7 @@ func (s *PackageStore) GetPackage(packageId string) (pipelinemanager.Package, er
 func (s *PackageStore) CreatePackage(p pipelinemanager.Package) error {
 	_, err := s.db.NamedExec("INSERT INTO package (id, name, description) VALUES(:id, :name, :description)", p)
 	if err != nil {
-		return util.NewInternalError("Failed to insert package to package table. Error:<%s>", err.Error())
+		return util.NewInternalError("Failed to add package to package table", err.Error())
 	}
 	return nil
 }
