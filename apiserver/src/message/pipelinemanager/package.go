@@ -1,6 +1,6 @@
-package message
+package pipelinemanager
 
-type Template struct {
+type Package struct {
 	Id          int    `json:"id"`
 	Description string `json:"description"`
 }
