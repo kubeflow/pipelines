@@ -5,9 +5,13 @@ metadata:
   labels:
     app: pipeline-manager
 spec:
+spec:
+  type: NodePort
   ports:
   - port: 8888
+    targetPort: 8888
     protocol: TCP
+    name: http
   selector:
     app: pipeline-manager
 ---
