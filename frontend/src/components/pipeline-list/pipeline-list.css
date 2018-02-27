@@ -1,12 +1,16 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
+@import '../package-list/package-list.css';
 
 :host {
   padding: 30px;
 }
 
-.instance-name {
+.pipeline-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);
   font-weight: bold;
+  padding: 10px 0;
+  text-align: center;
+  text-decoration: none;
 }

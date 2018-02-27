@@ -13,9 +13,9 @@ import { csvParseRows, select as d3select } from 'd3';
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from '../../decorators';
 import { TabSelectedEvent } from '../../lib/events';
-import { Instance } from '../../lib/instance';
 import { Job } from '../../lib/job';
 import { PageElement } from '../../lib/page_element';
+import { Pipeline } from '../../lib/pipeline';
 import { DataPlotter } from '../data-plotter/data-plotter';
 import { FileBrowser } from '../file-browser/file-browser';
 
@@ -35,7 +35,7 @@ const PREVIEW_LINES_COUNT = 10;
 export class JobDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
-  public instance: Instance | null = null;
+  public pipeline: Pipeline | null = null;
 
   @property({ type: Object })
   public job: Job | null = null;
@@ -48,7 +48,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
         return;
       }
       this.job = await Apis.getJob(id);
-      this.instance = await Apis.getInstance(this.job.instanceId);
+      this.pipeline = await Apis.getPipeline(this.job.pipelineId);
 
       (this.$.stepTabs as any).selected = 0;
       this._colorProgressBar();

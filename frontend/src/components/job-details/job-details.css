@@ -7,7 +7,7 @@
   padding: 30px;
 }
 
-.instance-name {
+.pipeline-name {
   color: var(--fg-color-strong);
   flex-grow: 1;
   font-size: var(--font-size-strong);

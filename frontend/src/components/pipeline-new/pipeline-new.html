@@ -1,14 +1,14 @@
-<dom-module id="instance-new">
+<dom-module id="pipeline-new">
   <template>
-    <link rel="stylesheet" href="./instance-new.css">
+    <link rel="stylesheet" href="./pipeline-new.css">
 
-    <div>Configure new pipeline instance:</div>
+    <div>Configure new pipeline pipeline:</div>
     <div class="flex">
       <paper-input id="packageId" label="Pipeline Package" value="[#[[package.id]]] [[package.name]]">
       </paper-input>
       <a class="package-link" href="/packages/details/[[package.id]]">Go To Pipeline Package</a>
     </div>
-    <paper-input id="name" label="Instance Name" autofocus></paper-input>
+    <paper-input id="name" label="Pipeline Name" autofocus></paper-input>
     <paper-input id="description" label="Description"></paper-input>
     <div class="flex">
       <paper-input id="starts" label="Starts" value="[[startDate]]"></paper-input>

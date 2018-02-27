@@ -1,6 +1,6 @@
 import { Parameter } from './parameter';
 
-export interface Instance {
+export interface Pipeline {
   author: string;
   description: string;
   ends: number;
