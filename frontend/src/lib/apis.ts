@@ -31,6 +31,7 @@ export async function uploadPackage(packageData: any): Promise<PipelinePackage> 
   const pkg: PipelinePackage = {
     author: 'test author',
     description: 'test description',
+    id: 'test-id',
     location: 'local',
     name: 'test name',
     parameters: [],

@@ -1,7 +1,7 @@
 {
   "packages": [
     {
-      "id": 1,
+      "id": "oqlksdjl",
       "name": "Unstructured text",
       "author": "user1",
       "tags": [
@@ -23,7 +23,7 @@
       "sharedWith": "team1"
     },
     {
-      "id": 2,
+      "id": "lkvjs3w423",
       "name": "Image classification",
       "author": "user2",
       "tags": [

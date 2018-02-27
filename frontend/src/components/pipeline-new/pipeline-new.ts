@@ -9,7 +9,7 @@ import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
-import * as Utils from '../../lib/utils';
+import { env } from '../../lib/config';
 
 import './pipeline-new.html';
 
@@ -43,8 +43,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   public parameters: Parameter[];
 
   protected _busy = false;
-
-  private _uploadFileSizeWarningLimit = 25 * 1024 * 1024;
+  protected _isDev = env === 'dev';
 
   public async refresh(_: string, queryParams: NewPipelineQueryParams) {
     let id;
@@ -84,38 +83,14 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     }
 
     const file = files[0];
-    const isLarge = file.size > this._uploadFileSizeWarningLimit;
-    if (isLarge) {
-      Utils.log.warn(
-        'Trying to upload a large file, browser might experience slowness or freezing.');
-    }
-
     this._busy = true;
-    // First, load the file data into memory.
-    const readPromise = new Promise((resolve, reject) => {
-
-      const reader = new FileReader();
-
-      reader.onload = () => resolve(reader.result);
-      // TODO: handle file reading errors.
-      reader.onerror = () => {
-        reject(new Error('Error reading file.'));
-      };
-
-      // TODO: this will freeze the UI on large files (>~20MB on my laptop) until
-      // they're loaded into memory, and very large files (>~100MB) will crash
-      // the browser.
-      // One possible solution is to slice the file into small chunks and upload
-      // each separately, but this requires the backend to support partial
-      // chunk uploads.
-      reader.readAsText(file);
-    });
-
-    // Now upload the file data to the backend server.
-    const pkg = await Apis.uploadPackage(await readPromise);
+    const pkg = await Apis.uploadPackage(file);
+    // Add the parsed package to the dropdown list, and select it
     this.push('packages', pkg);
     (this.$.packagesListbox as any).selected = (this.$.packagesListbox as any).items.length;
     this._busy = false;
+
+    (this.$.altFileUpload as HTMLInputElement).value = '';
   }
 
   protected _pickStartDate() {
