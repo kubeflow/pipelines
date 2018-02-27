@@ -21,7 +21,7 @@ func (dao *JobDao) ListJobs() ([]pipelinemanager.Job, error) {
 
 	bodyBytes, _ := dao.argoClient.Request("GET", "workflows")
 
-	var workflows argo.Workflows
+	var workflows argo.WorkflowList
 	if err := json.Unmarshal(bodyBytes, &workflows); err != nil {
 		return jobs, &util.InternalError{Message: "Failed to parse the workflows returned from K8s CRD"}
 	}
