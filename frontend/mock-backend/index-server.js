@@ -15,6 +15,8 @@ module.exports = (app) => {
       } else {
         res.send(fs.readFileSync(path, 'utf8'));
       }
+    } else if (req.url === '/_config/apiServerAddress') {
+      res.send('/_api');
     }
     next();
   });

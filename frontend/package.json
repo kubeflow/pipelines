@@ -31,6 +31,7 @@
   "scripts": {
     "api": "json-server -w -q mock-backend/mock-db.json -p 3001",
     "build": "webpack --config webpack.prod.js",
+    "docker": "docker build -t ml-pipelines-frontend .",
     "dev": "concurrently -k -r \"npm run api\" \"webpack-dev-server --config webpack.dev.js\"",
     "lint": "tslint -p tsconfig.json",
     "postinstall": "bower install",

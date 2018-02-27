@@ -83,6 +83,7 @@ func getConfig(configPath string) Config {
 }
 
 // Get Argo's K8s CRD API client.
+// TODO(yangpa): Pass the env variable from parameter when start the binary instead.
 func getArgoClient() storage.ArgoClientInterface {
 	k8ServiceHost := os.Getenv(k8sServiceHost)
 	if k8ServiceHost == "" {
