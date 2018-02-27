@@ -45,7 +45,7 @@
       "sharedWith": "team2"
     }
   ],
-  "instances": [
+  "pipelines": [
     {
       "author": "user1",
       "description": "Try 10 for x",
@@ -92,7 +92,7 @@
   "jobs": [
     {
       "id": 1,
-      "instanceId": 1,
+      "pipelineId": 1,
       "parameterValues": {
         "x": 10,
         "y": 20
@@ -141,7 +141,7 @@
     },
     {
       "id": 2,
-      "instanceId": 1,
+      "pipelineId": 1,
       "parameterValues": {
         "x": 20,
         "y": 20
@@ -153,7 +153,7 @@
     },
     {
       "id": 3,
-      "instanceId": 1,
+      "pipelineId": 1,
       "parameterValues": {
         "x": 30,
         "y": 20
@@ -165,7 +165,7 @@
     },
     {
       "id": 4,
-      "instanceId": 1,
+      "pipelineId": 1,
       "parameterValues": {
         "x": 40,
         "y": 20
@@ -177,7 +177,7 @@
     },
     {
       "id": 5,
-      "instanceId": 1,
+      "pipelineId": 1,
       "parameterValues": {
         "x": 50,
         "y": 20
@@ -189,7 +189,7 @@
     },
     {
       "id": 6,
-      "instanceId": 1,
+      "pipelineId": 1,
       "parameterValues": {
         "x": 60,
         "y": 20
@@ -201,7 +201,7 @@
     },
     {
       "id": 7,
-      "instanceId": 1,
+      "pipelineId": 1,
       "parameterValues": {
         "x": 70,
         "y": 20
@@ -213,7 +213,7 @@
     },
     {
       "id": 8,
-      "instanceId": 1,
+      "pipelineId": 1,
       "parameterValues": {
         "x": 80,
         "y": 20
@@ -225,7 +225,7 @@
     },
     {
       "id": 9,
-      "instanceId": 2,
+      "pipelineId": 2,
       "parameterValues": {
         "x": 80,
         "y": 20

@@ -23,7 +23,7 @@ const progressCssColors = {
 };
 
 interface JobsQueryParams {
-  instanceId?: string;
+  pipelineId?: string;
 }
 
 @customElement('job-list')
@@ -37,15 +37,15 @@ export class JobList extends Polymer.Element implements PageElement {
 
   public async refresh(_: string, queryParams: JobsQueryParams) {
     let id;
-    if (queryParams.instanceId) {
-      id = Number.parseInt(queryParams.instanceId);
+    if (queryParams.pipelineId) {
+      id = Number.parseInt(queryParams.pipelineId);
       if (isNaN(id)) {
         id = undefined;
       }
     }
     this.jobs = await Apis.getJobs(id);
     if (id !== undefined) {
-      this.pageTitle = `Job list for instance ${id}:`;
+      this.pageTitle = `Job list for pipeline ${id}:`;
     }
     this._colorProgressBars();
   }

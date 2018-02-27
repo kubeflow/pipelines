@@ -6,21 +6,21 @@ import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
 
-import './instance-new.html';
+import './pipeline-new.html';
 
 import { customElement, property } from '../../decorators';
 import { RouteEvent } from '../../lib/events';
-import { Instance } from '../../lib/instance';
 import { PageElement } from '../../lib/page_element';
 import { Parameter } from '../../lib/parameter';
+import { Pipeline } from '../../lib/pipeline';
 import { PipelinePackage } from '../../lib/pipeline_package';
 
-interface NewInstanceQueryParams {
+interface NewPipelineQueryParams {
   packageId?: string;
 }
 
-@customElement('instance-new')
-export class InstanceNew extends Polymer.Element implements PageElement {
+@customElement('pipeline-new')
+export class PipelineNew extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
   public package: PipelinePackage;
@@ -34,7 +34,7 @@ export class InstanceNew extends Polymer.Element implements PageElement {
   @property({ type: Object })
   public parameters: Parameter[];
 
-  public async refresh(_: string, queryParams: NewInstanceQueryParams) {
+  public async refresh(_: string, queryParams: NewPipelineQueryParams) {
     let id;
     if (queryParams.packageId) {
       id = Number.parseInt(queryParams.packageId);
@@ -63,7 +63,7 @@ export class InstanceNew extends Polymer.Element implements PageElement {
   }
 
   protected async _deploy() {
-    const newInstance: Instance = {
+    const newPipeline: Pipeline = {
       author: '',
       description: (this.$.description as HTMLInputElement).value,
       ends: Date.parse(this.endDate),
@@ -75,8 +75,8 @@ export class InstanceNew extends Polymer.Element implements PageElement {
       starts: Date.parse(this.startDate),
       tags: (this.$.tags as HTMLInputElement).value.split(','),
     };
-    await Apis.newInstance(newInstance);
+    await Apis.newPipeline(newPipeline);
 
-    this.dispatchEvent(new RouteEvent('/instances'));
+    this.dispatchEvent(new RouteEvent('/pipelines'));
   }
 }

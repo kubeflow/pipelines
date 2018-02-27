@@ -1,6 +1,6 @@
 import { FileDescriptor } from '../components/file-browser/file-browser';
-import { Instance } from '../lib/instance';
 import { Job } from '../lib/job';
+import { Pipeline } from '../lib/pipeline';
 import { PipelinePackage } from './pipeline_package';
 
 const backendUrl = fetch('/_config/apiServerAddress')
@@ -24,28 +24,28 @@ export async function getPackage(id: number): Promise<PipelinePackage> {
 }
 
 /**
- * Gets a list of the pipeline package instances defined on the backend.
+ * Gets a list of the pipeline package pipelines defined on the backend.
  */
-export async function getInstances(): Promise<Instance[]> {
-  const response = await fetch(await backendUrl + '/instances');
-  const instances: Instance[] = await response.json();
-  return instances;
+export async function getPipelines(): Promise<Pipeline[]> {
+  const response = await fetch(await backendUrl + '/pipelines');
+  const pipelines: Pipeline[] = await response.json();
+  return pipelines;
 }
 
 /**
- * Gets the details of a certain package instance given its id.
+ * Gets the details of a certain package pipeline given its id.
  */
-export async function getInstance(id: number): Promise<Instance> {
-  const response = await fetch(await backendUrl + `/instances/${id}`);
+export async function getPipeline(id: number): Promise<Pipeline> {
+  const response = await fetch(await backendUrl + `/pipelines/${id}`);
   return await response.json();
 }
 
 /**
- * Sends a new instance request to the backend.
+ * Sends a new pipeline request to the backend.
  */
-export async function newInstance(instance: Instance) {
-  const response = await fetch(await backendUrl + '/instances', {
-    body: JSON.stringify(instance),
+export async function newPipeline(pipeline: Pipeline) {
+  const response = await fetch(await backendUrl + '/pipelines', {
+    body: JSON.stringify(pipeline),
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json'
@@ -56,19 +56,19 @@ export async function newInstance(instance: Instance) {
 }
 
 /**
- * Gets a list of all the pipeline instance jobs from the backend.
- * If an instance id is specified, only the jobs defined with this
- * instance id are returned.
+ * Gets a list of all the pipeline pipeline jobs from the backend.
+ * If an pipeline id is specified, only the jobs defined with this
+ * pipeline id are returned.
  */
-export async function getJobs(instanceId?: number): Promise<Job[]> {
-  const path = '/jobs' + (instanceId !== undefined ? '?instanceId=' + instanceId : '');
+export async function getJobs(pipelineId?: number): Promise<Job[]> {
+  const path = '/jobs' + (pipelineId !== undefined ? '?pipelineId=' + pipelineId : '');
   const response = await fetch(await backendUrl + path);
   const jobs: Job[] = await response.json();
   return jobs;
 }
 
 /**
- * Gets the details of a certain pipeline instance job given its id.
+ * Gets the details of a certain pipeline pipeline job given its id.
  */
 export async function getJob(id: number): Promise<Job> {
   const response = await fetch(await backendUrl + `/jobs/${id}`);

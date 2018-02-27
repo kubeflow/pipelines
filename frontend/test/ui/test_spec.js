@@ -68,49 +68,49 @@ describe('UI tests', function () {
     page.waitFor(1000);
   });
 
-  it('can interact with instances button with hover', async () => {
+  it('can interact with pipelines button with hover', async () => {
     await waitForCustomElement(page, 'top-bar');
-    const instancesBtn = await page.evaluateHandle(`
-      document.querySelector('top-bar').$.instancesBtn`);
+    const pipelinesBtn = await page.evaluateHandle(`
+      document.querySelector('top-bar').$.pipelinesBtn`);
       
-    await instancesBtn.hover();
+    await pipelinesBtn.hover();
     await page.waitFor(500); // wait for hover effect (0.3s)
-    await takeScreenshotsAndDiff('instancesBtn-hover');
+    await takeScreenshotsAndDiff('pipelinesBtn-hover');
   });
 
-  it('loads instances page when its button is clicked', async () => {
+  it('loads pipelines page when its button is clicked', async () => {
     await waitForCustomElement(page, 'top-bar');
-    const instancesBtn = await page.evaluateHandle(`
-      document.querySelector('top-bar').$.instancesBtn`);
+    const pipelinesBtn = await page.evaluateHandle(`
+      document.querySelector('top-bar').$.pipelinesBtn`);
       
-    await instancesBtn.click();
+    await pipelinesBtn.click();
     await page.waitForFunction(
       `document.querySelector('app-shell')
-       .shadowRoot.querySelector('instance-list')`);
+       .shadowRoot.querySelector('pipeline-list')`);
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('instances');
+    await takeScreenshotsAndDiff('pipelines');
   });
 
-  it('can interact with instance page cards', async () => {
+  it('can interact with pipeline page cards', async () => {
     await waitForCustomElement(page, 'top-bar');
     const card = await page.evaluateHandle(
       `document.querySelector('app-shell')
-       .shadowRoot.querySelector('instance-list')
+       .shadowRoot.querySelector('pipeline-list')
        .shadowRoot.querySelector('.container .card')`);
     await card.hover();
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('instance-card-hover');
+    await takeScreenshotsAndDiff('pipeline-card-hover');
   });
 
-  it('loads instance details of the clicked instance card', async () => {
+  it('loads pipeline details of the clicked pipeline card', async () => {
     await waitForCustomElement(page, 'top-bar');
     const card = await page.evaluateHandle(
       `document.querySelector('app-shell')
-       .shadowRoot.querySelector('instance-list')
+       .shadowRoot.querySelector('pipeline-list')
        .shadowRoot.querySelector('.container .card')`);
     await card.click();
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('instance-details');
+    await takeScreenshotsAndDiff('pipeline-details');
   });
 
   it('navigates back to packages if the topbar logo is clicked', async () => {

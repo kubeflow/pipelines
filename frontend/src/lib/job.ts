@@ -11,7 +11,7 @@ export interface JobStep {
 export interface Job {
   end: number;
   id: number;
-  instanceId: number;
+  pipelineId: number;
   parameterValues: { [key: string]: ParameterValue };
   progress: number;
   recurring: boolean;

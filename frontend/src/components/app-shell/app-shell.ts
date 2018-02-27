@@ -5,13 +5,13 @@ import 'app-route/app-route.html';
 import 'iron-pages/iron-pages.html';
 import 'paper-styles/paper-styles.html';
 
-import '../instance-details/instance-details';
-import '../instance-list/instance-list';
-import '../instance-new/instance-new';
 import '../job-details/job-details';
 import '../job-list/job-list';
 import '../package-details/package-details';
 import '../package-list/package-list';
+import '../pipeline-details/pipeline-details';
+import '../pipeline-list/pipeline-list';
+import '../pipeline-new/pipeline-new';
 import './app-shell.html';
 
 import * as Utils from '../../lib/utils';
@@ -19,6 +19,8 @@ import * as Utils from '../../lib/utils';
 import { customElement, property } from '../../decorators';
 import { ROUTE_EVENT, RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
+
+const defaultPage = 'pipelines';
 
 @customElement('app-shell')
 export class AppShell extends Polymer.Element {
@@ -55,9 +57,9 @@ export class AppShell extends Polymer.Element {
             // and job/details. The rest are the argument to that page.
             const args = parts.splice(2).join('/');
             let pageName = `${parts.join('/')}`;
-            // For root '/', return the default page: packages
+            // For root '/', return the default page
             if (!pageName) {
-              pageName = 'packages';
+              pageName = defaultPage;
             }
             const pageEl = this._getPageElement(pageName);
             pageEl.refresh(args, (this.route as any).__queryParams);
