@@ -3,13 +3,13 @@ kind: Service
 metadata:
   name: pipeline-manager
   labels:
-    run: pipeline-manager
+    app: pipeline-manager
 spec:
   ports:
   - port: 8888
     protocol: TCP
   selector:
-    run: pipeline-manager
+    app: pipeline-manager
 ---
 apiVersion: apps/v1
 kind: Deployment
