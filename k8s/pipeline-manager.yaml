@@ -1,52 +1,26 @@
 apiVersion: v1
-kind: Service
+kind: Pod
 metadata:
-  name: pipeline-manager
+  name: pipeline-manager-single
   labels:
-    app: pipeline-manager
+    name: pipeline-manager-single
 spec:
-spec:
-  type: NodePort
-  ports:
-  - port: 8888
-    targetPort: 8888
-    protocol: TCP
-    name: http
-  selector:
-    app: pipeline-manager
+  volumes:
+  - name: pipeline-package-storage
+    persistentVolumeClaim:
+       claimName: pipeline-package-claim
+  containers:
+  - name: pipeline-manager-api-server
+    image: pipeline-manager-api-server
+    imagePullPolicy: Never
+    ports:
+      - containerPort: 8888
+    volumeMounts:
+      - mountPath: "/usr/share/pipeline/package"
+        name: pipeline-package-storage
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pipeline-manager
-  labels:
-    app: pipeline-manager
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: pipeline-manager
-  template:
-    metadata:
-      labels:
-        app: pipeline-manager
-    spec:
-      volumes:
-      - name: pipeline-package-storage
-        persistentVolumeClaim:
-           claimName: pipeline-package-claim
-      containers:
-      - name: pipeline-manager-api-server
-        image: pipeline-manager-api-server
-        imagePullPolicy: Never
-        ports:
-          - containerPort: 8888
-        volumeMounts:
-          - mountPath: "/usr/share/pipeline/package"
-            name: pipeline-package-storage
----
-apiVersion: v1
 kind: PersistentVolume
+apiVersion: v1
 metadata:
   name: pipeline-package
   labels:
@@ -60,8 +34,8 @@ spec:
   hostPath:
     path: "/mnt/pipeline-package-pv"
 ---
-apiVersion: v1
 kind: PersistentVolumeClaim
+apiVersion: v1
 metadata:
   name: pipeline-package-claim
 spec:
