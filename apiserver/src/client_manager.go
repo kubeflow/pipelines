@@ -7,12 +7,12 @@ import (
 	"os"
 
 	"ml/apiserver/src/storage"
+	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage/packagemanager"
 
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"ml/apiserver/src/message/pipelinemanager"
 )
 
 const (

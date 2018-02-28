@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
-	"github.com/iris-contrib/middleware/cors"
 )
 
 var (
@@ -21,7 +20,7 @@ func main() {
 	clientManager := NewClientManager(*configPath)
 
 	app := newApp(clientManager)
-	app.Use(cors.Default())
+
 	app.Run(
 		iris.Addr(fmt.Sprintf(":%d", *portFlag)),
 		iris.WithOptimizations,

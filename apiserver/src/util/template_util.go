@@ -15,7 +15,7 @@ func GetParameter(template []byte) []pipelinemanager.Parameter {
 	if err != nil {
 		// throw
 	}
-	return pipelinemanager.FromArgoParameters(wf.Spec.Arguments.Parameters)
+	return pipelinemanager.ToParameters(wf.Spec.Arguments.Parameters)
 }
 
 // TODO(yangpa): Error handling. Implement

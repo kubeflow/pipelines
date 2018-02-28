@@ -9,7 +9,7 @@ type Parameter struct {
 	OwnerType string `json:"-"`
 }
 
-func FromArgoParameters(parameters []argo.Parameter) []Parameter {
+func ToParameters(parameters []argo.Parameter) []Parameter {
 	newParams := make([]Parameter, 0)
 	for _, param := range parameters {
 		param := Parameter{

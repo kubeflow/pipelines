@@ -11,6 +11,7 @@ import (
 	"github.com/ghodss/yaml"
 	"bytes"
 	"io"
+	"github.com/iris-contrib/middleware/cors"
 )
 
 const (
@@ -26,7 +27,6 @@ const (
 	createPipeline = "/pipelines"
 
 	listJobs  = "/pipelines/{pipelineId:string}/jobs"
-	getJobs   = "/pipelines/{pipelineId:string}/jobs/{jobId:string}"
 	createJob = "/pipelines/{pipelineId:string}/jobs"
 )
 
@@ -81,6 +81,7 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 		util.HandleError("UploadPackage", ctx, util.NewInternalError("Failed to copy package.", err.Error()))
 		return
 	}
+
 	template := buf.Bytes()
 	err = a.packageManager.CreatePackageFile(template, info)
 	if err != nil {
@@ -228,11 +229,13 @@ func newApp(clientManager ClientManager) *iris.Application {
 	}
 	app := iris.New()
 
+	app.Use(cors.NewAllowAll())
 	// registers a custom handler for 404 not found http (error) status code,
 	// fires when route not found or manually by ctx.StatusCode(iris.StatusNotFound).
 	app.OnErrorCode(iris.StatusNotFound, notFoundHandler)
 
 	apiRouter := app.Party(apiRouterPrefix)
+
 
 	// Packages
 	apiRouter.Get(listPackages, apiHandler.ListPackages)
@@ -247,7 +250,6 @@ func newApp(clientManager ClientManager) *iris.Application {
 
 	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)
-	//apiRouter.Get(getJobs, apiHandler.GetJob)
 	apiRouter.Post(createJob, apiHandler.CreateJob)
 	return app
 }
