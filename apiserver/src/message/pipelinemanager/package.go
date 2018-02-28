@@ -1,7 +1,9 @@
 package pipelinemanager
 
+import "github.com/jinzhu/gorm"
+
 type Package struct {
-	Id          string `json:"id" db:"id"`
-	Name        string `json:"name" db:"name"`
-	Description string `json:"description,omitempty" db:"description"`
+	gorm.Model
+	Name        string `json:"name" `
+	Description string `json:"description" `
 }

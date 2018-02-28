@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
-	"github.com/rs/xid"
+	"github.com/ghodss/yaml"
 )
 
 const (
@@ -19,11 +19,18 @@ const (
 	uploadPackage = "/packages/upload"
 	getTemplate   = "/packages/{id:string}/templates"
 
-	listJobs = "/pipelines/{id:string}/jobs"
+	listPipelines  = "/pipelines"
+	getPipeline    = "/pipelines/{pipelineId:string}"
+	createPipeline = "/pipelines"
+
+	listJobs  = "/pipelines/{pipelineId:string}/jobs"
+	getJobs   = "/pipelines/{pipelineId:string}/jobs/{jobId:string}"
+	createJob = "/pipelines/{pipelineId:string}/jobs"
 )
 
 type APIHandler struct {
 	packageStore   storage.PackageStoreInterface
+	pipelineStore  storage.PipelineStoreInterface
 	jobStore       storage.JobStoreInterface
 	packageManager packagemanager.PackageManagerInterface
 }
@@ -72,8 +79,8 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 		return
 	}
 
-	pkg := pipelinemanager.Package{Id: xid.New().String(), Name: info.Filename}
-	err = a.packageStore.CreatePackage(pkg)
+	pkg := pipelinemanager.Package{Name: info.Filename}
+	pkg, err = a.packageStore.CreatePackage(pkg)
 	if err != nil {
 		util.HandleError("UploadPackage", ctx, err)
 		return
@@ -99,6 +106,57 @@ func (a APIHandler) GetTemplate(ctx iris.Context) {
 	ctx.Write(file)
 }
 
+func (a APIHandler) ListPipelines(ctx iris.Context) {
+	glog.Infof("List pipelines called")
+
+	pipelines, err := a.pipelineStore.ListPipelines()
+	if err != nil {
+		util.HandleError("ListPipelines", ctx, err)
+		return
+	}
+
+	ctx.JSON(pipelines)
+}
+
+func (a APIHandler) GetPipeline(ctx iris.Context) {
+	glog.Infof("Get pipeline called")
+
+	pipelineId := ctx.Params().Get("pipelineId")
+	pipeline, err := a.pipelineStore.GetPipeline(pipelineId)
+
+	if err != nil {
+		util.HandleError("GetPipeline", ctx, err)
+		return
+	}
+
+	ctx.JSON(pipeline)
+}
+
+func (a APIHandler) CreatePipeline(ctx iris.Context) {
+	glog.Infof("Create pipeline called")
+
+	pipeline := pipelinemanager.Pipeline{}
+	if err := ctx.ReadJSON(&pipeline); err != nil {
+		util.HandleError("CreatePipeline", ctx, util.NewInvalidInputError(err.Error()))
+		return
+	}
+
+	// Verify the package exist
+	_, err := a.packageStore.GetPackage(pipeline.PackageId)
+	if err != nil {
+		util.HandleError("CreatePipeline", ctx, err)
+		return
+	}
+
+	pipeline, err = a.pipelineStore.CreatePipeline(pipeline)
+	if err != nil {
+		util.HandleError("CreatePipeline", ctx, err)
+		return
+	}
+
+	ctx.JSON(pipeline)
+}
+
 func (a APIHandler) ListJobs(ctx iris.Context) {
 	glog.Infof("List jobs called")
 
@@ -111,9 +169,52 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 	ctx.JSON(jobs)
 }
 
+func (a APIHandler) CreateJob(ctx iris.Context) {
+	glog.Infof("Create jobs called")
+
+	pipelineId := ctx.Params().Get("pipelineId")
+	pipeline, err := a.pipelineStore.GetPipeline(pipelineId)
+
+	if err != nil {
+		util.HandleError("CreateJob", ctx, err)
+		return
+	}
+
+	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
+	if err != nil {
+		util.HandleError("GetPackageFile", ctx, err)
+		return
+	}
+
+	file, err := a.packageManager.GetPackageFile(pkg.Name)
+	if err != nil {
+		util.HandleError("GetTemplate", ctx, err)
+		return
+	}
+
+	glog.Infof("**** Before inject parameter" + string(file))
+	file = util.InjectParameter(file, pipeline.Parameters)
+	glog.Infof("**** after inject parameter" + string(file))
+
+	file, err = yaml.YAMLToJSON(file)
+	if err != nil {
+		util.HandleError("GetTemplate", ctx, err)
+		return
+	}
+
+	job, err := a.jobStore.CreateJob(file)
+	if err != nil {
+		util.HandleError("CreateJob", ctx, err)
+		return
+	}
+
+	ctx.JSON(job)
+}
+
 func newApp(clientManager ClientManager) *iris.Application {
 	apiHandler := APIHandler{
 		packageStore:   clientManager.packageStore,
+		pipelineStore:  clientManager.pipelineStore,
 		jobStore:       clientManager.jobStore,
 		packageManager: clientManager.packageManager,
 	}
@@ -131,8 +232,15 @@ func newApp(clientManager ClientManager) *iris.Application {
 	apiRouter.Post(uploadPackage, apiHandler.UploadPackage)
 	apiRouter.Get(getTemplate, apiHandler.GetTemplate)
 
+	// Pipelines
+	apiRouter.Get(listPipelines, apiHandler.ListPipelines)
+	apiRouter.Get(getPipeline, apiHandler.GetPipeline)
+	apiRouter.Post(createPipeline, apiHandler.CreatePipeline)
+
 	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)
+	//apiRouter.Get(getJobs, apiHandler.GetJob)
+	apiRouter.Post(createJob, apiHandler.CreateJob)
 	return app
 }
 

@@ -10,6 +10,7 @@ import (
 
 type JobStoreInterface interface {
 	ListJobs() ([]pipelinemanager.Job, error)
+	CreateJob([]byte) (pipelinemanager.Job, error)
 }
 
 type JobStore struct {
@@ -19,7 +20,7 @@ type JobStore struct {
 func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	var jobs []pipelinemanager.Job
 
-	bodyBytes, _ := s.argoClient.Request("GET", "workflows")
+	bodyBytes, _ := s.argoClient.Request("GET", "workflows", nil)
 
 	var workflows argo.WorkflowList
 	if err := json.Unmarshal(bodyBytes, &workflows); err != nil {
@@ -32,6 +33,19 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	}
 
 	return jobs, nil
+}
+
+func (s *JobStore) CreateJob(pipeline []byte) (pipelinemanager.Job, error) {
+	var job pipelinemanager.Job
+
+	bodyBytes, _ := s.argoClient.Request("POST", "workflows", pipeline)
+
+	var workflow argo.Workflow
+	if err := json.Unmarshal(bodyBytes, &workflow); err != nil {
+		return job, util.NewInternalError("Failed to create job", "Failed to parse the workflow returned from K8s CRD.", err.Error())
+	}
+	job = message.Convert(workflow)
+	return job, nil
 }
 
 // factory function for package store

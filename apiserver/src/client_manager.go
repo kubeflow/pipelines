@@ -10,8 +10,9 @@ import (
 	"ml/apiserver/src/storage/packagemanager"
 
 	"github.com/golang/glog"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"ml/apiserver/src/message/pipelinemanager"
 )
 
 const (
@@ -26,13 +27,15 @@ type DBConfig struct {
 }
 
 type Config struct {
-	DBConfig DBConfig
+	DBConfig      DBConfig
+	PackageVolume string
 }
 
 // Container for all service clients
 type ClientManager struct {
-	db             *sqlx.DB
+	db             *gorm.DB
 	packageStore   storage.PackageStoreInterface
+	pipelineStore  storage.PipelineStoreInterface
 	jobStore       storage.JobStoreInterface
 	packageManager packagemanager.PackageManagerInterface
 }
@@ -44,21 +47,25 @@ func (clientManager *ClientManager) Init(config Config) {
 
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
-	// sqlx.Connect() also pings the database trying to connect and fail fast if connection failed.
-	db, err := sqlx.Connect(dbConfig.DriverName, dbConfig.DataSourceName)
+	db, err := gorm.Open(dbConfig.DriverName, dbConfig.DataSourceName)
 	util.TerminateIfError(err)
+	// Create table
+	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{}, &pipelinemanager.Parameter{})
 
 	// Initiate package store
 	clientManager.db = db
 	clientManager.packageStore = storage.NewPackageStore(db)
+
+	// Initiate pipeline store
+	clientManager.db = db
+	clientManager.pipelineStore = storage.NewPipelineStore(db)
 
 	// Initiate job store
 	argoClient := getArgoClient()
 	clientManager.jobStore = storage.NewJobStore(argoClient)
 
 	// Initiate package manager
-	// TODO(yangpa): make it configurable
-	clientManager.packageManager = &packagemanager.PersistentVolumePackageManager{VolumeLocation: "/usr/share/pipeline/package/"}
+	clientManager.packageManager = &packagemanager.PersistentVolumePackageManager{VolumeLocation: config.PackageVolume}
 
 	glog.Infof("initialized client manager successfully")
 }

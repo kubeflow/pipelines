@@ -2,5 +2,6 @@
   "DBConfig": {
     "DriverName": "sqlite3",
     "DataSourceName": "/bin/pipelines.db"
-  }
+  },
+  "PackageVolume": "/usr/share/pipeline/package/"
 }

@@ -22,7 +22,7 @@ metadata:
   labels:
     app: pipeline-manager
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: pipeline-manager
@@ -31,9 +31,43 @@ spec:
       labels:
         app: pipeline-manager
     spec:
+      volumes:
+      - name: pipeline-package-storage
+        persistentVolumeClaim:
+           claimName: pipeline-package-claim
       containers:
       - name: pipeline-manager-api-server
         image: pipeline-manager-api-server
         imagePullPolicy: Never
         ports:
-        - containerPort: 8888
+          - containerPort: 8888
+        volumeMounts:
+          - mountPath: "/usr/share/pipeline/package"
+            name: pipeline-package-storage
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pipeline-package
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/pipeline-package-pv"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pipeline-package-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
