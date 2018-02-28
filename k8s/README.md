@@ -18,3 +18,21 @@ kubectl create -f ${GOPATH}/src/ml/k8s/pipeline-manager.yaml
 kubectl get pod
 kubectl port-forward [pipeline-manager-pod] 8888:8888
 ```
+-- Get shell for the pod
+```
+kubectl exec -it pipeline-manager-single -- /bin/bash
+```
+-- The Logs are located in 
+```
+\tmp
+```
+-- The sqlite db is located in 
+```
+/bin/pipelines.db
+```
+To dump the db
+```
+$ sqlite3 /bin/pipelines.db
+sqlite3> .dump
+```
+ 
