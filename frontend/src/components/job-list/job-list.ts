@@ -46,6 +46,8 @@ export class JobList extends Polymer.Element implements PageElement {
     this.jobs = await Apis.getJobs(id);
     if (id !== undefined) {
       this.pageTitle = `Job list for pipeline ${id}:`;
+    } else {
+      this.pageTitle = 'Job list:';
     }
     this._colorProgressBars();
   }
