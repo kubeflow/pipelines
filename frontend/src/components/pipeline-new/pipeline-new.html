@@ -3,6 +3,7 @@
     <link rel="stylesheet" href="./pipeline-new.css">
 
     <div>Configure new pipeline pipeline:</div>
+
     <div class="flex">
       <paper-dropdown-menu-light label="Choose a Package" noink on-selected-item-changed="_packageChanged">
         <paper-listbox id="packagesListbox" slot="dropdown-content" class="dropdown-content">
@@ -21,6 +22,7 @@
       <!--This is hidden but its functionality is used by the alt upload button above-->
       <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
     </div>
+
     <paper-input id="name" label="Pipeline Name" autofocus></paper-input>
     <paper-input id="description" label="Description"></paper-input>
     <div class="flex">

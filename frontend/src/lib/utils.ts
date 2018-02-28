@@ -13,10 +13,6 @@ export const log = {
     // tslint:disable-next-line:no-console
     console.error(...args);
   },
-  warn: (...args: any[]) => {
-    // tslint:disable-next-line:no-console
-    console.warn(...args);
-  }
 };
 
 export function listenOnce(element: Node, eventName: string, cb: Function) {

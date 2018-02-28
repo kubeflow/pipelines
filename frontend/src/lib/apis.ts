@@ -28,6 +28,8 @@ export async function getPackage(id: number): Promise<PipelinePackage> {
  * object with its metadata parsed.
  */
 export async function uploadPackage(packageData: any): Promise<PipelinePackage> {
+  // TODO: For now, this mocks the API call by waiting for one second, then
+  // returning a test package object.
   const pkg: PipelinePackage = {
     author: 'test author',
     description: 'test description',
@@ -36,7 +38,6 @@ export async function uploadPackage(packageData: any): Promise<PipelinePackage> 
     name: 'test name',
     parameters: [],
   };
-  // TODO.
   return new Promise((resolve, _) => {
     setTimeout(() => resolve(), 1000);
   }).then(() => pkg);

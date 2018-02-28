@@ -18,6 +18,7 @@
     "paper-input": "PolymerElements/paper-input#^2.1.0",
     "paper-item": "PolymerElements/paper-item#^2.0.0",
     "paper-listbox": "PolymerElements/paper-listbox#^2.0.0",
+    "paper-progress": "PolymerElements/paper-progress#^2.0.1",
     "paper-spinner": "PolymerElements/paper-spinner#^2.1.0",
     "paper-tabs": "PolymerElements/paper-tabs#^2.0.0",
     "polymer": "^2.5.0",

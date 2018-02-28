@@ -48,14 +48,17 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   public async refresh(_: string, queryParams: NewPipelineQueryParams) {
     let id;
     this._busy = true;
-    this.packages = await Apis.getPackages();
-    if (queryParams.packageId) {
-      id = Number.parseInt(queryParams.packageId);
-      if (!isNaN(id)) {
-        (this.$.packagesListbox as any).selected = id;
+    try {
+      this.packages = await Apis.getPackages();
+      if (queryParams.packageId) {
+        id = Number.parseInt(queryParams.packageId);
+        if (!isNaN(id)) {
+          (this.$.packagesListbox as any).selected = id;
+        }
       }
+    } finally {
+      this._busy = false;
     }
-    this._busy = false;
   }
 
   protected async _packageChanged(e: any) {
