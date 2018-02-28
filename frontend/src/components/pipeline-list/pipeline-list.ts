@@ -22,4 +22,8 @@ export class PipelineList extends Polymer.Element implements PageElement {
     const index = ev.model.pipeline.id;
     this.dispatchEvent(new RouteEvent(`/pipelines/details/${index}`));
   }
+
+  protected _create() {
+    this.dispatchEvent(new RouteEvent('/pipelines/new'));
+  }
 }
