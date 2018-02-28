@@ -20,7 +20,7 @@ type PackageStore struct {
 func (s *PackageStore) ListPackages() ([]pipelinemanager.Package, error) {
 	var packages []pipelinemanager.Package
 	// List all packages.
-	if r := s.db.Find(&packages); r.Error != nil {
+	if r := s.db.Preload("Parameters").Find(&packages); r.Error != nil {
 		return nil, util.NewInternalError("Failed to list packages", r.Error.Error())
 	}
 	return packages, nil
@@ -28,7 +28,7 @@ func (s *PackageStore) ListPackages() ([]pipelinemanager.Package, error) {
 
 func (s *PackageStore) GetPackage(id string) (pipelinemanager.Package, error) {
 	var pkg pipelinemanager.Package
-	if r := s.db.First(&pkg, id); r.Error != nil {
+	if r := s.db.Preload("Parameters").First(&pkg, id); r.Error != nil {
 		// Error returns when no package found.
 		return pkg, util.NewResourceNotFoundError("Package", id)
 	}

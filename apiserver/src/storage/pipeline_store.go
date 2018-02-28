@@ -29,7 +29,7 @@ func (s *PipelineStore) ListPipelines() ([]pipelinemanager.Pipeline, error) {
 func (s *PipelineStore) GetPipeline(id string) (pipelinemanager.Pipeline, error) {
 	var pipeline pipelinemanager.Pipeline
 	// Get the pipeline as well as its parameter.
-	if r := s.db.First(&pipeline, id).Related(&pipeline.Parameters); r.Error != nil {
+	if r := s.db.Preload("Parameters").First(&pipeline, id); r.Error != nil {
 		// Error returns when no pipeline found.
 		return pipeline, util.NewResourceNotFoundError("Pipeline", id)
 	}
