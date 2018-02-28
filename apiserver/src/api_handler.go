@@ -9,6 +9,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
 	"github.com/ghodss/yaml"
+	"bytes"
+	"io"
 )
 
 const (
@@ -73,13 +75,21 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 	}
 
 	defer file.Close()
-	err = a.packageManager.CreatePackageFile(file, info)
+
+	buf := bytes.NewBuffer(nil)
+	if _, err = io.Copy(buf, file); err != nil {
+		util.HandleError("UploadPackage", ctx, util.NewInternalError("Failed to copy package.", err.Error()))
+		return
+	}
+	template := buf.Bytes()
+	err = a.packageManager.CreatePackageFile(template, info)
 	if err != nil {
 		util.HandleError("UploadPackage", ctx, err)
 		return
 	}
 
-	pkg := pipelinemanager.Package{Name: info.Filename}
+	pkg := pipelinemanager.Package{Name: info.Filename, Parameters: util.GetParameter(template)}
+
 	pkg, err = a.packageStore.CreatePackage(pkg)
 	if err != nil {
 		util.HandleError("UploadPackage", ctx, err)
@@ -192,9 +202,7 @@ func (a APIHandler) CreateJob(ctx iris.Context) {
 		return
 	}
 
-	glog.Infof("**** Before inject parameter" + string(file))
 	file = util.InjectParameter(file, pipeline.Parameters)
-	glog.Infof("**** after inject parameter" + string(file))
 
 	file, err = yaml.YAMLToJSON(file)
 	if err != nil {

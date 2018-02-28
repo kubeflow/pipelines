@@ -7,7 +7,7 @@ import (
 // Manager managing acutal package file.
 type PackageManagerInterface interface {
 	// Create the package file
-	CreatePackageFile(file multipart.File, fileHeader *multipart.FileHeader) error
+	CreatePackageFile(template []byte, fileHeader *multipart.FileHeader) error
 
 	// Get the package file
 	GetPackageFile(fileName string) ([]byte, error)

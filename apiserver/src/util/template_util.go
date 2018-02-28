@@ -9,15 +9,21 @@ import (
 )
 
 // TODO(yangpa): Error handling. Implement
-func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) []byte {
+func GetParameter(template []byte) []pipelinemanager.Parameter {
 	var wf argo.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
 		// throw
 	}
+	return pipelinemanager.FromArgoParameters(wf.Spec.Arguments.Parameters)
+}
 
+// TODO(yangpa): Error handling. Implement
+func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) []byte {
+	var wf argo.Workflow
+	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		glog.Info("get error parsing parameter to map")
+		// throw
 	}
 
 	newParams := make([]argo.Parameter, 0)

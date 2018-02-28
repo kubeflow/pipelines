@@ -14,7 +14,7 @@ type PersistentVolumePackageManager struct {
 	VolumeLocation string
 }
 
-func (m *PersistentVolumePackageManager) CreatePackageFile(file multipart.File, fileHeader *multipart.FileHeader) error {
+func (m *PersistentVolumePackageManager) CreatePackageFile(template []byte, fileHeader *multipart.FileHeader) error {
 	fileName := fileHeader.Filename
 
 	// Create a file with the same name as user provided
@@ -26,17 +26,11 @@ func (m *PersistentVolumePackageManager) CreatePackageFile(file multipart.File, 
 	}
 	defer out.Close()
 
-	buf := bytes.NewBuffer(nil)
-	_, err = io.Copy(buf, file)
-	if err != nil {
-		return util.NewInternalError("Failed to copy package.", err.Error())
-	}
-
-	err = checkValidPackage(buf.Bytes())
+	err = checkValidPackage(template)
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(out, buf)
+	_, err = io.Copy(out, bytes.NewBuffer(template))
 	if err != nil {
 		return util.NewInternalError("Failed to store the package", err.Error())
 	}

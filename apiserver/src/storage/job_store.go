@@ -28,7 +28,7 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	}
 
 	for _, workflow := range workflows.Items {
-		job := message.Convert(workflow)
+		job := pipelinemanager.ToJob(workflow)
 		jobs = append(jobs, job)
 	}
 
@@ -44,7 +44,7 @@ func (s *JobStore) CreateJob(pipeline []byte) (pipelinemanager.Job, error) {
 	if err := json.Unmarshal(bodyBytes, &workflow); err != nil {
 		return job, util.NewInternalError("Failed to create job", "Failed to parse the workflow returned from K8s CRD.", err.Error())
 	}
-	job = message.Convert(workflow)
+	job = pipelinemanager.ToJob(workflow)
 	return job, nil
 }
 
