@@ -15,5 +15,6 @@ kubectl create -f ${GOPATH}/src/ml/k8s/pipeline-manager.yaml
 ```
 - Forward the pipeline manager port so you can access it from host machine
 ```
-kubectl port-forward pipeline-manager-single 8888:8888
+kubectl get pod
+kubectl port-forward [pipeline-manager-pod] 8888:8888
 ```
