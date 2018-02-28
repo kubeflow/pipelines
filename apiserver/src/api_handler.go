@@ -228,7 +228,7 @@ func newApp(clientManager ClientManager) *iris.Application {
 		packageManager: clientManager.packageManager,
 	}
 	app := iris.New()
-
+	// Allow all domains for now.
 	app.Use(cors.NewAllowAll())
 	// registers a custom handler for 404 not found http (error) status code,
 	// fires when route not found or manually by ctx.StatusCode(iris.StatusNotFound).

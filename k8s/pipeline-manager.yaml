@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: pipeline-manager
+  name: ml-pipeline-manager
   labels:
-    app: pipeline-manager
+    app: ml-pipeline-manager
 spec:
 spec:
   type: NodePort
@@ -13,61 +13,30 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: pipeline-manager
+    app: ml-pipeline-manager
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pipeline-manager
+  name: ml-pipeline-manager
   labels:
-    app: pipeline-manager
+    app: ml-pipeline-manager
 spec:
-  replicas: 1
+  strategy:
+    # Specifies the strategy used to replace old Pods by new ones
+    # Refer: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+    type: Recreate
   selector:
     matchLabels:
-      app: pipeline-manager
+      app: ml-pipeline-manager
   template:
     metadata:
       labels:
-        app: pipeline-manager
+        app: ml-pipeline-manager
     spec:
-      volumes:
-      - name: pipeline-package-storage
-        persistentVolumeClaim:
-           claimName: pipeline-package-claim
       containers:
-      - name: pipeline-manager-api-server
-        image: pipeline-manager-api-server
+      - name: ml-pipeline-manager-api-server
+        image: ml-pipeline-manager-api-server
         imagePullPolicy: Never
         ports:
           - containerPort: 8888
-        volumeMounts:
-          - mountPath: "/usr/share/pipeline/package"
-            name: pipeline-package-storage
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pipeline-package
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 10Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/mnt/pipeline-package-pv"
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: pipeline-package-claim
-spec:
-  storageClassName: manual
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
