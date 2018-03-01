@@ -2,8 +2,9 @@ package util
 
 import (
 	"ml/apiserver/src/message/argo"
-	"github.com/ghodss/yaml"
 	"ml/apiserver/src/message/pipelinemanager"
+
+	"github.com/ghodss/yaml"
 )
 
 func GetParameter(template []byte) ([]pipelinemanager.Parameter, error) {

@@ -6,8 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/golang/glog"
 	"bytes"
+
+	"github.com/golang/glog"
 )
 
 const (

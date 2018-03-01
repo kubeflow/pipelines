@@ -1,16 +1,17 @@
 package storage
 
 import (
+	"fmt"
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
+
 	"github.com/jinzhu/gorm"
-	"fmt"
 )
 
 type PipelineStoreInterface interface {
 	ListPipelines() ([]pipelinemanager.Pipeline, error)
 	GetPipeline(id uint) (pipelinemanager.Pipeline, error)
-	CreatePipeline(pipelinemanager.Pipeline) (pipelinemanager.Pipeline,error )
+	CreatePipeline(pipelinemanager.Pipeline) (pipelinemanager.Pipeline, error)
 }
 
 type PipelineStore struct {
@@ -37,7 +38,7 @@ func (s *PipelineStore) GetPipeline(id uint) (pipelinemanager.Pipeline, error) {
 	return pipeline, nil
 }
 
-func (s *PipelineStore) CreatePipeline(p pipelinemanager.Pipeline) (pipelinemanager.Pipeline,error ){
+func (s *PipelineStore) CreatePipeline(p pipelinemanager.Pipeline) (pipelinemanager.Pipeline, error) {
 	r := s.db.Create(&p)
 	if r.Error != nil {
 		return p, util.NewInternalError("Failed to add pipeline to pipeline table", r.Error.Error())

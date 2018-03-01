@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	Kind      string = "Workflow"
+	Kind string = "Workflow"
 )
 
 // TemplateType is the type of a template
@@ -53,18 +53,18 @@ const (
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Workflow struct {
-	metav1.TypeMeta       `json:",inline"`
-	metav1.ObjectMeta     `json:"metadata"`
-	Spec   WorkflowSpec   `json:"spec"`
-	Status WorkflowStatus `json:"status"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              WorkflowSpec   `json:"spec"`
+	Status            WorkflowStatus `json:"status"`
 }
 
 // WorkflowList is list of Workflow resources
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type WorkflowList struct {
-	metav1.TypeMeta  `json:",inline"`
-	metav1.ListMeta  `json:"metadata"`
-	Items []Workflow `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+	Items           []Workflow `json:"items"`
 }
 
 // WorkflowSpec is the specification of a Workflow.
@@ -478,7 +478,7 @@ type ArtifactoryAuth struct {
 // ArtifactoryArtifact is the location of an artifactory artifact
 type ArtifactoryArtifact struct {
 	// URL of the artifact
-	URL string      `json:"url"`
+	URL             string `json:"url"`
 	ArtifactoryAuth `json:",inline"`
 }
 

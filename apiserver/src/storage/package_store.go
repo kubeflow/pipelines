@@ -4,8 +4,9 @@ import (
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
 
-	"github.com/jinzhu/gorm"
 	"fmt"
+
+	"github.com/jinzhu/gorm"
 )
 
 type PackageStoreInterface interface {

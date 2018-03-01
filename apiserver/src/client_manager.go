@@ -6,14 +6,15 @@ import (
 	"ml/apiserver/src/util"
 	"os"
 
-	"ml/apiserver/src/storage"
 	"ml/apiserver/src/message/pipelinemanager"
+	"ml/apiserver/src/storage"
+
+	"fmt"
 
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/minio/minio-go"
-	"fmt"
 )
 
 const (

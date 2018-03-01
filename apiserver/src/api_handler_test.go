@@ -5,11 +5,12 @@ import (
 	"ml/apiserver/src/util"
 	"testing"
 
+	"bytes"
+	"mime/multipart"
+	"ml/apiserver/src/storage"
+
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/httptest"
-	"mime/multipart"
-	"bytes"
-	"ml/apiserver/src/storage"
 )
 
 type FakePackageStore struct{}
@@ -118,10 +119,10 @@ func (s *FakeBadPipelineStore) CreatePipeline(pipelinemanager.Pipeline) (pipelin
 }
 
 func initApiHandlerTest(
-		ps storage.PackageStoreInterface,
-		js storage.JobStoreInterface,
-		pls storage.PipelineStoreInterface,
-		pm storage.PackageManagerInterface) *iris.Application {
+	ps storage.PackageStoreInterface,
+	js storage.JobStoreInterface,
+	pls storage.PipelineStoreInterface,
+	pm storage.PackageManagerInterface) *iris.Application {
 	clientManager := ClientManager{packageStore: ps, jobStore: js, pipelineStore: pls, packageManager: pm}
 	return newApp(clientManager)
 }
@@ -129,7 +130,7 @@ func initApiHandlerTest(
 func TestListPackages(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, nil, nil, nil))
 	e.GET("/apis/v1alpha1/packages").Expect().Status(httptest.StatusOK).
-			Body().Equal("[{\"name\":\"Package123\"},{\"name\":\"Package456\"}]")
+		Body().Equal("[{\"name\":\"Package123\"},{\"name\":\"Package456\"}]")
 }
 
 func TestListPackagesReturnError(t *testing.T) {
@@ -140,7 +141,7 @@ func TestListPackagesReturnError(t *testing.T) {
 func TestGetPackage(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, nil, nil, nil))
 	e.GET("/apis/v1alpha1/packages/123").Expect().Status(httptest.StatusOK).
-			Body().Equal("{\"name\":\"package123\"}")
+		Body().Equal("{\"name\":\"package123\"}")
 }
 
 func TestGetPackageReturnError(t *testing.T) {
@@ -155,8 +156,8 @@ func TestUploadPackage(t *testing.T) {
 	w.CreateFormFile("uploadfile", "hello-world.yaml")
 	w.Close()
 	e.POST("/apis/v1alpha1/packages/upload").
-			WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
-			Expect().Status(httptest.StatusOK).Body().Contains("\"name\":\"hello-world.yaml\"")
+		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
+		Expect().Status(httptest.StatusOK).Body().Contains("\"name\":\"hello-world.yaml\"")
 }
 
 func TestUploadPackageCreatePackageFileError(t *testing.T) {
@@ -166,8 +167,8 @@ func TestUploadPackageCreatePackageFileError(t *testing.T) {
 	w.CreateFormFile("uploadfile", "hello-world.yaml")
 	w.Close()
 	e.POST("/apis/v1alpha1/packages/upload").
-			WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
-			Expect().Status(httptest.StatusInternalServerError).Body().Equal("bad package manager")
+		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
+		Expect().Status(httptest.StatusInternalServerError).Body().Equal("bad package manager")
 }
 
 func TestUploadPackageCreatePackageError(t *testing.T) {
@@ -177,69 +178,69 @@ func TestUploadPackageCreatePackageError(t *testing.T) {
 	w.CreateFormFile("uploadfile", "hello-world.yaml")
 	w.Close()
 	e.POST("/apis/v1alpha1/packages/upload").
-			WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
-			Expect().Status(httptest.StatusInternalServerError).Body().Equal("bad package store")
+		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
+		Expect().Status(httptest.StatusInternalServerError).Body().Equal("bad package store")
 }
 
 func TestGetTemplate(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, nil, nil, &FakePackageManager{}))
 	e.GET("/apis/v1alpha1/packages/123/templates").Expect().Status(httptest.StatusOK).
-			Body().Equal("kind: Workflow")
+		Body().Equal("kind: Workflow")
 }
 
 func TestGetTemplateGetPackageError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, &FakePackageManager{}))
 	e.GET("/apis/v1alpha1/packages/123/templates").Expect().Status(httptest.StatusInternalServerError).
-			Body().Equal("bad package store")
+		Body().Equal("bad package store")
 }
 
 func TestGetTemplateGetPackageFileError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, nil, nil, &FakeBadPackageManager{}))
 	e.GET("/apis/v1alpha1/packages/123/templates").Expect().Status(httptest.StatusInternalServerError).
-			Body().Equal("bad package manager")
+		Body().Equal("bad package manager")
 }
 
 func TestListPipelines(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakePipelineStore{}, nil))
 	e.GET("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusOK).
-			Body().Equal("[{\"name\":\"p1\",\"packageId\":123},{\"name\":\"p2\",\"packageId\":345}]")
+		Body().Equal("[{\"name\":\"p1\",\"packageId\":123},{\"name\":\"p2\",\"packageId\":345}]")
 }
 
 func TestListPipelinesError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakeBadPipelineStore{}, nil))
 	e.GET("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusInternalServerError).
-			Body().Equal("bad pipeline store")
+		Body().Equal("bad pipeline store")
 }
 
 func TestGetPipeline(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakePipelineStore{}, nil))
 	e.GET("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusOK).
-			Body().Equal("{\"name\":\"p\",\"packageId\":123}")
+		Body().Equal("{\"name\":\"p\",\"packageId\":123}")
 
 }
 
 func TestGetPipelineError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakeBadPipelineStore{}, nil))
 	e.GET("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusInternalServerError).
-			Body().Equal("bad pipeline store")
+		Body().Equal("bad pipeline store")
 }
 
 func TestCreatePipeline(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, nil, &FakePipelineStore{}, nil))
 	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusOK).
-			Body().Equal("{\"name\":\"p\",\"packageId\":123}")
+		Body().Equal("{\"name\":\"p\",\"packageId\":123}")
 }
 
 func TestCreatePipelineError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, nil, &FakeBadPipelineStore{}, nil))
 	e.POST("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusBadRequest).
-			Body().Contains("Invalid input")
+		Body().Contains("Invalid input")
 }
 
 func TestListJobs(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, &FakeJobStore{}, nil, nil))
 	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK).
-			Body().Equal("[{\"name\":\"job1\",\"status\":\"Failed\"},{\"name\":\"job2\",\"status\":\"Succeeded\"}]")
+		Body().Equal("[{\"name\":\"job1\",\"status\":\"Failed\"},{\"name\":\"job2\",\"status\":\"Succeeded\"}]")
 }
 
 func TestListJobsReturnError(t *testing.T) {
@@ -250,7 +251,7 @@ func TestListJobsReturnError(t *testing.T) {
 func TestCreateJob(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.POST("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK).
-			Body().Equal("{\"name\":\"job1\",\"status\":\"Failed\"}")
+		Body().Equal("{\"name\":\"job1\",\"status\":\"Failed\"}")
 }
 
 func TestCreateJobError(t *testing.T) {

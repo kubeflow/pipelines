@@ -1,9 +1,10 @@
 package storage
 
 import (
-	"github.com/minio/minio-go"
 	"bytes"
 	"ml/apiserver/src/util"
+
+	"github.com/minio/minio-go"
 )
 
 // Manager managing acutal package file.

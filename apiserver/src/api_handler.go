@@ -5,12 +5,13 @@ import (
 	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
 
-	"github.com/golang/glog"
-	"github.com/kataras/iris"
-	"github.com/ghodss/yaml"
 	"bytes"
 	"io"
+
+	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/iris-contrib/middleware/cors"
+	"github.com/kataras/iris"
 )
 
 const (

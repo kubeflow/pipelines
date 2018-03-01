@@ -1,8 +1,8 @@
 package pipelinemanager
 
 import (
-	"time"
 	"ml/apiserver/src/message/argo"
+	"time"
 )
 
 type Job struct {
