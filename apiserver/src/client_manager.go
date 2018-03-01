@@ -51,7 +51,7 @@ type ClientManager struct {
 }
 
 func (clientManager *ClientManager) Init(config Config) {
-	glog.Infof("initializing client manager")
+	glog.Infof("Initializing client manager")
 
 	dbConfig := config.DBConfig
 
@@ -59,25 +59,26 @@ func (clientManager *ClientManager) Init(config Config) {
 	// and maintains its own pool of idle connections.
 	db, err := gorm.Open(dbConfig.DriverName, dbConfig.DataSourceName)
 	util.TerminateIfError(err)
+
 	// Create table
 	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{}, &pipelinemanager.Parameter{})
 
-	// Initiate package store
+	// Initialize package store
 	clientManager.db = db
 	clientManager.packageStore = storage.NewPackageStore(db)
 
-	// Initiate pipeline store
+	// Initialize pipeline store
 	clientManager.db = db
 	clientManager.pipelineStore = storage.NewPipelineStore(db)
 
-	// Initiate job store
+	// Initialize job store
 	argoClient := getArgoClient()
 	clientManager.jobStore = storage.NewJobStore(argoClient)
 
-	// Initiate package manager.
+	// Initialize package manager.
 	clientManager.packageManager = getMinioClient(config.PackageManagerConfig)
 
-	glog.Infof("initialized client manager successfully")
+	glog.Infof("Client manager initialized successfully")
 }
 
 func (clientManager *ClientManager) End() {
@@ -155,7 +156,7 @@ func getMinioClient(config PackageManagerConfig) storage.PackageManagerInterface
 		}
 	}
 	glog.Infof("Successfully created %s\n", config.BucketName)
-	return &storage.MinioPackageManager{MinioClient: minioClient, BucketName: config.BucketName}
+	return storage.NewMinioPackageManager(minioClient, config.BucketName)
 }
 
 // NewClientManager creates and Init a new instance of ClientManager

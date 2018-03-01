@@ -18,12 +18,12 @@ type PackageManagerInterface interface {
 
 // Managing package using Minio
 type MinioPackageManager struct {
-	MinioClient *minio.Client
-	BucketName  string
+	minioClient *minio.Client
+	bucketName  string
 }
 
 func (m *MinioPackageManager) CreatePackageFile(template []byte, fileName string) error {
-	_, err := m.MinioClient.PutObject(m.BucketName, fileName, bytes.NewReader(template), -1, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	_, err := m.minioClient.PutObject(m.bucketName, fileName, bytes.NewReader(template), -1, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
 		return util.NewInternalError("Failed to store a new package.", err.Error())
 	}
@@ -31,11 +31,15 @@ func (m *MinioPackageManager) CreatePackageFile(template []byte, fileName string
 }
 
 func (m *MinioPackageManager) GetPackageFile(fileName string) ([]byte, error) {
-	object, err := m.MinioClient.GetObject(m.BucketName, fileName, minio.GetObjectOptions{})
+	object, err := m.minioClient.GetObject(m.bucketName, fileName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalError("Failed to store a new package.", err.Error())
 	}
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(object)
 	return buf.Bytes(), nil
+}
+
+func NewMinioPackageManager(minioClient *minio.Client, bucketName string) *MinioPackageManager {
+	return &MinioPackageManager{minioClient: minioClient, bucketName: bucketName}
 }
