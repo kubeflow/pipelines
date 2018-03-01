@@ -1,10 +1,15 @@
 import 'app-datepicker/app-datepicker-dialog.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-checkbox/paper-checkbox.html';
+import 'paper-dropdown-menu/paper-dropdown-menu-light.html';
 import 'paper-input/paper-input.html';
+import 'paper-item/paper-item.html';
+import 'paper-listbox/paper-listbox.html';
+import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
+import { env } from '../../lib/config';
 
 import './pipeline-new.html';
 
@@ -22,8 +27,11 @@ interface NewPipelineQueryParams {
 @customElement('pipeline-new')
 export class PipelineNew extends Polymer.Element implements PageElement {
 
-  @property({ type: Object })
-  public package: PipelinePackage;
+  @property({ type: Number })
+  public packageId: number;
+
+  @property({ type: Array })
+  public packages: PipelinePackage[];
 
   @property({ type: String })
   public startDate = '';
@@ -34,22 +42,58 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   @property({ type: Object })
   public parameters: Parameter[];
 
+  protected _busy = false;
+  protected _isDev = env === 'dev';
+
   public async refresh(_: string, queryParams: NewPipelineQueryParams) {
     let id;
-    if (queryParams.packageId) {
-      id = Number.parseInt(queryParams.packageId);
-      if (!isNaN(id)) {
-        this.package = await Apis.getPackage(id);
-
-        this.parameters = this.package.parameters.map((p) => {
-          return {
-            description: p.description,
-            name: p.name,
-            value: '',
-          };
-        });
+    this._busy = true;
+    try {
+      this.packages = await Apis.getPackages();
+      if (queryParams.packageId) {
+        id = Number.parseInt(queryParams.packageId);
+        if (!isNaN(id)) {
+          (this.$.packagesListbox as any).selected = id;
+        }
       }
+    } finally {
+      this._busy = false;
     }
+  }
+
+  protected async _packageChanged(e: any) {
+    const id = (this.$.packagesListbox as any).selected;
+    const pkg = this.packages[id];
+
+    this.parameters = pkg.parameters.map((p) => {
+      return {
+        description: p.description,
+        name: p.name,
+        value: '',
+      };
+    });
+  }
+
+  protected _altUpload() {
+    (this.$.altFileUpload as HTMLInputElement).click();
+  }
+
+  protected async _upload() {
+    const files = (this.$.altFileUpload as HTMLInputElement).files;
+
+    if (!files) {
+      return;
+    }
+
+    const file = files[0];
+    this._busy = true;
+    const pkg = await Apis.uploadPackage(file);
+    // Add the parsed package to the dropdown list, and select it
+    this.push('packages', pkg);
+    (this.$.packagesListbox as any).selected = (this.$.packagesListbox as any).items.length;
+    this._busy = false;
+
+    (this.$.altFileUpload as HTMLInputElement).value = '';
   }
 
   protected _pickStartDate() {
@@ -68,7 +112,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
       description: (this.$.description as HTMLInputElement).value,
       ends: Date.parse(this.endDate),
       name: (this.$.name as HTMLInputElement).value,
-      packageId: this.package.id,
+      packageId: this.packageId,
       parameterValues: this.parameters,
       recurring: false,
       recurringIntervalHours: 0,

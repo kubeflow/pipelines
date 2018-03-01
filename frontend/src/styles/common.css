@@ -41,6 +41,7 @@ hr {
 }
 
 .flex {
+  align-items: baseline;
   display: flex;
   flex-shrink: 0;
 }
@@ -53,6 +54,14 @@ hr {
   font-weight: bold;
 }
 
+.faded {
+  color: #999;
+}
+
+.padded {
+  padding: 10px;
+}
+
 paper-button:hover {
   @apply --shadow-elevation-3dp;
 }
@@ -60,6 +69,7 @@ paper-button:hover {
 .action-button {
   background-color: var(--accent-color);
   color: white;
+  max-height: 42px;
   min-width: 90px;
 }
 
