@@ -37,7 +37,7 @@ func (s *PackageStore) GetPackage(id uint) (pipelinemanager.Package, error) {
 }
 
 func (s *PackageStore) CreatePackage(p pipelinemanager.Package) (pipelinemanager.Package, error) {
-	if r := s.db.Debug().Create(&p); r.Error != nil {
+	if r := s.db.Create(&p); r.Error != nil {
 		return p, util.NewInternalError("Failed to add package to package table", r.Error.Error())
 	}
 	return p, nil
