@@ -2,28 +2,24 @@ package util
 
 import (
 	"ml/apiserver/src/message/argo"
-	"encoding/json"
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	"ml/apiserver/src/message/pipelinemanager"
 )
 
-// TODO(yangpa): Error handling. Implement
-func GetParameter(template []byte) []pipelinemanager.Parameter {
+func GetParameter(template []byte) ([]pipelinemanager.Parameter, error) {
 	var wf argo.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		// throw
+		return nil, NewInvalidInputError("Failed to parse the parameter.")
 	}
-	return pipelinemanager.ToParameters(wf.Spec.Arguments.Parameters)
+	return pipelinemanager.ToParameters(wf.Spec.Arguments.Parameters), nil
 }
 
-// TODO(yangpa): Error handling. Implement
-func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) []byte {
+func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) ([]byte, error) {
 	var wf argo.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		// throw
+		return nil, NewInvalidInputError("The template isn't a valid argo template.")
 	}
 
 	newParams := make([]argo.Parameter, 0)
@@ -37,6 +33,7 @@ func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) []
 		newParams = append(newParams, param)
 		passedParams[param.Name] = true
 	}
+
 	for _, param := range wf.Spec.Arguments.Parameters {
 		if _, ok := passedParams[param.Name]; ok {
 			// this parameter was overridden via command line
@@ -44,15 +41,14 @@ func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) []
 		}
 		newParams = append(newParams, param)
 	}
-	b, _ := json.Marshal(newParams)
-	glog.Info("new param map is " + string(b))
-
 	wf.Spec.Arguments.Parameters = newParams
 
 	wfByte, err := yaml.Marshal(wf)
 	if err != nil {
-		// throw
+		return nil, NewInternalError(
+			"Failed to apply parameter to the template.",
+			"There is an issue marshalling the yaml file. Error: %s", err.Error())
 	}
 
-	return wfByte
+	return wfByte, nil
 }

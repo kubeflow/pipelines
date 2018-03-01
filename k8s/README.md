@@ -1,38 +1,34 @@
 - Make sure minikube and kubectl are installed
 - Make sure Argo is installed and started.
 - Git clone the repository under ${GOPATH}/src, as recommended by golang. 
-- Point minikube to use docker daemon on the host machine by running 
+-  
 ```
 eval $(minikube docker-env)
 ```
-- Build docker image
+- Run bash script
 ```
-docker build -t pipeline-manager-api-server ${GOPATH}/src/ml/apiserver
-```
-- Start pipeline manager
-```
-kubectl create -f ${GOPATH}/src/ml/k8s/pipeline-manager.yaml
+./run.sh
 ```
 - Forward the pipeline manager port so you can access it from host machine
 ```
 kubectl get pod
 kubectl port-forward [pipeline-manager-pod] 8888:8888
 ```
--- Get shell for the pod
+- Get shell for the api server pod
 ```
 kubectl exec -it pipeline-manager-single -- /bin/bash
 ```
--- The Logs are located in 
+- The API server logs are located in 
 ```
 \tmp
 ```
--- The sqlite db is located in 
+- You can inspect the package files through Minio UI
 ```
-/bin/pipelines.db
-```
-To dump the db
-```
-$ sqlite3 /bin/pipelines.db
-sqlite3> .dump
-```
- 
+kubectl port-forward [minio-pod] 9000:9000
+``` 
+- To clean up 
+ ```
+ kubectl delete deploy,svc -l app=ml-pipeline-manager
+ kubectl delete svc minio-service
+ kubectl delete pvc minio-pv-claim
+ ```

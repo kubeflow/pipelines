@@ -3,56 +3,56 @@ package storage
 import (
 	"testing"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
-	"github.com/jmoiron/sqlx"
 	"ml/apiserver/src/message/pipelinemanager"
-	"reflect"
+	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/assert"
 )
 
-func initialize() (PackageStoreInterface, sqlmock.Sqlmock) {
+func initializePackageDB() (PackageStoreInterface, sqlmock.Sqlmock) {
 	db, mock, _ := sqlmock.New()
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-
-	return &PackageStore{db: sqlxDB}, mock
+	gormDB, _ := gorm.Open("mysql", db)
+	return &PackageStore{db: gormDB}, mock
 }
 
 func TestListPackages(t *testing.T) {
 	expectedPackages := []pipelinemanager.Package{
-		{Id: "123", Name: "Package123"},
-		{Id: "456", Name: "Package456"}}
-	ps, mock := initialize()
-	rows := sqlmock.NewRows([]string{"id", "name", "description"}).
-			AddRow("123", "Package123", "").
-			AddRow("456", "Package456", "")
-	mock.ExpectQuery("SELECT (.*) FROM package ORDER BY package.name").WillReturnRows(rows)
-
+		{Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "Package123", Parameters: []pipelinemanager.Parameter{}},
+		{Metadata: &pipelinemanager.Metadata{ID: 2}, Name: "Package456", Parameters: []pipelinemanager.Parameter{}}}
+	ps, mock := initializePackageDB()
+	packagesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description"}).
+			AddRow(1, nil, nil, nil, "Package123", "").
+			AddRow(2, nil, nil, nil, "Package456", "")
+	mock.ExpectQuery("SELECT (.*) FROM `packages`").WillReturnRows(packagesRow)
+	parametersRow := sqlmock.NewRows([]string{"name", "value", "owner_id", "owner_type"})
+	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnRows(parametersRow)
 	packages, _ := ps.ListPackages()
-	if !reflect.DeepEqual(packages, expectedPackages) {
-		t.Errorf("Unexpecte package returned. Expect %v. Got %v", expectedPackages, packages)
-	}
+
+	assert.Equal(t, expectedPackages, packages, "Got unexpected packages")
 }
 
 func TestGetPackage(t *testing.T) {
-	expectedPackage := pipelinemanager.Package{Id: "123", Name: "Package123"}
-	ps, mock := initialize()
-	rows := sqlmock.NewRows([]string{"id", "name", "description"}).
-			AddRow("123", "Package123", "")
-	mock.ExpectQuery("SELECT (.*) FROM package").WillReturnRows(rows)
+	expectedPackage := pipelinemanager.Package{
+		Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "Package123", Parameters: []pipelinemanager.Parameter{}}
+	ps, mock := initializePackageDB()
+	packagesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description"}).
+			AddRow(1, nil, nil, nil, "Package123", "")
+	mock.ExpectQuery("SELECT (.*) FROM `packages`").WillReturnRows(packagesRow)
+	parametersRow := sqlmock.NewRows([]string{"name", "value", "owner_id", "owner_type"})
+	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnRows(parametersRow)
 
-	packages, _ := ps.GetPackage("123")
-	if !reflect.DeepEqual(packages, expectedPackage) {
-		t.Errorf("Unexpecte package returned. Expect %v. Got %v", expectedPackage, packages)
-	}
+	pkg, _ := ps.GetPackage(123)
+
+	assert.Equal(t, expectedPackage, pkg, "Got unexpected package")
 }
 
 func TestCreatePackage(t *testing.T) {
-	pkg := pipelinemanager.Package{Id: "123", Name: "Package123"}
-	ps, mock := initialize()
-	mock.ExpectExec("INSERT INTO package (.*)").
-			WithArgs(pkg.Id, pkg.Name, pkg.Description).
-			WillReturnResult(sqlmock.NewResult(0, 1))
+	pkg := pipelinemanager.Package{Name: "Package123"}
+	ps, mock := initializePackageDB()
+	mock.ExpectExec("INSERT INTO `packages`").
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pkg.Name, sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := ps.CreatePackage(pkg)
-	if err != nil {
-		t.Errorf("Unexpected error creating package. Error: %s", err.Error())
-	}
+	pkg, err := ps.CreatePackage(pkg)
+	assert.Nil(t, err, "Unexpected error creating package")
+	assert.Equal(t, uint(1), pkg.ID, "ID should be assigned")
 }

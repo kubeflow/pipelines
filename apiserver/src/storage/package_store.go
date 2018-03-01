@@ -5,11 +5,12 @@ import (
 	"ml/apiserver/src/util"
 
 	"github.com/jinzhu/gorm"
+	"fmt"
 )
 
 type PackageStoreInterface interface {
 	ListPackages() ([]pipelinemanager.Package, error)
-	GetPackage(packageId string) (pipelinemanager.Package, error)
+	GetPackage(packageId uint) (pipelinemanager.Package, error)
 	CreatePackage(pipelinemanager.Package) (pipelinemanager.Package, error)
 }
 
@@ -26,17 +27,17 @@ func (s *PackageStore) ListPackages() ([]pipelinemanager.Package, error) {
 	return packages, nil
 }
 
-func (s *PackageStore) GetPackage(id string) (pipelinemanager.Package, error) {
+func (s *PackageStore) GetPackage(id uint) (pipelinemanager.Package, error) {
 	var pkg pipelinemanager.Package
 	if r := s.db.Preload("Parameters").First(&pkg, id); r.Error != nil {
 		// Error returns when no package found.
-		return pkg, util.NewResourceNotFoundError("Package", id)
+		return pkg, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
 	}
 	return pkg, nil
 }
 
 func (s *PackageStore) CreatePackage(p pipelinemanager.Package) (pipelinemanager.Package, error) {
-	if r := s.db.Create(&p); r.Error != nil {
+	if r := s.db.Debug().Create(&p); r.Error != nil {
 		return p, util.NewInternalError("Failed to add package to package table", r.Error.Error())
 	}
 	return p, nil

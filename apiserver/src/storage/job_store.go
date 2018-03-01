@@ -9,7 +9,7 @@ import (
 
 type JobStoreInterface interface {
 	ListJobs() ([]pipelinemanager.Job, error)
-	CreateJob([]byte) (pipelinemanager.Job, error)
+	CreateJob(workflow []byte) (pipelinemanager.Job, error)
 }
 
 type JobStore struct {
@@ -23,7 +23,7 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 
 	var workflows argo.WorkflowList
 	if err := json.Unmarshal(bodyBytes, &workflows); err != nil {
-		return jobs, util.NewInternalError("Failed to get jobs", "Failed to parse the workflows returned from K8s CRD.", err.Error())
+		return jobs, util.NewInternalError("Failed to get jobs", "Failed to parse the workflows returned from K8s CRD. Error: %s", err.Error())
 	}
 
 	for _, workflow := range workflows.Items {
@@ -34,16 +34,16 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	return jobs, nil
 }
 
-func (s *JobStore) CreateJob(pipeline []byte) (pipelinemanager.Job, error) {
+func (s *JobStore) CreateJob(workflow []byte) (pipelinemanager.Job, error) {
 	var job pipelinemanager.Job
 
-	bodyBytes, _ := s.argoClient.Request("POST", "workflows", pipeline)
+	bodyBytes, _ := s.argoClient.Request("POST", "workflows", workflow)
 
-	var workflow argo.Workflow
-	if err := json.Unmarshal(bodyBytes, &workflow); err != nil {
-		return job, util.NewInternalError("Failed to create job", "Failed to parse the workflow returned from K8s CRD.", err.Error())
+	var wf argo.Workflow
+	if err := json.Unmarshal(bodyBytes, &wf); err != nil {
+		return job, util.NewInternalError("Failed to create job", "Failed to parse the workflow returned from K8s CRD. Error: %s", err.Error())
 	}
-	job = pipelinemanager.ToJob(workflow)
+	job = pipelinemanager.ToJob(wf)
 	return job, nil
 }
 

@@ -3,7 +3,6 @@ package main
 import (
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage"
-	"ml/apiserver/src/storage/packagemanager"
 	"ml/apiserver/src/util"
 
 	"github.com/golang/glog"
@@ -18,23 +17,23 @@ const (
 	apiRouterPrefix = "/apis/v1alpha1"
 
 	listPackages  = "/packages"
-	getPackage    = "/packages/{id:string}"
+	getPackage    = "/packages/{id:long min(1)}"
 	uploadPackage = "/packages/upload"
-	getTemplate   = "/packages/{id:string}/templates"
+	getTemplate   = "/packages/{id:long min(1)}/templates"
 
 	listPipelines  = "/pipelines"
-	getPipeline    = "/pipelines/{pipelineId:string}"
+	getPipeline    = "/pipelines/{pipelineId:long min(1)}"
 	createPipeline = "/pipelines"
 
-	listJobs  = "/pipelines/{pipelineId:string}/jobs"
-	createJob = "/pipelines/{pipelineId:string}/jobs"
+	listJobs  = "/pipelines/{pipelineId:long min(1)}/jobs"
+	createJob = "/pipelines/{pipelineId:long min(1)}/jobs"
 )
 
 type APIHandler struct {
 	packageStore   storage.PackageStoreInterface
 	pipelineStore  storage.PipelineStoreInterface
 	jobStore       storage.JobStoreInterface
-	packageManager packagemanager.PackageManagerInterface
+	packageManager storage.PackageManagerInterface
 }
 
 func (a APIHandler) ListPackages(ctx iris.Context) {
@@ -52,11 +51,14 @@ func (a APIHandler) ListPackages(ctx iris.Context) {
 func (a APIHandler) GetPackage(ctx iris.Context) {
 	glog.Infof("Get package called")
 
-	id := ctx.Params().Get("id")
-	pkg, err := a.packageStore.GetPackage(id)
+	id, err := ctx.Params().GetInt64("id")
+	if err != nil || id < 0 {
+		util.HandleError("GetPackage", ctx, util.NewInvalidInputError("The package ID is invalid."))
+	}
+	pkg, err := a.packageStore.GetPackage(uint(id))
 
 	if err != nil {
-		util.HandleError("GetPackageFile", ctx, err)
+		util.HandleError("GetPackage", ctx, err)
 		return
 	}
 
@@ -76,6 +78,9 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 
 	defer file.Close()
 
+	// We stream the file to API server for now. This is OK for now since it's just a small YAML file.
+	// In near future, use Minio Presigned Put instead.
+	// For more info check https://docs.minio.io/docs/golang-client-api-reference#PresignedPutObject
 	buf := bytes.NewBuffer(nil)
 	if _, err = io.Copy(buf, file); err != nil {
 		util.HandleError("UploadPackage", ctx, util.NewInternalError("Failed to copy package.", err.Error()))
@@ -83,13 +88,18 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 	}
 
 	template := buf.Bytes()
-	err = a.packageManager.CreatePackageFile(template, info)
+	err = a.packageManager.CreatePackageFile(template, info.Filename)
 	if err != nil {
 		util.HandleError("UploadPackage", ctx, err)
 		return
 	}
 
-	pkg := pipelinemanager.Package{Name: info.Filename, Parameters: util.GetParameter(template)}
+	params, err := util.GetParameter(template)
+	if err != nil {
+		util.HandleError("UploadPackage", ctx, err)
+		return
+	}
+	pkg := pipelinemanager.Package{Name: info.Filename, Parameters: params}
 
 	pkg, err = a.packageStore.CreatePackage(pkg)
 	if err != nil {
@@ -102,8 +112,11 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 func (a APIHandler) GetTemplate(ctx iris.Context) {
 	glog.Infof("Get template called")
 
-	id := ctx.Params().Get("id")
-	pkg, err := a.packageStore.GetPackage(id)
+	id, err := ctx.Params().GetInt64("id")
+	if err != nil || id < 0 {
+		util.HandleError("GetPackage", ctx, util.NewInvalidInputError("The package ID is invalid."))
+	}
+	pkg, err := a.packageStore.GetPackage(uint(id))
 	if err != nil {
 		util.HandleError("GetTemplate", ctx, err)
 		return
@@ -132,8 +145,11 @@ func (a APIHandler) ListPipelines(ctx iris.Context) {
 func (a APIHandler) GetPipeline(ctx iris.Context) {
 	glog.Infof("Get pipeline called")
 
-	pipelineId := ctx.Params().Get("pipelineId")
-	pipeline, err := a.pipelineStore.GetPipeline(pipelineId)
+	id, err := ctx.Params().GetInt64("pipelineId")
+	if err != nil || id < 0 {
+		util.HandleError("GetPipeline", ctx, util.NewInvalidInputError("The pipeline ID is invalid."))
+	}
+	pipeline, err := a.pipelineStore.GetPipeline(uint(id))
 
 	if err != nil {
 		util.HandleError("GetPipeline", ctx, err)
@@ -183,8 +199,11 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 func (a APIHandler) CreateJob(ctx iris.Context) {
 	glog.Infof("Create jobs called")
 
-	pipelineId := ctx.Params().Get("pipelineId")
-	pipeline, err := a.pipelineStore.GetPipeline(pipelineId)
+	id, err := ctx.Params().GetInt64("pipelineId")
+	if err != nil || id < 0 {
+		util.HandleError("GetPipeline", ctx, util.NewInvalidInputError("The pipeline ID is invalid."))
+	}
+	pipeline, err := a.pipelineStore.GetPipeline(uint(id))
 
 	if err != nil {
 		util.HandleError("CreateJob", ctx, err)
@@ -203,7 +222,11 @@ func (a APIHandler) CreateJob(ctx iris.Context) {
 		return
 	}
 
-	file = util.InjectParameter(file, pipeline.Parameters)
+	file, err = util.InjectParameter(file, pipeline.Parameters)
+	if err != nil {
+		util.HandleError("GetTemplate", ctx, err)
+		return
+	}
 
 	file, err = yaml.YAMLToJSON(file)
 	if err != nil {
@@ -236,7 +259,6 @@ func newApp(clientManager ClientManager) *iris.Application {
 
 	apiRouter := app.Party(apiRouterPrefix)
 
-
 	// Packages
 	apiRouter.Get(listPackages, apiHandler.ListPackages)
 	apiRouter.Get(getPackage, apiHandler.GetPackage)
@@ -247,10 +269,12 @@ func newApp(clientManager ClientManager) *iris.Application {
 	apiRouter.Get(listPipelines, apiHandler.ListPipelines)
 	apiRouter.Get(getPipeline, apiHandler.GetPipeline)
 	apiRouter.Post(createPipeline, apiHandler.CreatePipeline)
+	apiRouter.Options(createPipeline, func(iris.Context) {})
 
 	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)
 	apiRouter.Post(createJob, apiHandler.CreateJob)
+	apiRouter.Options(createJob, func(iris.Context) {})
 	return app
 }
 

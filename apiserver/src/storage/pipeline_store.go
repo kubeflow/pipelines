@@ -4,11 +4,12 @@ import (
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
 	"github.com/jinzhu/gorm"
+	"fmt"
 )
 
 type PipelineStoreInterface interface {
 	ListPipelines() ([]pipelinemanager.Pipeline, error)
-	GetPipeline(pipelineName string) (pipelinemanager.Pipeline, error)
+	GetPipeline(id uint) (pipelinemanager.Pipeline, error)
 	CreatePipeline(pipelinemanager.Pipeline) (pipelinemanager.Pipeline,error )
 }
 
@@ -26,12 +27,12 @@ func (s *PipelineStore) ListPipelines() ([]pipelinemanager.Pipeline, error) {
 	return pipelines, nil
 }
 
-func (s *PipelineStore) GetPipeline(id string) (pipelinemanager.Pipeline, error) {
+func (s *PipelineStore) GetPipeline(id uint) (pipelinemanager.Pipeline, error) {
 	var pipeline pipelinemanager.Pipeline
 	// Get the pipeline as well as its parameter.
 	if r := s.db.Preload("Parameters").First(&pipeline, id); r.Error != nil {
 		// Error returns when no pipeline found.
-		return pipeline, util.NewResourceNotFoundError("Pipeline", id)
+		return pipeline, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}
 	return pipeline, nil
 }

@@ -1,11 +1,9 @@
 package pipelinemanager
 
-import "github.com/jinzhu/gorm"
-
 type Pipeline struct {
-	gorm.Model
+	*Metadata               `json:",omitempty"`
 	Name        string      `json:"name" gorm:"not null"`
 	Description string      `json:"description,omitempty"`
-	PackageId   string      `json:"packageId" gorm:"not null"`
-	Parameters  []Parameter `json:"parameters" gorm:"polymorphic:Owner;"`
+	PackageId   uint        `json:"packageId" gorm:"not null"`
+	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
 }

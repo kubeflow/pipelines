@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"ml/apiserver/src/message/argo"
 	"ml/apiserver/src/message/pipelinemanager"
-	"reflect"
 	"testing"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/assert"
 )
 
 var ct, st, ft time.Time
@@ -24,7 +24,7 @@ func init() {
 	ft, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
 }
 
-func (ac *FakeArgoClient) Request(method string, api string) ([]byte, error) {
+func (ac *FakeArgoClient) Request(method string, api string, requestBody []byte) ([]byte, error) {
 
 	workflow := &argo.WorkflowList{
 		Items: []argo.Workflow{
@@ -59,7 +59,5 @@ func TestListJobs(t *testing.T) {
 		FinishAt: &ft,
 		Status:   "Failed"})
 
-	if !reflect.DeepEqual(job, jobExpect) {
-		t.Errorf("Unexpecte Job parsed. Expect %v. Got %v", string(job), string(jobExpect))
-	}
+	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", string(job), string(jobExpect))
 }

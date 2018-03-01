@@ -35,8 +35,8 @@ spec:
         app: ml-pipeline-manager
     spec:
       containers:
-      - name: ml-pipeline-manager-api-server
-        image: ml-pipeline-manager-api-server
+      - name: ml-pipeline-api-server
+        image: ml-pipeline-api-server
         imagePullPolicy: Never
         ports:
           - containerPort: 8888

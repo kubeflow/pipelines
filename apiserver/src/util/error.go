@@ -55,8 +55,7 @@ func HandleError(action string, ctx iris.Context, err error) {
 		ctx.StatusCode(http.StatusInternalServerError)
 		e, _ := err.(*InternalError)
 		ctx.WriteString(e.Message)
-	case *InvalidInputError:
-	case *ResourceNotFoundError:
+	case *InvalidInputError, *ResourceNotFoundError:
 		ctx.StatusCode(http.StatusBadRequest)
 		ctx.WriteString(err.Error())
 	default:

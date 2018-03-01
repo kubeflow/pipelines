@@ -3,5 +3,9 @@
     "DriverName": "sqlite3",
     "DataSourceName": "/bin/pipelines.db"
   },
-  "PackageVolume": "/usr/share/pipeline/package/"
+  "PackageManagerConfig":{
+    "AccessKey": "minio",
+    "SecretAccessKey": "minio123",
+    "BucketName": "packagemanager"
+  }
 }
