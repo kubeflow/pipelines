@@ -28,7 +28,7 @@ from common import _utils
 def main(argv=None):
   parser = argparse.ArgumentParser(description='ML DataProc Setup')
   parser.add_argument('--project', type=str, help='Google Cloud project ID to use.')
-  parser.add_argument('--zone', type=str, help='Which zone for GCE VMs.')
+  parser.add_argument('--region', type=str, help='Which zone for GCE VMs.')
   parser.add_argument('--name', type=str, help='The name of the cluster to create.')
   parser.add_argument('--staging', type=str, help='GCS path to use for staging.')
   args = parser.parse_args()
@@ -41,7 +41,7 @@ def main(argv=None):
   try:
     api = _utils.get_client()
     print('Creating cluster...')
-    create_response = _utils.create_cluster(api, args.project, args.zone, args.name, dest_files[0])
+    create_response = _utils.create_cluster(api, args.project, args.region, args.name, dest_files[0])
     print('Cluster creation request submitted. Waiting for completion...')
     _utils.wait_for_operation(api, create_response['name'])
     print('Cluster created.')

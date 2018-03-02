@@ -6,11 +6,11 @@ one or more [artifacts](../artifacts) as input and may produce one or more
 
 
 ## XGBoost DataProc Components
-* [Setup Cluster](xgboost/dataproc/create_cluster.py)
-* [Analyze](xgboost/dataproc/analyze.py)
-* [Transform](xgboost/dataproc/transform.py)
-* [Distributed Train](xgboost/dataproc/train.py)
-* [Delete Cluster](xgboost/dataproc/delete_cluster.py)
+* [Setup Cluster](dataproc/xgboost/create_cluster.py)
+* [Analyze](dataproc/xgboost/analyze.py)
+* [Transform](dataproc/xgboost/transform.py)
+* [Distributed Train](dataproc/xgboost/train.py)
+* [Delete Cluster](dataproc/xgboost/delete_cluster.py)
 
 Each task usually includes two parts:
 
@@ -21,6 +21,9 @@ Each task usually includes two parts:
 ``Runtime Code``
   The code that does the actual job and usually run in cluster. For example, Spark code
   that transform raw data into preprocessed data.
+
+``Container``
+  A container image that runs the client code.
 
 There is a naming convention to client code and runtime code. For a task named "mytask",
 there is mytask.py including client code, and there is also a mytask directory holding
