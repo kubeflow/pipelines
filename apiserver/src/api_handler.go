@@ -55,6 +55,7 @@ func (a APIHandler) GetPackage(ctx iris.Context) {
 	id, err := ctx.Params().GetInt64("id")
 	if err != nil || id < 0 {
 		util.HandleError("GetPackage", ctx, util.NewInvalidInputError("The package ID is invalid."))
+		return
 	}
 	pkg, err := a.packageStore.GetPackage(uint(id))
 
@@ -79,7 +80,7 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 
 	defer file.Close()
 
-	// We stream the file to API server for now. This is OK for now since it's just a small YAML file.
+	// Stream the file to API server. This is OK for now since we only support YAML file which is small.
 	// In near future, use Minio Presigned Put instead.
 	// For more info check https://docs.minio.io/docs/golang-client-api-reference#PresignedPutObject
 	buf := bytes.NewBuffer(nil)
@@ -115,7 +116,8 @@ func (a APIHandler) GetTemplate(ctx iris.Context) {
 
 	id, err := ctx.Params().GetInt64("id")
 	if err != nil || id < 0 {
-		util.HandleError("GetPackage", ctx, util.NewInvalidInputError("The package ID is invalid."))
+		util.HandleError("GetTemplate", ctx, util.NewInvalidInputError("The package ID is invalid."))
+		return
 	}
 	pkg, err := a.packageStore.GetPackage(uint(id))
 	if err != nil {
@@ -149,6 +151,7 @@ func (a APIHandler) GetPipeline(ctx iris.Context) {
 	id, err := ctx.Params().GetInt64("pipelineId")
 	if err != nil || id < 0 {
 		util.HandleError("GetPipeline", ctx, util.NewInvalidInputError("The pipeline ID is invalid."))
+		return
 	}
 	pipeline, err := a.pipelineStore.GetPipeline(uint(id))
 
@@ -198,11 +201,12 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 }
 
 func (a APIHandler) CreateJob(ctx iris.Context) {
-	glog.Infof("Create jobs called")
+	glog.Infof("Create job called")
 
 	id, err := ctx.Params().GetInt64("pipelineId")
 	if err != nil || id < 0 {
-		util.HandleError("GetPipeline", ctx, util.NewInvalidInputError("The pipeline ID is invalid."))
+		util.HandleError("CreateJob", ctx, util.NewInvalidInputError("The pipeline ID is invalid."))
+		return
 	}
 	pipeline, err := a.pipelineStore.GetPipeline(uint(id))
 
@@ -213,25 +217,25 @@ func (a APIHandler) CreateJob(ctx iris.Context) {
 
 	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
-		util.HandleError("GetPackageFile", ctx, err)
+		util.HandleError("CreateJob", ctx, err)
 		return
 	}
 
 	file, err := a.packageManager.GetPackageFile(pkg.Name)
 	if err != nil {
-		util.HandleError("GetTemplate", ctx, err)
+		util.HandleError("CreateJob", ctx, err)
 		return
 	}
 
 	file, err = util.InjectParameter(file, pipeline.Parameters)
 	if err != nil {
-		util.HandleError("GetTemplate", ctx, err)
+		util.HandleError("CreateJob", ctx, err)
 		return
 	}
 
 	file, err = yaml.YAMLToJSON(file)
 	if err != nil {
-		util.HandleError("GetTemplate", ctx, err)
+		util.HandleError("CreateJob", ctx, err)
 		return
 	}
 
@@ -253,6 +257,7 @@ func newApp(clientManager ClientManager) *iris.Application {
 	}
 	app := iris.New()
 	// Allow all domains for now.
+	// TODO(yangpa): Limit the origins to only allow webserver.
 	app.Use(cors.NewAllowAll())
 	// registers a custom handler for 404 not found http (error) status code,
 	// fires when route not found or manually by ctx.StatusCode(iris.StatusNotFound).

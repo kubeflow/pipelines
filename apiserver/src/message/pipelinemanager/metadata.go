@@ -6,7 +6,7 @@ import "time"
 // This will be filled by gorm when the resource is stored to database.
 type Metadata struct {
 	ID        uint       `json:"id" gorm:"primary_key"`
-	CreatedAt time.Time  `json:"createAt"`
+	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"-"`
 	DeletedAt *time.Time `json:"-" sql:"index"`
 }
