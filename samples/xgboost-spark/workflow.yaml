@@ -1,0 +1,200 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: xgboost-training-
+spec:
+  entrypoint: xgboost-training
+  arguments:
+    parameters:
+    - name: project
+    - name: region
+    - name: cluster
+    - name: output
+    - name: train
+    - name: eval
+    - name: schema
+    - name: target
+    - name: package
+    - name: workers
+    - name: rounds
+    - name: conf
+  templates:
+  - name: xgboost-training
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: cluster
+      - name: output
+      - name: train
+      - name: eval
+      - name: schema
+      - name: target
+      - name: package
+      - name: workers
+      - name: rounds
+      - name: conf
+    steps:
+    - - name: createcluster
+        template: createcluster
+        arguments:
+          parameters:
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: region
+            value: "{{inputs.parameters.region}}"
+          - name: name
+            value: "{{inputs.parameters.cluster}}"
+          - name: staging
+            value: "{{inputs.parameters.output}}/staging"
+
+    - - name: analyze
+        template: analyze
+        arguments:
+          parameters:
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: region
+            value: "{{inputs.parameters.region}}"
+          - name: cluster
+            value: "{{inputs.parameters.cluster}}"
+          - name: output
+            value: "{{inputs.parameters.output}}/analysis"
+          - name: train
+            value: "{{inputs.parameters.train}}"
+          - name: schema
+            value: "{{inputs.parameters.schema}}"
+
+    - - name: transform
+        template: transform
+        arguments:
+          parameters:
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: region
+            value: "{{inputs.parameters.region}}"
+          - name: cluster
+            value: "{{inputs.parameters.cluster}}"
+          - name: output
+            value: "{{inputs.parameters.output}}/transform"
+          - name: train
+            value: "{{inputs.parameters.train}}"
+          - name: eval
+            value: "{{inputs.parameters.eval}}"
+          - name: target
+            value: "{{inputs.parameters.target}}"
+          - name: analysis
+            value: "{{inputs.parameters.output}}/analysis"
+
+    - - name: train
+        template: train
+        arguments:
+          parameters:
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: region
+            value: "{{inputs.parameters.region}}"
+          - name: cluster
+            value: "{{inputs.parameters.cluster}}"
+          - name: output
+            value: "{{inputs.parameters.output}}/model"
+          - name: train
+            value: "{{inputs.parameters.output}}/transform/train/part-*"
+          - name: eval
+            value: "{{inputs.parameters.output}}/transform/eval/part-*"
+          - name: target
+            value: "{{inputs.parameters.target}}"
+          - name: analysis
+            value: "{{inputs.parameters.output}}/analysis"
+          - name: package
+            value: "{{inputs.parameters.package}}"
+          - name: workers
+            value: "{{inputs.parameters.workers}}"
+          - name: rounds
+            value: "{{inputs.parameters.rounds}}"
+          - name: conf
+            value: "{{inputs.parameters.conf}}"
+
+    - - name: deletecluster
+        template: deletecluster
+        arguments:
+          parameters:
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: region
+            value: "{{inputs.parameters.region}}"
+          - name: name
+            value: "{{inputs.parameters.cluster}}"
+
+  - name: createcluster
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: name
+      - name: staging
+    container:
+      image: gcr.io/bradley-playground/ml-pipeline-dataproc-xgboost:latest
+      command: [sh, -c]
+      args: ["python /ml/create_cluster.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --name {{inputs.parameters.name}} --staging {{inputs.parameters.staging}}"]
+
+  - name: analyze
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: cluster
+      - name: output
+      - name: train
+      - name: schema
+    container:
+      image: gcr.io/bradley-playground/ml-pipeline-dataproc-xgboost:latest
+      command: [sh, -c]
+      args: ["python /ml/analyze.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --schema {{inputs.parameters.schema}}" ]
+
+  - name: transform
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: cluster
+      - name: output
+      - name: train
+      - name: eval
+      - name: target
+      - name: analysis
+    container:
+      image: gcr.io/bradley-playground/ml-pipeline-dataproc-xgboost:latest
+      command: [sh, -c]
+      args: ["python /ml/transform.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --target {{inputs.parameters.target}} --analysis {{inputs.parameters.analysis}}" ]
+
+  - name: train
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: cluster
+      - name: output
+      - name: train
+      - name: eval
+      - name: target
+      - name: analysis
+      - name: package
+      - name: workers
+      - name: rounds
+      - name: conf
+    container:
+      image: gcr.io/bradley-playground/ml-pipeline-dataproc-xgboost:latest
+      command: [sh, -c]
+      args: ["python /ml/train.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --target {{inputs.parameters.target}} --analysis {{inputs.parameters.analysis}} --package {{inputs.parameters.package}} --workers {{inputs.parameters.workers}} --rounds {{inputs.parameters.rounds}} --conf {{inputs.parameters.conf}}" ]
+    
+  - name: deletecluster
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: name
+    container:
+      image: gcr.io/bradley-playground/ml-pipeline-dataproc-xgboost:latest
+      command: [sh, -c]
+      args: ["python /ml/delete_cluster.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --name {{inputs.parameters.name}}" ]
