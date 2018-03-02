@@ -16,6 +16,8 @@ The requirements:
 
 * Argo GKE Cluster needs to have cloud-platform scope so it can start dataproc cluster. So "--scopes cloud-platform" is needed in setting up the argo GKE cluster.
 
+* Your project should also have Dataproc API enabled.
+
 
 Current run.sh includes hard-coded parameters:
 
