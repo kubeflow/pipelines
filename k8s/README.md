@@ -1,10 +1,7 @@
 - Make sure minikube and kubectl are installed
 - Make sure Argo is installed and started.
 - Git clone the repository under ${GOPATH}/src, as recommended by golang. 
--  
-```
-eval $(minikube docker-env)
-```
+
 - Run bash script
 ```
 ./run.sh
