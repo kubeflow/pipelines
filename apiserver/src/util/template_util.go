@@ -29,7 +29,7 @@ func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) ([
 	for _, param := range parameters {
 		param := argo.Parameter{
 			Name:  param.Name,
-			Value: &param.Value,
+			Value: param.Value,
 		}
 		newParams = append(newParams, param)
 		passedParams[param.Name] = true

@@ -3,18 +3,18 @@ package pipelinemanager
 import "ml/apiserver/src/message/argo"
 
 type Parameter struct {
-	Name      string `json:"name" gorm:"not null"`
-	Value     string `json:"value"`
-	OwnerID   uint   `json:"-"`
-	OwnerType string `json:"-"`
+	Name      string  `json:"name" gorm:"not null"`
+	Value     *string `json:"value"`
+	OwnerID   uint    `json:"-"`
+	OwnerType string  `json:"-"`
 }
 
-func ToParameters(parameters []argo.Parameter) []Parameter {
+func ToParameters(argoParameters []argo.Parameter) []Parameter {
 	newParams := make([]Parameter, 0)
-	for _, param := range parameters {
+	for _, argoParam := range argoParameters {
 		param := Parameter{
-			Name:  param.Name,
-			Value: *param.Value,
+			Name:  argoParam.Name,
+			Value: argoParam.Value,
 		}
 		newParams = append(newParams, param)
 	}

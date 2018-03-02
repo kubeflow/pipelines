@@ -5,7 +5,6 @@ metadata:
   labels:
     app: ml-pipeline-manager
 spec:
-spec:
   type: NodePort
   ports:
   - port: 8888
