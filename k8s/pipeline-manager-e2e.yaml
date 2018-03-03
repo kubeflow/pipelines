@@ -19,7 +19,6 @@ status:
     kind: ""
     plural: ""
   conditions: null
-
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -27,7 +26,6 @@ metadata:
   creationTimestamp: null
   name: argo
   namespace: kube-system
-
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -35,7 +33,6 @@ metadata:
   creationTimestamp: null
   name: argo-ui
   namespace: kube-system
-
 ---
 apiVersion: v1
 data:
@@ -47,7 +44,6 @@ metadata:
   creationTimestamp: null
   name: workflow-controller-configmap
   namespace: kube-system
-
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
@@ -202,7 +198,6 @@ metadata:
   # This name uniquely identifies the service
   name: minio-service
 spec:
-  type: LoadBalancer
   ports:
     - port: 9000
       targetPort: 9000
@@ -210,6 +205,8 @@ spec:
   selector:
     # Looks for labels `app:minio` in the namespace and applies the spec
     app: minio
+status:
+  loadBalancer: {}
 
 # Install pipeline manager API server
 ---
@@ -220,7 +217,6 @@ metadata:
   labels:
     app: ml-pipeline-manager
 spec:
-  type: LoadBalancer
   ports:
   - port: 8888
     targetPort: 8888
@@ -228,6 +224,8 @@ spec:
     name: http
   selector:
     app: ml-pipeline-manager
+status:
+  loadBalancer: {}
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
