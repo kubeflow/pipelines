@@ -24,23 +24,19 @@ def get_client():
     return dataproc
 
   
-def create_cluster(api, project, zone, cluster_name, init_file_url):
+def create_cluster(api, project, region, cluster_name, init_file_url):
   """Create a DataProc clsuter."""
-  zone_uri = 'https://www.googleapis.com/compute/v1/projects/{}/zones/{}'.format(
-      project, zone)
   cluster_data = {
     'projectId': project,
     'clusterName': cluster_name,
     'config': {
         'gceClusterConfig': {
-            'zoneUri': zone_uri
         },
         'initializationActions': {
              'executableFile': init_file_url
         }
     }
   }
-  region = zone.rsplit('-', 1)[0]
   result = api.projects().regions().clusters().create(
       projectId=project,
       region=region,
