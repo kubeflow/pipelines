@@ -36,12 +36,10 @@ export class JobList extends Polymer.Element implements PageElement {
   public pageTitle = 'Job list:';
 
   public async refresh(_: string, queryParams: JobsQueryParams) {
-    let id;
-    if (queryParams.pipelineId) {
-      id = Number.parseInt(queryParams.pipelineId);
-      if (isNaN(id)) {
-        id = undefined;
-      }
+    const id = Number.parseInt(queryParams.pipelineId || '');
+    if (!queryParams.pipelineId || isNaN(id)) {
+      Utils.log.error('No valid pipeline id specified.');
+      return;
     }
     this.jobs = await Apis.getJobs(id);
     if (id !== undefined) {

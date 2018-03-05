@@ -3,13 +3,7 @@
     {
       "id": "oqlksdjl",
       "name": "Unstructured text",
-      "author": "user1",
-      "tags": [
-        "text",
-        "experiment"
-      ],
       "description": "An awesome unstructured text pipeline package.",
-      "location": "gcs://pipelines_bucket/structured_text1",
       "parameters": [
         {
           "name": "x",
@@ -19,19 +13,12 @@
           "name": "y",
           "description": "The y parameter description. This can be very long!"
         }
-      ],
-      "sharedWith": "team1"
+      ]
     },
     {
       "id": "lkvjs3w423",
       "name": "Image classification",
-      "author": "user2",
-      "tags": [
-        "image",
-        "classification"
-      ],
       "description": "An awesome image classification pipeline package.",
-      "location": "gcs://pipelines_bucket/image_classification1",
       "parameters": [
         {
           "name": "x",
@@ -41,13 +28,11 @@
           "name": "y",
           "description": "The y parameter"
         }
-      ],
-      "sharedWith": "team2"
+      ]
     }
   ],
   "pipelines": [
     {
-      "author": "user1",
       "description": "Try 10 for x",
       "id": 1,
       "name": "Unstructured text experiment 1",
@@ -64,11 +49,9 @@
       ],
       "starts": 1517087010898,
       "ends": -1,
-      "recurring": false,
-      "tags": []
+      "recurring": false
     },
     {
-      "author": "user1",
       "description": "Try 10 and 20 for parameters",
       "id": 2,
       "name": "Unstructured text experiment 1",
@@ -85,8 +68,7 @@
       ],
       "starts": 1517087010898,
       "ends": -1,
-      "recurring": false,
-      "tags": []
+      "recurring": false
     }
   ],
   "jobs": [

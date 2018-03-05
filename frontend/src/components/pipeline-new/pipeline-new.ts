@@ -10,6 +10,7 @@ import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
 import { env } from '../../lib/config';
+import * as Utils from '../../lib/utils';
 
 import './pipeline-new.html';
 
@@ -21,7 +22,7 @@ import { Pipeline } from '../../lib/pipeline';
 import { PipelinePackage } from '../../lib/pipeline_package';
 
 interface NewPipelineQueryParams {
-  packageId?: string;
+  packageId?: number;
 }
 
 @customElement('pipeline-new')
@@ -46,15 +47,22 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   protected _isDev = env === 'dev';
 
   public async refresh(_: string, queryParams: NewPipelineQueryParams) {
-    let id;
     this._busy = true;
+    const packageList = this.$.packagesListbox as any;
     try {
       this.packages = await Apis.getPackages();
       if (queryParams.packageId) {
-        id = Number.parseInt(queryParams.packageId);
-        if (!isNaN(id)) {
-          (this.$.packagesListbox as any).selected = id;
+        let packageOrder = -1;
+        this.packages.forEach((p, i) => {
+          if (p.id === queryParams.packageId) {
+            packageOrder = i;
+          }
+        });
+        if (packageOrder === -1) {
+          Utils.log.error('Cannot find package with id ' + queryParams.packageId);
+          return;
         }
+        packageList.selected = packageOrder;
       }
     } finally {
       this._busy = false;
@@ -62,14 +70,22 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   }
 
   protected async _packageChanged(e: any) {
-    const id = (this.$.packagesListbox as any).selected;
-    const pkg = this.packages[id];
+    const selectedEl = (this.$.packagesListbox as any).selectedItem;
+    if (!selectedEl) {
+      return;
+    }
+    this.packageId = selectedEl.packageId;
+    const pkg = this.packages.filter((p) => p.id === this.packageId)[0];
+    if (!pkg) {
+      Utils.log.error('No package found with id ' + this.packageId);
+      return;
+    }
 
     this.parameters = pkg.parameters.map((p) => {
       return {
         description: p.description,
         name: p.name,
-        value: '',
+        value: p.value || '',
       };
     });
   }
@@ -113,11 +129,10 @@ export class PipelineNew extends Polymer.Element implements PageElement {
       ends: Date.parse(this.endDate),
       name: (this.$.name as HTMLInputElement).value,
       packageId: this.packageId,
-      parameterValues: this.parameters,
+      parameters: this.parameters,
       recurring: false,
       recurringIntervalHours: 0,
       starts: Date.parse(this.startDate),
-      tags: (this.$.tags as HTMLInputElement).value.split(','),
     };
     await Apis.newPipeline(newPipeline);
 
