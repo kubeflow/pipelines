@@ -4,6 +4,7 @@ metadata:
   generateName: xgboost-training-
 spec:
   entrypoint: xgboost-training
+  onExit: exit-handler
   arguments:
     parameters:
     - name: project
@@ -19,6 +20,23 @@ spec:
     - name: rounds
     - name: conf
   templates:
+  - name: exit-handler
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: cluster
+    steps:
+    - - name: deletecluster
+        template: deletecluster
+        arguments:
+          parameters:
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: region
+            value: "{{inputs.parameters.region}}"
+          - name: name
+            value: "{{inputs.parameters.cluster}}"
   - name: xgboost-training
     inputs:
       parameters:
@@ -114,17 +132,6 @@ spec:
             value: "{{inputs.parameters.rounds}}"
           - name: conf
             value: "{{inputs.parameters.conf}}"
-
-    - - name: deletecluster
-        template: deletecluster
-        arguments:
-          parameters:
-          - name: project
-            value: "{{inputs.parameters.project}}"
-          - name: region
-            value: "{{inputs.parameters.region}}"
-          - name: name
-            value: "{{inputs.parameters.cluster}}"
 
   - name: createcluster
     inputs:

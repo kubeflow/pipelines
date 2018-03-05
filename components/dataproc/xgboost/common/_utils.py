@@ -141,3 +141,11 @@ def copy_resources_to_gcs(file_paths, gcs_path):
 def remove_resources_from_gcs(file_paths):
   """Remove staged resources from a GCS location."""
   subprocess.call(['gsutil', '-m', 'rm'] + file_paths)
+
+
+def delete_directory_from_gcs(dir_path):
+  """Delete a GCS dir recursively. Ignore errors."""
+  try:
+    subprocess.call(['gsutil', '-m', 'rm', '-r', dir_path])
+  except:
+    pass
