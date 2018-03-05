@@ -17,7 +17,7 @@ module.exports = (app) => {
         return;
       }
     } else if (req.url === '/_config/apiServerAddress') {
-      res.send('http://localhost:8888/apis/v1alpha1');
+      res.send('/_api');
       return;
     }
     next();

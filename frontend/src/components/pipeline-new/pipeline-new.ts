@@ -52,17 +52,17 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     try {
       this.packages = await Apis.getPackages();
       if (queryParams.packageId) {
-        let packageOrder = -1;
+        let packageIdx = -1;
         this.packages.forEach((p, i) => {
           if (p.id === queryParams.packageId) {
-            packageOrder = i;
+            packageIdx = i;
           }
         });
-        if (packageOrder === -1) {
+        if (packageIdx === -1) {
           Utils.log.error('Cannot find package with id ' + queryParams.packageId);
           return;
         }
-        packageList.selected = packageOrder;
+        packageList.selected = packageIdx;
       }
     } finally {
       this._busy = false;

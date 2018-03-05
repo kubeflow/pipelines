@@ -35,8 +35,7 @@ export async function uploadPackage(packageData: any): Promise<PipelinePackage> 
     cache: 'no-cache',
     method: 'POST',
   });
-  const parsedPackaged = await response.text();
-  return JSON.parse(parsedPackaged);
+  return await response.json();
 }
 
 /**
