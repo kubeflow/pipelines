@@ -8,17 +8,28 @@ spec:
   arguments:
     parameters:
     - name: project
+      value: ml-pipeline
     - name: region
+      value: us-central1
     - name: cluster
+      value: xgboost-spark-training-example
     - name: output
     - name: train
+      value: gs://ml-pipeline-playground/sfpd/train.csv
     - name: eval
+      value: gs://ml-pipeline-playground/sfpd/eval.csv
     - name: schema
+      value: gs://ml-pipeline-playground/sfpd/schema.json
     - name: target
+      value: resolution
     - name: package
+      value: gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar
     - name: workers
+      value: 2
     - name: rounds
+      value: 100
     - name: conf
+      value: gs://ml-pipeline-playground/trainconfreg.json
   templates:
   - name: exit-handler
     inputs:
