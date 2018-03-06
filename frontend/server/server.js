@@ -1,5 +1,7 @@
-const path = require('path');
 const express = require('express');
+const proxy = require('http-proxy-middleware');
+const path = require('path');
+
 const app = express();
 
 if (process.argv.length < 3) {
@@ -22,6 +24,15 @@ app.use(express.static(staticDir));
 app.get('/_config/apiServerAddress', (req, res) => {
   res.send(apiServerAddress);
 });
+
+app.all('/_api/*', proxy({
+  changeOrigin: true,
+  pathRewrite: { '^/_api/': '/apis/v1alpha1/' },
+  onProxyReq: (proxyReq, req, res) => {
+    console.log('Proxied request: ', proxyReq.path);
+  },
+  target: apiServerAddress,
+}));
 
 app.get('*', (req, res) => {
   res.sendFile(path.resolve(staticDir, 'index.html'));
