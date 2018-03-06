@@ -3,7 +3,7 @@ import 'polymer/polymer.html';
 import { customElement, property } from '../../../bower_components/polymer-decorators/src/decorators';
 
 import * as Apis from '../../lib/apis';
-import { PipelineClickEvent, RouteEvent } from '../../lib/events';
+import { ItemClickEvent, RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
 import { Pipeline } from '../../lib/pipeline';
 import { ColumnTypeName, ItemListElement, ItemListRow } from '../item-list/item-list';
@@ -41,6 +41,7 @@ export class PipelineList extends Polymer.Element implements PageElement {
    */
   _drawPipelineList() {
     const itemList = this.$.pipelinesItemList as ItemListElement;
+    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
     itemList.columns = this.itemListColumns;
     itemList.rows = this.pipelines.map((pipeline) => {
       const row = new ItemListRow({
@@ -58,9 +59,9 @@ export class PipelineList extends Polymer.Element implements PageElement {
     });
   }
 
-  protected _navigate(ev: PipelineClickEvent) {
-    const index = ev.model.pipeline.id;
-    this.dispatchEvent(new RouteEvent(`/pipelines/details/${index}`));
+  protected _navigate(ev: ItemClickEvent) {j
+    const pipelineId = this.pipelines[ev.detail.index].id;
+    this.dispatchEvent(new RouteEvent(`/pipelines/details/${pipelineId}`));
   }
 
   protected _create() {

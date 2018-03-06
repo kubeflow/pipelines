@@ -18,6 +18,8 @@ import 'paper-icon-button/paper-icon-button.html';
 import 'paper-item/paper-item.html';
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 
+import { ItemClickEvent } from '../../lib/events';
+
 import './item-list.html';
 
 type ColumnType = Date|number|string;
@@ -38,6 +40,8 @@ interface ItemListRowParameters {
   columns: ColumnType[];
   selected?: boolean;
 }
+
+
 
 /**
  * Object representing a row in the item list
@@ -418,10 +422,9 @@ export class ItemListElement extends Polymer.Element {
    * On row double click, fires an event with the clicked item's index.
    */
   _rowDoubleClicked(e: MouseEvent) {
-    const realIndex = (this.$.list as Polymer.DomRepeat).indexForElement(e.target as HTMLElement);
-    // TODO: This event isn't listened for anywhere. For the pipeline-list, it
-    // should trigger _nagivage in pipeline-list.ts
-    this.dispatchEvent(new CustomEvent('itemDoubleClick', { detail: {index: realIndex} }));
+    const displayIndex = (this.$.list as Polymer.DomRepeat).indexForElement(e.target as HTMLElement) || 0;
+    const realIndex = this._displayIndexToRealIndex(displayIndex);
+    this.dispatchEvent(new ItemClickEvent('itemDoubleClick', { detail: {index: realIndex} }));
   }
 
   private _displayIndexToRealIndex(index: number): number {
