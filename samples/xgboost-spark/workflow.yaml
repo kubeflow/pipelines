@@ -8,7 +8,6 @@ spec:
   arguments:
     parameters:
     - name: project
-      value: ml-pipeline
     - name: region
       value: us-central1
     - name: cluster
