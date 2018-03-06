@@ -9,7 +9,6 @@ import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
-import { env } from '../../lib/config';
 import * as Utils from '../../lib/utils';
 
 import './pipeline-new.html';
@@ -44,7 +43,6 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   public parameters: Parameter[];
 
   protected _busy = false;
-  protected _isDev = env === 'dev';
 
   public async refresh(_: string, queryParams: NewPipelineQueryParams) {
     this._busy = true;
