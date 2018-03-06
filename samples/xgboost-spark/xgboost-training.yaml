@@ -7,27 +7,27 @@ spec:
   onExit: exit-handler
   arguments:
     parameters:
-    - name: project
-    - name: region
+    - name: project # GCP project to run dataproc cluster
+    - name: region # region to run the dataproc cluster
       value: us-central1
-    - name: cluster
+    - name: cluster # cluster name to use
       value: xgboost-spark-training-example
-    - name: output
-    - name: train
+    - name: output # GCS path of output directory
+    - name: train # GCS path of training csv
       value: gs://ml-pipeline-playground/sfpd/train.csv
-    - name: eval
+    - name: eval # GCS path of eval csv
       value: gs://ml-pipeline-playground/sfpd/eval.csv
-    - name: schema
+    - name: schema # GCS path of json schema for training and eval csv
       value: gs://ml-pipeline-playground/sfpd/schema.json
-    - name: target
+    - name: target # which column to use as prediction target
       value: resolution
-    - name: package
+    - name: package # GCS path of distributed xgboost training package
       value: gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar
-    - name: workers
+    - name: workers # number of works for trainer
       value: 2
-    - name: rounds
+    - name: rounds # number of rounds to train
       value: 100
-    - name: conf
+    - name: conf # GCS path of xgboost training config file
       value: gs://ml-pipeline-playground/trainconfreg.json
   templates:
   - name: exit-handler
