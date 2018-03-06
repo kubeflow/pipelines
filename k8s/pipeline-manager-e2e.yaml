@@ -434,4 +434,3 @@ spec:
         imagePullPolicy: Always
         ports:
           - containerPort: 3000
-      serviceAccountName: ml-pipeline-manager
