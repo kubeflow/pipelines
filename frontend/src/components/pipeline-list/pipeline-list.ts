@@ -15,7 +15,12 @@ export class PipelineList extends Polymer.Element implements PageElement {
   public pipelines: Pipeline[] = [];
 
   public async refresh(_: string) {
-    this.pipelines = await Apis.getPipelines();
+    this.pipelines = (await Apis.getPipelines()).map((p) => {
+      if (p.createAt) {
+        p.createAt = new Date(p.createAt || '').toLocaleString();
+      }
+      return p;
+    });
   }
 
   protected _navigate(ev: PipelineClickEvent) {

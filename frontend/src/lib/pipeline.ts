@@ -1,15 +1,15 @@
 import { Parameter } from './parameter';
 
 export interface Pipeline {
+  createAt?: string;
+  id?: number;
   author: string;
   description: string;
   ends: number;
-  id?: number;
   name: string;
   packageId: number;
-  parameterValues: Parameter[];
+  parameters: Parameter[];
   recurring: boolean;
   recurringIntervalHours: number;
   starts: number;
-  tags: string[];
 }

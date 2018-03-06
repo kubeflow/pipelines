@@ -28,19 +28,14 @@ export async function getPackage(id: number): Promise<PipelinePackage> {
  * object with its metadata parsed.
  */
 export async function uploadPackage(packageData: any): Promise<PipelinePackage> {
-  // TODO: For now, this mocks the API call by waiting for one second, then
-  // returning a test package object.
-  const pkg: PipelinePackage = {
-    author: 'test author',
-    description: 'test description',
-    id: 'test-id',
-    location: 'local',
-    name: 'test name',
-    parameters: [],
-  };
-  return new Promise((resolve, _) => {
-    setTimeout(() => resolve(), 1000);
-  }).then(() => pkg);
+  const fd = new FormData();
+  fd.append('uploadfile', packageData, packageData.name);
+  const response = await fetch(await backendUrl + '/packages/upload', {
+    body: fd,
+    cache: 'no-cache',
+    method: 'POST',
+  });
+  return await response.json();
 }
 
 /**
@@ -68,9 +63,9 @@ export async function newPipeline(pipeline: Pipeline) {
     body: JSON.stringify(pipeline),
     cache: 'no-cache',
     headers: {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
     },
-    method: 'POST'
+    method: 'POST',
   });
   return await response.json();
 }
@@ -80,8 +75,8 @@ export async function newPipeline(pipeline: Pipeline) {
  * If an pipeline id is specified, only the jobs defined with this
  * pipeline id are returned.
  */
-export async function getJobs(pipelineId?: number): Promise<Job[]> {
-  const path = '/jobs' + (pipelineId !== undefined ? '?pipelineId=' + pipelineId : '');
+export async function getJobs(pipelineId: number): Promise<Job[]> {
+  const path = `/pipelines/${pipelineId}/jobs`;
   const response = await fetch(await backendUrl + path);
   const jobs: Job[] = await response.json();
   return jobs;
@@ -92,6 +87,20 @@ export async function getJobs(pipelineId?: number): Promise<Job[]> {
  */
 export async function getJob(id: number): Promise<Job> {
   const response = await fetch(await backendUrl + `/jobs/${id}`);
+  return await response.json();
+}
+
+/**
+ * Submits a new job for the given pipeline id.
+ */
+export async function newJob(id: number): Promise<Job> {
+  const response = await fetch(await backendUrl + `/pipelines/${id}/jobs`, {
+    cache: 'no-cache',
+    headers: {
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+  });
   return await response.json();
 }
 

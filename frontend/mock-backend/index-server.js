@@ -14,9 +14,11 @@ module.exports = (app) => {
         res.json(files);
       } else {
         res.send(fs.readFileSync(path, 'utf8'));
+        return;
       }
     } else if (req.url === '/_config/apiServerAddress') {
       res.send('/_api');
+      return;
     }
     next();
   });

@@ -2,38 +2,43 @@
   <template>
     <link rel="stylesheet" href="./pipeline-details.css">
 
-    <div class="pipeline-name">[[pipeline.name]]</div>
+    <div class="pipeline-name">
+      [[pipeline.name]]
+      <span class="padded faded">[[[pipeline.id]]]</span>
+    </div>
     <hr>
 
     <div>
-      <span class="strong">Pipeline Package:</span>[[pipeline.packageId]]
+      <span class="strong padded">Pipeline Package Id:</span>[[pipeline.packageId]]
     </div>
     <div>
-      <span class="strong">Description:</span>[[pipeline.description]]
+      <span class="strong padded">Description:</span>[[pipeline.description]]
     </div>
     <div>
-      <span class="strong">Starts</span>[[pipeline.starts]]
-    </div>
-    <div>
-      <span class="strong">Ends</span>[[pipeline.ends]]
+      <span class="strong padded">Created:</span>[[pipeline.createAt]]
     </div>
 
-    <div>
-      <span class="strong">Parameters</span>
-      <tr>
-        <template is="dom-repeat" items="[[pipeline.parameterValues]]" as="param">
-          <li>
-            <span class="strong">[[param.name]]:</span>[[param.value]]
-          </li>
-        </template>
-      </tr>
-    </div>
+    <template is="dom-if" if="[[pipeline.parameters.length]]">
+      <hr>
 
-    <div>
-      <span class="strong">Tags:</span>[[pipeline.tags]]
-    </div>
+      <div>
+        <span class="strong padded">Parameters:</span>
+        <tr>
+          <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+            <li>
+              <span class="strong padded">[[param.name]]:</span>[[param.value]]
+            </li>
+          </template>
+        </tr>
+      </div>
+    </template>
 
     <hr>
+
+    <paper-button class="action-button" raised on-click="_runOnce">
+      <span class="padded">Run Once</span>
+      <iron-icon icon="maps:directions-run"></iron-icon>
+    </paper-button>
 
     <a class="unstyled" href="/jobs?pipelineId=[[pipeline.id]]">
       <paper-button class="action-button" raised>

@@ -1,9 +1,11 @@
 import 'iron-icons/iron-icons.html';
+import 'iron-icons/maps-icons.html';
 import 'paper-button/paper-button.html';
 import 'polymer/polymer.html';
 
 import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
+import { RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
 import { Pipeline } from '../../lib/pipeline';
 import * as Utils from '../../lib/utils';
@@ -23,7 +25,18 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
         Utils.log.error(`Bad pipeline path: ${id}`);
         return;
       }
-      this.pipeline = await Apis.getPipeline(id);
+      const pipeline = await Apis.getPipeline(id);
+      if (pipeline.createAt) {
+        pipeline.createAt = new Date(pipeline.createAt).toLocaleString();
+      }
+      this.pipeline = pipeline;
+    }
+  }
+
+  protected async _runOnce() {
+    if (this.pipeline && this.pipeline.id !== undefined) {
+      await Apis.newJob(this.pipeline.id);
+      this.dispatchEvent(new RouteEvent('/pipelines'));
     }
   }
 }

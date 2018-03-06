@@ -6,20 +6,17 @@
     <div class="container">
       <template is="dom-repeat" items="[[pipelines]]" as="pipeline">
         <div class="card" on-click="_navigate">
-          <div class="pipeline-name ellipsis">[[pipeline.name]]</div>
+          <div class="pipeline-name ellipsis">
+            [[pipeline.name]]
+            <span class="padded faded">[[[pipeline.id]]]</span>
+          </div>
           <hr>
           <div>
             <span class="strong">Description: </span>
             <span class="ellipsis">[[pipeline.description]]</span>
           </div>
           <div>
-            <span class="strong">Starts: </span>[[pipeline.starts]]
-          </div>
-          <div>
-            <span class="strong">Ends: </span>[[pipeline.ends]]
-          </div>
-          <div>
-            <span class="strong">Tags: </span>[[pipeline.tags]]
+            <span class="strong">Created: </span>[[pipeline.createAt]]
           </div>
         </div>
       </template>
