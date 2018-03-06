@@ -12,8 +12,18 @@
   --fail-color: #fb4343;
   --progress-color: #6f97d4;
   --selected-color: #4b82cc;
+  --selection-fg-color: #2979ff;
+  --selection-bg-color: #e8e8e8;
   --white: #fff;
 
   --font-size: 14px;
   --font-size-strong: 16px;
+
+  --app-content-font-family: 'Open Sans', 'Helvetica', sans-serif;
+  --app-content-font-size: 12px;
+  --toolbar-height: 44px;
+
+  --border-color: #ddd;
+  --outline-color: #ddd;
+  --disabled-fg-color: #aaa;
 }

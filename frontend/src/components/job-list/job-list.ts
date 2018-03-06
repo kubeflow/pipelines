@@ -3,12 +3,12 @@
 import 'iron-icons/device-icons.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-progress/paper-progress.html';
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-import { customElement, property } from '../../decorators';
 import { JobClickEvent, RouteEvent } from '../../lib/events';
 import { Job } from '../../lib/job';
 import { PageElement } from '../../lib/page_element';

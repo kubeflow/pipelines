@@ -22,6 +22,7 @@
     "paper-spinner": "PolymerElements/paper-spinner#^2.1.0",
     "paper-tabs": "PolymerElements/paper-tabs#^2.0.0",
     "polymer": "^2.5.0",
+    "polymer-decorators": "Polymer/polymer-decorators#^1.2.0",
     "web-animations-js": "^2.3.1",
     "webcomponentsjs": "^1.0.12"
   }

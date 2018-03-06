@@ -16,7 +16,6 @@ export function property(options: PropertyOptions) {
       proto.constructor.properties = {};
     }
     proto.constructor.properties[propName] = {
-      notify: false,
       readOnly: false,
       reflectToAttribute: false,
       type,

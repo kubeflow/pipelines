@@ -5,7 +5,7 @@
 div {
   font-family: var(--app-content-font-family);
   font-size: var(--app-content-font-size);
-  color: var(--primary-fg-color);
+  color: var(--fg-color);
 }
 #headerContainer {
   flex: 0 0 var(--toolbar-height);
@@ -30,7 +30,7 @@ div {
   cursor: default;
 }
 .row:nth-of-type(even) {
-  background-color: var(--secondary-bg-color);
+  background-color: var(--bg-color-darker);
 }
 .row:hover {
   background-color: var(--selection-bg-color);
@@ -51,8 +51,8 @@ div {
 }
 .checkbox-col > paper-checkbox {
   --paper-checkbox-size: 15px;
-  --paper-checkbox-unchecked-color: var(--neutral-fg-color);
-  --paper-checkbox-checked-color: var(--selection-fg-color);
+  --paper-checkbox-unchecked-color: var(--neutral-color);
+  --paper-checkbox-checked-color: var(--selected-color);
 }
 .first-col {
   flex-grow: 1;
@@ -68,7 +68,7 @@ div {
   flex: 1.5;
 }
 #header > .column {
-  color: var(--primary-fg-color);
+  color: var(--fg-color);
   font-size: 13px;
 }
 .column-button {
@@ -87,14 +87,12 @@ div {
 .column + .column {
   flex: 1;
   max-width: 150px;
-  color: var(--neutral-fg-color);
+  color: var(--neutral-color);
   padding-left: 10px;
 }
 #filterToggle {
-  --paper-icon-button: {
-    width: 34px;
-    height: 34px;
-  };
+  width: 34px;
+  height: 34px;
 }
 .filterShown--true {
   color: var(--selection-fg-color);
@@ -120,8 +118,8 @@ div {
   text-indent: 75px;
   padding: 5px;
   box-sizing: border-box;
-  background-color: var(--primary-bg-color);
-  color: var(--primary-fg-color);
+  background-color: var(--bg-color);
+  color: var(--fg-color);
   outline: none;
 }
 #filterBox:hover {

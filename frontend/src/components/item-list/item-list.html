@@ -9,21 +9,9 @@ or implied. See the License for the specific language governing permissions and 
 the License.
 -->
 
-<link rel="import" href="../../modules/utils/utils.html">
-
-<link rel="import" href="../../bower_components/polymer-decorators/polymer-decorators.html">
-<link rel="import" href="../../bower_components/iron-icons/editor-icons.html">
-<link rel="import" href="../../bower_components/iron-icons/hardware-icons.html">
-<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
-<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item.html">
-<link rel="import" href="../../bower_components/polymer-decorators/polymer-decorators.html">
-
 <dom-module id="item-list">
+  <link rel="stylesheet" href="./item-list.css">
   <template>
-    <link rel="stylesheet" href="./item-list.css">
 
     <!--Header row-->
     <!--Need this extra div because #header has a display modifier, cannot set hidden-->
@@ -70,11 +58,8 @@ the License.
             </div>
           </template>
         </paper-item>
-        <div id="details" class="row-details" hidden$="{{!row.showInlineDetails}}"></div>
       </template>
     </div>
 
   </template>
 </dom-module>
-
-<script src="item-list.js"></script>

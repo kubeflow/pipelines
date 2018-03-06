@@ -12,137 +12,44 @@
  * the License.
  */
 
+import 'paper-button/paper-button.html';
+import 'paper-checkbox/paper-checkbox.html';
+import 'paper-icon-button/paper-icon-button.html';
+import 'paper-item/paper-item.html';
+import { customElement, observe, property } from 'polymer-decorators/src/decorators';
+
+import './item-list.html';
+
 type ColumnType = Date|number|string;
 
-enum ColumnTypeName {
+export enum ColumnTypeName {
   DATE,
   NUMBER,
   STRING,
 }
 
-interface Column {
+interface ItemListColumn {
   name: string;
   type: ColumnTypeName;
 }
 
-/**
- * Mode definition for which items, out of all items that are capable
- * of showing details, actually show those details.
- */
-enum InlineDetailsDisplayMode {
-  NONE,               // Don't show any inline details elements
-  SINGLE_SELECT,      // Show details only when a single item is selected
-  MULTIPLE_SELECT,    // Show details for all selected items
-  ALL                 // Show details for all items
-}
-// TODO: the current behavior of ALL does not show all of the details when
-// the page first renders, but only displays the details when the
-// selection state for an item changes. We might want to change this
-// behavior so that it figures out in advance that it should show
-// all the details.
 /** Fields that can be passed to the ItemListRow constructor. */
 interface ItemListRowParameters {
   columns: ColumnType[];
-  createDetailsElement?: () => HTMLElement;
-  icon?: string;
   selected?: boolean;
 }
 
 /**
  * Object representing a row in the item list
  */
-class ItemListRow {
+export class ItemListRow {
   public selected: boolean;
   public columns: ColumnType[];
-  public canShowDetails: boolean;
-  public showInlineDetails = false;
 
-  private _createDetailsElement: (() => HTMLElement) | undefined;
-  private _detailsElement: HTMLElement;
-  private _icon: string;
-
-  constructor(
-      {columns, icon, selected, createDetailsElement}: ItemListRowParameters) {
+  constructor({columns, selected}: ItemListRowParameters) {
     this.columns = columns;
     this.selected = selected || false;
-    this.canShowDetails = (!!createDetailsElement);
-    this._createDetailsElement = createDetailsElement;
-    this._icon = icon || '';
   }
-
-  /**
-   * If the given icon is a link, its src attribute should be set to that link,
-   * and the icon attribute should be empty. If instead it's an icon name,
-   * these two attributes should be reversed.
-   */
-  get icon() { return this._hasLinkIcon() ? '' : this._icon; }
-  get src() { return this._hasLinkIcon() ? this._icon : ''; }
-
-  /**
-   * Updates our showInlineDetails flag after a selection change.
-   * If we are showing details for the first time for this row,
-   * create the details element and add it to the DOM.
-   */
-  _updateInlineDetails(
-      inlineDetailsMode: InlineDetailsDisplayMode,
-      multipleSelected: boolean, rowDetailsElement: HTMLElement) {
-    const oldShowInlineDetails = this.showInlineDetails;
-    if (!this.canShowDetails) {
-      // If we don't know how to dislay details element, then we never do
-      this.showInlineDetails = false;
-    } else if (inlineDetailsMode === InlineDetailsDisplayMode.NONE) {
-      this.showInlineDetails = false;
-    } else if (inlineDetailsMode === InlineDetailsDisplayMode.ALL) {
-      this.showInlineDetails = true;
-    } else if (!this.selected) {
-      this.showInlineDetails = false;
-    } else if (!multipleSelected) {
-      this.showInlineDetails = true;
-    } else if (inlineDetailsMode === InlineDetailsDisplayMode.MULTIPLE_SELECT) {
-      this.showInlineDetails = true;
-    } else {
-      // Assume SINGLE_SELECT, but we know multiple items are selected
-      this.showInlineDetails = false;
-    }
-    if (this.showInlineDetails) {
-      if (!this._detailsElement) {
-        this._addDetailsElement(rowDetailsElement);
-      } else if (!oldShowInlineDetails) {
-        const detailsElementAsAny = this._detailsElement as any;
-        if (detailsElementAsAny.show) {
-          detailsElementAsAny.show();
-        }
-      }
-    }
-  }
-
-  // Create and add the details element for this item when we first display it.
-  private _addDetailsElement(rowDetailsElement: HTMLElement) {
-    if (!this._createDetailsElement) {
-      return;
-    }
-
-    // The list can get reused when we switch to display a different directory,
-    // so we need to clear potential old details.
-    Utils.deleteAllChildren(rowDetailsElement);
-
-    // Create and add the new details element
-    this._detailsElement = this._createDetailsElement();
-    rowDetailsElement.appendChild(this._detailsElement);
-  }
-
-  private _hasLinkIcon() {
-    return this._icon.startsWith('http://') || this._icon.startsWith('https://');
-  }
-}
-
-/**
- * CustomEvent that gets dispatched when an item is clicked or double clicked
- */
-class ItemClickEvent extends CustomEvent<any> {
-  detail: {
-    index: number;
-  };
 }
 
 /**
@@ -161,64 +68,58 @@ class ItemClickEvent extends CustomEvent<any> {
  * If the "disable-selection" attribute is specified, the checkboxes are
  * hidden, and clicking items does not select them.
  */
-@Polymer.decorators.customElement('item-list')
-class ItemListElement extends Polymer.Element {
+@customElement('item-list')
+export class ItemListElement extends Polymer.Element {
 
   /**
    * List of data rows, each implementing the row interface
    */
-  @Polymer.decorators.property({type: Array})
+  @property({type: Array})
   public rows: ItemListRow[] = [];
 
   /**
    * List of string data columns names
    */
-  @Polymer.decorators.property({type: Array})
-  public columns: Column[] = [];
+  @property({type: Array})
+  public columns: ItemListColumn[] = [];
 
   /**
    * Whether to hide the header row
    */
-  @Polymer.decorators.property({type: Boolean})
+  @property({type: Boolean})
   public hideHeader = false;
 
   /**
    * Whether to disable item selection
    */
-  @Polymer.decorators.property({type: Boolean})
+  @property({type: Boolean})
   public disableSelection = false;
 
   /**
    * Whether to disable multi-selection
    */
-  @Polymer.decorators.property({type: Boolean})
+  @property({type: Boolean})
   public noMultiselect = false;
 
   /**
    * The list of currently selected indices
    */
-  @Polymer.decorators.property({
+  @property({
       computed: '_computeSelectedIndices(rows.*)', notify: true, type: Array})
   public selectedIndices: number[] = [];
 
-  /**
-   * Display mode for inline details
-   */
-  @Polymer.decorators.property({type: Object})
-  public inlineDetailsMode = InlineDetailsDisplayMode.NONE;
-
-  @Polymer.decorators.property({type: Boolean})
+  @property({type: Boolean})
   _showFilterBox = false;
 
-  @Polymer.decorators.property({
+  @property({
       computed: '_computeIsAllSelected(selectedIndices)', type: Boolean})
   _isAllSelected: boolean;
 
-  @Polymer.decorators.property({
+  @property({
       computed: '_computeHideCheckboxes(disableSelection, noMultiselect)', type: Boolean})
   _hideCheckboxes: boolean;
 
-  _filterString: string;
+  _filterString = '';
 
   private _currentSort = {
     asc: true,   // ascending or descending
@@ -246,7 +147,7 @@ class ItemListElement extends Polymer.Element {
     this._filterString = '';
   }
 
-  _formatColumnValue(value: ColumnType, i: number, columns: Column[]): string {
+  _formatColumnValue(value: ColumnType, i: number, columns: ItemListColumn[]): string {
     if (columns[i]) {
       if (columns[i].type === ColumnTypeName.DATE) {
         return (value as Date).toLocaleString();
@@ -274,7 +175,7 @@ class ItemListElement extends Polymer.Element {
       };
     }
 
-    this.$.list.sort = (a: ItemListRow, b: ItemListRow) => {
+    (this.$.list as Polymer.DomRepeat).sort = (a: ItemListRow, b: ItemListRow) => {
       // Bail out of sort if no columns have been set yet.
       if (!this.columns.length) {
         return;
@@ -302,11 +203,11 @@ class ItemListElement extends Polymer.Element {
     this._updateSortIcons();
   }
 
-  @Polymer.decorators.observe(['rows', 'columns'])
+  @observe('rows', 'columns')
   _updateSortIcons() {
     // Make sure all elements have rendered.
-    Polymer.dom.flush();
-    const iconEls = this.$.header.querySelectorAll('.sort-icon');
+    Polymer.flush();
+    const iconEls = this.$.header.querySelectorAll('.sort-icon') as NodeListOf<HTMLElement>;
     if (iconEls.length && this._currentSort.column > -1) {
       iconEls.forEach((el: HTMLElement) => el.hidden = true);
       iconEls[this._currentSort.column].hidden = false;
@@ -321,7 +222,7 @@ class ItemListElement extends Polymer.Element {
     // If the filter box is now visible, focus it.
     // If not, reset the filter to go back to showing the full list.
     if (this._showFilterBox) {
-      this.$.filterBox.focus();
+      (this.$.filterBox as HTMLElement).focus();
     } else {
       this._filterString = '';
     }
@@ -400,7 +301,6 @@ class ItemListElement extends Polymer.Element {
       return;   // Avoid lots of useless work when no change.
     }
     this.set('rows.' + realIndex + '.selected', true);
-    this._updateItemSelection(realIndex, true);
   }
 
   /**
@@ -411,41 +311,6 @@ class ItemListElement extends Polymer.Element {
       return;   // Avoid lots of useless work when no change.
     }
     this.set('rows.' + realIndex + '.selected', false);
-    this._updateItemSelection(realIndex, false);
-  }
-
-  /**
-   * Updates the show-details flag for a row after selection change.
-   */
-  _updateItemSelection(index: number, newValue: boolean) {
-    const multipleSelected = this.selectedIndices.length > 1;
-    this._updateInlineDetailsForRow(index, multipleSelected);
-    const previousSelectedCount =
-        this.selectedIndices.length + (newValue ? -1 : 1);
-    const previousMultipleSelected = previousSelectedCount > 1;
-    if (this.inlineDetailsMode === InlineDetailsDisplayMode.SINGLE_SELECT &&
-        multipleSelected !== previousMultipleSelected) {
-      /** If we are in SINGLE_SELECT mode and we have changed from having one
-       * item selected to many or vice-versa, we need to update all the other
-       * selected items.
-       */
-      for (let i = 0; i < this.rows.length; i++) {
-        if (i !== index) {
-          this._updateInlineDetailsForRow(i, multipleSelected);
-        }
-      }
-    }
-  }
-
-  /**
-   * Updates the inline details for one row after a selection change.
-   */
-  _updateInlineDetailsForRow(index: number, multipleSelected: boolean) {
-    const rowDetailsElement = this._getRowDetailsContainer(index);
-    this.rows[index]._updateInlineDetails(
-        this.inlineDetailsMode, multipleSelected, rowDetailsElement);
-    this.notifyPath('rows.' + index + '.showInlineDetails',
-        this.rows[index].showInlineDetails);
   }
 
   /**
@@ -486,7 +351,7 @@ class ItemListElement extends Polymer.Element {
    * Called when the select/unselect all checkbox checked value is changed.
    */
   _selectAllChanged() {
-    if (this.$.selectAllCheckbox.checked === true) {
+    if ((this.$.selectAllCheckbox as HTMLInputElement).checked === true) {
       this._selectAllDisplayedItems();
     } else {
       this._unselectAllDisplayedItems();
@@ -506,7 +371,7 @@ class ItemListElement extends Polymer.Element {
       return;
     }
     const target = e.target as HTMLDivElement;
-    const displayIndex = this.$.list.indexForElement(target);
+    const displayIndex = (this.$.list as Polymer.DomRepeat).indexForElement(target) || 0;
     const realIndex = this._displayIndexToRealIndex(displayIndex);
 
     // If shift key is pressed and we had saved the last selected index, select
@@ -553,20 +418,16 @@ class ItemListElement extends Polymer.Element {
    * On row double click, fires an event with the clicked item's index.
    */
   _rowDoubleClicked(e: MouseEvent) {
-    const realIndex = this.$.list.modelForElement(e.target).itemsIndex;
-    const ev = new ItemClickEvent('itemDoubleClick', { detail: {index: realIndex} });
-    this.dispatchEvent(ev);
+    const realIndex = (this.$.list as Polymer.DomRepeat).indexForElement(e.target as HTMLElement);
+    // TODO: This event isn't listened for anywhere. For the pipeline-list, it
+    // should trigger _nagivage in pipeline-list.ts
+    this.dispatchEvent(new CustomEvent('itemDoubleClick', { detail: {index: realIndex} }));
   }
 
-  private _getRowDetailsContainer(index: number) {
-    const nthDivSelector = 'div.row-details:nth-of-type(' + (index + 1) + ')';
-    return this.$.listContainer.querySelector(nthDivSelector);
-  }
-
-  private _displayIndexToRealIndex(index: number) {
+  private _displayIndexToRealIndex(index: number): number {
     const element = this.$.listContainer.querySelector(
-        'paper-item:nth-of-type(' + (index + 1 ) + ')');
-    return this.$.list.modelForElement(element).itemsIndex;
+      'paper-item:nth-of-type(' + (index + 1 ) + ')') as HTMLElement;
+    return ((this.$.list as Polymer.DomRepeat).modelForElement(element) as any).itemsIndex;
   }
 
 }
