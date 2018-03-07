@@ -84,6 +84,10 @@ paper-tab:not(:first-child) {
   min-width: 90px;
 }
 
+.action-button:hover {
+  @apply --shadow-elevation-3dp;
+}
+
 [hidden] {
   display: none !important;
 }

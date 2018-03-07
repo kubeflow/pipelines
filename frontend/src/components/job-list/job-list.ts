@@ -65,12 +65,7 @@ export class JobList extends Polymer.Element {
   }
 
   protected _getStatusIcon(status: JobStatus) {
-    switch (status) {
-      case 'Running': return 'device:access-time';
-      case 'Succeeded': return 'check';
-      case 'Not started': return 'sort';
-      default: return 'error-outline';
-    }
+    return Utils.jobStatusToIcon(status);
   }
 
   protected _getRuntime(start: string, end: string, status: JobStatus) {
@@ -97,10 +92,10 @@ export class JobList extends Polymer.Element {
         case 'Succeeded':
           color = progressCssColors.completed;
           break;
-        case 'Not started':
-          color = progressCssColors.notStarted;
-        default:
+        case 'Errored':
           color = progressCssColors.errored;
+        default:
+          color = progressCssColors.notStarted;
           break;
       }
       (jobEl.querySelector('paper-progress') as any).updateStyles({

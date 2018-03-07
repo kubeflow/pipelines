@@ -33,7 +33,7 @@
     "mock:api": "json-server -w -q mock-backend/mock-db.json -p 3001",
     "mock:server": "ML_PIPELINE_MANAGER_SERVICE_HOST=localhost ML_PIPELINE_MANAGER_SERVICE_PORT=3001 node server/server.js dist",
     "build": "webpack --config webpack.prod.js",
-    "docker": "docker build -t ml-pipelines-frontend:`node -p \"require('./package.json').version\"` .",
+    "docker": "docker build -q -t ml-pipelines-frontend:`node -p \"require('./package.json').version\"` .",
     "dev": "concurrently -k -r \"npm run mock:api\" \"webpack-dev-server --config webpack.dev.js\"",
     "lint": "tslint -p tsconfig.json",
     "postinstall": "bower install",

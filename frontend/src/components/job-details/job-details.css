@@ -19,7 +19,7 @@
   min-width: 300px;
 }
 
-.state-icon {
+.status-icon {
   color: var(--fg-color);
   height: 20px;
   width: 20px;

@@ -48,7 +48,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
   protected async _runOnce() {
     if (this.pipeline && this.pipeline.id !== undefined) {
       await Apis.newJob(this.pipeline.id);
-      this.dispatchEvent(new RouteEvent('/pipelines'));
+      this.dispatchEvent(new RouteEvent(`/jobs?pipelineId=${this.pipeline.id}`));
     }
   }
 }
