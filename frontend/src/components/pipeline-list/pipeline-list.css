@@ -1,10 +1,5 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
-@import '../package-list/package-list.css';
-
-:host {
-  padding: 30px;
-}
 
 .pipeline-name {
   color: var(--fg-color-strong);
