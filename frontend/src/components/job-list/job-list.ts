@@ -61,10 +61,6 @@ export class JobList extends Polymer.Element implements PageElement {
     return date ? new Date(date).toLocaleString() : '-';
   }
 
-  protected _getStatus(status: string) {
-    return status[0].toUpperCase() + status.substr(1);
-  }
-
   protected _getStatusIcon(status: JobStatus) {
     switch (status) {
       case 'Running': return 'device:access-time';

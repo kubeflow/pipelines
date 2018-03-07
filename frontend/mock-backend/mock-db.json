@@ -80,43 +80,43 @@
         "y": 20
       },
       "progress": 100,
-      "start": 1517087013000,
-      "end": 1517087015000,
-      "state": "completed",
+      "startedAt": 1517087013000,
+      "endedAt": 1517087015000,
+      "status": "Succeeded",
       "steps": [
         {
           "name": "Input",
           "start": 1517087013000,
           "end": 1517087015000,
-          "state": "completed",
+          "status": "Succeeded",
           "outputs": "/_ftp/1.input"
         },
         {
           "name": "Analysis",
           "start": 1517087013000,
           "end": 1517087015000,
-          "state": "completed",
+          "status": "Succeeded",
           "outputs": "/_ftp/2.analysis"
         },
         {
           "name": "Transformation",
           "start": 1517087013000,
           "end": 1517087015000,
-          "state": "completed",
+          "status": "Succeeded",
           "outputs": "/_ftp/3.transform"
         },
         {
           "name": "Training",
           "start": 1517087013000,
           "end": 1517087015000,
-          "state": "completed",
+          "status": "Succeeded",
           "outputs": "/_ftp/4.train"
         },
         {
           "name": "Evaluation",
           "start": 1517087013000,
           "end": 1517087015000,
-          "state": "completed",
+          "status": "Succeeded",
           "outputs": "/_ftp/5.evaluation"
         }
       ]
@@ -129,9 +129,9 @@
         "y": 20
       },
       "progress": 100,
-      "start": 1517087013000,
-      "end": 1517087214500,
-      "state": "completed"
+      "startedAt": 1517087013000,
+      "endedAt": 1517087214500,
+      "status": "Succeeded"
     },
     {
       "id": 3,
@@ -141,9 +141,9 @@
         "y": 20
       },
       "progress": 80,
-      "start": 1517087013000,
-      "end": 1517087028000,
-      "state": "errored"
+      "startedAt": 1517087013000,
+      "endedAt": 1517087028000,
+      "status": "Errored"
     },
     {
       "id": 4,
@@ -153,9 +153,9 @@
         "y": 20
       },
       "progress": 70,
-      "start": 1517087013000,
-      "end": -1,
-      "state": "running"
+      "startedAt": 1517087013000,
+      "endedAt": -1,
+      "status": "Running"
     },
     {
       "id": 5,
@@ -165,9 +165,9 @@
         "y": 20
       },
       "progress": 40,
-      "start": 1517087013000,
-      "end": -1,
-      "state": "running"
+      "startedAt": 1517087013000,
+      "endedAt": -1,
+      "status": "Running"
     },
     {
       "id": 6,
@@ -177,9 +177,9 @@
         "y": 20
       },
       "progress": 15,
-      "start": 1517087013000,
-      "end": -1,
-      "state": "running"
+      "startedAt": 1517087013000,
+      "endedAt": -1,
+      "status": "Running"
     },
     {
       "id": 7,
@@ -189,9 +189,9 @@
         "y": 20
       },
       "progress": 20,
-      "start": 1517087013000,
-      "end": -1,
-      "state": "running"
+      "startedAt": 1517087013000,
+      "endedAt": -1,
+      "status": "Running"
     },
     {
       "id": 8,
@@ -201,9 +201,9 @@
         "y": 20
       },
       "progress": 0,
-      "start": 1517087013000,
-      "end": -1,
-      "state": "not started"
+      "startedAt": 1517087013000,
+      "endedAt": -1,
+      "status": "Not started"
     },
     {
       "id": 9,
@@ -213,9 +213,9 @@
         "y": 20
       },
       "progress": 50,
-      "start": 1517087013000,
-      "end": -1,
-      "state": "running"
+      "startedAt": 1517087013000,
+      "endedAt": -1,
+      "status": "Running"
     }
   ]
 }
