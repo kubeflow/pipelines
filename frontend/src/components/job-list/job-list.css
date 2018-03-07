@@ -22,7 +22,7 @@
   flex-grow: 1;
 }
 
-.state-icon {
+.status-icon {
   width: 20px;
   height: 20px;
   color: var(--fg-color);
