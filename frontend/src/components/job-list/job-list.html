@@ -9,16 +9,17 @@
             <a href="/pipelines/details/[[job.pipelineId]]">(Pipeline #[[job.pipelineId]])</a>
           </div>
           <div>
-            <span class="strong">Start Date:</span>
-            <span class="job-starts">[[_dateToString(job.start)]]</span>
+            <span class="strong padded">Name:</span>[[job.name]]
           </div>
           <div>
-            <span class="strong">End Date:</span>
-            <span class="job-ends">[[_dateToString(job.end)]]</span>
+            <span class="strong padded">Created:</span>[[_dateToString(job.startedAt)]]
           </div>
           <div>
-            <span class="strong">Run time:</span>
-            <span class="job-ends">[[_getRuntime(job.start, job.end, job.state)]]</span>
+            <span class="strong padded">Finished:</span>[[_dateToString(job.finishedAt)]]
+          </div>
+          <div>
+            <span class="strong padded">Run time:</span>
+            [[_getRuntime(job.startedAt, job.finishedAt, job.status)]]
           </div>
         </div>
         <div class="middle">
@@ -36,11 +37,12 @@
         </div>
         <div class="right">
           <div class="flex">
-            <iron-icon class="state-icon" icon=[[_getStateIcon(job.state)]]></iron-icon>
-            <paper-progress value="[[job.progress]]"></paper-progress>
+            <iron-icon class="status-icon" icon=[[_getStatusIcon(job.status)]]></iron-icon>
+            <!-- TODO: Get or compute the job progress here -->
+            <paper-progress value="100"></paper-progress>
           </div>
           <div>
-            <span class="state">[[_getState(job.state)]]</span>
+            <span class="status">[[_getStatus(job.status)]]</span>
           </div>
         </div>
       </div>

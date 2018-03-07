@@ -26,8 +26,8 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
         return;
       }
       const pipeline = await Apis.getPipeline(id);
-      if (pipeline.createAt) {
-        pipeline.createAt = new Date(pipeline.createAt).toLocaleString();
+      if (pipeline.createdAt) {
+        pipeline.createdAt = new Date(pipeline.createdAt).toLocaleString();
       }
       this.pipeline = pipeline;
     }

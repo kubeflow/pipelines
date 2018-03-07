@@ -8,6 +8,8 @@ export interface JobStep {
   outputs: string;
 }
 
+export type JobStatus = 'Not started' | 'Running' | 'Errored' | 'Succeeded';
+
 export interface Job {
   end: number;
   id: number;
@@ -17,6 +19,6 @@ export interface Job {
   recurring: boolean;
   recurringIntervalHours: number;
   start: number;
-  state: 'not started' | 'running' | 'errored' | 'completed';
+  status: JobStatus;
   steps: JobStep[];
 }

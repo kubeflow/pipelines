@@ -26,8 +26,8 @@ export class PipelineList extends Polymer.Element implements PageElement {
 
   public async refresh(_: string) {
     this.pipelines = (await Apis.getPipelines()).map((p) => {
-      if (p.createAt) {
-        p.createAt = new Date(p.createAt || '').toLocaleString();
+      if (p.createdAt) {
+        p.createdAt = new Date(p.createdAt || '').toLocaleString();
       }
       return p;
     });

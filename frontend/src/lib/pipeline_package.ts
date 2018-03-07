@@ -1,7 +1,7 @@
 import { ParameterDescription } from './parameter';
 
 export interface PipelinePackage {
-  createAt?: string;
+  createdAt?: string;
   id: number;
   description: string;
   name: string;

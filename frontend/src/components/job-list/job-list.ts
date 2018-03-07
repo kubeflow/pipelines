@@ -8,7 +8,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { JobClickEvent, RouteEvent } from '../../lib/events';
-import { Job } from '../../lib/job';
+import { Job, JobStatus } from '../../lib/job';
 import { PageElement } from '../../lib/page_element';
 
 import './job-list.html';
@@ -57,31 +57,30 @@ export class JobList extends Polymer.Element implements PageElement {
     return Utils.objectToArray(paramsObject);
   }
 
-  protected _dateToString(date: number) {
-    return date === -1 ? '-' : new Date(date).toLocaleString();
+  protected _dateToString(date: string) {
+    return date ? new Date(date).toLocaleString() : '-';
   }
 
-  protected _getState(state: string) {
-    return state[0].toUpperCase() + state.substr(1);
+  protected _getStatus(status: string) {
+    return status[0].toUpperCase() + status.substr(1);
   }
 
-  protected _getStateIcon(state: string) {
-    switch (state) {
-      case 'running': return 'device:access-time';
-      case 'completed': return 'check';
-      case 'not started': return 'sort';
+  protected _getStatusIcon(status: JobStatus) {
+    switch (status) {
+      case 'Running': return 'device:access-time';
+      case 'Succeeded': return 'check';
+      case 'Not started': return 'sort';
       default: return 'error-outline';
     }
   }
 
-  protected _getRuntime(start: number, end: number, state: string) {
-    if (state === 'not started') {
+  protected _getRuntime(start: string, end: string, status: JobStatus) {
+    if (status === 'Not started') {
       return '-';
     }
-    if (end === -1) {
-      end = Date.now();
-    }
-    return Utils.dateDiffToString(end - start);
+    const startDate = new Date(start);
+    const endDate = end ? new Date(end) : new Date();
+    return Utils.dateDiffToString(endDate.valueOf() - startDate.valueOf());
   }
 
   private _colorProgressBars() {
@@ -92,14 +91,14 @@ export class JobList extends Polymer.Element implements PageElement {
     (this.shadowRoot as ShadowRoot).querySelectorAll('.job').forEach((jobEl) => {
       const model = jobsRepeatTemplate.modelForElement(jobEl as HTMLElement);
       let color = '';
-      switch ((model as any).job.state) {
-        case 'running':
+      switch ((model as any).job.status as JobStatus) {
+        case 'Running':
           color = progressCssColors.running;
           break;
-        case 'completed':
+        case 'Succeeded':
           color = progressCssColors.completed;
           break;
-        case 'not started':
+        case 'Not started':
           color = progressCssColors.notStarted;
         default:
           color = progressCssColors.errored;
