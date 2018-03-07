@@ -7,8 +7,6 @@ import 'paper-styles/paper-styles.html';
 
 import '../job-details/job-details';
 import '../job-list/job-list';
-import '../package-details/package-details';
-import '../package-list/package-list';
 import '../pipeline-details/pipeline-details';
 import '../pipeline-list/pipeline-list';
 import '../pipeline-new/pipeline-new';
@@ -53,7 +51,7 @@ export class AppShell extends Polymer.Element {
           const parts = newPath.substr(1).split('/');
           if (parts.length) {
             // If there's only one part, that's the page name. If there's more,
-            // the page name is the first two, to allow for things like packages/details
+            // the page name is the first two, to allow for things like pipelines/details
             // and job/details. The rest are the argument to that page.
             const args = parts.splice(2).join('/');
             let pageName = `${parts.join('/')}`;
