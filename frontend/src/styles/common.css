@@ -66,6 +66,17 @@ paper-button:hover {
   @apply --shadow-elevation-3dp;
 }
 
+paper-tabs {
+  --paper-tab-ink: var(--accent-color);
+  --paper-tabs-selection-bar-color: var(--accent-color);
+  height: 35px;
+  margin-top: 10px;
+}
+
+paper-tab:not(:first-child) {
+  border-left: 1px solid var(--line-color);
+}
+
 .action-button {
   background-color: var(--accent-color);
   color: white;

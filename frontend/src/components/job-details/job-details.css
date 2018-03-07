@@ -31,17 +31,6 @@ paper-progress {
   margin: 7px;
 }
 
-paper-tabs {
-  --paper-tab-ink: var(--accent-color);
-  --paper-tabs-selection-bar-color: var(--accent-color);
-  height: 35px;
-  margin-top: 10px;
-}
-
-paper-tab:not(:first-child) {
-  border-left: 1px solid var(--line-color);
-}
-
 .steps {
   display: flex;
   flex-flow: column;
