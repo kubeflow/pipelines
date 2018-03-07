@@ -26,6 +26,9 @@ export class JobList extends Polymer.Element {
   @property({ type: Array })
   public jobs: Job[] = [];
 
+  @property({ type: Array })
+  public jobRows: ItemListRow[] = [];
+
   private jobListColumns: ItemListColumn[] = [
     { name: 'Run', type: ColumnTypeName.NUMBER },
     { name: 'Start time', type: ColumnTypeName.DATE },
@@ -35,6 +38,19 @@ export class JobList extends Polymer.Element {
   // TODO: should these jobs be cached?
   public async loadJobs(pipelineId: number) {
     this.jobs = await Apis.getJobs(pipelineId);
+
+    this.jobRows = this.jobs.map((job) => {
+      const row = new ItemListRow({
+        columns: [
+          job.id,
+          new Date(job.startedAt),
+          new Date(job.endedAt),
+        ],
+        icon: this._getStatusIcon(job.status),
+        selected: false,
+      });
+      return row;
+    });
 
     this._drawJobList();
   }
@@ -101,18 +117,7 @@ export class JobList extends Polymer.Element {
     const itemList = this.$.jobsItemList as ItemListElement;
     itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
     itemList.columns = this.jobListColumns;
-    itemList.rows = this.jobs.map((job) => {
-      const row = new ItemListRow({
-        columns: [
-          job.id,
-          new Date(job.startedAt),
-          new Date(job.endedAt),
-        ],
-        icon: this._getStatusIcon(job.status),
-        selected: false,
-      });
-      return row;
-    });
+    itemList.rows = this.jobRows;
     this._colorProgressBars();
   }
 }
