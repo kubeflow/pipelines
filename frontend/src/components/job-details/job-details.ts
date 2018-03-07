@@ -82,8 +82,8 @@ export class JobDetails extends Polymer.Element implements PageElement {
     switch (state) {
       case 'Running': return 'device:access-time';
       case 'Succeeded': return 'check';
-      case 'Not started': return 'sort';
-      default: return 'error-outline';
+      case 'Errored': return 'error-outline';
+      default: return 'sort';
     }
   }
 
@@ -205,10 +205,10 @@ export class JobDetails extends Polymer.Element implements PageElement {
       case 'Succeeded':
         color = progressCssColors.completed;
         break;
-      case 'Not started':
-        color = progressCssColors.notStarted;
-      default:
+      case 'Errored':
         color = progressCssColors.errored;
+      default:
+        color = progressCssColors.notStarted;
         break;
     }
     (this.$.progress as any).updateStyles({
