@@ -6,12 +6,12 @@
       <div class="pipeline-name">[[pipeline.name]]</div>
       <div class="right">
         <div class="flex">
-          <iron-icon class="state-icon" icon=[[_getStateIcon(job.state)]]></iron-icon>
+          <iron-icon class="status-icon" icon=[[_getStatusIcon(job.status)]]></iron-icon>
           <!-- TODO: Get or compute the job progress here -->
           <paper-progress id="progress" value="100"></paper-progress>
         </div>
         <div>
-          <span class="state">[[_getState(job.state)]]</span>
+          <span class="status">[[job.status]]</span>
         </div>
       </div>
     </div>
@@ -37,7 +37,7 @@
         </div>
 
         <div>
-          <span class="strong">Run time: </span>[[_getRuntime(job.start, job.end, job.state)]]
+          <span class="strong">Run time: </span>[[_getRuntime(job.start, job.end, job.status)]]
         </div>
       </div>
 

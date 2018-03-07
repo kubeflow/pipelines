@@ -71,24 +71,12 @@ export class JobDetails extends Polymer.Element implements PageElement {
     return date === -1 ? '-' : new Date(date).toLocaleString();
   }
 
-  protected _getState(state: string) {
-    if (!state) {
-      return '';
-    }
-    return state[0].toUpperCase() + state.substr(1);
+  protected _getStatusIcon(status: JobStatus) {
+    return Utils.jobStatusToIcon(status);
   }
 
-  protected _getStateIcon(state: JobStatus) {
-    switch (state) {
-      case 'Running': return 'device:access-time';
-      case 'Succeeded': return 'check';
-      case 'Errored': return 'error-outline';
-      default: return 'sort';
-    }
-  }
-
-  protected _getRuntime(start: number, end: number, state: JobStatus) {
-    if (state === 'Not started') {
+  protected _getRuntime(start: number, end: number, status: JobStatus) {
+    if (status === 'Not started') {
       return '-';
     }
     if (end === -1) {
