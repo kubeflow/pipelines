@@ -1,5 +1,4 @@
 import { Job } from '../lib/job';
-import { Pipeline } from '../lib/pipeline';
 import { PipelinePackage } from '../lib/pipeline_package';
 
 export class PackageClickEvent extends MouseEvent {
@@ -8,9 +7,9 @@ export class PackageClickEvent extends MouseEvent {
   };
 }
 
-export class PipelineClickEvent extends MouseEvent {
-  public model: {
-    pipeline: Pipeline,
+export class ItemClickEvent extends CustomEvent {
+  public detail: {
+    index: number,
   };
 }
 

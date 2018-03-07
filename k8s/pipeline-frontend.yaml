@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline-frontend
+  labels:
+    app: ml-pipeline-frontend
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: ml-pipeline-frontend
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: ml-pipeline-frontend
+  labels:
+    app: ml-pipeline-frontend
+spec:
+  strategy:
+    # Specifies the strategy used to replace old Pods by new ones
+    # Refer: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ml-pipeline-frontend
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-frontend
+    spec:
+      containers:
+      - name: ml-pipeline-api-frontend
+        image: gcr.io/ml-pipeline/frontend:0.0.1
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 3000

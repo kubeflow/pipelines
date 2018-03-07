@@ -1,0 +1,130 @@
+:host {
+  display: flex;
+  flex-direction: column;
+}
+div {
+  font-family: var(--app-content-font-family);
+  font-size: var(--app-content-font-size);
+  color: var(--fg-color);
+}
+#headerContainer {
+  flex: 0 0 var(--toolbar-height);
+  z-index: 1;
+}
+#header {
+  user-select: none;
+  display: flex;
+  line-height: calc(var(--toolbar-height) - 1px);
+  border-bottom: 1px solid var(--line-color);
+}
+#listContainer {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+.row {
+  user-select: none;
+  padding: 0px;
+  display: flex;
+  --paper-item-min-height: 35px;
+  line-height: 35px;
+  cursor: default;
+}
+.row:nth-of-type(even) {
+  background-color: var(--bg-color-darker);
+}
+.row:hover {
+  background-color: var(--hover-bg-color);
+}
+.row[selected] > * {
+  color: var(--selected-color);
+}
+.row-details {
+  padding: 0px;
+}
+.checkbox-col {
+  flex: 0 0 65px;
+  padding-left: 15px;
+}
+.checkbox-col > iron-icon {
+  width: 17px;
+  height: 17px;
+}
+.checkbox-col > paper-checkbox {
+  --paper-checkbox-size: 15px;
+  --paper-checkbox-unchecked-color: var(--neutral-color);
+  --paper-checkbox-checked-color: var(--selected-color);
+}
+.first-col {
+  flex-grow: 1;
+}
+.second-col {
+  flex-basis: 100px;
+}
+.title {
+  padding-left: 5px;
+  line-height: 26px;
+}
+.column {
+  flex: 1.5;
+}
+#header > .column {
+  color: var(--fg-color);
+  font-size: 13px;
+}
+.column-button {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 0 10px;
+  margin: 0;
+  border-radius: 0;
+  text-transform: none;
+}
+.column-button > iron-icon {
+  width: 15px;
+  padding-left: 3px;
+}
+.column + .column {
+  flex: 1;
+  max-width: 150px;
+  color: var(--neutral-color);
+  padding-left: 10px;
+}
+#filterToggle {
+  width: 34px;
+  height: 34px;
+}
+.filterShown--true {
+  color: var(--selected-color);
+}
+.filterShown--false {
+  color: var(--disabled-fg-color);
+}
+#filter-div {
+  position: relative;
+}
+#filter-icon {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  color: var(--disabled-fg-color);
+  width: 18px;
+  height: 18px;
+}
+#filterBox {
+  height: 35px;
+  width: 100%;
+  border: solid 1px var(--line-color);
+  text-indent: 75px;
+  padding: 5px;
+  box-sizing: border-box;
+  background-color: var(--bg-color);
+  color: var(--fg-color);
+  outline: none;
+}
+#filterBox:hover {
+  border: solid 1px var(--line-color);
+}
+#filterBox:active {
+  border: solid 1px var(--line-color);
+}
