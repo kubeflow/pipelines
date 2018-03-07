@@ -1,53 +1,7 @@
 <dom-module id="job-list">
   <template>
-    <link rel="stylesheet" href="./job-list.css">[[pageTitle]]
-    <template id="jobsRepeatTemplate" is="dom-repeat" items="[[jobs]]" as="job">
-      <div class="job flex" on-click="_navigate">
-        <div class="left">
-          <div>
-            <span class="strong job-id">#[[job.id]]</span>
-            <a href="/pipelines/details/[[job.pipelineId]]">(Pipeline #[[job.pipelineId]])</a>
-          </div>
-          <div>
-            <span class="strong padded">Name:</span>[[job.name]]
-          </div>
-          <div>
-            <span class="strong padded">Created:</span>[[_dateToString(job.startedAt)]]
-          </div>
-          <div>
-            <span class="strong padded">Finished:</span>[[_dateToString(job.finishedAt)]]
-          </div>
-          <div>
-            <span class="strong padded">Run time:</span>
-            [[_getRuntime(job.startedAt, job.finishedAt, job.status)]]
-          </div>
-        </div>
-        <div class="middle">
-          <div>
-            <span class="strong">Parameters:</span>
-            <tr>
-              <template is="dom-repeat" items="[[_paramsToArray(job.parameterValues)]]" as="param">
-                <li>
-                  <span class="string">[[param.name]]:</span>
-                  <span>[[param.value]]</span>
-                </li>
-              </template>
-            </tr>
-          </div>
-        </div>
-        <div class="right">
-          <div class="flex">
-            <iron-icon class="status-icon" icon=[[_getStatusIcon(job.status)]]></iron-icon>
-            <!-- TODO: Get or compute the job progress here -->
-            <paper-progress value="100"></paper-progress>
-          </div>
-          <div>
-            <span class="status">[[job.status]]</span>
-          </div>
-        </div>
-      </div>
-    </template>
-    </div>
-    </div>
+    <link rel="stylesheet" href="./job-list.css">
+
+    <item-list id="jobsItemList"></item-list>
   </template>
 </dom-module>

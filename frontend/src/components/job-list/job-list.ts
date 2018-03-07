@@ -7,10 +7,10 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-import { JobClickEvent, RouteEvent } from '../../lib/events';
+import { ItemClickEvent, RouteEvent } from '../../lib/events';
 import { Job, JobStatus } from '../../lib/job';
-import { PageElement } from '../../lib/page_element';
 
+import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
 import './job-list.html';
 
 const progressCssColors = {
@@ -20,45 +20,48 @@ const progressCssColors = {
   running: '--progress-color',
 };
 
-interface JobsQueryParams {
-  pipelineId?: string;
-}
-
 @customElement('job-list')
-export class JobList extends Polymer.Element implements PageElement {
+export class JobList extends Polymer.Element {
 
   @property({ type: Array })
   public jobs: Job[] = [];
 
-  @property({ type: String })
-  public pageTitle = 'Job list:';
+  @property({ type: Array })
+  public jobRows: ItemListRow[] = [];
 
-  public async refresh(_: string, queryParams: JobsQueryParams) {
-    const id = Number.parseInt(queryParams.pipelineId || '');
-    if (!queryParams.pipelineId || isNaN(id)) {
-      Utils.log.error('No valid pipeline id specified.');
-      return;
-    }
-    this.jobs = await Apis.getJobs(id);
-    if (id !== undefined) {
-      this.pageTitle = `Job list for pipeline ${id}:`;
-    } else {
-      this.pageTitle = 'Job list:';
-    }
-    this._colorProgressBars();
+  private jobListColumns: ItemListColumn[] = [
+    { name: 'Run', type: ColumnTypeName.NUMBER },
+    { name: 'Start time', type: ColumnTypeName.DATE },
+    { name: 'End time', type: ColumnTypeName.DATE },
+  ];
+
+  // TODO: should these jobs be cached?
+  public async loadJobs(pipelineId: number) {
+    this.jobs = await Apis.getJobs(pipelineId);
+
+    this.jobRows = this.jobs.map((job) => {
+      const row = new ItemListRow({
+        columns: [
+          job.id,
+          new Date(job.startedAt),
+          new Date(job.endedAt),
+        ],
+        icon: this._getStatusIcon(job.status),
+        selected: false,
+      });
+      return row;
+    });
+
+    this._drawJobList();
   }
 
-  protected _navigate(ev: JobClickEvent) {
-    const index = ev.model.job.id;
-    this.dispatchEvent(new RouteEvent(`/jobs/details/${index}`));
+  protected _navigate(ev: ItemClickEvent) {
+    const jobId = this.jobs[ev.detail.index].id;
+    this.dispatchEvent(new RouteEvent(`/jobs/details/${jobId}`));
   }
 
   protected _paramsToArray(paramsObject: {}) {
     return Utils.objectToArray(paramsObject);
-  }
-
-  protected _dateToString(date: string) {
-    return date ? new Date(date).toLocaleString() : '-';
   }
 
   protected _getStatusIcon(status: JobStatus) {
@@ -99,5 +102,17 @@ export class JobList extends Polymer.Element implements PageElement {
         '--paper-progress-active-color': `var(${color})`,
       });
     });
+  }
+
+  /**
+   * Creates a new ItemListRow object for each entry in the file list, and sends
+   * the created list to the item-list to render.
+   */
+  private _drawJobList() {
+    const itemList = this.$.jobsItemList as ItemListElement;
+    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
+    itemList.columns = this.jobListColumns;
+    itemList.rows = this.jobRows;
+    this._colorProgressBars();
   }
 }

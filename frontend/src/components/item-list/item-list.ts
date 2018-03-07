@@ -38,6 +38,7 @@ export interface ItemListColumn {
 /** Fields that can be passed to the ItemListRow constructor. */
 interface ItemListRowParameters {
   columns: ColumnType[];
+  icon?: string;
   selected?: boolean;
 }
 
@@ -48,9 +49,24 @@ export class ItemListRow {
   public selected: boolean;
   public columns: ColumnType[];
 
-  constructor({columns, selected}: ItemListRowParameters) {
+  private _icon: string;
+
+  constructor({columns, icon, selected}: ItemListRowParameters) {
     this.columns = columns;
     this.selected = selected || false;
+    this._icon = icon || '';
+  }
+
+  /**
+   * If the given icon is a link, its src attribute should be set to that link,
+   * and the icon attribute should be empty. If instead it's an icon name,
+   * these two attributes should be reversed.
+   */
+  get icon() { return this._hasLinkIcon() ? '' : this._icon; }
+  get src() { return this._hasLinkIcon() ? this._icon : ''; }
+
+  private _hasLinkIcon() {
+    return this._icon.startsWith('http://') || this._icon.startsWith('https://');
   }
 }
 
