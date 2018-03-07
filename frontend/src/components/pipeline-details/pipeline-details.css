@@ -10,3 +10,14 @@
   font-size: var(--font-size-strong);
   font-weight: bold;
 }
+
+paper-tabs {
+  --paper-tab-ink: var(--accent-color);
+  --paper-tabs-selection-bar-color: var(--accent-color);
+  height: 35px;
+  margin-top: 10px;
+}
+
+paper-tab:not(:first-child) {
+  border-left: 1px solid var(--line-color);
+}

@@ -15,8 +15,17 @@ import './pipeline-details.html';
 @customElement('pipeline-details')
 export class PipelineDetails extends Polymer.Element implements PageElement {
 
+  @property({ type: Array })
+  public tabsNames: string[] = [
+    'BASIC CONFIG',
+    'PAST RUNS',
+  ];
+
   @property({ type: Object })
   public pipeline: Pipeline | null = null;
+
+  @property({ type: Number })
+  public selectedTab = 0;
 
   public async refresh(path: string) {
     if (path !== '') {
@@ -29,6 +38,9 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
       if (pipeline.createdAt) {
         pipeline.createdAt = new Date(pipeline.createdAt).toLocaleString();
       }
+
+      (this.$.jobs as any).loadJobs(pipeline.id);
+
       this.pipeline = pipeline;
     }
   }
