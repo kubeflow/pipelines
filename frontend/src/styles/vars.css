@@ -16,4 +16,10 @@
 
   --font-size: 14px;
   --font-size-strong: 16px;
+
+  --app-animation-duration: 0.3s;
+  --app-content-font-size: 12px;
+  --toolbar-height: 44px;
+
+  --disabled-fg-color: #aaa;
 }

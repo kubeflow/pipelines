@@ -1,3 +1,5 @@
+//TODO: Delete this file and just use Polymer built-in annotations.
+
 export function customElement(tagname: string) {
   return (clazz: any) => {
     Object.defineProperty(clazz, 'is', { value: tagname });
@@ -16,7 +18,6 @@ export function property(options: PropertyOptions) {
       proto.constructor.properties = {};
     }
     proto.constructor.properties[propName] = {
-      notify: false,
       readOnly: false,
       reflectToAttribute: false,
       type,

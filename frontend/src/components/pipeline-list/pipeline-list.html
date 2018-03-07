@@ -2,25 +2,8 @@
   <template>
     <link rel="stylesheet" href="./pipeline-list.css">
 
-    Scheduled Pipelines:
-    <div class="container">
-      <template is="dom-repeat" items="[[pipelines]]" as="pipeline">
-        <div class="card" on-click="_navigate">
-          <div class="pipeline-name ellipsis">
-            [[pipeline.name]]
-            <span class="padded faded">[[[pipeline.id]]]</span>
-          </div>
-          <hr>
-          <div>
-            <span class="strong">Description: </span>
-            <span class="ellipsis">[[pipeline.description]]</span>
-          </div>
-          <div>
-            <span class="strong">Created: </span>[[pipeline.createAt]]
-          </div>
-        </div>
-      </template>
-    </div>
+    <item-list id="pipelinesItemList"></item-list>
+
     <paper-button class="action-button" on-click="_create">
       <iron-icon icon="add"></iron-icon>
       Create

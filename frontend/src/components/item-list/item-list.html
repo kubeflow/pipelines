@@ -1,0 +1,65 @@
+<!--
+Copyright 2017 Google Inc. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+in compliance with the License. You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software distributed under the License
+is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+or implied. See the License for the specific language governing permissions and limitations under
+the License.
+-->
+
+<dom-module id="item-list">
+  <link rel="stylesheet" href="./item-list.css">
+  <template>
+
+    <!--Header row-->
+    <!--Need this extra div because #header has a display modifier, cannot set hidden-->
+    <div id="headerContainer" hidden$="{{hideHeader}}">
+      <div id="header">
+        <div class="checkbox-col">
+          <paper-checkbox id="selectAllCheckbox" on-checked-changed="_selectAllChanged"
+                          checked={{_isAllSelected}} hidden$="{{_hideCheckboxes}}">
+          </paper-checkbox>
+          <paper-icon-button id="filterToggle" class$="filterShown--[[_showFilterBox]]"
+                             icon="filter-list" on-click="_toggleFilter"
+                             title="Filter by [[columns.0.name]]"></paper-icon-button>
+        </div>
+        <template is="dom-repeat" items="{{columns}}" as="column">
+          <div class="column">
+            <paper-button class="column-button" on-click="_columnButtonClicked">
+              {{column.name}}
+              <iron-icon class="sort-icon"></iron-icon>
+            </paper-button>
+          </div>
+        </template>
+      </div>
+      <div id="filter-div" hidden$="[[!_showFilterBox]]">
+        <iron-icon icon="filter-list" id="filter-icon"></iron-icon>
+        <input id="filterBox" placeholder="Filter by [[columns.0.name]]"
+               value="{{_filterString::input}}"></input>
+      </div>
+    </div>
+
+    <!--Item list-->
+    <div id="listContainer">
+      <template is="dom-repeat" id="list" items="{{rows}}" as="row"
+                filter="{{_computeFilter(_filterString)}}" initial-count="100">
+        <paper-item class="row" selected$={{row.selected}} on-click="_rowClicked"
+                    on-dblclick="_rowDoubleClicked">
+          <div class="checkbox-col">
+            <paper-checkbox checked={{row.selected}} hidden$="{{_hideCheckboxes}}">
+            </paper-checkbox>
+            <iron-icon hidden$="{{!row._icon}}" icon="{{row.icon}}" src="{{row.src}}"></iron-icon>
+          </div>
+          <template is="dom-repeat" items="{{row.columns}}" as="column" index-as="columnIndex">
+            <div class="column">
+              <span>[[_formatColumnValue(column, columnIndex, columns)]]</span>
+            </div>
+          </template>
+        </paper-item>
+      </template>
+    </div>
+
+  </template>
+</dom-module>
