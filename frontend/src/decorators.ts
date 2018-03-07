@@ -1,3 +1,5 @@
+//TODO: Delete this file and just use Polymer built-in annotations.
+
 export function customElement(tagname: string) {
   return (clazz: any) => {
     Object.defineProperty(clazz, 'is', { value: tagname });

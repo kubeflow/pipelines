@@ -1,5 +1,3 @@
-/// <reference path="../../../bower_components/polymer/types/lib/elements/dom-repeat.d.ts" />
-
 import 'iron-icons/device-icons.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-progress/paper-progress.html';

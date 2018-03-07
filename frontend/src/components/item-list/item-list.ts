@@ -30,7 +30,7 @@ export enum ColumnTypeName {
   STRING,
 }
 
-interface ItemListColumn {
+export interface ItemListColumn {
   name: string;
   type: ColumnTypeName;
 }
@@ -40,8 +40,6 @@ interface ItemListRowParameters {
   columns: ColumnType[];
   selected?: boolean;
 }
-
-
 
 /**
  * Object representing a row in the item list

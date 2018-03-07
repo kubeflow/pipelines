@@ -70,30 +70,6 @@
       "ends": -1,
       "recurring": false
     },
-    {
-      "description": "Try 1, 2, 3 for parameters",
-      "id": 3,
-      "name": "Data exploration experiment 1",
-      "packageId": 2,
-      "parameterValues": [
-        {
-          "name": "param1",
-          "value": 1
-        },
-        {
-          "name": "param2",
-          "value": 2
-        },
-        {
-          "name": "param3",
-          "value": 3
-        }
-      ],
-      "starts": 1520022067123,
-      "ends": 1520108466456,
-      "recurring": true
-    }
-  ],
   "jobs": [
     {
       "id": 1,

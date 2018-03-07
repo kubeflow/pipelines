@@ -19,7 +19,6 @@ hr {
 :host {
   display: block;
   font-family: 'Open Sans', Helvetica, sans-serif;
-  --app-animation-duration: 0.3s;
 }
 
 .ellipsis {

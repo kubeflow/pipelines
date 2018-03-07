@@ -15,7 +15,7 @@ div {
   user-select: none;
   display: flex;
   line-height: calc(var(--toolbar-height) - 1px);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--line-color);
 }
 #listContainer {
   flex: 1 1 auto;
@@ -33,10 +33,10 @@ div {
   background-color: var(--bg-color-darker);
 }
 .row:hover {
-  background-color: var(--selection-bg-color);
+  background-color: var(--hover-bg-color);
 }
 .row[selected] > * {
-  color: var(--selection-fg-color);
+  color: var(--selected-color);
 }
 .row-details {
   padding: 0px;
@@ -95,7 +95,7 @@ div {
   height: 34px;
 }
 .filterShown--true {
-  color: var(--selection-fg-color);
+  color: var(--selected-color);
 }
 .filterShown--false {
   color: var(--disabled-fg-color);
@@ -114,7 +114,7 @@ div {
 #filterBox {
   height: 35px;
   width: 100%;
-  border: solid 1px var(--border-color);
+  border: solid 1px var(--line-color);
   text-indent: 75px;
   padding: 5px;
   box-sizing: border-box;
@@ -123,8 +123,8 @@ div {
   outline: none;
 }
 #filterBox:hover {
-  border: solid 1px var(--outline-color);
+  border: solid 1px var(--line-color);
 }
 #filterBox:active {
-  border: solid 1px var(--outline-color);
+  border: solid 1px var(--line-color);
 }

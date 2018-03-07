@@ -1,12 +1,11 @@
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import 'polymer/polymer.html';
-
-import { customElement, property } from '../../../bower_components/polymer-decorators/src/decorators';
 
 import * as Apis from '../../lib/apis';
 import { ItemClickEvent, RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
 import { Pipeline } from '../../lib/pipeline';
-import { ColumnTypeName, ItemListElement, ItemListRow } from '../item-list/item-list';
+import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
 
 import './pipeline-list.html';
 
@@ -16,7 +15,7 @@ export class PipelineList extends Polymer.Element implements PageElement {
   @property({ type: Array })
   public pipelines: Pipeline[] = [];
 
-  private itemListColumns = [
+  private itemListColumns: ItemListColumn[] = [
     { name: 'Name', type: ColumnTypeName.STRING },
     { name: 'Description', type: ColumnTypeName.STRING },
     { name: 'Package ID', type: ColumnTypeName.NUMBER },
@@ -59,7 +58,7 @@ export class PipelineList extends Polymer.Element implements PageElement {
     });
   }
 
-  protected _navigate(ev: ItemClickEvent) {j
+  protected _navigate(ev: ItemClickEvent) {
     const pipelineId = this.pipelines[ev.detail.index].id;
     this.dispatchEvent(new RouteEvent(`/pipelines/details/${pipelineId}`));
   }
