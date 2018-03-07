@@ -63,7 +63,7 @@ export class PipelineList extends Polymer.Element implements PageElement {
     this.dispatchEvent(new RouteEvent(`/pipelines/details/${pipelineId}`));
   }
 
-  protected _create() {
+  protected _newPipeline() {
     this.dispatchEvent(new RouteEvent('/pipelines/new'));
   }
 }

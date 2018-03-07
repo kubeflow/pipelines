@@ -62,15 +62,15 @@ hr {
   padding: 10px;
 }
 
-paper-button:hover {
-  @apply --shadow-elevation-3dp;
-}
-
 .action-button {
   background-color: var(--accent-color);
   color: white;
   max-height: 42px;
   min-width: 90px;
+}
+
+.action-button:hover {
+  @apply --shadow-elevation-3dp;
 }
 
 [hidden] {
