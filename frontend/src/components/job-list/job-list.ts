@@ -108,6 +108,7 @@ export class JobList extends Polymer.Element {
           new Date(job.startedAt),
           new Date(job.endedAt),
         ],
+        icon: this._getStatusIcon(job.status),
         selected: false,
       });
       return row;
