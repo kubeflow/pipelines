@@ -113,13 +113,13 @@ describe('UI tests', function () {
     await takeScreenshotsAndDiff('pipeline-details');
   });
 
-  it('navigates back to packages if the topbar logo is clicked', async () => {
+  it('navigates back to pipelines if the topbar logo is clicked', async () => {
     await waitForCustomElement(page, 'top-bar');
     const logo = await page.evaluateHandle(
       `document.querySelector('top-bar').$.logo`);
     await logo.click();
     await page.waitFor(500);
-    await takeScreenshotsAndDiff('packages-from-topbar');
+    await takeScreenshotsAndDiff('pipelines-from-topbar');
   });
 
   it('loads package details of the clicked package card', async () => {
