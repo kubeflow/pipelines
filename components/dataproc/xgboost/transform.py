@@ -25,6 +25,7 @@
 
 import argparse
 import os
+import subprocess
 
 from common import _utils
 
@@ -40,6 +41,12 @@ def main(argv=None):
   parser.add_argument('--analysis', type=str, help='GCS path of the analysis results.')
   parser.add_argument('--target', type=str, help='Target column name.')
   args = parser.parse_args()
+
+  # Remove existing [output]/train and [output]/eval if they exist.
+  # It should not be done in the run time code because run time code should be portable
+  # to on-prem while we need gsutil here.
+  _utils.delete_directory_from_gcs(os.path.join(args.output, 'train'))
+  _utils.delete_directory_from_gcs(os.path.join(args.output, 'eval'))
 
   code_path = os.path.dirname(os.path.realpath(__file__))
   dirname = os.path.basename(__file__).split('.')[0]
