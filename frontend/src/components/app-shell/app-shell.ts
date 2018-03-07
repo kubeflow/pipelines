@@ -71,7 +71,13 @@ export class AppShell extends Polymer.Element {
   }
 
   private _routeEventListener(e: RouteEvent) {
-    this.set('route.path', e.detail.path);
+    const url = new URL(e.detail.path, window.location.href);
+    this.set('route.path', url.pathname);
+    const queryParams = {} as any;
+    for (const entry of url.searchParams.entries()) {
+      queryParams[entry[0]] = entry[1];
+    }
+    this.set('route.__queryParams', queryParams);
   }
 
   private _getPageElement(pageName: string): PageElement {

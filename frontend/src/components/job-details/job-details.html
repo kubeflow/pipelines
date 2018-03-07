@@ -7,7 +7,8 @@
       <div class="right">
         <div class="flex">
           <iron-icon class="state-icon" icon=[[_getStateIcon(job.state)]]></iron-icon>
-          <paper-progress id="progress" value="[[job.progress]]"></paper-progress>
+          <!-- TODO: Get or compute the job progress here -->
+          <paper-progress id="progress" value="100"></paper-progress>
         </div>
         <div>
           <span class="state">[[_getState(job.state)]]</span>
