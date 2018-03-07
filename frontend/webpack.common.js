@@ -52,7 +52,16 @@ module.exports = {
       },
       {
         test: /\.ts$/,
-        use: ['ts-loader', 'tslint-loader'],
+        enforce: 'pre',
+        loader: 'tslint-loader',
+        options: {
+          configFile: 'tslint.json',
+        },
+        exclude: /bower_components/,
+      },
+      {
+        test: /\.ts$/,
+        loader: 'ts-loader',
       },
     ]
   },
