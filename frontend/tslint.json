@@ -1,6 +1,12 @@
 {
   "defaultSeverity": "error",
   "extends": ["tslint:recommended"],
+  "linterOptions": {
+    "exclude": [
+      "**/bower_components/**",
+      "**/node_modules/**"
+    ]
+  },
   "rules": {
     "array-type": [true,
       "array-simple"
