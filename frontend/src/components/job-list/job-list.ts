@@ -29,9 +29,10 @@ export class JobList extends Polymer.Element {
   protected jobListRows: ItemListRow[] = [];
 
   protected jobListColumns: ItemListColumn[] = [
-    { name: 'Run', type: ColumnTypeName.NUMBER },
+    { name: 'Job Name', type: ColumnTypeName.STRING },
+    { name: 'Create time', type: ColumnTypeName.DATE },
     { name: 'Start time', type: ColumnTypeName.DATE },
-    { name: 'End time', type: ColumnTypeName.DATE },
+    { name: 'Finish time', type: ColumnTypeName.DATE },
   ];
 
   ready() {
@@ -47,9 +48,10 @@ export class JobList extends Polymer.Element {
     this.jobListRows = this.jobs.map((job) => {
       const row = new ItemListRow({
         columns: [
-          job.id,
+          job.name,
+          new Date(job.createdAt),
           new Date(job.startedAt),
-          new Date(job.endedAt),
+          new Date(job.finishedAt),
         ],
         icon: this._getStatusIcon(job.status),
         selected: false,
@@ -61,7 +63,7 @@ export class JobList extends Polymer.Element {
   }
 
   protected _navigate(ev: ItemClickEvent) {
-    const jobId = this.jobs[ev.detail.index].id;
+    const jobId = this.jobs[ev.detail.index].name;
     this.dispatchEvent(new RouteEvent(`/jobs/details/${jobId}`));
   }
 
