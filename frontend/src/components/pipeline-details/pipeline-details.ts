@@ -45,4 +45,11 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
       this.dispatchEvent(new RouteEvent(`/jobs?pipelineId=${this.pipeline.id}`));
     }
   }
+
+  protected epochToDateString(time: number) {
+    if (!time || time < 0) {
+      return "Never";
+    }
+    return new Date(time).toLocaleString();
+  }
 }

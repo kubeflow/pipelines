@@ -1,6 +1,28 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
+h2 {
+  font-weight: bold;
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.inline-outer {
+  border-bottom: 1px solid var(--line-color);
+  padding: 3px;
+  padding-top: 5px;
+  width: 45%;
+}
+
+.inline-inner-left {
+  display: inline-block;
+  width: 55%;
+}
+
+.inline-inner-right {
+  display: inline-block;
+}
+
 .pipeline-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);

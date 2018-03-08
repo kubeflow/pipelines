@@ -24,29 +24,46 @@
       </div>
 
       <iron-pages selected="{{selectedTab}}">
-        <div class="padded-20">
-          <div>
-            <span class="strong padded">Pipeline Package Id:</span>[[pipeline.packageId]]
+        <div class="details">
+
+          <br/>
+
+          <div class="inline-outer">
+            <h4 class="strong inline-inner-left">Pipeline Package ID</h4><p class="inline-inner-right">[[pipeline.packageId]]</p>
           </div>
-          <div>
-            <span class="strong padded">Description:</span>[[pipeline.description]]
+          <div class="inline-outer">
+            <h4 class="strong inline-inner-left">Description</h4><p class="inline-inner-right">[[pipeline.description]]</p>
           </div>
-          <div>
-            <span class="strong padded">Created:</span>[[pipeline.createdAt]]
+          <div class="inline-outer">
+            <h4 class="strong inline-inner-left">Created</h4><p class="inline-inner-right">[[pipeline.createdAt]]</p>
           </div>
+          <div class="inline-outer">
+            <h4 class="strong inline-inner-left">Starts</h4><p class="inline-inner-right">[[epochToDateString(pipeline.starts)]]</p>
+          </div>
+          <div class="inline-outer">
+            <h4 class="strong inline-inner-left">Ends</h4><p class="inline-inner-right">[[epochToDateString(pipeline.ends)]]</p>
+          </div>
+          <div class="inline-outer">
+            <h4 class="strong inline-inner-left">Recurring</h4><p class="inline-inner-right">[[pipeline.recurring]]</p>
+          </div>
+
+          <template is="dom-if" if="[[pipeline.recurring]]">
+            <div class="inline-outer">
+              <h4 class="strong inline-inner-left">Runs every</h4><p class="inline-inner-right">[[pipeline.recurringIntervalHours]] hours</p>
+            </div>
+          </template>
+
+          <br/>
+          <br/>
 
           <template is="dom-if" if="[[pipeline.parameters.length]]">
-            <hr>
-
             <div>
-              <span class="strong padded">Parameters:</span>
-              <tr>
-                <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
-                  <li>
-                    <span class="strong padded">[[param.name]]:</span>[[param.value]]
-                  </li>
-                </template>
-              </tr>
+              <h2>Input Parameters</h2>
+              <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+                <div class="inline-outer">
+                  <h4 class="strong inline-inner-left">[[param.name]]</h4><p class="inline-inner-right">[[param.value]]</p>
+                </div>
+              </template>
             </div>
           </template>
         </div>
