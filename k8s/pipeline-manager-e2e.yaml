@@ -375,10 +375,6 @@ metadata:
   labels:
     app: ml-pipeline-manager
 spec:
-  strategy:
-    # Specifies the strategy used to replace old Pods by new ones
-    # Refer: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
-    type: Recreate
   selector:
     matchLabels:
       app: ml-pipeline-manager
@@ -416,10 +412,6 @@ metadata:
   labels:
     app: ml-pipeline-frontend
 spec:
-  strategy:
-    # Specifies the strategy used to replace old Pods by new ones
-    # Refer: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
-    type: Recreate
   selector:
     matchLabels:
       app: ml-pipeline-frontend

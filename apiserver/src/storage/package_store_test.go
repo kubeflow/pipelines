@@ -1,7 +1,9 @@
 package storage
 
 import (
+	"errors"
 	"ml/apiserver/src/message/pipelinemanager"
+	"ml/apiserver/src/util"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -31,6 +33,14 @@ func TestListPackages(t *testing.T) {
 	assert.Equal(t, expectedPackages, packages, "Got unexpected packages")
 }
 
+func TestListPackagesError(t *testing.T) {
+	ps, mock := initializePackageDB()
+	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnError(errors.New("something"))
+	_, err := ps.ListPackages()
+
+	assert.IsType(t, new(util.InternalError), err, "Expect to list packages to return error")
+}
+
 func TestGetPackage(t *testing.T) {
 	expectedPackage := pipelinemanager.Package{
 		Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "Package123", Parameters: []pipelinemanager.Parameter{}}
@@ -46,6 +56,13 @@ func TestGetPackage(t *testing.T) {
 	assert.Equal(t, expectedPackage, pkg, "Got unexpected package")
 }
 
+func TestGetPackageNotFoundError(t *testing.T) {
+	ps, mock := initializePackageDB()
+	mock.ExpectQuery("SELECT (.*) FROM `packages`").WillReturnError(errors.New("something"))
+	_, err := ps.GetPackage(123)
+	assert.IsType(t, new(util.ResourceNotFoundError), err, "Expect get package to return error")
+}
+
 func TestCreatePackage(t *testing.T) {
 	pkg := pipelinemanager.Package{Name: "Package123"}
 	ps, mock := initializePackageDB()
@@ -56,4 +73,13 @@ func TestCreatePackage(t *testing.T) {
 	pkg, err := ps.CreatePackage(pkg)
 	assert.Nil(t, err, "Unexpected error creating package")
 	assert.Equal(t, uint(1), pkg.ID, "ID should be assigned")
+}
+
+func TestCreatePackageError(t *testing.T) {
+	pkg := pipelinemanager.Package{Name: "Package123"}
+	ps, mock := initializePackageDB()
+	mock.ExpectExec("INSERT INTO `packages`").WillReturnError(errors.New("something"))
+
+	_, err := ps.CreatePackage(pkg)
+	assert.IsType(t, new(util.InternalError), err, "Expect create package to return error")
 }

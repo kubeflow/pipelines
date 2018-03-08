@@ -2,14 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
-	"ml/apiserver/src/util"
-	"os"
-
+	"ml/apiserver/src/common"
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage"
-
-	"fmt"
+	"ml/apiserver/src/util"
+	"os"
 
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
@@ -140,7 +139,7 @@ func getMinioClient(config PackageManagerConfig) storage.PackageManagerInterface
 		fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
 		config.AccessKey,
 		config.SecretAccessKey,
-		false)
+		false /* Secure connection */)
 	if err != nil {
 		glog.Fatalf("Failed to create Minio client. Error: %v", err)
 	}
@@ -156,7 +155,7 @@ func getMinioClient(config PackageManagerConfig) storage.PackageManagerInterface
 		}
 	}
 	glog.Infof("Successfully created %s\n", config.BucketName)
-	return storage.NewMinioPackageManager(minioClient, config.BucketName)
+	return storage.NewMinioPackageManager(&common.MinioClient{Client: minioClient}, config.BucketName)
 }
 
 // NewClientManager creates and Init a new instance of ClientManager

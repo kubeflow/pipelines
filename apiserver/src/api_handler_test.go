@@ -1,13 +1,12 @@
 package main
 
 import (
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/util"
-	"testing"
-
 	"bytes"
 	"mime/multipart"
+	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage"
+	"ml/apiserver/src/util"
+	"testing"
 
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/httptest"
@@ -171,6 +170,18 @@ func TestUploadPackageCreatePackageFileError(t *testing.T) {
 			Expect().Status(httptest.StatusInternalServerError).Body().Equal("bad package manager")
 }
 
+func TestUploadPackageGetFormFileError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, nil, nil, &FakePackageManager{}))
+	var b bytes.Buffer
+	b.WriteString("I am invalid file")
+	w := multipart.NewWriter(&b)
+	w.CreateFormFile("uploadfile", "hello-world.yaml")
+	w.Close()
+	e.POST("/apis/v1alpha1/packages/upload").
+			WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
+			Expect().Status(httptest.StatusBadRequest).Body().Equal("Failed to read package.")
+}
+
 func TestUploadPackageCreatePackageError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, &FakePackageManager{}))
 	var b bytes.Buffer
@@ -180,6 +191,18 @@ func TestUploadPackageCreatePackageError(t *testing.T) {
 	e.POST("/apis/v1alpha1/packages/upload").
 			WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
 			Expect().Status(httptest.StatusInternalServerError).Body().Equal("bad package store")
+}
+
+func TestUploadPackageGetParametersError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, &FakePackageManager{}))
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
+	part.Write([]byte("I am invalid yaml"))
+	w.Close()
+	e.POST("/apis/v1alpha1/packages/upload").
+			WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
+			Expect().Status(httptest.StatusBadRequest).Body().Equal("Failed to parse the parameter.")
 }
 
 func TestGetTemplate(t *testing.T) {
@@ -234,7 +257,7 @@ func TestCreatePipeline(t *testing.T) {
 func TestCreatePipelineError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, nil, &FakeBadPipelineStore{}, nil))
 	e.POST("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusBadRequest).
-			Body().Contains("Invalid input")
+			Body().Contains("The pipeline has invalid format.")
 }
 
 func TestListJobs(t *testing.T) {

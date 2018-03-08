@@ -1,7 +1,9 @@
 package storage
 
 import (
+	"errors"
 	"ml/apiserver/src/message/pipelinemanager"
+	"ml/apiserver/src/util"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -31,6 +33,14 @@ func TestListPipelines(t *testing.T) {
 	assert.Equal(t, expectedPipelines, pipelines, "Got unexpected pipelines")
 }
 
+func TestListPipelinesError(t *testing.T) {
+	ps, mock := initializePipelineDB()
+	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnError(errors.New("something"))
+	_, err := ps.ListPipelines()
+
+	assert.IsType(t, new(util.InternalError), err, "Expect to list pipeline to return error")
+}
+
 func TestGetPipeline(t *testing.T) {
 	expectedPipeline := pipelinemanager.Pipeline{
 		Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "Pipeline123", PackageId: 1, Parameters: []pipelinemanager.Parameter{}}
@@ -41,19 +51,35 @@ func TestGetPipeline(t *testing.T) {
 	parametersRow := sqlmock.NewRows([]string{"name", "value", "owner_id", "owner_type"})
 	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnRows(parametersRow)
 
-	pkg, _ := ps.GetPipeline(123)
+	pipeline, _ := ps.GetPipeline(123)
 
-	assert.Equal(t, expectedPipeline, pkg, "Got unexpected pipeline")
+	assert.Equal(t, expectedPipeline, pipeline, "Got unexpected pipeline")
+}
+
+func TestGetPipelineError(t *testing.T) {
+	ps, mock := initializePipelineDB()
+	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnError(errors.New("something"))
+	_, err := ps.GetPipeline(123)
+	assert.IsType(t, new(util.ResourceNotFoundError), err, "Expect get pipeline to return error")
 }
 
 func TestCreatePipeline(t *testing.T) {
-	pkg := pipelinemanager.Pipeline{Name: "Pipeline123"}
+	pipeline := pipelinemanager.Pipeline{Name: "Pipeline123"}
 	ps, mock := initializePipelineDB()
 	mock.ExpectExec("INSERT INTO `pipelines`").
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pkg.Name, sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pipeline.Name, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	pkg, err := ps.CreatePipeline(pkg)
+	pipeline, err := ps.CreatePipeline(pipeline)
 	assert.Nil(t, err, "Unexpected error creating pipeline")
-	assert.Equal(t, uint(1), pkg.ID, "ID should be assigned")
+	assert.Equal(t, uint(1), pipeline.ID, "ID should be assigned")
+}
+
+func TestCreatePipelineError(t *testing.T) {
+	pipeline := pipelinemanager.Pipeline{Name: "Pipeline123"}
+	ps, mock := initializePipelineDB()
+	mock.ExpectExec("INSERT INTO `pipelines`").WillReturnError(errors.New("something"))
+
+	_, err := ps.CreatePipeline(pipeline)
+	assert.IsType(t, new(util.InternalError), err, "Expect create pipeline to return error")
 }

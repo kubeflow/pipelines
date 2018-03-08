@@ -1,12 +1,11 @@
 package storage
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-
-	"bytes"
 
 	"github.com/golang/glog"
 )

@@ -7,25 +7,29 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-func GetParameter(template []byte) ([]pipelinemanager.Parameter, error) {
+func GetParameters(template []byte) ([]pipelinemanager.Parameter, error) {
 	var wf argo.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, NewInvalidInputError("Failed to parse the parameter.")
+		return nil, NewInvalidInputError("Failed to parse the parameter.", err.Error())
 	}
 	return pipelinemanager.ToParameters(wf.Spec.Arguments.Parameters), nil
 }
 
-func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) ([]byte, error) {
+// Inject the parameter to the workflow template.
+// If the value of a parameter exists in both template and the parameters to be injected,
+// the latter one will take the precedence and override the template one.
+func InjectParameters(template []byte, parameters []pipelinemanager.Parameter) ([]byte, error) {
 	var wf argo.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, NewInvalidInputError("The template isn't a valid argo template.")
+		return nil, NewInvalidInputError("The template isn't a valid argo template.", err.Error())
 	}
 
 	newParams := make([]argo.Parameter, 0)
 	passedParams := make(map[string]bool)
 
+	// Create argo.Parameter object for the parameters values passed in.
 	for _, param := range parameters {
 		param := argo.Parameter{
 			Name:  param.Name,
@@ -35,6 +39,7 @@ func InjectParameter(template []byte, parameters []pipelinemanager.Parameter) ([
 		passedParams[param.Name] = true
 	}
 
+	// Merge the parameters in template with the parameters passed in.
 	for _, param := range wf.Spec.Arguments.Parameters {
 		if _, ok := passedParams[param.Name]; ok {
 			// this parameter was overridden via command line

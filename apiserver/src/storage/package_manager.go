@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bytes"
+	"ml/apiserver/src/common"
 	"ml/apiserver/src/util"
 
 	"github.com/minio/minio-go"
@@ -18,7 +19,7 @@ type PackageManagerInterface interface {
 
 // Managing package using Minio
 type MinioPackageManager struct {
-	minioClient *minio.Client
+	minioClient common.MinioClientInterface
 	bucketName  string
 }
 
@@ -31,15 +32,16 @@ func (m *MinioPackageManager) CreatePackageFile(template []byte, fileName string
 }
 
 func (m *MinioPackageManager) GetPackageFile(fileName string) ([]byte, error) {
-	object, err := m.minioClient.GetObject(m.bucketName, fileName, minio.GetObjectOptions{})
+	reader, err := m.minioClient.GetObject(m.bucketName, fileName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalError("Failed to store a new package.", err.Error())
 	}
+
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(object)
+	buf.ReadFrom(reader)
 	return buf.Bytes(), nil
 }
 
-func NewMinioPackageManager(minioClient *minio.Client, bucketName string) *MinioPackageManager {
+func NewMinioPackageManager(minioClient common.MinioClientInterface, bucketName string) *MinioPackageManager {
 	return &MinioPackageManager{minioClient: minioClient, bucketName: bucketName}
 }
