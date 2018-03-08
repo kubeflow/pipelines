@@ -15,7 +15,9 @@ export class PipelineList extends Polymer.Element implements PageElement {
   @property({ type: Array })
   public pipelines: Pipeline[] = [];
 
-  private itemListColumns: ItemListColumn[] = [
+  protected pipelineListRows: ItemListRow[] = [];
+
+  protected pipelineListColumns: ItemListColumn[] = [
     { name: 'Name', type: ColumnTypeName.STRING },
     { name: 'Description', type: ColumnTypeName.STRING },
     { name: 'Package ID', type: ColumnTypeName.NUMBER },
@@ -31,18 +33,8 @@ export class PipelineList extends Polymer.Element implements PageElement {
       }
       return p;
     });
-    this._drawPipelineList();
-  }
 
-  /**
-   * Creates a new ItemListRow object for each entry in the file list, and sends
-   * the created list to the item-list to render.
-   */
-  _drawPipelineList() {
-    const itemList = this.$.pipelinesItemList as ItemListElement;
-    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
-    itemList.columns = this.itemListColumns;
-    itemList.rows = this.pipelines.map((pipeline) => {
+    this.pipelineListRows = this.pipelines.map((pipeline) => {
       const row = new ItemListRow({
         columns: [
           pipeline.name,
@@ -56,6 +48,9 @@ export class PipelineList extends Polymer.Element implements PageElement {
       });
       return row;
     });
+
+    const itemList = this.$.pipelinesItemList as ItemListElement;
+    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
   }
 
   protected _navigate(ev: ItemClickEvent) {
