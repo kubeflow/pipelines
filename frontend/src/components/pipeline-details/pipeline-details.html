@@ -5,47 +5,50 @@
     <div class="pipeline-name">
       [[pipeline.name]]
       <span class="padded faded">[[[pipeline.id]]]</span>
-    </div>
-    <hr>
-
-    <div>
-      <span class="strong padded">Pipeline Package Id:</span>[[pipeline.packageId]]
-    </div>
-    <div>
-      <span class="strong padded">Description:</span>[[pipeline.description]]
-    </div>
-    <div>
-      <span class="strong padded">Created:</span>[[pipeline.createAt]]
-    </div>
-
-    <template is="dom-if" if="[[pipeline.parameters.length]]">
-      <hr>
-
-      <div>
-        <span class="strong padded">Parameters:</span>
-        <tr>
-          <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
-            <li>
-              <span class="strong padded">[[param.name]]:</span>[[param.value]]
-            </li>
-          </template>
-        </tr>
-      </div>
-    </template>
-
-    <hr>
-
-    <paper-button class="action-button" raised on-click="_runOnce">
-      <span class="padded">Run Once</span>
-      <iron-icon icon="maps:directions-run"></iron-icon>
-    </paper-button>
-
-    <a class="unstyled" href="/jobs?pipelineId=[[pipeline.id]]">
-      <paper-button class="action-button" raised>
-        Pipeline Jobs
-        <iron-icon icon="chevron-right"></iron-icon>
+      <paper-button class="action-button" raised on-click="_runOnce">
+        <span class="padded">Run Once</span>
+        <iron-icon icon="maps:directions-run"></iron-icon>
       </paper-button>
-    </a>
+    </div>
+
+    <hr>
+
+    <div class="tabs">
+      <paper-tabs id="tabs" class="no-shrink" selected="{{selectedTab}}">
+        <template is="dom-repeat" items="[[tabsNames]]" as="tab">
+          <paper-tab>[[tab]]</paper-tab>
+        </template>
+      </paper-tabs>
+      <iron-pages selected="{{selectedTab}}">
+        <div>
+            <div>
+                <span class="strong padded">Pipeline Package Id:</span>[[pipeline.packageId]]
+              </div>
+              <div>
+                <span class="strong padded">Description:</span>[[pipeline.description]]
+              </div>
+              <div>
+                <span class="strong padded">Created:</span>[[pipeline.createdAt]]
+              </div>
+
+              <template is="dom-if" if="[[pipeline.parameters.length]]">
+                <hr>
+
+                <div>
+                  <span class="strong padded">Parameters:</span>
+                  <tr>
+                    <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+                      <li>
+                        <span class="strong padded">[[param.name]]:</span>[[param.value]]
+                      </li>
+                    </template>
+                  </tr>
+                </div>
+              </template>
+        </div>
+        <job-list id="jobs"></job-list>
+      </iron-pages>
+    </div>
 
   </template>
 </dom-module>

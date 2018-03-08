@@ -13,7 +13,7 @@ import { csvParseRows, select as d3select } from 'd3';
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from '../../decorators';
 import { TabSelectedEvent } from '../../lib/events';
-import { Job } from '../../lib/job';
+import { Job, JobStatus } from '../../lib/job';
 import { PageElement } from '../../lib/page_element';
 import { Pipeline } from '../../lib/pipeline';
 import { DataPlotter } from '../data-plotter/data-plotter';
@@ -71,24 +71,12 @@ export class JobDetails extends Polymer.Element implements PageElement {
     return date === -1 ? '-' : new Date(date).toLocaleString();
   }
 
-  protected _getState(state: string) {
-    if (!state) {
-      return '';
-    }
-    return state[0].toUpperCase() + state.substr(1);
+  protected _getStatusIcon(status: JobStatus) {
+    return Utils.jobStatusToIcon(status);
   }
 
-  protected _getStateIcon(state: string) {
-    switch (state) {
-      case 'running': return 'device:access-time';
-      case 'completed': return 'check';
-      case 'not started': return 'sort';
-      default: return 'error-outline';
-    }
-  }
-
-  protected _getRuntime(start: number, end: number, state: string) {
-    if (state === 'not started') {
+  protected _getRuntime(start: number, end: number, status: JobStatus) {
+    if (status === 'Not started') {
       return '-';
     }
     if (end === -1) {
@@ -198,17 +186,17 @@ export class JobDetails extends Polymer.Element implements PageElement {
       return;
     }
     let color = '';
-    switch (this.job.state) {
-      case 'running':
+    switch (this.job.status) {
+      case 'Running':
         color = progressCssColors.running;
         break;
-      case 'completed':
+      case 'Succeeded':
         color = progressCssColors.completed;
         break;
-      case 'not started':
-        color = progressCssColors.notStarted;
-      default:
+      case 'Errored':
         color = progressCssColors.errored;
+      default:
+        color = progressCssColors.notStarted;
         break;
     }
     (this.$.progress as any).updateStyles({

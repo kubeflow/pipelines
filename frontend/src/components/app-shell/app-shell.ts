@@ -7,8 +7,6 @@ import 'paper-styles/paper-styles.html';
 
 import '../job-details/job-details';
 import '../job-list/job-list';
-import '../package-details/package-details';
-import '../package-list/package-list';
 import '../pipeline-details/pipeline-details';
 import '../pipeline-list/pipeline-list';
 import '../pipeline-new/pipeline-new';
@@ -53,7 +51,7 @@ export class AppShell extends Polymer.Element {
           const parts = newPath.substr(1).split('/');
           if (parts.length) {
             // If there's only one part, that's the page name. If there's more,
-            // the page name is the first two, to allow for things like packages/details
+            // the page name is the first two, to allow for things like pipelines/details
             // and job/details. The rest are the argument to that page.
             const args = parts.splice(2).join('/');
             let pageName = `${parts.join('/')}`;
@@ -73,7 +71,13 @@ export class AppShell extends Polymer.Element {
   }
 
   private _routeEventListener(e: RouteEvent) {
-    this.set('route.path', e.detail.path);
+    const url = new URL(e.detail.path, window.location.href);
+    this.set('route.path', url.pathname);
+    const queryParams = {} as any;
+    for (const entry of url.searchParams.entries()) {
+      queryParams[entry[0]] = entry[1];
+    }
+    this.set('route.__queryParams', queryParams);
   }
 
   private _getPageElement(pageName: string): PageElement {

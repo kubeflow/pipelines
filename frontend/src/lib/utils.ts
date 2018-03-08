@@ -1,3 +1,5 @@
+import { JobStatus } from './job';
+
 export function deleteAllChildren(parent: HTMLElement) {
   while (parent.firstChild) {
     parent.removeChild(parent.firstChild);
@@ -61,4 +63,13 @@ export function getAncestorElementWithClass(element: HTMLElement, className: str
     element = element.parentElement;
   }
   return element;
+}
+
+export function jobStatusToIcon(status: JobStatus) {
+  switch (status) {
+    case 'Running': return 'device:access-time';
+    case 'Succeeded': return 'check';
+    case 'Errored': return 'error-outline';
+    default: return 'sort';
+  }
 }

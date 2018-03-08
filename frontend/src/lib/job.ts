@@ -8,15 +8,18 @@ export interface JobStep {
   outputs: string;
 }
 
+export type JobStatus = 'Not started' | 'Running' | 'Errored' | 'Succeeded';
+
 export interface Job {
-  end: number;
-  id: number;
-  pipelineId: number;
+  createdAt: string;
+  finishedAt: string;
+  name: string;
   parameterValues: { [key: string]: ParameterValue };
+  pipelineId: number;
   progress: number;
   recurring: boolean;
   recurringIntervalHours: number;
-  start: number;
-  state: 'not started' | 'running' | 'errored' | 'completed';
+  startedAt: string;
+  status: JobStatus;
   steps: JobStep[];
 }

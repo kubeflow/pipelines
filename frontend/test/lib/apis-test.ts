@@ -8,11 +8,6 @@ const testPackages = [{
   location: 'gcs://pipelines_bucket/structured_text1',
   name: 'Unstructured text',
   parameters: ['x', 'y'],
-  sharedWith: 'team1',
-  tags: [
-    'text',
-    'experiment'
-  ],
 }];
 
 describe('My API', () => {

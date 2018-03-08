@@ -1,7 +1,7 @@
 import { Parameter } from './parameter';
 
 export interface Pipeline {
-  createAt?: string;
+  createdAt?: string;
   id?: number;
   author: string;
   description: string;

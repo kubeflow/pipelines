@@ -9,11 +9,20 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "outDir": "./dist/",
+    "paths": {
+      "*": [
+        "*",
+        "bower_components/*"
+      ]
+    },
     "strict": true,
     "strictNullChecks": true,
     "target": "es2015"
   },
   "include": [
     "./src"
+  ],
+  "exclude": [
+    "./bower_components"
   ]
 }

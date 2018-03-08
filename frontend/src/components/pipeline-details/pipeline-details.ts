@@ -15,8 +15,17 @@ import './pipeline-details.html';
 @customElement('pipeline-details')
 export class PipelineDetails extends Polymer.Element implements PageElement {
 
+  @property({ type: Array })
+  public tabsNames: string[] = [
+    'BASIC CONFIG',
+    'PAST RUNS',
+  ];
+
   @property({ type: Object })
   public pipeline: Pipeline | null = null;
+
+  @property({ type: Number })
+  public selectedTab = 0;
 
   public async refresh(path: string) {
     if (path !== '') {
@@ -26,9 +35,12 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
         return;
       }
       const pipeline = await Apis.getPipeline(id);
-      if (pipeline.createAt) {
-        pipeline.createAt = new Date(pipeline.createAt).toLocaleString();
+      if (pipeline.createdAt) {
+        pipeline.createdAt = new Date(pipeline.createdAt).toLocaleString();
       }
+
+      (this.$.jobs as any).loadJobs(pipeline.id);
+
       this.pipeline = pipeline;
     }
   }
@@ -36,7 +48,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
   protected async _runOnce() {
     if (this.pipeline && this.pipeline.id !== undefined) {
       await Apis.newJob(this.pipeline.id);
-      this.dispatchEvent(new RouteEvent('/pipelines'));
+      this.dispatchEvent(new RouteEvent(`/jobs?pipelineId=${this.pipeline.id}`));
     }
   }
 }

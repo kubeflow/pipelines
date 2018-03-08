@@ -19,7 +19,7 @@
   min-width: 300px;
 }
 
-.state-icon {
+.status-icon {
   color: var(--fg-color);
   height: 20px;
   width: 20px;
@@ -29,17 +29,6 @@ paper-progress {
   --paper-progress-active-color: var(--progress-color);
   --paper-progress-height: 10px;
   margin: 7px;
-}
-
-paper-tabs {
-  --paper-tab-ink: var(--accent-color);
-  --paper-tabs-selection-bar-color: var(--accent-color);
-  height: 35px;
-  margin-top: 10px;
-}
-
-paper-tab:not(:first-child) {
-  border-left: 1px solid var(--line-color);
 }
 
 .steps {

@@ -2,10 +2,11 @@
   <template>
     <link rel="stylesheet" href="./pipeline-new.css">
 
-    <div>Configure new pipeline pipeline:</div>
+    <div class="strong padded">Configure new pipeline pipeline:</div>
 
     <div class="flex">
-      <paper-dropdown-menu-light label="Choose a Package" noink on-selected-item-changed="_packageChanged">
+      <paper-dropdown-menu-light label="Choose a Package" noink no-label-float
+                                 on-selected-item-changed="_packageChanged">
         <paper-listbox id="packagesListbox" slot="dropdown-content" class="dropdown-content">
           <template is="dom-repeat" items="[[packages]]" as="package">
             <paper-item package-id="[[package.id]]">
@@ -23,8 +24,12 @@
       <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
     </div>
 
-    <paper-input id="name" label="Pipeline Name" autofocus></paper-input>
-    <paper-input id="description" label="Description"></paper-input>
+    <paper-input id="name" label="Pipeline Name" autofocus no-label-float></paper-input>
+    <paper-input id="description" label="Description" no-label-float></paper-input>
+
+    <br>
+    <br>
+    <span class="strong">Schedule</span>
     <div class="flex">
       <paper-input id="starts" label="Starts" value="[[startDate]]"></paper-input>
       <paper-icon-button icon="date-range" on-click="_pickStartDate" tabindex="-1">
@@ -35,10 +40,10 @@
       <paper-icon-button icon="date-range" on-click="_pickEndDate" tabindex="-1">
       </paper-icon-button>
     </div>
-    <br>
-    <br>
 
-    <div>
+    <template is="dom-if" if="[[parameters.length]]">
+      <br>
+      <br>
       <span class="strong">Parameters</span>
       <template is="dom-repeat" items="{{parameters}}" as="param">
         <div class="flex param-container">
@@ -47,9 +52,7 @@
           <span class="param-description">[[param.description]]</span>
         </div>
       </template>
-    </div>
-
-    <paper-input id="tags" label="Tags"></paper-input>
+    </template>
 
     <app-datepicker-dialog modal id="startDatepicker" date="{{startDate}}"></app-datepicker-dialog>
     <app-datepicker-dialog modal id="endDatepicker" date="{{endDate}}"></app-datepicker-dialog>

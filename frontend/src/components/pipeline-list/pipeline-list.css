@@ -1,16 +1,33 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
-@import '../package-list/package-list.css';
 
-:host {
-  padding: 30px;
+.toolbar {
+  border-bottom: solid 1px var(--line-color);
+  height: var(--toolbar-height);
+  padding: 0 20px;
 }
 
-.pipeline-name {
-  color: var(--fg-color-strong);
-  font-size: var(--font-size-strong);
+.toolbar-title {
+  font-size: 18px;
+  margin: auto 0;
+  padding-right: 20px;
+}
+
+.toolbar-button {
+  color: var(--accent-color);
+  font-size: 13px;
   font-weight: bold;
-  padding: 10px 0;
-  text-align: center;
-  text-decoration: none;
+  margin: auto 10px;
+  padding: 7px;
+  transition: background-color 0.3s;
+}
+
+.toolbar-button:hover {
+  background-color: var(--hover-bg-color);
+}
+
+.toolbar-button iron-icon {
+  height: 20px;
+  padding-right: 3px;
+  width: 20px;
 }
