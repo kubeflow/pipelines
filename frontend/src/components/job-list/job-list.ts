@@ -26,21 +26,26 @@ export class JobList extends Polymer.Element {
   @property({ type: Array })
   public jobs: Job[] = [];
 
-  @property({ type: Array })
-  public jobRows: ItemListRow[] = [];
+  protected jobListRows: ItemListRow[] = [];
 
-  private jobListColumns: ItemListColumn[] = [
+  protected jobListColumns: ItemListColumn[] = [
     { name: 'Job Name', type: ColumnTypeName.STRING },
     { name: 'Create time', type: ColumnTypeName.DATE },
     { name: 'Start time', type: ColumnTypeName.DATE },
     { name: 'Finish time', type: ColumnTypeName.DATE },
   ];
 
+  ready() {
+    super.ready();
+    const itemList = this.$.jobsItemList as ItemListElement;
+    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
+  }
+
   // TODO: should these jobs be cached?
   public async loadJobs(pipelineId: number) {
     this.jobs = await Apis.getJobs(pipelineId);
 
-    this.jobRows = this.jobs.map((job) => {
+    this.jobListRows = this.jobs.map((job) => {
       const row = new ItemListRow({
         columns: [
           job.name,
@@ -54,7 +59,7 @@ export class JobList extends Polymer.Element {
       return row;
     });
 
-    this._drawJobList();
+    this._colorProgressBars();
   }
 
   protected _navigate(ev: ItemClickEvent) {
@@ -104,17 +109,5 @@ export class JobList extends Polymer.Element {
         '--paper-progress-active-color': `var(${color})`,
       });
     });
-  }
-
-  /**
-   * Creates a new ItemListRow object for each entry in the file list, and sends
-   * the created list to the item-list to render.
-   */
-  private _drawJobList() {
-    const itemList = this.$.jobsItemList as ItemListElement;
-    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
-    itemList.columns = this.jobListColumns;
-    itemList.rows = this.jobRows;
-    this._colorProgressBars();
   }
 }
