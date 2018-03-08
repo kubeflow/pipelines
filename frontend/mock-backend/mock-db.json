@@ -78,6 +78,26 @@
       "startedAt": "0001-01-01T00:00:00Z",
       "finishedAt": "0001-01-01T00:00:00Z",
       "status": "Succeeded"
+    },
+    {
+      "name": "test job 2",
+      "createdAt": "2018-03-08T01:55:12Z",
+      "startedAt": "0001-01-01T00:00:00Z",
+      "finishedAt": "0001-01-01T00:00:00Z"
+    },
+    {
+      "name": "A veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery loooooooooooooooooooooooooooong name of test job 3",
+      "createdAt": "2018-03-08T01:55:12Z",
+      "startedAt": "0001-01-01T00:00:00Z",
+      "finishedAt": "0001-01-01T00:00:00Z",
+      "status": "Running"
+    },
+    {
+      "name": "Unstructured text experiment 4",
+      "createdAt": "2018-03-08T01:55:12Z",
+      "startedAt": "0001-01-01T00:00:00Z",
+      "finishedAt": "0001-01-01T00:00:00Z",
+      "status": "Errored"
     }
   ]
 }
