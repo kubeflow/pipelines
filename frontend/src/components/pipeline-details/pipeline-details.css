@@ -1,26 +1,23 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-h2 {
+.input-param-header {
   font-weight: bold;
   font-size: 20px;
   margin-bottom: 5px;
 }
 
-.inline-outer {
+.info-row {
   border-bottom: 1px solid var(--line-color);
   padding: 3px;
   padding-top: 5px;
-  width: 45%;
+  width: 600px;
 }
 
-.inline-inner-left {
+.detail-title {
   display: inline-block;
-  width: 55%;
-}
-
-.inline-inner-right {
-  display: inline-block;
+  font-weight: bold;
+  width: 280px;
 }
 
 .pipeline-name {
