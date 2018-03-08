@@ -7,14 +7,11 @@
 
 paper-dropdown-menu,
 paper-input {
-  background-color: #eee;
+  --paper-input-container-focus-color: var(--accent-color);
+  background-color: var(--bg-color-darker);
   border-radius: 5px;
   margin: 5px;
   width: 500px;
-}
-
-paper-input {
-  --paper-input-container-focus-color: var(--accent-color);
 }
 
 paper-item {
