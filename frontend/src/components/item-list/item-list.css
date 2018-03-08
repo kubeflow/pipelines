@@ -36,7 +36,7 @@ div {
   background-color: var(--hover-bg-color);
 }
 .row[selected] > * {
-  color: var(--selected-color);
+  color: var(--selected-color) !important;
 }
 .row-details {
   padding: 0px;
