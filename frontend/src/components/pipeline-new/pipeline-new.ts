@@ -1,7 +1,7 @@
 import 'app-datepicker/app-datepicker-dialog.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-checkbox/paper-checkbox.html';
-import 'paper-dropdown-menu/paper-dropdown-menu-light.html';
+import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-input/paper-input.html';
 import 'paper-item/paper-item.html';
 import 'paper-listbox/paper-listbox.html';
