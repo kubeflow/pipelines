@@ -26,6 +26,12 @@ export class PipelineList extends Polymer.Element implements PageElement {
     { name: 'Recurring', type: ColumnTypeName.STRING },
   ];
 
+  ready() {
+    super.ready();
+    const itemList = this.$.pipelinesItemList as ItemListElement;
+    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
+  }
+
   public async refresh(_: string) {
     this.pipelines = (await Apis.getPipelines()).map((p) => {
       if (p.createdAt) {
@@ -48,9 +54,6 @@ export class PipelineList extends Polymer.Element implements PageElement {
       });
       return row;
     });
-
-    const itemList = this.$.pipelinesItemList as ItemListElement;
-    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
   }
 
   protected _navigate(ev: ItemClickEvent) {

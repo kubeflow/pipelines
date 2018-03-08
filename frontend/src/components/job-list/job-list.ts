@@ -34,6 +34,12 @@ export class JobList extends Polymer.Element {
     { name: 'End time', type: ColumnTypeName.DATE },
   ];
 
+  ready() {
+    super.ready();
+    const itemList = this.$.jobsItemList as ItemListElement;
+    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
+  }
+
   // TODO: should these jobs be cached?
   public async loadJobs(pipelineId: number) {
     this.jobs = await Apis.getJobs(pipelineId);
@@ -50,9 +56,6 @@ export class JobList extends Polymer.Element {
       });
       return row;
     });
-
-    const itemList = this.$.jobsItemList as ItemListElement;
-    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
 
     this._colorProgressBars();
   }
