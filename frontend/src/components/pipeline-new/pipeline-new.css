@@ -8,6 +8,9 @@
 
 paper-dropdown-menu-light,
 paper-input {
+  background-color: #eee;
+  border-radius: 5px;
+  margin: 5px;
   width: 300px;
 }
 

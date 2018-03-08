@@ -73,149 +73,31 @@
   ],
   "jobs": [
     {
-      "id": 1,
-      "pipelineId": 1,
-      "parameterValues": {
-        "x": 10,
-        "y": 20
-      },
-      "progress": 100,
-      "startedAt": 1517087013000,
-      "endedAt": 1517087015000,
-      "status": "Succeeded",
-      "steps": [
-        {
-          "name": "Input",
-          "start": 1517087013000,
-          "end": 1517087015000,
-          "status": "Succeeded",
-          "outputs": "/_ftp/1.input"
-        },
-        {
-          "name": "Analysis",
-          "start": 1517087013000,
-          "end": 1517087015000,
-          "status": "Succeeded",
-          "outputs": "/_ftp/2.analysis"
-        },
-        {
-          "name": "Transformation",
-          "start": 1517087013000,
-          "end": 1517087015000,
-          "status": "Succeeded",
-          "outputs": "/_ftp/3.transform"
-        },
-        {
-          "name": "Training",
-          "start": 1517087013000,
-          "end": 1517087015000,
-          "status": "Succeeded",
-          "outputs": "/_ftp/4.train"
-        },
-        {
-          "name": "Evaluation",
-          "start": 1517087013000,
-          "end": 1517087015000,
-          "status": "Succeeded",
-          "outputs": "/_ftp/5.evaluation"
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "pipelineId": 1,
-      "parameterValues": {
-        "x": 20,
-        "y": 20
-      },
-      "progress": 100,
-      "startedAt": 1517087013000,
-      "endedAt": 1517087214500,
+      "name": "Unstructured text experiment 1",
+      "createdAt": "2018-03-08T01:55:12Z",
+      "startedAt": "0001-01-01T00:00:00Z",
+      "finishedAt": "0001-01-01T00:00:00Z",
       "status": "Succeeded"
     },
     {
-      "id": 3,
-      "pipelineId": 1,
-      "parameterValues": {
-        "x": 30,
-        "y": 20
-      },
-      "progress": 80,
-      "startedAt": 1517087013000,
-      "endedAt": 1517087028000,
+      "name": "test job 2",
+      "createdAt": "2018-03-08T01:55:12Z",
+      "startedAt": "0001-01-01T00:00:00Z",
+      "finishedAt": "0001-01-01T00:00:00Z"
+    },
+    {
+      "name": "A veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery loooooooooooooooooooooooooooong name of test job 3",
+      "createdAt": "2018-03-08T01:55:12Z",
+      "startedAt": "0001-01-01T00:00:00Z",
+      "finishedAt": "0001-01-01T00:00:00Z",
+      "status": "Running"
+    },
+    {
+      "name": "Unstructured text experiment 4",
+      "createdAt": "2018-03-08T01:55:12Z",
+      "startedAt": "0001-01-01T00:00:00Z",
+      "finishedAt": "0001-01-01T00:00:00Z",
       "status": "Errored"
-    },
-    {
-      "id": 4,
-      "pipelineId": 1,
-      "parameterValues": {
-        "x": 40,
-        "y": 20
-      },
-      "progress": 70,
-      "startedAt": 1517087013000,
-      "endedAt": -1,
-      "status": "Running"
-    },
-    {
-      "id": 5,
-      "pipelineId": 1,
-      "parameterValues": {
-        "x": 50,
-        "y": 20
-      },
-      "progress": 40,
-      "startedAt": 1517087013000,
-      "endedAt": -1,
-      "status": "Running"
-    },
-    {
-      "id": 6,
-      "pipelineId": 1,
-      "parameterValues": {
-        "x": 60,
-        "y": 20
-      },
-      "progress": 15,
-      "startedAt": 1517087013000,
-      "endedAt": -1,
-      "status": "Running"
-    },
-    {
-      "id": 7,
-      "pipelineId": 1,
-      "parameterValues": {
-        "x": 70,
-        "y": 20
-      },
-      "progress": 20,
-      "startedAt": 1517087013000,
-      "endedAt": -1,
-      "status": "Running"
-    },
-    {
-      "id": 8,
-      "pipelineId": 1,
-      "parameterValues": {
-        "x": 80,
-        "y": 20
-      },
-      "progress": 0,
-      "startedAt": 1517087013000,
-      "endedAt": -1,
-      "status": "Not started"
-    },
-    {
-      "id": 9,
-      "pipelineId": 2,
-      "parameterValues": {
-        "x": 80,
-        "y": 20
-      },
-      "progress": 50,
-      "startedAt": 1517087013000,
-      "endedAt": -1,
-      "status": "Running"
     }
   ]
 }
