@@ -1,7 +1,7 @@
 import 'app-datepicker/app-datepicker-dialog.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-checkbox/paper-checkbox.html';
-import 'paper-dropdown-menu/paper-dropdown-menu-light.html';
+import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-input/paper-input.html';
 import 'paper-item/paper-item.html';
 import 'paper-listbox/paper-listbox.html';
@@ -16,9 +16,9 @@ import './pipeline-new.html';
 import { customElement, property } from '../../decorators';
 import { RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
-import { Parameter } from '../../lib/parameter';
-import { Pipeline } from '../../lib/pipeline';
-import { PipelinePackage } from '../../lib/pipeline_package';
+import { Parameter } from '../../model/parameter';
+import { Pipeline } from '../../model/pipeline';
+import { PipelinePackage } from '../../model/pipeline_package';
 
 interface NewPipelineQueryParams {
   packageId?: number;

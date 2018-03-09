@@ -2,16 +2,16 @@
 @import '../../styles/common.css';
 
 :host {
-  padding: 30px;
   position: relative;
 }
 
-paper-dropdown-menu-light,
+paper-dropdown-menu,
 paper-input {
-  background-color: #eee;
+  --paper-input-container-focus-color: var(--accent-color);
+  background-color: var(--bg-color-darker);
   border-radius: 5px;
   margin: 5px;
-  width: 300px;
+  width: 500px;
 }
 
 paper-item {
@@ -29,19 +29,13 @@ paper-icon-button, paper-icon-button {
   margin: 6px 10px;
 }
 
-.param-name {
-  height: 42px;
-  padding: 20px 0;
+.param-container {
+  margin-bottom: 10px;
 }
 
 .param-input {
   margin-left: 10px;
-  width: 100px;
-}
-
-.param-description {
-  max-width: 60%;
-  padding: 20px;
+  width: 300px;
 }
 
 .overlay {

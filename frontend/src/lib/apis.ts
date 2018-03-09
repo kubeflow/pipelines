@@ -1,7 +1,7 @@
 import { FileDescriptor } from '../components/file-browser/file-browser';
-import { Job } from '../lib/job';
-import { Pipeline } from '../lib/pipeline';
-import { PipelinePackage } from './pipeline_package';
+import { Job } from '../model/job';
+import { Pipeline } from '../model/pipeline';
+import { PipelinePackage } from '../model/pipeline_package';
 
 const apisPrefix = '/_api';
 
@@ -70,9 +70,8 @@ export async function newPipeline(pipeline: Pipeline) {
 }
 
 /**
- * Gets a list of all the pipeline pipeline jobs from the backend.
- * If an pipeline id is specified, only the jobs defined with this
- * pipeline id are returned.
+ * Gets a list of all the pipeline jobs belonging to the specified pipelined
+ * from the backend.
  */
 export async function getJobs(pipelineId: number): Promise<Job[]> {
   const path = `/pipelines/${pipelineId}/jobs`;
@@ -84,7 +83,7 @@ export async function getJobs(pipelineId: number): Promise<Job[]> {
 /**
  * Gets the details of a certain pipeline pipeline job given its id.
  */
-export async function getJob(id: number): Promise<Job> {
+export async function getJob(id: string): Promise<Job> {
   const response = await fetch(apisPrefix + `/jobs/${id}`);
   return await response.json();
 }
@@ -93,7 +92,7 @@ export async function getJob(id: number): Promise<Job> {
  * Submits a new job for the given pipeline id.
  */
 export async function newJob(id: number): Promise<Job> {
-  const response = await fetch(apisPrefix + `/pipelines/${id}/jobs`, {
+  const response = await fetch(apisPrefix + `/${id}/jobs`, {
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',

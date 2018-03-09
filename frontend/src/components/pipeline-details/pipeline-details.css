@@ -1,12 +1,24 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-:host {
-  padding: 30px;
-}
-
 .pipeline-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);
-  font-weight: bold;
+}
+
+.tabs-container {
+  border-bottom: solid 1px var(--line-color);
+  height: 50px;
+  position: relative;
+}
+
+paper-tabs {
+  bottom: 0;
+  display: inline-block;
+  position: absolute;
+}
+
+paper-tab {
+  font-size: 13px;
+  min-width: 110px;
 }
