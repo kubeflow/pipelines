@@ -5,8 +5,7 @@
   "main": "dist/index.html",
   "dependencies": {
     "d3": "^4.13.0",
-    "json-pretty-html": "^1.0.2",
-    "npm": "^5.7.1"
+    "json-pretty-html": "^1.0.2"
   },
   "devDependencies": {
     "@types/d3": "^4.12.0",
