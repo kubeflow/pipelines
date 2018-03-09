@@ -12,7 +12,7 @@
   position: relative;
 }
 
-#tabs {
+paper-tabs {
   bottom: 0;
   display: inline-block;
   position: absolute;

@@ -15,7 +15,6 @@ import { customElement, property } from '../../decorators';
 import { TabSelectedEvent } from '../../lib/events';
 import { Job, JobStatus } from '../../lib/job';
 import { PageElement } from '../../lib/page_element';
-import { Pipeline } from '../../lib/pipeline';
 import { DataPlotter } from '../data-plotter/data-plotter';
 import { FileBrowser } from '../file-browser/file-browser';
 
@@ -35,20 +34,11 @@ const PREVIEW_LINES_COUNT = 10;
 export class JobDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
-  public pipeline: Pipeline | null = null;
-
-  @property({ type: Object })
   public job: Job | null = null;
 
-  public async refresh(path: string) {
-    if (path !== '') {
-      const id = Number.parseInt(path);
-      if (isNaN(id)) {
-        Utils.log.error(`Bad job path: ${id}`);
-        return;
-      }
-      this.job = await Apis.getJob(id);
-      this.pipeline = await Apis.getPipeline(this.job.pipelineId);
+  public async refresh(_: string, queryParams: { jobId?: string }) {
+    if (queryParams.jobId !== undefined) {
+      this.job = await Apis.getJob(queryParams.jobId);
 
       (this.$.stepTabs as any).selected = 0;
       this._colorProgressBar();

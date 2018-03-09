@@ -64,7 +64,7 @@ export class JobList extends Polymer.Element {
 
   protected _navigate(ev: ItemClickEvent) {
     const jobId = this.jobs[ev.detail.index].name;
-    this.dispatchEvent(new RouteEvent(`/jobs/details/${jobId}`));
+    this.dispatchEvent(new RouteEvent(`/jobs/details?jobId=${jobId}`));
   }
 
   protected _paramsToArray(paramsObject: {}) {

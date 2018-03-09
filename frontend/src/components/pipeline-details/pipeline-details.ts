@@ -15,12 +15,6 @@ import './pipeline-details.html';
 @customElement('pipeline-details')
 export class PipelineDetails extends Polymer.Element implements PageElement {
 
-  @property({ type: Array })
-  public tabsNames: string[] = [
-    'BASIC CONFIG',
-    'PAST RUNS',
-  ];
-
   @property({ type: Object })
   public pipeline: Pipeline | null = null;
 
