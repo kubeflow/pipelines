@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2018 by Contributors
+ Copyright (c) 2014 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ object XGBoostTrainer {
     else if (statsMap.keys.exists(_ == "max")) 1.0
     else 0.0
   }
+
 
   def get_feature_size(statsPath: String, target: String): Int = {
     val sparkSession = SparkSession.builder().getOrCreate()
