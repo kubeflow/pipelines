@@ -25,4 +25,7 @@ frontend/test/ui/broken
 # IDE
 .idea/
 
+# Vendor
+vendor/
+
 .DS_Store

@@ -1,0 +1,26 @@
+package: ml
+ignore:
+- ml
+excludeDirs:
+- apiserver
+- artifacts
+- components
+- deploy
+- frontend
+- k8s
+- samples
+- tools
+import:
+- package: k8s.io/client-go
+  version: v5.0.0
+- package: k8s.io/api
+  version: fe29995db37613b9c5b2a647544cf627bfa8d299
+- package: k8s.io/apimachinery
+  version: 019ae5ada31de202164b118aee88ee2d14075c31
+- package: k8s.io/apiextensions-apiserver
+  version: kubernetes-1.8.4
+- package: k8s.io/code-generator
+  version: kubernetes-1.8.5
+- package: k8s.io/client-go/plugin/pkg/client/auth/gcp
+  version: v5.0.0
+- package: golang.org/x/oauth2
