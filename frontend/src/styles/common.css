@@ -41,7 +41,7 @@ hr {
 }
 
 .flex {
-  align-items: baseline;
+  align-items: center;
   display: flex;
   flex-shrink: 0;
 }
@@ -60,6 +60,10 @@ hr {
 
 .padded {
   padding: 10px;
+}
+
+.padded-20 {
+  padding: 20px;
 }
 
 paper-tabs {
@@ -86,4 +90,38 @@ paper-tab:not(:first-child) {
 
 [hidden] {
   display: none !important;
+}
+
+.toolbar {
+  border-bottom: solid 1px var(--line-color);
+  display: flex;
+  flex-shrink: 0;
+  height: var(--toolbar-height);
+  padding: 0 20px;
+}
+
+.toolbar-title {
+  font-size: 18px;
+  margin: auto 0;
+  padding-right: 20px;
+}
+
+.toolbar-button {
+  color: var(--accent-color);
+  font-size: 13px;
+  font-weight: bold;
+  height: 35px;
+  margin: auto 10px;
+  padding: 7px;
+  transition: background-color 0.3s;
+}
+
+.toolbar-button:hover {
+  background-color: var(--hover-bg-color);
+}
+
+.toolbar-button iron-icon {
+  height: 20px;
+  padding-right: 3px;
+  width: 20px;
 }

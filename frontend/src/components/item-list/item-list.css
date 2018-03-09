@@ -36,7 +36,7 @@ div {
   background-color: var(--hover-bg-color);
 }
 .row[selected] > * {
-  color: var(--selected-color);
+  color: var(--selected-color) !important;
 }
 .row-details {
   padding: 0px;
@@ -66,6 +66,9 @@ div {
 }
 .column {
   flex: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 #header > .column {
   color: var(--fg-color);

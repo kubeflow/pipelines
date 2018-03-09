@@ -18,7 +18,6 @@
     "extract-text-webpack-plugin": "^3.0.2",
     "html-webpack-plugin": "^2.30.1",
     "http-proxy-middleware": "^0.17.4",
-    "json-server": "^0.12.1",
     "polymer-webpack-loader": "^2.0.0",
     "reflect-metadata": "^0.1.10",
     "ts-loader": "^2.3.7",
@@ -30,11 +29,11 @@
     "webpack-merge": "^4.1.2"
   },
   "scripts": {
-    "mock:api": "json-server -w -q mock-backend/mock-db.json -p 3001",
+    "mock:api": "node mock-backend/mock-api-server.js 3001",
     "mock:server": "ML_PIPELINE_MANAGER_SERVICE_HOST=localhost ML_PIPELINE_MANAGER_SERVICE_PORT=3001 node server/server.js dist",
     "build": "webpack --config webpack.prod.js",
     "docker": "docker build -q -t ml-pipelines-frontend:`node -p \"require('./package.json').version\"` .",
-    "dev": "concurrently -k -r \"npm run mock:api\" \"webpack-dev-server --config webpack.dev.js\"",
+    "dev": "webpack-dev-server --config webpack.dev.js",
     "lint": "tslint -p tsconfig.json",
     "postinstall": "bower install",
     "start": "npm run dev",

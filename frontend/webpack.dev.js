@@ -1,5 +1,5 @@
 const common = require('./webpack.common.js');
-const indexServer = require('./mock-backend/index-server');
+const mockApiMiddleware = require('./mock-backend/mock-api-middleware');
 const merge = require('webpack-merge');
 const path = require('path');
 const webpack = require('webpack');
@@ -7,17 +7,11 @@ const webpack = require('webpack');
 module.exports = merge(common, {
   devtool: 'inline-source-map',
   devServer: {
-    before: indexServer,
+    before: mockApiMiddleware,
     contentBase: path.join(__dirname),
     compress: true,
     overlay: true,
     port: 3000,
-    proxy: {
-      '/_api': {
-        target: 'http://localhost:3001',
-        pathRewrite: {'^/_api': ''},
-      },
-    },
     // Serve index.html for any unrecognized path
     historyApiFallback: true,
   },

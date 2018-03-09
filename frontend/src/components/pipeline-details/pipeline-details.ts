@@ -7,19 +7,13 @@ import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
 import { RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
-import { Pipeline } from '../../lib/pipeline';
 import * as Utils from '../../lib/utils';
+import { Pipeline } from '../../model/pipeline';
 
 import './pipeline-details.html';
 
 @customElement('pipeline-details')
 export class PipelineDetails extends Polymer.Element implements PageElement {
-
-  @property({ type: Array })
-  public tabsNames: string[] = [
-    'BASIC CONFIG',
-    'PAST RUNS',
-  ];
 
   @property({ type: Object })
   public pipeline: Pipeline | null = null;

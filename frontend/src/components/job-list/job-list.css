@@ -1,10 +1,6 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-:host {
-  padding: 30px;
-}
-
 .job {
   background-color: white;
   @apply --shadow-elevation-2dp;
