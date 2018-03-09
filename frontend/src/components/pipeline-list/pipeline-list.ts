@@ -4,7 +4,7 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import { ItemClickEvent, RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
-import { Pipeline } from '../../lib/pipeline';
+import { Pipeline } from '../../model/pipeline';
 import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
 
 import './pipeline-list.html';

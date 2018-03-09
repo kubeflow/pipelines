@@ -66,6 +66,9 @@ div {
 }
 .column {
   flex: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 #header > .column {
   color: var(--fg-color);

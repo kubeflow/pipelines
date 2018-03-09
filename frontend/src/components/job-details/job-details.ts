@@ -13,8 +13,8 @@ import { csvParseRows, select as d3select } from 'd3';
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from '../../decorators';
 import { TabSelectedEvent } from '../../lib/events';
-import { Job, JobStatus } from '../../lib/job';
 import { PageElement } from '../../lib/page_element';
+import { Job, JobStatus } from '../../model/job';
 import { DataPlotter } from '../data-plotter/data-plotter';
 import { FileBrowser } from '../file-browser/file-browser';
 

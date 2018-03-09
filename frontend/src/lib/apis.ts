@@ -1,7 +1,7 @@
 import { FileDescriptor } from '../components/file-browser/file-browser';
-import { Job } from '../lib/job';
-import { Pipeline } from '../lib/pipeline';
-import { PipelinePackage } from './pipeline_package';
+import { Job } from '../model/job';
+import { Pipeline } from '../model/pipeline';
+import { PipelinePackage } from '../model/pipeline_package';
 
 const apisPrefix = '/_api';
 

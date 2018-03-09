@@ -1,4 +1,4 @@
-import { ParameterValue } from '../lib/parameter';
+import { ParameterValue } from './parameter';
 
 export interface JobStep {
   name: string;

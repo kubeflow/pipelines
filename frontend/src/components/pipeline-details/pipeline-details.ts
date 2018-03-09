@@ -7,8 +7,8 @@ import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
 import { RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
-import { Pipeline } from '../../lib/pipeline';
 import * as Utils from '../../lib/utils';
+import { Pipeline } from '../../model/pipeline';
 
 import './pipeline-details.html';
 
