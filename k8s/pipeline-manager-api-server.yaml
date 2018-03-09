@@ -1,10 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: pipeline-manager
+  name: ml-pipeline-manager
   labels:
-    app: pipeline-manager
-spec:
+    app: ml-pipeline-manager
 spec:
   type: NodePort
   ports:
@@ -13,27 +12,26 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: pipeline-manager
+    app: ml-pipeline-manager
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pipeline-manager
+  name: ml-pipeline-manager
   labels:
-    app: pipeline-manager
+    app: ml-pipeline-manager
 spec:
-  replicas: 3
   selector:
     matchLabels:
-      app: pipeline-manager
+      app: ml-pipeline-manager
   template:
     metadata:
       labels:
-        app: pipeline-manager
+        app: ml-pipeline-manager
     spec:
       containers:
-      - name: pipeline-manager-api-server
-        image: pipeline-manager-api-server
+      - name: ml-pipeline-api-server
+        image: ml-pipeline-api-server
         imagePullPolicy: Never
         ports:
-        - containerPort: 8888
+          - containerPort: 8888

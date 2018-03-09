@@ -1,13 +1,13 @@
-package dao
+package storage
 
 import (
 	"encoding/json"
 	"ml/apiserver/src/message/argo"
 	"ml/apiserver/src/message/pipelinemanager"
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -19,12 +19,12 @@ type FakeArgoClient struct {
 }
 
 func init() {
-	ct, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
-	st, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
-	ft, _ = time.Parse(time.RFC3339, "2018-02-08T02:19:01Z")
+	ct, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
+	st, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
+	ft, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
 }
 
-func (ac *FakeArgoClient) Request(method string, api string) ([]byte, error) {
+func (ac *FakeArgoClient) Request(method string, api string, requestBody []byte) ([]byte, error) {
 
 	workflow := &argo.WorkflowList{
 		Items: []argo.Workflow{
@@ -40,10 +40,10 @@ func (ac *FakeArgoClient) Request(method string, api string) ([]byte, error) {
 }
 
 func TestListJobs(t *testing.T) {
-	dao := &JobDao{
+	store := &JobStore{
 		argoClient: &FakeArgoClient{},
 	}
-	jobs, err := dao.ListJobs()
+	jobs, err := store.ListJobs()
 
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
@@ -53,13 +53,11 @@ func TestListJobs(t *testing.T) {
 	}
 	job, _ := json.Marshal(jobs[0])
 	jobExpect, _ := json.Marshal(pipelinemanager.Job{
-		Name:              "artifact-passing-5sd2d",
-		CreationTimestamp: &ct,
-		StartTimestamp:    &st,
-		FinishTimestamp:   &ft,
-		Status:            "Failed"})
+		Name:     "artifact-passing-5sd2d",
+		CreateAt: &ct,
+		StartAt:  &st,
+		FinishAt: &ft,
+		Status:   "Failed"})
 
-	if !reflect.DeepEqual(job, jobExpect) {
-		t.Errorf("Unexpecte Job parsed. Expect %v. Got %v", job, jobExpect)
-	}
+	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", string(job), string(jobExpect))
 }

@@ -1,6 +1,7 @@
-package dao
+package storage
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -14,7 +15,7 @@ const (
 )
 
 type ArgoClientInterface interface {
-	Request(method string, api string) ([]byte, error)
+	Request(method string, api string, body []byte) ([]byte, error)
 }
 
 type ArgoClient struct {
@@ -31,12 +32,13 @@ func initClient() http.Client {
 	return http.Client{Transport: tr}
 }
 
-func (ac *ArgoClient) Request(method string, api string) ([]byte, error) {
+func (ac *ArgoClient) Request(method string, api string, body []byte) ([]byte, error) {
 	client := initClient()
 
 	requestUrl := fmt.Sprintf(argoURLPackage, ac.K8ServiceHost, ac.K8TCPPort, api)
-	req, err := http.NewRequest(method, requestUrl, nil)
+	req, err := http.NewRequest(method, requestUrl, bytes.NewBuffer(body))
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %v", ac.K8Token))
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
 	if err != nil {

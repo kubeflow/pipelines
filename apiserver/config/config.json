@@ -2,5 +2,10 @@
   "DBConfig": {
     "DriverName": "sqlite3",
     "DataSourceName": "/bin/pipelines.db"
+  },
+  "PackageManagerConfig":{
+    "AccessKey": "minio",
+    "SecretAccessKey": "minio123",
+    "BucketName": "packagemanager"
   }
 }

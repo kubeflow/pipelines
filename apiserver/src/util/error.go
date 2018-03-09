@@ -9,24 +9,67 @@ import (
 )
 
 type InternalError struct {
+	// Error message returned to client
 	Message string
+	// The error details for logging only
+	ErrorDetail string
 }
 
-func NewInternalError(format string, a ...interface{}) *InternalError {
-	return &InternalError{Message: fmt.Sprintf(format, a...)}
+func NewInternalError(message string, errorDetailFormat string, a ...interface{}) *InternalError {
+	return &InternalError{Message: message, ErrorDetail: fmt.Sprintf(errorDetailFormat, a...)}
 }
 
 func (e *InternalError) Error() string {
-	return e.Message
+	return fmt.Sprintf("%s. Error: <%s>", e.Message, e.ErrorDetail)
 }
 
-func HandleError(action string, ctx iris.Context, err error) {
-	glog.Errorf("%v failed. Error: %v", action, err.Error())
+type ResourceNotFoundError struct {
+	ResourceType string
+	ResourceName string
+}
 
+func NewResourceNotFoundError(resourceType string, resourceName string) *ResourceNotFoundError {
+	return &ResourceNotFoundError{ResourceType: resourceType, ResourceName: resourceName}
+}
+
+func (e *ResourceNotFoundError) Error() string {
+	return fmt.Sprintf("%s %s not found.", e.ResourceType, e.ResourceName)
+}
+
+type InvalidInputError struct {
+	// Error message returned to client
+	Message string
+	// The error details for logging only
+	ErrorDetail string
+}
+
+func NewInvalidInputError(message string, errorDetailFormat string, a ...interface{}) *InvalidInputError {
+	return &InvalidInputError{Message: fmt.Sprintf(message, a...), ErrorDetail: fmt.Sprintf(errorDetailFormat, a...)}
+}
+
+func (e *InvalidInputError) Error() string {
+	return fmt.Sprintf("Invalid input: %v. Error: <%s>", e.Message, e.ErrorDetail)
+}
+
+// TODO(yangpa): Consider add a flag so that when a flag is true, user can see the internal message
+func HandleError(action string, ctx iris.Context, err error) {
 	switch err.(type) {
 	case *InternalError:
+		glog.Errorf("%v failed. Error: %v", action, err.Error())
 		ctx.StatusCode(http.StatusInternalServerError)
+		e, _ := err.(*InternalError)
+		ctx.WriteString(e.Message)
+	case *InvalidInputError:
+		glog.Infof("%v failed. Error: %v", action, err.Error())
+		ctx.StatusCode(http.StatusBadRequest)
+		e, _ := err.(*InvalidInputError)
+		ctx.WriteString(e.Message)
+	case *ResourceNotFoundError:
+		glog.Infof("%v failed. Error: %v", action, err.Error())
+		ctx.StatusCode(http.StatusBadRequest)
+		ctx.WriteString(err.Error())
 	default:
+		glog.Infof("%v failed. Error: %v", action, err.Error())
 		ctx.StatusCode(http.StatusBadRequest)
 	}
 }

@@ -1,21 +1,27 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
-	"ml/apiserver/src/dao"
+	"ml/apiserver/src/common"
+	"ml/apiserver/src/message/pipelinemanager"
+	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
 	"os"
 
 	"github.com/golang/glog"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/minio/minio-go"
 )
 
 const (
-	k8sServiceHost = "KUBERNETES_SERVICE_HOST"
-	k8sTCPPort     = "KUBERNETES_PORT_443_TCP_PORT"
-	k8sTokenFile   = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	k8sServiceHost   = "KUBERNETES_SERVICE_HOST"
+	k8sTCPPort       = "KUBERNETES_PORT_443_TCP_PORT"
+	k8sTokenFile     = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
 )
 
 type DBConfig struct {
@@ -23,32 +29,55 @@ type DBConfig struct {
 	DataSourceName string
 }
 
+type PackageManagerConfig struct {
+	AccessKey       string
+	SecretAccessKey string
+	BucketName      string
+}
+
 type Config struct {
-	DBConfig DBConfig
+	DBConfig             DBConfig
+	PackageManagerConfig PackageManagerConfig
 }
 
 // Container for all service clients
 type ClientManager struct {
-	db         *sql.DB
-	packageDao dao.PackageDaoInterface
-	jobDao     dao.JobDaoInterface
+	db             *gorm.DB
+	packageStore   storage.PackageStoreInterface
+	pipelineStore  storage.PipelineStoreInterface
+	jobStore       storage.JobStoreInterface
+	packageManager storage.PackageManagerInterface
 }
 
 func (clientManager *ClientManager) Init(config Config) {
-	glog.Infof("initializing client manager")
+	glog.Infof("Initializing client manager")
 
 	dbConfig := config.DBConfig
+
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
-	db, err := sql.Open(dbConfig.DriverName, dbConfig.DataSourceName)
+	db, err := gorm.Open(dbConfig.DriverName, dbConfig.DataSourceName)
 	util.TerminateIfError(err)
+
+	// Create table
+	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{}, &pipelinemanager.Parameter{})
+
+	// Initialize package store
 	clientManager.db = db
-	clientManager.packageDao = dao.NewPackageDao(db)
+	clientManager.packageStore = storage.NewPackageStore(db)
 
+	// Initialize pipeline store
+	clientManager.db = db
+	clientManager.pipelineStore = storage.NewPipelineStore(db)
+
+	// Initialize job store
 	argoClient := getArgoClient()
-	clientManager.jobDao = dao.NewJobDao(argoClient)
+	clientManager.jobStore = storage.NewJobStore(argoClient)
 
-	glog.Infof("initialized client manager successfully")
+	// Initialize package manager.
+	clientManager.packageManager = getMinioClient(config.PackageManagerConfig)
+
+	glog.Infof("Client manager initialized successfully")
 }
 
 func (clientManager *ClientManager) End() {
@@ -71,8 +100,8 @@ func getConfig(configPath string) Config {
 }
 
 // Get Argo's K8s CRD API client.
-// TODO(yangpa): Pass the env variable from parameter when start the binary instead.
-func getArgoClient() dao.ArgoClientInterface {
+// TODO(yangpa): Use Viper to get env variable as configuration. https://github.com/spf13/viper
+func getArgoClient() storage.ArgoClientInterface {
 	k8ServiceHost := os.Getenv(k8sServiceHost)
 	if k8ServiceHost == "" {
 		glog.Fatalf("Kubernetes Service Host is not found.")
@@ -91,7 +120,42 @@ func getArgoClient() dao.ArgoClientInterface {
 	if len(k8TokenByte) == 0 {
 		glog.Fatalf("Reading Kubernetes Token file failed. No token found.")
 	}
-	return &dao.ArgoClient{K8ServiceHost: k8ServiceHost, K8TCPPort: k8TCPPort, K8Token: string(k8TokenByte)}
+	return &storage.ArgoClient{K8ServiceHost: k8ServiceHost, K8TCPPort: k8TCPPort, K8Token: string(k8TokenByte)}
+}
+
+// TODO(yangpa): Use Viper to get env variable as configuration. https://github.com/spf13/viper
+func getMinioClient(config PackageManagerConfig) storage.PackageManagerInterface {
+	minioServiceHost := os.Getenv(minioServiceHost)
+	if minioServiceHost == "" {
+		glog.Fatalf("Minio Service Host is not found.")
+	}
+
+	minioServicePort := os.Getenv(minioServicePort)
+	if minioServicePort == "" {
+		glog.Fatalf("Minio Service Port is not found.")
+	}
+
+	minioClient, err := minio.New(
+		fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
+		config.AccessKey,
+		config.SecretAccessKey,
+		false /* Secure connection */)
+	if err != nil {
+		glog.Fatalf("Failed to create Minio client. Error: %v", err)
+	}
+
+	err = minioClient.MakeBucket(config.BucketName, "")
+	if err != nil {
+		// Check to see if we already own this bucket.
+		exists, err := minioClient.BucketExists(config.BucketName)
+		if err == nil && exists {
+			glog.Infof("We already own %s\n", config.BucketName)
+		} else {
+			glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
+		}
+	}
+	glog.Infof("Successfully created %s\n", config.BucketName)
+	return storage.NewMinioPackageManager(&common.MinioClient{Client: minioClient}, config.BucketName)
 }
 
 // NewClientManager creates and Init a new instance of ClientManager
