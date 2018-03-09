@@ -23,6 +23,17 @@ import org.apache.spark.SparkContext
 import scala.util.parsing.json.JSON
 
 
+/** A distributed XGBoost predictor program running in spark cluster.
+ *  Args: 
+ *     model-path: GCS path of the trained xgboost model.
+ *     predict-data-path: GCS path of the prediction libsvm file pattern.
+ *     num-workers: number of spark worker node used for training.
+ *     analysis-path: GCS path of analysis results directory.
+ *     target-name: column name of the prediction target.
+ *     output-path: GCS path to store the prediction results.
+ */
+
+
 object XGBoostPredictor {
 
   def column_feature_size(stats: (String, Any), target: String): Double = {

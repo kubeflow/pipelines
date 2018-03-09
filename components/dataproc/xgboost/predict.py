@@ -11,18 +11,18 @@
 # the License.
 
 
+# A program to perform prediction with an XGBoost model through a dataproc cluster.
+# 
 # Usage:
-# python train.py  \
+# python predict.py  \
 #   --project bradley-playground \
 #   --region us-central1 \
-#   --cluster ten4 \
+#   --cluster my-cluster \
 #   --package gs://bradley-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar \
-#   --output gs://bradley-playground/train/model \
-#   --conf gs://bradley-playground/trainconf.json \
-#   --rounds 300 \
+#   --model gs://bradley-playground/model \
+#   --output gs://bradley-playground/predict/ \
 #   --workers 2 \
-#   --train gs://bradley-playground/transform/train/part-* \
-#   --eval gs://bradley-playground/transform/eval/part-* \
+#   --predict gs://bradley-playground/transform/eval/part-* \
 #   --analysis gs://bradley-playground/analysis \
 #   --target resolution
 
@@ -30,6 +30,7 @@
 import argparse
 
 from common import _utils
+import logging
 
 
 def main(argv=None):
@@ -47,16 +48,17 @@ def main(argv=None):
   parser.add_argument('--target', type=str, help='Target column name.')
   args = parser.parse_args()
 
+  logging.getLogger().setLevel(logging.INFO)
   api = _utils.get_client()
-  print('Submitting job...')
+  logging.info('Submitting job...')
   spark_args = [args.model, args.predict, str(args.workers), args.analysis, args.target,
                 args.output]
   job_id = _utils.submit_spark_job(
       api, args.project, args.region, args.cluster, [args.package],
       'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor', spark_args)
-  print('Job request submitted. Waiting for completion...')
+  logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_job(api, args.project, args.region, job_id)
-  print('Job completed.')
+  logging.info('Job completed.')
 
 
 if __name__== "__main__":

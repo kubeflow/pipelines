@@ -25,6 +25,19 @@ import org.apache.spark.sql.functions.col
 import scala.util.parsing.json.JSON
 
 
+/** A distributed XGBoost trainer program running in spark cluster.
+ *  Args: 
+ *     train-conf: GCS path of the training config json file for xgboost training.
+ *     num-of-rounds: number of rounds to train.
+ *     num-workers: number of spark worker node used for training.
+ *     analysis-path: GCS path of analysis results directory.
+ *     target-name: column name of the prediction target.
+ *     training-path: GCS path of training libsvm file patterns.
+ *     eval-path: GCS path of eval libsvm file patterns.
+ *     output-path: GCS path to store the trained model.
+ */
+
+
 object XGBoostTrainer {
 
   def column_feature_size(stats: (String, Any), target: String): Double = {

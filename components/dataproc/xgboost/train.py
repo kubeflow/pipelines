@@ -11,6 +11,7 @@
 # the License.
 
 
+# A program to perform training of an XGBoost model through a dataproc cluster.
 # Usage:
 # python train.py  \
 #   --project bradley-playground \
@@ -28,6 +29,7 @@
 
 
 import argparse
+import logging
 
 from common import _utils
 
@@ -49,16 +51,17 @@ def main(argv=None):
   parser.add_argument('--target', type=str, help='Target column name.')
   args = parser.parse_args()
 
+  logging.getLogger().setLevel(logging.INFO)
   api = _utils.get_client()
-  print('Submitting job...')
+  logging.info('Submitting job...')
   spark_args = [args.conf, str(args.rounds), str(args.workers), args.analysis, args.target,
                 args.train, args.eval, args.output]
   job_id = _utils.submit_spark_job(
       api, args.project, args.region, args.cluster, [args.package],
       'ml.dmlc.xgboost4j.scala.example.spark.XGBoostTrainer', spark_args)
-  print('Job request submitted. Waiting for completion...')
+  logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_job(api, args.project, args.region, job_id)
-  print('Job completed.')
+  logging.info('Job completed.')
 
 
 if __name__== "__main__":
