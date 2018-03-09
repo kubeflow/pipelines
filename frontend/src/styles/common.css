@@ -66,6 +66,19 @@ hr {
   padding: 20px;
 }
 
+.detail-info-row {
+  border-bottom: 1px solid var(--line-color);
+  padding: 3px;
+  padding-top: 5px;
+  width: 600px;
+}
+
+.detail-title {
+  display: inline-block;
+  font-weight: bold;
+  width: 280px;
+}
+
 paper-tabs {
   --paper-tab-ink: var(--accent-color);
   --paper-tabs-selection-bar-color: var(--accent-color);

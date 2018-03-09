@@ -46,10 +46,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected epochToDateString(time: number) {
-    if (!time || time < 0) {
-      return "Never";
-    }
-    return new Date(time).toLocaleString();
+  protected _dateToString(date: number) {
+    return Utils.dateToString(date);
   }
 }

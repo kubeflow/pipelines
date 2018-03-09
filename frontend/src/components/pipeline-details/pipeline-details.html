@@ -28,27 +28,27 @@
 
           <br/>
 
-          <div class="info-row">
+          <div class="detail-info-row">
             <span class="detail-title">Pipeline Package ID</span><span>[[pipeline.packageId]]</span>
           </div>
-          <div class="info-row">
+          <div class="detail-info-row">
             <span class="detail-title">Description</span><span>[[pipeline.description]]</span>
           </div>
-          <div class="info-row">
+          <div class="detail-info-row">
             <span class="detail-title">Created</span><span>[[pipeline.createdAt]]</span>
           </div>
-          <div class="info-row">
-            <span class="detail-title">Starts</span><span>[[epochToDateString(pipeline.starts)]]</span>
+          <div class="detail-info-row">
+            <span class="detail-title">Starts</span><span>[[_dateToString(pipeline.starts)]]</span>
           </div>
-          <div class="info-row">
-            <span class="detail-title">Ends</span><span>[[epochToDateString(pipeline.ends)]]</span>
+          <div class="detail-info-row">
+            <span class="detail-title">Ends</span><span>[[_dateToString(pipeline.ends)]]</span>
           </div>
-          <div class="info-row">
+          <div class="detail-info-row">
             <span class="detail-title">Recurring</span><span>[[pipeline.recurring]]</span>
           </div>
 
           <template is="dom-if" if="[[pipeline.recurring]]">
-            <div class="info-row">
+            <div class="detail-info-row">
               <span class="detail-title">Runs every</span><span>[[pipeline.recurringIntervalHours]] hours</span>
             </div>
           </template>
@@ -60,7 +60,7 @@
             <div>
               <div class="input-param-header">Input Parameters</div>
               <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
-                <div class="info-row">
+                <div class="detail-info-row">
                   <span class="detail-title">[[param.name]]</span><span>[[param.value]]</span>
                 </div>
               </template>

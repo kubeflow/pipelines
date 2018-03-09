@@ -7,19 +7,6 @@
   margin-bottom: 5px;
 }
 
-.info-row {
-  border-bottom: 1px solid var(--line-color);
-  padding: 3px;
-  padding-top: 5px;
-  width: 600px;
-}
-
-.detail-title {
-  display: inline-block;
-  font-weight: bold;
-  width: 280px;
-}
-
 .pipeline-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);
