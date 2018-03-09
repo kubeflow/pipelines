@@ -1,5 +1,5 @@
-import { Job } from '../lib/job';
-import { PipelinePackage } from '../lib/pipeline_package';
+import { Job } from 'model/job';
+import { PipelinePackage } from 'model/pipeline_package';
 
 export class PackageClickEvent extends MouseEvent {
   public model: {

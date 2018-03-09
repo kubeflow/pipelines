@@ -8,7 +8,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { ItemClickEvent, RouteEvent } from '../../lib/events';
-import { Job, JobStatus } from '../../lib/job';
+import { Job, JobStatus } from '../../model/job';
 
 import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
 import './job-list.html';

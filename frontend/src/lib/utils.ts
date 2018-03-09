@@ -1,4 +1,4 @@
-import { JobStatus } from './job';
+import { JobStatus } from 'model/job';
 
 export function deleteAllChildren(parent: HTMLElement) {
   while (parent.firstChild) {
