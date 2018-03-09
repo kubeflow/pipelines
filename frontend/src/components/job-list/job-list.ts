@@ -35,8 +35,6 @@ export class JobList extends Polymer.Element {
     { name: 'Finish time', type: ColumnTypeName.DATE },
   ];
 
-  private _pipelineId: number;
-
   ready() {
     super.ready();
     const itemList = this.$.jobsItemList as ItemListElement;
@@ -45,8 +43,7 @@ export class JobList extends Polymer.Element {
 
   // TODO: should these jobs be cached?
   public async loadJobs(pipelineId: number) {
-    this._pipelineId = pipelineId;
-    this.jobs = await Apis.getJobs(this._pipelineId);
+    this.jobs = await Apis.getJobs(pipelineId);
 
     this.jobListRows = this.jobs.map((job) => {
       const row = new ItemListRow({
