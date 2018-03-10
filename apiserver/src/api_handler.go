@@ -8,7 +8,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"github.com/iris-contrib/middleware/cors"
 	"github.com/kataras/iris"
 )
 
@@ -268,9 +267,6 @@ func newApp(clientManager ClientManager) *iris.Application {
 		packageManager: clientManager.packageManager,
 	}
 	app := iris.New()
-	// Allow all domains for now.
-	// TODO(yangpa): Limit the origins to only allow webserver.
-	app.Use(cors.NewAllowAll())
 	// registers a custom handler for 404 not found http (error) status code,
 	// fires when route not found or manually by ctx.StatusCode(iris.StatusNotFound).
 	app.OnErrorCode(iris.StatusNotFound, notFoundHandler)
