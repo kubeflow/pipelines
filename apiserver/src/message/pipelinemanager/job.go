@@ -1,8 +1,9 @@
 package pipelinemanager
 
 import (
-	"ml/apiserver/src/message/argo"
 	"time"
+
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 )
 
 type Job struct {
@@ -13,7 +14,7 @@ type Job struct {
 	Status   string     `json:"status,omitempty"`
 }
 
-func ToJob(workflow argo.Workflow) Job {
+func ToJob(workflow v1alpha1.Workflow) Job {
 	return Job{
 		Name:     workflow.ObjectMeta.Name,
 		CreateAt: &workflow.ObjectMeta.CreationTimestamp.Time,
