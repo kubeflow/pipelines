@@ -2,92 +2,92 @@
   <template>
     <link rel="stylesheet" href="./job-details.css">
 
-    <div class="flex">
-      <div class="pipeline-name">[[pipeline.name]]</div>
-      <div class="right">
-        <div class="flex">
-          <iron-icon class="status-icon" icon=[[_getStatusIcon(job.status)]]></iron-icon>
-          <!-- TODO: Get or compute the job progress here -->
-          <paper-progress id="progress" value="100"></paper-progress>
-        </div>
-        <div>
-          <span class="status">[[job.status]]</span>
-        </div>
-      </div>
+    <div class="toolbar">
+      <div class="toolbar-title">Job Details</div>
     </div>
 
-    <hr>
-
-    <div class="flex">
-      <div class="left-column">
-        <div>
-          <span class="strong">Pipeline Package: </span>[[pipeline.packageId]]
-        </div>
-
-        <div>
-          <span class="strong">Description: </span>[[pipeline.description]]
-        </div>
-
-        <div>
-          <span class="strong">Start: </span>[[job.start]]
-        </div>
-
-        <div>
-          <span class="strong">End: </span>[[job.end]]
-        </div>
-
-        <div>
-          <span class="strong">Run time: </span>[[_getRuntime(job.start, job.end, job.status)]]
-        </div>
-      </div>
-
-      <div>
-        <div>
-          <span class="strong">Parameters</span>
-          <tr>
-            <template is="dom-repeat" items="[[pipeline.parameterValues]]" as="param">
-              <li>
-                <span class="strong">[[param.name]]:</span>[[param.value]]
-              </li>
-            </template>
-          </tr>
-        </div>
-      </div>
-    </div>
-
-    <hr>
-
-    <div class="steps" hidden$="[[!job.steps]]">
-      <div class="strong">Pipeline Steps:</div>
-      <paper-tabs id="stepTabs" class="no-shrink" on-selected-changed="_stepSelected">
-        <template is="dom-repeat" items="[[job.steps]]" as="step">
-          <paper-tab>[[step.name]]</paper-tab>
-        </template>
-      </paper-tabs>
-      <file-browser id="fileBrowser"></file-browser>
-
-      <div class="flex action-buttons">
-        <paper-button class="action-button" on-click="_preview">Preview</paper-button>
-        <paper-button class="action-button" on-click="_plot">Plot</paper-button>
-      </div>
-
-      <div class="dialogs">
-        <paper-dialog with-backdrop id="previewDialog">
-          <div id="previewTitle"></div>
-          <div id="preview"></div>
-          <div class="dialog-buttons">
-            <paper-button dialog-confirm autofocus>Close</paper-button>
+    <div class="padded-20">
+      <div class="flex">
+        <div class="job-name padded">[[job.name]]</div>
+        <div class="right">
+          <div class="flex">
+            <iron-icon class="status-icon" icon=[[_getStatusIcon(job.status)]]></iron-icon>
+            <!-- TODO: Get or compute the job progress here -->
+            <paper-progress id="progress" value="100"></paper-progress>
           </div>
-        </paper-dialog>
-
-        <paper-dialog with-backdrop id="plotDialog">
-          <div id="plotTitle"></div>
-          <div id="plot"></div>
-          <div class="dialog-buttons">
-            <paper-button dialog-confirm autofocus>Close</paper-button>
+          <div>
+            <span class="status">[[job.status]]</span>
           </div>
-        </paper-dialog>
+        </div>
       </div>
+
+      <hr>
+
+      <div class="details-table">
+
+        <br/>
+
+        <div>
+          <span class="detail-title">Status</span>
+          <span>[[job.status]]</span>
+        </div>
+        <div>
+          <span class="detail-title">Created at</span>
+          <span>[[_dateToString(job.createdAt)]]</span>
+        </div>
+        <div>
+          <span class="detail-title">Started at</span>
+          <span>[[_dateToString(job.startedAt)]]</span>
+        </div>
+        <div>
+          <span class="detail-title">Finished at</span>
+          <span>[[_dateToString(job.finishedAt)]]</span>
+        </div>
+        <div>
+          <span class="detail-title">Duration</span>
+          <span>[[_getRuntime(job.startedAt, job.finishedAt, job.status)]]</span>
+        </div>
+
+        <br/>
+        <br/>
+
+      </div>
+
+      <hr>
+
+      <div class="steps" hidden$="[[!job.steps]]">
+        <div class="strong">Job Steps:</div>
+        <paper-tabs id="stepTabs" class="no-shrink" on-selected-changed="_stepSelected">
+          <template is="dom-repeat" items="[[job.steps]]" as="step">
+            <paper-tab>[[step.name]]</paper-tab>
+          </template>
+        </paper-tabs>
+        <file-browser id="fileBrowser"></file-browser>
+
+        <div class="flex action-buttons">
+          <paper-button class="action-button" on-click="_preview">Preview</paper-button>
+          <paper-button class="action-button" on-click="_plot">Plot</paper-button>
+        </div>
+
+        <div class="dialogs">
+          <paper-dialog with-backdrop id="previewDialog">
+            <div id="previewTitle"></div>
+            <div id="preview"></div>
+            <div class="dialog-buttons">
+              <paper-button dialog-confirm autofocus>Close</paper-button>
+            </div>
+          </paper-dialog>
+
+          <paper-dialog with-backdrop id="plotDialog">
+            <div id="plotTitle"></div>
+            <div id="plot"></div>
+            <div class="dialog-buttons">
+              <paper-button dialog-confirm autofocus>Close</paper-button>
+            </div>
+          </paper-dialog>
+        </div>
+      </div>
+
     </div>
 
   </template>

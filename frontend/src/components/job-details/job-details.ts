@@ -58,7 +58,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
   }
 
   protected _dateToString(date: number) {
-    return date === -1 ? '-' : new Date(date).toLocaleString();
+    return Utils.dateToString(date);
   }
 
   protected _getStatusIcon(status: JobStatus) {

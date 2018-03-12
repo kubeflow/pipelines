@@ -4,14 +4,12 @@
 :host {
   display: flex;
   flex-flow: column;
-  padding: 30px;
 }
 
-.pipeline-name {
+.job-name {
   color: var(--fg-color-strong);
-  flex-grow: 1;
   font-size: var(--font-size-strong);
-  font-weight: bold;
+  flex-grow: 1;
 }
 
 .left-column {

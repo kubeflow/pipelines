@@ -69,7 +69,7 @@ module.exports = {
       id: 1,
       name: 'Unstructured text experiment 1',
       packageId: 1,
-      parameterValues: [
+      parameters: [
         {
           name: 'x',
           value: 10
@@ -88,7 +88,7 @@ module.exports = {
       id: 2,
       name: 'Unstructured text experiment 1',
       packageId: 1,
-      parameterValues: [
+      parameters: [
         {
           name: 'x',
           value: 10

@@ -45,4 +45,8 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
       this.dispatchEvent(new RouteEvent(`/jobs?pipelineId=${this.pipeline.id}`));
     }
   }
+
+  protected _dateToString(date: number) {
+    return Utils.dateToString(date);
+  }
 }
