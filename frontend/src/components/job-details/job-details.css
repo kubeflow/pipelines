@@ -8,13 +8,8 @@
 
 .job-name {
   color: var(--fg-color-strong);
-  font-size: var(--font-size-strong);
   flex-grow: 1;
-}
-
-.left-column {
-  margin-right: 30px;
-  min-width: 300px;
+  font-size: var(--font-size-strong);
 }
 
 .status-icon {
@@ -27,97 +22,4 @@ paper-progress {
   --paper-progress-active-color: var(--progress-color);
   --paper-progress-height: 10px;
   margin: 7px;
-}
-
-.steps {
-  display: flex;
-  flex-flow: column;
-  flex-grow: 1;
-}
-
-file-browser {
-  border: 1px solid var(--line-color);
-  flex-grow: 1;
-}
-
-.action-buttons {
-  justify-content: center;
-  margin: 10px;
-}
-
-#previewDialog, #plotDialog {
-  display: flex;
-  flex-flow: column;
-  max-height: 80vh;
-  max-width: 80vw;
-  min-height: 40vh;
-  min-width: 40vw;
-}
-
-#plotTitle, #previewTitle {
-  flex: auto 0 0;
-  margin: 25px;
-  text-align: center;
-}
-
-#preview, #plot {
-  border-bottom: 1px solid var(--line-color);
-  border-top: 1px solid var(--line-color);
-  flex-grow: 1;
-  padding: 20px;
-  overflow: auto;
-}
-
-.dialogs table,
-.dialogs tr,
-.dialogs td,
-.dialogs th {
-  border: 1px solid var(--line-color);
-  min-width: 75px;
-  padding: 5px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.dialogs tr:hover {
-  background-color: var(--bg-color);
-}
-
-.dialogs th {
-  font-weight: bold;
-}
-
-.axis text {
-  font: 10px sans-serif;
-}
-
-.axis line, .axis path {
-  fill: none;
-  stroke: var(--fg-color);
-}
-
-.line {
-  fill: none;
-  stroke: var(--progress-color);
-  stroke-width: 2px;
-}
-
-.dialog-buttons {
-  flex: auto 0 0;
-  margin: 10px;
-  text-align: center;
-}
-
-.json-pretty {
-  font-family: monospace;
-  line-height: 16px;
-}
-
-.json-key {
-  color: var(--neutral-color);
-}
-
-.json-boolean,
-.json-number {
-  color: var(--accent-color);
 }
