@@ -55,6 +55,39 @@
 
       <hr>
 
+      <div class="steps" hidden$="[[!job.steps]]">
+        <div class="strong">Job Steps:</div>
+        <paper-tabs id="stepTabs" class="no-shrink" on-selected-changed="_stepSelected">
+          <template is="dom-repeat" items="[[job.steps]]" as="step">
+            <paper-tab>[[step.name]]</paper-tab>
+          </template>
+        </paper-tabs>
+        <file-browser id="fileBrowser"></file-browser>
+
+        <div class="flex action-buttons">
+          <paper-button class="action-button" on-click="_preview">Preview</paper-button>
+          <paper-button class="action-button" on-click="_plot">Plot</paper-button>
+        </div>
+
+        <div class="dialogs">
+          <paper-dialog with-backdrop id="previewDialog">
+            <div id="previewTitle"></div>
+            <div id="preview"></div>
+            <div class="dialog-buttons">
+              <paper-button dialog-confirm autofocus>Close</paper-button>
+            </div>
+          </paper-dialog>
+
+          <paper-dialog with-backdrop id="plotDialog">
+            <div id="plotTitle"></div>
+            <div id="plot"></div>
+            <div class="dialog-buttons">
+              <paper-button dialog-confirm autofocus>Close</paper-button>
+            </div>
+          </paper-dialog>
+        </div>
+      </div>
+
     </div>
 
   </template>
