@@ -1,3 +1,17 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -8,7 +22,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	"github.com/iris-contrib/middleware/cors"
 	"github.com/kataras/iris"
 )
 
@@ -268,9 +281,6 @@ func newApp(clientManager ClientManager) *iris.Application {
 		packageManager: clientManager.packageManager,
 	}
 	app := iris.New()
-	// Allow all domains for now.
-	// TODO(yangpa): Limit the origins to only allow webserver.
-	app.Use(cors.NewAllowAll())
 	// registers a custom handler for 404 not found http (error) status code,
 	// fires when route not found or manually by ctx.StatusCode(iris.StatusNotFound).
 	app.OnErrorCode(iris.StatusNotFound, notFoundHandler)
