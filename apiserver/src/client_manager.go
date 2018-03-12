@@ -1,14 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"ml/apiserver/src/common"
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
-	"os"
 
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
@@ -24,22 +22,6 @@ const (
 	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
 )
 
-type DBConfig struct {
-	DriverName     string
-	DataSourceName string
-}
-
-type PackageManagerConfig struct {
-	AccessKey       string
-	SecretAccessKey string
-	BucketName      string
-}
-
-type Config struct {
-	DBConfig             DBConfig
-	PackageManagerConfig PackageManagerConfig
-}
-
 // Container for all service clients
 type ClientManager struct {
 	db             *gorm.DB
@@ -49,14 +31,12 @@ type ClientManager struct {
 	packageManager storage.PackageManagerInterface
 }
 
-func (clientManager *ClientManager) Init(config Config) {
+func (clientManager *ClientManager) Init() {
 	glog.Infof("Initializing client manager")
-
-	dbConfig := config.DBConfig
 
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
-	db, err := gorm.Open(dbConfig.DriverName, dbConfig.DataSourceName)
+	db, err := gorm.Open(getConfig("DBConfig.DriverName"), getConfig("DBConfig.DataSourceName"))
 	util.TerminateIfError(err)
 
 	// Create table
@@ -75,7 +55,7 @@ func (clientManager *ClientManager) Init(config Config) {
 	clientManager.jobStore = storage.NewJobStore(argoClient)
 
 	// Initialize package manager.
-	clientManager.packageManager = getMinioClient(config.PackageManagerConfig)
+	clientManager.packageManager = getMinioClient()
 
 	glog.Infof("Client manager initialized successfully")
 }
@@ -84,33 +64,11 @@ func (clientManager *ClientManager) End() {
 	clientManager.db.Close()
 }
 
-// Get configurations from the user defined config file.
-func getConfig(configPath string) Config {
-	var config Config
-	if configPath != "" {
-		b, err := ioutil.ReadFile(configPath)
-		if err != nil {
-			glog.Fatalf("Failed to read config at %s: %v", configPath, err)
-		}
-		if err := json.Unmarshal(b, &config); err != nil {
-			glog.Fatalf("Failed to parse config file at %s: %v", configPath, err)
-		}
-	}
-	return config
-}
-
 // Get Argo's K8s CRD API client.
-// TODO(yangpa): Use Viper to get env variable as configuration. https://github.com/spf13/viper
 func getArgoClient() storage.ArgoClientInterface {
-	k8ServiceHost := os.Getenv(k8sServiceHost)
-	if k8ServiceHost == "" {
-		glog.Fatalf("Kubernetes Service Host is not found.")
-	}
+	k8ServiceHost := getConfig(k8sServiceHost)
 
-	k8TCPPort := os.Getenv(k8sTCPPort)
-	if k8TCPPort == "" {
-		glog.Fatalf("Kubernetes TCP Port is not found.")
-	}
+	k8TCPPort := getConfig(k8sTCPPort)
 
 	k8TokenByte, err := ioutil.ReadFile(k8sTokenFile)
 	if err != nil {
@@ -123,46 +81,37 @@ func getArgoClient() storage.ArgoClientInterface {
 	return &storage.ArgoClient{K8ServiceHost: k8ServiceHost, K8TCPPort: k8TCPPort, K8Token: string(k8TokenByte)}
 }
 
-// TODO(yangpa): Use Viper to get env variable as configuration. https://github.com/spf13/viper
-func getMinioClient(config PackageManagerConfig) storage.PackageManagerInterface {
-	minioServiceHost := os.Getenv(minioServiceHost)
-	if minioServiceHost == "" {
-		glog.Fatalf("Minio Service Host is not found.")
-	}
-
-	minioServicePort := os.Getenv(minioServicePort)
-	if minioServicePort == "" {
-		glog.Fatalf("Minio Service Port is not found.")
-	}
-
+func getMinioClient() storage.PackageManagerInterface {
+	minioServiceHost := getConfig(minioServiceHost)
+	minioServicePort := getConfig(minioServicePort)
 	minioClient, err := minio.New(
 		fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
-		config.AccessKey,
-		config.SecretAccessKey,
+		getConfig("PackageManagerConfig.AccessKey"),
+		getConfig("PackageManagerConfig.SecretAccessKey"),
 		false /* Secure connection */)
 	if err != nil {
 		glog.Fatalf("Failed to create Minio client. Error: %v", err)
 	}
 
-	err = minioClient.MakeBucket(config.BucketName, "")
+	bucketName := getConfig("PackageManagerConfig.BucketName")
+	err = minioClient.MakeBucket(bucketName, "")
 	if err != nil {
 		// Check to see if we already own this bucket.
-		exists, err := minioClient.BucketExists(config.BucketName)
+		exists, err := minioClient.BucketExists(bucketName)
 		if err == nil && exists {
-			glog.Infof("We already own %s\n", config.BucketName)
+			glog.Infof("We already own %s\n", bucketName)
 		} else {
 			glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
 		}
 	}
-	glog.Infof("Successfully created %s\n", config.BucketName)
-	return storage.NewMinioPackageManager(&common.MinioClient{Client: minioClient}, config.BucketName)
+	glog.Infof("Successfully created %s\n", bucketName)
+	return storage.NewMinioPackageManager(&common.MinioClient{Client: minioClient}, bucketName)
 }
 
-// NewClientManager creates and Init a new instance of ClientManager
-func NewClientManager(configPath string) ClientManager {
+// newClientManager creates and Init a new instance of ClientManager
+func newClientManager() ClientManager {
 	clientManager := ClientManager{}
-	config := getConfig(configPath)
-	clientManager.Init(config)
+	clientManager.Init()
 
 	return clientManager
 }

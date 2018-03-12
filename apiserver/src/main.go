@@ -17,8 +17,9 @@ func main() {
 	flag.Parse()
 	glog.Infof("starting web server")
 
-	clientManager := NewClientManager(*configPath)
+	initConfig()
 
+	clientManager := newClientManager()
 	app := newApp(clientManager)
 
 	app.Run(
