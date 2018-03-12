@@ -8,14 +8,19 @@ RUN npm install
 RUN ./node_modules/bower/bin/bower i --allow-root
 RUN npm run build
 
+WORKDIR ./server
+RUN npm install
+RUN npm tsc
+
 FROM node:6.9.5-alpine
 
-COPY --from=build ./src/server /app/server
 COPY --from=build ./src/dist /app/dist
+COPY --from=build ./src/server/server.js /app/server/server.js
+COPY --from=build ./src/server/package.json /app/server/package.json
 
 WORKDIR /app
 
 EXPOSE 3000
-RUN npm install express http-proxy-middleware
+RUN npm install
 ENV API_SERVER_ADDRESS http://localhost:3001
-CMD node ./server/server.js ./dist/ 3000
+CMD npm start
