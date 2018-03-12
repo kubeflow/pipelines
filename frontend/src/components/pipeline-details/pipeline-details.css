@@ -2,9 +2,9 @@
 @import '../../styles/common.css';
 
 .input-param-header {
-  font-weight: bold;
-  font-size: 20px;
-  margin-bottom: 5px;
+  font-size: 16px;
+  margin: auto 0;
+  padding-right: 20px;
 }
 
 .pipeline-name {

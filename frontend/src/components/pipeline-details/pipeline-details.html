@@ -24,49 +24,64 @@
       </div>
 
       <iron-pages selected="{{selectedTab}}">
-        <div class="details">
+
+        <!-- iron-page tab 1 -->
+        <div>
 
           <br/>
-
-          <div class="detail-info-row">
-            <span class="detail-title">Pipeline Package ID</span><span>[[pipeline.packageId]]</span>
-          </div>
-          <div class="detail-info-row">
-            <span class="detail-title">Description</span><span>[[pipeline.description]]</span>
-          </div>
-          <div class="detail-info-row">
-            <span class="detail-title">Created</span><span>[[pipeline.createdAt]]</span>
-          </div>
-          <div class="detail-info-row">
-            <span class="detail-title">Starts</span><span>[[_dateToString(pipeline.starts)]]</span>
-          </div>
-          <div class="detail-info-row">
-            <span class="detail-title">Ends</span><span>[[_dateToString(pipeline.ends)]]</span>
-          </div>
-          <div class="detail-info-row">
-            <span class="detail-title">Recurring</span><span>[[pipeline.recurring]]</span>
-          </div>
-
-          <template is="dom-if" if="[[pipeline.recurring]]">
-            <div class="detail-info-row">
-              <span class="detail-title">Runs every</span><span>[[pipeline.recurringIntervalHours]] hours</span>
+          <div class="details-table">
+            <div>
+              <span class="detail-title">Pipeline Package ID</span>
+              <span>[[pipeline.packageId]]</span>
             </div>
-          </template>
+            <div>
+              <span class="detail-title">Description</span>
+              <span>[[pipeline.description]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Created</span>
+              <span>[[pipeline.createdAt]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Starts</span>
+              <span>[[_dateToString(pipeline.starts)]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Ends</span>
+              <span>[[_dateToString(pipeline.ends)]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Recurring</span>
+              <span>[[pipeline.recurring]]</span>
+            </div>
+
+            <template is="dom-if" if="[[pipeline.recurring]]">
+              <div>
+                <span class="detail-title">Runs every</span>
+                <span>[[pipeline.recurringIntervalHours]] hours</span>
+              </div>
+            </template>
+
+          </div>
 
           <br/>
           <br/>
 
           <template is="dom-if" if="[[pipeline.parameters.length]]">
-            <div>
-              <div class="input-param-header">Input Parameters</div>
+            <div class="input-param-header">Input Parameters</div>
+            <div class="details-table">
               <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
-                <div class="detail-info-row">
-                  <span class="detail-title">[[param.name]]</span><span>[[param.value]]</span>
+                <div>
+                  <span class="detail-title">[[param.name]]</span>
+                  <span>[[param.value]]</span>
                 </div>
               </template>
             </div>
           </template>
+
         </div>
+
+        <!-- iron-page tab 2 -->
         <job-list id="jobs"></job-list>
       </iron-pages>
     </div>
