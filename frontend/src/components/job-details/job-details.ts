@@ -1,4 +1,5 @@
 import 'iron-icons/iron-icons.html';
+import 'paper-progress/paper-progress.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
