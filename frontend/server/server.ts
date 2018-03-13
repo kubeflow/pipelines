@@ -4,7 +4,7 @@ import os = require('os');
 import path = require('path');
 import process = require('process');
 import proxy = require('http-proxy-middleware');
-import { Storage } from '@google-cloud/storage';
+import Storage = require('@google-cloud/storage');
 
 const app = express() as express.Application;
 
@@ -30,15 +30,15 @@ app.get('/_config/apiServerAddress', (req, res) => {
 });
 
 app.get('/_api/artifact/:path', (req, res) => {
-  const storage = new Storage();
+  const storage = Storage();
 
-  if (!req.params.path) {
+  if (!req.params) {
     console.error('No path provided. Aborting..');
     return;
   }
 
-  if (req.params.path.startsWith('gs://')) {
-    const reqPath = req.params.path.substr('gs://'.length).split('/');
+  if (req.params[0].startsWith('gs://')) {
+    const reqPath = req.params[0].substr('gs://'.length).split('/');
     const bucket = reqPath[0];
     const filename = path.join(...reqPath.slice(1));
     const destFilename = path.join(os.tmpdir(), Math.floor(Math.random() * 1000000).toString());
