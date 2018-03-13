@@ -1,4 +1,3 @@
-import { FileDescriptor } from '../components/file-browser/file-browser';
 import { Job } from '../model/job';
 import { Pipeline } from '../model/pipeline';
 import { PipelinePackage } from '../model/pipeline_package';
@@ -100,20 +99,4 @@ export async function newJob(id: number): Promise<Job> {
     method: 'POST',
   });
   return await response.json();
-}
-
-/**
- * List files at a given path from content service.
- */
-export async function listFiles(path: string): Promise<FileDescriptor[]> {
-  const response = await fetch(path);
-  return await response.json();
-}
-
-/**
- * Read file from storage using backend.
- */
-export async function readFile(path: string): Promise<string> {
-  const response = await fetch(path);
-  return await response.text();
 }
