@@ -1,4 +1,4 @@
-import { Job, JobOutputPaths } from '../model/job';
+import { Job } from '../model/job';
 import { Pipeline } from '../model/pipeline';
 import { PipelinePackage } from '../model/pipeline_package';
 
@@ -98,14 +98,6 @@ export async function newJob(id: number): Promise<Job> {
     },
     method: 'POST',
   });
-  return await response.json();
-}
-
-/**
- * Gets the output paths of a certain job given its id.
- */
-export async function getJobOutputPaths(id: number): Promise<JobOutputPaths> {
-  const response = await fetch(apisPrefix + `/jobs/${id}/outputPaths`);
   return await response.json();
 }
 

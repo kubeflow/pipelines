@@ -50,15 +50,6 @@ module.exports = (app) => {
     res.json(j[0]);
   });
 
-  app.get('/_api/jobs/:jid/outputPaths', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    res.send([
-      { 'analyze': 'gs://mybucket/workflow123/analysis' },
-      { 'transform': 'gs://mybucket/workflow123/transform' },
-      { 'train': 'gs://mybucket/workflow123/model' },
-    ]);
-  });
-
   app.get('/_api/packages', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.packages);

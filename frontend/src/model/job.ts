@@ -10,8 +10,6 @@ export interface JobStep {
 
 export type JobStatus = 'Not started' | 'Running' | 'Errored' | 'Succeeded';
 
-export type JobOutputPaths = Array<{[k: string]: string}>;
-
 export interface Job {
   createdAt: string;
   finishedAt: string;
