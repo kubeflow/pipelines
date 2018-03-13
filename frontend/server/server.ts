@@ -1,10 +1,10 @@
+import Storage = require('@google-cloud/storage');
 import express = require('express');
 import fs = require('fs');
+import proxy = require('http-proxy-middleware');
 import os = require('os');
 import path = require('path');
 import process = require('process');
-import proxy = require('http-proxy-middleware');
-import Storage = require('@google-cloud/storage');
 
 const app = express() as express.Application;
 
@@ -29,21 +29,44 @@ app.get('/_config/apiServerAddress', (req, res) => {
   res.send(apiServerAddress);
 });
 
-app.get('/_api/artifact/*', (req, res) => {
-  const storage = Storage();
-
+app.get('/_api/artifact/list/*', (req, res) => {
   if (!req.params) {
     console.error('No path provided. Aborting..');
     return;
   }
 
+  const storage = Storage();
+
   if (req.params[0].startsWith('gs://')) {
     const reqPath = req.params[0].substr('gs://'.length).split('/');
     const bucket = reqPath[0];
-    const filename = path.join(...reqPath.slice(1));
+    const filepath = reqPath.slice(1).join('/');
+
+    storage
+      .bucket(bucket)
+      .getFiles({prefix: filepath})
+      .then((results) => res.send(results[0].map((f) => f.name)))
+      .catch((err) => {
+        console.error('Error listing files:', err);
+        res.status(500).send('Error: ' + err);
+      });
+  }
+});
+
+app.get('/_api/artifact/get/*', (req, res) => {
+  if (!req.params) {
+    console.error('No path provided. Aborting..');
+    return;
+  }
+
+  const storage = Storage();
+
+  if (req.params[0].startsWith('gs://')) {
+    const reqPath = req.params[0].substr('gs://'.length).split('/');
+    const bucket = reqPath[0];
+    const filename = reqPath.slice(1).join('/');
     const destFilename = path.join(os.tmpdir(), Math.floor(Math.random() * 1000000).toString());
 
-    // Downloads the file
     storage
       .bucket(bucket)
       .file(filename)
@@ -53,7 +76,7 @@ app.get('/_api/artifact/*', (req, res) => {
         const contents = fs.readFileSync(destFilename, { encoding: 'utf-8', flag: 'r' });
         res.sendFile(destFilename);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Error getting file:', err);
         res.status(500).send('Error: ' + err);
       });

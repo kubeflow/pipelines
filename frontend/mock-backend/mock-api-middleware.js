@@ -3,7 +3,6 @@ const fs = require('fs');
 const prefix = __dirname + '/pipeline-data';
 
 const fixedData = require('./fixed-data');
-const templateYaml = fs.readFileSync('./mock-backend/template.yaml', { encoding: 'utf-8' });
 
 module.exports = (app) => {
 
@@ -54,9 +53,9 @@ module.exports = (app) => {
   app.get('/_api/jobs/:jid/outputPaths', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.send([
-      { 'analyze': 'analysis' },
-      { 'transform': 'transform' },
-      { 'train': 'model' },
+      { 'analyze': 'gs://mybucket/workflow123/analysis' },
+      { 'transform': 'gs://mybucket/workflow123/transform' },
+      { 'train': 'gs://mybucket/workflow123/model' },
     ]);
   });
 
@@ -67,7 +66,7 @@ module.exports = (app) => {
 
   app.get('/_api/packages/:pid/template', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
-    res.send(templateYaml);
+    res.send('test yaml');
   });
 
   app.post('/_api/packages/upload', (req, res) => {
@@ -75,4 +74,17 @@ module.exports = (app) => {
     res.json(fixedData.packages[0]);
   });
 
+  app.get('/_api/artifact/list/:path', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    res.json([
+      req.params.path + '/file1',
+      req.params.path + '/file2',
+      req.params.path + '/file3',
+      req.params.path + '/file4',
+    ]);
+  });
+
+  app.get('/_api/artifact/get/:path', (req, res) => {
+    res.send('This is a text artifact file.');
+  });
 };
