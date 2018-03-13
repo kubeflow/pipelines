@@ -10,8 +10,8 @@ RUN npm run build
 
 FROM node:6.9.5-alpine
 
+COPY --from=build ./src/server /app
 COPY --from=build ./src/dist /app/dist
-COPY --from=build ./src/server/server /app
 
 WORKDIR /app/server
 

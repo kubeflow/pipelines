@@ -29,7 +29,7 @@ app.get('/_config/apiServerAddress', (req, res) => {
   res.send(apiServerAddress);
 });
 
-app.get('/_api/artifact/:path', (req, res) => {
+app.get('/_api/artifact/*', (req, res) => {
   const storage = Storage();
 
   if (!req.params) {
