@@ -26,7 +26,7 @@ import scala.util.parsing.json.JSON
 
 
 /** A distributed XGBoost trainer program running in spark cluster.
- *  Args: 
+ *  Args:
  *     train-conf: GCS path of the training config json file for xgboost training.
  *     num-of-rounds: number of rounds to train.
  *     num-workers: number of spark worker node used for training.
@@ -47,7 +47,6 @@ object XGBoostTrainer {
     else if (statsMap.keys.exists(_ == "max")) 1.0
     else 0.0
   }
-
 
   def get_feature_size(statsPath: String, target: String): Int = {
     val sparkSession = SparkSession.builder().getOrCreate()
@@ -75,13 +74,19 @@ object XGBoostTrainer {
     }
   }
 
-  def isClassificationTask(params: Map[String, Any]): Boolean = {
-    val objective = params.getOrElse("objective", params.getOrElse("obj_type", null))
-    objective != null && {
-      val objStr = objective.toString
-      objStr != "regression" && !objStr.startsWith("reg:") && objStr != "count:poisson" &&
-        !objStr.startsWith("rank:")
+  def isClassificationTask(schemaFile: String, targetName: String): Boolean = {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    val schemaString = sparkSession.sparkContext.wholeTextFiles(
+        schemaFile).map(tuple => tuple._2).collect()(0)
+    val schema = JSON.parseFull(schemaString).get.asInstanceOf[List[Map[String, String]]]
+    val targetList = schema.filter(x => x("name") == targetName)
+    if (targetList.isEmpty) {
+      throw new IllegalArgumentException("target cannot be found.")
     }
+    val targetType = targetList(0)("type")
+    if (targetType == "CATEGORY") true
+    else if (targetType == "NUMBER") false
+    else throw new IllegalArgumentException("invalid target type.")
   }
 
   def main(args: Array[String]): Unit = {
@@ -121,7 +126,7 @@ object XGBoostTrainer {
     // xgboost-spark appends the column containing prediction results
     val predictionDF = xgboostModel.transform(testDF)
 
-    val classification = isClassificationTask(paramMap)
+    val classification = isClassificationTask(analysisPath + "/schema.json", targetName)
     implicit val sc = SparkContext.getOrCreate()
     if (classification) {
       val correctCounts = predictionDF.filter(
