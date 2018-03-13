@@ -14,8 +14,7 @@
     "typescript": "2.6.2"
   },
   "scripts": {
-    "start": "node server.js ./dist/ 3000",
-    "tsc": "tsc"
+    "start": "tsc server.ts && node server.js ./dist/ 3000"
   },
   "repository": {
     "type": "git",

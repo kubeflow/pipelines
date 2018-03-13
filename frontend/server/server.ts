@@ -1,9 +1,10 @@
 import express = require('express');
 import fs = require('fs');
 import os = require('os');
-import proxy = require('http-proxy-middleware');
 import path = require('path');
 import process = require('process');
+import proxy = require('http-proxy-middleware');
+import { Storage } from '@google-cloud/storage';
 
 const app = express() as express.Application;
 
@@ -28,8 +29,7 @@ app.get('/_config/apiServerAddress', (req, res) => {
   res.send(apiServerAddress);
 });
 
-app.get('/_api/artifact/:path', async (req, res) => {
-  const Storage = require('@google-cloud/storage');
+app.get('/_api/artifact/:path', (req, res) => {
   const storage = new Storage();
 
   if (!req.params.path) {
@@ -44,14 +44,19 @@ app.get('/_api/artifact/:path', async (req, res) => {
     const destFilename = path.join(os.tmpdir(), Math.floor(Math.random() * 1000000).toString());
 
     // Downloads the file
-    await storage.bucket(bucket).file(filename).download({ destination: destFilename })
-
-    console.log(
-      `gs://${bucket}/${filename} downloaded to ${destFilename}.`
-    );
-
-    const contents = fs.readFileSync(destFilename, { encoding: 'utf-8', flag: 'r' });
-    res.sendFile(destFilename);
+    storage
+      .bucket(bucket)
+      .file(filename)
+      .download({ destination: destFilename })
+      .then(() => {
+        console.log(`gs://${bucket}/${filename} downloaded to ${destFilename}.`);
+        const contents = fs.readFileSync(destFilename, { encoding: 'utf-8', flag: 'r' });
+        res.sendFile(destFilename);
+      })
+      .catch(err => {
+        console.error('Error getting file:', err);
+        res.status(500).send('Error: ' + err);
+      });
   }
 
 });
