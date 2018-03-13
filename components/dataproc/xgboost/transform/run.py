@@ -120,14 +120,15 @@ def make_process_rows_fn(
           feature_values.append(1.0)
         start_index += len(vocab[col])
       if col in text_cols:
-        values = col_value.split()
-        word_indices = []
-        for v in values:
-          if v in vocab[col]:
-            word_indices.append(start_index + vocab[col].index(v))
-        for k, v in sorted(six.iteritems(Counter(word_indices))):
-          feature_indices.append(k)
-          feature_values.append(float(v))
+        if col_value is not None:
+          values = col_value.split()
+          word_indices = []
+          for v in values:
+            if v in vocab[col]:
+              word_indices.append(start_index + vocab[col].index(v))
+          for k, v in sorted(six.iteritems(Counter(word_indices))):
+            feature_indices.append(k)
+            feature_values.append(float(v))
         start_index += len(vocab[col])
       if col == target_col:
         label = vocab[col].index(col_value) if classification else col_value

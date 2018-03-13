@@ -16,15 +16,20 @@
 
 package ml.dmlc.xgboost4j.scala.example.spark
 
+import com.google.gson.Gson
+import java.io._
 import ml.dmlc.xgboost4j.scala.spark.XGBoost
+import org.apache.spark.sql.expressions.UserDefinedFunction
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
+import scala.sys.process.Process
 import scala.util.parsing.json.JSON
 
 
 /** A distributed XGBoost predictor program running in spark cluster.
- *  Args: 
+ *  Args:
  *     model-path: GCS path of the trained xgboost model.
  *     predict-data-path: GCS path of the prediction libsvm file pattern.
  *     num-workers: number of spark worker node used for training.
@@ -34,8 +39,12 @@ import scala.util.parsing.json.JSON
  */
 
 
+case class SchemaEntry(name: String, `type`: String)
+
+
 object XGBoostPredictor {
 
+  // TODO: create a common class for the util functions.
   def column_feature_size(stats: (String, Any), target: String): Double = {
     if (stats._1 == target) 0.0
     val statsMap = stats._2.asInstanceOf[Map[String, Any]]
@@ -55,10 +64,53 @@ object XGBoostPredictor {
     sum.toInt
   }
 
+  def isClassificationTask(schemaFile: String, targetName: String): Boolean = {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    val schemaString = sparkSession.sparkContext.wholeTextFiles(
+        schemaFile).map(tuple => tuple._2).collect()(0)
+    val schema = JSON.parseFull(schemaString).get.asInstanceOf[List[Map[String, String]]]
+    val targetList = schema.filter(x => x("name") == targetName)
+    if (targetList.isEmpty) {
+      throw new IllegalArgumentException("target cannot be found.")
+    }
+    val targetType = targetList(0)("type")
+    if (targetType == "CATEGORY") true
+    else if (targetType == "NUMBER") false
+    else throw new IllegalArgumentException("invalid target type.")
+  }
+
+  def getVocab(vocabFile: String): Array[String] = {
+    val sparkSession = SparkSession.builder().getOrCreate()
+    val vocabContent = sparkSession.sparkContext.wholeTextFiles(vocabFile).map(
+        tuple => tuple._2).collect()(0)
+    val vocabFreq = vocabContent.split("\n")
+    val vocab = for (e <- vocabFreq) yield e.split(",")(0)
+    vocab
+  }
+
+  def labelIndexToStringUdf(vocab: Array[String]): UserDefinedFunction = {
+    val lookup: (Double => String) = (label: Double) => (vocab(label.toInt))
+    udf(lookup)
+  }
+
+  def probsToPredictionUdf(vocab: Array[String]): UserDefinedFunction = {
+    val convert: (Double => String) = (prob: Double) => (if (prob >= 0.5) vocab(1) else vocab(0))
+    udf(convert)
+  }
+
+  def writeSchemaFile(output: String, schema: Any): Unit = {
+    val gson = new Gson
+    val content = gson.toJson(schema)
+    val pw = new PrintWriter(new File("schema.json" ))
+    pw.write(content)
+    pw.close()
+    Process("gsutil cp schema.json " + output + "/schema.json").run
+  }
+
   def main(args: Array[String]): Unit = {
-    if (args.length != 6) {
+    if (args.length != 5) {
       println(
-        "usage: program model-path predict-data-path num-workers analysis-path " +
+        "usage: program model-path predict-data-path analysis-path " +
         "target-name, output-path")
       sys.exit(1)
     }
@@ -67,23 +119,58 @@ object XGBoostPredictor {
 
     val modelPath = args(0)
     val inputPredictPath = args(1)
-    val numWorkers = args(2).toInt
-    val analysisPath = args(3)
-    val targetName = args(4)
-    val outputPath = args(5)
+    val analysisPath = args(2)
+    val targetName = args(3)
+    val outputPath = args(4)
 
     // build dataset
     val feature_size = get_feature_size(analysisPath + "/stats.json", targetName)
-    val predictDF = sparkSession.sqlContext.read.format("libsvm").option(
-        "numFeatures", feature_size.toString).load(inputPredictPath)
+    val predictDF = (sparkSession.sqlContext.read.format("libsvm")
+                     .option("numFeatures", feature_size.toString).load(inputPredictPath))
 
     println("start prediction -------\n")
     implicit val sc = SparkContext.getOrCreate()
     val xgbModel = XGBoost.loadModelFromHadoopFile(modelPath)
     val predictResultsDF = xgbModel.transform(predictDF)
 
-    println("saving results -------\n")
-    predictResultsDF.select("label", "prediction").write.csv(outputPath)
-    print("Done")
+    val isClassification = isClassificationTask(analysisPath + "/schema.json", targetName)
+    if (isClassification) {
+      val targetVocab = getVocab(analysisPath + "/vocab_" + targetName + ".csv")
+      val lookupUdf = labelIndexToStringUdf(targetVocab)
+      val probsUdf = probsToPredictionUdf(targetVocab)
+      if (predictResultsDF.columns.contains("probabilities")) {
+        // "probabilities" column exists so it is multiclass classification.
+        val processedDF = (predictResultsDF.withColumn("target", lookupUdf(col("label")))
+                                           .withColumn("predicted", lookupUdf(col("prediction"))))
+        processedDF.select("target", "predicted").write.option("header", "false").csv(outputPath)
+        val schema = Array(SchemaEntry("target", "CATEGORY"),
+                           SchemaEntry("predicted", "CATEGORY"))
+        writeSchemaFile(outputPath, schema)
+
+      } else {
+        // binary classification.
+        val processedDF = (predictResultsDF.withColumn(targetVocab(0), -col("prediction") + 1)
+                                           .withColumn("predicted", probsUdf(col("prediction")))
+                                           .withColumnRenamed("prediction", targetVocab(1))
+                                           .withColumn("target", lookupUdf(col("label"))))
+        var columns = targetVocab.clone()
+        columns +:= "predicted"
+        columns +:= "target"
+        processedDF.select(columns.map(col): _*).write.option("header", "false").csv(outputPath)
+        val schema = Array(SchemaEntry("target", "CATEGORY"),
+                           SchemaEntry("predicted", "CATEGORY"),
+                           SchemaEntry(targetVocab(0), "NUMBER"),
+                           SchemaEntry(targetVocab(1), "NUMBER"))
+        writeSchemaFile(outputPath, schema)
+      }
+    } else {
+      // regression
+      val processedDF = (predictResultsDF.withColumnRenamed("prediction", "predicted")
+                                         .withColumnRenamed("label", "target"))
+      processedDF.select("target", "predicted").write.option("header", "false").csv(outputPath)
+      val schema = Array(SchemaEntry("target", "NUMBER"),
+                         SchemaEntry("predicted", "NUMBER"))
+      writeSchemaFile(outputPath, schema)
+    }
   }
 }
