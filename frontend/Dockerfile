@@ -13,7 +13,7 @@ FROM node:6.9.5-alpine
 COPY --from=build ./src/server /app
 COPY --from=build ./src/dist /app/dist
 
-WORKDIR /app/server
+WORKDIR /app
 
 EXPOSE 3000
 RUN npm install
