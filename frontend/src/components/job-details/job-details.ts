@@ -5,6 +5,8 @@ import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 import '../data-plotter/data-plot';
 
+import * as dagre from 'dagre';
+import * as jsYaml from 'js-yaml';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
@@ -25,6 +27,24 @@ const progressCssColors = {
   running: '--progress-color',
 };
 
+interface Line {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  distance: number;
+  xMid: number;
+  yMid: number;
+  angle: number;
+  left: number;
+}
+
+interface Edge {
+  from: string;
+  to: string;
+  lines: Line[];
+}
+
 @customElement('job-details')
 export class JobDetails extends Polymer.Element implements PageElement {
 
@@ -36,6 +56,12 @@ export class JobDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Number })
   public selectedTab = 0;
+
+  @property({ type: Array })
+  protected _workflowNodes: dagre.Node[] = [];
+
+  @property({ type: Array })
+  protected _workflowEdges: Edge[] = [];
 
   private _pipelineId = -1;
   private _jobId = '';
@@ -69,6 +95,51 @@ export class JobDetails extends Polymer.Element implements PageElement {
       });
 
       this._colorProgressBar();
+
+      // Get the job graph
+      const graphYaml = jsYaml.safeLoad(await Apis.getJobGraph(queryParams.jobId));
+      console.log(graphYaml);
+
+      const g = new dagre.graphlib.Graph();
+      g.setGraph({});
+      g.setDefaultEdgeLabel(() => ({}));
+      g.setNode('kspacey', { label: 'Kevin Spacey', width: 182, height: 52 });
+      g.setNode('swilliams', { label: 'Saul Williams', width: 182, height: 52 });
+      g.setNode('bpitt', { label: 'Brad Pitt', width: 182, height: 52 });
+      g.setNode('hford', { label: 'Harrison Ford', width: 182, height: 52 });
+      g.setNode('lwilson', { label: 'Luke Wilson', width: 182, height: 52 });
+      g.setNode('kbacon', { label: 'Kevin Bacon', width: 182, height: 52 });
+
+      // Add edges to the graph.
+      g.setEdge('kspacey', 'swilliams');
+      g.setEdge('swilliams', 'kbacon');
+      g.setEdge('bpitt', 'kbacon');
+      g.setEdge('hford', 'lwilson');
+      g.setEdge('lwilson', 'kbacon');
+
+      dagre.layout(g);
+
+      this._workflowNodes = g.nodes().map((id) => g.node(id));
+
+      g.edges().forEach((edgeInfo) => {
+        const edge = g.edge(edgeInfo);
+        const lines: Line[] = [];
+        if (edge.points.length > 1) {
+          for (let i = 1; i < edge.points.length; i++) {
+            const x1 = edge.points[i - 1].x;
+            const y1 = edge.points[i - 1].y;
+            const x2 = edge.points[i].x;
+            const y2 = edge.points[i].y;
+            const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+            const xMid = (x1 + x2) / 2;
+            const yMid = (y1 + y2) / 2;
+            const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
+            const left = xMid - (distance / 2);
+            lines.push({ x1, y1, x2, y2, distance, xMid, yMid, angle, left });
+          }
+        }
+        this.push('_workflowEdges', { from: edgeInfo.v, to: edgeInfo.w, lines });
+      });
     }
   }
 

@@ -5,10 +5,12 @@
   "main": "dist/index.html",
   "dependencies": {
     "d3": "^4.13.0",
+    "dagre": "^0.8.2",
     "js-yaml": "^3.11.0"
   },
   "devDependencies": {
     "@types/d3": "^4.12.0",
+    "@types/dagre": "^0.7.39",
     "@types/js-yaml": "^3.10.1",
     "babel-minify-webpack-plugin": "^0.3.0",
     "bower": "^1.8.2",

@@ -96,6 +96,14 @@ export async function getJob(pipelineId: number, jobId: string): Promise<Job> {
 }
 
 /**
+ * Gets the execution graph of the given job id.
+ */
+export async function getJobGraph(id: string): Promise<string> {
+  const response = await fetch(`${apisPrefix}/jobs/${id}/graph`);
+  return await response.text();
+}
+
+/**
  * List files at a given path from content service using server.
  */
 export async function listFiles(path: string): Promise<string[]> {

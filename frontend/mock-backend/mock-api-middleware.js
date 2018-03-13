@@ -4,6 +4,7 @@ const _path = require('path');
 const prefix = __dirname + '/pipeline-data';
 
 const fixedData = require('./fixed-data');
+const runtimeGraph = fs.readFileSync('./runtime-graph.yaml', 'utf-8');
 
 const rocMetadataJsonPath = './roc/metadata.json';
 const rocDataPath = './roc/roc.csv';
@@ -58,6 +59,11 @@ module.exports = (app) => {
     const jname = req.params.jname;
     const j = p[0].jobs.filter((j) => j.name === jname);
     res.json(j[0]);
+  });
+
+  app.get('/_api/jobs/:jname/graph', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    res.json(runtimeGraph);
   });
 
   app.get('/_api/packages', (req, res) => {

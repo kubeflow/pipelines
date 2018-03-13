@@ -1,0 +1,213 @@
+finishedAt: 2018-03-08T22:28:33Z
+nodes:
+	github-issue-summarization-46nxf:
+		children:
+		- github-issue-summarization-46nxf-1924723121
+		- github-issue-summarization-46nxf-784095292
+		- github-issue-summarization-46nxf-783550839
+		- github-issue-summarization-46nxf-1924576026
+		- github-issue-summarization-46nxf-851647053
+		- github-issue-summarization-46nxf-784683672
+		finishedAt: 2018-03-08T22:28:33Z
+		id: github-issue-summarization-46nxf
+		name: github-issue-summarization-46nxf
+		phase: Succeeded
+		startedAt: 2018-03-08T22:25:28Z
+	github-issue-summarization-46nxf-312262336:
+		finishedAt: 2018-03-08T22:27:16Z
+		id: github-issue-summarization-46nxf-312262336
+		name: github-issue-summarization-46nxf[4].prediction
+		phase: Succeeded
+		startedAt: 2018-03-08T22:26:58Z
+	github-issue-summarization-46nxf-783550839:
+		children:
+		- github-issue-summarization-46nxf-3212074627
+		finishedAt: 2018-03-08T22:26:11Z
+		id: github-issue-summarization-46nxf-783550839
+		name: github-issue-summarization-46nxf[2]
+		phase: Succeeded
+		startedAt: 2018-03-08T22:25:58Z
+	github-issue-summarization-46nxf-784095292:
+		children:
+		- github-issue-summarization-46nxf-4204842914
+		finishedAt: 2018-03-08T22:25:58Z
+		id: github-issue-summarization-46nxf-784095292
+		name: github-issue-summarization-46nxf[1]
+		phase: Succeeded
+		startedAt: 2018-03-08T22:25:52Z
+	github-issue-summarization-46nxf-784683672:
+		children:
+		- github-issue-summarization-46nxf-2751386398
+		finishedAt: 2018-03-08T22:28:33Z
+		id: github-issue-summarization-46nxf-784683672
+		name: github-issue-summarization-46nxf[5]
+		phase: Succeeded
+		startedAt: 2018-03-08T22:27:17Z
+	github-issue-summarization-46nxf-851647053:
+		children:
+		- github-issue-summarization-46nxf-312262336
+		finishedAt: 2018-03-08T22:27:17Z
+		id: github-issue-summarization-46nxf-851647053
+		name: github-issue-summarization-46nxf[4]
+		phase: Succeeded
+		startedAt: 2018-03-08T22:26:58Z
+	github-issue-summarization-46nxf-1261769243:
+		finishedAt: 2018-03-08T22:25:51Z
+		id: github-issue-summarization-46nxf-1261769243
+		name: github-issue-summarization-46nxf[0].import-data
+		outputs:
+			artifacts:
+			- name: output
+				path: /mnt/workspace/data/issues-copy.csv
+				s3:
+					accessKeySecret:
+						key: accesskey
+						name: gcs-accesskey
+					bucket: ml-bucket-4212
+					endpoint: storage.googleapis.com
+					insecure: true
+					key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-1261769243/output.tgz
+					secretKeySecret:
+						key: secretkey
+						name: gcs-accesskey
+		phase: Succeeded
+		startedAt: 2018-03-08T22:25:28Z
+	github-issue-summarization-46nxf-1924576026:
+		children:
+		- github-issue-summarization-46nxf-2737080426
+		finishedAt: 2018-03-08T22:26:58Z
+		id: github-issue-summarization-46nxf-1924576026
+		name: github-issue-summarization-46nxf[3]
+		phase: Succeeded
+		startedAt: 2018-03-08T22:26:11Z
+	github-issue-summarization-46nxf-1924723121:
+		children:
+		- github-issue-summarization-46nxf-1261769243
+		finishedAt: 2018-03-08T22:25:52Z
+		id: github-issue-summarization-46nxf-1924723121
+		name: github-issue-summarization-46nxf[0]
+		phase: Succeeded
+		startedAt: 2018-03-08T22:25:28Z
+	github-issue-summarization-46nxf-2737080426:
+		finishedAt: 2018-03-08T22:26:57Z
+		id: github-issue-summarization-46nxf-2737080426
+		name: github-issue-summarization-46nxf[3].training
+		outputs:
+			artifacts:
+			- name: output-model-h5
+				path: /mnt/workspace/data/output_model.h5
+				s3:
+					accessKeySecret:
+						key: accesskey
+						name: gcs-accesskey
+					bucket: ml-bucket-4212
+					endpoint: storage.googleapis.com
+					insecure: true
+					key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-2737080426/output-model-h5.tgz
+					secretKeySecret:
+						key: secretkey
+						name: gcs-accesskey
+		phase: Succeeded
+		startedAt: 2018-03-08T22:26:11Z
+	github-issue-summarization-46nxf-2751386398:
+		finishedAt: 2018-03-08T22:28:33Z
+		id: github-issue-summarization-46nxf-2751386398
+		name: github-issue-summarization-46nxf[5].feature-extraction
+		phase: Succeeded
+		startedAt: 2018-03-08T22:27:17Z
+	github-issue-summarization-46nxf-3212074627:
+		finishedAt: 2018-03-08T22:26:10Z
+		id: github-issue-summarization-46nxf-3212074627
+		name: github-issue-summarization-46nxf[2].preprocess-deep-learning
+		outputs:
+			artifacts:
+			- name: output-body-preprocessor-dpkl
+				path: /mnt/workspace/data/body_preprocessor.dpkl
+				s3:
+					accessKeySecret:
+						key: accesskey
+						name: gcs-accesskey
+					bucket: ml-bucket-4212
+					endpoint: storage.googleapis.com
+					insecure: true
+					key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-3212074627/output-body-preprocessor-dpkl.tgz
+					secretKeySecret:
+						key: secretkey
+						name: gcs-accesskey
+			- name: output-title-preprocessor-dpkl
+				path: /mnt/workspace/data/title_preprocessor.dpkl
+				s3:
+					accessKeySecret:
+						key: accesskey
+						name: gcs-accesskey
+					bucket: ml-bucket-4212
+					endpoint: storage.googleapis.com
+					insecure: true
+					key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-3212074627/output-title-preprocessor-dpkl.tgz
+					secretKeySecret:
+						key: secretkey
+						name: gcs-accesskey
+			- name: output-train-title-vecs-npy
+				path: /mnt/workspace/data/train_title_vecs.npy
+				s3:
+					accessKeySecret:
+						key: accesskey
+						name: gcs-accesskey
+					bucket: ml-bucket-4212
+					endpoint: storage.googleapis.com
+					insecure: true
+					key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-3212074627/output-train-title-vecs-npy.tgz
+					secretKeySecret:
+						key: secretkey
+						name: gcs-accesskey
+			- name: output-train-body-vecs-npy
+				path: /mnt/workspace/data/train_body_vecs.npy
+				s3:
+					accessKeySecret:
+						key: accesskey
+						name: gcs-accesskey
+					bucket: ml-bucket-4212
+					endpoint: storage.googleapis.com
+					insecure: true
+					key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-3212074627/output-train-body-vecs-npy.tgz
+					secretKeySecret:
+						key: secretkey
+						name: gcs-accesskey
+		phase: Succeeded
+		startedAt: 2018-03-08T22:25:58Z
+	github-issue-summarization-46nxf-4204842914:
+		finishedAt: 2018-03-08T22:25:57Z
+		id: github-issue-summarization-46nxf-4204842914
+		name: github-issue-summarization-46nxf[1].process-data
+		outputs:
+			artifacts:
+			- name: output-traindf-csv
+				path: /mnt/workspace/data/github_issues_medium_train.csv
+				s3:
+					accessKeySecret:
+						key: accesskey
+						name: gcs-accesskey
+					bucket: ml-bucket-4212
+					endpoint: storage.googleapis.com
+					insecure: true
+					key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-4204842914/output-traindf-csv.tgz
+					secretKeySecret:
+						key: secretkey
+						name: gcs-accesskey
+			- name: output-testdf-csv
+				path: /mnt/workspace/data/github_issues_medium_test.csv
+				s3:
+					accessKeySecret:
+						key: accesskey
+						name: gcs-accesskey
+					bucket: ml-bucket-4212
+					endpoint: storage.googleapis.com
+					insecure: true
+					key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-4204842914/output-testdf-csv.tgz
+					secretKeySecret:
+						key: secretkey
+						name: gcs-accesskey
+		phase: Succeeded
+		startedAt: 2018-03-08T22:25:52Z
+phase: Succeeded
+startedAt: 2018-03-08T22:25:28Z

@@ -25,6 +25,7 @@
         <paper-tabs class="no-shrink" selected="{{selectedTab}}">
           <paper-tab>Basic Info</paper-tab>
           <paper-tab>Output</paper-tab>
+          <paper-tab>Graph</paper-tab>
         </paper-tabs>
       </div>
 
@@ -61,6 +62,24 @@
         <div id="plotContainer">
           <template is="dom-repeat" items="[[outputPlots]]" as="plotMetadata">
             <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
+          </template>
+        </div>
+
+        <!-- iron-page tab 3 -->
+        <div class="pipeline-dag">
+          <template is="dom-repeat" items="[[_workflowNodes]]" as="node">
+            <div class="pipeline-node" style$="left: [[node.x]]px; top: [[node.y]]px; width: [[node.width]]px; height: [[node.height]]px">
+              <div class="label">[[node.label]]</div>
+            </div>
+          </template>
+
+          <template is="dom-repeat" items="[[_workflowEdges]]" as="edge">
+            <div class="pipeline-edge">
+              <template is="dom-repeat" items="[[edge.lines]]" as="line">
+                <div class="line" style$="width: [[line.distance]]px; left: [[line.left]]px;
+                                  top: [[line.yMid]]px; transform: translate(100px, 35px) rotate([[line.angle]]deg)"></div>
+              </template>
+            </div>
           </template>
         </div>
       </iron-pages>
