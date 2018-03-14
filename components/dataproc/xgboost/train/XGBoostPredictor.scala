@@ -19,6 +19,7 @@ package ml.dmlc.xgboost4j.scala.example.spark
 import com.google.gson.Gson
 import java.io._
 import ml.dmlc.xgboost4j.scala.spark.XGBoost
+import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SparkSession
@@ -137,32 +138,27 @@ object XGBoostPredictor {
     if (isClassification) {
       val targetVocab = getVocab(analysisPath + "/vocab_" + targetName + ".csv")
       val lookupUdf = labelIndexToStringUdf(targetVocab)
-      val probsUdf = probsToPredictionUdf(targetVocab)
+      var processedDF = (predictResultsDF.withColumn("target", lookupUdf(col("label")))
+                                         .withColumn("predicted", lookupUdf(col("prediction"))))
+      var schema = Array(SchemaEntry("target", "CATEGORY"),
+                         SchemaEntry("predicted", "CATEGORY"))
+      var columns = Array("target", "predicted")
       if (predictResultsDF.columns.contains("probabilities")) {
-        // "probabilities" column exists so it is multiclass classification.
-        val processedDF = (predictResultsDF.withColumn("target", lookupUdf(col("label")))
-                                           .withColumn("predicted", lookupUdf(col("prediction"))))
-        processedDF.select("target", "predicted").write.option("header", "false").csv(outputPath)
-        val schema = Array(SchemaEntry("target", "CATEGORY"),
-                           SchemaEntry("predicted", "CATEGORY"))
-        writeSchemaFile(outputPath, schema)
-
-      } else {
-        // binary classification.
-        val processedDF = (predictResultsDF.withColumn(targetVocab(0), -col("prediction") + 1)
-                                           .withColumn("predicted", probsUdf(col("prediction")))
-                                           .withColumnRenamed("prediction", targetVocab(1))
-                                           .withColumn("target", lookupUdf(col("label"))))
-        var columns = targetVocab.clone()
-        columns +:= "predicted"
-        columns +:= "target"
-        processedDF.select(columns.map(col): _*).write.option("header", "false").csv(outputPath)
-        val schema = Array(SchemaEntry("target", "CATEGORY"),
-                           SchemaEntry("predicted", "CATEGORY"),
-                           SchemaEntry(targetVocab(0), "NUMBER"),
-                           SchemaEntry(targetVocab(1), "NUMBER"))
-        writeSchemaFile(outputPath, schema)
+        // probabilities column includes array of probs for each class. Need to expand it.
+        var classIndex = 0
+        for (classname <- targetVocab) {
+          // Need to make a val copy because the value of "classIndex" is evaluated at "run"
+          // later when the resulting dataframe is used.
+          val classIndexCopy = classIndex
+          val extractValue = udf((arr: Vector) => arr(classIndexCopy))
+          processedDF = processedDF.withColumn(classname, extractValue(col("probabilities")))
+          schema :+= SchemaEntry(classname, "NUMBER")
+          classIndex += 1
+        }
+        columns = columns ++ (for (e <- targetVocab) yield "`" + e + "`")
       }
+      processedDF.select(columns.map(col): _*).write.option("header", "false").csv(outputPath)
+      writeSchemaFile(outputPath, schema)
     } else {
       // regression
       val processedDF = (predictResultsDF.withColumnRenamed("prediction", "predicted")
