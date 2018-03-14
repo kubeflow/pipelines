@@ -2,9 +2,9 @@ import Storage = require('@google-cloud/storage');
 import express = require('express');
 import fs = require('fs');
 import proxy = require('http-proxy-middleware');
-import os = require('os');
 import path = require('path');
 import process = require('process');
+import tmp = require('tmp');
 
 const app = express() as express.Application;
 
@@ -55,7 +55,7 @@ app.get('/_api/artifact/list/*', (req, res) => {
   }
 });
 
-app.get('/_api/artifact/get/*', (req, res) => {
+app.get('/_api/artifact/get/*', (req, res, next) => {
   if (!req.params) {
     res.status(404).send('Error: No path provided.');
     return;
@@ -67,7 +67,7 @@ app.get('/_api/artifact/get/*', (req, res) => {
     const reqPath = req.params[0].substr('gs://'.length).split('/');
     const bucket = reqPath[0];
     const filename = reqPath.slice(1).join('/');
-    const destFilename = path.join(os.tmpdir(), Math.floor(Math.random() * 1000000).toString());
+    const destFilename = tmp.tmpNameSync();
 
     storage
       .bucket(bucket)
@@ -75,7 +75,13 @@ app.get('/_api/artifact/get/*', (req, res) => {
       .download({ destination: destFilename })
       .then(() => {
         console.log(`gs://${bucket}/${filename} downloaded to ${destFilename}.`);
-        res.sendFile(destFilename);
+        res.sendFile(destFilename, undefined, (err) => {
+          if (err) {
+            next(err);
+          } else {
+            fs.unlink(destFilename);
+          }
+        });
       })
       .catch((err) => {
         console.error('Error getting file:', err);
@@ -97,6 +103,7 @@ app.all('/_api/*', proxy({
 }));
 
 app.get('*', (req, res) => {
+  // TODO: look into caching this file to speed up multiple requests.
   res.sendFile(path.resolve(staticDir, 'index.html'));
 });
 
