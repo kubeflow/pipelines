@@ -6,6 +6,12 @@ import {
   WorkflowStep as ArgoTemplateStep,
 } from '../model/argo_template';
 
+function replacePlaceholders(path: string, baseOutputPath: string, jobId: string) {
+  return path
+    .replace(/{{inputs.parameters.output}}/, baseOutputPath)
+    .replace(/{{workflow.name}}/, jobId);
+}
+
 export function parseTemplateOuputPaths(templateYaml: string, baseOutputPath: string, jobId: string) {
   const argoTemplate = jsYaml.safeLoad(templateYaml) as ArgoTemplate;
 
@@ -28,10 +34,5 @@ export function parseTemplateOuputPaths(templateYaml: string, baseOutputPath: st
     };
   }).filter((p) => !!p.path);
 
-  return outputPaths
-    .map((p) =>
-      p.path
-        .replace(/{{inputs.parameters.output}}/, baseOutputPath)
-        .replace(/{{workflow.name}}/, jobId)
-    );
+  return outputPaths.map((p) => replacePlaceholders(p.path, baseOutputPath, jobId));
 }
