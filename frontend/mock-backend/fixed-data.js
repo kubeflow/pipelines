@@ -1,36 +1,4 @@
 module.exports = {
-  pipelines: [
-    {
-      id: 0,
-      name: 'Unstructured text',
-      description: 'An awesome unstructured text pipeline package.',
-      parameters: [
-        {
-          name: 'x',
-          description: 'The x parameter description.'
-        },
-        {
-          name: 'y',
-          description: 'The y parameter description. This can be very long!'
-        }
-      ]
-    },
-    {
-      id: 1,
-      name: 'Image classification',
-      description: 'An awesome image classification pipeline package.',
-      parameters: [
-        {
-          name: 'x',
-          description: 'The x parameter'
-        },
-        {
-          name: 'y',
-          description: 'The y parameter'
-        }
-      ]
-    }
-  ],
   packages: [
     {
       id: 0,
@@ -44,6 +12,10 @@ module.exports = {
         {
           name: 'y',
           description: 'The y parameter description. This can be very long!'
+        },
+        {
+          name: 'output',
+          description: 'The base output path',
         }
       ]
     },
@@ -59,6 +31,10 @@ module.exports = {
         {
           name: 'y',
           description: 'The y parameter'
+        },
+        {
+          name: 'output',
+          description: 'The base output path',
         }
       ]
     }
@@ -77,6 +53,10 @@ module.exports = {
         {
           name: 'y',
           value: 20
+        },
+        {
+          name: 'output',
+          value: 'some output path',
         }
       ],
       starts: 1517087010898,
@@ -121,6 +101,10 @@ module.exports = {
         {
           name: 'y',
           value: 20
+        },
+        {
+          name: 'output',
+          value: 'some output path',
         }
       ],
       starts: 1517087010898,

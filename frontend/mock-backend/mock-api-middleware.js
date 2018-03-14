@@ -60,7 +60,7 @@ module.exports = (app) => {
 
   app.get('/_api/packages/:pid/template', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
-    res.send('test yaml');
+    res.send(fs.readFileSync('./mock-backend/mock-template.yaml'));
   });
 
   app.post('/_api/packages/upload', (req, res) => {
