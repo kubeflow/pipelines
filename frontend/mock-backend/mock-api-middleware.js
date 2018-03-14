@@ -4,6 +4,18 @@ const prefix = __dirname + '/pipeline-data';
 
 const fixedData = require('./fixed-data');
 
+const rocDataPath = './mock-backend/pipeline-data/5.evaluation/roc.csv';
+
+const exampleOutputJson =
+  `{
+    "type": "roc",
+    "format": "csv",
+    "source": "./pipeline-data/5.evaluation/roc.csv'",
+    "schema": "",
+    "predicted_col": "column1",
+    "target_col": "column2"
+  }`;
+
 module.exports = (app) => {
 
   app.use((req, res, next) => {
@@ -69,16 +81,28 @@ module.exports = (app) => {
   });
 
   app.get('/_api/artifact/list/:path', (req, res) => {
+
+    const path = decodeURIComponent(req.params.path);
+
     res.header('Content-Type', 'application/json');
     res.json([
-      req.params.path + '/file1',
-      req.params.path + '/file2',
-      req.params.path + '/file3',
-      req.params.path + '/file4',
+      path + '/file1',
+      path + '/file2',
+      path + '/file3',
+      path + '/metadata.json',
     ]);
   });
 
   app.get('/_api/artifact/get/:path', (req, res) => {
-    res.send('This is a text artifact file.');
+    res.header('Content-Type', 'application/json');
+    const path = decodeURIComponent(req.params.path);
+    if (path.endsWith('roc.csv')) {
+      // res.send(fs.readFileSync(req.params.path, 'utf8'));
+      res.sendFile(rocDataPath);
+    } else if (path.endsWith('metadata.json')) {
+      res.json(exampleOutputJson);
+    } else {
+      res.send('dummy file');
+    }
   });
 };

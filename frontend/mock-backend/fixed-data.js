@@ -56,7 +56,7 @@ module.exports = {
         },
         {
           name: 'output',
-          value: 'some output path',
+          value: 'some-output-path',
         }
       ],
       createdAt: 1517087010898,
@@ -90,7 +90,7 @@ module.exports = {
     {
       description: 'Try 10 and 20 for parameters',
       id: 2,
-      name: 'Unstructured text experiment 1',
+      name: 'Unstructured text experiment 2',
       packageId: 1,
       parameters: [
         {
@@ -103,7 +103,7 @@ module.exports = {
         },
         {
           name: 'output',
-          value: 'some output path',
+          value: 'some-output-path',
         }
       ],
       createdAt: 1517087010898,
