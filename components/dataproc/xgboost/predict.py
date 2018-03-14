@@ -42,7 +42,6 @@ def main(argv=None):
                       help='GCS Path of XGBoost distributed trainer package.')
   parser.add_argument('--model', type=str, help='GCS path of the model file.')
   parser.add_argument('--output', type=str, help='GCS path to use for output.')
-  parser.add_argument('--workers', type=int, help='Number of workers to use for prediction.')
   parser.add_argument('--predict', type=str, help='GCS path of prediction libsvm file.')
   parser.add_argument('--analysis', type=str, help='GCS path of the analysis input.')
   parser.add_argument('--target', type=str, help='Target column name.')
@@ -51,8 +50,7 @@ def main(argv=None):
   logging.getLogger().setLevel(logging.INFO)
   api = _utils.get_client()
   logging.info('Submitting job...')
-  spark_args = [args.model, args.predict, str(args.workers), args.analysis, args.target,
-                args.output]
+  spark_args = [args.model, args.predict, args.analysis, args.target, args.output]
   job_id = _utils.submit_spark_job(
       api, args.project, args.region, args.cluster, [args.package],
       'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor', spark_args)

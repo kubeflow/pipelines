@@ -1,6 +1,8 @@
 import 'iron-icons/iron-icons.html';
 import 'iron-icons/maps-icons.html';
 import 'paper-button/paper-button.html';
+import 'paper-tabs/paper-tab.html';
+import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 
 import { customElement, property } from '../../decorators';
@@ -44,5 +46,9 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
       await Apis.newJob(this.pipeline.id);
       this.dispatchEvent(new RouteEvent(`/jobs?pipelineId=${this.pipeline.id}`));
     }
+  }
+
+  protected _dateToString(date: number) {
+    return Utils.dateToString(date);
   }
 }

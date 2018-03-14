@@ -24,32 +24,64 @@
       </div>
 
       <iron-pages selected="{{selectedTab}}">
-        <div class="padded-20">
-          <div>
-            <span class="strong padded">Pipeline Package Id:</span>[[pipeline.packageId]]
+
+        <!-- iron-page tab 1 -->
+        <div>
+
+          <br/>
+          <div class="details-table">
+            <div>
+              <span class="detail-title">Pipeline Package ID</span>
+              <span>[[pipeline.packageId]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Description</span>
+              <span>[[pipeline.description]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Created</span>
+              <span>[[pipeline.createdAt]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Starts</span>
+              <span>[[_dateToString(pipeline.starts)]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Ends</span>
+              <span>[[_dateToString(pipeline.ends)]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Recurring</span>
+              <span>[[pipeline.recurring]]</span>
+            </div>
+
+            <template is="dom-if" if="[[pipeline.recurring]]">
+              <div>
+                <span class="detail-title">Runs every</span>
+                <span>[[pipeline.recurringIntervalHours]] hours</span>
+              </div>
+            </template>
+
           </div>
-          <div>
-            <span class="strong padded">Description:</span>[[pipeline.description]]
-          </div>
-          <div>
-            <span class="strong padded">Created:</span>[[pipeline.createdAt]]
-          </div>
+
+          <br/>
+          <br/>
 
           <template is="dom-if" if="[[pipeline.parameters.length]]">
-            <hr>
-
-            <div>
-              <span class="strong padded">Parameters:</span>
-              <tr>
-                <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
-                  <li>
-                    <span class="strong padded">[[param.name]]:</span>[[param.value]]
-                  </li>
-                </template>
-              </tr>
+            <div class="input-param-header">Input Parameters</div>
+            <div class="details-table">
+              <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+                <div>
+                  <span class="detail-title">[[param.name]]</span>
+                  <span>[[param.value]]</span>
+                </div>
+              </template>
             </div>
           </template>
+
         </div>
+
+        <!-- iron-page tab 2 -->
         <job-list id="jobs"></job-list>
       </iron-pages>
     </div>

@@ -25,6 +25,10 @@ export function listenOnce(element: Node, eventName: string, cb: Function) {
   element.addEventListener(eventName, listener);
 }
 
+export function dateToString(date: number) {
+  return date < 0 ? '-' : new Date(date).toLocaleString();
+}
+
 export function dateDiffToString(diff: number): string {
   const SECOND = 1000;
   const MINUTE = 60 * SECOND;

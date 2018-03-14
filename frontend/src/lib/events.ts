@@ -37,9 +37,3 @@ export class RouteEvent extends CustomEvent {
     super(ROUTE_EVENT, eventInit);
   }
 }
-
-export class TabSelectedEvent extends CustomEvent {
-  public detail: {
-    value: number;
-  };
-}

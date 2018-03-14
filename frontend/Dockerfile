@@ -10,12 +10,12 @@ RUN npm run build
 
 FROM node:6.9.5-alpine
 
-COPY --from=build ./src/server /app/server
+COPY --from=build ./src/server /app
 COPY --from=build ./src/dist /app/dist
 
 WORKDIR /app
 
 EXPOSE 3000
-RUN npm install express http-proxy-middleware
+RUN npm install
 ENV API_SERVER_ADDRESS http://localhost:3001
-CMD node ./server/server.js ./dist/ 3000
+CMD npm start
