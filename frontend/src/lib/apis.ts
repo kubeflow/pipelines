@@ -100,3 +100,19 @@ export async function newJob(id: number): Promise<Job> {
   });
   return await response.json();
 }
+
+/**
+ * List files at a given path from content service using server.
+ */
+export async function listFiles(path: string): Promise<string[]> {
+  const response = await fetch(apisPrefix + `/artifact/list/${path}`);
+  return await response.json();
+}
+
+/**
+ * Read file from storage using server.
+ */
+export async function readFile(path: string): Promise<string> {
+  const response = await fetch(apisPrefix + `/artifact/get/${path}`);
+  return await response.text();
+}
