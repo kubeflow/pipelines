@@ -1,5 +1,7 @@
 import 'iron-icons/iron-icons.html';
 import 'paper-progress/paper-progress.html';
+import 'paper-tabs/paper-tab.html';
+import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
@@ -25,6 +27,9 @@ export class JobDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Object })
   public job: Job | null = null;
+
+  @property({ type: Number })
+  public selectedTab = 0;
 
   public async refresh(_: string, queryParams: { jobId?: string }) {
     if (queryParams.jobId !== undefined) {

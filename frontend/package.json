@@ -3,8 +3,11 @@
   "version": "0.0.1",
   "description": "Frontend package for ML Pipeline Management",
   "main": "dist/index.html",
-  "dependencies": {},
+  "dependencies": {
+    "d3": "^4.13.0"
+  },
   "devDependencies": {
+    "@types/d3": "^4.12.0",
     "babel-minify-webpack-plugin": "^0.3.0",
     "bower": "^1.8.2",
     "clean-webpack-plugin": "^0.1.16",
