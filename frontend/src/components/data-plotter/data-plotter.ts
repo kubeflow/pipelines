@@ -1,6 +1,7 @@
 import 'polymer/polymer-element.html';
 import 'polymer/polymer.html';
 
+import { drawMatrix, drawStatsTable } from './confusion-matrix';
 import { drawROC } from './roc-plot';
 
 export class DataPlotter {
@@ -8,6 +9,20 @@ export class DataPlotter {
 
   constructor(plotElement: HTMLElement) {
     this._plotElement = plotElement;
+  }
+
+  public plotConfusionMatrix(data: number[][], labels: string[], accentColor: string) {
+    // Render the statistics table
+    drawStatsTable(this._plotElement, data);
+
+    // Render the matrix
+    drawMatrix({
+      container: this._plotElement,
+      data,
+      endColor: accentColor,
+      labels,
+      startColor: '#ffffff',
+    });
   }
 
   public plotRocCurve(data: string[][], lineColor = '#000') {
