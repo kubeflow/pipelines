@@ -59,8 +59,7 @@ module.exports = {
           value: 'some output path',
         }
       ],
-      starts: 1517087010898,
-      ends: -1,
+      createdAt: 1517087010898,
       recurring: false,
       jobs: [
         {
@@ -107,8 +106,7 @@ module.exports = {
           value: 'some output path',
         }
       ],
-      starts: 1517087010898,
-      ends: -1,
+      createdAt: 1517087010898,
       recurring: false,
       jobs: [
         {

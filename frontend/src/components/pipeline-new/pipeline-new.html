@@ -54,20 +54,6 @@
       <paper-input id="name" label="Pipeline Name" autofocus></paper-input>
       <paper-input id="description" label="Description"></paper-input>
 
-      <br>
-      <br>
-      <span class="strong">Schedule</span>
-      <div class="flex">
-        <paper-input id="starts" label="Starts" value="[[startDate]]"></paper-input>
-        <paper-icon-button icon="date-range" on-click="_pickStartDate" tabindex="-1">
-        </paper-icon-button>
-      </div>
-      <div class="flex">
-        <paper-input id="ends" label="Ends" value="[[endDate]]"></paper-input>
-        <paper-icon-button icon="date-range" on-click="_pickEndDate" tabindex="-1">
-        </paper-icon-button>
-      </div>
-
       <template is="dom-if" if="[[parameters.length]]">
         <br>
         <br>
@@ -79,9 +65,6 @@
           </div>
         </template>
       </template>
-
-      <app-datepicker-dialog modal id="startDatepicker" date="{{startDate}}"></app-datepicker-dialog>
-      <app-datepicker-dialog modal id="endDatepicker" date="{{endDate}}"></app-datepicker-dialog>
 
       <hr>
 

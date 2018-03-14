@@ -44,7 +44,7 @@ module.exports = (app) => {
     res.json(p[0].jobs);
   });
 
-  app.get('/_api/pipelines/:pid/job/:jname', (req, res) => {
+  app.get('/_api/pipelines/:pid/jobs/:jname', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);

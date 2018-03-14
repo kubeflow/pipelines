@@ -124,13 +124,11 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     const newPipeline: Pipeline = {
       author: '',
       description: (this.$.description as HTMLInputElement).value,
-      ends: Date.parse(this.endDate),
       name: (this.$.name as HTMLInputElement).value,
       packageId: this.packageId,
       parameters: this.parameters,
       recurring: false,
       recurringIntervalHours: 0,
-      starts: Date.parse(this.startDate),
     };
     await Apis.newPipeline(newPipeline);
 

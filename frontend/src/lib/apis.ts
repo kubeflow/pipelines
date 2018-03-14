@@ -91,7 +91,7 @@ export async function getJobs(pipelineId: number): Promise<Job[]> {
  * Gets the details of a certain pipeline pipeline job given its id.
  */
 export async function getJob(pipelineId: number, jobId: string): Promise<Job> {
-  const response = await fetch(apisPrefix + `/pipelines/${pipelineId}/job/${jobId}`);
+  const response = await fetch(apisPrefix + `/pipelines/${pipelineId}/jobs/${jobId}`);
   return await response.json();
 }
 
