@@ -40,3 +40,51 @@ paper-tab {
   font-size: 13px;
   min-width: 110px;
 }
+
+#plotTitle, #previewTitle {
+  flex: auto 0 0;
+  margin: 25px;
+  text-align: center;
+}
+
+#preview, #plot {
+  border-bottom: 1px solid var(--line-color);
+  border-top: 1px solid var(--line-color);
+  flex-grow: 1;
+  padding: 20px;
+  overflow: auto;
+}
+
+.dialogs table,
+.dialogs tr,
+.dialogs td,
+.dialogs th {
+  border: 1px solid var(--line-color);
+  min-width: 75px;
+  padding: 5px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.dialogs tr:hover {
+  background-color: var(--bg-color);
+}
+
+.dialogs th {
+  font-weight: bold;
+}
+
+.axis text {
+  font: 10px sans-serif;
+}
+
+.axis line, .axis path {
+  fill: none;
+  stroke: var(--fg-color);
+}
+
+.line {
+  fill: none;
+  stroke: var(--progress-color);
+  stroke-width: 2px;
+}

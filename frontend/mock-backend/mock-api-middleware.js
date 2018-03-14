@@ -1,20 +1,21 @@
 const fs = require('fs');
+const _path = require('path');
 
 const prefix = __dirname + '/pipeline-data';
 
 const fixedData = require('./fixed-data');
 
-const rocDataPath = './mock-backend/pipeline-data/5.evaluation/roc.csv';
+const rocDataPath = './pipeline-data/5.evaluation/roc.csv';
 
 const exampleOutputJson =
-  `{
-    "type": "roc",
-    "format": "csv",
-    "source": "./pipeline-data/5.evaluation/roc.csv'",
-    "schema": "",
-    "predicted_col": "column1",
-    "target_col": "column2"
-  }`;
+  {
+    type: 'roc',
+    format: 'csv',
+    source: './pipeline-data/5.evaluation/roc.csv',
+    schema: '',
+    predicted_col: 'column1',
+    target_col: 'column2'
+  };
 
 module.exports = (app) => {
 
@@ -70,7 +71,7 @@ module.exports = (app) => {
     res.json(fixedData.packages);
   });
 
-  app.get('/_api/packages/:pid/template', (req, res) => {
+  app.get('/_api/packages/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     res.send(fs.readFileSync('./mock-backend/mock-template.yaml'));
   });
@@ -97,8 +98,7 @@ module.exports = (app) => {
     res.header('Content-Type', 'application/json');
     const path = decodeURIComponent(req.params.path);
     if (path.endsWith('roc.csv')) {
-      // res.send(fs.readFileSync(req.params.path, 'utf8'));
-      res.sendFile(rocDataPath);
+      res.sendFile(_path.resolve(__dirname, rocDataPath));
     } else if (path.endsWith('metadata.json')) {
       res.json(exampleOutputJson);
     } else {
