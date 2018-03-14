@@ -26,7 +26,7 @@ import (
 
 type JobStoreInterface interface {
 	ListJobs() ([]pipelinemanager.Job, error)
-	ListJobs2() (argo.WorkflowList, error)
+	ListJobs2() (wfv1.WorkflowList, error)
 	CreateJob(workflow []byte) (pipelinemanager.Job, error)
 }
 
@@ -48,16 +48,11 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	return jobs, nil
 }
 
-func (s *JobStore) ListJobs2() (argo.WorkflowList, error) {
+func (s *JobStore) ListJobs2() (wfv1.WorkflowList, error) {
 
-	bodyBytes, _ := s.argoClient.Request("GET", "workflows", nil)
+	wfList, _ := s.wfClient.List(metav1.ListOptions{})
 
-	var workflows argo.WorkflowList
-	if err := json.Unmarshal(bodyBytes, &workflows); err != nil {
-		return workflows, util.NewInternalError("Failed to get jobs", "Failed to parse the workflows returned from K8s CRD. Error: %s", err.Error())
-	}
-
-	return workflows, nil
+	return *wfList, nil
 }
 
 func (s *JobStore) CreateJob(workflow []byte) (pipelinemanager.Job, error) {
