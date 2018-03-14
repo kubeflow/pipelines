@@ -31,7 +31,7 @@ app.get('/_config/apiServerAddress', (req, res) => {
 
 app.get('/_api/artifact/list/*', (req, res) => {
   if (!req.params) {
-    console.error('No path provided. Aborting..');
+    res.status(404).send('Error: No path provided.');
     return;
   }
 
@@ -50,12 +50,14 @@ app.get('/_api/artifact/list/*', (req, res) => {
         console.error('Error listing files:', err);
         res.status(500).send('Error: ' + err);
       });
+  } else {
+    res.status(404).send('Error: Unsupported path.');
   }
 });
 
 app.get('/_api/artifact/get/*', (req, res) => {
   if (!req.params) {
-    console.error('No path provided. Aborting..');
+    res.status(404).send('Error: No path provided.');
     return;
   }
 
@@ -73,13 +75,14 @@ app.get('/_api/artifact/get/*', (req, res) => {
       .download({ destination: destFilename })
       .then(() => {
         console.log(`gs://${bucket}/${filename} downloaded to ${destFilename}.`);
-        const contents = fs.readFileSync(destFilename, { encoding: 'utf-8', flag: 'r' });
         res.sendFile(destFilename);
       })
       .catch((err) => {
         console.error('Error getting file:', err);
         res.status(500).send('Error: ' + err);
       });
+  } else {
+    res.status(404).send('Error: Unsupported path.');
   }
 
 });
