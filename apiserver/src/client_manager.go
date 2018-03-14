@@ -16,22 +16,22 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"ml/apiserver/src/common"
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
 
+	wfclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
+	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/minio/minio-go"
+	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
 )
 
 const (
-	k8sServiceHost   = "KUBERNETES_SERVICE_HOST"
-	k8sTCPPort       = "KUBERNETES_PORT_443_TCP_PORT"
-	k8sTokenFile     = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
 )
@@ -65,11 +65,11 @@ func (clientManager *ClientManager) Init() {
 	clientManager.pipelineStore = storage.NewPipelineStore(db)
 
 	// Initialize job store
-	argoClient := getArgoClient()
-	clientManager.jobStore = storage.NewJobStore(argoClient)
+	wfClient := initWorkflowClient()
+	clientManager.jobStore = storage.NewJobStore(wfClient)
 
 	// Initialize package manager.
-	clientManager.packageManager = getMinioClient()
+	clientManager.packageManager = initMinioClient()
 
 	glog.Infof("Client manager initialized successfully")
 }
@@ -78,24 +78,7 @@ func (clientManager *ClientManager) End() {
 	clientManager.db.Close()
 }
 
-// Get Argo's K8s CRD API client.
-func getArgoClient() storage.ArgoClientInterface {
-	k8ServiceHost := getConfig(k8sServiceHost)
-
-	k8TCPPort := getConfig(k8sTCPPort)
-
-	k8TokenByte, err := ioutil.ReadFile(k8sTokenFile)
-	if err != nil {
-		glog.Fatalf("Reading Kubernetes Token file failed. Error: %v", err)
-	}
-
-	if len(k8TokenByte) == 0 {
-		glog.Fatalf("Reading Kubernetes Token file failed. No token found.")
-	}
-	return &storage.ArgoClient{K8ServiceHost: k8ServiceHost, K8TCPPort: k8TCPPort, K8Token: string(k8TokenByte)}
-}
-
-func getMinioClient() storage.PackageManagerInterface {
+func initMinioClient() storage.PackageManagerInterface {
 	minioServiceHost := getConfig(minioServiceHost)
 	minioServicePort := getConfig(minioServicePort)
 	minioClient, err := minio.New(
@@ -120,6 +103,17 @@ func getMinioClient() storage.PackageManagerInterface {
 	}
 	glog.Infof("Successfully created %s\n", bucketName)
 	return storage.NewMinioPackageManager(&common.MinioClient{Client: minioClient}, bucketName)
+}
+
+// creates a new client for the Kubernetes Workflow CRD.
+func initWorkflowClient() v1alpha1.WorkflowInterface {
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		glog.Fatalf("Failed to initialize workflow client. Error: %v", err)
+	}
+	wfClientSet := wfclientset.NewForConfigOrDie(restConfig)
+	wfClient := wfClientSet.ArgoprojV1alpha1().Workflows(apiv1.NamespaceDefault)
+	return wfClient
 }
 
 // newClientManager creates and Init a new instance of ClientManager

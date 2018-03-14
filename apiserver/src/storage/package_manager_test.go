@@ -15,12 +15,12 @@
 package storage
 
 import (
+	"errors"
 	"io"
 	"ml/apiserver/src/util"
 	"strings"
 	"testing"
 
-	"github.com/argo/errors"
 	"github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,11 +42,11 @@ type FakeBadMinioClient struct {
 
 func (c *FakeBadMinioClient) PutObject(bucketName, objectName string, reader io.Reader,
 	objectSize int64, opts minio.PutObjectOptions) (n int64, err error) {
-	return 0, errors.New("code", "some error")
+	return 0, errors.New("some error")
 }
 func (c *FakeBadMinioClient) GetObject(bucketName, objectName string,
 	opts minio.GetObjectOptions) (io.Reader, error) {
-	return nil, errors.New("code", "some error")
+	return nil, errors.New("some error")
 }
 
 func TestCreatePackageFile(t *testing.T) {
