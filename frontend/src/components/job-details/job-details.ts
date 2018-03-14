@@ -31,9 +31,9 @@ export class JobDetails extends Polymer.Element implements PageElement {
   @property({ type: Number })
   public selectedTab = 0;
 
-  public async refresh(_: string, queryParams: { jobId?: string }) {
+  public async refresh(_: string, queryParams: { jobId?: string, pipelineId: number }) {
     if (queryParams.jobId !== undefined) {
-      this.job = await Apis.getJob(queryParams.jobId);
+      this.job = await Apis.getJob(queryParams.pipelineId, queryParams.jobId);
 
       this._colorProgressBar();
     }

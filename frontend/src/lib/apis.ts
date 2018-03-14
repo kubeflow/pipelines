@@ -82,22 +82,8 @@ export async function getJobs(pipelineId: number): Promise<Job[]> {
 /**
  * Gets the details of a certain pipeline pipeline job given its id.
  */
-export async function getJob(id: string): Promise<Job> {
-  const response = await fetch(apisPrefix + `/jobs/${id}`);
-  return await response.json();
-}
-
-/**
- * Submits a new job for the given pipeline id.
- */
-export async function newJob(id: number): Promise<Job> {
-  const response = await fetch(apisPrefix + `/${id}/jobs`, {
-    cache: 'no-cache',
-    headers: {
-      'content-type': 'application/json',
-    },
-    method: 'POST',
-  });
+export async function getJob(pipelineId: number, jobId: string): Promise<Job> {
+  const response = await fetch(apisPrefix + `/pipelines/${pipelineId}/job/${jobId}`);
   return await response.json();
 }
 

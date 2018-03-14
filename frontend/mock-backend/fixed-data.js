@@ -82,6 +82,31 @@ module.exports = {
       starts: 1517087010898,
       ends: -1,
       recurring: false,
+      jobs: [
+        {
+          name: 'unstructured-text-experiment-asdlk2',
+          createdAt: '2018-03-08T01:55:12Z',
+          startedAt: '0001-01-01T00:00:00Z',
+          finishedAt: '0001-01-01T00:00:00Z',
+          status: 'Succeeded',
+          _pipelineId: 1,
+        },
+        {
+          name: 'test-job-asd32',
+          createdAt: '2018-03-08T01:55:12Z',
+          startedAt: '0001-01-01T00:00:00Z',
+          finishedAt: '0001-01-01T00:00:00Z',
+          _pipelineId: 1,
+        },
+        {
+          name: 'a-veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery-loooooooooooooooooooooooooooong-name-of-test-job-3',
+          createdAt: '2018-03-08T01:55:12Z',
+          startedAt: '0001-01-01T00:00:00Z',
+          finishedAt: '0001-01-01T00:00:00Z',
+          status: 'Running',
+          _pipelineId: 1,
+        },
+      ],
     },
     {
       description: 'Try 10 and 20 for parameters',
@@ -101,39 +126,16 @@ module.exports = {
       starts: 1517087010898,
       ends: -1,
       recurring: false,
-    },
-  ],
-  jobs: [
-    {
-      name: 'unstructured-text-experiment-asdlk2',
-      createdAt: '2018-03-08T01:55:12Z',
-      startedAt: '0001-01-01T00:00:00Z',
-      finishedAt: '0001-01-01T00:00:00Z',
-      status: 'Succeeded',
-      _pipelineId: 1,
-    },
-    {
-      name: 'test-job-asd32',
-      createdAt: '2018-03-08T01:55:12Z',
-      startedAt: '0001-01-01T00:00:00Z',
-      finishedAt: '0001-01-01T00:00:00Z',
-      _pipelineId: 1,
-    },
-    {
-      name: 'a-veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery-loooooooooooooooooooooooooooong-name-of-test-job-3',
-      createdAt: '2018-03-08T01:55:12Z',
-      startedAt: '0001-01-01T00:00:00Z',
-      finishedAt: '0001-01-01T00:00:00Z',
-      status: 'Running',
-      _pipelineId: 1,
-    },
-    {
-      name: 'unstructured-text-experiment-4',
-      createdAt: '2018-03-08T01:55:12Z',
-      startedAt: '0001-01-01T00:00:00Z',
-      finishedAt: '0001-01-01T00:00:00Z',
-      status: 'Errored',
-      _pipelineId: 2,
+      jobs: [
+        {
+          name: 'unstructured-text-experiment-4',
+          createdAt: '2018-03-08T01:55:12Z',
+          startedAt: '0001-01-01T00:00:00Z',
+          finishedAt: '0001-01-01T00:00:00Z',
+          status: 'Errored',
+          _pipelineId: 2,
+        },
+      ],
     },
   ]
 };
