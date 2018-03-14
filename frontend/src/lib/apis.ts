@@ -22,6 +22,14 @@ export async function getPackage(id: number): Promise<PipelinePackage> {
 }
 
 /**
+ * Gets the Argo template of a certain package given its id.
+ */
+export async function getPackageTemplate(id: number): Promise<string> {
+  const response = await fetch(apisPrefix + `/packages/${id}/template`);
+  return await response.text();
+}
+
+/**
  * Uploads the given package file to the backend, and gets back a PipelinePackage
  * object with its metadata parsed.
  */
