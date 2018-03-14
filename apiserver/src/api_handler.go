@@ -37,8 +37,7 @@ const (
 	getPipeline    = "/pipelines/{pipelineId:long min(1)}"
 	createPipeline = "/pipelines"
 
-	listJobs  = "/pipelines/{pipelineId:long min(1)}/jobs"
-	createJob = "/pipelines/{pipelineId:long min(1)}/jobs"
+	listJobs = "/pipelines/{pipelineId:long min(1)}/jobs"
 )
 
 type APIHandler struct {
@@ -186,15 +185,46 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 	}
 
 	// Verify the package exist
-	_, err := a.packageStore.GetPackage(pipeline.PackageId)
+	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
 		util.HandleError("CreatePipeline_ValidPackageExist", ctx, err)
 		return
 	}
 
+	// Create pipeline metadata
 	pipeline, err = a.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
 		util.HandleError("CreatePipeline", ctx, err)
+		return
+	}
+
+	// For now schedule a one-time job, since pipeline CRD is not yet ready.
+	// Once ready, the pipeline CRD will be responsible for scheduling the job.
+	// Retrieve the actual package file.
+	file, err := a.packageManager.GetPackageFile(pkg.Name)
+	if err != nil {
+		util.HandleError("CreatePipeline_GetPackageFile", ctx, err)
+		return
+	}
+
+	// Inject parameters user provided to the pipeline template.
+	file, err = util.InjectParameters(file, pipeline.Parameters)
+	if err != nil {
+		util.HandleError("CreatePipeline_CreateJob_InjectParameter", ctx, err)
+		return
+	}
+
+	// Convert pipeline definition to Json format
+	file, err = yaml.YAMLToJSON(file)
+	if err != nil {
+		util.HandleError("CreatePipeline_CreateJob_ConvertToJson", ctx, err)
+		return
+	}
+
+	// Call K8s to create a new Argo workflow.
+	_, err = a.jobStore.CreateJob(file)
+	if err != nil {
+		util.HandleError("CreatePipeline_CreateJob", ctx, err)
 		return
 	}
 
@@ -210,67 +240,13 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 		return
 	}
 
-	jobs, err := a.jobStore.ListJobs()
+	jobs, err := a.jobStore.ListJobs2()
 	if err != nil {
 		util.HandleError("ListJobs", ctx, err)
 		return
 	}
 
 	ctx.JSON(jobs)
-}
-
-func (a APIHandler) CreateJob(ctx iris.Context) {
-	glog.Infof("Create job called")
-
-	id, err := ctx.Params().GetInt64("pipelineId")
-	if err != nil {
-		util.HandleError("CreateJob_GetParam", ctx, util.NewInvalidInputError("The pipeline ID is invalid.", err.Error()))
-		return
-	}
-
-	// Get the pipeline metadata from the DB
-	pipeline, err := a.pipelineStore.GetPipeline(uint(id))
-	if err != nil {
-		util.HandleError("CreateJob_GetPipeline", ctx, err)
-		return
-	}
-
-	// Get the package metadata from the DB
-	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
-	if err != nil {
-		util.HandleError("CreateJob_GetPackage", ctx, err)
-		return
-	}
-
-	// Retrieve the actual package file.
-	file, err := a.packageManager.GetPackageFile(pkg.Name)
-	if err != nil {
-		util.HandleError("CreateJob_GetPackageFile", ctx, err)
-		return
-	}
-
-	// Inject parameters user provided to the pipeline template.
-	file, err = util.InjectParameters(file, pipeline.Parameters)
-	if err != nil {
-		util.HandleError("CreateJob_InjectParameter", ctx, err)
-		return
-	}
-
-	// Convert pipeline definition to Json format
-	file, err = yaml.YAMLToJSON(file)
-	if err != nil {
-		util.HandleError("CreateJob_ConvertToJson", ctx, err)
-		return
-	}
-
-	// Call K8s to create a new Argo workflow.
-	job, err := a.jobStore.CreateJob(file)
-	if err != nil {
-		util.HandleError("CreateJob", ctx, err)
-		return
-	}
-
-	ctx.JSON(job)
 }
 
 func newApp(clientManager ClientManager) *iris.Application {
@@ -301,8 +277,6 @@ func newApp(clientManager ClientManager) *iris.Application {
 
 	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)
-	apiRouter.Post(createJob, apiHandler.CreateJob)
-	apiRouter.Options(createJob, func(iris.Context) {})
 	return app
 }
 
