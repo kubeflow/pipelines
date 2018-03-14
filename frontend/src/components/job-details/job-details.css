@@ -18,8 +18,25 @@
   width: 20px;
 }
 
+.tabs-container {
+  border-bottom: solid 1px var(--line-color);
+  height: 50px;
+  position: relative;
+}
+
 paper-progress {
   --paper-progress-active-color: var(--progress-color);
   --paper-progress-height: 10px;
   margin: 7px;
+}
+
+paper-tabs {
+  bottom: 0;
+  display: inline-block;
+  position: absolute;
+}
+
+paper-tab {
+  font-size: 13px;
+  min-width: 110px;
 }
