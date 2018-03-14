@@ -70,7 +70,8 @@ def main(argv=None):
       {'name': 'predicted', 'type': 'CATEGORY'},
       {'name': 'count', 'type': 'NUMBER'},
     ],
-    'source': cm_file
+    'source': cm_file,
+    'labels': vocab,
   }
   with file_io.FileIO(os.path.join(args.output, 'metadata.json'), 'w') as f:
     json.dump(metadata, f)
