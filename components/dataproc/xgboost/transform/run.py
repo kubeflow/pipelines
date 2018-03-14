@@ -94,8 +94,6 @@ for col in number_columns:
 
 spark = SparkSession.builder.appName("ML Transformer").getOrCreate()
 
-dfTrain = spark.read.schema(schema).csv(args.train)
-dfEval = spark.read.schema(schema).csv(args.eval)
 
 def make_process_rows_fn(
     classification, target_col, text_cols, category_cols, number_cols, vocab, stats):
@@ -140,7 +138,15 @@ def make_process_rows_fn(
 process_row_fn = make_process_rows_fn(
     classification, args.target, text_columns, category_columns, number_columns, vocab, stats)
 
-for name, df in [("train", dfTrain), ("eval", dfEval)]:
+dfs = []
+if args.train:
+  dfTrain = spark.read.schema(schema).csv(args.train)
+  dfs.append(("train", dfTrain))
+if args.eval:
+  dfEval = spark.read.schema(schema).csv(args.eval)
+  dfs.append(("eval", dfEval))
+
+for name, df in dfs:
   rdd = df.rdd.map(process_row_fn).map(
       lambda row: LabeledPoint(row["label"],
                                SparseVector(feature_size, row["indices"], row["values"])))
