@@ -240,7 +240,7 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 		return
 	}
 
-	jobs, err := a.jobStore.ListJobs2()
+	jobs, err := a.jobStore.ListJobs()
 	if err != nil {
 		util.HandleError("ListJobs", ctx, err)
 		return

@@ -26,7 +26,6 @@ import (
 
 type JobStoreInterface interface {
 	ListJobs() ([]pipelinemanager.Job, error)
-	ListJobs2() (wfv1.WorkflowList, error)
 	CreateJob(workflow []byte) (pipelinemanager.Job, error)
 }
 
@@ -46,13 +45,6 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	}
 
 	return jobs, nil
-}
-
-func (s *JobStore) ListJobs2() (wfv1.WorkflowList, error) {
-
-	wfList, _ := s.wfClient.List(metav1.ListOptions{})
-
-	return *wfList, nil
 }
 
 func (s *JobStore) CreateJob(workflow []byte) (pipelinemanager.Job, error) {
