@@ -20,7 +20,6 @@ import (
 	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
 )
@@ -138,12 +137,12 @@ func (a APIHandler) GetTemplate(ctx iris.Context) {
 		return
 	}
 
-	file, err := a.packageManager.GetPackageFile(pkg.Name)
+	template, err := a.packageManager.GetTemplate(pkg.Name)
 	if err != nil {
 		util.HandleError("GetTemplate_GetPackageFile", ctx, err)
 		return
 	}
-	ctx.Write(file)
+	ctx.Write(template)
 }
 
 func (a APIHandler) ListPipelines(ctx iris.Context) {
@@ -185,7 +184,7 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 		return
 	}
 
-	// Verify the package exist
+	// Verify the package exists
 	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
 		util.HandleError("CreatePipeline_ValidPackageExist", ctx, err)
@@ -199,31 +198,23 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 		return
 	}
 
-	// For now schedule a one-time job, since pipeline CRD is not yet ready.
-	// Once ready, the pipeline CRD will be responsible for scheduling the job.
-	// Retrieve the actual package file.
-	file, err := a.packageManager.GetPackageFile(pkg.Name)
+	template, err := a.packageManager.GetTemplate(pkg.Name)
 	if err != nil {
 		util.HandleError("CreatePipeline_GetPackageFile", ctx, err)
 		return
 	}
 
 	// Inject parameters user provided to the pipeline template.
-	file, err = util.InjectParameters(file, pipeline.Parameters)
+	workflow, err := util.InjectParameters(template, pipeline.Parameters)
 	if err != nil {
 		util.HandleError("CreatePipeline_CreateJob_InjectParameter", ctx, err)
 		return
 	}
 
-	// Convert pipeline definition to Json format
-	file, err = yaml.YAMLToJSON(file)
-	if err != nil {
-		util.HandleError("CreatePipeline_CreateJob_ConvertToJson", ctx, err)
-		return
-	}
-
-	// Call K8s to create a new Argo workflow.
-	_, err = a.jobStore.CreateJob(file)
+	// For now schedule a one-time job, since pipeline CRD is not yet ready.
+	// Once ready, the pipeline CRD will be responsible for scheduling the job.
+	// Retrieve the actual package file.
+	_, err = a.jobStore.CreateJob(workflow)
 	if err != nil {
 		util.HandleError("CreatePipeline_CreateJob", ctx, err)
 		return

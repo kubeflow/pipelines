@@ -22,13 +22,13 @@ import (
 	"github.com/minio/minio-go"
 )
 
-// Manager managing acutal package file.
+// Manager managing actual package file.
 type PackageManagerInterface interface {
 	// Create the package file
 	CreatePackageFile(template []byte, fileName string) error
 
-	// Get the package file
-	GetPackageFile(fileName string) ([]byte, error)
+	// Get the template for a given package.
+	GetTemplate(pkgName string) ([]byte, error)
 }
 
 // Managing package using Minio
@@ -45,8 +45,8 @@ func (m *MinioPackageManager) CreatePackageFile(template []byte, fileName string
 	return nil
 }
 
-func (m *MinioPackageManager) GetPackageFile(fileName string) ([]byte, error) {
-	reader, err := m.minioClient.GetObject(m.bucketName, fileName, minio.GetObjectOptions{})
+func (m *MinioPackageManager) GetTemplate(pkgName string) ([]byte, error) {
+	reader, err := m.minioClient.GetObject(m.bucketName, pkgName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalError("Failed to store a new package.", err.Error())
 	}

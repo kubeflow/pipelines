@@ -15,30 +15,30 @@
 package storage
 
 import (
-	"encoding/json"
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
 
-	workflowclient "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	k8sclient "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type JobStoreInterface interface {
 	GetJob(name string) (pipelinemanager.Job, error)
 	ListJobs() ([]pipelinemanager.Job, error)
-	CreateJob(workflow []byte) (pipelinemanager.Job, error)
+	CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error)
 }
 
 type JobStore struct {
-	wfClient v1alpha1.WorkflowInterface
+	wfClient workflowclient.WorkflowInterface
 }
 
 func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	var jobs []pipelinemanager.Job
 	wfList, err := s.wfClient.List(k8sclient.ListOptions{})
 	if err != nil {
-		return jobs, util.NewInternalError("Failed to list jobs", "Failed to list workflows from K8s CRD. Error: %s", err.Error())
+		return jobs, util.NewInternalError("Failed to list jobs",
+			"Failed to list workflows from K8s CRD. Error: %s", err.Error())
 	}
 	for _, workflow := range wfList.Items {
 		job := pipelinemanager.ToJob(workflow)
@@ -48,13 +48,12 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	return jobs, nil
 }
 
-func (s *JobStore) CreateJob(workflow []byte) (pipelinemanager.Job, error) {
+func (s *JobStore) CreateJob(wf v1alpha1.Workflow) (pipelinemanager.Job, error) {
 	var job pipelinemanager.Job
-	var wf workflowclient.Workflow
-	json.Unmarshal(workflow, &wf)
 	created, err := s.wfClient.Create(&wf)
 	if err != nil {
-		return job, util.NewInternalError("Failed to create job", "Failed to create workflow . Error: %s", err.Error())
+		return job, util.NewInternalError("Failed to create job",
+			"Failed to create workflow . Error: %s", err.Error())
 	}
 	job = pipelinemanager.ToJob(*created)
 	return job, nil
@@ -64,13 +63,14 @@ func (s *JobStore) GetJob(name string) (pipelinemanager.Job, error) {
 	var job pipelinemanager.Job
 	wf, err := s.wfClient.Get(name, metav1.GetOptions{})
 	if err != nil {
-		return job, util.NewInternalError("Failed to get a job", "Failed to get workflow %s from K8s CRD. Error: %s", name, err.Error())
+		return job, util.NewInternalError("Failed to get a job",
+			"Failed to get workflow %s from K8s CRD. Error: %s", name, err.Error())
 	}
 	job = pipelinemanager.ToJob(*wf)
 	return job, nil
 }
 
 // factory function for package store
-func NewJobStore(wfClient v1alpha1.WorkflowInterface) *JobStore {
+func NewJobStore(wfClient workflowclient.WorkflowInterface) *JobStore {
 	return &JobStore{wfClient}
 }

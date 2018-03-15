@@ -145,7 +145,7 @@ func TestCreateJob(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeWorkflowClient{},
 	}
-	job, err := store.CreateJob([]byte(""))
+	job, err := store.CreateJob(v1alpha1.Workflow{})
 
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
@@ -164,7 +164,7 @@ func TestCreateJobError(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeBadWorkflowClient{},
 	}
-	_, err := store.CreateJob([]byte(""))
+	_, err := store.CreateJob(v1alpha1.Workflow{})
 	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
 }
 

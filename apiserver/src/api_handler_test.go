@@ -22,6 +22,7 @@ import (
 	"ml/apiserver/src/util"
 	"testing"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/httptest"
 )
@@ -70,7 +71,7 @@ func (s *FakeJobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	return jobs, nil
 }
 
-func (s *FakeJobStore) CreateJob([]byte) (pipelinemanager.Job, error) {
+func (s *FakeJobStore) CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error) {
 	return pipelinemanager.Job{Name: "job1", Status: "Failed"}, nil
 }
 
@@ -84,7 +85,7 @@ func (s *FakeBadJobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	return nil, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) CreateJob([]byte) (pipelinemanager.Job, error) {
+func (s *FakeBadJobStore) CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error) {
 	return pipelinemanager.Job{}, util.NewInternalError("bad job store", "")
 }
 
@@ -94,7 +95,7 @@ func (m *FakePackageManager) CreatePackageFile(template []byte, fileName string)
 	return nil
 }
 
-func (m *FakePackageManager) GetPackageFile(fileName string) ([]byte, error) {
+func (m *FakePackageManager) GetTemplate(fileName string) ([]byte, error) {
 	return []byte("kind: Workflow"), nil
 }
 
@@ -104,7 +105,7 @@ func (m *FakeBadPackageManager) CreatePackageFile(template []byte, fileName stri
 	return util.NewInternalError("bad package manager", "")
 }
 
-func (m *FakeBadPackageManager) GetPackageFile(fileName string) ([]byte, error) {
+func (m *FakeBadPackageManager) GetTemplate(fileName string) ([]byte, error) {
 	return nil, util.NewInternalError("bad package manager", "")
 }
 
