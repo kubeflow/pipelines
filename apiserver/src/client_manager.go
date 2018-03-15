@@ -21,13 +21,13 @@ import (
 	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
 
-	wfclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/minio/minio-go"
-	apiv1 "k8s.io/api/core/v1"
+	k8sclient "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -111,8 +111,8 @@ func initWorkflowClient() v1alpha1.WorkflowInterface {
 	if err != nil {
 		glog.Fatalf("Failed to initialize workflow client. Error: %v", err)
 	}
-	wfClientSet := wfclientset.NewForConfigOrDie(restConfig)
-	wfClient := wfClientSet.ArgoprojV1alpha1().Workflows(apiv1.NamespaceDefault)
+	wfClientSet := workflowclient.NewForConfigOrDie(restConfig)
+	wfClient := wfClientSet.ArgoprojV1alpha1().Workflows(k8sclient.NamespaceDefault)
 	return wfClient
 }
 
