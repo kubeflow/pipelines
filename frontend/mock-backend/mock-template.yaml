@@ -93,26 +93,26 @@ spec:
           - name: schema
             value: "{{inputs.parameters.schema}}"
 
-    - - name: transform
-        template: transform
-        arguments:
-          parameters:
-          - name: project
-            value: "{{inputs.parameters.project}}"
-          - name: region
-            value: "{{inputs.parameters.region}}"
-          - name: cluster
-            value: "{{inputs.parameters.cluster}}"
-          - name: output
-            value: "{{inputs.parameters.output}}/{{workflow.name}}/transform"
-          - name: train
-            value: "{{inputs.parameters.train}}"
-          - name: eval
-            value: "{{inputs.parameters.eval}}"
-          - name: target
-            value: "{{inputs.parameters.target}}"
-          - name: analysis
-            value: "{{inputs.parameters.output}}/{{workflow.name}}/analysis"
+    - name: transform
+      template: transform
+      arguments:
+        parameters:
+        - name: project
+          value: "{{inputs.parameters.project}}"
+        - name: region
+          value: "{{inputs.parameters.region}}"
+        - name: cluster
+          value: "{{inputs.parameters.cluster}}"
+        - name: output
+          value: "{{inputs.parameters.output}}/{{workflow.name}}/transform"
+        - name: train
+          value: "{{inputs.parameters.train}}"
+        - name: eval
+          value: "{{inputs.parameters.eval}}"
+        - name: target
+          value: "{{inputs.parameters.target}}"
+        - name: analysis
+          value: "{{inputs.parameters.output}}/{{workflow.name}}/analysis"
 
     - - name: train
         template: train

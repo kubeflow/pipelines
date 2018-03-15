@@ -55,9 +55,13 @@ def main(argv=None):
   try:
     api = _utils.get_client()
     print('Submitting job...')
-    spark_args = ['--output', args.output, '--train', args.train,
-                  '--eval', args.eval, '--analysis', args.analysis,
+    spark_args = ['--output', args.output, '--analysis', args.analysis,
                   '--target', args.target]
+    if args.train:
+      spark_args.extend(['--train', args.train])
+    if args.eval:
+      spark_args.extend(['--eval', args.eval])
+
     job_id = _utils.submit_pyspark_job(
         api, args.project, args.region, args.cluster, dest_files[0], spark_args)
     print('Job request submitted. Waiting for completion...')

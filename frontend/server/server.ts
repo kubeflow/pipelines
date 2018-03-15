@@ -79,7 +79,7 @@ app.get('/_api/artifact/get/*', (req, res, next) => {
           if (err) {
             next(err);
           } else {
-            fs.unlink(destFilename);
+            fs.unlink(destFilename, null);
           }
         });
       })

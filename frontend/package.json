@@ -1,10 +1,15 @@
 {
   "name": "pipelines-frontend",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Frontend package for ML Pipeline Management",
   "main": "dist/index.html",
-  "dependencies": {},
+  "dependencies": {
+    "d3": "^4.13.0",
+    "js-yaml": "^3.11.0"
+  },
   "devDependencies": {
+    "@types/d3": "^4.12.0",
+    "@types/js-yaml": "^3.10.1",
     "babel-minify-webpack-plugin": "^0.3.0",
     "bower": "^1.8.2",
     "clean-webpack-plugin": "^0.1.16",
@@ -27,11 +32,11 @@
   "scripts": {
     "mock:api": "node mock-backend/mock-api-server.js 3001",
     "mock:server": "tsc server/*.ts && ML_PIPELINE_MANAGER_SERVICE_HOST=localhost ML_PIPELINE_MANAGER_SERVICE_PORT=3001 node server/server.js dist",
-    "build": "webpack --config webpack.prod.js && tsc server/*.ts",
+    "build": "tsc server/*.ts && webpack --config webpack.prod.js",
     "docker": "docker build -q -t ml-pipelines-frontend:`node -p \"require('./package.json').version\"` .",
     "dev": "webpack-dev-server --config webpack.dev.js",
     "lint": "tslint -p tsconfig.json",
-    "postinstall": "bower install",
+    "postinstall": "bower install && cd ./server && npm install",
     "start": "npm run dev",
     "tsc": "tsc"
   },

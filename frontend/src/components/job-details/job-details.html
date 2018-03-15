@@ -21,41 +21,48 @@
         </div>
       </div>
 
-      <hr>
-
-      <div class="details-table">
-
-        <br/>
-
-        <div>
-          <span class="detail-title">Status</span>
-          <span>[[job.status]]</span>
-        </div>
-        <div>
-          <span class="detail-title">Created at</span>
-          <span>[[_dateToString(job.createdAt)]]</span>
-        </div>
-        <div>
-          <span class="detail-title">Started at</span>
-          <span>[[_dateToString(job.startedAt)]]</span>
-        </div>
-        <div>
-          <span class="detail-title">Finished at</span>
-          <span>[[_dateToString(job.finishedAt)]]</span>
-        </div>
-        <div>
-          <span class="detail-title">Duration</span>
-          <span>[[_getRuntime(job.startedAt, job.finishedAt, job.status)]]</span>
-        </div>
-
-        <br/>
-        <br/>
-
+      <div class="tabs-container">
+        <paper-tabs class="no-shrink" selected="{{selectedTab}}">
+          <paper-tab>Basic Info</paper-tab>
+          <paper-tab>Output</paper-tab>
+        </paper-tabs>
       </div>
 
-      <hr>
+      <iron-pages selected="{{selectedTab}}">
 
-    </div>
+        <!-- iron-page tab 1 -->
+        <div>
+          <br/>
+          <div class="details-table">
+            <div>
+              <span class="detail-title">Status</span>
+              <span>[[job.status]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Created at</span>
+              <span>[[_dateToString(job.createdAt)]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Started at</span>
+              <span>[[_dateToString(job.startedAt)]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Finished at</span>
+              <span>[[_dateToString(job.finishedAt)]]</span>
+            </div>
+            <div>
+              <span class="detail-title">Duration</span>
+              <span>[[_getRuntime(job.startedAt, job.finishedAt, job.status)]]</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- iron-page tab 2 -->
+        <div>
+          <div id="plotTitle">Plot title placeholder</div>
+          <div id="plot">Plot placeholder</div>
+        </div>
+      </iron-pages>
 
   </template>
 </dom-module>

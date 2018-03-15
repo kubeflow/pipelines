@@ -1,5 +1,7 @@
 import 'iron-icons/iron-icons.html';
 import 'paper-progress/paper-progress.html';
+import 'paper-tabs/paper-tab.html';
+import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
@@ -9,6 +11,7 @@ import * as Utils from '../../lib/utils';
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from '../../decorators';
 import { PageElement } from '../../lib/page_element';
+import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { Job, JobStatus } from '../../model/job';
 
 import './job-details.html';
@@ -26,9 +29,28 @@ export class JobDetails extends Polymer.Element implements PageElement {
   @property({ type: Object })
   public job: Job | null = null;
 
-  public async refresh(_: string, queryParams: { jobId?: string }) {
-    if (queryParams.jobId !== undefined) {
-      this.job = await Apis.getJob(queryParams.jobId);
+  @property({ type: Number })
+  public selectedTab = 0;
+
+  private _pipelineId = -1;
+  private _jobId = '';
+
+  public async refresh(_: string, queryParams: { jobId?: string, pipelineId: number }) {
+    if (queryParams.jobId !== undefined && queryParams.pipelineId > -1) {
+      this._pipelineId = queryParams.pipelineId;
+      this._jobId = queryParams.jobId;
+      this.job = await Apis.getJob(this._pipelineId, this._jobId);
+
+      const pipeline = await Apis.getPipeline(this._pipelineId);
+      const templateYaml = await Apis.getPackageTemplate(pipeline.packageId);
+
+      const baseOutputPath = pipeline
+        .parameters
+        .filter((p) => p.name === 'output')[0]
+        .value.toString();
+
+      // TODO: This is just a placeholder for calling the function.
+      console.log(parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId));
 
       this._colorProgressBar();
     }

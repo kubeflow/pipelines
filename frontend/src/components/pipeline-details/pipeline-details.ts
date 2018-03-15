@@ -7,7 +7,6 @@ import 'polymer/polymer.html';
 
 import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
-import { RouteEvent } from '../../lib/events';
 import { PageElement } from '../../lib/page_element';
 import * as Utils from '../../lib/utils';
 import { Pipeline } from '../../model/pipeline';
@@ -38,13 +37,6 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
       (this.$.jobs as any).loadJobs(pipeline.id);
 
       this.pipeline = pipeline;
-    }
-  }
-
-  protected async _runOnce() {
-    if (this.pipeline && this.pipeline.id !== undefined) {
-      await Apis.newJob(this.pipeline.id);
-      this.dispatchEvent(new RouteEvent(`/jobs?pipelineId=${this.pipeline.id}`));
     }
   }
 

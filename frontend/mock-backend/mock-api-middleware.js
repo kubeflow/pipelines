@@ -40,13 +40,16 @@ module.exports = (app) => {
   app.get('/_api/pipelines/:pid/jobs', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
-    res.json(fixedData.jobs.filter(j => j._pipelineId === pid));
+    const p = fixedData.pipelines.filter((p) => p.id === pid);
+    res.json(p[0].jobs);
   });
 
-  app.get('/_api/jobs/:jname', (req, res) => {
+  app.get('/_api/pipelines/:pid/jobs/:jname', (req, res) => {
     res.header('Content-Type', 'application/json');
+    const pid = Number.parseInt(req.params.pid);
+    const p = fixedData.pipelines.filter((p) => p.id === pid);
     const jname = req.params.jname;
-    const j = fixedData.jobs.filter((j) => j.name === jname);
+    const j = p[0].jobs.filter((j) => j.name === jname);
     res.json(j[0]);
   });
 
@@ -57,7 +60,7 @@ module.exports = (app) => {
 
   app.get('/_api/packages/:pid/template', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
-    res.send('test yaml');
+    res.send(fs.readFileSync('./mock-backend/mock-template.yaml'));
   });
 
   app.post('/_api/packages/upload', (req, res) => {

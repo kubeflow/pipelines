@@ -22,6 +22,14 @@ export async function getPackage(id: number): Promise<PipelinePackage> {
 }
 
 /**
+ * Gets the Argo template of a certain package given its id.
+ */
+export async function getPackageTemplate(id: number): Promise<string> {
+  const response = await fetch(apisPrefix + `/packages/${id}/template`);
+  return await response.text();
+}
+
+/**
  * Uploads the given package file to the backend, and gets back a PipelinePackage
  * object with its metadata parsed.
  */
@@ -82,22 +90,8 @@ export async function getJobs(pipelineId: number): Promise<Job[]> {
 /**
  * Gets the details of a certain pipeline pipeline job given its id.
  */
-export async function getJob(id: string): Promise<Job> {
-  const response = await fetch(apisPrefix + `/jobs/${id}`);
-  return await response.json();
-}
-
-/**
- * Submits a new job for the given pipeline id.
- */
-export async function newJob(id: number): Promise<Job> {
-  const response = await fetch(apisPrefix + `/${id}/jobs`, {
-    cache: 'no-cache',
-    headers: {
-      'content-type': 'application/json',
-    },
-    method: 'POST',
-  });
+export async function getJob(pipelineId: number, jobId: string): Promise<Job> {
+  const response = await fetch(apisPrefix + `/pipelines/${pipelineId}/jobs/${jobId}`);
   return await response.json();
 }
 
