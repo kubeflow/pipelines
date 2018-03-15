@@ -1,0 +1,417 @@
+metadata:
+  creationTimestamp: 2018-03-08T22:25:28Z
+  generateName: github-issue-summarization-
+  labels:
+    workflows.argoproj.io/completed: "true"
+    workflows.argoproj.io/phase: Succeeded
+  name: github-issue-summarization-46nxf
+  namespace: default
+  resourceVersion: "3547123"
+  selfLink: /apis/argoproj.io/v1alpha1/namespaces/default/workflows/github-issue-summarization-46nxf
+  uid: 9b049c4e-231f-11e8-94a8-42010a8000c2
+spec:
+  arguments:
+    parameters:
+    - name: bucket
+      value: ml-bucket-4212
+    - name: bucket-key
+      value: data/github_issues_medium.csv.gz
+    - name: container-image
+      value: gcr.io/trydataproc-186722/github_issue_summarization:v1
+    - name: sample-size
+      value: "200"
+    - name: input-topic-number
+      value: "10"
+    - name: input-prediction-count
+      value: "50"
+    - name: learning-rate
+      value: "0.001"
+  entrypoint: default
+  templates:
+  - inputs: {}
+    name: default
+    outputs: {}
+    steps:
+    - - arguments: {}
+        name: import-data
+        template: import-data
+    - - arguments: {}
+        name: process-data
+        template: process-data
+    - - arguments: {}
+        name: preprocess-deep-learning
+        template: preprocess-deep-learning
+    - - arguments: {}
+        name: training
+        template: training
+    - - arguments: {}
+        name: prediction
+        template: prediction
+    - - arguments: {}
+        name: feature-extraction
+        template: feature-extraction
+  - container:
+      args:
+      - cp /mnt/workspace/data/issues.csv.gz /mnt/workspace/data/issues-copy.csv.gz;
+        gzip -d /mnt/workspace/data/issues-copy.csv.gz; cp /mnt/workspace/data/issues-copy.csv
+        /mnt/workspace/data/github_issues_medium.csv;
+      command:
+      - sh
+      - -c
+      image: alpine:latest
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /mnt/workspace/data/
+        name: workdir
+    inputs:
+      artifacts:
+      - name: input
+        path: /mnt/workspace/data/issues.csv.gz
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: gcs-accesskey
+          bucket: '{{workflow.parameters.bucket}}'
+          endpoint: storage.googleapis.com
+          key: '{{workflow.parameters.bucket-key}}'
+          secretKeySecret:
+            key: secretkey
+            name: gcs-accesskey
+    name: import-data
+    outputs:
+      artifacts:
+      - name: output
+        path: /mnt/workspace/data/issues-copy.csv
+  - container:
+      args:
+      - cd ./workspace/src; python process_data.py --input_csv=/mnt/workspace/data/github_issues_medium.csv
+        --sample_size={{workflow.parameters.sample-size}} --output_traindf_csv=/mnt/workspace/data/github_issues_medium_train.csv
+        --output_testdf_csv=/mnt/workspace/data/github_issues_medium_test.csv
+      command:
+      - sh
+      - -c
+      image: '{{workflow.parameters.container-image}}'
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /mnt/workspace/data/
+        name: workdir
+    inputs: {}
+    name: process-data
+    outputs:
+      artifacts:
+      - name: output-traindf-csv
+        path: /mnt/workspace/data/github_issues_medium_train.csv
+      - name: output-testdf-csv
+        path: /mnt/workspace/data/github_issues_medium_test.csv
+  - container:
+      args:
+      - cd ./workspace/src; python ./preprocess_data_for_deep_learning.py --input_traindf_csv=/mnt/workspace/data/github_issues_medium_train.csv
+        --output_body_preprocessor_dpkl=/mnt/workspace/data/body_preprocessor.dpkl
+        --output_title_preprocessor_dpkl=/mnt/workspace/data/title_preprocessor.dpkl
+        --output_train_title_vecs_npy=/mnt/workspace/data/train_title_vecs.npy --output_train_body_vecs_npy=/mnt/workspace/data/train_body_vecs.npy
+      command:
+      - sh
+      - -c
+      image: '{{workflow.parameters.container-image}}'
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /mnt/workspace/data/
+        name: workdir
+    inputs: {}
+    name: preprocess-deep-learning
+    outputs:
+      artifacts:
+      - name: output-body-preprocessor-dpkl
+        path: /mnt/workspace/data/body_preprocessor.dpkl
+      - name: output-title-preprocessor-dpkl
+        path: /mnt/workspace/data/title_preprocessor.dpkl
+      - name: output-train-title-vecs-npy
+        path: /mnt/workspace/data/train_title_vecs.npy
+      - name: output-train-body-vecs-npy
+        path: /mnt/workspace/data/train_body_vecs.npy
+  - container:
+      args:
+      - cd ./workspace/src; python train.py --input_body_preprocessor_dpkl=/mnt/workspace/data/body_preprocessor.dpkl
+        --input_title_preprocessor_dpkl=/mnt/workspace/data/title_preprocessor.dpkl
+        --input_train_title_vecs_npy=/mnt/workspace/data/train_title_vecs.npy --input_train_body_vecs_npy=/mnt/workspace/data/train_body_vecs.npy
+        --output_model_h5=/mnt/workspace/data/output_model.h5 --learning_rate={{workflow.parameters.learning-rate}}
+      command:
+      - sh
+      - -c
+      image: '{{workflow.parameters.container-image}}'
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /mnt/workspace/data/
+        name: workdir
+    inputs: {}
+    name: training
+    outputs:
+      artifacts:
+      - name: output-model-h5
+        path: /mnt/workspace/data/output_model.h5
+  - container:
+      args:
+      - cd ./workspace/src; python prediction.py --input_body_preprocessor_dpkl=/mnt/workspace/data/body_preprocessor.dpkl
+        --input_title_preprocessor_dpkl=/mnt/workspace/data/title_preprocessor.dpkl
+        --input_model_h5=/mnt/workspace/data/output_model.h5 --input_testdf_csv=/mnt/workspace/data/github_issues_medium_test.csv
+        --input_prediction_count={{workflow.parameters.input-prediction-count}}
+      command:
+      - sh
+      - -c
+      image: '{{workflow.parameters.container-image}}'
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /mnt/workspace/data/
+        name: workdir
+    inputs: {}
+    name: prediction
+    outputs: {}
+  - container:
+      args:
+      - cd ./workspace/src; python recommend.py --input_csv=/mnt/workspace/data/github_issues_medium.csv
+        --input_body_preprocessor_dpkl=/mnt/workspace/data/body_preprocessor.dpkl
+        --input_title_preprocessor_dpkl=/mnt/workspace/data/title_preprocessor.dpkl
+        --input_model_h5=/mnt/workspace/data/output_model.h5 --input_testdf_csv=/mnt/workspace/data/github_issues_medium_test.csv
+        --input_topic_number={{workflow.parameters.input-topic-number}}
+      command:
+      - sh
+      - -c
+      image: '{{workflow.parameters.container-image}}'
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /mnt/workspace/data/
+        name: workdir
+    inputs: {}
+    name: feature-extraction
+    outputs: {}
+  volumeClaimTemplates:
+  - metadata:
+      creationTimestamp: null
+      name: workdir
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 20Gi
+    status: {}
+status:
+  finishedAt: 2018-03-08T22:28:33Z
+  nodes:
+    github-issue-summarization-46nxf:
+      children:
+      - github-issue-summarization-46nxf-1924723121
+      - github-issue-summarization-46nxf-784095292
+      - github-issue-summarization-46nxf-783550839
+      - github-issue-summarization-46nxf-1924576026
+      - github-issue-summarization-46nxf-851647053
+      - github-issue-summarization-46nxf-784683672
+      finishedAt: 2018-03-08T22:28:33Z
+      id: github-issue-summarization-46nxf
+      name: github-issue-summarization-46nxf
+      phase: Succeeded
+      startedAt: 2018-03-08T22:25:28Z
+    github-issue-summarization-46nxf-312262336:
+      finishedAt: 2018-03-08T22:27:16Z
+      id: github-issue-summarization-46nxf-312262336
+      name: github-issue-summarization-46nxf[4].prediction
+      phase: Succeeded
+      startedAt: 2018-03-08T22:26:58Z
+    github-issue-summarization-46nxf-783550839:
+      children:
+      - github-issue-summarization-46nxf-3212074627
+      finishedAt: 2018-03-08T22:26:11Z
+      id: github-issue-summarization-46nxf-783550839
+      name: github-issue-summarization-46nxf[2]
+      phase: Succeeded
+      startedAt: 2018-03-08T22:25:58Z
+    github-issue-summarization-46nxf-784095292:
+      children:
+      - github-issue-summarization-46nxf-4204842914
+      finishedAt: 2018-03-08T22:25:58Z
+      id: github-issue-summarization-46nxf-784095292
+      name: github-issue-summarization-46nxf[1]
+      phase: Succeeded
+      startedAt: 2018-03-08T22:25:52Z
+    github-issue-summarization-46nxf-784683672:
+      children:
+      - github-issue-summarization-46nxf-2751386398
+      finishedAt: 2018-03-08T22:28:33Z
+      id: github-issue-summarization-46nxf-784683672
+      name: github-issue-summarization-46nxf[5]
+      phase: Succeeded
+      startedAt: 2018-03-08T22:27:17Z
+    github-issue-summarization-46nxf-851647053:
+      children:
+      - github-issue-summarization-46nxf-312262336
+      finishedAt: 2018-03-08T22:27:17Z
+      id: github-issue-summarization-46nxf-851647053
+      name: github-issue-summarization-46nxf[4]
+      phase: Succeeded
+      startedAt: 2018-03-08T22:26:58Z
+    github-issue-summarization-46nxf-1261769243:
+      finishedAt: 2018-03-08T22:25:51Z
+      id: github-issue-summarization-46nxf-1261769243
+      name: github-issue-summarization-46nxf[0].import-data
+      outputs:
+        artifacts:
+        - name: output
+          path: /mnt/workspace/data/issues-copy.csv
+          s3:
+            accessKeySecret:
+              key: accesskey
+              name: gcs-accesskey
+            bucket: ml-bucket-4212
+            endpoint: storage.googleapis.com
+            insecure: true
+            key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-1261769243/output.tgz
+            secretKeySecret:
+              key: secretkey
+              name: gcs-accesskey
+      phase: Succeeded
+      startedAt: 2018-03-08T22:25:28Z
+    github-issue-summarization-46nxf-1924576026:
+      children:
+      - github-issue-summarization-46nxf-2737080426
+      finishedAt: 2018-03-08T22:26:58Z
+      id: github-issue-summarization-46nxf-1924576026
+      name: github-issue-summarization-46nxf[3]
+      phase: Succeeded
+      startedAt: 2018-03-08T22:26:11Z
+    github-issue-summarization-46nxf-1924723121:
+      children:
+      - github-issue-summarization-46nxf-1261769243
+      finishedAt: 2018-03-08T22:25:52Z
+      id: github-issue-summarization-46nxf-1924723121
+      name: github-issue-summarization-46nxf[0]
+      phase: Succeeded
+      startedAt: 2018-03-08T22:25:28Z
+    github-issue-summarization-46nxf-2737080426:
+      finishedAt: 2018-03-08T22:26:57Z
+      id: github-issue-summarization-46nxf-2737080426
+      name: github-issue-summarization-46nxf[3].training
+      outputs:
+        artifacts:
+        - name: output-model-h5
+          path: /mnt/workspace/data/output_model.h5
+          s3:
+            accessKeySecret:
+              key: accesskey
+              name: gcs-accesskey
+            bucket: ml-bucket-4212
+            endpoint: storage.googleapis.com
+            insecure: true
+            key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-2737080426/output-model-h5.tgz
+            secretKeySecret:
+              key: secretkey
+              name: gcs-accesskey
+      phase: Succeeded
+      startedAt: 2018-03-08T22:26:11Z
+    github-issue-summarization-46nxf-2751386398:
+      finishedAt: 2018-03-08T22:28:33Z
+      id: github-issue-summarization-46nxf-2751386398
+      name: github-issue-summarization-46nxf[5].feature-extraction
+      phase: Succeeded
+      startedAt: 2018-03-08T22:27:17Z
+    github-issue-summarization-46nxf-3212074627:
+      finishedAt: 2018-03-08T22:26:10Z
+      id: github-issue-summarization-46nxf-3212074627
+      name: github-issue-summarization-46nxf[2].preprocess-deep-learning
+      outputs:
+        artifacts:
+        - name: output-body-preprocessor-dpkl
+          path: /mnt/workspace/data/body_preprocessor.dpkl
+          s3:
+            accessKeySecret:
+              key: accesskey
+              name: gcs-accesskey
+            bucket: ml-bucket-4212
+            endpoint: storage.googleapis.com
+            insecure: true
+            key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-3212074627/output-body-preprocessor-dpkl.tgz
+            secretKeySecret:
+              key: secretkey
+              name: gcs-accesskey
+        - name: output-title-preprocessor-dpkl
+          path: /mnt/workspace/data/title_preprocessor.dpkl
+          s3:
+            accessKeySecret:
+              key: accesskey
+              name: gcs-accesskey
+            bucket: ml-bucket-4212
+            endpoint: storage.googleapis.com
+            insecure: true
+            key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-3212074627/output-title-preprocessor-dpkl.tgz
+            secretKeySecret:
+              key: secretkey
+              name: gcs-accesskey
+        - name: output-train-title-vecs-npy
+          path: /mnt/workspace/data/train_title_vecs.npy
+          s3:
+            accessKeySecret:
+              key: accesskey
+              name: gcs-accesskey
+            bucket: ml-bucket-4212
+            endpoint: storage.googleapis.com
+            insecure: true
+            key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-3212074627/output-train-title-vecs-npy.tgz
+            secretKeySecret:
+              key: secretkey
+              name: gcs-accesskey
+        - name: output-train-body-vecs-npy
+          path: /mnt/workspace/data/train_body_vecs.npy
+          s3:
+            accessKeySecret:
+              key: accesskey
+              name: gcs-accesskey
+            bucket: ml-bucket-4212
+            endpoint: storage.googleapis.com
+            insecure: true
+            key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-3212074627/output-train-body-vecs-npy.tgz
+            secretKeySecret:
+              key: secretkey
+              name: gcs-accesskey
+      phase: Succeeded
+      startedAt: 2018-03-08T22:25:58Z
+    github-issue-summarization-46nxf-4204842914:
+      finishedAt: 2018-03-08T22:25:57Z
+      id: github-issue-summarization-46nxf-4204842914
+      name: github-issue-summarization-46nxf[1].process-data
+      outputs:
+        artifacts:
+        - name: output-traindf-csv
+          path: /mnt/workspace/data/github_issues_medium_train.csv
+          s3:
+            accessKeySecret:
+              key: accesskey
+              name: gcs-accesskey
+            bucket: ml-bucket-4212
+            endpoint: storage.googleapis.com
+            insecure: true
+            key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-4204842914/output-traindf-csv.tgz
+            secretKeySecret:
+              key: secretkey
+              name: gcs-accesskey
+        - name: output-testdf-csv
+          path: /mnt/workspace/data/github_issues_medium_test.csv
+          s3:
+            accessKeySecret:
+              key: accesskey
+              name: gcs-accesskey
+            bucket: ml-bucket-4212
+            endpoint: storage.googleapis.com
+            insecure: true
+            key: github-issue-summarization-46nxf/github-issue-summarization-46nxf-4204842914/output-testdf-csv.tgz
+            secretKeySecret:
+              key: secretkey
+              name: gcs-accesskey
+      phase: Succeeded
+      startedAt: 2018-03-08T22:25:52Z
+  phase: Succeeded
+  startedAt: 2018-03-08T22:25:28Z

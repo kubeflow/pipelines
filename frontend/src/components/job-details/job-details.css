@@ -18,6 +18,12 @@
   width: 20px;
 }
 
+.container {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+}
+
 .tabs-container {
   border-bottom: solid 1px var(--line-color);
   height: 50px;
@@ -28,12 +34,6 @@ paper-progress {
   --paper-progress-active-color: var(--progress-color);
   --paper-progress-height: 10px;
   margin: 7px;
-}
-
-.tabs-container {
-  border-bottom: solid 1px var(--line-color);
-  height: 50px;
-  position: relative;
 }
 
 paper-tabs {
@@ -47,36 +47,16 @@ paper-tab {
   min-width: 110px;
 }
 
-.pipeline-dag {
-  position: relative;
+.pages {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
 }
 
-.pipeline-node {
-  background-color: white;
-  box-shadow: 1px 1px 1px #aaa;
-  cursor: pointer;
-  margin: 10px;
-  position: absolute;
-  text-align: center;
-}
-
-.pipeline-node .label {
-  line-height: 3em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pipeline-edge .line {
-  border-top: 1px solid #ccc;
-  position: absolute;
-}
-
-.pipeline-edge .line:nth-last-child(2)::after {
-  color: #A3A3A3;
-  content: '\25BA';
-  font-size: 10px;
-  position: absolute;
-  top: -7px;
-  transform: rotate(180deg);
+#jobGraph {
+  border-radius: 0 0 5px 5px;
+  border-top: 0;
+  border: solid 1px #ddd;
+  flex-grow: 1;
+  overflow: auto;
 }
