@@ -14,7 +14,7 @@
 
 package pipelinemanager
 
-import "ml/apiserver/src/message/argo"
+import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
 type Parameter struct {
 	Name      string  `json:"name" gorm:"not null"`
@@ -23,7 +23,7 @@ type Parameter struct {
 	OwnerType string  `json:"-"`
 }
 
-func ToParameters(argoParameters []argo.Parameter) []Parameter {
+func ToParameters(argoParameters []v1alpha1.Parameter) []Parameter {
 	newParams := make([]Parameter, 0)
 	for _, argoParam := range argoParameters {
 		param := Parameter{
