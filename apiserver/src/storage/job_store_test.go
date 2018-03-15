@@ -58,6 +58,16 @@ func (FakeWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error)
 			Phase:      "Pending"}}, nil
 }
 
+func (FakeWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
+	return &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
+		Name:              "artifact-passing-xyz",
+		CreationTimestamp: v1.Time{Time: ct}},
+		Status: v1alpha1.WorkflowStatus{
+			StartedAt:  v1.Time{Time: st},
+			FinishedAt: v1.Time{Time: ft},
+			Phase:      "Pending"}}, nil
+}
+
 func (FakeWorkflowClient) Update(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
 	panic("implement me")
 }
@@ -67,10 +77,6 @@ func (FakeWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 func (FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	panic("implement me")
-}
-
-func (FakeWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
 	panic("implement me")
 }
 
@@ -91,6 +97,10 @@ func (FakeBadWorkflowClient) List(opts v1.ListOptions) (*v1alpha1.WorkflowList, 
 }
 
 func (FakeBadWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+	return nil, errors.New("some error")
+}
+
+func (FakeBadWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
 	return nil, errors.New("some error")
 }
 
@@ -155,5 +165,32 @@ func TestCreateJobError(t *testing.T) {
 		wfClient: &FakeBadWorkflowClient{},
 	}
 	_, err := store.CreateJob([]byte(""))
+	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
+}
+
+func TestGetJob(t *testing.T) {
+	store := &JobStore{
+		wfClient: &FakeWorkflowClient{},
+	}
+	job, err := store.GetJob("job1")
+
+	if err != nil {
+		t.Errorf("Something wrong. Error %v", err)
+	}
+	jobExpect := pipelinemanager.Job{
+		Name:     "artifact-passing-xyz",
+		CreateAt: &ct,
+		StartAt:  &st,
+		FinishAt: &ft,
+		Status:   "Pending"}
+
+	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
+}
+
+func TestGetJobError(t *testing.T) {
+	store := &JobStore{
+		wfClient: &FakeBadWorkflowClient{},
+	}
+	_, err := store.GetJob("job1")
 	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
 }

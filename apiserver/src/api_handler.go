@@ -38,6 +38,7 @@ const (
 	createPipeline = "/pipelines"
 
 	listJobs = "/pipelines/{pipelineId:long min(1)}/jobs"
+	getJob   = "/pipelines/{pipelineId:long min(1)}/jobs/{jobName:string}"
 )
 
 type APIHandler struct {
@@ -249,6 +250,20 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 	ctx.JSON(jobs)
 }
 
+func (a APIHandler) GetJob(ctx iris.Context) {
+	glog.Infof("Get job called")
+
+	jobName := ctx.Params().Get("jobName")
+
+	job, err := a.jobStore.GetJob(jobName)
+	if err != nil {
+		util.HandleError("GetJob", ctx, err)
+		return
+	}
+
+	ctx.JSON(job)
+}
+
 func newApp(clientManager ClientManager) *iris.Application {
 	apiHandler := APIHandler{
 		packageStore:   clientManager.packageStore,
@@ -277,6 +292,7 @@ func newApp(clientManager ClientManager) *iris.Application {
 
 	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)
+	apiRouter.Get(getJob, apiHandler.GetJob)
 	return app
 }
 

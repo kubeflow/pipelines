@@ -25,6 +25,7 @@ import (
 )
 
 type JobStoreInterface interface {
+	GetJob(name string) (pipelinemanager.Job, error)
 	ListJobs() ([]pipelinemanager.Job, error)
 	CreateJob(workflow []byte) (pipelinemanager.Job, error)
 }
@@ -37,7 +38,7 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	var jobs []pipelinemanager.Job
 	wfList, err := s.wfClient.List(metav1.ListOptions{})
 	if err != nil {
-		return jobs, util.NewInternalError("Failed to get jobs", "Failed to get workflows from K8s CRD. Error: %s", err.Error())
+		return jobs, util.NewInternalError("Failed to list jobs", "Failed to list workflows from K8s CRD. Error: %s", err.Error())
 	}
 	for _, workflow := range wfList.Items {
 		job := pipelinemanager.ToJob(workflow)
@@ -56,6 +57,16 @@ func (s *JobStore) CreateJob(workflow []byte) (pipelinemanager.Job, error) {
 		return job, util.NewInternalError("Failed to create job", "Failed to create workflow . Error: %s", err.Error())
 	}
 	job = pipelinemanager.ToJob(*created)
+	return job, nil
+}
+
+func (s *JobStore) GetJob(name string) (pipelinemanager.Job, error) {
+	var job pipelinemanager.Job
+	wf, err := s.wfClient.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return job, util.NewInternalError("Failed to get a job", "Failed to get workflow %s from K8s CRD. Error: %s", name, err.Error())
+	}
+	job = pipelinemanager.ToJob(*wf)
 	return job, nil
 }
 
