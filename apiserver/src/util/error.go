@@ -65,6 +65,19 @@ func (e *InvalidInputError) Error() string {
 	return fmt.Sprintf("Invalid input: %v. Error: <%s>", e.Message, e.ErrorDetail)
 }
 
+type BadRequestError struct {
+	// Error message returned to client
+	Message string
+}
+
+func NewBadRequestError(message string, a ...interface{}) *BadRequestError {
+	return &BadRequestError{Message: fmt.Sprintf(message, a...)}
+}
+
+func (e *BadRequestError) Error() string {
+	return fmt.Sprintf("Bad request. Error: <%s>", e.Message)
+}
+
 // TODO(yangpa): Consider add a flag so that when a flag is true, user can see the internal message
 func HandleError(action string, ctx iris.Context, err error) {
 	switch err.(type) {
@@ -79,6 +92,10 @@ func HandleError(action string, ctx iris.Context, err error) {
 		e, _ := err.(*InvalidInputError)
 		ctx.WriteString(e.Message)
 	case *ResourceNotFoundError:
+		glog.Infof("%v failed. Error: %v", action, err.Error())
+		ctx.StatusCode(http.StatusBadRequest)
+		ctx.WriteString(err.Error())
+	case *BadRequestError:
 		glog.Infof("%v failed. Error: %v", action, err.Error())
 		ctx.StatusCode(http.StatusBadRequest)
 		ctx.WriteString(err.Error())

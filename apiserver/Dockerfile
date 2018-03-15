@@ -28,5 +28,5 @@ RUN go build -o ${BINPATH}/apiserver ${APISERVER_HOME}/src/*.go
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/go/src/ml/apiserver/config/config.json
+CMD apiserver --config=/go/src/ml/apiserver/config
 

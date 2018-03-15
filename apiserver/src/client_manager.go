@@ -21,7 +21,7 @@ import (
 	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
 
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
+	argoclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
@@ -111,7 +111,7 @@ func initWorkflowClient() v1alpha1.WorkflowInterface {
 	if err != nil {
 		glog.Fatalf("Failed to initialize workflow client. Error: %v", err)
 	}
-	wfClientSet := workflowclient.NewForConfigOrDie(restConfig)
+	wfClientSet := argoclient.NewForConfigOrDie(restConfig)
 	wfClient := wfClientSet.ArgoprojV1alpha1().Workflows(k8sclient.NamespaceDefault)
 	return wfClient
 }

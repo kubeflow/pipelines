@@ -33,11 +33,11 @@ func GetParameters(template []byte) ([]pipelinemanager.Parameter, error) {
 // Inject the parameter to the workflow template.
 // If the value of a parameter exists in both template and the parameters to be injected,
 // the latter one will take the precedence and override the template one.
-func InjectParameters(template []byte, parameters []pipelinemanager.Parameter) ([]byte, error) {
+func InjectParameters(template []byte, parameters []pipelinemanager.Parameter) (v1alpha1.Workflow, error) {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, NewInvalidInputError("The template isn't a valid argo template.", err.Error())
+		return wf, NewBadRequestError("The template isn't a valid argo template.", err.Error())
 	}
 
 	newParams := make([]v1alpha1.Parameter, 0)
@@ -63,12 +63,5 @@ func InjectParameters(template []byte, parameters []pipelinemanager.Parameter) (
 	}
 	wf.Spec.Arguments.Parameters = newParams
 
-	wfByte, err := yaml.Marshal(wf)
-	if err != nil {
-		return nil, NewInternalError(
-			"Failed to apply parameter to the template.",
-			"There is an issue marshalling the yaml file. Error: %s", err.Error())
-	}
-
-	return wfByte, nil
+	return wf, nil
 }

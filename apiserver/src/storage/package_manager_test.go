@@ -61,15 +61,15 @@ func TestCreatePackageFileError(t *testing.T) {
 	assert.IsType(t, new(util.InternalError), error, "Expect new internal error.")
 }
 
-func TestGetPackageFile(t *testing.T) {
+func TestGetTemplate(t *testing.T) {
 	manager := &MinioPackageManager{minioClient: &FakeMinioClient{}}
-	file, error := manager.GetPackageFile("file name")
+	file, error := manager.GetTemplate("file name")
 	assert.Nil(t, error, "Expect get package successfully.")
 	assert.Equal(t, file, []byte("I'm a file"))
 }
 
-func TestGetPackageFileError(t *testing.T) {
+func TestGetTemplateError(t *testing.T) {
 	manager := &MinioPackageManager{minioClient: &FakeBadMinioClient{}}
-	_, error := manager.GetPackageFile("file name")
+	_, error := manager.GetTemplate("file name")
 	assert.IsType(t, new(util.InternalError), error, "Expect new internal error.")
 }
