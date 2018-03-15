@@ -61,7 +61,7 @@ func (s *JobStore) CreateJob(wf v1alpha1.Workflow) (pipelinemanager.Job, error) 
 
 func (s *JobStore) GetJob(name string) (pipelinemanager.Job, error) {
 	var job pipelinemanager.Job
-	wf, err := s.wfClient.Get(name, metav1.GetOptions{})
+	wf, err := s.wfClient.Get(name, k8sclient.GetOptions{})
 	if err != nil {
 		return job, util.NewInternalError("Failed to get a job",
 			"Failed to get workflow %s from K8s CRD. Error: %s", name, err.Error())
