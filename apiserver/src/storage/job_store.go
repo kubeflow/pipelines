@@ -19,9 +19,9 @@ import (
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
 
-	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowclient "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sclient "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type JobStoreInterface interface {
@@ -35,7 +35,7 @@ type JobStore struct {
 
 func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	var jobs []pipelinemanager.Job
-	wfList, err := s.wfClient.List(metav1.ListOptions{})
+	wfList, err := s.wfClient.List(k8sclient.ListOptions{})
 	if err != nil {
 		return jobs, util.NewInternalError("Failed to get jobs", "Failed to get workflows from K8s CRD. Error: %s", err.Error())
 	}
@@ -49,7 +49,7 @@ func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
 
 func (s *JobStore) CreateJob(workflow []byte) (pipelinemanager.Job, error) {
 	var job pipelinemanager.Job
-	var wf wfv1.Workflow
+	var wf workflowclient.Workflow
 	json.Unmarshal(workflow, &wf)
 	created, err := s.wfClient.Create(&wf)
 	if err != nil {
