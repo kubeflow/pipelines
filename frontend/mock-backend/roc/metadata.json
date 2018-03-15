@@ -1,0 +1,8 @@
+{
+  "type": "roc",
+  "format": "csv",
+  "source": "./roc/roc.csv",
+  "schema": [],
+  "predicted_col": "column1",
+  "target_col": "column2"
+}

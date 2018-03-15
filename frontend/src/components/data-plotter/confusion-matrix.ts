@@ -8,7 +8,7 @@ export interface MatrixOptions {
   endColor: string;
 }
 
-const margin = { top: 50, right: 50, bottom: 100, left: 100 };
+const margin = { top: 50, right: 50, bottom: 200, left: 200 };
 
 /**
  * Draws a confusion matrix with the given options. One of the options
@@ -16,8 +16,8 @@ const margin = { top: 50, right: 50, bottom: 100, left: 100 };
  * elements.
  */
 export function drawMatrix(options: MatrixOptions) {
-  const width = 250;
-  const height = 250;
+  const width = 550;
+  const height = 550;
   const data = options.data;
   const container = options.container;
   const labelsData = options.labels;
@@ -92,7 +92,7 @@ export function drawMatrix(options: MatrixOptions) {
     .data(labelsData)
     .enter().append('g')
     .attr('class', 'column-label')
-    .attr('transform', (d, i) => 'translate(' + x(i.toString()) + ',' + height + ')');
+    .attr('transform', (d, i) => 'translate(' + x(i.toString()) + ',' + (20 + height) + ')');
 
   columnLabels.append('line')
     .style('stroke', 'black')
@@ -125,7 +125,7 @@ export function drawMatrix(options: MatrixOptions) {
     .attr('y2', y.bandwidth() / 2);
 
   rowLabels.append('text')
-    .attr('x', -8)
+    .attr('x', -11)
     .attr('y', y.bandwidth() / 2)
     .attr('dy', '.32em')
     .attr('text-anchor', 'end')
@@ -176,71 +176,4 @@ export function drawMatrix(options: MatrixOptions) {
     .attr('class', 'y axis')
     .attr('transform', 'translate(41,' + margin.top + ')')
     .call(d3.axisRight(legendY) as any);
-}
-
-/**
- * Draws a statistics table with prevision, recall, and accuracy.
- */
-export function drawStatsTable(container: HTMLElement, data: number[][]) {
-  if (!Array.isArray(data) || !data.length || !Array.isArray(data[0])) {
-    throw new Error('Confusion matrix input should be a 2D array.');
-  }
-
-  const columns = ['Precision', 'Recall', 'Accuracy'];
-
-  const tp = data[0][0];
-  const fn = data[0][1];
-  const fp = data[1][0];
-  const tn = data[1][1];
-
-  const p = tp + fn;
-  const n = fp + tn;
-
-  let accuracy = (tp + tn) / (p + n);
-  let precision = tp / (tp + fp);
-  let recall = tp / (tp + fn);
-
-  accuracy = Math.round(accuracy * 100) / 100;
-  precision = Math.round(precision * 100) / 100;
-  recall = Math.round(recall * 100) / 100;
-
-  const tableData = [];
-  tableData.push({
-    Accuracy: accuracy,
-    Precision: precision,
-    Recall: recall,
-  });
-
-  const table = d3.select(container).append('table')
-    .attr('style', 'margin-left: ' + margin.left + 'px');
-  const thead = table.append('thead');
-  const tbody = table.append('tbody');
-
-  // append the header row
-  thead.append('tr')
-    .selectAll('th')
-    .data(columns)
-    .enter()
-    .append('th')
-    .text((column) => column);
-
-  // create a row for each object in the data
-  const rows = tbody.selectAll('tr')
-    .data(tableData)
-    .enter()
-    .append('tr');
-
-  // create a cell in each row for each column
-  rows.selectAll('td')
-    .data((row) => {
-      return columns.map((column) => {
-        return { column, value: (row as any)[column] };
-      });
-    })
-    .enter()
-    .append('td')
-    .attr('style', 'font-family: monospace') // sets the font style
-    .html((d) => d.value);
-
-  return table;
 }

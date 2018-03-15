@@ -5,17 +5,11 @@ const prefix = __dirname + '/pipeline-data';
 
 const fixedData = require('./fixed-data');
 
-const rocDataPath = './pipeline-data/5.evaluation/roc.csv';
+const rocMetadataJsonPath = './roc/metadata.json';
+const rocDataPath = './roc/roc.csv';
 
-const exampleOutputJson =
-  {
-    type: 'roc',
-    format: 'csv',
-    source: './pipeline-data/5.evaluation/roc.csv',
-    schema: '',
-    predicted_col: 'column1',
-    target_col: 'column2'
-  };
+const confusionMatrixMetadataJsonPath = './confusionmatrix/metadata.json';
+const confusionMatrixPath = './confusionmatrix/confusion_matrix.csv';
 
 module.exports = (app) => {
 
@@ -86,12 +80,11 @@ module.exports = (app) => {
     const path = decodeURIComponent(req.params.path);
 
     res.header('Content-Type', 'application/json');
-    res.json([
-      path + '/file1',
-      path + '/file2',
-      path + '/file3',
-      path + '/metadata.json',
-    ]);
+      res.json([
+        path + '/file1',
+        path + '/file2',
+        path + (path.match('analysis$|model$') ? '/metadata.json' : '/file3'),
+      ]);
   });
 
   app.get('/_api/artifact/get/:path', (req, res) => {
@@ -99,8 +92,12 @@ module.exports = (app) => {
     const path = decodeURIComponent(req.params.path);
     if (path.endsWith('roc.csv')) {
       res.sendFile(_path.resolve(__dirname, rocDataPath));
-    } else if (path.endsWith('metadata.json')) {
-      res.json(exampleOutputJson);
+    } else if (path.endsWith('confusion_matrix.csv')) {
+      res.sendFile(_path.resolve(__dirname, confusionMatrixPath));
+    } else if (path.endsWith('analysis/metadata.json')) {
+      res.sendFile(_path.resolve(__dirname, confusionMatrixMetadataJsonPath));
+    } else if (path.endsWith('model/metadata.json')) {
+      res.sendFile(_path.resolve(__dirname, rocMetadataJsonPath));
     } else {
       res.send('dummy file');
     }

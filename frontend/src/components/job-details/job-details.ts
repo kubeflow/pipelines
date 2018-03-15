@@ -15,7 +15,7 @@ import { customElement, property } from '../../decorators';
 import { PageElement } from '../../lib/page_element';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { Job, JobStatus } from '../../model/job';
-import { MetadataPlot } from '../../model/output_metadata';
+import { PlotMetadata } from '../../model/output_metadata';
 import { DataPlotter } from '../data-plotter/data-plotter';
 
 import './job-details.html';
@@ -62,9 +62,15 @@ export class JobDetails extends Polymer.Element implements PageElement {
 
         if (metadataFile) {
           const metadataJson = await Apis.readFile(metadataFile);
-          const metadata = JSON.parse(metadataJson) as MetadataPlot;
-          if (metadata.type === 'roc') {
-            this.plotRoc(metadata.source);
+          const metadata = JSON.parse(metadataJson) as PlotMetadata;
+          switch (metadata.type) {
+            case 'roc':
+              this.plotRoc(metadata);
+              break;
+            case 'confusion_matrix':
+              this.plotConfusionMatrix(metadata);
+              break;
+            default:
           }
         }
       });
@@ -73,12 +79,35 @@ export class JobDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected async plotRoc(path: string) {
-    const data = csvParseRows(await Apis.readFile(path));
+  protected async plotRoc(metadata: PlotMetadata) {
+    const data = csvParseRows(await Apis.readFile(metadata.source));
     const d = new DataPlotter(this.$.plot as HTMLElement);
     const lineColor = getComputedStyle(this).getPropertyValue('--accent-color');
     await d.plotRocCurve(data, lineColor);
-    (this.$.plotTitle as any).innerText = 'ROC curve from file: ' + path;
+    (this.$.plotTitle as any).innerText = 'ROC curve from file: ' + metadata.source;
+  }
+
+  protected async plotConfusionMatrix(metadata: PlotMetadata) {
+    const data = csvParseRows(await Apis.readFile(metadata.source));
+    const labels = metadata.labels;
+    const labelIndex: { [label: string]: number } = {};
+    let index = 0;
+    labels.forEach((l) => {
+      labelIndex[l] = index++;
+    });
+
+    const matrix = Array.from(Array(labels.length), () => new Array(labels.length));
+    data.forEach(([target, predicted, count]) => {
+      const i = labelIndex[target];
+      const j = labelIndex[predicted];
+      matrix[i][j] = Number.parseInt(count);
+    });
+
+    const d = new DataPlotter(this.$.plot as HTMLElement);
+    const startColor = getComputedStyle(this).getPropertyValue('--bg-color');
+    const endColor = getComputedStyle(this).getPropertyValue('--accent-color');
+    await d.plotConfusionMatrix(matrix, labels, startColor, endColor);
+    (this.$.plotTitle as any).innerText = 'Confusion Matrix from file: ' + metadata.source;
   }
 
   protected _dateToString(date: number) {
