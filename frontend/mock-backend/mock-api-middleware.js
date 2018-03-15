@@ -26,38 +26,56 @@ module.exports = (app) => {
   app.set('json spaces', 2);
 
   app.get('/_api/pipelines', (req, res) => {
-    res.header("Content-Type",'application/json');
+    res.header('Content-Type', 'application/json');
     res.json(fixedData.pipelines);
   });
 
   app.get('/_api/pipelines/:pid', (req, res) => {
-    res.header("Content-Type",'application/json');
+    res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);
     res.json(p[0]);
   });
 
   app.get('/_api/pipelines/:pid/jobs', (req, res) => {
-    res.header("Content-Type",'application/json');
+    res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     res.json(fixedData.jobs.filter(j => j._pipelineId === pid));
   });
 
   app.get('/_api/jobs/:jname', (req, res) => {
-    res.header("Content-Type",'application/json');
+    res.header('Content-Type', 'application/json');
     const jname = req.params.jname;
     const j = fixedData.jobs.filter((j) => j.name === jname);
     res.json(j[0]);
   });
 
   app.get('/_api/packages', (req, res) => {
-    res.header("Content-Type",'application/json');
+    res.header('Content-Type', 'application/json');
     res.json(fixedData.packages);
   });
 
+  app.get('/_api/packages/:pid/template', (req, res) => {
+    res.header('Content-Type', 'text/x-yaml');
+    res.send('test yaml');
+  });
+
   app.post('/_api/packages/upload', (req, res) => {
-    res.header("Content-Type",'application/json');
+    res.header('Content-Type', 'application/json');
     res.json(fixedData.packages[0]);
   });
 
+  app.get('/_api/artifact/list/:path', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    res.json([
+      req.params.path + '/file1',
+      req.params.path + '/file2',
+      req.params.path + '/file3',
+      req.params.path + '/file4',
+    ]);
+  });
+
+  app.get('/_api/artifact/get/:path', (req, res) => {
+    res.send('This is a text artifact file.');
+  });
 };

@@ -13,6 +13,9 @@ bower_components/
 # Build output
 dist
 
+# Web server
+frontend/server/*.js
+
 # Avoid all the package-lock.json noise
 package-lock.json
 
