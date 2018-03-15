@@ -44,7 +44,7 @@ export class JobGraph extends Polymer.Element {
     g.setDefaultEdgeLabel(() => ({}));
     const nodes = this.jobGraph.status.nodes;
     Object.keys(nodes).forEach((k) =>
-      g.setNode(k, { label: k, width: 180, height: 50 }));
+      g.setNode(k, { label: k, width: 150, height: 50 }));
     Object.keys(nodes).forEach((k) => {
       if (nodes[k].children) {
         nodes[k].children.forEach((c) => g.setEdge(k, c));

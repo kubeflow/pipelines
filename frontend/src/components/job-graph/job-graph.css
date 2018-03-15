@@ -6,10 +6,11 @@
 }
 
 .pipeline-node {
-  background-color: white;
-  box-shadow: 1px 1px 1px #aaa;
+  background-color: #eee;
+  border: solid 1px #aaa;
   box-sizing: border-box;
-  cursor: pointer;
+  cursor: default;
+  font-size: 12px;
   margin: 10px;
   padding: 7px;
   position: absolute;
@@ -24,8 +25,10 @@
 }
 
 .pipeline-node:hover {
-  height: initial !important;
+  @apply --shadow-elevation-3dp;
+  max-height: 500px !important;
   z-index: 1;
+  transition: max-height 1s;
 }
 
 .pipeline-node:hover .label {
@@ -34,12 +37,12 @@
 }
 
 .pipeline-edge .line {
-  border-top: 1px solid #ccc;
+  border-top: 1px solid #777;
   position: absolute;
 }
 
 .pipeline-edge .line:nth-last-child(2)::after {
-  color: #A3A3A3;
+  color: #777;
   content: '\25BA';
   font-size: 10px;
   position: absolute;

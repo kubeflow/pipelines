@@ -5,7 +5,7 @@
     <div class="pipeline-dag">
       <template is="dom-repeat" items="[[_workflowNodes]]" as="node">
         <div class="pipeline-node" style$="left: [[node.x]]px; top: [[node.y]]px;
-                                           width: [[node.width]]px; height: [[node.height]]px">
+                                           width: [[node.width]]px; max-height: [[node.height]]px">
           <div class="label">[[node.label]]</div>
         </div>
       </template>
@@ -14,7 +14,7 @@
         <div class="pipeline-edge">
           <template is="dom-repeat" items="[[edge.lines]]" as="line">
             <div class="line" style$="width: [[line.distance]]px; left: [[line.left]]px;
-                                      top: [[line.yMid]]px; transform: translate(100px, 35px)
+                                      top: [[line.yMid]]px; transform: translate(85px, 35px)
                                       rotate([[line.angle]]deg)"></div>
           </template>
         </div>
