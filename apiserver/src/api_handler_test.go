@@ -25,6 +25,7 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/httptest"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type FakePackageStore struct{}
@@ -60,33 +61,36 @@ func (s *FakeBadPackageStore) CreatePackage(pipelinemanager.Package) (pipelinema
 
 type FakeJobStore struct{}
 
-func (s *FakeJobStore) GetJob(name string) (pipelinemanager.Job, error) {
-	return pipelinemanager.Job{Name: name, Status: "Failed"}, nil
+func (s *FakeJobStore) GetJob(name string) (*v1alpha1.Workflow, error) {
+	return &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "abc"},
+		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}, nil
 }
 
-func (s *FakeJobStore) ListJobs() ([]pipelinemanager.Job, error) {
-	jobs := []pipelinemanager.Job{
-		{Name: "job1", Status: "Failed"},
-		{Name: "job2", Status: "Succeeded"}}
+func (s *FakeJobStore) ListJobs() ([]v1alpha1.Workflow, error) {
+	jobs := []v1alpha1.Workflow{{ObjectMeta: v1.ObjectMeta{Name: "opq"},
+		Status: v1alpha1.WorkflowStatus{Phase: "Failed"}}}
 	return jobs, nil
 }
 
-func (s *FakeJobStore) CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error) {
-	return pipelinemanager.Job{Name: "job1", Status: "Failed"}, nil
+func (s *FakeJobStore) CreateJob(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+	return &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "xyz"},
+		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}, nil
 }
 
 type FakeBadJobStore struct{}
 
-func (s *FakeBadJobStore) GetJob(name string) (pipelinemanager.Job, error) {
-	return pipelinemanager.Job{}, util.NewInternalError("bad job store", "")
+func (s *FakeBadJobStore) GetJob(name string) (*v1alpha1.Workflow, error) {
+	return &v1alpha1.Workflow{}, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) ListJobs() ([]pipelinemanager.Job, error) {
+func (s *FakeBadJobStore) ListJobs() ([]v1alpha1.Workflow, error) {
 	return nil, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error) {
-	return pipelinemanager.Job{}, util.NewInternalError("bad job store", "")
+func (s *FakeBadJobStore) CreateJob(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+	return &v1alpha1.Workflow{}, util.NewInternalError("bad job store", "")
 }
 
 type FakePackageManager struct{}
@@ -286,7 +290,9 @@ func TestCreatePipelineError(t *testing.T) {
 func TestListJobs(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, &FakeJobStore{}, nil, nil))
 	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"name\":\"job1\",\"status\":\"Failed\"},{\"name\":\"job2\",\"status\":\"Succeeded\"}]")
+		Body().Equal("[{\"metadata\":{\"name\":\"opq\",\"creationTimestamp\":null}," +
+		"\"spec\":{\"templates\":null,\"entrypoint\":\"\",\"arguments\":{}}," +
+		"\"status\":{\"phase\":\"Failed\",\"startedAt\":null,\"finishedAt\":null,\"nodes\":null}}]")
 }
 
 func TestListJobsReturnError(t *testing.T) {
@@ -298,7 +304,9 @@ func TestListJobsReturnError(t *testing.T) {
 func TestGetJob(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.GET("/apis/v1alpha1/pipelines/1/jobs/job1").Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"name\":\"job1\",\"status\":\"Failed\"}")
+		Body().Equal("{\"metadata\":{\"name\":\"abc\",\"creationTimestamp\":null}," +
+		"\"spec\":{\"templates\":null,\"entrypoint\":\"\",\"arguments\":{}}," +
+		"\"status\":{\"phase\":\"Pending\",\"startedAt\":null,\"finishedAt\":null,\"nodes\":null}}")
 }
 
 func TestGetJobError(t *testing.T) {

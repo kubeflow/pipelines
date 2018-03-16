@@ -16,7 +16,6 @@ package main
 
 import (
 	"fmt"
-	"ml/apiserver/src/common"
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
@@ -102,7 +101,7 @@ func initMinioClient() storage.PackageManagerInterface {
 		}
 	}
 	glog.Infof("Successfully created %s\n", bucketName)
-	return storage.NewMinioPackageManager(&common.MinioClient{Client: minioClient}, bucketName)
+	return storage.NewMinioPackageManager(&storage.MinioClient{Client: minioClient}, bucketName)
 }
 
 // creates a new client for the Kubernetes Workflow CRD.

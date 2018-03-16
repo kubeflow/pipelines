@@ -15,7 +15,6 @@
 package storage
 
 import (
-	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -24,49 +23,39 @@ import (
 )
 
 type JobStoreInterface interface {
-	GetJob(name string) (pipelinemanager.Job, error)
-	ListJobs() ([]pipelinemanager.Job, error)
-	CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error)
+	GetJob(name string) (*v1alpha1.Workflow, error)
+	ListJobs() ([]v1alpha1.Workflow, error)
+	CreateJob(*v1alpha1.Workflow) (*v1alpha1.Workflow, error)
 }
 
 type JobStore struct {
 	wfClient workflowclient.WorkflowInterface
 }
 
-func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
-	var jobs []pipelinemanager.Job
-	wfList, err := s.wfClient.List(k8sclient.ListOptions{})
+func (s *JobStore) ListJobs() ([]v1alpha1.Workflow, error) {
+	jobs, err := s.wfClient.List(k8sclient.ListOptions{})
 	if err != nil {
-		return jobs, util.NewInternalError("Failed to list jobs",
+		return nil, util.NewInternalError("Failed to list jobs",
 			"Failed to list workflows from K8s CRD. Error: %s", err.Error())
 	}
-	for _, workflow := range wfList.Items {
-		job := pipelinemanager.ToJob(workflow)
-		jobs = append(jobs, job)
-	}
-
-	return jobs, nil
+	return jobs.Items, nil
 }
 
-func (s *JobStore) CreateJob(wf v1alpha1.Workflow) (pipelinemanager.Job, error) {
-	var job pipelinemanager.Job
-	created, err := s.wfClient.Create(&wf)
+func (s *JobStore) CreateJob(wf *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+	job, err := s.wfClient.Create(wf)
 	if err != nil {
 		return job, util.NewInternalError("Failed to create job",
 			"Failed to create workflow . Error: %s", err.Error())
 	}
-	job = pipelinemanager.ToJob(*created)
 	return job, nil
 }
 
-func (s *JobStore) GetJob(name string) (pipelinemanager.Job, error) {
-	var job pipelinemanager.Job
-	wf, err := s.wfClient.Get(name, k8sclient.GetOptions{})
+func (s *JobStore) GetJob(name string) (*v1alpha1.Workflow, error) {
+	job, err := s.wfClient.Get(name, k8sclient.GetOptions{})
 	if err != nil {
 		return job, util.NewInternalError("Failed to get a job",
 			"Failed to get workflow %s from K8s CRD. Error: %s", name, err.Error())
 	}
-	job = pipelinemanager.ToJob(*wf)
 	return job, nil
 }
 

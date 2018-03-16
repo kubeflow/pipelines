@@ -16,7 +16,6 @@ package storage
 
 import (
 	"bytes"
-	"ml/apiserver/src/common"
 	"ml/apiserver/src/util"
 
 	"github.com/minio/minio-go"
@@ -33,7 +32,7 @@ type PackageManagerInterface interface {
 
 // Managing package using Minio
 type MinioPackageManager struct {
-	minioClient common.MinioClientInterface
+	minioClient MinioClientInterface
 	bucketName  string
 }
 
@@ -56,6 +55,6 @@ func (m *MinioPackageManager) GetTemplate(pkgName string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func NewMinioPackageManager(minioClient common.MinioClientInterface, bucketName string) *MinioPackageManager {
+func NewMinioPackageManager(minioClient MinioClientInterface, bucketName string) *MinioPackageManager {
 	return &MinioPackageManager{minioClient: minioClient, bucketName: bucketName}
 }

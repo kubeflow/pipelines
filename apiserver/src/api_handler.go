@@ -213,7 +213,7 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 
 	// For now schedule a one-time job, since pipeline CRD is not yet ready.
 	// Once ready, the pipeline CRD will be responsible for scheduling the job.
-	_, err = a.jobStore.CreateJob(workflow)
+	_, err = a.jobStore.CreateJob(&workflow)
 	if err != nil {
 		util.HandleError("CreatePipeline_CreateJob", ctx, err)
 		return

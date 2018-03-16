@@ -15,8 +15,6 @@
 package storage
 
 import (
-	"encoding/json"
-	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
 	"testing"
 	"time"
@@ -122,15 +120,16 @@ func TestListJobs(t *testing.T) {
 	if len(jobs) != 1 {
 		t.Errorf("Error parsing jobs. Get %d jobs", len(jobs))
 	}
-	job, _ := json.Marshal(jobs[0])
-	jobExpect, _ := json.Marshal(pipelinemanager.Job{
-		Name:     "artifact-passing-5sd2d",
-		CreateAt: &ct,
-		StartAt:  &st,
-		FinishAt: &ft,
-		Status:   "Failed"})
+	job := &jobs[0]
+	jobExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
+		Name:              "artifact-passing-5sd2d",
+		CreationTimestamp: v1.Time{Time: ct}},
+		Status: v1alpha1.WorkflowStatus{
+			StartedAt:  v1.Time{Time: st},
+			FinishedAt: v1.Time{Time: ft},
+			Phase:      "Failed"}}
 
-	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", string(job), string(jobExpect))
+	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
 }
 
 func TestListJobsError(t *testing.T) {
@@ -145,17 +144,18 @@ func TestCreateJob(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeWorkflowClient{},
 	}
-	job, err := store.CreateJob(v1alpha1.Workflow{})
+	job, err := store.CreateJob(&v1alpha1.Workflow{})
 
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
 	}
-	jobExpect := pipelinemanager.Job{
-		Name:     "artifact-passing-abcd",
-		CreateAt: &ct,
-		StartAt:  &st,
-		FinishAt: &ft,
-		Status:   "Pending"}
+	jobExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
+		Name:              "artifact-passing-abcd",
+		CreationTimestamp: v1.Time{Time: ct}},
+		Status: v1alpha1.WorkflowStatus{
+			StartedAt:  v1.Time{Time: st},
+			FinishedAt: v1.Time{Time: ft},
+			Phase:      "Pending"}}
 
 	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
 }
@@ -164,7 +164,7 @@ func TestCreateJobError(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeBadWorkflowClient{},
 	}
-	_, err := store.CreateJob(v1alpha1.Workflow{})
+	_, err := store.CreateJob(&v1alpha1.Workflow{})
 	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
 }
 
@@ -177,12 +177,13 @@ func TestGetJob(t *testing.T) {
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
 	}
-	jobExpect := pipelinemanager.Job{
-		Name:     "artifact-passing-xyz",
-		CreateAt: &ct,
-		StartAt:  &st,
-		FinishAt: &ft,
-		Status:   "Pending"}
+	jobExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
+		Name:              "artifact-passing-xyz",
+		CreationTimestamp: v1.Time{Time: ct}},
+		Status: v1alpha1.WorkflowStatus{
+			StartedAt:  v1.Time{Time: st},
+			FinishedAt: v1.Time{Time: ft},
+			Phase:      "Pending"}}
 
 	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
 }
