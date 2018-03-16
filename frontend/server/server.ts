@@ -37,8 +37,10 @@ app.get('/_api/artifact/list/*', (req, res) => {
 
   const storage = Storage();
 
-  if (req.params[0].startsWith('gs://')) {
-    const reqPath = req.params[0].substr('gs://'.length).split('/');
+  const decodedPath = decodeURIComponent(req.params[0]);
+
+  if (decodedPath.match('^gs://')) {
+    const reqPath = decodedPath.substr('gs://'.length).split('/');
     const bucket = reqPath[0];
     const filepath = reqPath.slice(1).join('/');
 
@@ -63,8 +65,10 @@ app.get('/_api/artifact/get/*', (req, res, next) => {
 
   const storage = Storage();
 
-  if (req.params[0].startsWith('gs://')) {
-    const reqPath = req.params[0].substr('gs://'.length).split('/');
+  const decodedPath = decodeURIComponent(req.params[0]);
+
+  if (decodedPath.match('^gs://')) {
+    const reqPath = decodedPath.substr('gs://'.length).split('/');
     const bucket = reqPath[0];
     const filename = reqPath.slice(1).join('/');
     const destFilename = tmp.tmpNameSync();

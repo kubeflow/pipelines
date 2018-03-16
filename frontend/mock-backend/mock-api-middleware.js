@@ -1,8 +1,15 @@
 const fs = require('fs');
+const _path = require('path');
 
 const prefix = __dirname + '/pipeline-data';
 
 const fixedData = require('./fixed-data');
+
+const rocMetadataJsonPath = './roc/metadata.json';
+const rocDataPath = './roc/roc.csv';
+
+const confusionMatrixMetadataJsonPath = './confusionmatrix/metadata.json';
+const confusionMatrixPath = './confusionmatrix/confusion_matrix.csv';
 
 module.exports = (app) => {
 
@@ -58,7 +65,7 @@ module.exports = (app) => {
     res.json(fixedData.packages);
   });
 
-  app.get('/_api/packages/:pid/template', (req, res) => {
+  app.get('/_api/packages/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     res.send(fs.readFileSync('./mock-backend/mock-template.yaml'));
   });
@@ -69,16 +76,30 @@ module.exports = (app) => {
   });
 
   app.get('/_api/artifact/list/:path', (req, res) => {
+
+    const path = decodeURIComponent(req.params.path);
+
     res.header('Content-Type', 'application/json');
-    res.json([
-      req.params.path + '/file1',
-      req.params.path + '/file2',
-      req.params.path + '/file3',
-      req.params.path + '/file4',
-    ]);
+      res.json([
+        path + '/file1',
+        path + '/file2',
+        path + (path.match('analysis$|model$') ? '/metadata.json' : '/file3'),
+      ]);
   });
 
   app.get('/_api/artifact/get/:path', (req, res) => {
-    res.send('This is a text artifact file.');
+    res.header('Content-Type', 'application/json');
+    const path = decodeURIComponent(req.params.path);
+    if (path.endsWith('roc.csv')) {
+      res.sendFile(_path.resolve(__dirname, rocDataPath));
+    } else if (path.endsWith('confusion_matrix.csv')) {
+      res.sendFile(_path.resolve(__dirname, confusionMatrixPath));
+    } else if (path.endsWith('analysis/metadata.json')) {
+      res.sendFile(_path.resolve(__dirname, confusionMatrixMetadataJsonPath));
+    } else if (path.endsWith('model/metadata.json')) {
+      res.sendFile(_path.resolve(__dirname, rocMetadataJsonPath));
+    } else {
+      res.send('dummy file');
+    }
   });
 };

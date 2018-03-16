@@ -6,6 +6,7 @@ export interface RocOptions {
   margin: number;
   width: number;
   lineColor: string;
+  container: HTMLElement;
 }
 
 /**
@@ -16,12 +17,12 @@ export interface RocOptions {
  *   ...
  * ]
  */
-export function drawROC(container: HTMLElement, config: RocOptions) {
+export function drawROC(config: RocOptions) {
   const margin = config.margin;
   const width = config.width;
   const height = config.height;
   const lineColor = config.lineColor;
-  const svg = d3.select(container)
+  const svg = d3.select(config.container)
     .append('svg')
     .attr('width', width + 2 * margin)
     .attr('height', height + 2 * margin)

@@ -204,7 +204,7 @@ spec:
       image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
       command: [sh, -c]
       args: ["python /ml/train.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --target {{inputs.parameters.target}} --analysis {{inputs.parameters.analysis}} --package {{inputs.parameters.package}} --workers {{inputs.parameters.workers}} --rounds {{inputs.parameters.rounds}} --conf {{inputs.parameters.conf}}" ]
-    
+
   - name: deletecluster
     inputs:
       parameters:

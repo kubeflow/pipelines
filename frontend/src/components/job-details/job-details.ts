@@ -3,6 +3,7 @@ import 'paper-progress/paper-progress.html';
 import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
+import '../data-plotter/data-plot';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
@@ -13,6 +14,7 @@ import { customElement, property } from '../../decorators';
 import { PageElement } from '../../lib/page_element';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { Job, JobStatus } from '../../model/job';
+import { PlotMetadata } from '../../model/output_metadata';
 
 import './job-details.html';
 
@@ -25,6 +27,9 @@ const progressCssColors = {
 
 @customElement('job-details')
 export class JobDetails extends Polymer.Element implements PageElement {
+
+  @property({ type: Array })
+  public outputPlots: PlotMetadata[] = [];
 
   @property({ type: Object })
   public job: Job | null = null;
@@ -49,8 +54,19 @@ export class JobDetails extends Polymer.Element implements PageElement {
         .filter((p) => p.name === 'output')[0]
         .value.toString();
 
-      // TODO: This is just a placeholder for calling the function.
-      console.log(parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId));
+      const outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);
+
+      // Clear outputPlots to keep from re-adding the same outputs over and over.
+      this.set('outputPlots', []);
+
+      outputPaths.forEach(async (path) => {
+        const fileList = await Apis.listFiles(path);
+        const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
+        if (metadataFile) {
+          const metadataJson = await Apis.readFile(metadataFile);
+          this.push('outputPlots', JSON.parse(metadataJson) as PlotMetadata);
+        }
+      });
 
       this._colorProgressBar();
     }
