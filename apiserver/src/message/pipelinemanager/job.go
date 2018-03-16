@@ -19,7 +19,8 @@ import (
 )
 
 type Job struct {
-	Name string `json:"name" gorm:"not null"`
+	Name       string `json:"name" gorm:"not null"`
+	PipelineID uint   `json:"-"` /* Foreign key */
 }
 
 func ToJob(workflow v1alpha1.Workflow) Job {

@@ -19,7 +19,7 @@ import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 type Parameter struct {
 	Name      string  `json:"name" gorm:"not null"`
 	Value     *string `json:"value"`
-	OwnerID   uint    `json:"-"`
+	OwnerID   uint    `json:"-"` /* Foreign key */
 	OwnerType string  `json:"-"`
 }
 

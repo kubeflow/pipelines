@@ -115,7 +115,7 @@ func TestListJobs(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeWorkflowClient{},
 	}
-	jobs, err := store.ListJobs()
+	jobs, err := store.ListJobs(1)
 
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
@@ -134,7 +134,7 @@ func TestListJobsError(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeBadWorkflowClient{},
 	}
-	_, err := store.ListJobs()
+	_, err := store.ListJobs(1)
 	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
 }
 
@@ -142,7 +142,7 @@ func TestCreateJob(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeWorkflowClient{},
 	}
-	job, err := store.CreateJob(&v1alpha1.Workflow{})
+	job, err := store.CreateJob(1, &v1alpha1.Workflow{})
 
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
@@ -162,7 +162,7 @@ func TestCreateJobError(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeBadWorkflowClient{},
 	}
-	_, err := store.CreateJob(&v1alpha1.Workflow{})
+	_, err := store.CreateJob(1, &v1alpha1.Workflow{})
 	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
 }
 
@@ -170,7 +170,7 @@ func TestGetJob(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeWorkflowClient{},
 	}
-	job, err := store.GetJob("job1")
+	job, err := store.GetJob(1, "job1")
 
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
@@ -190,6 +190,6 @@ func TestGetJobError(t *testing.T) {
 	store := &JobStore{
 		wfClient: &FakeBadWorkflowClient{},
 	}
-	_, err := store.GetJob("job1")
+	_, err := store.GetJob(1, "job1")
 	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
 }

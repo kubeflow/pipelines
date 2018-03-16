@@ -53,7 +53,8 @@ func (clientManager *ClientManager) Init() {
 	util.TerminateIfError(err)
 
 	// Create table
-	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{}, &pipelinemanager.Parameter{})
+	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{},
+		&pipelinemanager.Parameter{}, &pipelinemanager.Job{})
 
 	// Initialize package store
 	clientManager.db = db
@@ -65,7 +66,7 @@ func (clientManager *ClientManager) Init() {
 
 	// Initialize job store
 	wfClient := initWorkflowClient()
-	clientManager.jobStore = storage.NewJobStore(wfClient)
+	clientManager.jobStore = storage.NewJobStore(db, wfClient)
 
 	// Initialize package manager.
 	clientManager.packageManager = initMinioClient()
