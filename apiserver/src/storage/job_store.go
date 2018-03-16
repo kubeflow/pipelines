@@ -15,62 +15,71 @@
 package storage
 
 import (
-	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/util"
+
+	"ml/apiserver/src/message/pipelinemanager"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/jinzhu/gorm"
 	k8sclient "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type JobStoreInterface interface {
-	GetJob(name string) (pipelinemanager.Job, error)
-	ListJobs() ([]pipelinemanager.Job, error)
-	CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error)
+	GetJob(pipelineId uint, jobName string) (pipelinemanager.JobDetail, error)
+	ListJobs(pipelineId uint) ([]pipelinemanager.Job, error)
+	CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (pipelinemanager.JobDetail, error)
 }
 
 type JobStore struct {
+	db       *gorm.DB
 	wfClient workflowclient.WorkflowInterface
 }
 
-func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
+// ListJobs list the job metadata for a pipeline from DB
+func (s *JobStore) ListJobs(pipelineId uint) ([]pipelinemanager.Job, error) {
 	var jobs []pipelinemanager.Job
-	wfList, err := s.wfClient.List(k8sclient.ListOptions{})
-	if err != nil {
-		return jobs, util.NewInternalError("Failed to list jobs",
-			"Failed to list workflows from K8s CRD. Error: %s", err.Error())
+	if r := s.db.Where("pipeline_id = ?", pipelineId).Find(&jobs); r.Error != nil {
+		return nil, util.NewInternalError("Failed to list jobs.", r.Error.Error())
 	}
-	for _, workflow := range wfList.Items {
-		job := pipelinemanager.ToJob(workflow)
-		jobs = append(jobs, job)
-	}
-
 	return jobs, nil
 }
 
-func (s *JobStore) CreateJob(wf v1alpha1.Workflow) (pipelinemanager.Job, error) {
-	var job pipelinemanager.Job
-	created, err := s.wfClient.Create(&wf)
+// CreateJob create Workflow by calling CRD, and store the metadata to DB
+func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (pipelinemanager.JobDetail, error) {
+	newWf, err := s.wfClient.Create(wf)
+	var jobDetail pipelinemanager.JobDetail
 	if err != nil {
-		return job, util.NewInternalError("Failed to create job",
-			"Failed to create workflow . Error: %s", err.Error())
+		return jobDetail, util.NewInternalError("Failed to create job",
+			"Failed to create job . Error: %s", err.Error())
 	}
-	job = pipelinemanager.ToJob(*created)
-	return job, nil
+	jobDetail = pipelinemanager.JobDetail{Workflow: newWf}
+	job := &pipelinemanager.Job{Name: newWf.Name, PipelineID: pipelineId}
+	if r := s.db.Create(job); r.Error != nil {
+		return jobDetail, util.NewInternalError("Failed to store job metadata", r.Error.Error())
+	}
+	return jobDetail, nil
 }
 
-func (s *JobStore) GetJob(name string) (pipelinemanager.Job, error) {
-	var job pipelinemanager.Job
-	wf, err := s.wfClient.Get(name, k8sclient.GetOptions{})
-	if err != nil {
-		return job, util.NewInternalError("Failed to get a job",
-			"Failed to get workflow %s from K8s CRD. Error: %s", name, err.Error())
+// GetJob Get the job manifest from Workflow CRD
+func (s *JobStore) GetJob(pipelineId uint, jobName string) (pipelinemanager.JobDetail, error) {
+	var jobDetail pipelinemanager.JobDetail
+	// validate the the pipeline has the job.
+	if r := s.db.Where("pipeline_id = ? and name = ?", pipelineId, jobName).
+		First(&pipelinemanager.Job{}); r.Error != nil {
+		return jobDetail, util.NewResourceNotFoundError("Job", jobName)
 	}
-	job = pipelinemanager.ToJob(*wf)
-	return job, nil
+
+	wf, err := s.wfClient.Get(jobName, k8sclient.GetOptions{})
+	if err != nil {
+		return jobDetail, util.NewInternalError("Failed to get a job",
+			"Failed to get workflow %s from K8s CRD. Error: %s", jobName, err.Error())
+	}
+	jobDetail = pipelinemanager.JobDetail{Workflow: wf}
+	return jobDetail, nil
 }
 
 // factory function for package store
-func NewJobStore(wfClient workflowclient.WorkflowInterface) *JobStore {
-	return &JobStore{wfClient}
+func NewJobStore(db *gorm.DB, wfClient workflowclient.WorkflowInterface) *JobStore {
+	return &JobStore{db: db, wfClient: wfClient}
 }

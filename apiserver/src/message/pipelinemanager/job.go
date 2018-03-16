@@ -14,25 +14,15 @@
 
 package pipelinemanager
 
-import (
-	"time"
+import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-)
-
+// Job metadata of a job.
 type Job struct {
-	Name     string     `json:"name"`
-	CreateAt *time.Time `json:"createdAt,omitempty"`
-	StartAt  *time.Time `json:"startedAt,omitempty"`
-	FinishAt *time.Time `json:"finishedAt,omitempty"`
-	Status   string     `json:"status,omitempty"`
+	Name       string `json:"name" gorm:"not null"`
+	PipelineID uint   `json:"-"` /* Foreign key */
 }
 
-func ToJob(workflow v1alpha1.Workflow) Job {
-	return Job{
-		Name:     workflow.ObjectMeta.Name,
-		CreateAt: &workflow.ObjectMeta.CreationTimestamp.Time,
-		StartAt:  &workflow.Status.StartedAt.Time,
-		FinishAt: &workflow.Status.FinishedAt.Time,
-		Status:   string(workflow.Status.Phase)}
+// JobDetail a detailed view of a Argo job, including templates, job status etc.
+type JobDetail struct {
+	Workflow *v1alpha1.Workflow `json:"job"`
 }

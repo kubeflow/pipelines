@@ -53,8 +53,7 @@ func (s *PipelineStore) GetPipeline(id uint) (pipelinemanager.Pipeline, error) {
 }
 
 func (s *PipelineStore) CreatePipeline(p pipelinemanager.Pipeline) (pipelinemanager.Pipeline, error) {
-	r := s.db.Create(&p)
-	if r.Error != nil {
+	if r := s.db.Create(&p); r.Error != nil {
 		return p, util.NewInternalError("Failed to add pipeline to pipeline table", r.Error.Error())
 	}
 	return p, nil

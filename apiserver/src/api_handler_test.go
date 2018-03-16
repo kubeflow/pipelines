@@ -25,6 +25,7 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/httptest"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type FakePackageStore struct{}
@@ -60,33 +61,35 @@ func (s *FakeBadPackageStore) CreatePackage(pipelinemanager.Package) (pipelinema
 
 type FakeJobStore struct{}
 
-func (s *FakeJobStore) GetJob(name string) (pipelinemanager.Job, error) {
-	return pipelinemanager.Job{Name: name, Status: "Failed"}, nil
+func (s *FakeJobStore) GetJob(pipelineId uint, name string) (pipelinemanager.JobDetail, error) {
+	return pipelinemanager.JobDetail{Workflow: &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "abc"},
+		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}}, nil
 }
 
-func (s *FakeJobStore) ListJobs() ([]pipelinemanager.Job, error) {
-	jobs := []pipelinemanager.Job{
-		{Name: "job1", Status: "Failed"},
-		{Name: "job2", Status: "Succeeded"}}
+func (s *FakeJobStore) ListJobs(pipelineId uint) ([]pipelinemanager.Job, error) {
+	jobs := []pipelinemanager.Job{{Name: "job1"}, {Name: "job2"}}
 	return jobs, nil
 }
 
-func (s *FakeJobStore) CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error) {
-	return pipelinemanager.Job{Name: "job1", Status: "Failed"}, nil
+func (s *FakeJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (pipelinemanager.JobDetail, error) {
+	return pipelinemanager.JobDetail{Workflow: &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "xyz"},
+		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}}, nil
 }
 
 type FakeBadJobStore struct{}
 
-func (s *FakeBadJobStore) GetJob(name string) (pipelinemanager.Job, error) {
-	return pipelinemanager.Job{}, util.NewInternalError("bad job store", "")
+func (s *FakeBadJobStore) GetJob(pipelineId uint, name string) (pipelinemanager.JobDetail, error) {
+	return pipelinemanager.JobDetail{}, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) ListJobs() ([]pipelinemanager.Job, error) {
+func (s *FakeBadJobStore) ListJobs(pipelineId uint) ([]pipelinemanager.Job, error) {
 	return nil, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) CreateJob(workflow v1alpha1.Workflow) (pipelinemanager.Job, error) {
-	return pipelinemanager.Job{}, util.NewInternalError("bad job store", "")
+func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (pipelinemanager.JobDetail, error) {
+	return pipelinemanager.JobDetail{}, util.NewInternalError("bad job store", "")
 }
 
 type FakePackageManager struct{}
@@ -123,7 +126,7 @@ func (s *FakePipelineStore) GetPipeline(id uint) (pipelinemanager.Pipeline, erro
 }
 
 func (s *FakePipelineStore) CreatePipeline(p pipelinemanager.Pipeline) (pipelinemanager.Pipeline, error) {
-	return pipelinemanager.Pipeline{Name: "p", PackageId: 123}, nil
+	return pipelinemanager.Pipeline{Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "p", PackageId: 123}, nil
 }
 
 type FakeBadPipelineStore struct{}
@@ -274,19 +277,43 @@ func TestGetPipelineError(t *testing.T) {
 func TestCreatePipeline(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"name\":\"p\",\"packageId\":123}")
+		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123}")
 }
 
-func TestCreatePipelineError(t *testing.T) {
-	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeBadJobStore{}, &FakeBadPipelineStore{}, &FakePackageManager{}))
+func TestCreatePipelineBadPipelineFormatError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.POST("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusBadRequest).
 		Body().Contains("The pipeline has invalid format.")
+}
+
+func TestCreatePipelinePackageNotExistError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
+	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusInternalServerError).
+		Body().Contains("bad package store")
+}
+
+func TestCreatePipelineMetadataError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakeBadPipelineStore{}, &FakePackageManager{}))
+	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusInternalServerError).
+		Body().Contains("bad pipeline store")
+}
+
+func TestCreatePipelineGetTemplateError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakeBadPackageManager{}))
+	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusInternalServerError).
+		Body().Contains("bad package manager")
+}
+
+func TestCreatePipelineCreateJobError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeBadJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
+	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusInternalServerError).
+		Body().Contains("bad job store")
 }
 
 func TestListJobs(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, &FakeJobStore{}, nil, nil))
 	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"name\":\"job1\",\"status\":\"Failed\"},{\"name\":\"job2\",\"status\":\"Succeeded\"}]")
+		Body().Equal("[{\"name\":\"job1\"},{\"name\":\"job2\"}]")
 }
 
 func TestListJobsReturnError(t *testing.T) {
@@ -298,7 +325,9 @@ func TestListJobsReturnError(t *testing.T) {
 func TestGetJob(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.GET("/apis/v1alpha1/pipelines/1/jobs/job1").Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"name\":\"job1\",\"status\":\"Failed\"}")
+		Body().Equal("{\"job\":{\"metadata\":{\"name\":\"abc\",\"creationTimestamp\":null}," +
+		"\"spec\":{\"templates\":null,\"entrypoint\":\"\",\"arguments\":{}},\"status\":" +
+		"{\"phase\":\"Pending\",\"startedAt\":null,\"finishedAt\":null,\"nodes\":null}}}")
 }
 
 func TestGetJobError(t *testing.T) {

@@ -213,7 +213,7 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 
 	// For now schedule a one-time job, since pipeline CRD is not yet ready.
 	// Once ready, the pipeline CRD will be responsible for scheduling the job.
-	_, err = a.jobStore.CreateJob(workflow)
+	_, err = a.jobStore.CreateJob(pipeline.ID, &workflow)
 	if err != nil {
 		util.HandleError("CreatePipeline_CreateJob", ctx, err)
 		return
@@ -225,13 +225,13 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 func (a APIHandler) ListJobs(ctx iris.Context) {
 	glog.Infof("List jobs called")
 
-	_, err := ctx.Params().GetInt64("pipelineId")
+	pipelineId, err := ctx.Params().GetInt64("pipelineId")
 	if err != nil {
 		util.HandleError("ListJobs_GetParam", ctx, util.NewInvalidInputError("The pipeline ID is invalid.", err.Error()))
 		return
 	}
 
-	jobs, err := a.jobStore.ListJobs()
+	jobs, err := a.jobStore.ListJobs(uint(pipelineId))
 	if err != nil {
 		util.HandleError("ListJobs", ctx, err)
 		return
@@ -243,9 +243,15 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 func (a APIHandler) GetJob(ctx iris.Context) {
 	glog.Infof("Get job called")
 
+	pipelineId, err := ctx.Params().GetInt64("pipelineId")
+	if err != nil {
+		util.HandleError("GetJob_GetParam", ctx, util.NewInvalidInputError("The pipeline ID is invalid.", err.Error()))
+		return
+	}
+
 	jobName := ctx.Params().Get("jobName")
 
-	job, err := a.jobStore.GetJob(jobName)
+	job, err := a.jobStore.GetJob(uint(pipelineId), jobName)
 	if err != nil {
 		util.HandleError("GetJob", ctx, err)
 		return

@@ -16,7 +16,6 @@ package main
 
 import (
 	"fmt"
-	"ml/apiserver/src/common"
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage"
 	"ml/apiserver/src/util"
@@ -54,7 +53,8 @@ func (clientManager *ClientManager) Init() {
 	util.TerminateIfError(err)
 
 	// Create table
-	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{}, &pipelinemanager.Parameter{})
+	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{},
+		&pipelinemanager.Parameter{}, &pipelinemanager.Job{})
 
 	// Initialize package store
 	clientManager.db = db
@@ -66,7 +66,7 @@ func (clientManager *ClientManager) Init() {
 
 	// Initialize job store
 	wfClient := initWorkflowClient()
-	clientManager.jobStore = storage.NewJobStore(wfClient)
+	clientManager.jobStore = storage.NewJobStore(db, wfClient)
 
 	// Initialize package manager.
 	clientManager.packageManager = initMinioClient()
@@ -102,7 +102,7 @@ func initMinioClient() storage.PackageManagerInterface {
 		}
 	}
 	glog.Infof("Successfully created %s\n", bucketName)
-	return storage.NewMinioPackageManager(&common.MinioClient{Client: minioClient}, bucketName)
+	return storage.NewMinioPackageManager(&storage.MinioClient{Client: minioClient}, bucketName)
 }
 
 // creates a new client for the Kubernetes Workflow CRD.
