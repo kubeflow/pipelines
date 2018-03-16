@@ -87,7 +87,7 @@ status:
       finishedAt: 2018-03-16T00:47:49Z
       id: coinflip-recursive-hbxnm-652387467
       name: coinflip-recursive-hbxnm[1]
-      phase: Succeeded
+      phase: Running
       startedAt: 2018-03-16T00:47:34Z
     coinflip-recursive-hbxnm-827698599:
       children:
@@ -104,7 +104,7 @@ status:
       finishedAt: 2018-03-16T00:47:41Z
       id: coinflip-recursive-hbxnm-894956170
       name: coinflip-recursive-hbxnm[1].tails[1].tails[0]
-      phase: Succeeded
+      phase: Running
       startedAt: 2018-03-16T00:47:38Z
     coinflip-recursive-hbxnm-1554041341:
       children:
@@ -121,7 +121,7 @@ status:
       name: coinflip-recursive-hbxnm[1].tails[1].tails[0].flip-coin
       outputs:
         result: tails
-      phase: Succeeded
+      phase: Running
       startedAt: 2018-03-16T00:47:38Z
     coinflip-recursive-hbxnm-1599223017:
       children:
@@ -154,7 +154,7 @@ status:
       name: coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[0].flip-coin
       outputs:
         result: heads
-      phase: Succeeded
+      phase: Error
       startedAt: 2018-03-16T00:47:41Z
     coinflip-recursive-hbxnm-2140376685:
       finishedAt: 2018-03-16T00:47:37Z
@@ -168,7 +168,7 @@ status:
       finishedAt: 2018-03-16T00:47:49Z
       id: coinflip-recursive-hbxnm-2533273628
       name: coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[1].heads
-      phase: Succeeded
+      phase: Error
       startedAt: 2018-03-16T00:47:44Z
     coinflip-recursive-hbxnm-2606027252:
       children:
@@ -176,7 +176,7 @@ status:
       finishedAt: 2018-03-16T00:47:38Z
       id: coinflip-recursive-hbxnm-2606027252
       name: coinflip-recursive-hbxnm[1].tails[0]
-      phase: Succeeded
+      phase: Failed
       startedAt: 2018-03-16T00:47:34Z
     coinflip-recursive-hbxnm-3101930738:
       children:

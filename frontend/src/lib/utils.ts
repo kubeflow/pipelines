@@ -73,8 +73,12 @@ export function getAncestorElementWithClass(element: HTMLElement, className: str
 export function jobStatusToIcon(status: JobStatus) {
   switch (status) {
     case 'Running': return 'device:access-time';
-    case 'Succeeded': return 'check';
+    case 'Succeeded': return 'check-circle';
+    case 'Skipped': return 'av:skip-next';
+    case 'Failed': return 'av:skip-next';
     case 'Error': return 'error-outline';
-    default: return 'sort';
+    default:
+      log.error('Unknown status:', status);
+      return '';
   }
 }

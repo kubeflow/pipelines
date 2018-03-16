@@ -1,3 +1,4 @@
+import 'iron-icons/av-icons.html';
 import 'iron-icons/iron-icons.html';
 
 import * as dagre from 'dagre';
