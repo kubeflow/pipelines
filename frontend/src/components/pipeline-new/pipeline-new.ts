@@ -1,4 +1,3 @@
-import 'app-datepicker/app-datepicker-dialog.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-checkbox/paper-checkbox.html';
 import 'paper-dropdown-menu/paper-dropdown-menu.html';
