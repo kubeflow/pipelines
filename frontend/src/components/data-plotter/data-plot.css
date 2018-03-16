@@ -21,3 +21,11 @@
   stroke: var(--progress-color);
   stroke-width: 2px;
 }
+
+.cell.active, .row.active {
+  opacity: 0.95;
+}
+
+.column-label.active, .row-label.active {
+  fill: var(--accent-color);
+}

@@ -40,8 +40,6 @@ export class DataPlot extends Polymer.Element {
   }
 
   private async _plotConfusionMatrix(metadata: PlotMetadata) {
-    this.plotTitle = 'Confusion Matrix from file: ' + metadata.source;
-
     const data = csvParseRows(await Apis.readFile(metadata.source));
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
@@ -57,13 +55,19 @@ export class DataPlot extends Polymer.Element {
       matrix[i][j] = Number.parseInt(count);
     });
 
+    const axisLabels = metadata.schema.map((r) => r.name);
+
+    this.plotTitle = 'Confusion Matrix from file: ' + metadata.source;
+
     // Render the confusion matrix
     drawMatrix({
       container: this.$.plot as HTMLElement,
       data: matrix,
       endColor: getComputedStyle(this).getPropertyValue('--accent-color'),
       labels,
-      startColor: getComputedStyle(this).getPropertyValue('--bg-color')
+      startColor: getComputedStyle(this).getPropertyValue('--bg-color'),
+      xAxisLabel: axisLabels[0],
+      yAxisLabel: axisLabels[1],
     });
   }
 
