@@ -8,7 +8,7 @@ export interface JobStep {
   outputs: string;
 }
 
-export type JobStatus = 'Not started' | 'Running' | 'Errored' | 'Succeeded';
+export type JobStatus = 'Skipped' | 'Running' | 'Error' | 'Failed' | 'Succeeded';
 
 export interface Job {
   createdAt: string;

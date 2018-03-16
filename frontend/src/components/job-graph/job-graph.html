@@ -4,8 +4,9 @@
 
     <div class="pipeline-dag">
       <template is="dom-repeat" items="[[_workflowNodes]]" as="node">
-        <div class="pipeline-node" style$="left: [[node.x]]px; top: [[node.y]]px;
+        <div class="flex pipeline-node" style$="left: [[node.x]]px; top: [[node.y]]px;
                                            width: [[node.width]]px; max-height: [[node.height]]px">
+          <iron-icon icon$="[[node.icon]]"></iron-icon>
           <div class="label">[[node.label]]</div>
         </div>
       </template>

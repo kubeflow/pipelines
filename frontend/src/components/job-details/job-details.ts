@@ -89,7 +89,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
   }
 
   protected _getRuntime(start: number, end: number, status: JobStatus) {
-    if (status === 'Not started') {
+    if (!status) {
       return '-';
     }
     if (end === -1) {
@@ -110,7 +110,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
       case 'Succeeded':
         color = progressCssColors.completed;
         break;
-      case 'Errored':
+      case 'Error':
         color = progressCssColors.errored;
       default:
         color = progressCssColors.notStarted;

@@ -1,6 +1,9 @@
+import 'iron-icons/iron-icons.html';
+
 import * as dagre from 'dagre';
 
 import { customElement, property } from '../../decorators';
+import { jobStatusToIcon } from '../../lib/utils';
 import { Workflow as ArgoTemplate } from '../../model/argo_template';
 
 import './job-graph.html';
@@ -23,6 +26,13 @@ interface Edge {
   lines: Line[];
 }
 
+interface DisplayNode extends dagre.Node {
+  name: string;
+  icon: string;
+  startedAt: string;
+  finishedAt: string;
+}
+
 @customElement('job-graph')
 export class JobGraph extends Polymer.Element {
 
@@ -30,14 +40,13 @@ export class JobGraph extends Polymer.Element {
   jobGraph: ArgoTemplate | null = null;
 
   @property({ type: Array })
-  protected _workflowNodes: dagre.Node[] = [];
+  protected _workflowNodes: DisplayNode[] = [];
 
   @property({ type: Array })
   protected _workflowEdges: Edge[] = [];
 
   refresh(graph: ArgoTemplate) {
     this.jobGraph = graph;
-    console.log(this.jobGraph);
 
     const g = new dagre.graphlib.Graph();
     g.setGraph({});
@@ -53,7 +62,14 @@ export class JobGraph extends Polymer.Element {
 
     dagre.layout(g);
 
-    this._workflowNodes = g.nodes().map((id) => g.node(id));
+    this._workflowNodes = g.nodes().map((id) => {
+      return Object.assign(g.node(id), {
+        finishedAt: nodes[id].finishedAt,
+        icon: jobStatusToIcon(nodes[id].phase),
+        name: nodes[id].name,
+        startedAt: nodes[id].startedAt,
+      });
+    });
 
     g.edges().forEach((edgeInfo) => {
       const edge = g.edge(edgeInfo);

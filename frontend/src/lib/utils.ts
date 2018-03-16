@@ -69,11 +69,12 @@ export function getAncestorElementWithClass(element: HTMLElement, className: str
   return element;
 }
 
+// TODO: Fill icons for other statuses
 export function jobStatusToIcon(status: JobStatus) {
   switch (status) {
     case 'Running': return 'device:access-time';
     case 'Succeeded': return 'check';
-    case 'Errored': return 'error-outline';
+    case 'Error': return 'error-outline';
     default: return 'sort';
   }
 }

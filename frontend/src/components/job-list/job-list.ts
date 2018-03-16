@@ -70,7 +70,7 @@ export class JobList extends Polymer.Element {
   }
 
   protected _getRuntime(start: string, end: string, status: JobStatus) {
-    if (status === 'Not started') {
+    if (!status) {
       return '-';
     }
     const startDate = new Date(start);

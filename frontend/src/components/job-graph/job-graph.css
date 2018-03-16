@@ -17,6 +17,12 @@
   text-align: center;
 }
 
+.pipeline-node iron-icon {
+  height: 15px;
+  flex-shrink: 0;
+  width: 15px;
+}
+
 .pipeline-node .label {
   line-height: 3em;
   overflow: hidden;
