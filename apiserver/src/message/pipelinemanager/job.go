@@ -14,11 +14,14 @@
 
 package pipelinemanager
 
-type Pipeline struct {
-	*Metadata   `json:",omitempty"`
-	Name        string      `json:"name" gorm:"not null"`
-	Description string      `json:"description,omitempty"`
-	PackageId   uint        `json:"packageId" gorm:"not null"`
-	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
-	Jobs        []Job       `json:"-"`
+import (
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+)
+
+type Job struct {
+	Name string `json:"name" gorm:"not null"`
+}
+
+func ToJob(workflow v1alpha1.Workflow) Job {
+	return Job{Name: workflow.ObjectMeta.Name}
 }

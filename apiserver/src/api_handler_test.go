@@ -67,9 +67,8 @@ func (s *FakeJobStore) GetJob(name string) (*v1alpha1.Workflow, error) {
 		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}, nil
 }
 
-func (s *FakeJobStore) ListJobs() ([]v1alpha1.Workflow, error) {
-	jobs := []v1alpha1.Workflow{{ObjectMeta: v1.ObjectMeta{Name: "opq"},
-		Status: v1alpha1.WorkflowStatus{Phase: "Failed"}}}
+func (s *FakeJobStore) ListJobs() ([]pipelinemanager.Job, error) {
+	jobs := []pipelinemanager.Job{{Name: "job1"}, {Name: "job2"}}
 	return jobs, nil
 }
 
@@ -85,7 +84,7 @@ func (s *FakeBadJobStore) GetJob(name string) (*v1alpha1.Workflow, error) {
 	return &v1alpha1.Workflow{}, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) ListJobs() ([]v1alpha1.Workflow, error) {
+func (s *FakeBadJobStore) ListJobs() ([]pipelinemanager.Job, error) {
 	return nil, util.NewInternalError("bad job store", "")
 }
 
@@ -290,9 +289,7 @@ func TestCreatePipelineError(t *testing.T) {
 func TestListJobs(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, &FakeJobStore{}, nil, nil))
 	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"metadata\":{\"name\":\"opq\",\"creationTimestamp\":null}," +
-		"\"spec\":{\"templates\":null,\"entrypoint\":\"\",\"arguments\":{}}," +
-		"\"status\":{\"phase\":\"Failed\",\"startedAt\":null,\"finishedAt\":null,\"nodes\":null}}]")
+		Body().Equal("[{\"name\":\"job1\"},{\"name\":\"job2\"}]")
 }
 
 func TestListJobsReturnError(t *testing.T) {

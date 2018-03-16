@@ -17,6 +17,8 @@ package storage
 import (
 	"ml/apiserver/src/util"
 
+	"ml/apiserver/src/message/pipelinemanager"
+
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	k8sclient "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +26,7 @@ import (
 
 type JobStoreInterface interface {
 	GetJob(name string) (*v1alpha1.Workflow, error)
-	ListJobs() ([]v1alpha1.Workflow, error)
+	ListJobs() ([]pipelinemanager.Job, error)
 	CreateJob(*v1alpha1.Workflow) (*v1alpha1.Workflow, error)
 }
 
@@ -32,13 +34,18 @@ type JobStore struct {
 	wfClient workflowclient.WorkflowInterface
 }
 
-func (s *JobStore) ListJobs() ([]v1alpha1.Workflow, error) {
-	jobs, err := s.wfClient.List(k8sclient.ListOptions{})
+func (s *JobStore) ListJobs() ([]pipelinemanager.Job, error) {
+	var jobs []pipelinemanager.Job
+	wfList, err := s.wfClient.List(k8sclient.ListOptions{})
 	if err != nil {
-		return nil, util.NewInternalError("Failed to list jobs",
+		return jobs, util.NewInternalError("Failed to list jobs",
 			"Failed to list workflows from K8s CRD. Error: %s", err.Error())
 	}
-	return jobs.Items, nil
+	for _, workflow := range wfList.Items {
+		job := pipelinemanager.ToJob(workflow)
+		jobs = append(jobs, job)
+	}
+	return jobs, nil
 }
 
 func (s *JobStore) CreateJob(wf *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {

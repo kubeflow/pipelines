@@ -15,9 +15,12 @@
 package storage
 
 import (
+	"encoding/json"
 	"ml/apiserver/src/util"
 	"testing"
 	"time"
+
+	"ml/apiserver/src/message/pipelinemanager"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kataras/iris/core/errors"
@@ -120,16 +123,11 @@ func TestListJobs(t *testing.T) {
 	if len(jobs) != 1 {
 		t.Errorf("Error parsing jobs. Get %d jobs", len(jobs))
 	}
-	job := &jobs[0]
-	jobExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
-		Name:              "artifact-passing-5sd2d",
-		CreationTimestamp: v1.Time{Time: ct}},
-		Status: v1alpha1.WorkflowStatus{
-			StartedAt:  v1.Time{Time: st},
-			FinishedAt: v1.Time{Time: ft},
-			Phase:      "Failed"}}
+	job, _ := json.Marshal(jobs[0])
+	jobExpect, _ := json.Marshal(pipelinemanager.Job{
+		Name: "artifact-passing-5sd2d"})
 
-	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
+	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", string(job), string(jobExpect))
 }
 
 func TestListJobsError(t *testing.T) {
