@@ -61,7 +61,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
 
       outputPaths.forEach(async (path) => {
         const fileList = await Apis.listFiles(path);
-        const metadataFile = fileList.filter((f) => f.endsWith('metadata.json'))[0];
+        const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
         if (metadataFile) {
           const metadataJson = await Apis.readFile(metadataFile);
           this.push('outputPlots', JSON.parse(metadataJson) as PlotMetadata);
