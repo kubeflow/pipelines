@@ -1,0 +1,23 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+.plotTitle {
+  flex: auto 0 0;
+  font-size: 18px;
+  margin-top: 25px;
+  text-align: center;
+}
+
+.plot {
+  border-bottom: 1px solid var(--line-color);
+  flex-grow: 1;
+  overflow: auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.line {
+  fill: none;
+  stroke: var(--progress-color);
+  stroke-width: 2px;
+}

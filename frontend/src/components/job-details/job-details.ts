@@ -3,11 +3,10 @@ import 'paper-progress/paper-progress.html';
 import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
+import '../data-plotter/data-plot';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
-
-import { csvParseRows } from 'd3';
 
 // @ts-ignore
 import prettyJson from 'json-pretty-html';
@@ -16,7 +15,6 @@ import { PageElement } from '../../lib/page_element';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { Job, JobStatus } from '../../model/job';
 import { PlotMetadata } from '../../model/output_metadata';
-import { DataPlotter } from '../data-plotter/data-plotter';
 
 import './job-details.html';
 
@@ -29,6 +27,9 @@ const progressCssColors = {
 
 @customElement('job-details')
 export class JobDetails extends Polymer.Element implements PageElement {
+
+  @property({ type: Array })
+  public outputPlots: PlotMetadata[] = [];
 
   @property({ type: Object })
   public job: Job | null = null;
@@ -55,59 +56,20 @@ export class JobDetails extends Polymer.Element implements PageElement {
 
       const outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);
 
-      // TODO: this is a dummy function to get ouput data for this job
+      // Clear outputPlots to keep from re-adding the same outputs over and over.
+      this.set('outputPlots', [])
+
       outputPaths.forEach(async (path) => {
         const fileList = await Apis.listFiles(path);
         const metadataFile = fileList.filter((f) => f.endsWith('metadata.json'))[0];
-
         if (metadataFile) {
           const metadataJson = await Apis.readFile(metadataFile);
-          const metadata = JSON.parse(metadataJson) as PlotMetadata;
-          switch (metadata.type) {
-            case 'roc':
-              this.plotRoc(metadata);
-              break;
-            case 'confusion_matrix':
-              this.plotConfusionMatrix(metadata);
-              break;
-            default:
-          }
+          this.push('outputPlots', JSON.parse(metadataJson) as PlotMetadata);
         }
       });
 
       this._colorProgressBar();
     }
-  }
-
-  protected async plotRoc(metadata: PlotMetadata) {
-    const data = csvParseRows(await Apis.readFile(metadata.source));
-    const d = new DataPlotter(this.$.plot as HTMLElement);
-    const lineColor = getComputedStyle(this).getPropertyValue('--accent-color');
-    await d.plotRocCurve(data, lineColor);
-    (this.$.plotTitle as any).innerText = 'ROC curve from file: ' + metadata.source;
-  }
-
-  protected async plotConfusionMatrix(metadata: PlotMetadata) {
-    const data = csvParseRows(await Apis.readFile(metadata.source));
-    const labels = metadata.labels;
-    const labelIndex: { [label: string]: number } = {};
-    let index = 0;
-    labels.forEach((l) => {
-      labelIndex[l] = index++;
-    });
-
-    const matrix = Array.from(Array(labels.length), () => new Array(labels.length));
-    data.forEach(([target, predicted, count]) => {
-      const i = labelIndex[target];
-      const j = labelIndex[predicted];
-      matrix[i][j] = Number.parseInt(count);
-    });
-
-    const d = new DataPlotter(this.$.plot as HTMLElement);
-    const startColor = getComputedStyle(this).getPropertyValue('--bg-color');
-    const endColor = getComputedStyle(this).getPropertyValue('--accent-color');
-    await d.plotConfusionMatrix(matrix, labels, startColor, endColor);
-    (this.$.plotTitle as any).innerText = 'Confusion Matrix from file: ' + metadata.source;
   }
 
   protected _dateToString(date: number) {

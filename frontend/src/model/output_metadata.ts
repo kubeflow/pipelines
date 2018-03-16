@@ -1,4 +1,7 @@
-export type PlotType = 'confusion_matrix' | 'roc';
+export enum PlotType {
+  confusion_matrix = 'confusion_matrix',
+  roc = 'roc',
+}
 
 export interface PlotMetadata {
   format: 'csv';
