@@ -60,7 +60,7 @@
         <!-- iron-page tab 2 -->
         <div id="plotContainer">
           <template is="dom-repeat" items="[[outputPlots]]" as="plotMetadata">
-            <data-plot plot-metadata="{{plotMetadata}}"></data-plot>
+            <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
           </template>
         </div>
       </iron-pages>

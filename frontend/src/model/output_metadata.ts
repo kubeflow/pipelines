@@ -1,6 +1,6 @@
 export enum PlotType {
-  confusion_matrix = 'confusion_matrix',
-  roc = 'roc',
+  CONFUSION_MATRIX = 'confusion_matrix',
+  ROC = 'roc',
 }
 
 export interface PlotMetadata {

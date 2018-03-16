@@ -57,7 +57,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
       const outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);
 
       // Clear outputPlots to keep from re-adding the same outputs over and over.
-      this.set('outputPlots', [])
+      this.set('outputPlots', []);
 
       outputPaths.forEach(async (path) => {
         const fileList = await Apis.listFiles(path);
