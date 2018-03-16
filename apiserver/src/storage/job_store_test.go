@@ -143,14 +143,14 @@ func TestCreateJob(t *testing.T) {
 		t.Errorf("Something wrong. Error %v", err)
 		return
 	}
-	jobExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
+	wfExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
 		Name:              "artifact-passing-abcd",
 		CreationTimestamp: v1.Time{Time: ct}},
 		Status: v1alpha1.WorkflowStatus{
 			StartedAt:  v1.Time{Time: st},
 			FinishedAt: v1.Time{Time: ft},
 			Phase:      "Pending"}}
-
+	jobExpect := pipelinemanager.JobDetail{Workflow: wfExpect}
 	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
 }
 
@@ -180,14 +180,14 @@ func TestGetJob(t *testing.T) {
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
 	}
-	jobExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
+	wfExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
 		Name:              "artifact-passing-xyz",
 		CreationTimestamp: v1.Time{Time: ct}},
 		Status: v1alpha1.WorkflowStatus{
 			StartedAt:  v1.Time{Time: st},
 			FinishedAt: v1.Time{Time: ft},
 			Phase:      "Pending"}}
-
+	jobExpect := pipelinemanager.JobDetail{Workflow: wfExpect}
 	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
 }
 

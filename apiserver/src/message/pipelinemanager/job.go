@@ -14,15 +14,15 @@
 
 package pipelinemanager
 
-import (
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-)
+import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
+// Job metadata of a job.
 type Job struct {
 	Name       string `json:"name" gorm:"not null"`
 	PipelineID uint   `json:"-"` /* Foreign key */
 }
 
-func ToJob(workflow v1alpha1.Workflow) Job {
-	return Job{Name: workflow.ObjectMeta.Name}
+// JobDetail a detailed view of a Argo job, including templates, job status etc.
+type JobDetail struct {
+	Workflow *v1alpha1.Workflow `json:"job"`
 }

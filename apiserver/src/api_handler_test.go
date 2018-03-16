@@ -61,10 +61,10 @@ func (s *FakeBadPackageStore) CreatePackage(pipelinemanager.Package) (pipelinema
 
 type FakeJobStore struct{}
 
-func (s *FakeJobStore) GetJob(pipelineId uint, name string) (*v1alpha1.Workflow, error) {
-	return &v1alpha1.Workflow{
+func (s *FakeJobStore) GetJob(pipelineId uint, name string) (pipelinemanager.JobDetail, error) {
+	return pipelinemanager.JobDetail{Workflow: &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "abc"},
-		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}, nil
+		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}}, nil
 }
 
 func (s *FakeJobStore) ListJobs(pipelineId uint) ([]pipelinemanager.Job, error) {
@@ -72,24 +72,24 @@ func (s *FakeJobStore) ListJobs(pipelineId uint) ([]pipelinemanager.Job, error) 
 	return jobs, nil
 }
 
-func (s *FakeJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	return &v1alpha1.Workflow{
+func (s *FakeJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (pipelinemanager.JobDetail, error) {
+	return pipelinemanager.JobDetail{Workflow: &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "xyz"},
-		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}, nil
+		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}}, nil
 }
 
 type FakeBadJobStore struct{}
 
-func (s *FakeBadJobStore) GetJob(pipelineId uint, name string) (*v1alpha1.Workflow, error) {
-	return nil, util.NewInternalError("bad job store", "")
+func (s *FakeBadJobStore) GetJob(pipelineId uint, name string) (pipelinemanager.JobDetail, error) {
+	return pipelinemanager.JobDetail{}, util.NewInternalError("bad job store", "")
 }
 
 func (s *FakeBadJobStore) ListJobs(pipelineId uint) ([]pipelinemanager.Job, error) {
 	return nil, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	return nil, util.NewInternalError("bad job store", "")
+func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (pipelinemanager.JobDetail, error) {
+	return pipelinemanager.JobDetail{}, util.NewInternalError("bad job store", "")
 }
 
 type FakePackageManager struct{}
@@ -325,9 +325,9 @@ func TestListJobsReturnError(t *testing.T) {
 func TestGetJob(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.GET("/apis/v1alpha1/pipelines/1/jobs/job1").Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"metadata\":{\"name\":\"abc\",\"creationTimestamp\":null}," +
-		"\"spec\":{\"templates\":null,\"entrypoint\":\"\",\"arguments\":{}}," +
-		"\"status\":{\"phase\":\"Pending\",\"startedAt\":null,\"finishedAt\":null,\"nodes\":null}}")
+		Body().Equal("{\"job\":{\"metadata\":{\"name\":\"abc\",\"creationTimestamp\":null}," +
+		"\"spec\":{\"templates\":null,\"entrypoint\":\"\",\"arguments\":{}},\"status\":" +
+		"{\"phase\":\"Pending\",\"startedAt\":null,\"finishedAt\":null,\"nodes\":null}}}")
 }
 
 func TestGetJobError(t *testing.T) {
