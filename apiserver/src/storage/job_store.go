@@ -50,11 +50,11 @@ func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (*v1alpha1.
 	newWf, err := s.wfClient.Create(wf)
 	if err != nil {
 		return newWf, util.NewInternalError("Failed to create job",
-			"Failed to create workflow . Error: %s", err.Error())
+			"Failed to create job . Error: %s", err.Error())
 	}
 	job := &pipelinemanager.Job{Name: newWf.Name, PipelineID: pipelineId}
 	if r := s.db.Create(job); r.Error != nil {
-		return newWf, util.NewInternalError("Failed to add job to job table", r.Error.Error())
+		return newWf, util.NewInternalError("Failed to store job metadata", r.Error.Error())
 	}
 	return newWf, nil
 }
