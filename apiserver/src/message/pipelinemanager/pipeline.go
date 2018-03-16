@@ -20,5 +20,4 @@ type Pipeline struct {
 	Description string      `json:"description,omitempty"`
 	PackageId   uint        `json:"packageId" gorm:"not null"`
 	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
-	Jobs        []Job       `json:"-"`
 }

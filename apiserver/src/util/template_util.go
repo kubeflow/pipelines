@@ -47,7 +47,7 @@ func InjectParameters(template []byte, parameters []pipelinemanager.Parameter) (
 	for _, param := range parameters {
 		param := v1alpha1.Parameter{
 			Name:  param.Name,
-			Value: param.Value,
+			Value: &param.Value,
 		}
 		newParams = append(newParams, param)
 		passedParams[param.Name] = true
