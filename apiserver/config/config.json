@@ -1,7 +1,7 @@
 {
   "DBConfig": {
-    "DriverName": "sqlite3",
-    "DataSourceName": "/bin/pipelines.db"
+    "DriverName": "mysql",
+    "DataSourceName": ""
   },
   "PackageManagerConfig":{
     "AccessKey": "minio",
