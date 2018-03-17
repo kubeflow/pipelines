@@ -15,6 +15,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"ml/apiserver/src/message/pipelinemanager"
 	"ml/apiserver/src/storage"
@@ -22,6 +23,7 @@ import (
 
 	argoclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -33,6 +35,9 @@ import (
 const (
 	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost = "MYSQL_SERVICE_HOST"
+	mysqlServicePort = "MYSQL_SERVICE_PORT"
+	dbName           = "mlpipeline"
 )
 
 // Container for all service clients
@@ -47,14 +52,7 @@ type ClientManager struct {
 func (clientManager *ClientManager) Init() {
 	glog.Infof("Initializing client manager")
 
-	// db is safe for concurrent use by multiple goroutines
-	// and maintains its own pool of idle connections.
-	db, err := gorm.Open(getConfig("DBConfig.DriverName"), getConfig("DBConfig.DataSourceName"))
-	util.TerminateIfError(err)
-
-	// Create table
-	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{},
-		&pipelinemanager.Parameter{}, &pipelinemanager.Job{})
+	db := initDBClient()
 
 	// Initialize package store
 	clientManager.db = db
@@ -76,6 +74,51 @@ func (clientManager *ClientManager) Init() {
 
 func (clientManager *ClientManager) End() {
 	clientManager.db.Close()
+}
+
+func initDBClient() *gorm.DB {
+	driverName := getConfig("DBConfig.DriverName")
+	var arg string
+	var db *gorm.DB
+
+	switch driverName {
+	case "mysql":
+		arg = initMysql(driverName)
+	case "sqlite3":
+		arg = getConfig("DBConfig.DataSourceName")
+	default:
+		glog.Fatalf("Driver %v is not supported", driverName)
+	}
+
+	// db is safe for concurrent use by multiple goroutines
+	// and maintains its own pool of idle connections.
+	db, err := gorm.Open(driverName, arg)
+	util.TerminateIfError(err)
+
+	// Create table
+	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{},
+		&pipelinemanager.Parameter{}, &pipelinemanager.Job{})
+	return db
+}
+
+// Initialize the connection string for connecting to Mysql database
+// Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
+func initMysql(driverName string) string {
+	mysqlConfig := mysql.Config{
+		User:   "root",
+		Net:    "tcp",
+		Addr:   fmt.Sprintf("%s:%s", getConfig(mysqlServiceHost), getConfig(mysqlServicePort)),
+		Params: map[string]string{"charset": "utf8", "parseTime": "True", "loc": "Local"},
+	}
+	db, err := sql.Open(driverName, mysqlConfig.FormatDSN())
+	defer db.Close()
+	util.TerminateIfError(err)
+
+	// Create database if not exist
+	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+	util.TerminateIfError(err)
+	mysqlConfig.DBName = dbName
+	return mysqlConfig.FormatDSN()
 }
 
 func initMinioClient() storage.PackageManagerInterface {
