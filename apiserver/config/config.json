@@ -1,7 +1,7 @@
 {
   "DBConfig": {
-     "DriverName": "mysql",
-     "DataSourceName": ""
+    "DriverName": "mysql",
+    "DataSourceName": ""
   },
   "PackageManagerConfig":{
     "AccessKey": "minio",
