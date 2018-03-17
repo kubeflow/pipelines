@@ -25,7 +25,7 @@ export async function getPackage(id: number): Promise<PipelinePackage> {
  * Gets the Argo template of a certain package given its id.
  */
 export async function getPackageTemplate(id: number): Promise<string> {
-  const response = await fetch(apisPrefix + `/packages/${id}/template`);
+  const response = await fetch(apisPrefix + `/packages/${id}/templates`);
   return await response.text();
 }
 
@@ -99,7 +99,7 @@ export async function getJob(pipelineId: number, jobId: string): Promise<Job> {
  * List files at a given path from content service using server.
  */
 export async function listFiles(path: string): Promise<string[]> {
-  const response = await fetch(apisPrefix + `/artifact/list/${path}`);
+  const response = await fetch(apisPrefix + `/artifact/list/${encodeURIComponent(path)}`);
   return await response.json();
 }
 
@@ -107,6 +107,6 @@ export async function listFiles(path: string): Promise<string[]> {
  * Read file from storage using server.
  */
 export async function readFile(path: string): Promise<string> {
-  const response = await fetch(apisPrefix + `/artifact/get/${path}`);
+  const response = await fetch(apisPrefix + `/artifact/get/${encodeURIComponent(path)}`);
   return await response.text();
 }

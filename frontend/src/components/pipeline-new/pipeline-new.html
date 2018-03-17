@@ -35,10 +35,10 @@
       <div class="flex">
         <paper-dropdown-menu label="Choose a Package" noink on-selected-item-changed="_packageChanged">
           <paper-listbox id="packagesListbox" slot="dropdown-content" class="dropdown-content">
-            <template is="dom-repeat" items="[[packages]]" as="package">
+            <template is="dom-repeat" items="[[packages]]" as="pkg">
               <paper-item package-id="[[package.id]]">
-                [[package.name]]
-                <span class="padded faded">[[[package.id]]]</span>
+                [[pkg.name]]
+                <span class="padded faded">[ [[pkg.id]] ]</span>
               </paper-item>
             </template>
           </paper-listbox>
