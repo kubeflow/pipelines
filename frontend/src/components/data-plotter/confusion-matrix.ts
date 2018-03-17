@@ -6,6 +6,8 @@ export interface MatrixOptions {
   labels: string[];
   startColor: string;
   endColor: string;
+  xAxisLabel: string;
+  yAxisLabel: string;
 }
 
 const margin = { top: 50, right: 50, bottom: 200, left: 200 };
@@ -16,8 +18,8 @@ const margin = { top: 50, right: 50, bottom: 200, left: 200 };
  * elements.
  */
 export function drawMatrix(options: MatrixOptions) {
-  const width = 550;
-  const height = 550;
+  const width = 750;
+  const height = 750;
   const data = options.data;
   const container = options.container;
   const labelsData = options.labels;
@@ -33,10 +35,10 @@ export function drawMatrix(options: MatrixOptions) {
   const numcols = data[0].length;
 
   const svg = d3.select(container).append('svg')
-    .attr('width', width + margin.left + margin.right)
+    .attr('width', width + margin.left + margin.right + widthLegend)
     .attr('height', height + margin.top + margin.bottom)
     .append('g')
-    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+    .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
   svg.append('rect')
     .style('stroke', 'black')
@@ -59,19 +61,24 @@ export function drawMatrix(options: MatrixOptions) {
   const row = svg.selectAll('.row')
     .data(data)
     .enter().append('g')
-    .attr('class', 'row')
-    .attr('transform', (d, i) => 'translate(0,' + y(i.toString()) + ')');
+      .attr('class', 'row')
+      .attr('row', (_, i) => i)
+      .attr('transform', (d, i) => `translate(0, ${y(i.toString())})`);
 
   const cell = row.selectAll('.cell')
     .data((d) => d)
     .enter().append('g')
-    .attr('class', 'cell')
-    .attr('transform', (d, i) => 'translate(' + x(i.toString()) + ', 0)');
+      .on('mouseover', function() { cellMouse(container, this, true); })
+      .on('mouseout', function() { cellMouse(container, this, false); })
+      .attr('class', 'cell')
+      .attr('column', (_, i) => i)
+      .attr('transform', (d, i) => `translate(${x(i.toString())}, 0)`);
 
   cell.append('rect')
     .attr('width', x.bandwidth())
     .attr('height', y.bandwidth())
-    .style('stroke-width', 0);
+    .style('stroke', '#ddd')
+    .style('stroke-width', 1);
 
   cell.append('text')
     .attr('dy', '.32em')
@@ -91,30 +98,30 @@ export function drawMatrix(options: MatrixOptions) {
   const columnLabels = labels.selectAll('.column-label')
     .data(labelsData)
     .enter().append('g')
-    .attr('class', 'column-label')
-    .attr('transform', (d, i) => 'translate(' + x(i.toString()) + ',' + (20 + height) + ')');
+      .attr('class', (_, i) => 'column-label column-' + i)
+      .attr('transform', (d, i) => `translate(${x(i.toString())}, ${20 + height})`);
 
   columnLabels.append('line')
     .style('stroke', 'black')
     .style('stroke-width', '1px')
     .attr('x1', x.bandwidth() / 2)
     .attr('x2', x.bandwidth() / 2)
-    .attr('y1', 0)
-    .attr('y2', 5);
+    .attr('y1', -20)
+    .attr('y2', -15);
 
   columnLabels.append('text')
-    .attr('x', 20)
+    .attr('x', 10)
     .attr('y', y.bandwidth() / 2)
     .attr('dy', '.22em')
     .attr('text-anchor', 'end')
-    .attr('transform', 'rotate(-60)')
+    .attr('transform', 'rotate(-90)')
     .text((d, i) => d);
 
   const rowLabels = labels.selectAll('.row-label')
     .data(labelsData)
     .enter().append('g')
-    .attr('class', 'row-label')
-    .attr('transform', (d, i) => 'translate(' + 0 + ',' + y(i.toString()) + ')');
+      .attr('class', (d, i) => 'row-label row-' + i)
+      .attr('transform', (d, i) => `translate(0, ${y(i.toString())})`);
 
   rowLabels.append('line')
     .style('stroke', 'black')
@@ -131,12 +138,22 @@ export function drawMatrix(options: MatrixOptions) {
     .attr('text-anchor', 'end')
     .text((d, i) => d);
 
-  const key = d3.select(container)
-    .append('svg')
-    .attr('width', widthLegend)
-    .attr('height', height + margin.top + margin.bottom);
+  // Y Axis label
+  svg.append('text')
+    .style('text-anchor', 'end')
+    .attr('transform', 'translate(-5, -20)')
+    .attr('class', 'strong')
+    .text(options.yAxisLabel);
 
-  const legend = key
+  // X Axis label
+  svg.append('text')
+    .attr('transform', `translate(${width}, ${height + margin.top - 10})`)
+    .style('text-anchor', 'start')
+    .attr('class', 'strong')
+    .text(options.xAxisLabel);
+
+  // Legend
+  const legend = svg
     .append('defs')
     .append('svg:linearGradient')
     .attr('id', 'gradient')
@@ -158,22 +175,35 @@ export function drawMatrix(options: MatrixOptions) {
     .attr('stop-color', startColor)
     .attr('stop-opacity', 1);
 
-  key.append('rect')
+  svg.append('rect')
     .attr('width', widthLegend / 2 - 10)
     .attr('height', height)
     .style('fill', 'url(#gradient)')
-    .attr('transform', 'translate(0,' + margin.top + ')');
-
-  d3.scaleLinear()
-    .range([height, 0])
-    .domain([minValue, maxValue]);
+    .attr('transform', `translate(${width + 20}, 0)`);
 
   const legendY = d3.scaleLinear()
     .range([height, 0])
     .domain([minValue, maxValue]);
 
-  key.append('g')
+  svg.append('g')
     .attr('class', 'y axis')
-    .attr('transform', 'translate(41,' + margin.top + ')')
+    .attr('transform', `translate(${width + 60}, 0)`)
     .call(d3.axisRight(legendY) as any);
+}
+
+export function cellMouse(container: HTMLElement, cell: any, mouseIn: boolean) {
+  const row = Number.parseInt(cell.parentElement.getAttribute('row'));
+  const col = Number.parseInt(cell.getAttribute('column'));
+  const rowLabel = container.querySelector(`.row-label.row-${row}`) as HTMLElement;
+  const colLabel = container.querySelector(`.column-label.column-${col}`) as HTMLElement;
+
+  // Hightlight row and column labels
+  rowLabel.classList.toggle('active', mouseIn);
+  colLabel.classList.toggle('active', mouseIn);
+
+  // Highlight row and column cells
+  const rowElement = container.querySelector(`.row[row='${row}']`) as HTMLElement;
+  const colCells = container.querySelectorAll(`.cell[column='${col}']`) as NodeListOf<HTMLElement>;
+  rowElement.classList.toggle('active', mouseIn);
+  colCells.forEach((c) => c.classList.toggle('active', mouseIn));
 }
