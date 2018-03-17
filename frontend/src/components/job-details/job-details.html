@@ -11,7 +11,7 @@
         <div class="job-name padded">[[job.name]]</div>
         <div class="right">
           <div class="flex">
-            <iron-icon class="status-icon" icon=[[_getStatusIcon(job.status)]]></iron-icon>
+            <iron-icon class="status-icon" icon$=[[_getStatusIcon(job.status)]]></iron-icon>
             <!-- TODO: Get or compute the job progress here -->
             <paper-progress id="progress" value="100"></paper-progress>
           </div>

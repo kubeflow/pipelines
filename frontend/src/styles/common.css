@@ -138,3 +138,15 @@ paper-tab:not(:first-child) {
   padding-right: 3px;
   width: 20px;
 }
+
+iron-icon[icon="check-circle"] {
+  color: var(--success-color);
+}
+
+iron-icon[icon="av:skip-next"] {
+  color: var(--neutral-color);
+}
+
+iron-icon[icon="error-outline"] {
+  color: var(--fail-color);
+}

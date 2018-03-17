@@ -23,18 +23,6 @@
   width: 15px;
 }
 
-.pipeline-node iron-icon[icon="check-circle"] {
-  color: var(--success-color);
-}
-
-.pipeline-node iron-icon[icon="av:skip-next"] {
-  color: var(--neutral-color);
-}
-
-.pipeline-node iron-icon[icon="error-outline"] {
-  color: var(--fail-color);
-}
-
 .pipeline-node .label {
   line-height: 3em;
   overflow: hidden;

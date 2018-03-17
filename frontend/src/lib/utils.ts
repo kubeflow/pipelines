@@ -9,11 +9,11 @@ export function deleteAllChildren(parent: HTMLElement) {
 export const log = {
   error: (...args: any[]) => {
     // tslint:disable-next-line:no-console
-    console.log(...args);
+    console.error(...args);
   },
   verbose: (...args: any[]) => {
     // tslint:disable-next-line:no-console
-    console.error(...args);
+    console.log(...args);
   },
 };
 
@@ -69,7 +69,6 @@ export function getAncestorElementWithClass(element: HTMLElement, className: str
   return element;
 }
 
-// TODO: Fill icons for other statuses
 export function jobStatusToIcon(status: JobStatus) {
   switch (status) {
     case 'Running': return 'device:access-time';

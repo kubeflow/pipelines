@@ -85,7 +85,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
   }
 
   protected _getStatusIcon(status: JobStatus) {
-    return Utils.jobStatusToIcon(status);
+    return this.job ? Utils.jobStatusToIcon(status) : '';
   }
 
   protected _getRuntime(start: number, end: number, status: JobStatus) {
