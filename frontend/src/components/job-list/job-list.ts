@@ -1,5 +1,3 @@
-import 'iron-icons/device-icons.html';
-import 'iron-icons/iron-icons.html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import 'polymer/polymer.html';
 
@@ -7,7 +5,8 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { ItemClickEvent, RouteEvent } from '../../lib/events';
-import { Job, JobStatus } from '../../model/job';
+import { NodePhase } from '../../model/argo_template';
+import { Job } from '../../model/job';
 
 import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
 import './job-list.html';
@@ -65,11 +64,11 @@ export class JobList extends Polymer.Element {
     return Utils.objectToArray(paramsObject);
   }
 
-  protected _getStatusIcon(status: JobStatus) {
-    return Utils.jobStatusToIcon(status);
+  protected _getStatusIcon(status: NodePhase) {
+    return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRuntime(start: string, end: string, status: JobStatus) {
+  protected _getRuntime(start: string, end: string, status: NodePhase) {
     if (!status) {
       return '-';
     }
