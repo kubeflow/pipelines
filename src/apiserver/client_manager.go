@@ -17,9 +17,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/storage"
-	"ml/apiserver/src/util"
+	"ml/src/message"
+	"ml/src/storage"
+	"ml/src/util"
 
 	argoclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
@@ -96,8 +96,8 @@ func initDBClient() *gorm.DB {
 	util.TerminateIfError(err)
 
 	// Create table
-	db.AutoMigrate(&pipelinemanager.Package{}, &pipelinemanager.Pipeline{},
-		&pipelinemanager.Parameter{}, &pipelinemanager.Job{})
+	db.AutoMigrate(&message.Package{}, &message.Pipeline{},
+		&message.Parameter{}, &message.Job{})
 	return db
 }
 

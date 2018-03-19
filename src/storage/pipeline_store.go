@@ -16,24 +16,24 @@ package storage
 
 import (
 	"fmt"
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/util"
+	"ml/src/message"
+	"ml/src/util"
 
 	"github.com/jinzhu/gorm"
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines() ([]pipelinemanager.Pipeline, error)
-	GetPipeline(id uint) (pipelinemanager.Pipeline, error)
-	CreatePipeline(pipelinemanager.Pipeline) (pipelinemanager.Pipeline, error)
+	ListPipelines() ([]message.Pipeline, error)
+	GetPipeline(id uint) (message.Pipeline, error)
+	CreatePipeline(message.Pipeline) (message.Pipeline, error)
 }
 
 type PipelineStore struct {
 	db *gorm.DB
 }
 
-func (s *PipelineStore) ListPipelines() ([]pipelinemanager.Pipeline, error) {
-	var pipelines []pipelinemanager.Pipeline
+func (s *PipelineStore) ListPipelines() ([]message.Pipeline, error) {
+	var pipelines []message.Pipeline
 	// List the pipelines as well as their parameters.
 	// Preload parameter table first to optimize DB transaction.
 	if r := s.db.Preload("Parameters").Find(&pipelines); r.Error != nil {
@@ -42,8 +42,8 @@ func (s *PipelineStore) ListPipelines() ([]pipelinemanager.Pipeline, error) {
 	return pipelines, nil
 }
 
-func (s *PipelineStore) GetPipeline(id uint) (pipelinemanager.Pipeline, error) {
-	var pipeline pipelinemanager.Pipeline
+func (s *PipelineStore) GetPipeline(id uint) (message.Pipeline, error) {
+	var pipeline message.Pipeline
 	// Get the pipeline as well as its parameter.
 	if r := s.db.Preload("Parameters").First(&pipeline, id); r.Error != nil {
 		// Error returns when no pipeline found.
@@ -52,7 +52,7 @@ func (s *PipelineStore) GetPipeline(id uint) (pipelinemanager.Pipeline, error) {
 	return pipeline, nil
 }
 
-func (s *PipelineStore) CreatePipeline(p pipelinemanager.Pipeline) (pipelinemanager.Pipeline, error) {
+func (s *PipelineStore) CreatePipeline(p message.Pipeline) (message.Pipeline, error) {
 	if r := s.db.Create(&p); r.Error != nil {
 		return p, util.NewInternalError("Failed to add pipeline to pipeline table", r.Error.Error())
 	}
