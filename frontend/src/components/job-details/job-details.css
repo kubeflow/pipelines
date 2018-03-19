@@ -53,10 +53,7 @@ paper-tab {
   flex-grow: 1;
 }
 
-#plotContainer {
-  overflow: auto;
-}
-
+#plotContainer,
 #jobGraph {
   background-color: var(--bg-color-darker);
   border-radius: 0 0 5px 5px;

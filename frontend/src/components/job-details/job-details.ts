@@ -23,7 +23,7 @@ import './job-details.html';
 
 const progressCssColors = {
   completed: '--success-color',
-  errored: '--error-color',
+  error: '--error-color',
   notStarted: '',
   running: '--progress-color',
 };
@@ -111,7 +111,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
         color = progressCssColors.completed;
         break;
       case 'Error':
-        color = progressCssColors.errored;
+        color = progressCssColors.error;
       default:
         color = progressCssColors.notStarted;
         break;

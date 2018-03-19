@@ -114,7 +114,7 @@ module.exports = {
           createdAt: '2018-03-08T01:55:12Z',
           startedAt: '0001-01-01T00:00:00Z',
           finishedAt: '0001-01-01T00:00:00Z',
-          status: 'Errored',
+          status: 'Error',
           _pipelineId: 2,
         },
       ],
