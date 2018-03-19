@@ -12,6 +12,8 @@
  * the License.
  */
 
+import 'iron-icons/device-icons.html';
+import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
 import 'paper-checkbox/paper-checkbox.html';
 import 'paper-icon-button/paper-icon-button.html';

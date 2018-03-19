@@ -1,5 +1,3 @@
-import 'iron-icons/device-icons.html';
-import 'iron-icons/iron-icons.html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import 'polymer/polymer.html';
 
