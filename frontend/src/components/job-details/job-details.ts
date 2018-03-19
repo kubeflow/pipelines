@@ -34,7 +34,9 @@ export class JobDetails extends Polymer.Element implements PageElement {
   @property({ type: Number })
   public selectedTab = 0;
 
-  private _pipelineId = -1;
+  @property({ type: Number })
+  protected _pipelineId = -1;
+
   private _jobId = '';
 
   public async refresh(_: string, queryParams: { jobId?: string, pipelineId: number }) {

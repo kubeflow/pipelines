@@ -106,6 +106,7 @@ paper-tab:not(:first-child) {
 }
 
 .toolbar {
+  align-items: center;
   border-bottom: solid 1px var(--line-color);
   display: flex;
   flex-shrink: 0;
@@ -116,7 +117,7 @@ paper-tab:not(:first-child) {
 .toolbar-title {
   font-size: 18px;
   margin: auto 0;
-  padding-right: 20px;
+  padding: 0 20px;
 }
 
 .toolbar-button {
