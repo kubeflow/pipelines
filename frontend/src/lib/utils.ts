@@ -74,7 +74,7 @@ export function jobStatusToIcon(status: JobStatus) {
     case 'Running': return 'device:access-time';
     case 'Succeeded': return 'check-circle';
     case 'Skipped': return 'av:skip-next';
-    case 'Failed': return 'av:skip-next';
+    case 'Failed': return 'error-outline';
     case 'Error': return 'error-outline';
     default:
       log.error('Unknown status:', status);

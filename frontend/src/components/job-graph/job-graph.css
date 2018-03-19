@@ -47,6 +47,7 @@
   position: absolute;
 }
 
+/* Arrow head */
 .pipeline-edge .line:nth-last-child(2)::after {
   color: #777;
   content: '\25BA';
