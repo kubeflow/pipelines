@@ -17,9 +17,9 @@ package main
 import (
 	"bytes"
 	"mime/multipart"
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/storage"
-	"ml/apiserver/src/util"
+	"ml/src/message"
+	"ml/src/storage"
+	"ml/src/util"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -30,66 +30,66 @@ import (
 
 type FakePackageStore struct{}
 
-func (s *FakePackageStore) ListPackages() ([]pipelinemanager.Package, error) {
-	packages := []pipelinemanager.Package{
+func (s *FakePackageStore) ListPackages() ([]message.Package, error) {
+	packages := []message.Package{
 		{Name: "Package123"},
 		{Name: "Package456"}}
 	return packages, nil
 }
 
-func (s *FakePackageStore) GetPackage(packageId uint) (pipelinemanager.Package, error) {
-	pkg := pipelinemanager.Package{Name: "package123"}
+func (s *FakePackageStore) GetPackage(packageId uint) (message.Package, error) {
+	pkg := message.Package{Name: "package123"}
 	return pkg, nil
 }
-func (s *FakePackageStore) CreatePackage(pkg pipelinemanager.Package) (pipelinemanager.Package, error) {
+func (s *FakePackageStore) CreatePackage(pkg message.Package) (message.Package, error) {
 	return pkg, nil
 }
 
 type FakeBadPackageStore struct{}
 
-func (s *FakeBadPackageStore) ListPackages() ([]pipelinemanager.Package, error) {
+func (s *FakeBadPackageStore) ListPackages() ([]message.Package, error) {
 	return nil, util.NewInternalError("bad package store", "")
 }
 
-func (s *FakeBadPackageStore) GetPackage(packageId uint) (pipelinemanager.Package, error) {
-	return pipelinemanager.Package{}, util.NewInternalError("bad package store", "")
+func (s *FakeBadPackageStore) GetPackage(packageId uint) (message.Package, error) {
+	return message.Package{}, util.NewInternalError("bad package store", "")
 }
 
-func (s *FakeBadPackageStore) CreatePackage(pipelinemanager.Package) (pipelinemanager.Package, error) {
-	return pipelinemanager.Package{}, util.NewInternalError("bad package store", "")
+func (s *FakeBadPackageStore) CreatePackage(message.Package) (message.Package, error) {
+	return message.Package{}, util.NewInternalError("bad package store", "")
 }
 
 type FakeJobStore struct{}
 
-func (s *FakeJobStore) GetJob(pipelineId uint, name string) (pipelinemanager.JobDetail, error) {
-	return pipelinemanager.JobDetail{Workflow: &v1alpha1.Workflow{
+func (s *FakeJobStore) GetJob(pipelineId uint, name string) (message.JobDetail, error) {
+	return message.JobDetail{Workflow: &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "abc"},
 		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}}, nil
 }
 
-func (s *FakeJobStore) ListJobs(pipelineId uint) ([]pipelinemanager.Job, error) {
-	jobs := []pipelinemanager.Job{{Name: "job1"}, {Name: "job2"}}
+func (s *FakeJobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
+	jobs := []message.Job{{Name: "job1"}, {Name: "job2"}}
 	return jobs, nil
 }
 
-func (s *FakeJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (pipelinemanager.JobDetail, error) {
-	return pipelinemanager.JobDetail{Workflow: &v1alpha1.Workflow{
+func (s *FakeJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (message.JobDetail, error) {
+	return message.JobDetail{Workflow: &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "xyz"},
 		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}}, nil
 }
 
 type FakeBadJobStore struct{}
 
-func (s *FakeBadJobStore) GetJob(pipelineId uint, name string) (pipelinemanager.JobDetail, error) {
-	return pipelinemanager.JobDetail{}, util.NewInternalError("bad job store", "")
+func (s *FakeBadJobStore) GetJob(pipelineId uint, name string) (message.JobDetail, error) {
+	return message.JobDetail{}, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) ListJobs(pipelineId uint) ([]pipelinemanager.Job, error) {
+func (s *FakeBadJobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 	return nil, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (pipelinemanager.JobDetail, error) {
-	return pipelinemanager.JobDetail{}, util.NewInternalError("bad job store", "")
+func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (message.JobDetail, error) {
+	return message.JobDetail{}, util.NewInternalError("bad job store", "")
 }
 
 type FakePackageManager struct{}
@@ -114,33 +114,33 @@ func (m *FakeBadPackageManager) GetTemplate(fileName string) ([]byte, error) {
 
 type FakePipelineStore struct{}
 
-func (s *FakePipelineStore) ListPipelines() ([]pipelinemanager.Pipeline, error) {
-	pipelines := []pipelinemanager.Pipeline{
+func (s *FakePipelineStore) ListPipelines() ([]message.Pipeline, error) {
+	pipelines := []message.Pipeline{
 		{Name: "p1", PackageId: 123},
 		{Name: "p2", PackageId: 345}}
 	return pipelines, nil
 }
 
-func (s *FakePipelineStore) GetPipeline(id uint) (pipelinemanager.Pipeline, error) {
-	return pipelinemanager.Pipeline{Name: "p", PackageId: 123}, nil
+func (s *FakePipelineStore) GetPipeline(id uint) (message.Pipeline, error) {
+	return message.Pipeline{Name: "p", PackageId: 123}, nil
 }
 
-func (s *FakePipelineStore) CreatePipeline(p pipelinemanager.Pipeline) (pipelinemanager.Pipeline, error) {
-	return pipelinemanager.Pipeline{Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "p", PackageId: 123}, nil
+func (s *FakePipelineStore) CreatePipeline(p message.Pipeline) (message.Pipeline, error) {
+	return message.Pipeline{Metadata: &message.Metadata{ID: 1}, Name: "p", PackageId: 123}, nil
 }
 
 type FakeBadPipelineStore struct{}
 
-func (s *FakeBadPipelineStore) ListPipelines() ([]pipelinemanager.Pipeline, error) {
+func (s *FakeBadPipelineStore) ListPipelines() ([]message.Pipeline, error) {
 	return nil, util.NewInternalError("bad pipeline store", "")
 }
 
-func (s *FakeBadPipelineStore) GetPipeline(id uint) (pipelinemanager.Pipeline, error) {
-	return pipelinemanager.Pipeline{}, util.NewInternalError("bad pipeline store", "")
+func (s *FakeBadPipelineStore) GetPipeline(id uint) (message.Pipeline, error) {
+	return message.Pipeline{}, util.NewInternalError("bad pipeline store", "")
 }
 
-func (s *FakeBadPipelineStore) CreatePipeline(pipelinemanager.Pipeline) (pipelinemanager.Pipeline, error) {
-	return pipelinemanager.Pipeline{}, util.NewInternalError("bad pipeline store", "")
+func (s *FakeBadPipelineStore) CreatePipeline(message.Pipeline) (message.Pipeline, error) {
+	return message.Pipeline{}, util.NewInternalError("bad pipeline store", "")
 }
 
 func initApiHandlerTest(

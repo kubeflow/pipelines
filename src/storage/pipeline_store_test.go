@@ -16,8 +16,8 @@ package storage
 
 import (
 	"errors"
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/util"
+	"ml/src/message"
+	"ml/src/util"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -32,9 +32,9 @@ func initializePipelineDB() (PipelineStoreInterface, sqlmock.Sqlmock) {
 }
 
 func TestListPipelines(t *testing.T) {
-	expectedPipelines := []pipelinemanager.Pipeline{
-		{Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "Pipeline123", PackageId: 1, Parameters: []pipelinemanager.Parameter{}},
-		{Metadata: &pipelinemanager.Metadata{ID: 2}, Name: "Pipeline456", PackageId: 2, Parameters: []pipelinemanager.Parameter{}}}
+	expectedPipelines := []message.Pipeline{
+		{Metadata: &message.Metadata{ID: 1}, Name: "Pipeline123", PackageId: 1, Parameters: []message.Parameter{}},
+		{Metadata: &message.Metadata{ID: 2}, Name: "Pipeline456", PackageId: 2, Parameters: []message.Parameter{}}}
 	ps, mock := initializePipelineDB()
 	pipelinesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description", "package_id"}).
 		AddRow(1, nil, nil, nil, "Pipeline123", "", 1).
@@ -56,8 +56,8 @@ func TestListPipelinesError(t *testing.T) {
 }
 
 func TestGetPipeline(t *testing.T) {
-	expectedPipeline := pipelinemanager.Pipeline{
-		Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "Pipeline123", PackageId: 1, Parameters: []pipelinemanager.Parameter{}}
+	expectedPipeline := message.Pipeline{
+		Metadata: &message.Metadata{ID: 1}, Name: "Pipeline123", PackageId: 1, Parameters: []message.Parameter{}}
 	ps, mock := initializePipelineDB()
 	pipelinesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description", "package_id"}).
 		AddRow(1, nil, nil, nil, "Pipeline123", "", 1)
@@ -78,7 +78,7 @@ func TestGetPipelineError(t *testing.T) {
 }
 
 func TestCreatePipeline(t *testing.T) {
-	pipeline := pipelinemanager.Pipeline{Name: "Pipeline123"}
+	pipeline := message.Pipeline{Name: "Pipeline123"}
 	ps, mock := initializePipelineDB()
 	mock.ExpectExec("INSERT INTO `pipelines`").
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pipeline.Name, sqlmock.AnyArg(), sqlmock.AnyArg()).
@@ -90,7 +90,7 @@ func TestCreatePipeline(t *testing.T) {
 }
 
 func TestCreatePipelineError(t *testing.T) {
-	pipeline := pipelinemanager.Pipeline{Name: "Pipeline123"}
+	pipeline := message.Pipeline{Name: "Pipeline123"}
 	ps, mock := initializePipelineDB()
 	mock.ExpectExec("INSERT INTO `pipelines`").WillReturnError(errors.New("something"))
 

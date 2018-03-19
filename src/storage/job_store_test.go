@@ -15,11 +15,10 @@
 package storage
 
 import (
+	"ml/src/message"
+	"ml/src/util"
 	"testing"
 	"time"
-
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/util"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/jinzhu/gorm"
@@ -117,7 +116,7 @@ func TestListJobs(t *testing.T) {
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
 	}
-	expectedJobs := []pipelinemanager.Job{{Name: "abcd", PipelineID: 1}, {Name: "efgh", PipelineID: 1}}
+	expectedJobs := []message.Job{{Name: "abcd", PipelineID: 1}, {Name: "efgh", PipelineID: 1}}
 
 	assert.Equal(t, jobs, expectedJobs, "Unexpected Job parsed. Expect %v. Got %v", expectedJobs, jobs)
 }
@@ -150,7 +149,7 @@ func TestCreateJob(t *testing.T) {
 			StartedAt:  v1.Time{Time: st},
 			FinishedAt: v1.Time{Time: ft},
 			Phase:      "Pending"}}
-	jobExpect := pipelinemanager.JobDetail{Workflow: wfExpect}
+	jobExpect := message.JobDetail{Workflow: wfExpect}
 	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
 }
 
@@ -187,7 +186,7 @@ func TestGetJob(t *testing.T) {
 			StartedAt:  v1.Time{Time: st},
 			FinishedAt: v1.Time{Time: ft},
 			Phase:      "Pending"}}
-	jobExpect := pipelinemanager.JobDetail{Workflow: wfExpect}
+	jobExpect := message.JobDetail{Workflow: wfExpect}
 	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
 }
 

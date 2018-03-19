@@ -12,17 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pipelinemanager
+package message
 
-import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-
-// Job metadata of a job.
-type Job struct {
-	Name       string `json:"name" gorm:"not null"`
-	PipelineID uint   `json:"-"` /* Foreign key */
-}
-
-// JobDetail a detailed view of a Argo job, including templates, job status etc.
-type JobDetail struct {
-	Workflow *v1alpha1.Workflow `json:"job"`
+type Pipeline struct {
+	*Metadata   `json:",omitempty"`
+	Name        string      `json:"name" gorm:"not null"`
+	Description string      `json:"description,omitempty"`
+	PackageId   uint        `json:"packageId" gorm:"not null"`
+	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
 }

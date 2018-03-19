@@ -16,8 +16,8 @@ package storage
 
 import (
 	"errors"
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/util"
+	"ml/src/message"
+	"ml/src/util"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -32,9 +32,9 @@ func initializePackageDB() (PackageStoreInterface, sqlmock.Sqlmock) {
 }
 
 func TestListPackages(t *testing.T) {
-	expectedPackages := []pipelinemanager.Package{
-		{Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "Package123", Parameters: []pipelinemanager.Parameter{}},
-		{Metadata: &pipelinemanager.Metadata{ID: 2}, Name: "Package456", Parameters: []pipelinemanager.Parameter{}}}
+	expectedPackages := []message.Package{
+		{Metadata: &message.Metadata{ID: 1}, Name: "Package123", Parameters: []message.Parameter{}},
+		{Metadata: &message.Metadata{ID: 2}, Name: "Package456", Parameters: []message.Parameter{}}}
 	ps, mock := initializePackageDB()
 	packagesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description"}).
 		AddRow(1, nil, nil, nil, "Package123", "").
@@ -56,8 +56,8 @@ func TestListPackagesError(t *testing.T) {
 }
 
 func TestGetPackage(t *testing.T) {
-	expectedPackage := pipelinemanager.Package{
-		Metadata: &pipelinemanager.Metadata{ID: 1}, Name: "Package123", Parameters: []pipelinemanager.Parameter{}}
+	expectedPackage := message.Package{
+		Metadata: &message.Metadata{ID: 1}, Name: "Package123", Parameters: []message.Parameter{}}
 	ps, mock := initializePackageDB()
 	packagesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description"}).
 		AddRow(1, nil, nil, nil, "Package123", "")
@@ -78,7 +78,7 @@ func TestGetPackageNotFoundError(t *testing.T) {
 }
 
 func TestCreatePackage(t *testing.T) {
-	pkg := pipelinemanager.Package{Name: "Package123"}
+	pkg := message.Package{Name: "Package123"}
 	ps, mock := initializePackageDB()
 	mock.ExpectExec("INSERT INTO `packages`").
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pkg.Name, sqlmock.AnyArg()).
@@ -90,7 +90,7 @@ func TestCreatePackage(t *testing.T) {
 }
 
 func TestCreatePackageError(t *testing.T) {
-	pkg := pipelinemanager.Package{Name: "Package123"}
+	pkg := message.Package{Name: "Package123"}
 	ps, mock := initializePackageDB()
 	mock.ExpectExec("INSERT INTO `packages`").WillReturnError(errors.New("something"))
 

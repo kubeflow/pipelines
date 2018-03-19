@@ -12,11 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pipelinemanager
+package message
 
-type Package struct {
-	*Metadata   `json:",omitempty"`
-	Name        string      `json:"name"`
-	Description string      `json:"description,omitempty"`
-	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
+import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+
+type Parameter struct {
+	Name      string `json:"name" gorm:"not null"`
+	Value     string `json:"value"`
+	OwnerID   uint   `json:"-"` /* Foreign key */
+	OwnerType string `json:"-"`
+}
+
+func ToParameters(argoParameters []v1alpha1.Parameter) []Parameter {
+	newParams := make([]Parameter, 0)
+	for _, argoParam := range argoParameters {
+		param := Parameter{
+			Name:  argoParam.Name,
+			Value: *argoParam.Value,
+		}
+		newParams = append(newParams, param)
+	}
+	return newParams
 }

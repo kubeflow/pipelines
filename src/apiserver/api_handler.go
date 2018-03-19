@@ -16,9 +16,9 @@ package main
 
 import (
 	"io/ioutil"
-	"ml/apiserver/src/message/pipelinemanager"
-	"ml/apiserver/src/storage"
-	"ml/apiserver/src/util"
+	"ml/src/message"
+	"ml/src/storage"
+	"ml/src/util"
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
@@ -113,7 +113,7 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 		util.HandleError("UploadPackage_ExtractParameter", ctx, err)
 		return
 	}
-	pkg := pipelinemanager.Package{Name: info.Filename, Parameters: params}
+	pkg := message.Package{Name: info.Filename, Parameters: params}
 
 	pkg, err = a.packageStore.CreatePackage(pkg)
 	if err != nil {
@@ -178,7 +178,7 @@ func (a APIHandler) GetPipeline(ctx iris.Context) {
 func (a APIHandler) CreatePipeline(ctx iris.Context) {
 	glog.Infof("Create pipeline called")
 
-	pipeline := pipelinemanager.Pipeline{}
+	pipeline := message.Pipeline{}
 	if err := ctx.ReadJSON(&pipeline); err != nil {
 		util.HandleError("CreatePipeline_ReadRequestBody", ctx, util.NewInvalidInputError("The pipeline has invalid format.", err.Error()))
 		return
