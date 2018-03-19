@@ -60,6 +60,11 @@ module.exports = (app) => {
     res.json(j[0]);
   });
 
+  app.get('/_api/pipelines/:pid/jobs/:jname/runtimeTemplates', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    res.send(fs.readFileSync('./mock-backend/mock-runtime-template.yaml'));
+  });
+
   app.get('/_api/packages', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.packages);

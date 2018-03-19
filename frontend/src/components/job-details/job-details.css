@@ -18,9 +18,15 @@
   width: 20px;
 }
 
+.container {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+}
+
 .tabs-container {
   border-bottom: solid 1px var(--line-color);
-  height: 50px;
+  flex: 50px 0 0;
   position: relative;
 }
 
@@ -39,4 +45,20 @@ paper-tabs {
 paper-tab {
   font-size: 13px;
   min-width: 110px;
+}
+
+.pages {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+}
+
+#plotContainer,
+#jobGraph {
+  background-color: var(--bg-color-darker);
+  border-radius: 0 0 5px 5px;
+  border-top: 0;
+  border: solid 1px #ddd;
+  flex-grow: 1;
+  overflow: auto;
 }

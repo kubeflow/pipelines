@@ -1,0 +1,58 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+.pipeline-dag {
+  position: relative;
+}
+
+.pipeline-node {
+  background-color: #eee;
+  border: solid 1px #aaa;
+  box-sizing: border-box;
+  cursor: default;
+  font-size: 12px;
+  margin: 10px;
+  padding: 7px;
+  position: absolute;
+  text-align: center;
+}
+
+.pipeline-node iron-icon {
+  height: 15px;
+  flex-shrink: 0;
+  width: 15px;
+}
+
+.pipeline-node .label {
+  line-height: 3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pipeline-node:hover {
+  @apply --shadow-elevation-3dp;
+  max-height: 500px !important;
+  z-index: 1;
+  transition: max-height 1s;
+}
+
+.pipeline-node:hover .label {
+  line-height: initial !important;
+  white-space: initial;
+}
+
+.pipeline-edge .line {
+  border-top: 1px solid #777;
+  position: absolute;
+}
+
+/* Arrow head */
+.pipeline-edge .line:nth-last-child(2)::after {
+  color: #777;
+  content: '\25BA';
+  font-size: 10px;
+  position: absolute;
+  top: -7px;
+  transform: rotate(180deg);
+}

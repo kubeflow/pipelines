@@ -9,11 +9,11 @@ export function deleteAllChildren(parent: HTMLElement) {
 export const log = {
   error: (...args: any[]) => {
     // tslint:disable-next-line:no-console
-    console.log(...args);
+    console.error(...args);
   },
   verbose: (...args: any[]) => {
     // tslint:disable-next-line:no-console
-    console.error(...args);
+    console.log(...args);
   },
 };
 
@@ -72,8 +72,12 @@ export function getAncestorElementWithClass(element: HTMLElement, className: str
 export function jobStatusToIcon(status: JobStatus) {
   switch (status) {
     case 'Running': return 'device:access-time';
-    case 'Succeeded': return 'check';
-    case 'Errored': return 'error-outline';
-    default: return 'sort';
+    case 'Succeeded': return 'check-circle';
+    case 'Skipped': return 'av:skip-next';
+    case 'Failed': return 'error-outline';
+    case 'Error': return 'error-outline';
+    default:
+      log.error('Unknown status:', status);
+      return '';
   }
 }

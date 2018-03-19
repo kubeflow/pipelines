@@ -6,12 +6,12 @@
       <div class="toolbar-title">Job Details</div>
     </div>
 
-    <div class="padded-20">
+    <div class="padded-20 container">
       <div class="flex">
         <div class="job-name padded">[[job.name]]</div>
         <div class="right">
           <div class="flex">
-            <iron-icon class="status-icon" icon=[[_getStatusIcon(job.status)]]></iron-icon>
+            <iron-icon class="status-icon" icon$=[[_getStatusIcon(job.status)]]></iron-icon>
             <!-- TODO: Get or compute the job progress here -->
             <paper-progress id="progress" value="100"></paper-progress>
           </div>
@@ -25,10 +25,11 @@
         <paper-tabs class="no-shrink" selected="{{selectedTab}}">
           <paper-tab>Basic Info</paper-tab>
           <paper-tab>Output</paper-tab>
+          <paper-tab>Graph</paper-tab>
         </paper-tabs>
       </div>
 
-      <iron-pages selected="{{selectedTab}}">
+      <iron-pages class="pages" selected="{{selectedTab}}">
 
         <!-- iron-page tab 1 -->
         <div>
@@ -63,7 +64,11 @@
             <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
           </template>
         </div>
+
+        <!-- iron-page tab 3 -->
+        <job-graph id="jobGraph"></job-graph>
       </iron-pages>
+    </div>
 
   </template>
 </dom-module>

@@ -1,0 +1,28 @@
+<dom-module id="job-graph">
+  <template>
+    <link rel="stylesheet" href="./job-graph.css">
+
+    <!-- TODO: No-graph (yet) experience -->
+
+    <div class="pipeline-dag">
+      <template is="dom-repeat" items="[[_workflowNodes]]" as="node">
+        <div class="flex pipeline-node"
+             style$="left: [[node.x]]px; top: [[node.y]]px;
+                    width: [[node.width]]px; max-height: [[node.height]]px">
+          <iron-icon icon$="[[node.icon]]"></iron-icon>
+          <div class="label">[[node.label]]</div>
+        </div>
+      </template>
+
+      <template is="dom-repeat" items="[[_workflowEdges]]" as="edge">
+        <div class="pipeline-edge">
+          <template is="dom-repeat" items="[[edge.lines]]" as="line">
+            <div class="line" style$="width: [[line.distance]]px; left: [[line.left]]px;
+                                      top: [[line.yMid]]px; transform: translate(85px, 35px)
+                                      rotate([[line.angle]]deg)"></div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+</dom-module>
