@@ -4,7 +4,7 @@ import 'iron-icons/iron-icons.html';
 import * as dagre from 'dagre';
 
 import { customElement, property } from '../../decorators';
-import { jobStatusToIcon } from '../../lib/utils';
+import { nodePhaseToIcon } from '../../lib/utils';
 import { Workflow as ArgoTemplate } from '../../model/argo_template';
 
 import './job-graph.html';
@@ -66,7 +66,7 @@ export class JobGraph extends Polymer.Element {
     this._workflowNodes = g.nodes().map((id) => {
       return Object.assign(g.node(id), {
         finishedAt: nodes[id].finishedAt,
-        icon: jobStatusToIcon(nodes[id].phase),
+        icon: nodePhaseToIcon(nodes[id].phase),
         name: nodes[id].name,
         startedAt: nodes[id].startedAt,
       });

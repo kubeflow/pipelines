@@ -50,7 +50,7 @@ the License.
           <div class="checkbox-col">
             <paper-checkbox checked={{row.selected}} hidden$="{{_hideCheckboxes}}">
             </paper-checkbox>
-            <iron-icon hidden$="{{!row._icon}}" icon="{{row.icon}}" src="{{row.src}}"></iron-icon>
+            <iron-icon hidden$="{{!row._icon}}" icon$="{{row.icon}}" src$="{{row.src}}"></iron-icon>
           </div>
           <template is="dom-repeat" items="{{row.columns}}" as="column" index-as="columnIndex">
             <div class="column">

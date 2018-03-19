@@ -14,19 +14,13 @@ import prettyJson from 'json-pretty-html';
 import { customElement, property } from '../../decorators';
 import { PageElement } from '../../lib/page_element';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
-import { Job, JobStatus } from '../../model/job';
+import { NodePhase } from '../../model/argo_template';
+import { Job } from '../../model/job';
 import { PlotMetadata } from '../../model/output_metadata';
 import { JobGraph } from '../job-graph/job-graph';
 
 import '../job-graph/job-graph';
 import './job-details.html';
-
-const progressCssColors = {
-  completed: '--success-color',
-  error: '--error-color',
-  notStarted: '',
-  running: '--progress-color',
-};
 
 @customElement('job-details')
 export class JobDetails extends Polymer.Element implements PageElement {
@@ -71,8 +65,6 @@ export class JobDetails extends Polymer.Element implements PageElement {
         }
       });
 
-      this._colorProgressBar();
-
       // Get the job graph
       const runtimeGraphYaml = await Apis.getJobRuntimeTemplate(this._pipelineId, this._jobId);
       const runtimeGraph = jsYaml.safeLoad(runtimeGraphYaml);
@@ -84,11 +76,11 @@ export class JobDetails extends Polymer.Element implements PageElement {
     return Utils.dateToString(date);
   }
 
-  protected _getStatusIcon(status: JobStatus) {
-    return this.job ? Utils.jobStatusToIcon(status) : '';
+  protected _getStatusIcon(status: NodePhase) {
+    return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRuntime(start: number, end: number, status: JobStatus) {
+  protected _getRuntime(start: number, end: number, status: NodePhase) {
     if (!status) {
       return '-';
     }
@@ -98,26 +90,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
     return Utils.dateDiffToString(end - start);
   }
 
-  private _colorProgressBar() {
-    if (!this.job) {
-      return;
-    }
-    let color = '';
-    switch (this.job.status) {
-      case 'Running':
-        color = progressCssColors.running;
-        break;
-      case 'Succeeded':
-        color = progressCssColors.completed;
-        break;
-      case 'Error':
-        color = progressCssColors.error;
-      default:
-        color = progressCssColors.notStarted;
-        break;
-    }
-    (this.$.progress as any).updateStyles({
-      '--paper-progress-active-color': `var(${color})`,
-    });
+  protected _getProgressColor(status: NodePhase) {
+    return Utils.nodePhaseToColor(status);
   }
 }

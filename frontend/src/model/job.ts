@@ -1,3 +1,4 @@
+import { NodePhase } from '../model/argo_template';
 import { ParameterValue } from './parameter';
 
 export interface JobStep {
@@ -7,8 +8,6 @@ export interface JobStep {
   state: string;
   outputs: string;
 }
-
-export type JobStatus = 'Skipped' | 'Running' | 'Error' | 'Failed' | 'Succeeded';
 
 export interface Job {
   createdAt: string;
@@ -20,6 +19,6 @@ export interface Job {
   recurring: boolean;
   recurringIntervalHours: number;
   startedAt: string;
-  status: JobStatus;
+  status: NodePhase;
   steps: JobStep[];
 }

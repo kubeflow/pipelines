@@ -12,8 +12,14 @@
         <div class="right">
           <div class="flex">
             <iron-icon class="status-icon" icon$=[[_getStatusIcon(job.status)]]></iron-icon>
-            <!-- TODO: Get or compute the job progress here -->
-            <paper-progress id="progress" value="100"></paper-progress>
+            <template is="dom-if" if="[[job.status]]">
+              <!-- TODO: Get or compute the job progress here -->
+              <paper-progress id="progress" value="100" style$="--paper-progress-active-color: var([[_getProgressColor(job.status)]])">
+              </paper-progress>
+            </template>
+            <template is="dom-if" if="[[!job.status]]">
+              Job status: Unknown
+            </template>
           </div>
           <div>
             <span class="status">[[job.status]]</span>
