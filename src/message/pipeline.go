@@ -19,5 +19,6 @@ type Pipeline struct {
 	Name        string      `json:"name" gorm:"not null"`
 	Description string      `json:"description,omitempty"`
 	PackageId   uint        `json:"packageId" gorm:"not null"`
+	Schedule    string      `json:"schedule"`
 	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
 }

@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"ml/src/message"
 	"ml/src/storage"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
+	"github.com/robfig/cron"
 )
 
 const (
@@ -189,6 +191,18 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 	if err != nil {
 		util.HandleError("CreatePipeline_ValidPackageExist", ctx, err)
 		return
+	}
+
+	// If the pipeline runs on a schedule
+	if pipeline.Schedule != "" {
+		// Validate the pipeline schedule.
+		_, err := cron.Parse(pipeline.Schedule)
+		if err != nil {
+			util.HandleError("CreatePipeline_ValidSchedule", ctx,
+				util.NewInvalidInputError(
+					fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err),
+					err.Error()))
+		}
 	}
 
 	// Create pipeline metadata

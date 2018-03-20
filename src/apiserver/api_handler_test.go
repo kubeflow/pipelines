@@ -126,7 +126,12 @@ func (s *FakePipelineStore) GetPipeline(id uint) (message.Pipeline, error) {
 }
 
 func (s *FakePipelineStore) CreatePipeline(p message.Pipeline) (message.Pipeline, error) {
-	return message.Pipeline{Metadata: &message.Metadata{ID: 1}, Name: "p", PackageId: 123}, nil
+	pipeline := message.Pipeline{
+		Metadata:  &message.Metadata{ID: 1},
+		Name:      "p",
+		PackageId: 123,
+		Schedule:  p.Schedule}
+	return pipeline, nil
 }
 
 type FakeBadPipelineStore struct{}
@@ -252,7 +257,7 @@ func TestGetTemplateGetPackageFileError(t *testing.T) {
 func TestListPipelines(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakePipelineStore{}, nil))
 	e.GET("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"name\":\"p1\",\"packageId\":123},{\"name\":\"p2\",\"packageId\":345}]")
+		Body().Equal("[{\"name\":\"p1\",\"packageId\":123,\"schedule\":\"\"},{\"name\":\"p2\",\"packageId\":345,\"schedule\":\"\"}]")
 }
 
 func TestListPipelinesError(t *testing.T) {
@@ -264,8 +269,7 @@ func TestListPipelinesError(t *testing.T) {
 func TestGetPipeline(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakePipelineStore{}, nil))
 	e.GET("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"name\":\"p\",\"packageId\":123}")
-
+		Body().Equal("{\"name\":\"p\",\"packageId\":123,\"schedule\":\"\"}")
 }
 
 func TestGetPipelineError(t *testing.T) {
@@ -277,7 +281,7 @@ func TestGetPipelineError(t *testing.T) {
 func TestCreatePipeline(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123}")
+		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123,\"schedule\":\"\"}")
 }
 
 func TestCreatePipelineBadPipelineFormatError(t *testing.T) {
@@ -308,6 +312,18 @@ func TestCreatePipelineCreateJobError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeBadJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusInternalServerError).
 		Body().Contains("bad job store")
+}
+
+func TestCreatePipelineValidSchedule(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
+	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{\"schedule\":\"1 0 * * *\"}")).Expect().Status(httptest.StatusOK).
+		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123,\"schedule\":\"1 0 * * *\"}")
+}
+
+func TestCreatePipelineInvalidSchedule(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
+	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{\"schedule\":\"abcdef\"}")).Expect().Status(httptest.StatusBadRequest).
+		Body().Contains("The pipeline schedule cannot be parsed: abcdef:")
 }
 
 func TestListJobs(t *testing.T) {
