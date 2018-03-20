@@ -81,7 +81,8 @@ func TestCreatePipeline(t *testing.T) {
 	pipeline := message.Pipeline{Name: "Pipeline123"}
 	ps, mock := initializePipelineDB()
 	mock.ExpectExec("INSERT INTO `pipelines`").
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pipeline.Name, sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pipeline.Name, sqlmock.AnyArg(),
+			sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	pipeline, err := ps.CreatePipeline(pipeline)

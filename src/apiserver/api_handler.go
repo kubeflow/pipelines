@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"ml/src/message"
 	"ml/src/storage"
@@ -23,7 +24,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
 	"github.com/robfig/cron"
-	"fmt"
 )
 
 const (
