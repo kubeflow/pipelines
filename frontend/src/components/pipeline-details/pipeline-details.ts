@@ -5,8 +5,6 @@ import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 
-import '../job-list/job-list';
-
 import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
 import { PageElement } from '../../lib/page_element';

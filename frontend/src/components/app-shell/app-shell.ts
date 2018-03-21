@@ -5,6 +5,11 @@ import 'app-route/app-route.html';
 import 'iron-pages/iron-pages.html';
 import 'paper-styles/paper-styles.html';
 
+import '../job-details/job-details';
+import '../job-list/job-list';
+import '../pipeline-details/pipeline-details';
+import '../pipeline-list/pipeline-list';
+import '../pipeline-new/pipeline-new';
 import './app-shell.html';
 
 import * as Utils from '../../lib/utils';
@@ -41,7 +46,7 @@ export class AppShell extends Polymer.Element {
     this._debouncer = Polymer.Debouncer.debounce(
       this._debouncer,
       Polymer.Async.timeOut.after(100),
-      async () => {
+      () => {
         if (newPath !== undefined) {
           const parts = newPath.substr(1).split('/');
           if (parts.length) {
@@ -55,8 +60,6 @@ export class AppShell extends Polymer.Element {
               pageName = defaultPage;
             }
             const pageEl = this._getPageElement(pageName);
-            const webComponentName = pageEl.tagName.toLowerCase();
-            await import(`../${webComponentName}/${webComponentName}`);
             pageEl.refresh(args, (this.route as any).__queryParams);
             this.page = pageName;
           } else {
