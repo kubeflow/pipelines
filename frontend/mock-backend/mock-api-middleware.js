@@ -11,47 +11,32 @@ const rocDataPath = './roc/roc.csv';
 const confusionMatrixMetadataJsonPath = './confusionmatrix/metadata.json';
 const confusionMatrixPath = './confusionmatrix/confusion_matrix.csv';
 
-module.exports = (app) => {
+const apisPrefix = '/apis/v1alpha1';
 
-  app.use((req, res, next) => {
-    if (req.url.startsWith('/_ftp/')) {
-      const path = prefix + req.url.substr('/_ftp'.length);
-      if (fs.lstatSync(path).isDirectory()) {
-        const files = fs.readdirSync(path).map((f) => ({
-          isDirectory: fs.lstatSync(path + '/' + f).isDirectory(),
-          name: f,
-        }));
-        res.json(files);
-      } else {
-        res.send(fs.readFileSync(path, 'utf8'));
-        return;
-      }
-    }
-    next();
-  });
+module.exports = (app) => {
 
   app.set('json spaces', 2);
 
-  app.get('/_api/pipelines', (req, res) => {
+  app.get(apisPrefix + '/pipelines', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.pipelines);
   });
 
-  app.get('/_api/pipelines/:pid', (req, res) => {
+  app.get(apisPrefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);
     res.json(p[0]);
   });
 
-  app.get('/_api/pipelines/:pid/jobs', (req, res) => {
+  app.get(apisPrefix + '/pipelines/:pid/jobs', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);
     res.json(p[0].jobs);
   });
 
-  app.get('/_api/pipelines/:pid/jobs/:jname', (req, res) => {
+  app.get(apisPrefix + '/pipelines/:pid/jobs/:jname', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);
@@ -60,27 +45,27 @@ module.exports = (app) => {
     res.json(j[0]);
   });
 
-  app.get('/_api/pipelines/:pid/jobs/:jname/runtimeTemplates', (req, res) => {
+  app.get(apisPrefix + '/pipelines/:pid/jobs/:jname/runtimeTemplates', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.send(fs.readFileSync('./mock-backend/mock-runtime-template.yaml'));
   });
 
-  app.get('/_api/packages', (req, res) => {
+  app.get(apisPrefix + '/packages', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.packages);
   });
 
-  app.get('/_api/packages/:pid/templates', (req, res) => {
+  app.get(apisPrefix + '/packages/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     res.send(fs.readFileSync('./mock-backend/mock-template.yaml'));
   });
 
-  app.post('/_api/packages/upload', (req, res) => {
+  app.post(apisPrefix + '/packages/upload', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.packages[0]);
   });
 
-  app.get('/_api/artifact/list/:path', (req, res) => {
+  app.get(apisPrefix + '/artifact/list/:path', (req, res) => {
 
     const path = decodeURIComponent(req.params.path);
 
@@ -92,7 +77,7 @@ module.exports = (app) => {
       ]);
   });
 
-  app.get('/_api/artifact/get/:path', (req, res) => {
+  app.get(apisPrefix + '/artifact/get/:path', (req, res) => {
     res.header('Content-Type', 'application/json');
     const path = decodeURIComponent(req.params.path);
     if (path.endsWith('roc.csv')) {
@@ -107,4 +92,5 @@ module.exports = (app) => {
       res.send('dummy file');
     }
   });
+
 };

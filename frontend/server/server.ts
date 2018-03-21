@@ -25,10 +25,6 @@ const apiServerAddress = `http://${apiServerHost}:${apiServerPort}`;
 
 app.use(express.static(staticDir));
 
-app.get('/_config/apiServerAddress', (req, res) => {
-  res.send(apiServerAddress);
-});
-
 app.get('/_api/artifact/list/*', (req, res) => {
   if (!req.params) {
     res.status(404).send('Error: No path provided.');
