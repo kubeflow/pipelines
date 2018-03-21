@@ -78,10 +78,10 @@ export class DataPlot extends Polymer.Element {
     drawROC({
       container: this.$.plot as HTMLElement,
       data: csvParseRows(await Apis.readFile(metadata.source)),
-      height: 350,
+      height: 450,
       lineColor: getComputedStyle(this).getPropertyValue('--accent-color'),
       margin: 50,
-      width: 550
+      width: 650
     });
   }
 }

@@ -18,8 +18,25 @@
 
 .line {
   fill: none;
-  stroke: var(--progress-color);
-  stroke-width: 2px;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.dot {
+  fill: none;
+}
+
+.vors :hover circle {
+  fill: var(--accent-color);
+}
+ 
+.vors :hover text {
+  opacity: 1;
+}
+
+.hidetext {
+  cursor: default;
+  opacity: 0;
 }
 
 .cell.active, .row.active {

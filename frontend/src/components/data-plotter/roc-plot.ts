@@ -27,7 +27,7 @@ export function drawROC(config: RocOptions) {
     .attr('width', width + 2 * margin)
     .attr('height', height + 2 * margin)
     .append('g')
-    .attr('transform', 'translate(' + margin + ',' + margin + ')');
+    .attr('transform', `translate(${margin}, ${margin})`);
 
   const x = d3.scaleLinear().range([0, width]);
   const y = d3.scaleLinear().range([height, 0]);
@@ -41,8 +41,28 @@ export function drawROC(config: RocOptions) {
     .attr('class', 'line')
     .attr('d', valueline);
 
+  const cells = svg.append('g').attr('class', 'vors').selectAll('g');
+
+  const cell = cells.data(config.data as any);
+  cell.exit().remove();
+
+  const cellEnter = cell.enter().append('g');
+
+  cellEnter.append('circle')
+    .attr('class', 'dot')
+    .attr('r', 3.5)
+    .attr('cx', (d) => x((d as any)[0]))
+    .attr('cy', (d) => y((d as any)[1]));
+
+  cell.select('path').attr('d', (d) => 'M' + (d as any)[2].join('L') + 'Z');
+
+  cellEnter.append('text').attr('class', 'hidetext')
+    .attr('x', (d) => Math.min(width - 100, x((d as any)[0]))) // Don't go over width
+    .attr('y', (d) => y((d as any)[1]) + 20)
+    .text((d) => 'threshold: ' + (+(d as any)[2]).toFixed(5));
+
   svg.append('g')
-    .attr('transform', 'translate(0,' + height + ')')
+    .attr('transform', `translate(0, ${height})`)
     .call(d3.axisBottom(x) as any)
     .append('text')
     .attr('fill', lineColor)
