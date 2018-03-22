@@ -47,7 +47,7 @@ func InjectParameters(template []byte, parameters []message.Parameter) (v1alpha1
 	for _, param := range parameters {
 		param := v1alpha1.Parameter{
 			Name:  param.Name,
-			Value: &param.Value,
+			Value: param.Value,
 		}
 		newParams = append(newParams, param)
 		passedParams[param.Name] = true
