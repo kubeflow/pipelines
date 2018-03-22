@@ -1,4 +1,5 @@
 import 'iron-icons/iron-icons.html';
+import 'neon-animation/web-animations.html';
 import 'paper-checkbox/paper-checkbox.html';
 import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-input/paper-input.html';
