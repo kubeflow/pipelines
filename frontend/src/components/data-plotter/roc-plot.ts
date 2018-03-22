@@ -80,14 +80,14 @@ export function drawROC(config: RocOptions) {
     .attr('x', textOffsetX)
     .attr('y', 5);
 
-  const hoverTextThreshold = hoverText.append('tspan')
+  const hoverTextTPR = hoverText.append('tspan')
     .attr('dy', 0);
 
-  const hoverTextTPR = hoverText.append('tspan')
+  const hoverTextFPR = hoverText.append('tspan')
     .attr('x', textOffsetX)
     .attr('dy', '1.2em');
 
-  const hoverTextFPR = hoverText.append('tspan')
+  const hoverTextThreshold = hoverText.append('tspan')
     .attr('x', textOffsetX)
     .attr('dy', '1.2em');
 
@@ -122,8 +122,8 @@ export function drawROC(config: RocOptions) {
     // -Math.max here keeps the label from moving outside of the plot element.
     hoverText.style('transform', `translate(-${Math.max(0, x(d[0]) - width + 100)}px, 12px)`);
 
-    hoverTextThreshold.text('Threshold: ' + (+(d[2])).toFixed(5));
     hoverTextTPR.text('TPR: ' + (+(d[1])).toFixed(5));
     hoverTextFPR.text('FPR: ' + (+(d[0])).toFixed(5));
+    hoverTextThreshold.text('Threshold: ' + (+(d[2])).toFixed(5));
   }
 }
