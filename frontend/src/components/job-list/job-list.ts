@@ -4,8 +4,8 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-import { ItemClickEvent, RouteEvent } from '../../lib/events';
 import { NodePhase } from '../../model/argo_template';
+import { ItemClickEvent, RouteEvent } from '../../model/events';
 import { Job } from '../../model/job';
 
 import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';

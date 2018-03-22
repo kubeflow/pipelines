@@ -20,7 +20,7 @@ import 'paper-icon-button/paper-icon-button.html';
 import 'paper-item/paper-item.html';
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 
-import { ItemClickEvent } from '../../lib/events';
+import { ItemClickEvent } from '../../model/events';
 
 import './item-list.html';
 
