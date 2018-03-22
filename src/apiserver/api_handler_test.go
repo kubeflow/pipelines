@@ -25,6 +25,7 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/httptest"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -314,16 +315,34 @@ func TestCreatePipelineCreateJobError(t *testing.T) {
 		Body().Contains("bad job store")
 }
 
+func TestCreatePipelineNoSchedule(t *testing.T) {
+	jobStore := storage.NewFakePersistentJobStore()
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, jobStore, &FakePipelineStore{}, &FakePackageManager{}))
+	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusOK).
+		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123,\"schedule\":\"\"}")
+	expected := 1
+	result := jobStore.GetJobCountForPipeline(1)
+	assert.Equal(t, result, expected, "Unexpected count of jobs. Expect %v. Got %v", expected, result)
+}
+
 func TestCreatePipelineValidSchedule(t *testing.T) {
-	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
+	jobStore := storage.NewFakePersistentJobStore()
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, jobStore, &FakePipelineStore{}, &FakePackageManager{}))
 	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{\"schedule\":\"1 0 * * *\"}")).Expect().Status(httptest.StatusOK).
 		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123,\"schedule\":\"1 0 * * *\"}")
+	expected := 0
+	result := jobStore.GetJobCountForPipeline(1)
+	assert.Equal(t, result, expected, "Unexpected count of jobs. Expect %v. Got %v", expected, result)
 }
 
 func TestCreatePipelineInvalidSchedule(t *testing.T) {
-	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
+	jobStore := storage.NewFakePersistentJobStore()
+	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, jobStore, &FakePipelineStore{}, &FakePackageManager{}))
 	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{\"schedule\":\"abcdef\"}")).Expect().Status(httptest.StatusBadRequest).
 		Body().Contains("The pipeline schedule cannot be parsed: abcdef:")
+	expected := 0
+	result := jobStore.GetJobCountForPipeline(1)
+	assert.Equal(t, result, expected, "Unexpected count of jobs. Expect %v. Got %v", expected, result)
 }
 
 func TestListJobs(t *testing.T) {
