@@ -22,27 +22,21 @@
   stroke-width: 1.5px;
 }
 
+.dottedLine {
+  stroke: #b2dfdb;
+  stroke-width: 2;
+  stroke-dasharray: 5,5;
+}
+
 .dot {
   fill: none;
 }
 
-.vors :hover circle {
-  fill: var(--accent-color);
-}
- 
-.vors :hover text {
-  opacity: 1;
+.point circle {
+  stroke: steelblue;
 }
 
-.hidetext {
-  cursor: default;
-  opacity: 0;
-}
-
-.cell.active, .row.active {
-  opacity: 0.95;
-}
-
-.column-label.active, .row-label.active {
-  fill: var(--accent-color);
+.overlay {
+  fill: none;
+  pointer-events: all;
 }
