@@ -7,8 +7,8 @@ import 'polymer/polymer.html';
 
 import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
-import { PageElement } from '../../lib/page_element';
 import * as Utils from '../../lib/utils';
+import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';
 
 import './pipeline-details.html';

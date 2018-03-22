@@ -12,11 +12,11 @@ import * as Utils from '../../lib/utils';
 // @ts-ignore
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from '../../decorators';
-import { PageElement } from '../../lib/page_element';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase } from '../../model/argo_template';
 import { Job } from '../../model/job';
 import { PlotMetadata } from '../../model/output_metadata';
+import { PageElement } from '../../model/page_element';
 import { JobGraph } from '../job-graph/job-graph';
 
 import '../job-graph/job-graph';

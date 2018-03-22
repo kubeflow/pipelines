@@ -2,8 +2,8 @@ import { customElement, property } from 'polymer-decorators/src/decorators';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
-import { PageElement } from '../../lib/page_element';
 import { ItemClickEvent, RouteEvent } from '../../model/events';
+import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';
 import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
 

@@ -14,8 +14,8 @@ import * as Utils from '../../lib/utils';
 import './pipeline-new.html';
 
 import { customElement, property } from '../../decorators';
-import { PageElement } from '../../lib/page_element';
 import { RouteEvent } from '../../model/events';
+import { PageElement } from '../../model/page_element';
 import { Parameter } from '../../model/parameter';
 import { Pipeline } from '../../model/pipeline';
 import { PipelinePackage } from '../../model/pipeline_package';

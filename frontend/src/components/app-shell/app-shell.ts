@@ -15,8 +15,8 @@ import './app-shell.html';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from '../../decorators';
-import { PageElement } from '../../lib/page_element';
 import { ROUTE_EVENT, RouteEvent } from '../../model/events';
+import { PageElement } from '../../model/page_element';
 
 const defaultPage = 'pipelines';
 
