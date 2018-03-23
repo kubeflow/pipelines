@@ -53,6 +53,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
         .filter((p) => p.name === 'output')[0]
         .value.toString();
 
+      // TODO: Catch and show template parsing errors here
       const outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);
 
       // Clear outputPlots to keep from re-adding the same outputs over and over.

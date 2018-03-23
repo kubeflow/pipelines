@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "lib": [ "es2017", "es6", "es5", "dom", "dom.iterable" ],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2015"
+  },
+  "include": [
+    "./unit"
+  ],
+  "exclude": [
+    "./node_modules"
+  ]
+}

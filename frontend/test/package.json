@@ -4,18 +4,21 @@
   "description": "Test package for ML Pipeline Management frontend",
   "dependencies": {
     "@types/assert": "0.0.31",
-    "@types/chai": "^4.0.4",
-    "@types/mocha": "^2.2.43",
-    "@types/sinon": "^2.3.6",
+    "@types/jasmine": "^2.8.6",
+    "@types/sinon": "^4.3.0",
     "concurrently": "^3.5.1",
     "jasmine": "^2.9.0",
+    "jasmine-ts": "^0.2.1",
     "pixelmatch": "^4.0.2",
     "puppeteer": "^1.0.0",
-    "start-server-and-test": "^1.0.1"
+    "start-server-and-test": "^1.0.1",
+    "ts-node": "^5.0.1",
+    "typescript": "^2.7.2"
   },
   "scripts": {
     "start": "cd .. && npm start",
-    "test": "sleep 3 && jasmine ui/test_spec.js",
-    "ci": "start-server-and-test http://localhost:3000"
+    "ui-tests": "sleep 3 && jasmine ui/test_spec.js",
+    "unit-tests": "jasmine-ts unit/*.ts",
+    "ci": "start-server-and-test start-server http://localhost:3000 ui-tests"
   }
 }
