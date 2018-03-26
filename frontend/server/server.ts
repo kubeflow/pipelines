@@ -25,7 +25,9 @@ const apiServerAddress = `http://${apiServerHost}:${apiServerPort}`;
 
 app.use(express.static(staticDir));
 
-app.get('/_api/artifact/list/*', (req, res) => {
+const apisPrefix = '/apis/v1alpha1';
+
+app.get(apisPrefix + '/artifact/list/*', (req, res) => {
   if (!req.params) {
     res.status(404).send('Error: No path provided.');
     return;
@@ -53,7 +55,7 @@ app.get('/_api/artifact/list/*', (req, res) => {
   }
 });
 
-app.get('/_api/artifact/get/*', (req, res, next) => {
+app.get(apisPrefix + '/artifact/get/*', (req, res, next) => {
   if (!req.params) {
     res.status(404).send('Error: No path provided.');
     return;
@@ -93,12 +95,11 @@ app.get('/_api/artifact/get/*', (req, res, next) => {
 
 });
 
-app.all('/_api/*', proxy({
+app.all(apisPrefix + '/*', proxy({
   changeOrigin: true,
   onProxyReq: (proxyReq, req, res) => {
     console.log('Proxied request: ', proxyReq.path);
   },
-  pathRewrite: { '^/_api/': '/apis/v1alpha1/' },
   target: apiServerAddress,
 }));
 

@@ -7,10 +7,11 @@ watches the source files. This also adds a mock backend api server handler to
 webpack-dev-server so it can serve basic api calls, as well as a mock
 webserver to handle the Single Page App requests, which redirects api
 requests to the aforementioned mock api server. For example, requesting the
-pipelines page sends a fetch request to http://localhost:3000/_api/packages,
-which is proxied by the webserver to the api server at
-http://localhost:3001/packages, which will return the list of packages
-currently defined in the mock database.
+pipelines page sends a fetch request to
+http://localhost:3000/apis/v1alpha1/packages, which is proxied by the
+webserver to the api server at http://localhost:3001/apis/v1alpha1/packages,
+which will return the list of packages currently defined in the mock
+database.
 
 **Production Build:**
 You can do `npm run build` to build the frontend code for production, which

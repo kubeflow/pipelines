@@ -2,7 +2,7 @@ import { Job } from '../model/job';
 import { Pipeline } from '../model/pipeline';
 import { PipelinePackage } from '../model/pipeline_package';
 
-const apisPrefix = '/_api';
+const apisPrefix = '/apis/v1alpha1';
 
 /**
  * Gets a list of the pipeline packages defined on the backend.
