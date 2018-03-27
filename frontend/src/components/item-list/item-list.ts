@@ -24,7 +24,7 @@ import { ItemClickEvent } from '../../model/events';
 
 import './item-list.html';
 
-type ColumnType = Date|number|string;
+type ColumnType = Date|number|string|undefined;
 
 export enum ColumnTypeName {
   DATE,
@@ -168,14 +168,14 @@ export class ItemListElement extends Polymer.Element {
   }
 
   _formatColumnValue(value: ColumnType, i: number, columns: ItemListColumn[]): string {
-    if (columns[i]) {
+    if (columns[i] && value) {
       if (columns[i].type === ColumnTypeName.DATE) {
         return (value as Date).toLocaleString();
       } else {
         return value.toString();
       }
     } else {
-      return '';
+      return '-';
     }
   }
 

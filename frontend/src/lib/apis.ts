@@ -1,4 +1,4 @@
-import { Job } from '../model/job';
+import { Workflow } from '../model/argo_template';
 import { Pipeline } from '../model/pipeline';
 import { PipelinePackage } from '../model/pipeline_package';
 
@@ -80,17 +80,17 @@ export async function newPipeline(pipeline: Pipeline) {
  * Gets a list of all the pipeline jobs belonging to the specified pipelined
  * from the backend.
  */
-export async function getJobs(pipelineId: number): Promise<Job[]> {
+export async function getJobs(pipelineId: number): Promise<Workflow[]> {
   const path = `/pipelines/${pipelineId}/jobs`;
   const response = await fetch(apisPrefix + path);
-  const jobs: Job[] = await response.json();
+  const jobs: Workflow[] = await response.json();
   return jobs;
 }
 
 /**
  * Gets the details of a certain pipeline pipeline job given its id.
  */
-export async function getJob(pipelineId: number, jobId: string): Promise<Job> {
+export async function getJob(pipelineId: number, jobId: string): Promise<Workflow> {
   const response = await fetch(apisPrefix + `/pipelines/${pipelineId}/jobs/${jobId}`);
   return await response.json();
 }

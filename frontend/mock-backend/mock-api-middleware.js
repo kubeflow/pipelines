@@ -41,7 +41,7 @@ module.exports = (app) => {
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);
     const jname = req.params.jname;
-    const j = p[0].jobs.filter((j) => j.name === jname);
+    const j = p[0].jobs.filter((j) => j.metadata.name === jname);
     res.json(j[0]);
   });
 

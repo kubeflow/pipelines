@@ -40,7 +40,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected _dateToString(date: number) {
-    return Utils.dateToString(date);
+  protected _formatDateString(date: string) {
+    return Utils.formatDateString(date);
   }
 }

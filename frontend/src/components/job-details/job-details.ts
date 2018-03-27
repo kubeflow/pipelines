@@ -13,8 +13,7 @@ import * as Utils from '../../lib/utils';
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from '../../decorators';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
-import { NodePhase } from '../../model/argo_template';
-import { Job } from '../../model/job';
+import { NodePhase, Workflow } from '../../model/argo_template';
 import { PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
 import { JobGraph } from '../job-graph/job-graph';
@@ -29,7 +28,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
   public outputPlots: PlotMetadata[] = [];
 
   @property({ type: Object })
-  public job: Job | null = null;
+  public job: Workflow | null = null;
 
   @property({ type: Number })
   public selectedTab = 0;
@@ -75,8 +74,8 @@ export class JobDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected _dateToString(date: number) {
-    return Utils.dateToString(date);
+  protected _formatDateString(date: string) {
+    return Utils.formatDateString(date);
   }
 
   protected _getStatusIcon(status: NodePhase) {

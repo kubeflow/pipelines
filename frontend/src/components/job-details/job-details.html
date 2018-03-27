@@ -11,21 +11,16 @@
 
     <div class="padded-20 container">
       <div class="flex">
-        <div class="job-name padded">[[job.name]]</div>
+        <div class="job-name padded">[[job.metadata.name]]</div>
         <div class="right">
           <div class="flex">
-            <iron-icon class="status-icon" icon$=[[_getStatusIcon(job.status)]]></iron-icon>
-            <template is="dom-if" if="[[job.status]]">
-              <!-- TODO: Get or compute the job progress here -->
-              <paper-progress id="progress" value="100" style$="--paper-progress-active-color: var([[_getProgressColor(job.status)]])">
-              </paper-progress>
-            </template>
-            <template is="dom-if" if="[[!job.status]]">
-              Job status: Unknown
-            </template>
+            <iron-icon class="status-icon" icon$=[[_getStatusIcon(job.status.phase)]]></iron-icon>
+            <!-- TODO: Get or compute the job progress here -->
+            <paper-progress id="progress" value="100" style$="--paper-progress-active-color: var([[_getProgressColor(job.status.phase)]])">
+            </paper-progress>
           </div>
           <div>
-            <span class="status">[[job.status]]</span>
+            <span class="status">[[job.status.phase]]</span>
           </div>
         </div>
       </div>
@@ -46,23 +41,23 @@
           <div class="details-table">
             <div>
               <span class="detail-title">Status</span>
-              <span>[[job.status]]</span>
+              <span>[[job.status.phase]]</span>
             </div>
             <div>
               <span class="detail-title">Created at</span>
-              <span>[[_dateToString(job.createdAt)]]</span>
+              <span>[[_formatDateString(job.metadata.creationTimestamp)]]</span>
             </div>
             <div>
               <span class="detail-title">Started at</span>
-              <span>[[_dateToString(job.startedAt)]]</span>
+              <span>[[_formatDateString(job.status.startedAt)]]</span>
             </div>
             <div>
               <span class="detail-title">Finished at</span>
-              <span>[[_dateToString(job.finishedAt)]]</span>
+              <span>[[_formatDateString(job.status.finishedAt)]]</span>
             </div>
             <div>
               <span class="detail-title">Duration</span>
-              <span>[[_getRuntime(job.startedAt, job.finishedAt, job.status)]]</span>
+              <span>[[_getRuntime(job.status.startedAt, job.status.finishedAt, job.status.phase)]]</span>
             </div>
           </div>
         </div>

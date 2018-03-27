@@ -1,4 +1,3 @@
-import { Job } from '../model/job';
 import { PipelinePackage } from '../model/pipeline_package';
 
 export class PackageClickEvent extends MouseEvent {
@@ -10,12 +9,6 @@ export class PackageClickEvent extends MouseEvent {
 export class ItemClickEvent extends CustomEvent {
   public detail: {
     index: number,
-  };
-}
-
-export class JobClickEvent extends MouseEvent {
-  public model: {
-    job: Job,
   };
 }
 

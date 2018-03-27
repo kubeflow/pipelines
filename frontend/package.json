@@ -1,6 +1,6 @@
 {
   "name": "pipelines-frontend",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Frontend package for ML Pipeline Management",
   "main": "dist/index.html",
   "dependencies": {

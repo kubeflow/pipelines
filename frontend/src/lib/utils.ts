@@ -25,8 +25,8 @@ export function listenOnce(element: Node, eventName: string, cb: Function) {
   element.addEventListener(eventName, listener);
 }
 
-export function dateToString(date: number) {
-  return date < 0 ? '-' : new Date(date).toLocaleString();
+export function formatDateString(date: string) {
+  return date ? new Date(date).toLocaleString() : '-';
 }
 
 export function dateDiffToString(diff: number): string {
