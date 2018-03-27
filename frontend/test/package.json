@@ -6,19 +6,24 @@
     "@types/assert": "0.0.31",
     "@types/jasmine": "^2.8.6",
     "@types/sinon": "^4.3.0",
-    "concurrently": "^3.5.1",
     "jasmine": "^2.9.0",
     "jasmine-ts": "^0.2.1",
-    "pixelmatch": "^4.0.2",
-    "puppeteer": "^1.0.0",
     "start-server-and-test": "^1.0.1",
     "ts-node": "^5.0.1",
-    "typescript": "^2.7.2"
+    "typescript": "^2.7.2",
+    "wdio-dot-reporter": "0.0.9",
+    "wdio-jasmine-framework": "^0.3.2",
+    "wdio-selenium-standalone-service": "0.0.10",
+    "wdio-visual-regression-service": "^0.8.0",
+    "wdio-webcomponents": "^1.1.0",
+    "webdrivercss": "github:visualregressiontesting/webdrivercss",
+    "webdriverio": "^4.12.0"
   },
   "scripts": {
     "start": "cd .. && npm start",
-    "ui-tests": "sleep 3 && jasmine ui/test_spec.js",
+    "ui-tests": "wdio ui/wdio.conf.js",
     "unit-tests": "jasmine-ts unit/*.ts",
+    "test": "npm run unit-tests & npm run ui-tests",
     "ci": "start-server-and-test start-server http://localhost:3000 ui-tests"
   }
 }
