@@ -15,10 +15,12 @@
 package message
 
 type Pipeline struct {
-	*Metadata   `json:",omitempty"`
-	Name        string      `json:"name" gorm:"not null"`
-	Description string      `json:"description,omitempty"`
-	PackageId   uint        `json:"packageId" gorm:"not null"`
-	Schedule    string      `json:"schedule"`
-	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
+	*Metadata                   `json:",omitempty"`
+	Name            string      `json:"name" gorm:"not null"`
+	Description     string      `json:"description,omitempty"`
+	PackageId       uint        `json:"packageId" gorm:"not null"`
+	Schedule        string      `json:"schedule" gorm:"not null"`
+	Enabled         bool        `json:"enabled" gorm:"not null"`
+	EnabledAtInSec  int64       `json:"enabledAt" gorm:"not null"`
+	Parameters      []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
 }

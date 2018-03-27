@@ -16,11 +16,13 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"mime/multipart"
 	"ml/src/message"
 	"ml/src/storage"
 	"ml/src/util"
 	"testing"
+	"time"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kataras/iris"
@@ -135,6 +137,11 @@ func (s *FakePipelineStore) CreatePipeline(p message.Pipeline) (message.Pipeline
 	return pipeline, nil
 }
 
+func (s *FakePipelineStore) GetPipelineAndLatestJobIterator() (
+	*storage.PipelineAndLatestJobIterator, error) {
+	return nil, errors.New("Not implemented.")
+}
+
 type FakeBadPipelineStore struct{}
 
 func (s *FakeBadPipelineStore) ListPipelines() ([]message.Pipeline, error) {
@@ -149,13 +156,35 @@ func (s *FakeBadPipelineStore) CreatePipeline(message.Pipeline) (message.Pipelin
 	return message.Pipeline{}, util.NewInternalError("bad pipeline store", "")
 }
 
+func (s *FakeBadPipelineStore) GetPipelineAndLatestJobIterator() (
+		*storage.PipelineAndLatestJobIterator, error) {
+	return nil, errors.New("Not implemented.")
+}
+
 func initApiHandlerTest(
 	ps storage.PackageStoreInterface,
 	js storage.JobStoreInterface,
 	pls storage.PipelineStoreInterface,
 	pm storage.PackageManagerInterface) *iris.Application {
-	clientManager := ClientManager{packageStore: ps, jobStore: js, pipelineStore: pls, packageManager: pm}
+	clientManager := ClientManager{
+		packageStore:   ps,
+		jobStore:       js,
+		pipelineStore:  pls,
+		packageManager: pm}
 	return newApp(clientManager)
+}
+
+func createAPIHandler(
+	pkgStore storage.PackageStoreInterface,
+	jobStore storage.JobStoreInterface,
+	pipelineStore storage.PipelineStoreInterface,
+	pkgManager storage.PackageManagerInterface) *APIHandler {
+	clientManager := ClientManager{
+		packageStore:   pkgStore,
+		jobStore:       jobStore,
+		pipelineStore:  pipelineStore,
+		packageManager: pkgManager}
+	return newAPIHandler(clientManager)
 }
 
 func TestListPackages(t *testing.T) {
@@ -258,7 +287,7 @@ func TestGetTemplateGetPackageFileError(t *testing.T) {
 func TestListPipelines(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakePipelineStore{}, nil))
 	e.GET("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"name\":\"p1\",\"packageId\":123,\"schedule\":\"\"},{\"name\":\"p2\",\"packageId\":345,\"schedule\":\"\"}]")
+		Body().Equal("[{\"name\":\"p1\",\"packageId\":123,\"schedule\":\"\",\"enabled\":false,\"enabledAt\":0},{\"name\":\"p2\",\"packageId\":345,\"schedule\":\"\",\"enabled\":false,\"enabledAt\":0}]")
 }
 
 func TestListPipelinesError(t *testing.T) {
@@ -270,7 +299,7 @@ func TestListPipelinesError(t *testing.T) {
 func TestGetPipeline(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakePipelineStore{}, nil))
 	e.GET("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"name\":\"p\",\"packageId\":123,\"schedule\":\"\"}")
+		Body().Equal("{\"name\":\"p\",\"packageId\":123,\"schedule\":\"\",\"enabled\":false,\"enabledAt\":0}")
 }
 
 func TestGetPipelineError(t *testing.T) {
@@ -282,7 +311,7 @@ func TestGetPipelineError(t *testing.T) {
 func TestCreatePipeline(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, &FakeJobStore{}, &FakePipelineStore{}, &FakePackageManager{}))
 	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123,\"schedule\":\"\"}")
+		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123,\"schedule\":\"\",\"enabled\":false,\"enabledAt\":0}")
 }
 
 func TestCreatePipelineBadPipelineFormatError(t *testing.T) {
@@ -315,40 +344,95 @@ func TestCreatePipelineCreateJobError(t *testing.T) {
 		Body().Contains("bad job store")
 }
 
-func TestCreatePipelineNoSchedule(t *testing.T) {
-	jobStore := storage.NewFakePersistentJobStore()
-	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, jobStore, &FakePipelineStore{}, &FakePackageManager{}))
-	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{}")).Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123,\"schedule\":\"\"}")
-	expected := 1
-	result := jobStore.GetJobCountForPipeline(1)
-	assert.Equal(t, result, expected, "Unexpected count of jobs. Expect %v. Got %v", expected, result)
+func TestCreatePipelineInternalNoSchedule(t *testing.T) {
+	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+	apiHandler := createAPIHandler(&FakePackageStore{}, store.JobStore, store.PipelineStore,
+		&FakePackageManager{})
+
+	result, err, errPrefix := apiHandler.createPipelineInternal(message.Pipeline{
+		Name:      "MY_PIPELINE",
+		PackageId: 123})
+
+	assert.Nil(t, err, "There should not be an error: %v", err)
+	result.Metadata.CreatedAt = time.Unix(0, 0) // Not testing this field
+	result.Metadata.UpdatedAt = time.Unix(0, 0) // Not testing this field
+
+	expected := &message.Pipeline{
+		Metadata: &message.Metadata{
+			ID:        1,
+			CreatedAt: time.Unix(0, 0),
+			UpdatedAt: time.Unix(0, 0)},
+		Name:       "MY_PIPELINE",
+		PackageId:  123,
+		Schedule:   "",
+		Enabled:    true,
+		EnabledAtInSec: 1}
+
+	assert.Equalf(t, expected, result, "Unexpected pipeline structure. Expect %v. Got %v.",
+		expected, result)
+	assert.Empty(t, errPrefix)
+	assert.Equal(t, 1, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
 }
 
-func TestCreatePipelineValidSchedule(t *testing.T) {
-	jobStore := storage.NewFakePersistentJobStore()
-	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, jobStore, &FakePipelineStore{}, &FakePackageManager{}))
-	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{\"schedule\":\"1 0 * * *\"}")).Expect().Status(httptest.StatusOK).
-		Body().Equal("{\"id\":1,\"createdAt\":\"0001-01-01T00:00:00Z\",\"name\":\"p\",\"packageId\":123,\"schedule\":\"1 0 * * *\"}")
-	expected := 0
-	result := jobStore.GetJobCountForPipeline(1)
-	assert.Equal(t, result, expected, "Unexpected count of jobs. Expect %v. Got %v", expected, result)
+func TestCreatePipelineInternalValidSchedule(t *testing.T) {
+	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+	apiHandler := createAPIHandler(&FakePackageStore{}, store.JobStore, store.PipelineStore,
+		&FakePackageManager{})
+
+	result, err, errPrefix := apiHandler.createPipelineInternal(message.Pipeline{
+		Name:      "MY_PIPELINE",
+		PackageId: 123,
+		Schedule:  "1 0 * * *"})
+
+	assert.Nil(t, err, "There should not be an error: %v", err)
+
+	result.Metadata.CreatedAt = time.Unix(0, 0) // Not testing this field
+	result.Metadata.UpdatedAt = time.Unix(0, 0) // Not testing this field
+
+	expected := &message.Pipeline{
+		Metadata: &message.Metadata{
+			ID:        1,
+			CreatedAt: time.Unix(0, 0),
+			UpdatedAt: time.Unix(0, 0)},
+		Name:       "MY_PIPELINE",
+		PackageId:  123,
+		Schedule:   "1 0 * * *",
+		Enabled:    true,
+		EnabledAtInSec: 1}
+
+	assert.Equalf(t, expected, result, "Unexpected pipeline structure. Expect %v. Got %v.",
+		expected, result)
+	assert.Empty(t, errPrefix)
+	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
 }
 
-func TestCreatePipelineInvalidSchedule(t *testing.T) {
-	jobStore := storage.NewFakePersistentJobStore()
-	e := httptest.New(t, initApiHandlerTest(&FakePackageStore{}, jobStore, &FakePipelineStore{}, &FakePackageManager{}))
-	e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte("{\"schedule\":\"abcdef\"}")).Expect().Status(httptest.StatusBadRequest).
-		Body().Contains("The pipeline schedule cannot be parsed: abcdef:")
-	expected := 0
-	result := jobStore.GetJobCountForPipeline(1)
-	assert.Equal(t, result, expected, "Unexpected count of jobs. Expect %v. Got %v", expected, result)
+func TestCreatePipelineInternalInvalidSchedule(t *testing.T) {
+	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+	apiHandler := createAPIHandler(&FakePackageStore{}, store.JobStore, store.PipelineStore,
+		&FakePackageManager{})
+
+	result, err, errPrefix := apiHandler.createPipelineInternal(message.Pipeline{
+		Name:      "MY_PIPELINE",
+		PackageId: 123,
+		Schedule:  "abcdef"})
+
+	assert.Contains(t, err.Error(),
+		"Invalid input: The pipeline schedule cannot be parsed: abcdef: Expected 5 to 6 fields")
+	assert.Nil(t, result)
+	assert.Equal(t, errPrefix, "CreatePipeline_ValidSchedule")
+	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
 }
 
 func TestListJobs(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, &FakeJobStore{}, nil, nil))
 	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK).
-		Body().Equal("[{\"name\":\"job1\"},{\"name\":\"job2\"}]")
+		Body().Equal("[{\"name\":\"job1\",\"scheduledAt\":0},{\"name\":\"job2\",\"scheduledAt\":0}]")
 }
 
 func TestListJobsReturnError(t *testing.T) {

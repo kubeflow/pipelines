@@ -38,10 +38,11 @@ func initializeJobDB() (*gorm.DB, sqlmock.Sqlmock) {
 	return gormDB, mock
 }
 
-type FakeWorkflowClient struct {
+// TODO: Switch to using the FakeWorkflowClient.
+type FakeGoodWorkflowClient struct {
 }
 
-func (FakeWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+func (FakeGoodWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
 	return &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
 		Name:              "artifact-passing-abcd",
 		CreationTimestamp: v1.Time{Time: ct}},
@@ -51,7 +52,7 @@ func (FakeWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error)
 			Phase:      "Pending"}}, nil
 }
 
-func (FakeWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
+func (FakeGoodWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
 	return &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
 		Name:              "artifact-passing-xyz",
 		CreationTimestamp: v1.Time{Time: ct}},
@@ -61,32 +62,32 @@ func (FakeWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Wor
 			Phase:      "Pending"}}, nil
 }
 
-func (FakeWorkflowClient) List(opts v1.ListOptions) (*v1alpha1.WorkflowList, error) {
+func (FakeGoodWorkflowClient) List(opts v1.ListOptions) (*v1alpha1.WorkflowList, error) {
 	panic("implement me")
 }
 
-func (FakeWorkflowClient) Update(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+func (FakeGoodWorkflowClient) Update(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
 	panic("implement me")
 }
 
-func (FakeWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
+func (FakeGoodWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
 	panic("implement me")
 }
 
-func (FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (FakeGoodWorkflowClient) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	panic("implement me")
 }
 
-func (FakeWorkflowClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (FakeGoodWorkflowClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	panic("implement me")
 }
 
-func (FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Workflow, err error) {
+func (FakeGoodWorkflowClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Workflow, err error) {
 	panic("implement me")
 }
 
 type FakeBadWorkflowClient struct {
-	FakeWorkflowClient
+	FakeGoodWorkflowClient
 }
 
 func (FakeBadWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
@@ -116,7 +117,9 @@ func TestListJobs(t *testing.T) {
 	if err != nil {
 		t.Errorf("Something wrong. Error %v", err)
 	}
-	expectedJobs := []message.Job{{Name: "abcd", PipelineID: 1}, {Name: "efgh", PipelineID: 1}}
+	expectedJobs := []message.Job{
+		{Metadata: &message.Metadata{}, Name: "abcd", PipelineID: 1},
+		{Metadata: &message.Metadata{}, Name: "efgh", PipelineID: 1}}
 
 	assert.Equal(t, jobs, expectedJobs, "Unexpected Job parsed. Expect %v. Got %v", expectedJobs, jobs)
 }
@@ -132,10 +135,10 @@ func TestListJobsError(t *testing.T) {
 func TestCreateJob(t *testing.T) {
 	db, mock := initializeJobDB()
 	mock.ExpectExec("INSERT INTO `jobs`").
-		WithArgs("artifact-passing-abcd", 1).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "artifact-passing-abcd", 1, 1).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	store := &JobStore{db: db, wfClient: &FakeWorkflowClient{}}
+	store := NewJobStore(db, &FakeGoodWorkflowClient{}, util.NewFakeTimeForEpoch())
 	job, err := store.CreateJob(1, &v1alpha1.Workflow{})
 
 	if err != nil {
@@ -156,7 +159,7 @@ func TestCreateJob(t *testing.T) {
 func TestCreateJob_StoreMetadataError(t *testing.T) {
 	db, mock := initializeJobDB()
 	mock.ExpectExec("INSERT INTO `jobs`").WillReturnError(errors.New("something"))
-	store := &JobStore{db: db, wfClient: &FakeWorkflowClient{}}
+	store := NewJobStore(db, &FakeGoodWorkflowClient{}, util.NewFakeTimeForEpoch())
 	_, err := store.CreateJob(1, &v1alpha1.Workflow{})
 	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
 	assert.Contains(t, err.Error(), "Failed to store job metadata", "Get unexpected error")
@@ -173,7 +176,7 @@ func TestGetJob(t *testing.T) {
 	db, mock := initializeJobDB()
 	jobRow := sqlmock.NewRows([]string{"name", "pipeline_id"}).AddRow("abcd", 1)
 	mock.ExpectQuery("SELECT (.*) FROM `jobs` WHERE").WillReturnRows(jobRow)
-	store := &JobStore{db: db, wfClient: &FakeWorkflowClient{}}
+	store := &JobStore{db: db, wfClient: &FakeGoodWorkflowClient{}}
 	job, err := store.GetJob(1, "job1")
 
 	if err != nil {

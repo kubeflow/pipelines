@@ -16,10 +16,9 @@ COPY ./ ${SRC}/
 
 ENV GOPATH ${GOPATH}
 ENV PATH ${BINPATH}:$PATH
-RUN go get ./... \
-    && go get github.com/iris-contrib/httpexpect \
-    && go get golang.org/x/tools/cmd/goimports
-
+RUN go get ./...
+RUN go get github.com/iris-contrib/httpexpect
+RUN go get golang.org/x/tools/cmd/goimports
 RUN go build -o ${BINPATH}/apiserver ${SRC}/apiserver/*.go
 
 # Expose apiserver port

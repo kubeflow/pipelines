@@ -182,15 +182,26 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 
 	pipeline := message.Pipeline{}
 	if err := ctx.ReadJSON(&pipeline); err != nil {
-		util.HandleError("CreatePipeline_ReadRequestBody", ctx, util.NewInvalidInputError("The pipeline has invalid format.", err.Error()))
+		util.HandleError("CreatePipeline_ReadRequestBody",
+			ctx, util.NewInvalidInputError("The pipeline has invalid format.", err.Error()))
 		return
 	}
+
+	result, err, errPrefix := a.createPipelineInternal(pipeline)
+	if err != nil {
+		util.HandleError(errPrefix, ctx, err)
+		return
+	}
+
+	ctx.JSON(result)
+}
+
+func (a APIHandler) createPipelineInternal(pipeline message.Pipeline) (*message.Pipeline, error, string) {
 
 	// Verify the package exists
 	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
-		util.HandleError("CreatePipeline_ValidPackageExist", ctx, err)
-		return
+		return nil, err, "CreatePipeline_ValidPackageExist"
 	}
 
 	// If the pipeline runs on a schedule
@@ -198,43 +209,39 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 		// Validate the pipeline schedule.
 		_, err := cron.Parse(pipeline.Schedule)
 		if err != nil {
-			util.HandleError("CreatePipeline_ValidSchedule", ctx,
-				util.NewInvalidInputError(
+			error := util.NewInvalidInputError(
 					fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err),
-					err.Error()))
+					err.Error())
+			return nil, error, "CreatePipeline_ValidSchedule"
 		}
 	}
 
 	// Create pipeline metadata
 	pipeline, err = a.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
-		util.HandleError("CreatePipeline", ctx, err)
-		return
+		return nil, err, "CreatePipeline"
 	}
 
 	template, err := a.packageManager.GetTemplate(pkg.Name)
 	if err != nil {
-		util.HandleError("CreatePipeline_GetPackageFile", ctx, err)
-		return
+		return nil, err, "CreatePipeline_GetPackageFile"
 	}
 
 	// Inject parameters user provided to the pipeline template.
 	workflow, err := util.InjectParameters(template, pipeline.Parameters)
 	if err != nil {
-		util.HandleError("CreatePipeline_CreateJob_InjectParameter", ctx, err)
-		return
+		return nil, err, "CreatePipeline_CreateJob_InjectParameter"
 	}
 
 	// If there is no pipeline schedule, the job is created immediately.
 	if pipeline.Schedule == "" {
 		_, err = a.jobStore.CreateJob(pipeline.ID, &workflow)
 		if err != nil {
-			util.HandleError("CreatePipeline_CreateJob", ctx, err)
-			return
+			return nil, err, "CreatePipeline_CreateJob"
 		}
 	}
 
-	ctx.JSON(pipeline)
+	return &pipeline, nil, ""
 }
 
 func (a APIHandler) ListJobs(ctx iris.Context) {
@@ -275,13 +282,17 @@ func (a APIHandler) GetJob(ctx iris.Context) {
 	ctx.JSON(job)
 }
 
-func newApp(clientManager ClientManager) *iris.Application {
-	apiHandler := APIHandler{
+func newAPIHandler(clientManager ClientManager) *APIHandler {
+	return &APIHandler{
 		packageStore:   clientManager.packageStore,
 		pipelineStore:  clientManager.pipelineStore,
 		jobStore:       clientManager.jobStore,
 		packageManager: clientManager.packageManager,
 	}
+}
+
+func newApp(clientManager ClientManager) *iris.Application {
+	apiHandler := newAPIHandler(clientManager)
 	app := iris.New()
 	// registers a custom handler for 404 not found http (error) status code,
 	// fires when route not found or manually by ctx.StatusCode(iris.StatusNotFound).

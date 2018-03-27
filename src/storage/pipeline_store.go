@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"database/sql"
 	"fmt"
 	"ml/src/message"
 	"ml/src/util"
@@ -26,10 +27,12 @@ type PipelineStoreInterface interface {
 	ListPipelines() ([]message.Pipeline, error)
 	GetPipeline(id uint) (message.Pipeline, error)
 	CreatePipeline(message.Pipeline) (message.Pipeline, error)
+	GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error)
 }
 
 type PipelineStore struct {
-	db *gorm.DB
+	db   *gorm.DB
+	time util.TimeInterface
 }
 
 func (s *PipelineStore) ListPipelines() ([]message.Pipeline, error) {
@@ -53,6 +56,9 @@ func (s *PipelineStore) GetPipeline(id uint) (message.Pipeline, error) {
 }
 
 func (s *PipelineStore) CreatePipeline(p message.Pipeline) (message.Pipeline, error) {
+	p.Enabled = true
+	p.EnabledAtInSec = s.time.Now().Unix()
+
 	if r := s.db.Create(&p); r.Error != nil {
 		return p, util.NewInternalError("Failed to add pipeline to pipeline table", r.Error.Error())
 	}
@@ -60,6 +66,82 @@ func (s *PipelineStore) CreatePipeline(p message.Pipeline) (message.Pipeline, er
 }
 
 // factory function for pipeline store
-func NewPipelineStore(db *gorm.DB) *PipelineStore {
-	return &PipelineStore{db: db}
+func NewPipelineStore(db *gorm.DB, time util.TimeInterface) *PipelineStore {
+	return &PipelineStore{
+		db:   db,
+		time: time,
+	}
+}
+
+type PipelineAndLatestJob struct {
+	PipelineID             *string
+	PipelineName           *string
+	PipelineSchedule       *string
+	JobName                *string
+	JobScheduledAtInSec    *int64
+	PipelineEnabled        *bool
+	PipelineEnabledAtInSec *int64
+}
+
+type PipelineAndLatestJobIterator struct {
+	rows *sql.Rows
+}
+
+func (s *PipelineStore) GetPipelineAndLatestJobIterator() (
+	*PipelineAndLatestJobIterator, error) {
+
+	rows, err := s.db.Raw(`SELECT 
+		pipelines.ID AS pipeline_id, 
+		pipelines.name AS pipeline_name, 
+		pipelines.schedule AS pipeline_schedule, 
+		jobs.name AS job_name, 
+		MAX(jobs.scheduled_at_in_sec) AS job_scheduled_at_in_sec,
+		pipelines.enabled AS pipeline_enabled,
+		pipelines.enabled_at_in_sec AS pipeline_enabled_at_in_sec
+		FROM pipelines
+		LEFT JOIN jobs
+		ON (pipelines.ID=jobs.pipeline_id)
+		WHERE
+			pipelines.schedule != "" AND
+			pipelines.enabled = 1
+		GROUP BY
+			pipelines.ID,
+			pipelines.name,
+			pipelines.schedule,
+			pipelines.enabled,
+			pipelines.enabled_at_in_sec
+		ORDER BY jobs.scheduled_at_in_sec ASC`).Rows()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return newPipelineAndLatestJobIterator(rows), nil
+}
+
+func newPipelineAndLatestJobIterator(rows *sql.Rows) *PipelineAndLatestJobIterator {
+	return &PipelineAndLatestJobIterator{
+		rows: rows,
+	}
+}
+
+func (p *PipelineAndLatestJobIterator) Next() bool {
+	return p.rows.Next()
+}
+
+func (p *PipelineAndLatestJobIterator) Get() (*PipelineAndLatestJob, error) {
+	var result PipelineAndLatestJob
+	err := p.rows.Scan(
+		&result.PipelineID,
+		&result.PipelineName,
+		&result.PipelineSchedule,
+		&result.JobName,
+		&result.JobScheduledAtInSec,
+		&result.PipelineEnabled,
+		&result.PipelineEnabledAtInSec)
+	return &result, err
+}
+
+func (p *PipelineAndLatestJobIterator) Close() error {
+	return p.rows.Close()
 }

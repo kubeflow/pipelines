@@ -20,15 +20,17 @@ import (
 	"ml/src/util"
 	"testing"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
+	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func initializePipelineDB() (PipelineStoreInterface, sqlmock.Sqlmock) {
 	db, mock, _ := sqlmock.New()
 	gormDB, _ := gorm.Open("mysql", db)
-	return &PipelineStore{db: gormDB}, mock
+	return NewPipelineStore(gormDB, util.NewFakeTimeForEpoch()), mock
 }
 
 func TestListPipelines(t *testing.T) {
@@ -82,7 +84,7 @@ func TestCreatePipeline(t *testing.T) {
 	ps, mock := initializePipelineDB()
 	mock.ExpectExec("INSERT INTO `pipelines`").
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pipeline.Name, sqlmock.AnyArg(),
-			sqlmock.AnyArg(), sqlmock.AnyArg()).
+			sqlmock.AnyArg(), sqlmock.AnyArg(), true, 1).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	pipeline, err := ps.CreatePipeline(pipeline)
@@ -97,4 +99,152 @@ func TestCreatePipelineError(t *testing.T) {
 
 	_, err := ps.CreatePipeline(pipeline)
 	assert.IsType(t, new(util.InternalError), err, "Expect create pipeline to return error")
+}
+
+func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
+	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+
+	pipeline1 := message.Pipeline{
+		Name:      "MY_PIPELINE_1",
+		PackageId: 123,
+		Schedule:  "1 0 * * *"}
+
+	pipeline2 := message.Pipeline{
+		Name:      "MY_PIPELINE_2",
+		PackageId: 123,
+		Schedule:  "1 0 * * 1"}
+
+	workflow1 := &v1alpha1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_WORKFLOW_NAME_1",
+		},
+	}
+
+	workflow2 := &v1alpha1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_WORKFLOW_NAME_2",
+		},
+	}
+
+	store.PipelineStore.CreatePipeline(pipeline1)
+	store.PipelineStore.CreatePipeline(pipeline2)
+	store.JobStore.CreateJob(1, workflow1)
+	store.JobStore.CreateJob(1, workflow2)
+
+	// Checking the first row, which does not have a job.
+	iterator, err := store.PipelineStore.GetPipelineAndLatestJobIterator()
+
+	assert.Nil(t, err)
+	assert.True(t, iterator.Next())
+
+	result, err := iterator.Get()
+	assert.Nil(t, err)
+
+	pipelineID := "2"
+	pipelineEnabled := true
+	enabledSec := int64(2)
+
+	expected := &PipelineAndLatestJob{
+		PipelineID:             &pipelineID,
+		PipelineName:           &pipeline2.Name,
+		PipelineSchedule:       &pipeline2.Schedule,
+		JobName:                nil,
+		JobScheduledAtInSec:    nil,
+		PipelineEnabled:        &pipelineEnabled,
+		PipelineEnabledAtInSec: &enabledSec,
+	}
+
+	assert.Equal(t, expected, result)
+
+	// Checking the second row, which has a job.
+	assert.True(t, iterator.Next())
+
+	result, err = iterator.Get()
+	assert.Nil(t, err)
+
+	pipelineID = "1"
+	pipelineEnabled = true
+	enabledSec = int64(1)
+	scheduledSec := int64(4)
+
+	expected = &PipelineAndLatestJob{
+		PipelineID:             &pipelineID,
+		PipelineName:           &pipeline1.Name,
+		PipelineSchedule:       &pipeline1.Schedule,
+		JobName:                &workflow2.Name,
+		JobScheduledAtInSec:    &scheduledSec,
+		PipelineEnabled:        &pipelineEnabled,
+		PipelineEnabledAtInSec: &enabledSec,
+	}
+
+	assert.Equal(t, expected, result)
+
+	// Checking that there are no rows left.
+	assert.False(t, iterator.Next())
+
+}
+
+func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
+	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+
+	pipeline1 := message.Pipeline{
+		Name:      "MY_PIPELINE_1",
+		PackageId: 123,
+		Schedule:  "1 0 * * *"}
+
+	pipeline2 := message.Pipeline{
+		Name:      "MY_PIPELINE_2",
+		PackageId: 123,
+		Schedule:  ""}
+
+	workflow1 := &v1alpha1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_WORKFLOW_NAME_1",
+		},
+	}
+
+	workflow2 := &v1alpha1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_WORKFLOW_NAME_2",
+		},
+	}
+
+	store.PipelineStore.CreatePipeline(pipeline1)
+	store.PipelineStore.CreatePipeline(pipeline2)
+	store.JobStore.CreateJob(1, workflow1)
+	store.JobStore.CreateJob(1, workflow2)
+
+	// Checking the first row, which does not have a job.
+	iterator, err := store.PipelineStore.GetPipelineAndLatestJobIterator()
+
+	assert.Nil(t, err)
+	assert.True(t, iterator.Next())
+
+	result, err := iterator.Get()
+	assert.Nil(t, err)
+
+	pipelineID := "1"
+	pipelineEnabled := true
+	enabledSec := int64(1)
+	scheduledSec := int64(4)
+
+	expected := &PipelineAndLatestJob{
+		PipelineID:             &pipelineID,
+		PipelineName:           &pipeline1.Name,
+		PipelineSchedule:       &pipeline1.Schedule,
+		JobName:                &workflow2.Name,
+		JobScheduledAtInSec:    &scheduledSec,
+		PipelineEnabled:        &pipelineEnabled,
+		PipelineEnabledAtInSec: &enabledSec,
+	}
+
+	assert.Equal(t, expected, result)
+
+	// Checking that there are no rows left.
+	assert.False(t, iterator.Next())
+
 }

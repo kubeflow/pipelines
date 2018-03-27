@@ -60,11 +60,11 @@ func (clientManager *ClientManager) Init() {
 
 	// Initialize pipeline store
 	clientManager.db = db
-	clientManager.pipelineStore = storage.NewPipelineStore(db)
+	clientManager.pipelineStore = storage.NewPipelineStore(db, util.NewRealTime())
 
 	// Initialize job store
 	wfClient := initWorkflowClient()
-	clientManager.jobStore = storage.NewJobStore(db, wfClient)
+	clientManager.jobStore = storage.NewJobStore(db, wfClient, util.NewRealTime())
 
 	// Initialize package manager.
 	clientManager.packageManager = initMinioClient()

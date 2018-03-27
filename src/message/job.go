@@ -14,12 +14,16 @@
 
 package message
 
-import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+import (
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+)
 
 // Job metadata of a job.
 type Job struct {
-	Name       string `json:"name" gorm:"not null"`
-	PipelineID uint   `json:"-"` /* Foreign key */
+	*Metadata                 `json:",omitempty"`
+	Name              string  `json:"name" gorm:"not null"`
+	ScheduledAtInSec  int64   `json:"scheduledAt" gorm:"not null"`
+	PipelineID        uint    `json:"-"` /* Foreign key */
 }
 
 // JobDetail a detailed view of a Argo job, including templates, job status etc.

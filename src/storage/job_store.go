@@ -33,6 +33,7 @@ type JobStoreInterface interface {
 type JobStore struct {
 	db       *gorm.DB
 	wfClient workflowclient.WorkflowInterface
+	time     util.TimeInterface
 }
 
 // ListJobs list the job metadata for a pipeline from DB
@@ -53,7 +54,11 @@ func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (message.Jo
 			"Failed to create job . Error: %s", err.Error())
 	}
 	jobDetail = message.JobDetail{Workflow: newWf}
-	job := &message.Job{Name: newWf.Name, PipelineID: pipelineId}
+	job := &message.Job{
+		Name: newWf.Name,
+		PipelineID: pipelineId,
+		// TODO: Use the scheduled time when pipelines are scheduled.
+		ScheduledAtInSec: s.time.Now().Unix()}
 	if r := s.db.Create(job); r.Error != nil {
 		return jobDetail, util.NewInternalError("Failed to store job metadata", r.Error.Error())
 	}
@@ -79,6 +84,7 @@ func (s *JobStore) GetJob(pipelineId uint, jobName string) (message.JobDetail, e
 }
 
 // factory function for package store
-func NewJobStore(db *gorm.DB, wfClient workflowclient.WorkflowInterface) *JobStore {
-	return &JobStore{db: db, wfClient: wfClient}
+func NewJobStore(db *gorm.DB, wfClient workflowclient.WorkflowInterface,
+	time util.TimeInterface) *JobStore {
+	return &JobStore{db: db, wfClient: wfClient, time: time}
 }
