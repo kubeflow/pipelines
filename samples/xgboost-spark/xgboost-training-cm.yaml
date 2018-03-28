@@ -9,28 +9,19 @@ spec:
     parameters:
     - name: project # GCP project to run dataproc cluster
     - name: region # region to run the dataproc cluster
-      value: us-west1
+      value: us-central1
     - name: cluster # cluster name to use
-      value: sfpd-training-{{workflow.name}}
+      value: xgboost-spark-{{workflow.name}}
     - name: output # GCS path of output directory
     - name: train # GCS path of training csv
-      value: gs://ml-pipeline-playground/sfpd/train.csv
     - name: eval # GCS path of eval csv
-      value: gs://ml-pipeline-playground/sfpd/eval.csv
     - name: schema # GCS path of json schema for training and eval csv
-      value: gs://ml-pipeline-playground/sfpd/schema.json
     - name: target # which column to use as prediction target
-      value: resolution
-    - name: trueclass # the label for true class, used in generating ROC curve.
-      value: ACTION
     - name: package # GCS path of distributed xgboost training package
       value: gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar
     - name: workers # number of works for trainer
-      value: 2
     - name: rounds # number of rounds to train
-      value: 100
     - name: conf # GCS path of xgboost training config file
-      value: gs://ml-pipeline-playground/trainconfcla.json
   templates:
   - name: exit-handler
     inputs:
@@ -64,7 +55,6 @@ spec:
       - name: workers
       - name: rounds
       - name: conf
-      - name: trueclass
     steps:
     - - name: createcluster
         template: createcluster
@@ -169,16 +159,18 @@ spec:
           - name: model
             value: "{{inputs.parameters.output}}/{{workflow.name}}/model"
 
-    - - name: roc
-        template: roc
+    - - name: confusionmatrix
+        template: confusionmatrix
         arguments:
           parameters:
           - name: output
-            value: "{{inputs.parameters.output}}/{{workflow.name}}/roc"
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix"
           - name: predictions
             value: "{{inputs.parameters.output}}/{{workflow.name}}/batchpredict/part-*.csv"
-          - name: trueclass
-            value: "{{inputs.parameters.trueclass}}"
+          - name: analysis
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/analysis"
+          - name: target
+            value: "{{inputs.parameters.target}}"
 
   - name: createcluster
     inputs:
@@ -259,16 +251,18 @@ spec:
       command: [sh, -c]
       args: ["python /ml/predict.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --predict {{inputs.parameters.eval}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}} --model {{inputs.parameters.model}} --package {{inputs.parameters.package}} " ]
 
-  - name: roc
+  - name: confusionmatrix
     inputs:
       parameters:
       - name: output
+      - name: analysis
       - name: predictions
-      - name: trueclass
+      - name: target
     container:
       image: gcr.io/ml-pipeline/ml-pipeline-local
       command: [sh, -c]
-      args: ["python /ml/roc.py --output {{inputs.parameters.output}} --predictions {{inputs.parameters.predictions}} --trueclass {{inputs.parameters.trueclass}} " ]    
+      args: ["python /ml/confusion_matrix.py --output {{inputs.parameters.output}} --predictions {{inputs.parameters.predictions}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}}" ]    
+
   - name: deletecluster
     inputs:
       parameters:

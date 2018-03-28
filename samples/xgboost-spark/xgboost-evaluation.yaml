@@ -1,22 +1,23 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: xgboost-newsgroup-evaluation-
+  generateName: xgboost-evaluation-
 spec:
-  entrypoint: xgboost-newsgroup-evaluation
+  entrypoint: xgboost-evaluation
+  onExit: exit-handler
   arguments:
     parameters:
     - name: project # GCP project to run dataproc cluster
     - name: region # region to run the dataproc cluster
       value: us-central1
     - name: cluster # cluster name to use
+      value: evaluation-{{workflow.name}}
     - name: output # GCS path of output directory
     - name: eval # GCS path of eval csv
       value: gs://ml-pipeline-playground/newsgroup/eval.csv
     - name: model # GCS path of the model file
       value: gs://ml-pipeline-playground/newsgroup/model/model
     - name: target # which column to use as prediction target
-      value: news_label
     - name: package # GCS path of distributed xgboost training package
       value: gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar
     - name: trueclass
@@ -24,7 +25,24 @@ spec:
     - name: analysis
       value: gs://ml-pipeline-playground/newsgroup/analysis/
   templates:
-  - name: xgboost-newsgroup-evaluation
+  - name: exit-handler
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: cluster
+    steps:
+    - - name: deletecluster
+        template: deletecluster
+        arguments:
+          parameters:
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: region
+            value: "{{inputs.parameters.region}}"
+          - name: name
+            value: "{{inputs.parameters.cluster}}"
+  - name: xgboost-evaluation
     inputs:
       parameters:
       - name: project
@@ -38,6 +56,18 @@ spec:
       - name: trueclass
       - name: analysis
     steps:
+    - - name: createcluster
+        template: createcluster
+        arguments:
+          parameters:
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: region
+            value: "{{inputs.parameters.region}}"
+          - name: name
+            value: "{{inputs.parameters.cluster}}"
+          - name: staging
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/staging"
     - - name: transform
         template: transform
         arguments:
@@ -101,6 +131,18 @@ spec:
           - name: target
             value: "{{inputs.parameters.target}}"
 
+  - name: createcluster
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: name
+      - name: staging
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
+      command: [sh, -c]
+      args: ["python /ml/create_cluster.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --name {{inputs.parameters.name}} --staging {{inputs.parameters.staging}}"]
+
   - name: transform
     inputs:
       parameters:
@@ -155,3 +197,14 @@ spec:
       image: gcr.io/ml-pipeline/ml-pipeline-local
       command: [sh, -c]
       args: ["python /ml/confusion_matrix.py --output {{inputs.parameters.output}} --predictions {{inputs.parameters.predictions}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}}" ]
+
+  - name: deletecluster
+    inputs:
+      parameters:
+      - name: project
+      - name: region
+      - name: name
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
+      command: [sh, -c]
+      args: ["python /ml/delete_cluster.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --name {{inputs.parameters.name}}" ]

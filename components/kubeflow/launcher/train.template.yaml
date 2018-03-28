@@ -1,0 +1,42 @@
+apiVersion: "kubeflow.org/v1alpha1"
+kind: "TFJob"
+metadata:
+  name: "tf-job"
+spec:
+  replicaSpecs:
+    - replicas: 1
+      tfReplicaType: MASTER
+      template:
+        spec:
+          containers:
+            - image: gcr.io/ml-pipeline-playground/ml-pipeline-kubeflow-trainer
+              name: tensorflow
+              command:
+                - python
+                - -m
+                - trainer.task
+          restartPolicy: OnFailure
+    - replicas: 1
+      tfReplicaType: WORKER
+      template:
+        spec:
+          containers:
+            - image: gcr.io/ml-pipeline-playground/ml-pipeline-kubeflow-trainer
+              name: tensorflow
+              command:
+                - python
+                - -m
+                - trainer.task
+          restartPolicy: OnFailure
+    - replicas: 1
+      tfReplicaType: PS
+      template:
+        spec:
+          containers:
+            - image: gcr.io/ml-pipeline-playground/ml-pipeline-kubeflow-trainer
+              name: tensorflow
+              command:
+                - python
+                - -m
+                - trainer.task
+          restartPolicy: OnFailure

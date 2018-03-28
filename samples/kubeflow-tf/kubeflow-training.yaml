@@ -1,0 +1,101 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: kubeflow-training-
+spec:
+  entrypoint: kubeflow-training
+  arguments:
+    parameters:
+      - name: output
+      - name: train
+      - name: eval
+      - name: project
+      - name: schema
+      - name: target
+      - name: learning-rate
+      - name: hidden-layer-size
+      - name: steps
+      - name: workers
+        value: 0
+      - name: pss
+        value: 0
+  templates:
+  - name: kubeflow-training
+    inputs:
+      parameters:
+      - name: output
+      - name: train
+      - name: eval
+      - name: project
+      - name: schema
+      - name: target
+      - name: learning-rate
+      - name: hidden-layer-size
+      - name: steps
+      - name: workers
+      - name: pss
+    steps:
+    - - name: preprocess
+        template: preprocess
+        arguments:
+          parameters:
+          - name: output
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/transformed"
+          - name: train
+            value: "{{inputs.parameters.train}}"
+          - name: eval
+            value: "{{inputs.parameters.eval}}"
+          - name: schema
+            value: "{{inputs.parameters.schema}}"
+          - name: project
+            value: "{{inputs.parameters.project}}"
+    - - name: train
+        template: train
+        arguments:
+          parameters:
+          - name: output
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/train"
+          - name: transformed
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/transformed"
+          - name: schema
+            value: "{{inputs.parameters.schema}}"
+          - name: target
+            value: "{{inputs.parameters.target}}"
+          - name: learning-rate
+            value: "{{inputs.parameters.learning-rate}}"
+          - name: hidden-layer-size
+            value: "{{inputs.parameters.hidden-layer-size}}"
+          - name: steps
+            value: "{{inputs.parameters.steps}}"
+          - name: workers
+            value: "{{inputs.parameters.workers}}"
+          - name: pss
+            value: "{{inputs.parameters.pss}}"
+  - name: preprocess
+    inputs:
+      parameters:
+      - name: output
+      - name: train
+      - name: eval
+      - name: schema
+      - name: project
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow
+      command: [sh, -c]
+      args: ["python /ml/transform.py --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --schema {{inputs.parameters.schema}} --output {{inputs.parameters.output}} --project {{inputs.parameters.project}}"]
+  - name: train
+    inputs:
+      parameters:
+      - name: output
+      - name: transformed
+      - name: schema
+      - name: target
+      - name: learning-rate
+      - name: hidden-layer-size
+      - name: steps
+      - name: workers
+      - name: pss
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
+      command: [sh, -c]
+      args: ["python /ml/train.py --job-dir {{inputs.parameters.output}} --transformed-data-dir {{inputs.parameters.transformed}} --schema {{inputs.parameters.schema}} --learning-rate {{inputs.parameters.learning-rate}} --hidden-layer-size {{inputs.parameters.hidden-layer-size}} --steps {{inputs.parameters.steps}} --target {{inputs.parameters.target}} --workers {{inputs.parameters.workers}} --pss {{inputs.parameters.pss}}"]

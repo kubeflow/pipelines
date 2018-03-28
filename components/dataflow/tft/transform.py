@@ -110,11 +110,11 @@ def _image_to_vec(image_str_tensor):
   return inception_embeddings
 
 
-def make_preprocessing_fn(schema, tmp_dir):
+def make_preprocessing_fn(schema, target_name):
   """Makes a preprocessing function.
   Args:
     schema: the schema of the training data.
-    tmp_dir: temp dir to hold inception checkpoints.
+    target_name: the name of the target column.
   Returns:
     a preprocessing_fn function used by tft.
   """
@@ -138,9 +138,14 @@ def make_preprocessing_fn(schema, tmp_dir):
                                                     vocab_filename='vocab_' + col_name)
       elif col_schema['type'] == 'TEXT':
         tokens = tf.string_split(inputs[col_name], DELIMITERS)
+        # TODO: default_value = 0 is wrong. It means OOV gets 0 for their index.
+        # But this is to workaround the issue that trainer can use the true vocab
+        # size. Otherwise trainer has to use VOCAB_SIZE defined in this file which
+        # is too large. I am talking to TFT folks on this. If there is no workaround,
+        # user has to provide a vocab_size.
         indices = tft.string_to_int(tokens,
                                     vocab_filename='vocab_' + col_name,
-                                    top_k=VOCAB_SIZE)
+                                    default_value=0)
         # Add one for the oov bucket created by string_to_int.
         bow_indices, bow_weights = tft.tfidf(indices, VOCAB_SIZE + 1)
         features_dict[col_name + '_indices'] = bow_indices
@@ -151,6 +156,10 @@ def make_preprocessing_fn(schema, tmp_dir):
             [inputs[col_name]],
             INCEPTION_V3_CHECKPOINT,
             exclude=INCEPTION_EXCLUDED_VARIABLES)
+      elif col_schema['type'] == 'KEY':
+        features_dict[col_name] = inputs[col_name]
+      else:
+        raise ValueError('Invalid schema. Unknown type ' + col_schema['type'])
     return features_dict
 
   return preprocessing_fn
@@ -172,7 +181,7 @@ def make_tft_input_metadata(schema):
     if col_type == 'NUMBER':
       tft_schema[col_name] = dataset_schema.ColumnSchema(
           tf.float32, [], dataset_schema.FixedColumnRepresentation(default_value=0.0))
-    elif col_type in ['CATEGORY', 'TEXT', 'IMAGE_URL']:
+    elif col_type in ['CATEGORY', 'TEXT', 'IMAGE_URL', 'KEY']:
       tft_schema[col_name] = dataset_schema.ColumnSchema(
           tf.string, [], dataset_schema.FixedColumnRepresentation(default_value=''))
   return dataset_metadata.DatasetMetadata(dataset_schema.Schema(tft_schema))

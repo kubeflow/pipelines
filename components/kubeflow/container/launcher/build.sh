@@ -16,10 +16,10 @@
 
 export PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
 mkdir -p ./build
-rsync -arvp "../tft"/ ./build/
+rsync -arvp "../../launcher"/ ./build/
 
-docker build -t ml-pipeline-dataflow .
+docker build -t ml-pipeline-kubeflow-tf .
 rm -rf ./build
 
-docker tag ml-pipeline-dataflow gcr.io/${PROJECT_ID}/ml-pipeline-dataflow
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataflow
+docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
+gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf

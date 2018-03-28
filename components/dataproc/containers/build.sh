@@ -18,7 +18,6 @@ export PROJECT_ID=$(gcloud config config-helper --format "value(configuration.pr
 mkdir -p ./build
 rsync -arvp "../xgboost"/ ./build/
 
-docker pull ubuntu:16.04
 docker build -t ml-pipeline-dataproc-xgboost .
 rm -rf ./build
 

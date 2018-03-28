@@ -1,4 +1,3 @@
-#!/bin/bash -e
 # Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +13,24 @@
 # limitations under the License.
 
 
-export PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
-mkdir -p ./build
-rsync -arvp "../tft"/ ./build/
+from setuptools import setup, find_packages
 
-docker build -t ml-pipeline-dataflow .
-rm -rf ./build
 
-docker tag ml-pipeline-dataflow gcr.io/${PROJECT_ID}/ml-pipeline-dataflow
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataflow
+setup(
+  name='trainer',
+  version='1.0.0',
+  packages=find_packages(),
+  description='DNN Trainer',
+  author='Google',
+  keywords=[
+  ],
+  license="Apache Software License",
+  long_description="""
+  """,
+  install_requires=[
+    'tensorflow==1.5.1',
+  ],
+  package_data={
+  },
+  data_files=[],
+)

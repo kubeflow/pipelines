@@ -27,7 +27,7 @@ STATS_FILE = 'stats.json'
 
 def load_schema(schema_file):
   type_map = {
-    'UNIQUE': StringType(),
+    'KEY': StringType(),
     'NUMBER': DoubleType(),
     'CATEGORY': StringType(),
     'TEXT': StringType(),

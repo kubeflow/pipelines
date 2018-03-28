@@ -1,4 +1,3 @@
-#!/bin/bash -e
 # Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM gcr.io/tensorflow/tensorflow:1.5.0
 
-export PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
-mkdir -p ./build
-rsync -arvp "../tft"/ ./build/
+RUN pip install pyyaml==3.12 six==1.11.0
 
-docker build -t ml-pipeline-dataflow .
-rm -rf ./build
+# TODO: Due to a pickling bug that causes image preprocessing failure we have to use HEAD.
+# Install tft 0.6 when it is released.
+RUN pip install https://storage.googleapis.com/ml-pipeline-playground/tensorflow-transform-0.6.0.dev0.tar.gz
 
-docker tag ml-pipeline-dataflow gcr.io/${PROJECT_ID}/ml-pipeline-dataflow
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataflow
+ADD build /ml
+WORKDIR /ml
