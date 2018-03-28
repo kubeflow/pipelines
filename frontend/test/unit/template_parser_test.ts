@@ -82,16 +82,16 @@ describe('template parser', () => {
         templates:
         - name: ${entrypoint}
           steps:
-          - name: step1
-            arguments:
-              parameters:
-              - name: output
-                value: output/path1
-          - name: step2
-            arguments:
-              parameters:
-              - name: output
-                value: output/path2
+          - - name: step1
+              arguments:
+                parameters:
+                - name: output
+                  value: output/path1
+            - name: step2
+              arguments:
+                parameters:
+                - name: output
+                  value: output/path2
     `;
     const expectedPaths = [
       'output/path1',

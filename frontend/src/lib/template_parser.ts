@@ -31,7 +31,8 @@ export function parseTemplateOuputPaths(templateYaml: string, baseOutputPath: st
   }
 
   // Steps can be nested twice (because of Argo's double dash convention) or just once
-  const steps = entryTemplate.steps as Array<ArgoTemplateStep | ArgoTemplateStep[]>;
+  // so, flatten it first.
+  const steps = [].concat.apply([], entryTemplate.steps) as ArgoTemplateStep[];
 
   if (!steps) {
     return [];
