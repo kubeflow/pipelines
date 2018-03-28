@@ -1,0 +1,292 @@
+{
+  "metadata": {
+    "creationTimestamp": "2018-03-16T00:47:03.000Z",
+    "generateName": "coinflip-recursive-",
+    "labels": {
+      "workflows.argoproj.io/completed": "true",
+      "workflows.argoproj.io/phase": "Succeeded"
+    },
+    "name": "coinflip-recursive-hbxnm",
+    "namespace": "default",
+    "resourceVersion": "2364",
+    "selfLink": "/apis/argoproj.io/v1alpha1/namespaces/default/workflows/coinflip-recursive-hbxnm",
+    "uid": "8b79e9a4-28b3-11e8-b933-080027f97bca"
+  },
+  "spec": {
+    "arguments": {},
+    "entrypoint": "coinflip",
+    "templates": [
+      {
+        "inputs": {},
+        "name": "coinflip",
+        "outputs": {},
+        "steps": [
+          [
+            {
+              "arguments": {},
+              "name": "flip-coin",
+              "template": "flip-coin"
+            }
+          ],
+          [
+            {
+              "arguments": {},
+              "name": "heads",
+              "template": "heads",
+              "when": "{{steps.flip-coin.outputs.result}} == heads"
+            },
+            {
+              "arguments": {},
+              "name": "tails",
+              "template": "coinflip",
+              "when": "{{steps.flip-coin.outputs.result}} == tails"
+            }
+          ]
+        ]
+      },
+      {
+        "inputs": {},
+        "name": "flip-coin",
+        "outputs": {},
+        "script": {
+          "command": [
+            "python"
+          ],
+          "image": "python:3.6",
+          "source": "import random\nresult = \"heads\" if random.randint(0,1) == 0 else \"tails\"\nprint(result)\n"
+        }
+      },
+      {
+        "container": {
+          "args": [
+            "echo \"it was heads\""
+          ],
+          "command": [
+            "sh",
+            "-c"
+          ],
+          "image": "alpine:3.6",
+          "name": "",
+          "resources": {}
+        },
+        "inputs": {},
+        "name": "heads",
+        "outputs": {}
+      }
+    ]
+  },
+  "status": {
+    "finishedAt": "2018-03-16T00:47:49.000Z",
+    "nodes": {
+      "coinflip-recursive-hbxnm": {
+        "children": [
+          "coinflip-recursive-hbxnm-3940947886",
+          "coinflip-recursive-hbxnm-652387467"
+        ],
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm",
+        "name": "coinflip-recursive-hbxnm",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:03.000Z"
+      },
+      "coinflip-recursive-hbxnm-306158614": {
+        "children": [
+          "coinflip-recursive-hbxnm-413413512",
+          "coinflip-recursive-hbxnm-1554041341"
+        ],
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm-306158614",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:41.000Z"
+      },
+      "coinflip-recursive-hbxnm-413413512": {
+        "children": [
+          "coinflip-recursive-hbxnm-1959542385"
+        ],
+        "finishedAt": "2018-03-16T00:47:44.000Z",
+        "id": "coinflip-recursive-hbxnm-413413512",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[0]",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:41.000Z"
+      },
+      "coinflip-recursive-hbxnm-652387467": {
+        "children": [
+          "coinflip-recursive-hbxnm-3120917218",
+          "coinflip-recursive-hbxnm-3101930738"
+        ],
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm-652387467",
+        "name": "coinflip-recursive-hbxnm[1]",
+        "phase": "Running",
+        "startedAt": "2018-03-16T00:47:34.000Z"
+      },
+      "coinflip-recursive-hbxnm-827698599": {
+        "children": [
+          "coinflip-recursive-hbxnm-4019035334",
+          "coinflip-recursive-hbxnm-306158614"
+        ],
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm-827698599",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1]",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:41.000Z"
+      },
+      "coinflip-recursive-hbxnm-894956170": {
+        "children": [
+          "coinflip-recursive-hbxnm-1580065463"
+        ],
+        "finishedAt": "2018-03-16T00:47:41.000Z",
+        "id": "coinflip-recursive-hbxnm-894956170",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[0]",
+        "phase": "Running",
+        "startedAt": "2018-03-16T00:47:38.000Z"
+      },
+      "coinflip-recursive-hbxnm-1554041341": {
+        "children": [
+          "coinflip-recursive-hbxnm-2533273628",
+          "coinflip-recursive-hbxnm-3775512684"
+        ],
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm-1554041341",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[1]",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:44.000Z"
+      },
+      "coinflip-recursive-hbxnm-1580065463": {
+        "finishedAt": "2018-03-16T00:47:41.000Z",
+        "id": "coinflip-recursive-hbxnm-1580065463",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[0].flip-coin",
+        "outputs": {
+          "result": "tails"
+        },
+        "phase": "Running",
+        "startedAt": "2018-03-16T00:47:38.000Z"
+      },
+      "coinflip-recursive-hbxnm-1599223017": {
+        "children": [
+          "coinflip-recursive-hbxnm-1806019728",
+          "coinflip-recursive-hbxnm-1739003824"
+        ],
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm-1599223017",
+        "name": "coinflip-recursive-hbxnm[1].tails[1]",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:38.000Z"
+      },
+      "coinflip-recursive-hbxnm-1739003824": {
+        "children": [
+          "coinflip-recursive-hbxnm-894956170",
+          "coinflip-recursive-hbxnm-827698599"
+        ],
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm-1739003824",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:38.000Z"
+      },
+      "coinflip-recursive-hbxnm-1806019728": {
+        "finishedAt": "2018-03-16T00:47:38.000Z",
+        "id": "coinflip-recursive-hbxnm-1806019728",
+        "message": "when 'tails == heads' evaluated false",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].heads",
+        "phase": "Skipped",
+        "startedAt": "2018-03-16T00:47:38.000Z"
+      },
+      "coinflip-recursive-hbxnm-1959542385": {
+        "finishedAt": "2018-03-16T00:47:44.000Z",
+        "id": "coinflip-recursive-hbxnm-1959542385",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[0].flip-coin",
+        "outputs": {
+          "result": "heads"
+        },
+        "phase": "Error",
+        "startedAt": "2018-03-16T00:47:41.000Z"
+      },
+      "coinflip-recursive-hbxnm-2140376685": {
+        "finishedAt": "2018-03-16T00:47:37.000Z",
+        "id": "coinflip-recursive-hbxnm-2140376685",
+        "name": "coinflip-recursive-hbxnm[1].tails[0].flip-coin",
+        "outputs": {
+          "result": "tails"
+        },
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:34.000Z"
+      },
+      "coinflip-recursive-hbxnm-2533273628": {
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm-2533273628",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[1].heads",
+        "phase": "Error",
+        "startedAt": "2018-03-16T00:47:44.000Z"
+      },
+      "coinflip-recursive-hbxnm-2606027252": {
+        "children": [
+          "coinflip-recursive-hbxnm-2140376685"
+        ],
+        "finishedAt": "2018-03-16T00:47:38.000Z",
+        "id": "coinflip-recursive-hbxnm-2606027252",
+        "name": "coinflip-recursive-hbxnm[1].tails[0]",
+        "phase": "Failed",
+        "startedAt": "2018-03-16T00:47:34.000Z"
+      },
+      "coinflip-recursive-hbxnm-3101930738": {
+        "children": [
+          "coinflip-recursive-hbxnm-2606027252",
+          "coinflip-recursive-hbxnm-1599223017"
+        ],
+        "finishedAt": "2018-03-16T00:47:49.000Z",
+        "id": "coinflip-recursive-hbxnm-3101930738",
+        "name": "coinflip-recursive-hbxnm[1].tails",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:34.000Z"
+      },
+      "coinflip-recursive-hbxnm-3120917218": {
+        "finishedAt": "2018-03-16T00:47:34.000Z",
+        "id": "coinflip-recursive-hbxnm-3120917218",
+        "message": "when 'tails == heads' evaluated false",
+        "name": "coinflip-recursive-hbxnm[1].heads",
+        "phase": "Skipped",
+        "startedAt": "2018-03-16T00:47:34.000Z"
+      },
+      "coinflip-recursive-hbxnm-3630215275": {
+        "finishedAt": "2018-03-16T00:47:34.000Z",
+        "id": "coinflip-recursive-hbxnm-3630215275",
+        "name": "coinflip-recursive-hbxnm[0].flip-coin",
+        "outputs": {
+          "result": "tails"
+        },
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:03.000Z"
+      },
+      "coinflip-recursive-hbxnm-3775512684": {
+        "finishedAt": "2018-03-16T00:47:44.000Z",
+        "id": "coinflip-recursive-hbxnm-3775512684",
+        "message": "when 'heads == tails' evaluated false",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[1].tails",
+        "phase": "Skipped",
+        "startedAt": "2018-03-16T00:47:44.000Z"
+      },
+      "coinflip-recursive-hbxnm-3940947886": {
+        "children": [
+          "coinflip-recursive-hbxnm-3630215275"
+        ],
+        "finishedAt": "2018-03-16T00:47:34.000Z",
+        "id": "coinflip-recursive-hbxnm-3940947886",
+        "name": "coinflip-recursive-hbxnm[0]",
+        "phase": "Succeeded",
+        "startedAt": "2018-03-16T00:47:03.000Z"
+      },
+      "coinflip-recursive-hbxnm-4019035334": {
+        "finishedAt": "2018-03-16T00:47:41.000Z",
+        "id": "coinflip-recursive-hbxnm-4019035334",
+        "message": "when 'tails == heads' evaluated false",
+        "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].heads",
+        "phase": "Skipped",
+        "startedAt": "2018-03-16T00:47:41.000Z"
+      }
+    },
+    "phase": "Succeeded",
+    "startedAt": "2018-03-16T00:47:03.000Z"
+  }
+}

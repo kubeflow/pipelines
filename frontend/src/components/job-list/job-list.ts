@@ -4,7 +4,7 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-import { NodePhase, Workflow } from '../../model/argo_template';
+import { NodePhase } from '../../model/argo_template';
 import { ItemClickEvent, RouteEvent } from '../../model/events';
 
 import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
@@ -14,15 +14,13 @@ import './job-list.html';
 export class JobList extends Polymer.Element {
 
   @property({ type: Array })
-  public jobs: Workflow[] = [];
+  public jobs: Apis.JobMetadata[] = [];
 
   protected jobListRows: ItemListRow[] = [];
 
   protected jobListColumns: ItemListColumn[] = [
     { name: 'Job Name', type: ColumnTypeName.STRING },
-    { name: 'Creation time', type: ColumnTypeName.DATE },
-    { name: 'Start time', type: ColumnTypeName.DATE },
-    { name: 'Finish time', type: ColumnTypeName.DATE },
+    { name: 'Scheduled Time', type: ColumnTypeName.DATE },
   ];
 
   private _pipelineId = -1;
@@ -41,12 +39,9 @@ export class JobList extends Polymer.Element {
     this.jobListRows = this.jobs.map((job) => {
       const row = new ItemListRow({
         columns: [
-          job.metadata.name,
-          job.metadata.creationTimestamp ? new Date(job.metadata.creationTimestamp) : job.metadata.creationTimestamp,
-          new Date(job.status.startedAt),
-          new Date(job.status.finishedAt),
+          job.name,
+          job.scheduledAt,
         ],
-        icon: this._getStatusIcon(job.status.phase),
         selected: false,
       });
       return row;
@@ -54,7 +49,7 @@ export class JobList extends Polymer.Element {
   }
 
   protected _navigate(ev: ItemClickEvent) {
-    const jobId = this.jobs[ev.detail.index].metadata.name;
+    const jobId = this.jobs[ev.detail.index].name;
     this.dispatchEvent(
       new RouteEvent(`/pipelineJob?pipelineId=${this._pipelineId}&jobId=${jobId}`));
   }

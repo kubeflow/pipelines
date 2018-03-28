@@ -4,6 +4,11 @@ import { PipelinePackage } from '../model/pipeline_package';
 
 const apisPrefix = '/apis/v1alpha1';
 
+export interface JobMetadata {
+  name: string;
+  scheduledAt: number;
+}
+
 /**
  * Gets a list of the pipeline packages defined on the backend.
  */
@@ -80,10 +85,10 @@ export async function newPipeline(pipeline: Pipeline) {
  * Gets a list of all the pipeline jobs belonging to the specified pipelined
  * from the backend.
  */
-export async function getJobs(pipelineId: number): Promise<Workflow[]> {
+export async function getJobs(pipelineId: number): Promise<JobMetadata[]> {
   const path = `/pipelines/${pipelineId}/jobs`;
   const response = await fetch(apisPrefix + path);
-  const jobs: Workflow[] = await response.json();
+  const jobs: JobMetadata[] = await response.json();
   return jobs;
 }
 
@@ -92,23 +97,14 @@ export async function getJobs(pipelineId: number): Promise<Workflow[]> {
  */
 export async function getJob(pipelineId: number, jobId: string): Promise<Workflow> {
   const response = await fetch(apisPrefix + `/pipelines/${pipelineId}/jobs/${jobId}`);
-  return await response.json();
-}
-
-/**
- * Gets the execution graph of the given job id.
- */
-export async function getJobRuntimeTemplate(pipelineId: number, jobId: string): Promise<string> {
-  const response = await fetch(
-    `${apisPrefix}/pipelines/${pipelineId}/jobs/${jobId}/runtimeTemplates`);
-  return await response.text();
+  return (await response.json()).job;
 }
 
 /**
  * List files at a given path from content service using server.
  */
 export async function listFiles(path: string): Promise<string[]> {
-  const response = await fetch(apisPrefix + `/artifact/list/${encodeURIComponent(path)}`);
+  const response = await fetch(apisPrefix + `/artifacts/list/${encodeURIComponent(path)}`);
   return await response.json();
 }
 
@@ -116,6 +112,6 @@ export async function listFiles(path: string): Promise<string[]> {
  * Read file from storage using server.
  */
 export async function readFile(path: string): Promise<string> {
-  const response = await fetch(apisPrefix + `/artifact/get/${encodeURIComponent(path)}`);
+  const response = await fetch(apisPrefix + `/artifacts/get/${encodeURIComponent(path)}`);
   return await response.text();
 }

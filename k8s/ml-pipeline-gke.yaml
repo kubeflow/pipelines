@@ -478,7 +478,7 @@ spec:
     spec:
       containers:
       - name: ml-pipeline-frontend
-        image: gcr.io/ml-pipeline/frontend:0.0.1
+        image: gcr.io/ml-pipeline/frontend
         imagePullPolicy: Always
         ports:
           - containerPort: 3000

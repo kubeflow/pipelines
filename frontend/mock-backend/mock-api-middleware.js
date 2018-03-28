@@ -33,21 +33,14 @@ module.exports = (app) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);
-    res.json(p[0].jobs);
+    const jobs = p[0].jobs.map((j) => ({'name': j.metadata.name, scheduledAt: 0}));
+    res.json(jobs);
   });
 
   app.get(apisPrefix + '/pipelines/:pid/jobs/:jname', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    const pid = Number.parseInt(req.params.pid);
-    const p = fixedData.pipelines.filter((p) => p.id === pid);
-    const jname = req.params.jname;
-    const j = p[0].jobs.filter((j) => j.metadata.name === jname);
-    res.json(j[0]);
-  });
-
-  app.get(apisPrefix + '/pipelines/:pid/jobs/:jname/runtimeTemplates', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    res.send(fs.readFileSync('./mock-backend/mock-runtime-template.yaml'));
+    res.json({
+      job: JSON.parse(fs.readFileSync('./mock-backend/mock-job-runtime.json', 'utf-8')),
+    });
   });
 
   app.get(apisPrefix + '/packages', (req, res) => {
@@ -65,7 +58,7 @@ module.exports = (app) => {
     res.json(fixedData.packages[0]);
   });
 
-  app.get(apisPrefix + '/artifact/list/:path', (req, res) => {
+  app.get(apisPrefix + '/artifacts/list/:path', (req, res) => {
 
     const path = decodeURIComponent(req.params.path);
 
@@ -77,7 +70,7 @@ module.exports = (app) => {
       ]);
   });
 
-  app.get(apisPrefix + '/artifact/get/:path', (req, res) => {
+  app.get(apisPrefix + '/artifacts/get/:path', (req, res) => {
     res.header('Content-Type', 'application/json');
     const path = decodeURIComponent(req.params.path);
     if (path.endsWith('roc.csv')) {

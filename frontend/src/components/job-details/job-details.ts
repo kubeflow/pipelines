@@ -5,7 +5,6 @@ import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 import '../data-plotter/data-plot';
 
-import * as jsYaml from 'js-yaml';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
@@ -67,10 +66,8 @@ export class JobDetails extends Polymer.Element implements PageElement {
         }
       });
 
-      // Get the job graph
-      const runtimeGraphYaml = await Apis.getJobRuntimeTemplate(this._pipelineId, this._jobId);
-      const runtimeGraph = jsYaml.safeLoad(runtimeGraphYaml);
-      (this.$.jobGraph as JobGraph).refresh(runtimeGraph);
+      // Render the job graph
+      (this.$.jobGraph as JobGraph).refresh(this.job);
     }
   }
 
@@ -82,14 +79,15 @@ export class JobDetails extends Polymer.Element implements PageElement {
     return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRuntime(start: number, end: number, status: NodePhase) {
+  protected _getRuntime(start: string, end: string, status: NodePhase) {
     if (!status) {
       return '-';
     }
-    if (end === -1) {
-      end = Date.now();
-    }
-    return Utils.dateDiffToString(end - start);
+    const parsedStart = start ? new Date(start).getTime() : 0;
+    const parsedEnd = end ? new Date(end).getTime() : Date.now();
+
+    return (parsedStart && parsedEnd) ?
+      Utils.dateDiffToString(parsedEnd - parsedStart) : '-';
   }
 
   protected _getProgressColor(status: NodePhase) {

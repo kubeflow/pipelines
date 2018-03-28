@@ -27,7 +27,7 @@ app.use(express.static(staticDir));
 
 const apisPrefix = '/apis/v1alpha1';
 
-app.get(apisPrefix + '/artifact/list/*', (req, res) => {
+app.get(apisPrefix + '/artifacts/list/*', (req, res) => {
   if (!req.params) {
     res.status(404).send('Error: No path provided.');
     return;
@@ -45,7 +45,7 @@ app.get(apisPrefix + '/artifact/list/*', (req, res) => {
     storage
       .bucket(bucket)
       .getFiles({prefix: filepath})
-      .then((results) => res.send(results[0].map((f) => f.name)))
+      .then((results) => res.send(results[0].map((f) => `${bucket}/${f.name}`)))
       .catch((err) => {
         console.error('Error listing files:', err);
         res.status(500).send('Error: ' + err);
@@ -55,7 +55,7 @@ app.get(apisPrefix + '/artifact/list/*', (req, res) => {
   }
 });
 
-app.get(apisPrefix + '/artifact/get/*', (req, res, next) => {
+app.get(apisPrefix + '/artifacts/get/*', (req, res, next) => {
   if (!req.params) {
     res.status(404).send('Error: No path provided.');
     return;
