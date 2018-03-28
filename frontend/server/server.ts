@@ -45,7 +45,7 @@ app.get(apisPrefix + '/artifacts/list/*', (req, res) => {
     storage
       .bucket(bucket)
       .getFiles({prefix: filepath})
-      .then((results) => res.send(results[0].map((f) => `${bucket}/${f.name}`)))
+      .then((results) => res.send(results[0].map((f) => `gs://${bucket}/${f.name}`)))
       .catch((err) => {
         console.error('Error listing files:', err);
         res.status(500).send('Error: ' + err);
@@ -81,7 +81,9 @@ app.get(apisPrefix + '/artifacts/get/*', (req, res, next) => {
           if (err) {
             next(err);
           } else {
-            fs.unlink(destFilename, null);
+            fs.unlink(destFilename, (unlinkErr) => {
+              console.error('Error deleting downloaded file: ' + unlinkErr);
+            });
           }
         });
       })
