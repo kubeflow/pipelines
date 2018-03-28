@@ -46,10 +46,11 @@ export class JobDetails extends Polymer.Element implements PageElement {
       const pipeline = await Apis.getPipeline(this._pipelineId);
       const templateYaml = await Apis.getPackageTemplate(pipeline.packageId);
 
-      const baseOutputPath = pipeline
+      const baseOutputPathValue = pipeline
         .parameters
         .filter((p) => p.name === 'output')[0]
-        .value.toString();
+        .value;
+      const baseOutputPath = baseOutputPathValue ? baseOutputPathValue.toString() : '';
 
       // TODO: Catch and show template parsing errors here
       const outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);

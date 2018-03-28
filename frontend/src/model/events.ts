@@ -1,11 +1,3 @@
-import { PipelinePackage } from '../model/pipeline_package';
-
-export class PackageClickEvent extends MouseEvent {
-  public model: {
-    package: PipelinePackage,
-  };
-}
-
 export class ItemClickEvent extends CustomEvent {
   public detail: {
     index: number,
