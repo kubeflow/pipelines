@@ -40,3 +40,11 @@
   fill: none;
   pointer-events: all;
 }
+
+.cell.active, .row.active {
+  opacity: 0.95;
+}
+
+.column-label.active, .row-label.active {
+  fill: var(--accent-color);
+}
