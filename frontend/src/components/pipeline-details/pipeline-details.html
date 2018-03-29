@@ -7,6 +7,10 @@
         <paper-icon-button icon="arrow-back"></paper-icon-button>
       </a>
       <div class="toolbar-title">Pipeline Details</div>
+      <paper-button class="toolbar-button" on-click="_clonePipeline" disabled="[[disableClonePipelineButton]]">
+        <iron-icon icon="content-copy"></iron-icon>
+        Clone
+      </paper-button>
     </div>
 
     <div class="padded-20">

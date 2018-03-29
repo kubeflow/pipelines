@@ -24,6 +24,11 @@ interface NewPipelineQueryParams {
   packageId?: number;
 }
 
+interface NewPipelineData {
+  packageId: number;
+  parameters: Parameter[];
+}
+
 @customElement('pipeline-new')
 export class PipelineNew extends Polymer.Element implements PageElement {
 
@@ -44,23 +49,45 @@ export class PipelineNew extends Polymer.Element implements PageElement {
 
   protected _busy = false;
 
-  public async refresh(_: string, queryParams: NewPipelineQueryParams) {
+  public async refresh(_: string, queryParams: NewPipelineQueryParams, pipelineData?: NewPipelineData) {
     this._busy = true;
     const packageList = this.$.packagesListbox as any;
     try {
       this.packages = await Apis.getPackages();
-      if (queryParams.packageId) {
+
+      if (queryParams.packageId && pipelineData && pipelineData.packageId) {
+        Utils.log.error('Package ID should not be present in both queryparams and pipelineData');
+        return;
+      }
+
+      const packageId = queryParams.packageId || (pipelineData ? pipelineData.packageId : pipelineData);
+      if (packageId) {
         let packageIdx = -1;
         this.packages.forEach((p, i) => {
-          if (p.id === queryParams.packageId) {
+          if (p.id === packageId) {
             packageIdx = i;
           }
         });
-        if (packageIdx === -1) {
-          Utils.log.error('Cannot find package with id ' + queryParams.packageId);
-          return;
+
+        if (pipelineData) {
+          // For now we don't worry about whether or not we can find a matching
+          // Pipeline Package when cloning because the cloned Pipeline may be
+          // old enough that the original associated Package is no longer stored
+          // by this user.
+          this.packageId = packageId;
+          this.parameters = pipelineData.parameters;
+        } else {
+          if (packageIdx === -1) {
+            Utils.log.error('Cannot find package with id ' + packageId);
+            return;
+          }
+          // TODO: Not setting this when pipelineData is present is a workaround
+          // because changing the selection triggers the _packageChanged()
+          // function which asynchronously overwrites this.parameters.
+          // Ideally we would just wait until the selection updated and then
+          // update the parameters based on the pipelineData.
+          packageList.selected = packageIdx;
         }
-        packageList.selected = packageIdx;
       }
     } finally {
       this._busy = false;

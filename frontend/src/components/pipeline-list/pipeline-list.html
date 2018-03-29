@@ -12,7 +12,7 @@
         <iron-icon icon="compare-arrows"></iron-icon>
         Compare Pipelines
       </paper-button>
-      <paper-button class="toolbar-button">
+      <paper-button class="toolbar-button" on-click="_clonePipeline" disabled="[[!oneItemIsSelected]]">
         <iron-icon icon="content-copy"></iron-icon>
         Clone
       </paper-button>

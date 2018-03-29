@@ -8,6 +8,7 @@ import 'polymer/polymer.html';
 import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
+import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';
 
@@ -21,6 +22,9 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
 
   @property({ type: Number })
   public selectedTab = 0;
+
+  @property({ type: Boolean })
+  disableClonePipelineButton = true;
 
   public async refresh(path: string) {
     if (path !== '') {
@@ -37,6 +41,21 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
       (this.$.jobs as any).loadJobs(pipeline.id);
 
       this.pipeline = pipeline;
+      if (this.pipeline) {
+        this.disableClonePipelineButton = false;
+      }
+    }
+  }
+
+  protected _clonePipeline() {
+    if (this.pipeline) {
+      this.dispatchEvent(
+        new RouteEvent(
+          '/pipelines/new',
+          {
+            packageId: this.pipeline.packageId,
+            parameters: this.pipeline.parameters
+          }));
     }
   }
 

@@ -134,6 +134,11 @@ paper-tab:not(:first-child) {
   background-color: var(--hover-bg-color);
 }
 
+.toolbar-button[disabled] {
+  background-color: inherit;
+  color: var(--neutral-color);
+}
+
 .toolbar-button iron-icon {
   height: 20px;
   padding-right: 3px;

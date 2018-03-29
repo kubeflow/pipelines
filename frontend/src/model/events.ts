@@ -8,11 +8,12 @@ export const ROUTE_EVENT = 'route';
 export class RouteEvent extends CustomEvent {
   public detail: {
     path: string,
+    data?: {},
   };
-  constructor(path: string) {
+  constructor(path: string, data?: {}) {
     const eventInit = {
       bubbles: true,
-      detail: { path }
+      detail: { path, data }
     };
     Object.defineProperty(eventInit, 'composed', {
       value: true,
