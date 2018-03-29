@@ -49,7 +49,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
 
   protected _busy = false;
 
-  public async refresh(_: string, queryParams: NewPipelineQueryParams, pipelineData?: NewPipelineData) {
+  public async load(_: string, queryParams: NewPipelineQueryParams, pipelineData?: NewPipelineData) {
     this._busy = true;
     const packageList = this.$.packagesListbox as any;
     try {

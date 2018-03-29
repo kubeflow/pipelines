@@ -60,7 +60,7 @@ export class AppShell extends Polymer.Element {
               pageName = defaultPage;
             }
             const pageEl = this._getPageElement(pageName);
-            pageEl.refresh(args, (this.route as any).__queryParams, (this.route as any).__data);
+            pageEl.load(args, (this.route as any).__queryParams, (this.route as any).__data);
             this.page = pageName;
           } else {
             Utils.log.error(`Bad path: ${newPath}`);

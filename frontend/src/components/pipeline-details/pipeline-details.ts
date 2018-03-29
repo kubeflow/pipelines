@@ -26,7 +26,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
   @property({ type: Boolean })
   disableClonePipelineButton = true;
 
-  public async refresh(path: string) {
+  public async load(path: string) {
     if (path !== '') {
       const id = Number.parseInt(path);
       if (isNaN(id)) {

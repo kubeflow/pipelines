@@ -38,7 +38,7 @@ export class PipelineList extends Polymer.Element implements PageElement {
     itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
   }
 
-  public async refresh(_: string) {
+  public async load(_: string) {
     this.pipelines = (await Apis.getPipelines()).map((p) => {
       if (p.createdAt) {
         p.createdAt = new Date(p.createdAt || '').toLocaleString();

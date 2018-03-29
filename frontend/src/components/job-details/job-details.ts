@@ -37,7 +37,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
 
   private _jobId = '';
 
-  public async refresh(_: string, queryParams: { jobId?: string, pipelineId: number }) {
+  public async load(_: string, queryParams: { jobId?: string, pipelineId: number }) {
     if (queryParams.jobId !== undefined && queryParams.pipelineId > -1) {
       this._pipelineId = queryParams.pipelineId;
       this._jobId = queryParams.jobId;
