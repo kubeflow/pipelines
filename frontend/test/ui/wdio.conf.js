@@ -4,14 +4,15 @@ const VisualRegressionCompare = require('wdio-visual-regression-service/compare'
 function getScreenshotName(basePath) {
   return function (context) {
     const type = context.type;
-    const testName = context.test.title;
+    const testName = context.test.title.replace(/ /g, '-');
+    const suiteName = path.parse(context.test.file).name;
     const browserVersion = parseInt(context.browser.version, 10);
     const browserName = context.browser.name;
     const browserViewport = context.meta.viewport;
     const browserWidth = browserViewport.width;
     const browserHeight = browserViewport.height;
 
-    return path.join(basePath, `${testName}_${type}_${browserName}_v${browserVersion}_${browserWidth}x${browserHeight}.png`);
+    return path.join(basePath, `${suiteName}/${testName}_${type}_${browserName}_v${browserVersion}_${browserWidth}x${browserHeight}.png`);
   };
 }
 
