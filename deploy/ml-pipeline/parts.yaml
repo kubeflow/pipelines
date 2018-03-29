@@ -1,0 +1,33 @@
+{
+   "name": "ml-pipeline",
+   "apiVersion": "0.0.1",
+   "kind": "ksonnet.io/parts",
+   "description": "Prototypes for running ML pipeline.\n",
+   "author": "cloud ml pipeline team <cloudml-pipelines@google.com>",
+   "contributors": [
+      {
+         "name": "Yang Pan",
+         "email": "yangpa@google.com"
+      }
+   ],
+   "repository": {
+      "type": "git",
+      "url": "https://github.com/googleprivate/ml"
+   },
+   "bugs": {
+      "url": "https://github.com/googleprivate/ml/issues"
+   },
+   "keywords": [
+      "ml-pipeline"
+   ],
+   "quickStart": {
+      "prototype": "io.ksonnet.pkg.ml-pipeline",
+      "componentName": "ml-pipeline",
+      "flags": {
+         "name": "ml-pipeline",
+         "namespace": "default"
+      },
+      "comment": "Deploy ML pipeline"
+   },
+   "license": "Apache 2.0"
+}

@@ -1,5 +1,127 @@
-# ML Engine
+# ML Pipeline User Guideline
 
-## Pipeline Management
+This document describes the basic guideline to install the Machine Learning pipeline system on a Kubernetes cluster. 
 
-### [Frontend](./frontend/README.md)
+## Prerequisites
+The following dependencies are required
+  * ksonnet version [0.8.0](https://ksonnet.io/#get-started) or later.
+  * Kubernetes >= 1.8
+
+If you don't want to install [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) and its dependencies(like VirtualBox), you can use [GKE](https://cloud.google.com/kubernetes-engine/) instead. See [Appendix](#setup-gke) for more information about setting up an GKE development environment.
+
+To make sure you install correctly, run following commands and you should not see any error
+```
+$ ks version
+ksonnet version: 0.9.1
+jsonnet version: v0.9.5
+client-go version: 1.8
+  
+$ kubectl get po
+No resources found.
+```
+
+## Deploy
+The ML pipeline system currently uses [Ksonnet](https://ksonnet.io/) for deployment. Ksonnet allows us to generate Kubernetes manifests from parameterized templates and makes it easy to customize Kubernetes manifests for different use cases.
+
+While we are waiting for a Ksonnet [feature](https://github.com/ksonnet/ksonnet/issues/232) to support private repo, you can run the following script which provides a workaround and sets up environment for you.  
+```
+deploy/deploy.sh
+```
+By default the deployment uses the official GCR images and deploy to default namespace. 
+
+You can choose the k8s namespace you want the resources to be deployed to by passing namespace argument
+```
+NAMESPACE=[namespace]
+deploy/deploy.sh -n ${NAMESPACE}
+```
+Note Ksonnet creates an [app](https://ksonnet.io/docs/concepts#application) folder under the current path. If you want to delete the K8s resource created by the deployment, run
+```
+cd ml-pipeline && ks delete default 
+```
+
+Once deployment is complete, you can check the resource created.
+```
+kubectl get deploy,svc,po -n ${NAMESPACE}
+
+NAME                         DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+deploy/argo-ui               1         1         1            1           11m
+deploy/minio                 1         1         1            1           11m
+deploy/ml-pipeline           1         1         1            1           11m
+deploy/ml-pipeline-ui        1         1         1            1           11m
+deploy/mysql                 1         1         1            1           11m
+deploy/workflow-controller   1         1         1            1           11m
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+svc/argo-ui          NodePort    10.100.109.95    <none>        80:32627/TCP   11m
+svc/minio-service    ClusterIP   10.107.175.136   <none>        9000/TCP       11m
+svc/ml-pipeline      ClusterIP   10.108.124.161   <none>        8888/TCP       11m
+svc/ml-pipeline-ui   ClusterIP   10.101.215.163   <none>        80/TCP         11m
+svc/mysql            ClusterIP   10.110.56.49     <none>        3306/TCP       11m
+
+NAME                                      READY     STATUS    RESTARTS   AGE
+po/argo-ui-5d7fbb58d4-c9gh8               1/1       Running   0          11m
+po/minio-5fc549ddc8-j8mkw                 1/1       Running   0          11m
+po/ml-pipeline-8b7765b7-bgjdh             1/1       Running   0          11m
+po/ml-pipeline-ui-55649b8469-4xn6n        1/1       Running   0          11m
+po/mysql-6cfdfdc89c-c6b22                 1/1       Running   0          11m
+po/workflow-controller-7d8f4bc5df-s8l5r   1/1       Running   0          11m
+```
+By default, the services don't expose any external IP. To visit the ML pipeline UI, forward its port.
+```
+kubectl port-forward -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) 8080:3000
+```
+You can now access the ML pipeline UI in [localhost:8080](http://localhost:8080).
+
+## Samples
+TODO add sample pipelines
+
+## Appendix
+
+### Setup Minikube
+See the Kubernetes official [doc](https://kubernetes.io/docs/tasks/tools/install-minikube/) to set up your Minikube.
+
+### Setup GKE
+
+Follow the [instruction](https://cloud.google.com/resource-manager/docs/creating-managing-projects) and create a GCP project. 
+Once created, enable the GKE API in this [page](https://console.developers.google.com/apis/enabled). You can also find more details about enabling the [billing](https://cloud.google.com/billing/docs/how-to/modify-project?visit_id=1-636559671979777487-508867449&rd=1#enable-billing), as well as activating [GKE API](https://cloud.google.com/kubernetes-engine/docs/quickstart#before-you-begin).
+
+Also, follow the instruction and install google [Cloud SDK](https://cloud.google.com/sdk/) and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#download-as-part-of-the-google-cloud-sdk) if you haven’t done so yet. Once installed, [authorize](https://cloud.google.com/sdk/gcloud/reference/auth/login) gcloud with your credential, and [set your default project](https://cloud.google.com/sdk/gcloud/reference/config/set).
+```
+gcloud auth login
+gcloud config set project [your-project-id]
+```
+
+The ML pipeline will be running on a GKE cluster. To start a new GKE cluster, first set a default compute zone (us-west1-a in this case):
+```
+gcloud config set compute/zone us-west1-a
+```
+Then start a GKE cluster. 
+```
+gcloud container clusters create ml-pipeline --scopes cloud-platform
+```
+Here we choose cloud-platform scope so it can invoke Dataproc cluster. You can find all options for creating a cluster in [here](https://cloud.google.com/sdk/gcloud/reference/container/clusters/create). 
+
+For example following would create a cluster with 3 nodes and n1-standard-2 [machine type](https://cloud.google.com/compute/docs/machine-types), with logging and monitoring enabled.
+```
+gcloud container clusters create ml-pipeline \
+  --zone us-west1-a \
+  --scopes cloud-platform \
+  --enable-cloud-logging \
+  --enable-cloud-monitoring \
+  --machine-type n1-standard-2 \
+  --num-nodes 3
+```
+Set the newly created GKE cluster as default.
+```
+gcloud config set container/cluster ml-pipeline
+```
+
+ML Pipeline uses Argo as its underlying pipeline orchestration system. When installing ML pipeline, a few new cluster roles will be generated for Argo and Pipeline’s API server, in order to allow them creating and retrieving resources such as pods, Argo workflow CRDs etc. 
+
+On GKE with RBAC enabled, you might need to grant your account the ability to create such new cluster roles.
+
+```
+$ kubectl create clusterrolebinding BINDING_NAME --clusterrole=cluster-admin --user=YOUREMAIL@gmail.com
+```
+
+Now the GKE cluster is ready to use.

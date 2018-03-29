@@ -349,7 +349,6 @@ spec:
           value: "minio123"
         ports:
         - containerPort: 9000
-          hostPort: 9000
 ---
 apiVersion: v1
 kind: Service

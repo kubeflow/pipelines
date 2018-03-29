@@ -1,31 +1,13 @@
 - Make sure minikube and kubectl are installed
-- Make sure Argo is installed and started.
-- Git clone the repository under ${GOPATH}/src, as recommended by golang. 
-
-- Run bash script
+- Run 
 ```
-./run.sh
+kubectl create -f ./ml-pipeline-e2e.yaml
 ```
-- Forward the pipeline manager port so you can access it from host machine
+- Forward the front end port, and open http://localhost:8080
 ```
-kubectl get pod
-kubectl port-forward [pipeline-manager-pod] 8888:8888
+kubectl port-forward $(kubectl get pods -l app=ml-pipeline-frontend -o jsonpath='{.items[0].metadata.name}') 8080:3000
 ```
-- Get shell for the api server pod
-```
-kubectl exec -it pipeline-manager-single -- /bin/bash
-```
-- The API server logs are located in 
-```
-\tmp
-```
-- You can inspect the package files through Minio UI
-```
-kubectl port-forward [minio-pod] 9000:9000
-``` 
 - To clean up 
  ```
- kubectl delete deploy,svc -l app=ml-pipeline-manager
- kubectl delete svc minio-service
- kubectl delete pvc minio-pv-claim
+kubectl delete -f ./ml-pipeline-e2e.yaml
  ```

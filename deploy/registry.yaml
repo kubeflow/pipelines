@@ -1,0 +1,6 @@
+apiVersion: '0.1'
+kind: ksonnet.io/registry
+libraries:
+  ml-pipeline:
+    version: master
+    path: ml-pipeline
