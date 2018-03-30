@@ -9,9 +9,8 @@ import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
-import * as Utils from '../../lib/utils';
 
-import { customElement, property } from 'polymer-decorators/src/decorators';
+import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { Parameter } from '../../model/parameter';
@@ -32,87 +31,70 @@ interface NewPipelineData {
 @customElement('pipeline-new')
 export class PipelineNew extends Polymer.Element implements PageElement {
 
-  @property({ type: Number })
-  public packageId: number;
-
   @property({ type: Array })
   public packages: PipelinePackage[];
 
-  @property({ type: String })
-  public startDate = '';
-
-  @property({ type: String })
-  public endDate = '';
-
   @property({ type: Object })
-  public parameters: Parameter[];
+  public newPipeline: Pipeline;
+
+  @property({ type: Number })
+  protected _packageIndex = -1;
 
   protected _busy = false;
+  protected _overwriteData?: NewPipelineData;
 
-  public async load(_: string, queryParams: NewPipelineQueryParams, pipelineData?: NewPipelineData) {
+  public async load(_: string, queryParams: NewPipelineQueryParams,
+                    pipelineData?: NewPipelineData) {
     this._busy = true;
+    this._overwriteData = pipelineData;
     const packageList = this.$.packagesListbox as any;
+
+    // Clear package selection on each component load
+    packageList.select();
+    this.newPipeline = new Pipeline();
+    this.set('newPipeline.packageId',
+      this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1);
+
     try {
       this.packages = await Apis.getPackages();
 
-      if (queryParams.packageId && pipelineData && pipelineData.packageId) {
-        Utils.log.error('Package ID should not be present in both queryparams and pipelineData');
-        return;
-      }
-
-      const packageId = queryParams.packageId || (pipelineData ? pipelineData.packageId : pipelineData);
-      if (packageId) {
-        let packageIdx = -1;
+      if (this.newPipeline.packageId > -1) {
         this.packages.forEach((p, i) => {
-          if (p.id === packageId) {
-            packageIdx = i;
+          if (p.id === +this.newPipeline.packageId) {
+            // This will cause the observer below to fire before continuing to
+            // overwrite the data below.
+            this.set('_packageIndex', i);
           }
         });
-
-        if (pipelineData) {
-          // For now we don't worry about whether or not we can find a matching
-          // Pipeline Package when cloning because the cloned Pipeline may be
-          // old enough that the original associated Package is no longer stored
-          // by this user.
-          this.packageId = packageId;
-          this.parameters = pipelineData.parameters;
-        } else {
-          if (packageIdx === -1) {
-            Utils.log.error('Cannot find package with id ' + packageId);
-            return;
+      }
+      if (this._overwriteData) {
+        this.set('newPipeline.packageId', this._overwriteData.packageId);
+        // Augment the list of parameters with the overwrite data parameters. To
+        // achieve this, first deep clone the parameters array, then for each
+        // parameter, check if there one with the same name in the overwrite
+        // data, Object.assign them.
+        const augmentedParams = this.newPipeline.parameters.map((p) => ({...p}));
+        this._overwriteData.parameters.forEach((p) => {
+          const param = augmentedParams.filter((_p) => _p.name === p.name);
+          if (param.length === 1) {
+            param[0] = Object.assign(param[0], p);
           }
-          // TODO: Not setting this when pipelineData is present is a workaround
-          // because changing the selection triggers the _packageChanged()
-          // function which asynchronously overwrites this.parameters.
-          // Ideally we would just wait until the selection updated and then
-          // update the parameters based on the pipelineData.
-          packageList.selected = packageIdx;
-        }
+        });
+        this.set('newPipeline.parameters', augmentedParams);
       }
     } finally {
       this._busy = false;
     }
   }
 
-  protected async _packageChanged(e: any) {
-    const selectedEl = (this.$.packagesListbox as any).selectedItem;
-    if (!selectedEl) {
+  @observe('_packageIndex')
+  _packageIndexChanged(newIndex: number) {
+    if (newIndex === undefined || this.packages === undefined) {
       return;
     }
-    this.packageId = selectedEl.packageId;
-    const pkg = this.packages.filter((p) => p.id === this.packageId)[0];
-    if (!pkg) {
-      Utils.log.error('No package found with id ' + this.packageId);
-      return;
-    }
-
-    this.parameters = pkg.parameters.map((p) => {
-      return {
-        description: p.description,
-        name: p.name,
-        value: p.value || '',
-      };
-    });
+    const pkg = this.packages[newIndex];
+    this.set('newPipeline.packageId', pkg.id);
+    this.set('newPipeline.parameters', pkg.parameters);
   }
 
   protected _altUpload() {
@@ -137,28 +119,8 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     (this.$.altFileUpload as HTMLInputElement).value = '';
   }
 
-  protected _pickStartDate() {
-    const datepicker = this.$.startDatepicker as any;
-    datepicker.open();
-  }
-
-  protected _pickEndDate() {
-    const datepicker = this.$.endDatepicker as any;
-    datepicker.open();
-  }
-
   protected async _deploy() {
-    const newPipeline: Pipeline = {
-      author: '',
-      description: (this.$.description as HTMLInputElement).value,
-      name: (this.$.name as HTMLInputElement).value,
-      packageId: this.packageId,
-      parameters: this.parameters,
-      recurring: false,
-      recurringIntervalHours: 0,
-    };
-    await Apis.newPipeline(newPipeline);
-
+    await Apis.newPipeline(this.newPipeline);
     this.dispatchEvent(new RouteEvent('/pipelines'));
   }
 }
