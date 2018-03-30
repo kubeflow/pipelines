@@ -18,8 +18,8 @@ import 'paper-button/paper-button.html';
 import 'paper-checkbox/paper-checkbox.html';
 import 'paper-icon-button/paper-icon-button.html';
 import 'paper-item/paper-item.html';
-import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 
+import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { ItemClickEvent } from '../../model/events';
 
 import './item-list.html';

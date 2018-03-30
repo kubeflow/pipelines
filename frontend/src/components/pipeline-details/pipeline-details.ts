@@ -5,9 +5,10 @@ import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 
-import { customElement, property } from '../../decorators';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
+
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';

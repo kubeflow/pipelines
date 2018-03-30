@@ -3,20 +3,20 @@ import 'paper-progress/paper-progress.html';
 import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
-import '../data-plotter/data-plot';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 // @ts-ignore
 import prettyJson from 'json-pretty-html';
-import { customElement, property } from '../../decorators';
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase, Workflow } from '../../model/argo_template';
 import { PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
 import { JobGraph } from '../job-graph/job-graph';
 
+import '../data-plotter/data-plot';
 import '../job-graph/job-graph';
 import './job-details.html';
 

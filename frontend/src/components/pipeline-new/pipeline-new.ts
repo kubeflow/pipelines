@@ -11,14 +11,14 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-import './pipeline-new.html';
-
-import { customElement, property } from '../../decorators';
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { Parameter } from '../../model/parameter';
 import { Pipeline } from '../../model/pipeline';
 import { PipelinePackage } from '../../model/pipeline_package';
+
+import './pipeline-new.html';
 
 interface NewPipelineQueryParams {
   packageId?: number;

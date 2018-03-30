@@ -1,13 +1,13 @@
-import { customElement, property } from 'polymer-decorators/src/decorators';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import { NodePhase } from '../../model/argo_template';
 import { ItemClickEvent, RouteEvent } from '../../model/events';
-
 import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
+
 import './job-list.html';
 
 @customElement('job-list')

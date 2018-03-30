@@ -1,10 +1,10 @@
-import { customElement, property } from 'polymer-decorators/src/decorators';
-
 import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
+
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import { ItemClickEvent, RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';

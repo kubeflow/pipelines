@@ -3,7 +3,7 @@ import 'iron-icons/iron-icons.html';
 
 import * as dagre from 'dagre';
 
-import { customElement, property } from '../../decorators';
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import { nodePhaseToIcon } from '../../lib/utils';
 import { Workflow as ArgoTemplate } from '../../model/argo_template';
 

@@ -1,14 +1,12 @@
-import { customElement, property } from 'polymer-decorators/src/decorators';
 import 'polymer/polymer-element.html';
 import 'polymer/polymer.html';
-
-import { csvParseRows } from 'd3';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
+import { csvParseRows } from 'd3';
+import { customElement, property } from 'polymer-decorators/src/decorators';
 import { PlotMetadata, PlotType } from '../../model/output_metadata';
-
 import { drawMatrix } from './confusion-matrix';
 import { drawROC } from './roc-plot';
 

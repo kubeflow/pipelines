@@ -1,9 +1,14 @@
-import 'polymer/polymer.html';
-
 import 'app-route/app-location.html';
 import 'app-route/app-route.html';
 import 'iron-pages/iron-pages.html';
 import 'paper-styles/paper-styles.html';
+import 'polymer/polymer.html';
+
+import * as Utils from '../../lib/utils';
+
+import { customElement, property } from 'polymer-decorators/src/decorators';
+import { ROUTE_EVENT, RouteEvent } from '../../model/events';
+import { PageElement } from '../../model/page_element';
 
 import '../job-details/job-details';
 import '../job-list/job-list';
@@ -11,12 +16,6 @@ import '../pipeline-details/pipeline-details';
 import '../pipeline-list/pipeline-list';
 import '../pipeline-new/pipeline-new';
 import './app-shell.html';
-
-import * as Utils from '../../lib/utils';
-
-import { customElement, property } from '../../decorators';
-import { ROUTE_EVENT, RouteEvent } from '../../model/events';
-import { PageElement } from '../../model/page_element';
 
 const defaultPage = 'pipelines';
 
