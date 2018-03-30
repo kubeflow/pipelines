@@ -28,6 +28,7 @@ type FakeStore struct {
 	PipelineStore PipelineStoreInterface
 	JobStore JobStoreInterface
 	WorkflowClientFake *FakeWorkflowClient
+	Time util.TimeInterface
 }
 
 func NewFakeStore(time util.TimeInterface) (*FakeStore, error) {
@@ -49,6 +50,7 @@ func NewFakeStore(time util.TimeInterface) (*FakeStore, error) {
 		PipelineStore: NewPipelineStore(gormDatabase, time),
 		JobStore: NewJobStore(gormDatabase, workflowClient, time),
 		WorkflowClientFake: workflowClient,
+		Time: time,
 	}, nil
 }
 

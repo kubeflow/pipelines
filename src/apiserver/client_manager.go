@@ -17,19 +17,16 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"ml/src/client"
 	"ml/src/message"
 	"ml/src/storage"
 	"ml/src/util"
 
-	argoclient "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
-	"github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/minio/minio-go"
-	k8sclient "k8s.io/api/core/v1"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -104,12 +101,11 @@ func initDBClient() *gorm.DB {
 // Initialize the connection string for connecting to Mysql database
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
 func initMysql(driverName string) string {
-	mysqlConfig := mysql.Config{
-		User:   "root",
-		Net:    "tcp",
-		Addr:   fmt.Sprintf("%s:%s", getConfig(mysqlServiceHost), getConfig(mysqlServicePort)),
-		Params: map[string]string{"charset": "utf8", "parseTime": "True", "loc": "Local"},
-	}
+	mysqlConfig := client.CreateMySQLConfig(
+		"root",
+		getConfig(mysqlServiceHost),
+		getConfig(mysqlServicePort),
+		"")
 	db, err := sql.Open(driverName, mysqlConfig.FormatDSN())
 	defer db.Close()
 	util.TerminateIfError(err)
@@ -150,12 +146,10 @@ func initMinioClient() storage.PackageManagerInterface {
 
 // creates a new client for the Kubernetes Workflow CRD.
 func initWorkflowClient() v1alpha1.WorkflowInterface {
-	restConfig, err := rest.InClusterConfig()
+	wfClient, err := client.CreateWorkflowClient()
 	if err != nil {
-		glog.Fatalf("Failed to initialize workflow client. Error: %v", err)
+		glog.Fatalf("Failed to create workflow client. Error: %v", err)
 	}
-	wfClientSet := argoclient.NewForConfigOrDie(restConfig)
-	wfClient := wfClientSet.ArgoprojV1alpha1().Workflows(k8sclient.NamespaceDefault)
 	return wfClient
 }
 

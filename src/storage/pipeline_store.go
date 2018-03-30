@@ -83,6 +83,18 @@ type PipelineAndLatestJob struct {
 	PipelineEnabledAtInSec *int64
 }
 
+func (p *PipelineAndLatestJob) String() string {
+	return fmt.Sprintf(
+		"PipelineAndLatestJob{PipelineID: %v, PipelineName: %v, PipelineSchedule: %v, JobName: %v, JobScheduledAtInSec: %v, PipelineEnabled: %v, PipelineEnabledAtInSec: %v}",
+		util.StringNilOrValue(p.PipelineID),
+		util.StringNilOrValue(p.PipelineName),
+		util.StringNilOrValue(p.PipelineSchedule),
+		util.StringNilOrValue(p.JobName),
+		util.Int64NilOrValue(p.JobScheduledAtInSec),
+		util.BoolNilOrValue(p.PipelineEnabled),
+		util.Int64NilOrValue(p.PipelineEnabledAtInSec))
+}
+
 type PipelineAndLatestJobIterator struct {
 	rows *sql.Rows
 }

@@ -222,19 +222,20 @@ func (a APIHandler) createPipelineInternal(pipeline message.Pipeline) (*message.
 		return nil, err, "CreatePipeline"
 	}
 
-	template, err := a.packageManager.GetTemplate(pkg.Name)
-	if err != nil {
-		return nil, err, "CreatePipeline_GetPackageFile"
-	}
-
-	// Inject parameters user provided to the pipeline template.
-	workflow, err := util.InjectParameters(template, pipeline.Parameters)
-	if err != nil {
-		return nil, err, "CreatePipeline_CreateJob_InjectParameter"
-	}
-
 	// If there is no pipeline schedule, the job is created immediately.
 	if pipeline.Schedule == "" {
+
+		template, err := a.packageManager.GetTemplate(pkg.Name)
+		if err != nil {
+			return nil, err, "CreatePipeline_GetPackageFile"
+		}
+
+		// Inject parameters user provided to the pipeline template.
+		workflow, err := util.InjectParameters(template, pipeline.Parameters)
+		if err != nil {
+			return nil, err, "CreatePipeline_CreateJob_InjectParameter"
+		}
+
 		_, err = a.jobStore.CreateJob(pipeline.ID, &workflow)
 		if err != nil {
 			return nil, err, "CreatePipeline_CreateJob"

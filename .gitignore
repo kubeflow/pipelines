@@ -29,4 +29,7 @@ frontend/test/ui/errorShots
 # Vendor
 vendor/
 
+# Merge files
+*.orig
+
 .DS_Store
