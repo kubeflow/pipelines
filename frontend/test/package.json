@@ -23,7 +23,7 @@
     "start": "cd .. && npm start",
     "ui-tests": "wdio ui/wdio.conf.js",
     "unit-tests": "jasmine-ts unit/*.ts",
-    "test": "npm run unit-tests & npm run ui-tests",
+    "test": "npm run unit-tests & HEADLESS_UI_TESTS=1 npm run ui-tests",
     "ci": "start-server-and-test start-server http://localhost:3000 ui-tests"
   }
 }

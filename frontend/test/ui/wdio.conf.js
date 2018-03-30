@@ -1,6 +1,9 @@
 const path = require('path');
 const VisualRegressionCompare = require('wdio-visual-regression-service/compare');
 
+const headless = !!process.env.HEADLESS_UI_TESTS;
+const singleSuite = process.env.SINGLE_SUITE;
+
 function getScreenshotName(basePath) {
   return function (context) {
     const type = context.type;
@@ -21,12 +24,15 @@ exports.config = {
   baseUrl: 'http://localhost:3000',
   capabilities: [{
     maxInstances: 5,
-    browserName: 'chrome'
+    browserName: 'chrome',
+    chromeOptions: {
+      args: headless ? ['--headless', '--disable-gpu', '--window-size=1024,800'] : [],
+    },
   }],
   coloredLogs: true,
   connectionRetryCount: 3,
   connectionRetryTimeout: 90000,
-  deprecationWarnings: true,
+  deprecationWarnings: false,
   framework: 'jasmine',
   jasmineNodeOpts: {
     defaultTimeoutInterval: 10000,
@@ -39,7 +45,7 @@ exports.config = {
   screenshotPath: './ui/errorShots/',
   services: ['selenium-standalone', 'visual-regression'],
   specs: [
-    './ui/*.spec.js'
+    singleSuite || './ui/*.spec.js',
   ],
   sync: true,
   visualRegression: {

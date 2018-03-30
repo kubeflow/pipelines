@@ -15,3 +15,11 @@ don't see much value for types within these tests. They use the
 making use of its visual regression service to compare screenshots taken
 during tests against golden shots under
 frontend/test/ui/screenshots/reference.
+
+UI tests are run in headless Chrome by default if they're run using `npm
+test`. In order to see the browser, you can do `npm run ui-tests`, which
+reads two environment variables as parameters:
+- HEADLESS_UI_TESTS: by default false, but is set to true when using `npm
+test`.
+- SINGLE_SUITE: can be used to run a single UI suite. For example
+`SINGLE_SUITE=ui/pipeline-details.spec.js npm run ui-tests`.

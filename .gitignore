@@ -17,6 +17,7 @@ dist
 frontend/server/*.js
 
 # UI test outputs
+frontend/test/ui/screenshots/diff
 frontend/test/ui/screenshots/screen
 frontend/test/ui/errorShots
 

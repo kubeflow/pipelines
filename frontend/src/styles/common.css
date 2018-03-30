@@ -136,7 +136,7 @@ paper-tab:not(:first-child) {
 
 .toolbar-button[disabled] {
   background-color: inherit;
-  color: var(--neutral-color);
+  color: var(--disabled-color);
 }
 
 .toolbar-button iron-icon {

@@ -1,0 +1,34 @@
+const assert = require('assert');
+
+function assertDiffs(results) {
+  results.forEach(r => assert.ok(r.isExactSameImage));
+}
+
+describe('view pipeline details', () => {
+
+  beforeAll(() => {
+    browser.url('/');
+  });
+
+  it('opens pipeline details on double click', () => {
+    const selector = 'app-shell pipeline-list item-list paper-item';
+
+    browser.waitForVisible(selector);
+    browser.doubleClick(selector);
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('can switch to run list tab', () => {
+    const selector = 'app-shell pipeline-details paper-tab:last-child';
+
+    browser.click(selector);
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('populates new pipeline on clone', () => {
+    const selector = 'app-shell pipeline-details paper-button';
+
+    browser.click(selector);
+    assertDiffs(browser.checkDocument());
+  });
+});
