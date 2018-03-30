@@ -1,0 +1,11 @@
+<dom-module id="message-dialog">
+  <template>
+    <link rel="stylesheet" href="./message-dialog.css">
+    <paper-dialog with-backdrop id="dialog" class="dialog">
+      <div class="message">[[message]]</div>
+      <div class="footer">
+        <paper-button class="btn" on-click="close">Close</paper-button>
+      </div>
+    </paper-dialog>
+  </template>
+</dom-module>

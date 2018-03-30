@@ -1,4 +1,8 @@
+import { MessageDialog } from '../components/message-dialog/message-dialog';
 import { NODE_PHASE, NodePhase } from '../model/argo_template';
+
+import 'paper-toast/paper-toast';
+import '../components/message-dialog/message-dialog';
 
 export function deleteAllChildren(parent: HTMLElement) {
   while (parent.firstChild) {
@@ -93,4 +97,26 @@ export function nodePhaseToColor(status: NodePhase) {
       log.error('Unknown status:', status);
       return '--neutral-color';
   }
+}
+
+export function showDialog(message: string) {
+  const dialog = document.createElement('message-dialog') as MessageDialog;
+  document.body.appendChild(dialog);
+  dialog.addEventListener('iron-overlay-closed', () => {
+    document.body.removeChild(dialog);
+  });
+
+  dialog.message = message;
+  dialog.open();
+}
+
+export function showNotification(message: string) {
+  const toast = document.createElement('paper-toast');
+  document.body.appendChild(toast);
+  toast.addEventListener('iron-overlay-closed', () => {
+    document.body.removeChild(toast);
+  });
+
+  toast.text = message;
+  toast.open();
 }
