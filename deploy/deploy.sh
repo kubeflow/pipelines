@@ -46,7 +46,7 @@ echo "Initialized ksonnet APP successfully"
 # when the repo is public we can do following:
 # ks registry add ml-pipeline github.com/googleprivate/ml/tree/master/deploy
 # ks pkg install ml-pipeline/ml-pipeline
-BASEDIR=$(dirname "$0")
+BASEDIR=$(cd $(dirname "$0") && pwd)
 ln -s ${BASEDIR} ${APP_DIR}/vendor/ml-pipeline
 
 # Modifying the app.yaml
