@@ -18,195 +18,122 @@ import (
 	"ml/src/message"
 	"ml/src/util"
 	"testing"
-	"time"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/jinzhu/gorm"
-	"github.com/kataras/iris/core/errors"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
 )
 
-var ct, st, ft time.Time
-
-func initializeJobDB() (*gorm.DB, sqlmock.Sqlmock) {
-	db, mock, _ := sqlmock.New()
-	gormDB, _ := gorm.Open("mysql", db)
-	return gormDB, mock
-}
-
-// TODO: Switch to using the FakeWorkflowClient.
-type FakeGoodWorkflowClient struct {
-}
-
-func (FakeGoodWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	return &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
-		Name:              "artifact-passing-abcd",
-		CreationTimestamp: v1.Time{Time: ct}},
-		Status: v1alpha1.WorkflowStatus{
-			StartedAt:  v1.Time{Time: st},
-			FinishedAt: v1.Time{Time: ft},
-			Phase:      "Pending"}}, nil
-}
-
-func (FakeGoodWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
-	return &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
-		Name:              "artifact-passing-xyz",
-		CreationTimestamp: v1.Time{Time: ct}},
-		Status: v1alpha1.WorkflowStatus{
-			StartedAt:  v1.Time{Time: st},
-			FinishedAt: v1.Time{Time: ft},
-			Phase:      "Pending"}}, nil
-}
-
-func (FakeGoodWorkflowClient) List(opts v1.ListOptions) (*v1alpha1.WorkflowList, error) {
-	panic("implement me")
-}
-
-func (FakeGoodWorkflowClient) Update(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	panic("implement me")
-}
-
-func (FakeGoodWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
-	panic("implement me")
-}
-
-func (FakeGoodWorkflowClient) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	panic("implement me")
-}
-
-func (FakeGoodWorkflowClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	panic("implement me")
-}
-
-func (FakeGoodWorkflowClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Workflow, err error) {
-	panic("implement me")
-}
-
-type FakeBadWorkflowClient struct {
-	FakeGoodWorkflowClient
-}
-
-func (FakeBadWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	return nil, errors.New("some error")
-}
-
-func (FakeBadWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
-	return nil, errors.New("some error")
-}
-
-func init() {
-	ct, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
-	st, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
-	ft, _ = time.Parse(time.RFC1123Z, "2018-02-08T02:19:01-08:00")
-}
-
-func TestListJobs(t *testing.T) {
-	db, mock := initializeJobDB()
-	jobsRow := sqlmock.NewRows([]string{"name", "pipeline_id"}).
-		AddRow("abcd", 1).
-		AddRow("efgh", 1)
-
-	mock.ExpectQuery("SELECT (.*) FROM `jobs` WHERE").WillReturnRows(jobsRow)
-	store := &JobStore{db: db}
-	jobs, err := store.ListJobs(1)
-
-	if err != nil {
-		t.Errorf("Something wrong. Error %v", err)
-	}
-	expectedJobs := []message.Job{
-		{Metadata: &message.Metadata{}, Name: "abcd", PipelineID: 1},
-		{Metadata: &message.Metadata{}, Name: "efgh", PipelineID: 1}}
-
-	assert.Equal(t, jobs, expectedJobs, "Unexpected Job parsed. Expect %v. Got %v", expectedJobs, jobs)
-}
-
-func TestListJobsError(t *testing.T) {
-	db, mock := initializeJobDB()
-	mock.ExpectQuery("SELECT (.*) FROM `jobs`").WillReturnError(errors.New("something"))
-	store := &JobStore{db: db}
-	_, err := store.ListJobs(1)
-	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
+func createWorkflow(name string) *v1alpha1.Workflow {
+	return &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: name},
+		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}
 }
 
 func TestCreateJob(t *testing.T) {
-	db, mock := initializeJobDB()
-	mock.ExpectExec("INSERT INTO `jobs`").
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "artifact-passing-abcd", 1, 1).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	store := NewJobStore(db, &FakeGoodWorkflowClient{}, util.NewFakeTimeForEpoch())
-	job, err := store.CreateJob(1, &v1alpha1.Workflow{})
-
-	if err != nil {
-		t.Errorf("Something wrong. Error %v", err)
-		return
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	wf1 := createWorkflow("wf1")
+	jobExpected := message.Job{
+		Metadata:         &message.Metadata{ID: 1},
+		Name:             "wf1",
+		ScheduledAtInSec: 1,
+		PipelineID:       1,
 	}
-	wfExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
-		Name:              "artifact-passing-abcd",
-		CreationTimestamp: v1.Time{Time: ct}},
-		Status: v1alpha1.WorkflowStatus{
-			StartedAt:  v1.Time{Time: st},
-			FinishedAt: v1.Time{Time: ft},
-			Phase:      "Pending"}}
-	jobExpect := message.JobDetail{Workflow: wfExpect}
-	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
-}
+	jobDetailExpect := message.JobDetail{Workflow: wf1}
 
-func TestCreateJob_StoreMetadataError(t *testing.T) {
-	db, mock := initializeJobDB()
-	mock.ExpectExec("INSERT INTO `jobs`").WillReturnError(errors.New("something"))
-	store := NewJobStore(db, &FakeGoodWorkflowClient{}, util.NewFakeTimeForEpoch())
-	_, err := store.CreateJob(1, &v1alpha1.Workflow{})
-	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
-	assert.Contains(t, err.Error(), "Failed to store job metadata", "Get unexpected error")
+	jobDetails, err := store.JobStore.CreateJob(1, wf1)
+	assert.Nil(t, err)
+	assert.Equal(t, jobDetailExpect, *jobDetails, "Unexpected Job parsed.")
+
+	var job message.Job
+	queryJob(store.DB, 1, wf1.Name, &job)
+	assert.Equal(t, jobExpected, job)
 }
 
 func TestCreateJob_CreateWorkflowError(t *testing.T) {
 	store := &JobStore{wfClient: &FakeBadWorkflowClient{}}
-	_, err := store.CreateJob(1, &v1alpha1.Workflow{})
-	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
-	assert.Contains(t, err.Error(), "Failed to create job", "Get unexpected error")
+	_, err := store.CreateJob(1, createWorkflow("wf1"))
+	assert.IsType(t, new(util.InternalError), err, "Expected to throw an internal error")
+	assert.Contains(t, err.Error(), "Failed to create job", "Got unexpected error")
+}
+
+func TestCreateJob_StoreMetadataError(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB.Close()
+
+	_, err := store.JobStore.CreateJob(1, &v1alpha1.Workflow{})
+	assert.IsType(t, new(util.InternalError), err, "Expected to throw an internal error")
+	assert.Contains(t, err.Error(), "Failed to store job metadata", "Get unexpected error")
+}
+
+func TestListJobs(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.JobStore.CreateJob(1, createWorkflow("wf1"))
+	store.JobStore.CreateJob(2, createWorkflow("wf2"))
+
+	jobsExpected := []message.Job{
+		{Metadata: &message.Metadata{ID: 1},
+			Name:             "wf1",
+			ScheduledAtInSec: 1,
+			PipelineID:       1,
+		}}
+	jobs, err := store.JobStore.ListJobs(1)
+	assert.Nil(t, err)
+	assert.Equal(t, jobsExpected, jobs, "Unexpected Job listed.")
+
+	jobs, err = store.JobStore.ListJobs(3)
+	assert.Empty(t, jobs)
+}
+
+func TestListJobsError(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB.Close()
+	_, err := store.JobStore.ListJobs(1)
+	assert.IsType(t, new(util.InternalError), err, "Expected to throw an internal error")
 }
 
 func TestGetJob(t *testing.T) {
-	db, mock := initializeJobDB()
-	jobRow := sqlmock.NewRows([]string{"name", "pipeline_id"}).AddRow("abcd", 1)
-	mock.ExpectQuery("SELECT (.*) FROM `jobs` WHERE").WillReturnRows(jobRow)
-	store := &JobStore{db: db, wfClient: &FakeGoodWorkflowClient{}}
-	job, err := store.GetJob(1, "job1")
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	wf1 := createWorkflow("wf1")
+	store.JobStore.CreateJob(1, wf1)
+	jobDetailExpect := message.JobDetail{Workflow: wf1}
 
-	if err != nil {
-		t.Errorf("Something wrong. Error %v", err)
-	}
-	wfExpect := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{
-		Name:              "artifact-passing-xyz",
-		CreationTimestamp: v1.Time{Time: ct}},
-		Status: v1alpha1.WorkflowStatus{
-			StartedAt:  v1.Time{Time: st},
-			FinishedAt: v1.Time{Time: ft},
-			Phase:      "Pending"}}
-	jobExpect := message.JobDetail{Workflow: wfExpect}
-	assert.Equal(t, job, jobExpect, "Unexpected Job parsed. Expect %v. Got %v", job, jobExpect)
+	jobDetail, err := store.JobStore.GetJob(1, wf1.Name)
+	assert.Nil(t, err)
+	assert.Equal(t, jobDetailExpect, *jobDetail)
 }
 
-func TestGetJob_JobNotExistError(t *testing.T) {
-	db, mock := initializeJobDB()
-	mock.ExpectQuery("SELECT (.*) FROM `jobs`").WillReturnError(errors.New("something"))
-	store := &JobStore{db: db}
-	_, err := store.GetJob(1, "job1")
-	assert.IsType(t, new(util.ResourceNotFoundError), err, "expect not to find the job")
+func TestGetJob_NotFoundError(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+
+	_, err := store.JobStore.GetJob(1, "wf1")
+	assert.IsType(t, new(util.ResourceNotFoundError), err, "Expected not to find the job")
+}
+
+func TestGetJob_InternalError(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	wf1 := createWorkflow("wf1")
+	store.JobStore.CreateJob(1, wf1)
+	store.DB.Close()
+
+	_, err := store.JobStore.GetJob(1, wf1.Name)
+	assert.IsType(t, new(util.InternalError), err, "Expected get job to return internal error")
 }
 
 func TestGetJob_GetWorkflowError(t *testing.T) {
-	db, mock := initializeJobDB()
-	jobRow := sqlmock.NewRows([]string{"name", "pipeline_id"}).AddRow("abcd", 1)
-	mock.ExpectQuery("SELECT (.*) FROM `jobs` WHERE").WillReturnRows(jobRow)
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	wf1 := createWorkflow("wf1")
+	store.JobStore.CreateJob(1, wf1)
 
-	store := &JobStore{db: db, wfClient: &FakeBadWorkflowClient{}}
-	_, err := store.GetJob(1, "job1")
-	assert.IsType(t, new(util.InternalError), err, "expect to throw an internal error")
+	jobStore := NewJobStore(store.DB, &FakeBadWorkflowClient{}, util.NewFakeTimeForEpoch())
+	_, err := jobStore.GetJob(1, wf1.Name)
+	assert.IsType(t, new(util.InternalError), err, "Expected to throw an internal error")
 }

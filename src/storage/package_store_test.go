@@ -15,85 +15,92 @@
 package storage
 
 import (
-	"errors"
 	"ml/src/message"
 	"ml/src/util"
 	"testing"
 
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
-func initializePackageDB() (PackageStoreInterface, sqlmock.Sqlmock) {
-	db, mock, _ := sqlmock.New()
-	gormDB, _ := gorm.Open("mysql", db)
-	return &PackageStore{db: gormDB}, mock
+func createPkg(name string) *message.Package {
+	return &message.Package{Name: name, Parameters: []message.Parameter{}}
 }
 
 func TestListPackages(t *testing.T) {
-	expectedPackages := []message.Package{
-		{Metadata: &message.Metadata{ID: 1}, Name: "Package123", Parameters: []message.Parameter{}},
-		{Metadata: &message.Metadata{ID: 2}, Name: "Package456", Parameters: []message.Parameter{}}}
-	ps, mock := initializePackageDB()
-	packagesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description"}).
-		AddRow(1, nil, nil, nil, "Package123", "").
-		AddRow(2, nil, nil, nil, "Package456", "")
-	mock.ExpectQuery("SELECT (.*) FROM `packages`").WillReturnRows(packagesRow)
-	parametersRow := sqlmock.NewRows([]string{"name", "value", "owner_id", "owner_type"})
-	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnRows(parametersRow)
-	packages, _ := ps.ListPackages()
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PackageStore.CreatePackage(createPkg("pkg1"))
+	store.PackageStore.CreatePackage(createPkg("pkg2"))
+	expectedPkg1 := *createPkg("pkg1")
+	expectedPkg1.Metadata = &message.Metadata{ID: 1}
+	expectedPkg2 := *createPkg("pkg2")
+	expectedPkg2.Metadata = &message.Metadata{ID: 2}
+	pkgsExpected := []message.Package{expectedPkg1, expectedPkg2}
 
-	assert.Equal(t, expectedPackages, packages, "Got unexpected packages")
+	pkgs, err := store.PackageStore.ListPackages()
+	assert.Nil(t, err)
+	assert.Equal(t, pkgsExpected, pkgs, "Got unexpected packages.")
 }
 
 func TestListPackagesError(t *testing.T) {
-	ps, mock := initializePackageDB()
-	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnError(errors.New("something"))
-	_, err := ps.ListPackages()
-
-	assert.IsType(t, new(util.InternalError), err, "Expect to list packages to return error")
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB.Close()
+	_, err := store.PackageStore.ListPackages()
+	assert.IsType(t, new(util.InternalError), err, "Expected to list packages to return error")
 }
 
 func TestGetPackage(t *testing.T) {
-	expectedPackage := message.Package{
-		Metadata: &message.Metadata{ID: 1}, Name: "Package123", Parameters: []message.Parameter{}}
-	ps, mock := initializePackageDB()
-	packagesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description"}).
-		AddRow(1, nil, nil, nil, "Package123", "")
-	mock.ExpectQuery("SELECT (.*) FROM `packages`").WillReturnRows(packagesRow)
-	parametersRow := sqlmock.NewRows([]string{"name", "value", "owner_id", "owner_type"})
-	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnRows(parametersRow)
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PackageStore.CreatePackage(createPkg("pkg1"))
+	pkgExpected := message.Package{
+		Metadata:   &message.Metadata{ID: 1},
+		Name:       "pkg1",
+		Parameters: []message.Parameter{},
+	}
 
-	pkg, _ := ps.GetPackage(123)
-
-	assert.Equal(t, expectedPackage, pkg, "Got unexpected package")
+	pkg, err := store.PackageStore.GetPackage(1)
+	assert.Nil(t, err)
+	assert.Equal(t, pkgExpected, *pkg, "Got unexpected package.")
 }
 
-func TestGetPackageNotFoundError(t *testing.T) {
-	ps, mock := initializePackageDB()
-	mock.ExpectQuery("SELECT (.*) FROM `packages`").WillReturnError(errors.New("something"))
-	_, err := ps.GetPackage(123)
-	assert.IsType(t, new(util.ResourceNotFoundError), err, "Expect get package to return error")
+func TestGetPackage_NotFoundError(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+
+	_, err := store.PackageStore.GetPackage(1)
+	assert.IsType(t, new(util.ResourceNotFoundError), err, "Expected get package to return not found")
+}
+
+func TestGetPackage_InternalError(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB.Close()
+	_, err := store.PackageStore.GetPackage(123)
+	assert.IsType(t, new(util.InternalError), err, "Expected get package to return internal error")
 }
 
 func TestCreatePackage(t *testing.T) {
-	pkg := message.Package{Name: "Package123"}
-	ps, mock := initializePackageDB()
-	mock.ExpectExec("INSERT INTO `packages`").
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pkg.Name, sqlmock.AnyArg()).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	pkg, err := ps.CreatePackage(pkg)
-	assert.Nil(t, err, "Unexpected error creating package")
-	assert.Equal(t, uint(1), pkg.ID, "ID should be assigned")
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	pkgExpected := message.Package{
+		Metadata:   &message.Metadata{ID: 1},
+		Name:       "pkg1",
+		Parameters: []message.Parameter{},
+	}
+	pkg := createPkg("pkg1")
+	err := store.PackageStore.CreatePackage(pkg)
+	assert.Nil(t, err)
+	assert.Equal(t, pkgExpected, *pkg, "Got unexpected package.")
 }
 
 func TestCreatePackageError(t *testing.T) {
-	pkg := message.Package{Name: "Package123"}
-	ps, mock := initializePackageDB()
-	mock.ExpectExec("INSERT INTO `packages`").WillReturnError(errors.New("something"))
+	pkg := &message.Package{Name: "Package123"}
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB.Close()
 
-	_, err := ps.CreatePackage(pkg)
-	assert.IsType(t, new(util.InternalError), err, "Expect create package to return error")
+	err := store.PackageStore.CreatePackage(pkg)
+	assert.IsType(t, new(util.InternalError), err, "Expected create package to return error")
 }

@@ -19,41 +19,56 @@ import (
 	"ml/src/message"
 	"ml/src/util"
 
+	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type FakeStore struct {
-	gormDatabase *gorm.DB
-	PipelineStore PipelineStoreInterface
-	JobStore JobStoreInterface
+	DB                 *gorm.DB
+	PackageStore       PackageStoreInterface
+	PipelineStore      PipelineStoreInterface
+	JobStore           JobStoreInterface
 	WorkflowClientFake *FakeWorkflowClient
-	Time util.TimeInterface
+	Time               util.TimeInterface
 }
 
 func NewFakeStore(time util.TimeInterface) (*FakeStore, error) {
 
 	// Initialize GORM
-	gormDatabase, err := gorm.Open("sqlite3", ":memory:")
+	db, err := gorm.Open("sqlite3", ":memory:")
 	if err != nil {
 		return nil, fmt.Errorf("Could not create the GORM database: %v", err)
 	}
 
+	// Skip auto populating the CreatedAt/UpdatedAt/DeletedAt field to avoid unpredictable value.
+	db.Callback().Create().Remove("gorm:update_time_stamp")
+	db.Callback().Update().Remove("gorm:update_time_stamp")
+
 	// Create tables
-	gormDatabase.AutoMigrate(&message.Package{}, &message.Pipeline{},
+	db.AutoMigrate(&message.Package{}, &message.Pipeline{},
 		&message.Parameter{}, &message.Job{})
 
 	workflowClient := NewWorkflowClientFake()
 
 	return &FakeStore{
-		gormDatabase: gormDatabase,
-		PipelineStore: NewPipelineStore(gormDatabase, time),
-		JobStore: NewJobStore(gormDatabase, workflowClient, time),
+		DB:                 db,
+		PackageStore:       NewPackageStore(db),
+		PipelineStore:      NewPipelineStore(db, time),
+		JobStore:           NewJobStore(db, workflowClient, time),
 		WorkflowClientFake: workflowClient,
-		Time: time,
+		Time:               time,
 	}, nil
 }
 
+func NewFakeStoreOrFatal(time util.TimeInterface) *FakeStore {
+	fakeStore, err := NewFakeStore(time)
+	if err != nil {
+		glog.Exitf("The fake store doesn't create successfully. Fail fast.")
+	}
+	return fakeStore
+}
+
 func (s *FakeStore) Close() error {
-	return s.gormDatabase.Close()
+	return s.DB.Close()
 }

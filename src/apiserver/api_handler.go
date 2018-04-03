@@ -115,9 +115,9 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 		util.HandleError("UploadPackage_ExtractParameter", ctx, err)
 		return
 	}
-	pkg := message.Package{Name: info.Filename, Parameters: params}
+	pkg := &message.Package{Name: info.Filename, Parameters: params}
 
-	pkg, err = a.packageStore.CreatePackage(pkg)
+	err = a.packageStore.CreatePackage(pkg)
 	if err != nil {
 		util.HandleError("UploadPackage_CreatePackage", ctx, err)
 		return
@@ -180,28 +180,26 @@ func (a APIHandler) GetPipeline(ctx iris.Context) {
 func (a APIHandler) CreatePipeline(ctx iris.Context) {
 	glog.Infof("Create pipeline called")
 
-	pipeline := message.Pipeline{}
-	if err := ctx.ReadJSON(&pipeline); err != nil {
+	pipeline := &message.Pipeline{}
+	if err := ctx.ReadJSON(pipeline); err != nil {
 		util.HandleError("CreatePipeline_ReadRequestBody",
 			ctx, util.NewInvalidInputError("The pipeline has invalid format.", err.Error()))
 		return
 	}
-
-	result, err, errPrefix := a.createPipelineInternal(pipeline)
+	err, errPrefix := a.createPipelineInternal(pipeline)
 	if err != nil {
 		util.HandleError(errPrefix, ctx, err)
 		return
 	}
 
-	ctx.JSON(result)
+	ctx.JSON(pipeline)
 }
 
-func (a APIHandler) createPipelineInternal(pipeline message.Pipeline) (*message.Pipeline, error, string) {
-
+func (a APIHandler) createPipelineInternal(pipeline *message.Pipeline) (error, string) {
 	// Verify the package exists
 	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
-		return nil, err, "CreatePipeline_ValidPackageExist"
+		return err, "CreatePipeline_ValidPackageExist"
 	}
 
 	// If the pipeline runs on a schedule
@@ -210,16 +208,16 @@ func (a APIHandler) createPipelineInternal(pipeline message.Pipeline) (*message.
 		_, err := cron.Parse(pipeline.Schedule)
 		if err != nil {
 			error := util.NewInvalidInputError(
-					fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err),
-					err.Error())
-			return nil, error, "CreatePipeline_ValidSchedule"
+				fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err),
+				err.Error())
+			return error, "CreatePipeline_ValidSchedule"
 		}
 	}
 
 	// Create pipeline metadata
-	pipeline, err = a.pipelineStore.CreatePipeline(pipeline)
+	err = a.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
-		return nil, err, "CreatePipeline"
+		return err, "CreatePipeline"
 	}
 
 	// If there is no pipeline schedule, the job is created immediately.
@@ -227,22 +225,22 @@ func (a APIHandler) createPipelineInternal(pipeline message.Pipeline) (*message.
 
 		template, err := a.packageManager.GetTemplate(pkg.Name)
 		if err != nil {
-			return nil, err, "CreatePipeline_GetPackageFile"
+			return err, "CreatePipeline_GetPackageFile"
 		}
 
 		// Inject parameters user provided to the pipeline template.
 		workflow, err := util.InjectParameters(template, pipeline.Parameters)
 		if err != nil {
-			return nil, err, "CreatePipeline_CreateJob_InjectParameter"
+			return err, "CreatePipeline_CreateJob_InjectParameter"
 		}
 
-		_, err = a.jobStore.CreateJob(pipeline.ID, &workflow)
+		_, err = a.jobStore.CreateJob(pipeline.ID, workflow)
 		if err != nil {
-			return nil, err, "CreatePipeline_CreateJob"
+			return err, "CreatePipeline_CreateJob"
 		}
 	}
 
-	return &pipeline, nil, ""
+	return nil, ""
 }
 
 func (a APIHandler) ListJobs(ctx iris.Context) {
@@ -283,17 +281,14 @@ func (a APIHandler) GetJob(ctx iris.Context) {
 	ctx.JSON(job)
 }
 
-func newAPIHandler(clientManager ClientManager) *APIHandler {
-	return &APIHandler{
+func newApp(clientManager ClientManager) *iris.Application {
+	apiHandler := &APIHandler{
 		packageStore:   clientManager.packageStore,
 		pipelineStore:  clientManager.pipelineStore,
 		jobStore:       clientManager.jobStore,
 		packageManager: clientManager.packageManager,
 	}
-}
 
-func newApp(clientManager ClientManager) *iris.Application {
-	apiHandler := newAPIHandler(clientManager)
 	app := iris.New()
 	// registers a custom handler for 404 not found http (error) status code,
 	// fires when route not found or manually by ctx.StatusCode(iris.StatusNotFound).

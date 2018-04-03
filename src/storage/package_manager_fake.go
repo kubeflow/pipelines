@@ -12,20 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package message
+package storage
 
-import (
-	"testing"
-
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/magiconair/properties/assert"
-)
-
-func TestToParameters(t *testing.T) {
-	v1 := "abc"
-	argoParam := []v1alpha1.Parameter{{Name: "parameter1"}, {Name: "parameter2", Value: &v1}}
-	expectParam := []Parameter{
-		{Name: "parameter1"},
-		{Name: "parameter2", Value: &v1}}
-	assert.Equal(t, expectParam, ToParameters(argoParam))
+// Return the package manager with faked minio client.
+func NewFakePackageManager() PackageManagerInterface {
+	return NewMinioPackageManager(NewFakeMinioClient(), "")
 }

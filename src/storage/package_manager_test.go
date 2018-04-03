@@ -18,24 +18,11 @@ import (
 	"errors"
 	"io"
 	"ml/src/util"
-	"strings"
 	"testing"
 
 	"github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
-
-type FakeMinioClient struct {
-}
-
-func (c *FakeMinioClient) PutObject(bucketName, objectName string, reader io.Reader,
-	objectSize int64, opts minio.PutObjectOptions) (n int64, err error) {
-	return 1, nil
-}
-func (c *FakeMinioClient) GetObject(bucketName, objectName string,
-	opts minio.GetObjectOptions) (io.Reader, error) {
-	return strings.NewReader("I'm a file"), nil
-}
 
 type FakeBadMinioClient struct {
 }
@@ -50,26 +37,29 @@ func (c *FakeBadMinioClient) GetObject(bucketName, objectName string,
 }
 
 func TestCreatePackageFile(t *testing.T) {
-	manager := &MinioPackageManager{minioClient: &FakeMinioClient{}}
-	error := manager.CreatePackageFile([]byte{}, "file  name")
-	assert.Nil(t, error, "Expect create package successfully.")
+	minioClient := NewFakeMinioClient()
+	manager := &MinioPackageManager{minioClient: minioClient}
+	error := manager.CreatePackageFile([]byte("abc"), "file1")
+	assert.Nil(t, error, "Expected create package successfully.")
+	assert.Equal(t, 1, minioClient.GetObjectCount())
 }
 
 func TestCreatePackageFileError(t *testing.T) {
 	manager := &MinioPackageManager{minioClient: &FakeBadMinioClient{}}
-	error := manager.CreatePackageFile([]byte{}, "field name")
-	assert.IsType(t, new(util.InternalError), error, "Expect new internal error.")
+	error := manager.CreatePackageFile([]byte("abc"), "file1")
+	assert.IsType(t, new(util.InternalError), error, "Expected new internal error.")
 }
 
 func TestGetTemplate(t *testing.T) {
-	manager := &MinioPackageManager{minioClient: &FakeMinioClient{}}
-	file, error := manager.GetTemplate("file name")
-	assert.Nil(t, error, "Expect get package successfully.")
-	assert.Equal(t, file, []byte("I'm a file"))
+	manager := &MinioPackageManager{minioClient: NewFakeMinioClient()}
+	error := manager.CreatePackageFile([]byte("abc"), "file1")
+	file, error := manager.GetTemplate("file1")
+	assert.Nil(t, error, "Expected get package successfully.")
+	assert.Equal(t, file, []byte("abc"))
 }
 
 func TestGetTemplateError(t *testing.T) {
 	manager := &MinioPackageManager{minioClient: &FakeBadMinioClient{}}
 	_, error := manager.GetTemplate("file name")
-	assert.IsType(t, new(util.InternalError), error, "Expect new internal error.")
+	assert.IsType(t, new(util.InternalError), error, "Expected new internal error.")
 }

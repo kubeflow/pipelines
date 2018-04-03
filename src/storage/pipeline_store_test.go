@@ -15,114 +15,121 @@
 package storage
 
 import (
-	"errors"
 	"ml/src/message"
 	"ml/src/util"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func initializePipelineDB() (PipelineStoreInterface, sqlmock.Sqlmock) {
-	db, mock, _ := sqlmock.New()
-	gormDB, _ := gorm.Open("mysql", db)
-	return NewPipelineStore(gormDB, util.NewFakeTimeForEpoch()), mock
+func createPipeline(name string, pkgId uint) *message.Pipeline {
+	return &message.Pipeline{Name: name, PackageId: pkgId, Parameters: []message.Parameter{}}
+}
+
+func pipelineExpected1() message.Pipeline {
+	return message.Pipeline{Metadata: &message.Metadata{ID: 1},
+		Name:           "pipeline1",
+		PackageId:      1,
+		Enabled:        true,
+		EnabledAtInSec: 1,
+		Parameters:     []message.Parameter{}}
 }
 
 func TestListPipelines(t *testing.T) {
-	expectedPipelines := []message.Pipeline{
-		{Metadata: &message.Metadata{ID: 1}, Name: "Pipeline123", PackageId: 1, Parameters: []message.Parameter{}},
-		{Metadata: &message.Metadata{ID: 2}, Name: "Pipeline456", PackageId: 2, Parameters: []message.Parameter{}}}
-	ps, mock := initializePipelineDB()
-	pipelinesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description", "package_id"}).
-		AddRow(1, nil, nil, nil, "Pipeline123", "", 1).
-		AddRow(2, nil, nil, nil, "Pipeline456", "", 2)
-	mock.ExpectQuery("SELECT (.*) FROM `pipelines`").WillReturnRows(pipelinesRow)
-	parametersRow := sqlmock.NewRows([]string{"name", "value", "owner_id", "owner_type"})
-	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnRows(parametersRow)
-	pipelines, _ := ps.ListPipelines()
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
+	store.PipelineStore.CreatePipeline(createPipeline("pipeline2", 2))
+	pipelinesExpected := []message.Pipeline{
+		pipelineExpected1(),
+		{Metadata: &message.Metadata{ID: 2},
+			Name:           "pipeline2",
+			PackageId:      2,
+			Enabled:        true,
+			EnabledAtInSec: 2,
+			Parameters:     []message.Parameter{}}}
 
-	assert.Equal(t, expectedPipelines, pipelines, "Got unexpected pipelines")
+	pipelines, err := store.PipelineStore.ListPipelines()
+	assert.Nil(t, err)
+	assert.Equal(t, pipelinesExpected, pipelines, "Got unexpected pipelines")
 }
 
 func TestListPipelinesError(t *testing.T) {
-	ps, mock := initializePipelineDB()
-	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnError(errors.New("something"))
-	_, err := ps.ListPipelines()
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB.Close()
+	_, err := store.PipelineStore.ListPipelines()
 
-	assert.IsType(t, new(util.InternalError), err, "Expect to list pipeline to return error")
+	assert.IsType(t, new(util.InternalError), err, "Expected to list pipeline to return error")
 }
 
 func TestGetPipeline(t *testing.T) {
-	expectedPipeline := message.Pipeline{
-		Metadata: &message.Metadata{ID: 1}, Name: "Pipeline123", PackageId: 1, Parameters: []message.Parameter{}}
-	ps, mock := initializePipelineDB()
-	pipelinesRow := sqlmock.NewRows([]string{"id", "created_at", "updated_at", "deleted_at", "name", "description", "package_id"}).
-		AddRow(1, nil, nil, nil, "Pipeline123", "", 1)
-	mock.ExpectQuery("SELECT (.*) FROM `pipelines`").WillReturnRows(pipelinesRow)
-	parametersRow := sqlmock.NewRows([]string{"name", "value", "owner_id", "owner_type"})
-	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnRows(parametersRow)
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
 
-	pipeline, _ := ps.GetPipeline(123)
-
-	assert.Equal(t, expectedPipeline, pipeline, "Got unexpected pipeline")
+	pipeline, err := store.PipelineStore.GetPipeline(1)
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
 }
 
-func TestGetPipelineError(t *testing.T) {
-	ps, mock := initializePipelineDB()
-	mock.ExpectQuery("SELECT (.*) FROM `parameters`").WillReturnError(errors.New("something"))
-	_, err := ps.GetPipeline(123)
-	assert.IsType(t, new(util.ResourceNotFoundError), err, "Expect get pipeline to return error")
+func TestGetPipeline_NotFoundError(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	_, err := store.PipelineStore.GetPipeline(1)
+	assert.IsType(t, new(util.ResourceNotFoundError), err, "Expected get pipeline to return not found error")
+}
+
+func TestGetPipeline_InternalError(t *testing.T) {
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB.Close()
+	_, err := store.PipelineStore.GetPipeline(1)
+	assert.IsType(t, new(util.InternalError), err, "Expected get pipeline to return internal error")
 }
 
 func TestCreatePipeline(t *testing.T) {
-	pipeline := message.Pipeline{Name: "Pipeline123"}
-	ps, mock := initializePipelineDB()
-	mock.ExpectExec("INSERT INTO `pipelines`").
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), pipeline.Name, sqlmock.AnyArg(),
-			sqlmock.AnyArg(), sqlmock.AnyArg(), true, 1).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	pipeline, err := ps.CreatePipeline(pipeline)
-	assert.Nil(t, err, "Unexpected error creating pipeline")
-	assert.Equal(t, uint(1), pipeline.ID, "ID should be assigned")
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	pipeline := createPipeline("pipeline1", 1)
+	err := store.PipelineStore.CreatePipeline(pipeline)
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
 }
 
 func TestCreatePipelineError(t *testing.T) {
-	pipeline := message.Pipeline{Name: "Pipeline123"}
-	ps, mock := initializePipelineDB()
-	mock.ExpectExec("INSERT INTO `pipelines`").WillReturnError(errors.New("something"))
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB.Close()
 
-	_, err := ps.CreatePipeline(pipeline)
-	assert.IsType(t, new(util.InternalError), err, "Expect create pipeline to return error")
+	pipeline := createPipeline("pipeline1", 1)
+	err := store.PipelineStore.CreatePipeline(pipeline)
+	assert.IsType(t, new(util.InternalError), err, "Expected create pipeline to return error")
 }
 
 func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
-	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
-	pipeline1 := message.Pipeline{
+	pipeline1 := &message.Pipeline{
 		Name:      "MY_PIPELINE_1",
 		PackageId: 123,
 		Schedule:  "1 0 * * *"}
 
-	pipeline2 := message.Pipeline{
+	pipeline2 := &message.Pipeline{
 		Name:      "MY_PIPELINE_2",
 		PackageId: 123,
 		Schedule:  "1 0 * * 1"}
 
-	workflow1 := &v1alpha1.Workflow{
+	workflow1 := v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "MY_WORKFLOW_NAME_1",
 		},
 	}
 
-	workflow2 := &v1alpha1.Workflow{
+	workflow2 := v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "MY_WORKFLOW_NAME_2",
 		},
@@ -130,8 +137,8 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 
 	store.PipelineStore.CreatePipeline(pipeline1)
 	store.PipelineStore.CreatePipeline(pipeline2)
-	store.JobStore.CreateJob(1, workflow1)
-	store.JobStore.CreateJob(1, workflow2)
+	store.JobStore.CreateJob(1, &workflow1)
+	store.JobStore.CreateJob(1, &workflow2)
 
 	// Checking the first row, which does not have a job.
 	iterator, err := store.PipelineStore.GetPipelineAndLatestJobIterator()
@@ -142,18 +149,14 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 	result, err := iterator.Get()
 	assert.Nil(t, err)
 
-	pipelineID := "2"
-	pipelineEnabled := true
-	enabledSec := int64(2)
-
 	expected := &PipelineAndLatestJob{
-		PipelineID:             &pipelineID,
-		PipelineName:           &pipeline2.Name,
-		PipelineSchedule:       &pipeline2.Schedule,
+		PipelineID:             "2",
+		PipelineName:           pipeline2.Name,
+		PipelineSchedule:       pipeline2.Schedule,
 		JobName:                nil,
 		JobScheduledAtInSec:    nil,
-		PipelineEnabled:        &pipelineEnabled,
-		PipelineEnabledAtInSec: &enabledSec,
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 2,
 	}
 
 	assert.Equal(t, expected, result)
@@ -164,19 +167,15 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 	result, err = iterator.Get()
 	assert.Nil(t, err)
 
-	pipelineID = "1"
-	pipelineEnabled = true
-	enabledSec = int64(1)
 	scheduledSec := int64(4)
-
 	expected = &PipelineAndLatestJob{
-		PipelineID:             &pipelineID,
-		PipelineName:           &pipeline1.Name,
-		PipelineSchedule:       &pipeline1.Schedule,
+		PipelineID:             "1",
+		PipelineName:           pipeline1.Name,
+		PipelineSchedule:       pipeline1.Schedule,
 		JobName:                &workflow2.Name,
 		JobScheduledAtInSec:    &scheduledSec,
-		PipelineEnabled:        &pipelineEnabled,
-		PipelineEnabledAtInSec: &enabledSec,
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 1,
 	}
 
 	assert.Equal(t, expected, result)
@@ -191,23 +190,23 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 	assert.Nil(t, err)
 	defer store.Close()
 
-	pipeline1 := message.Pipeline{
+	pipeline1 := &message.Pipeline{
 		Name:      "MY_PIPELINE_1",
 		PackageId: 123,
 		Schedule:  "1 0 * * *"}
 
-	pipeline2 := message.Pipeline{
+	pipeline2 := &message.Pipeline{
 		Name:      "MY_PIPELINE_2",
 		PackageId: 123,
 		Schedule:  ""}
 
-	workflow1 := &v1alpha1.Workflow{
+	workflow1 := v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "MY_WORKFLOW_NAME_1",
 		},
 	}
 
-	workflow2 := &v1alpha1.Workflow{
+	workflow2 := v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "MY_WORKFLOW_NAME_2",
 		},
@@ -215,8 +214,8 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 
 	store.PipelineStore.CreatePipeline(pipeline1)
 	store.PipelineStore.CreatePipeline(pipeline2)
-	store.JobStore.CreateJob(1, workflow1)
-	store.JobStore.CreateJob(1, workflow2)
+	store.JobStore.CreateJob(1, &workflow1)
+	store.JobStore.CreateJob(1, &workflow2)
 
 	// Checking the first row, which does not have a job.
 	iterator, err := store.PipelineStore.GetPipelineAndLatestJobIterator()
@@ -227,19 +226,15 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 	result, err := iterator.Get()
 	assert.Nil(t, err)
 
-	pipelineID := "1"
-	pipelineEnabled := true
-	enabledSec := int64(1)
 	scheduledSec := int64(4)
-
 	expected := &PipelineAndLatestJob{
-		PipelineID:             &pipelineID,
-		PipelineName:           &pipeline1.Name,
-		PipelineSchedule:       &pipeline1.Schedule,
+		PipelineID:             "1",
+		PipelineName:           pipeline1.Name,
+		PipelineSchedule:       pipeline1.Schedule,
 		JobName:                &workflow2.Name,
 		JobScheduledAtInSec:    &scheduledSec,
-		PipelineEnabled:        &pipelineEnabled,
-		PipelineEnabledAtInSec: &enabledSec,
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 1,
 	}
 
 	assert.Equal(t, expected, result)

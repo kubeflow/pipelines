@@ -27,14 +27,14 @@ import (
 	"github.com/robfig/cron"
 )
 
-const(
+const (
 	sleepDurationBetweenRunsFlagName = "sleep_duration_between_runs"
-	dbDriverNameFlagName = "db_driver_name"
-	sqliteDatasourceNameFlagName = "sqlite_datasource_name"
-	userFlagName = "user"
-	mysqlServiceHostFlagName = "mysql_service_host"
-	mysqlServicePortFlagName = "mysql_service_port"
-	mysqlDBNameFlagName = "mysql_db_name"
+	dbDriverNameFlagName             = "db_driver_name"
+	sqliteDatasourceNameFlagName     = "sqlite_datasource_name"
+	userFlagName                     = "user"
+	mysqlServiceHostFlagName         = "mysql_service_host"
+	mysqlServicePortFlagName         = "mysql_service_port"
+	mysqlDBNameFlagName              = "mysql_db_name"
 )
 
 type Controller struct {
@@ -86,18 +86,18 @@ func (c Controller) runForSingleRow(pipeline *storage.PipelineAndLatestJob) (
 	bool, time.Time, error) {
 
 	// Validating pipeline.PipelineSchedule
-	if pipeline.PipelineSchedule == nil || *pipeline.PipelineSchedule == "" {
+	if pipeline.PipelineSchedule == "" {
 		return false, time.Unix(0, 0).UTC(),
-			fmt.Errorf("The schedule should not be nil nor empty: %v", pipeline)
+			fmt.Errorf("The schedule should not be empty: %v", pipeline)
 	}
 
 	// Validating pipeline.PipelineEnabledAtInSec
-	if pipeline.PipelineEnabledAtInSec == nil || *pipeline.PipelineEnabledAtInSec == 0 {
+	if pipeline.PipelineEnabledAtInSec == 0 {
 		return false, time.Unix(0, 0).UTC(),
-			fmt.Errorf("PipelineEnabledAtInSec should not be nil nor 0: %v", pipeline)
+			fmt.Errorf("PipelineEnabledAtInSec should not be 0: %v", pipeline)
 	}
 
-	pipelineEnabledAt := time.Unix(*pipeline.PipelineEnabledAtInSec, 0).UTC()
+	pipelineEnabledAt := time.Unix(pipeline.PipelineEnabledAtInSec, 0).UTC()
 
 	// Converting pipeline.JobScheduledAtInSec to a Time.
 	// Note that pipeline.JobScheduledAtInSec can be null if there is no job for this pipeline.
@@ -113,7 +113,7 @@ func (c Controller) runForSingleRow(pipeline *storage.PipelineAndLatestJob) (
 	now := c.time.Now().UTC()
 
 	mustRun, scheduledTime, err := mustRun(
-		*pipeline.PipelineSchedule,
+		pipeline.PipelineSchedule,
 		lastJobScheduledAt,
 		now,
 		pipelineEnabledAt)

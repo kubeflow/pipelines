@@ -25,9 +25,9 @@ import (
 )
 
 type JobStoreInterface interface {
-	GetJob(pipelineId uint, jobName string) (message.JobDetail, error)
+	GetJob(pipelineId uint, jobName string) (*message.JobDetail, error)
 	ListJobs(pipelineId uint) ([]message.Job, error)
-	CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (message.JobDetail, error)
+	CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (*message.JobDetail, error)
 }
 
 type JobStore struct {
@@ -46,41 +46,52 @@ func (s *JobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 }
 
 // CreateJob create Workflow by calling CRD, and store the metadata to DB
-func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (message.JobDetail, error) {
+func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (*message.JobDetail, error) {
 	newWf, err := s.wfClient.Create(wf)
-	var jobDetail message.JobDetail
 	if err != nil {
-		return jobDetail, util.NewInternalError("Failed to create job",
+		return nil, util.NewInternalError("Failed to create job",
 			"Failed to create job . Error: %s", err.Error())
 	}
-	jobDetail = message.JobDetail{Workflow: newWf}
 	job := &message.Job{
-		Name: newWf.Name,
+		Name:       newWf.Name,
 		PipelineID: pipelineId,
 		// TODO: Use the scheduled time when pipelines are scheduled.
 		ScheduledAtInSec: s.time.Now().Unix()}
 	if r := s.db.Create(job); r.Error != nil {
-		return jobDetail, util.NewInternalError("Failed to store job metadata", r.Error.Error())
+		return nil, util.NewInternalError("Failed to store job metadata", r.Error.Error())
 	}
-	return jobDetail, nil
+	return &message.JobDetail{Workflow: newWf}, nil
 }
 
 // GetJob Get the job manifest from Workflow CRD
-func (s *JobStore) GetJob(pipelineId uint, jobName string) (message.JobDetail, error) {
-	var jobDetail message.JobDetail
+func (s *JobStore) GetJob(pipelineId uint, jobName string) (*message.JobDetail, error) {
 	// validate the the pipeline has the job.
-	if r := s.db.Where("pipeline_id = ? and name = ?", pipelineId, jobName).
-		First(&message.Job{}); r.Error != nil {
-		return jobDetail, util.NewResourceNotFoundError("Job", jobName)
+	err := queryJob(s.db, pipelineId, jobName, &message.Job{})
+	if err != nil {
+		return nil, err
 	}
 
 	wf, err := s.wfClient.Get(jobName, k8sclient.GetOptions{})
 	if err != nil {
-		return jobDetail, util.NewInternalError("Failed to get a job",
+		// We should always expect the job to exist. In case the job is not found, it's an
+		// unexpected scenario that implies something is wrong internally. So we don't differentiate
+		// resource not found or other exceptions here, just always return internal error.
+		return nil, util.NewInternalError("Failed to get a job",
 			"Failed to get workflow %s from K8s CRD. Error: %s", jobName, err.Error())
 	}
-	jobDetail = message.JobDetail{Workflow: wf}
-	return jobDetail, nil
+	return &message.JobDetail{Workflow: wf}, nil
+}
+
+func queryJob(db *gorm.DB, pipelineId uint, jobName string, job *message.Job) error {
+	result := db.Where("pipeline_id = ? and name = ?", pipelineId, jobName).First(job)
+	if result.RecordNotFound() {
+		return util.NewResourceNotFoundError("Job", jobName)
+	}
+	if result.Error != nil {
+		// TODO result can return multiple errors. log all of the errors when error handling v2 in place.
+		return util.NewInternalError("Failed to get job", result.Error.Error())
+	}
+	return nil
 }
 
 // factory function for package store

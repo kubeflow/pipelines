@@ -181,13 +181,13 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 	}
 
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
-		PipelineID:             util.StringPointer("PIPELINE_ID"),
-		PipelineName:           util.StringPointer("PIPELINE_NAME"),
-		PipelineSchedule:       util.StringPointer("* 1 * * * *"),
+		PipelineID:             "PIPELINE_ID",
+		PipelineName:           "PIPELINE_NAME",
+		PipelineSchedule:       "* 1 * * * *",
 		JobName:                util.StringPointer("JOB_NAME"),
 		JobScheduledAtInSec:    util.Int64Pointer(10),
-		PipelineEnabled:        util.BoolPointer(true),
-		PipelineEnabledAtInSec: util.Int64Pointer(20),
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 20,
 	})
 
 	assert.True(t, hasRun)
@@ -214,13 +214,13 @@ func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
 
 func getDefaultPipelineAndLatestJob() *storage.PipelineAndLatestJob {
 	return &storage.PipelineAndLatestJob{
-		PipelineID:             util.StringPointer("PIPELINE_ID"),
-		PipelineName:           util.StringPointer("PIPELINE_NAME"),
-		PipelineSchedule:       util.StringPointer("* 1 * * * *"),
+		PipelineID:             "PIPELINE_ID",
+		PipelineName:           "PIPELINE_NAME",
+		PipelineSchedule:       "* 1 * * * *",
 		JobName:                util.StringPointer("JOB_NAME"),
 		JobScheduledAtInSec:    util.Int64Pointer(10),
-		PipelineEnabled:        util.BoolPointer(true),
-		PipelineEnabledAtInSec: util.Int64Pointer(20),
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 20,
 	}
 }
 
@@ -235,39 +235,25 @@ func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 	}
 
 	pipeline := getDefaultPipelineAndLatestJob()
-	pipeline.PipelineSchedule = util.StringPointer("")
+	pipeline.PipelineSchedule = ""
 	hasRun, scheduledTime, err := controller.runForSingleRow(pipeline)
 	assert.False(t, hasRun)
 	assert.Equal(t, time.Unix(0, 0).UTC(), scheduledTime)
-	assert.Contains(t, err.Error(), "The schedule should not be nil nor empty")
+	assert.Contains(t, err.Error(), "The schedule should not be empty")
 
 	pipeline = getDefaultPipelineAndLatestJob()
-	pipeline.PipelineSchedule = nil
-	hasRun, scheduledTime, err = controller.runForSingleRow(pipeline)
-	assert.False(t, hasRun)
-	assert.Equal(t, time.Unix(0, 0).UTC(), scheduledTime)
-	assert.Contains(t, err.Error(), "The schedule should not be nil nor empty")
-
-	pipeline = getDefaultPipelineAndLatestJob()
-	pipeline.PipelineSchedule = util.StringPointer("INVALID_SCHEDULE")
+	pipeline.PipelineSchedule = "INVALID_SCHEDULE"
 	hasRun, scheduledTime, err = controller.runForSingleRow(pipeline)
 	assert.False(t, hasRun)
 	assert.Equal(t, time.Unix(0, 0).UTC(), scheduledTime)
 	assert.Contains(t, err.Error(), "Could not figure out whether a job should be created")
 
 	pipeline = getDefaultPipelineAndLatestJob()
-	pipeline.PipelineEnabledAtInSec = nil
+	pipeline.PipelineEnabledAtInSec = 0
 	hasRun, scheduledTime, err = controller.runForSingleRow(pipeline)
 	assert.False(t, hasRun)
 	assert.Equal(t, time.Unix(0, 0).UTC(), scheduledTime)
-	assert.Contains(t, err.Error(), "PipelineEnabledAtInSec should not be nil nor 0")
-
-	pipeline = getDefaultPipelineAndLatestJob()
-	pipeline.PipelineEnabledAtInSec = util.Int64Pointer(0)
-	hasRun, scheduledTime, err = controller.runForSingleRow(pipeline)
-	assert.False(t, hasRun)
-	assert.Equal(t, time.Unix(0, 0).UTC(), scheduledTime)
-	assert.Contains(t, err.Error(), "PipelineEnabledAtInSec should not be nil nor 0")
+	assert.Contains(t, err.Error(), "PipelineEnabledAtInSec should not be 0")
 
 }
 
@@ -282,13 +268,13 @@ func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
 	}
 
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
-		PipelineID:             util.StringPointer("PIPELINE_ID"),
-		PipelineName:           util.StringPointer("PIPELINE_NAME"),
-		PipelineSchedule:       util.StringPointer("* 1 * * * *"),
+		PipelineID:             "PIPELINE_ID",
+		PipelineName:           "PIPELINE_NAME",
+		PipelineSchedule:       "* 1 * * * *",
 		JobName:                nil,
 		JobScheduledAtInSec:    nil,
-		PipelineEnabled:        util.BoolPointer(true),
-		PipelineEnabledAtInSec: util.Int64Pointer(20),
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 20,
 	})
 
 	assert.Nil(t, err)
@@ -307,13 +293,13 @@ func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 	}
 
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
-		PipelineID:             util.StringPointer("PIPELINE_ID"),
-		PipelineName:           util.StringPointer("PIPELINE_NAME"),
-		PipelineSchedule:       util.StringPointer("* 1 * * * *"),
+		PipelineID:             "PIPELINE_ID",
+		PipelineName:           "PIPELINE_NAME",
+		PipelineSchedule:       "* 1 * * * *",
 		JobName:                nil,
 		JobScheduledAtInSec:    nil,
-		PipelineEnabled:        util.BoolPointer(true),
-		PipelineEnabledAtInSec: util.Int64Pointer(20),
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 20,
 	})
 
 	assert.Nil(t, err)

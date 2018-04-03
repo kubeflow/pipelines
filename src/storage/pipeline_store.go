@@ -25,8 +25,8 @@ import (
 
 type PipelineStoreInterface interface {
 	ListPipelines() ([]message.Pipeline, error)
-	GetPipeline(id uint) (message.Pipeline, error)
-	CreatePipeline(message.Pipeline) (message.Pipeline, error)
+	GetPipeline(id uint) (*message.Pipeline, error)
+	CreatePipeline(*message.Pipeline) error
 	GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error)
 }
 
@@ -45,24 +45,28 @@ func (s *PipelineStore) ListPipelines() ([]message.Pipeline, error) {
 	return pipelines, nil
 }
 
-func (s *PipelineStore) GetPipeline(id uint) (message.Pipeline, error) {
+func (s *PipelineStore) GetPipeline(id uint) (*message.Pipeline, error) {
 	var pipeline message.Pipeline
 	// Get the pipeline as well as its parameter.
-	if r := s.db.Preload("Parameters").First(&pipeline, id); r.Error != nil {
-		// Error returns when no pipeline found.
-		return pipeline, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
+	r := s.db.Preload("Parameters").First(&pipeline, id)
+	if r.RecordNotFound() {
+		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}
-	return pipeline, nil
+	if r.Error != nil {
+		// Error returns when no pipeline found.
+		return nil, util.NewInternalError("Failed to get pipeline", r.Error.Error())
+	}
+	return &pipeline, nil
 }
 
-func (s *PipelineStore) CreatePipeline(p message.Pipeline) (message.Pipeline, error) {
+func (s *PipelineStore) CreatePipeline(p *message.Pipeline) error {
 	p.Enabled = true
 	p.EnabledAtInSec = s.time.Now().Unix()
 
 	if r := s.db.Create(&p); r.Error != nil {
-		return p, util.NewInternalError("Failed to add pipeline to pipeline table", r.Error.Error())
+		return util.NewInternalError("Failed to add pipeline to pipeline table", r.Error.Error())
 	}
-	return p, nil
+	return nil
 }
 
 // factory function for pipeline store
@@ -74,35 +78,38 @@ func NewPipelineStore(db *gorm.DB, time util.TimeInterface) *PipelineStore {
 }
 
 type PipelineAndLatestJob struct {
-	PipelineID             *string
-	PipelineName           *string
-	PipelineSchedule       *string
+	PipelineID             string
+	PipelineName           string
+	PipelineSchedule       string
 	JobName                *string
 	JobScheduledAtInSec    *int64
-	PipelineEnabled        *bool
-	PipelineEnabledAtInSec *int64
+	PipelineEnabled        bool
+	PipelineEnabledAtInSec int64
 }
 
 func (p *PipelineAndLatestJob) String() string {
 	return fmt.Sprintf(
 		"PipelineAndLatestJob{PipelineID: %v, PipelineName: %v, PipelineSchedule: %v, JobName: %v, JobScheduledAtInSec: %v, PipelineEnabled: %v, PipelineEnabledAtInSec: %v}",
-		util.StringNilOrValue(p.PipelineID),
-		util.StringNilOrValue(p.PipelineName),
-		util.StringNilOrValue(p.PipelineSchedule),
+		p.PipelineID,
+		p.PipelineName,
+		p.PipelineSchedule,
 		util.StringNilOrValue(p.JobName),
 		util.Int64NilOrValue(p.JobScheduledAtInSec),
-		util.BoolNilOrValue(p.PipelineEnabled),
-		util.Int64NilOrValue(p.PipelineEnabledAtInSec))
+		p.PipelineEnabled,
+		p.PipelineEnabledAtInSec)
 }
 
 type PipelineAndLatestJobIterator struct {
+	db   *gorm.DB
 	rows *sql.Rows
 }
 
-func (s *PipelineStore) GetPipelineAndLatestJobIterator() (
-	*PipelineAndLatestJobIterator, error) {
+func (s *PipelineStore) GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error) {
+	return newPipelineAndLatestJobIterator(s.db)
+}
 
-	rows, err := s.db.Raw(`SELECT 
+func newPipelineAndLatestJobIterator(db *gorm.DB) (*PipelineAndLatestJobIterator, error) {
+	rows, err := db.Raw(`SELECT 
 		pipelines.ID AS pipeline_id, 
 		pipelines.name AS pipeline_name, 
 		pipelines.schedule AS pipeline_schedule, 
@@ -128,13 +135,10 @@ func (s *PipelineStore) GetPipelineAndLatestJobIterator() (
 		return nil, err
 	}
 
-	return newPipelineAndLatestJobIterator(rows), nil
-}
-
-func newPipelineAndLatestJobIterator(rows *sql.Rows) *PipelineAndLatestJobIterator {
 	return &PipelineAndLatestJobIterator{
+		db:   db,
 		rows: rows,
-	}
+	}, nil
 }
 
 func (p *PipelineAndLatestJobIterator) Next() bool {
@@ -143,14 +147,7 @@ func (p *PipelineAndLatestJobIterator) Next() bool {
 
 func (p *PipelineAndLatestJobIterator) Get() (*PipelineAndLatestJob, error) {
 	var result PipelineAndLatestJob
-	err := p.rows.Scan(
-		&result.PipelineID,
-		&result.PipelineName,
-		&result.PipelineSchedule,
-		&result.JobName,
-		&result.JobScheduledAtInSec,
-		&result.PipelineEnabled,
-		&result.PipelineEnabledAtInSec)
+	err := p.db.ScanRows(p.rows, &result)
 	return &result, err
 }
 

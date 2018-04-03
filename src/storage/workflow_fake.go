@@ -15,11 +15,13 @@
 package storage
 
 import (
-	v1alpha1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"errors"
+
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 type FakeWorkflowClient struct {
@@ -32,9 +34,21 @@ func NewWorkflowClientFake() *FakeWorkflowClient {
 	}
 }
 
+func (c *FakeWorkflowClient) Create(workflow *v1alpha1.Workflow) (result *v1alpha1.Workflow, err error) {
+	c.workflows[workflow.Name] = workflow
+	return workflow, nil
+}
+
+func (c *FakeWorkflowClient) GetWorkflowCount() int {
+	return len(c.workflows)
+}
+
 func (c *FakeWorkflowClient) Get(name string, options v1.GetOptions) (result *v1alpha1.Workflow, err error) {
-	glog.Error("This fake method is not yet implemented.")
-	return nil, nil
+	workflow, ok := c.workflows[name]
+	if ok {
+		return workflow, nil
+	}
+	return nil, errors.New("not found")
 }
 
 func (c *FakeWorkflowClient) List(opts v1.ListOptions) (result *v1alpha1.WorkflowList, err error) {
@@ -45,11 +59,6 @@ func (c *FakeWorkflowClient) List(opts v1.ListOptions) (result *v1alpha1.Workflo
 func (c *FakeWorkflowClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
-}
-
-func (c *FakeWorkflowClient) Create(workflow *v1alpha1.Workflow) (result *v1alpha1.Workflow, err error) {
-	c.workflows[workflow.Name] = workflow
-	return workflow, nil
 }
 
 func (c *FakeWorkflowClient) Update(workflow *v1alpha1.Workflow) (result *v1alpha1.Workflow, err error) {
@@ -72,6 +81,14 @@ func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 	return nil, nil
 }
 
-func (c *FakeWorkflowClient) GetWorkflowCount() int {
-	return len(c.workflows)
+type FakeBadWorkflowClient struct {
+	FakeWorkflowClient
+}
+
+func (FakeBadWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+	return nil, errors.New("some error")
+}
+
+func (FakeBadWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
+	return nil, errors.New("some error")
 }

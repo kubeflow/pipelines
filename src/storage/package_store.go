@@ -24,8 +24,8 @@ import (
 
 type PackageStoreInterface interface {
 	ListPackages() ([]message.Package, error)
-	GetPackage(packageId uint) (message.Package, error)
-	CreatePackage(message.Package) (message.Package, error)
+	GetPackage(packageId uint) (*message.Package, error)
+	CreatePackage(*message.Package) error
 }
 
 type PackageStore struct {
@@ -41,20 +41,24 @@ func (s *PackageStore) ListPackages() ([]message.Package, error) {
 	return packages, nil
 }
 
-func (s *PackageStore) GetPackage(id uint) (message.Package, error) {
+func (s *PackageStore) GetPackage(id uint) (*message.Package, error) {
 	var pkg message.Package
-	if r := s.db.Preload("Parameters").First(&pkg, id); r.Error != nil {
-		// Error returns when no package found.
-		return pkg, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
+	r := s.db.Preload("Parameters").First(&pkg, id)
+	if r.RecordNotFound() {
+		return nil, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
 	}
-	return pkg, nil
+	if r.Error != nil {
+		// TODO query can return multiple errors. log all of the errors when error handling v2 in place.
+		return nil, util.NewInternalError("Failed to get package", r.Error.Error())
+	}
+	return &pkg, nil
 }
 
-func (s *PackageStore) CreatePackage(p message.Package) (message.Package, error) {
+func (s *PackageStore) CreatePackage(p *message.Package) error {
 	if r := s.db.Create(&p); r.Error != nil {
-		return p, util.NewInternalError("Failed to add package to package table", r.Error.Error())
+		return util.NewInternalError("Failed to add package to package table", r.Error.Error())
 	}
-	return p, nil
+	return nil
 }
 
 // factory function for package store
