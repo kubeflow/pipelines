@@ -18,6 +18,14 @@ describe('create new pipeline', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('validates pipeline input', () => {
+    const selector = 'app-shell pipeline-new #description';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+    assertDiffs(browser.checkDocument());
+  });
+
   it('shows package list', () => {
     const selector = 'app-shell pipeline-new paper-dropdown-menu';
 

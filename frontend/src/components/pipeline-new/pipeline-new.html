@@ -8,8 +8,7 @@
       tries to validate CSS while loading, and ends up commenting out all
       mixins, since they're not officially in the CSS spec.
       */
-      paper-dropdown-menu,
-      paper-input {
+      paper-dropdown-menu, paper-input {
         --paper-input-container: {
           padding: 0;
         }
@@ -21,6 +20,9 @@
         }
         --paper-input-container-label-floating: {
           padding-left: 8px;
+        }
+        --paper-input-error: {
+          padding-left: 6px;
         }
       }
     </style>
@@ -35,7 +37,7 @@
     </div>
 
     <div class="padded-20">
-      <div class="flex">
+      <div class="flex metadata-input">
         <paper-dropdown-menu label="Choose a Package">
           <paper-listbox id="packagesListbox" slot="dropdown-content" class="dropdown-content"
                          selected="{{_packageIndex}}">
@@ -55,13 +57,14 @@
         <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
       </div>
 
-      <paper-input id="name" label="Pipeline Name" autofocus value="{{newPipeline.name}}">
+      <paper-input id="name" class="metadata-input" label="Pipeline Name"
+                   autofocus required maxlength="50" value="{{newPipeline.name}}"
+                   auto-validate error-message="Pipeline must have a name">
       </paper-input>
       <paper-input id="description" label="Description" value="{{newPipeline.description}}">
       </paper-input>
 
       <template is="dom-if" if="[[newPipeline.parameters.length]]">
-        <br>
         <br>
         <span class="strong">Parameters</span>
         <template is="dom-repeat" items="{{newPipeline.parameters}}" as="param">
@@ -75,7 +78,8 @@
 
       <hr>
 
-      <paper-button class="action-button" raised on-click="_deploy">
+      <paper-button id="deployButton" class="action-button" raised
+                    disabled="[[inputIsInvalid]]" on-click="_deploy">
         Deploy
         <iron-icon icon="chevron-right"></iron-icon>
       </paper-button>

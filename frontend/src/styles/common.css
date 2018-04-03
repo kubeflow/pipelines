@@ -101,6 +101,10 @@ paper-tab:not(:first-child) {
   @apply --shadow-elevation-3dp;
 }
 
+.action-button[disabled] {
+  background-color: var(--neutral-color);
+}
+
 [hidden] {
   display: none !important;
 }

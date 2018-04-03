@@ -5,12 +5,10 @@
   position: relative;
 }
 
-paper-dropdown-menu,
-paper-input {
+paper-dropdown-menu, paper-input {
   --paper-input-container-focus-color: var(--accent-color);
   background-color: var(--bg-color-darker);
   border-radius: 5px;
-  margin: 5px;
   width: 500px;
 }
 
@@ -27,6 +25,10 @@ paper-icon-button, paper-icon-button {
 .package-link {
   align-self: flex-end;
   margin: 6px 10px;
+}
+
+.metadata-input {
+  margin-bottom: 26px;
 }
 
 .param-container {

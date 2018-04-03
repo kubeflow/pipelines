@@ -1,3 +1,5 @@
+/// <reference path="../../../bower_components/paper-input/paper-input.d.ts" />
+
 import 'iron-icons/iron-icons.html';
 import 'neon-animation/web-animations.html';
 import 'paper-checkbox/paper-checkbox.html';
@@ -40,6 +42,9 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   @property({ type: Number })
   protected _packageIndex = -1;
 
+  @property({ computed: '_updateDeployButtonState(newPipeline.name)', type: Boolean })
+  protected inputIsInvalid = false;
+
   protected _busy = false;
   protected _overwriteData?: NewPipelineData;
 
@@ -52,6 +57,10 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     // Clear package selection on each component load
     packageList.select();
     this.newPipeline = new Pipeline();
+
+    // Initialize input to valid to avoid error messages on page load.
+    (this.$.name as PaperInputElement).invalid = false;
+
     this.set('newPipeline.packageId',
       this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1);
 
@@ -87,8 +96,12 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     }
   }
 
+  protected _updateDeployButtonState(pipelineName: string) {
+    return !pipelineName;
+  }
+
   @observe('_packageIndex')
-  _packageIndexChanged(newIndex: number) {
+  protected _packageIndexChanged(newIndex: number) {
     if (newIndex === undefined || this.packages === undefined) {
       return;
     }
