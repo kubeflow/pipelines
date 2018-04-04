@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"ml/src/message"
 	"ml/src/storage"
@@ -113,6 +114,10 @@ func (s *FakeBadPipelineStore) CreatePipeline(*message.Pipeline) error {
 func (s *FakeBadPipelineStore) GetPipelineAndLatestJobIterator() (
 	*storage.PipelineAndLatestJobIterator, error) {
 	return nil, errors.New("Not implemented.")
+}
+
+func (s *FakeBadPipelineStore) EnablePipeline(id uint, enabled bool) error {
+	return errors.New("Not implemented.")
 }
 
 func initApiHandlerTest(
@@ -533,6 +538,73 @@ func TestCreatePipelineInternalInvalidSchedule(t *testing.T) {
 		"Invalid input: The pipeline schedule cannot be parsed: abcdef: Expected 5 to 6 fields")
 	assert.Equal(t, errPrefix, "CreatePipeline_ValidSchedule")
 	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
+}
+
+func TestEnablePipeline(t *testing.T) {
+	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+
+	// Creating a pipeline
+	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
+	err = store.PipelineStore.CreatePipeline(createdPipeline)
+	assert.Nil(t, err)
+	pipelineID := createdPipeline.ID
+
+	// Verify that the created pipeline is enabled.
+	createdPipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	assert.Nil(t, err)
+	assert.Equal(t, true, createdPipeline.Enabled, "The pipeline must be enabled.")
+
+	// Disabling the pipeline
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore, store.JobStore, store.PipelineStore,
+		storage.NewFakePackageManager()))
+	response := e.POST(fmt.Sprintf("/apis/v1alpha1/pipelines/%v/disable", pipelineID)).Expect().Status(
+		httptest.StatusOK)
+	assert.Empty(t, response.Body().Raw())
+
+	// Verify that the created pipeline is disabled.
+	createdPipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	assert.Nil(t, err)
+	assert.Equal(t, false, createdPipeline.Enabled, "The pipeline must be disabled.")
+
+	// Enabling the pipeline
+	e = httptest.New(t, initApiHandlerTest(store.PackageStore, store.JobStore, store.PipelineStore,
+		storage.NewFakePackageManager()))
+	response = e.POST(fmt.Sprintf("/apis/v1alpha1/pipelines/%v/enable", pipelineID)).Expect().Status(
+		httptest.StatusOK)
+	assert.Empty(t, response.Body().Raw())
+
+	// Verify that the created pipeline is enabled.
+	createdPipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	assert.Nil(t, err)
+	assert.Equal(t, true, createdPipeline.Enabled, "The pipeline must be enabled.")
+}
+
+func TestEnablePipelineDatabaseError(t *testing.T) {
+	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	err = store.Close()
+	assert.Nil(t, err)
+
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore, store.JobStore, store.PipelineStore,
+		storage.NewFakePackageManager()))
+
+	response := e.POST("/apis/v1alpha1/pipelines/1/enable").Expect().Status(
+		httptest.StatusInternalServerError)
+	assert.Contains(t, response.Body().Raw(), "Internal error: sql: database is closed")
+}
+
+func TestEnablePipelineNotFound(t *testing.T) {
+	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore, store.JobStore, store.PipelineStore,
+		storage.NewFakePackageManager()))
+
+	response := e.POST("/apis/v1alpha1/pipelines/1/enable").Expect().Status(httptest.StatusNotFound)
+	assert.Equal(t, "Pipeline 1 not found.", response.Body().Raw())
 }
 
 func TestListJobs(t *testing.T) {

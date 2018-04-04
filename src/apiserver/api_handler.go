@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
+	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 )
 
@@ -34,9 +35,11 @@ const (
 	uploadPackage = "/packages/upload"
 	getTemplate   = "/packages/{id:long min(1)}/templates"
 
-	listPipelines  = "/pipelines"
-	getPipeline    = "/pipelines/{pipelineId:long min(1)}"
-	createPipeline = "/pipelines"
+	listPipelines   = "/pipelines"
+	getPipeline     = "/pipelines/{pipelineId:long min(1)}"
+	createPipeline  = "/pipelines"
+	enablePipeline  = "/pipelines/{pipelineId:long min(1)}/enable"
+	disablePipeline = "/pipelines/{pipelineId:long min(1)}/disable"
 
 	listJobs = "/pipelines/{pipelineId:long min(1)}/jobs"
 	getJob   = "/pipelines/{pipelineId:long min(1)}/jobs/{jobName:string}"
@@ -196,6 +199,7 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 }
 
 func (a APIHandler) createPipelineInternal(pipeline *message.Pipeline) (error, string) {
+
 	// Verify the package exists
 	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
@@ -241,6 +245,45 @@ func (a APIHandler) createPipelineInternal(pipeline *message.Pipeline) (error, s
 	}
 
 	return nil, ""
+}
+
+func (a APIHandler) EnablePipeline(ctx iris.Context) {
+	a.enablePipeline(ctx, true)
+}
+
+func (a APIHandler) DisablePipeline(ctx iris.Context) {
+	a.enablePipeline(ctx, false)
+}
+
+func (a APIHandler) enablePipeline(ctx iris.Context, enabled bool) {
+	glog.Infof("Enable pipeline")
+
+	pipelineID, err := ctx.Params().GetInt64("pipelineId")
+	if err != nil {
+		util.NewUserError(
+			errors.Wrap(err, "Error when parsing pipeline ID."),
+			util.NewInvalidInputError("The pipeline ID is invalid.", err.Error())).
+			PopulateContextAndLog(ctx)
+		return
+	}
+
+	err = a.enablePipelineInternal(uint(pipelineID), enabled)
+	if err != nil {
+		util.PopulateContextAndLogError(ctx, err)
+		return
+	}
+}
+
+func (a APIHandler) enablePipelineInternal(pipelineID uint, enabled bool) error {
+
+	// Note: no validation needed.
+	err := a.pipelineStore.EnablePipeline(pipelineID, enabled)
+	if err != nil {
+		return util.Wrapf(err, "Failed to enable/disable pipeline. Enabled: %v, pipelineID: %v",
+			enabled, pipelineID)
+	}
+
+	return nil
 }
 
 func (a APIHandler) ListJobs(ctx iris.Context) {
@@ -307,6 +350,8 @@ func newApp(clientManager ClientManager) *iris.Application {
 	apiRouter.Get(getPipeline, apiHandler.GetPipeline)
 	apiRouter.Post(createPipeline, apiHandler.CreatePipeline)
 	apiRouter.Options(createPipeline, func(iris.Context) {})
+	apiRouter.Post(enablePipeline, apiHandler.EnablePipeline)
+	apiRouter.Post(disablePipeline, apiHandler.DisablePipeline)
 
 	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)

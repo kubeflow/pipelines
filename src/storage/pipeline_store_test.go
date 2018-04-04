@@ -109,6 +109,95 @@ func TestCreatePipelineError(t *testing.T) {
 	assert.IsType(t, new(util.InternalError), err, "Expected create pipeline to return error")
 }
 
+func TestEnablePipeline(t *testing.T) {
+
+	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+
+	// Creating a pipeline. It is enabled by default.
+	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
+	err = store.PipelineStore.CreatePipeline(createdPipeline)
+	assert.Nil(t, err)
+	pipelineID := createdPipeline.ID
+
+	// Verify that the created pipeline is enabled.
+	createdPipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	assert.Nil(t, err)
+	assert.Equal(t, true, createdPipeline.Enabled, "The pipeline must be enabled.")
+	assert.Equal(t, int64(1), createdPipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
+	assert.Equal(t, int64(0), createdPipeline.UpdatedAtInSec, "Unexpected value of UpdatedAtInSec.")
+
+	// Verify that enabling the pipeline has no effect. In particular, EnabledAtInSec should
+	// not change.
+	err = store.PipelineStore.EnablePipeline(pipelineID, true)
+	assert.Nil(t, err)
+	pipeline, err := store.PipelineStore.GetPipeline(pipelineID)
+	assert.Nil(t, err)
+	assert.Equal(t, true, pipeline.Enabled, "The pipeline must be enabled.")
+	assert.Equal(t, int64(1), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
+
+	// Verify that disabling the pipeline changes both Enabled and EnabledAtInSec
+	err = store.PipelineStore.EnablePipeline(pipelineID, false)
+	assert.Nil(t, err)
+	pipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	assert.Nil(t, err)
+	assert.Equal(t, false, pipeline.Enabled, "The pipeline must be enabled.")
+	assert.Equal(t, int64(2), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
+
+	// Verify that disabling again as no effect.
+	err = store.PipelineStore.EnablePipeline(pipelineID, false)
+	assert.Nil(t, err)
+	pipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	assert.Nil(t, err)
+	assert.Equal(t, false, pipeline.Enabled, "The pipeline must be enabled.")
+	assert.Equal(t, int64(2), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
+
+	// Verify that enabling the pipeline changes both Enabled and EnabledAtInSec
+	err = store.PipelineStore.EnablePipeline(pipelineID, true)
+	assert.Nil(t, err)
+	pipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	assert.Nil(t, err)
+	assert.Equal(t, true, pipeline.Enabled, "The pipeline must be enabled.")
+	assert.Equal(t, int64(3), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
+
+	// Verify that none of the fields of the pipeline have changed.
+	createdPipeline.UpdatedAt = pipeline.UpdatedAt
+	createdPipeline.EnabledAtInSec = pipeline.EnabledAtInSec
+	createdPipeline.UpdatedAtInSec = pipeline.UpdatedAtInSec
+	assert.Equal(t, createdPipeline, pipeline)
+}
+
+func TestEnablePipelineRecordNotFound(t *testing.T) {
+	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+
+	err = store.PipelineStore.EnablePipeline(12, true)
+	assert.IsType(t, &util.UserError{}, err)
+	assert.Contains(t, err.(*util.UserError).Internal().Error(), "record not found")
+	assert.IsType(t, &util.ResourceNotFoundError{}, err.(*util.UserError).External())
+}
+
+func TestEnablePipelineDatabaseError(t *testing.T) {
+	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+
+	// Creating a pipeline. It is enabled by default.
+	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
+	err = store.PipelineStore.CreatePipeline(createdPipeline)
+	assert.Nil(t, err)
+	pipelineID := createdPipeline.ID
+
+	// Closing the DB.
+	store.Close()
+
+	// Enabling the pipeline.
+	err = store.PipelineStore.EnablePipeline(pipelineID, true)
+	assert.Contains(t, err.Error(), "Error when enabling pipeline 1 to true: sql: database is closed")
+}
+
 func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()

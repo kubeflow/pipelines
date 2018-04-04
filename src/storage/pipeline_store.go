@@ -21,6 +21,11 @@ import (
 	"ml/src/util"
 
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
+)
+
+const (
+	pipelineNotFoundString = "Pipeline"
 )
 
 type PipelineStoreInterface interface {
@@ -28,6 +33,7 @@ type PipelineStoreInterface interface {
 	GetPipeline(id uint) (*message.Pipeline, error)
 	CreatePipeline(*message.Pipeline) error
 	GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error)
+	EnablePipeline(id uint, enabled bool) error
 }
 
 type PipelineStore struct {
@@ -67,6 +73,59 @@ func (s *PipelineStore) CreatePipeline(p *message.Pipeline) error {
 		return util.NewInternalError("Failed to add pipeline to pipeline table", r.Error.Error())
 	}
 	return nil
+}
+
+func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
+
+	// Note: We need to query the DB before performing the update so that we don't modify the
+	// time at which the pipeline was enabled if it is already enabled.
+
+	// TODO: add retries / timeouts for the whole transaction.
+	// https://github.com/googleprivate/ml/issues/245
+
+	errorMessage := fmt.Sprintf("Error when enabling pipeline %v to %v", id, enabled)
+
+	// Begin transaction
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return errors.Wrap(tx.Error, errorMessage)
+	}
+
+	// Get pipeline
+	pipeline := message.Pipeline{Metadata: &message.Metadata{ID: id}}
+	tx = tx.Find(&pipeline)
+	if tx.RecordNotFound() {
+		tx.Rollback()
+		return util.NewUserError(
+			errors.Wrap(tx.Error, errorMessage),
+			util.NewResourceNotFoundError(pipelineNotFoundString, fmt.Sprint(id)))
+	} else if tx.Error != nil {
+		tx.Rollback()
+		return errors.Wrap(tx.Error, errorMessage)
+	}
+
+	// If the pipeline is already in the desired state, there is nothing to do.
+	if pipeline.Enabled == enabled {
+		tx.Rollback()
+		return nil
+	}
+
+	now := s.time.Now().Unix()
+
+	tx = tx.Exec(`UPDATE pipelines SET 
+			enabled = ?, 
+			enabled_at_in_sec = ?, 
+			updated_at_in_sec = ?  
+		WHERE 
+			pipelines.deleted_at_in_sec IS NULL AND 
+			"pipelines".id = ?`, enabled, now, now, id)
+
+	if tx.Error != nil {
+		tx.Rollback()
+		return errors.Wrap(tx.Error, errorMessage)
+	}
+
+	return errors.Wrap(tx.Commit().Error, errorMessage)
 }
 
 // factory function for pipeline store
@@ -122,7 +181,8 @@ func newPipelineAndLatestJobIterator(db *gorm.DB) (*PipelineAndLatestJobIterator
 		ON (pipelines.ID=jobs.pipeline_id)
 		WHERE
 			pipelines.schedule != "" AND
-			pipelines.enabled = 1
+			pipelines.enabled = 1 AND
+			pipelines.deleted_at_in_sec IS NULL 
 		GROUP BY
 			pipelines.ID,
 			pipelines.name,

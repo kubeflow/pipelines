@@ -20,7 +20,114 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kataras/iris"
+	"github.com/pkg/errors"
 )
+
+type UserError struct {
+	// Error for internal debugging.
+	internal error
+	// Error for the calling client.
+	external error
+}
+
+func NewUserError(internal error, external error) *UserError {
+	return &UserError{
+		internal: internal,
+		external: external,
+	}
+}
+
+func (e *UserError) External() error {
+	return e.external
+}
+
+func (e *UserError) Internal() error {
+	return e.internal
+}
+
+func (e *UserError) Error() string {
+	return e.internal.Error()
+}
+
+func (e *UserError) String() string {
+	return fmt.Sprintf("userError{internal: %+v, external: %+v}",
+		e.internal, e.external)
+}
+
+func (e *UserError) Wrapf(format string, args ...interface{}) {
+	e.internal = errors.Wrapf(e.internal, format, args)
+}
+
+func (e *UserError) Wrap(message string) {
+	e.internal = errors.Wrap(e.internal, message)
+}
+
+func (e *UserError) PopulateContextAndLog(ctx iris.Context) {
+	switch e.external.(type) {
+	case *InvalidInputError:
+		// We log all the details: both internal and external error.
+		glog.Infof("InvalidInputError: %+v", e)
+		ctx.StatusCode(http.StatusBadRequest)
+		// We only return the external error message.
+		ctx.WriteString(e.external.Error())
+	case *ResourceNotFoundError:
+		glog.Infof("ResourceNotFoundError: %+v", e)
+		ctx.StatusCode(http.StatusNotFound)
+		ctx.WriteString(e.external.Error())
+	case *BadRequestError:
+		glog.Infof("BadRequestError: %+v", e)
+		ctx.StatusCode(http.StatusBadRequest)
+		ctx.WriteString(e.external.Error())
+	default:
+		// By default, we return an internal error since we did not handle this case.
+		// We log all the details: both internal and external error.
+		glog.Errorf("Internal error: %+v", e)
+		ctx.StatusCode(http.StatusInternalServerError)
+		// Since this is OSS, we return the details of the internal error.
+		ctx.WriteString(fmt.Sprintf("Internal error: %+v", e))
+	}
+}
+
+func Wrapf(err error, format string, args ...interface{}) error {
+	if err == nil {
+		return nil
+	}
+
+	switch err.(type) {
+	case *UserError:
+		err.(*UserError).Wrapf(format, args)
+		return err
+	default:
+		return errors.Wrapf(err, format, args)
+	}
+}
+
+func Wrap(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+
+	switch err.(type) {
+	case *UserError:
+		err.(*UserError).Wrapf(message)
+		return err
+	default:
+		return errors.Wrapf(err, message)
+	}
+}
+
+func PopulateContextAndLogError(ctx iris.Context, err error) {
+	switch err.(type) {
+	case *UserError:
+		err.(*UserError).PopulateContextAndLog(ctx)
+	default:
+		// We log all the details.
+		glog.Errorf("Internal error: %+v", err)
+		ctx.StatusCode(http.StatusInternalServerError)
+		// Since this is OSS, we return the details of the internal error.
+		ctx.WriteString(fmt.Sprintf("Internal error: %+v", err))
+	}
+}
 
 type InternalError struct {
 	// Error message returned to client

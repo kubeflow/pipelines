@@ -15,7 +15,11 @@
 package message
 
 type Pipeline struct {
-	*Metadata                   `json:",omitempty"`
+	*Metadata`json:",omitempty"`
+	// TODO: change "-" to "createdAt", "updatedAt" once we manage these fields instead of GORM.
+	CreatedAtInSec  int64       `json:"-" gorm:"not null"`
+	UpdatedAtInSec  int64       `json:"-" gorm:"not null"`
+	DeletedAtInSec  *int64      `json:"-" sql:"index"`
 	Name            string      `json:"name" gorm:"not null"`
 	Description     string      `json:"description,omitempty"`
 	PackageId       uint        `json:"packageId" gorm:"not null"`
