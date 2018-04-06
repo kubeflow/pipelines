@@ -1,3 +1,4 @@
+import proxyMiddleware from './proxy-middleware';
 import Storage = require('@google-cloud/storage');
 import express = require('express');
 import fs = require('fs');
@@ -96,6 +97,8 @@ app.get(apisPrefix + '/artifacts/get/*', (req, res, next) => {
   }
 
 });
+
+proxyMiddleware(app, apisPrefix);
 
 app.all(apisPrefix + '/*', proxy({
   changeOrigin: true,

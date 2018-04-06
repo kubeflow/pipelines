@@ -1,10 +1,10 @@
-const common = require('./webpack.common.js');
-const mockApiMiddleware = require('./mock-backend/mock-api-middleware');
-const merge = require('webpack-merge');
-const path = require('path');
-const webpack = require('webpack');
+import common from './webpack.common';
+import mockApiMiddleware from './mock-backend/mock-api-middleware';
+import * as merge from 'webpack-merge';
+import * as path from 'path';
+import * as webpack from 'webpack';
 
-module.exports = merge(common, {
+export default merge(common, {
   devtool: 'inline-source-map',
   devServer: {
     before: mockApiMiddleware,

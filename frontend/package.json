@@ -1,6 +1,6 @@
 {
   "name": "pipelines-frontend",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Frontend package for ML Pipeline Management",
   "main": "dist/index.html",
   "dependencies": {
@@ -12,6 +12,7 @@
     "@types/d3": "^4.12.0",
     "@types/dagre": "^0.7.39",
     "@types/js-yaml": "^3.10.1",
+    "@types/node": "^9.6.2",
     "babel-minify-webpack-plugin": "^0.3.0",
     "bower": "^1.8.2",
     "clean-webpack-plugin": "^0.1.16",
@@ -23,6 +24,7 @@
     "polymer-webpack-loader": "^2.0.0",
     "reflect-metadata": "^0.1.10",
     "ts-loader": "^2.3.7",
+    "ts-node": "^5.0.1",
     "tslint": "^5.9.1",
     "tslint-loader": "^3.5.3",
     "typescript": "2.6.2",
@@ -31,11 +33,11 @@
     "webpack-merge": "^4.1.2"
   },
   "scripts": {
-    "mock:api": "node mock-backend/mock-api-server.js 3001",
-    "mock:server": "tsc server/*.ts && ML_PIPELINE_MANAGER_SERVICE_HOST=localhost ML_PIPELINE_MANAGER_SERVICE_PORT=3001 node server/server.js dist",
-    "build": "tsc server/*.ts && webpack --config webpack.prod.js",
+    "mock:api": "ts-node mock-backend/mock-api-server.ts 3001",
+    "mock:server": "ML_PIPELINE_MANAGER_SERVICE_HOST=localhost ML_PIPELINE_MANAGER_SERVICE_PORT=3001 ts-node server/server.ts dist",
+    "build": "tsc server/*.ts && webpack --config webpack.prod.ts",
     "docker": "docker build -q -t ml-pipelines-frontend:`node -p \"require('./package.json').version\"` .",
-    "dev": "webpack-dev-server --config webpack.dev.js",
+    "dev": "webpack-dev-server --config webpack.dev.ts",
     "lint": "tslint -p tsconfig.json",
     "postinstall": "bower install && cd ./server && npm install",
     "start": "npm run dev",

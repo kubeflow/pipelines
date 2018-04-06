@@ -1,5 +1,6 @@
-const fs = require('fs');
-const _path = require('path');
+import * as fs from 'fs';
+import * as _path from 'path';
+import proxyMiddleware from '../server/proxy-middleware';
 
 const prefix = __dirname + '/pipeline-data';
 
@@ -13,7 +14,7 @@ const confusionMatrixPath = './confusionmatrix/confusion_matrix.csv';
 
 const apisPrefix = '/apis/v1alpha1';
 
-module.exports = (app) => {
+export default (app) => {
 
   app.set('json spaces', 2);
 
@@ -33,7 +34,7 @@ module.exports = (app) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);
-    const jobs = p[0].jobs.map((j) => ({'name': j.metadata.name, scheduledAt: 0}));
+    const jobs = p[0].jobs.map((j) => ({ 'name': j.metadata.name, scheduledAt: 0 }));
     res.json(jobs);
   });
 
@@ -63,11 +64,11 @@ module.exports = (app) => {
     const path = decodeURIComponent(req.params.path);
 
     res.header('Content-Type', 'application/json');
-      res.json([
-        path + '/file1',
-        path + '/file2',
-        path + (path.match('analysis$|model$') ? '/metadata.json' : '/file3'),
-      ]);
+    res.json([
+      path + '/file1',
+      path + '/file2',
+      path + (path.match('analysis$|model$') ? '/metadata.json' : '/file3'),
+    ]);
   });
 
   app.get(apisPrefix + '/artifacts/get/:path', (req, res) => {
@@ -85,5 +86,7 @@ module.exports = (app) => {
       res.send('dummy file');
     }
   });
+
+  proxyMiddleware(app, apisPrefix);
 
 };
