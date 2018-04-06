@@ -1,6 +1,7 @@
 export enum PlotType {
   CONFUSION_MATRIX = 'confusion_matrix',
   ROC = 'roc',
+  TENSORBOARD = 'tensorboard',
 }
 
 export interface PlotMetadata {
@@ -15,5 +16,5 @@ export interface PlotMetadata {
 }
 
 export interface OutputMetadata {
-  plot: PlotMetadata[];
+  outputs: PlotMetadata[];
 }

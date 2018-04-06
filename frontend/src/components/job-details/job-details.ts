@@ -12,7 +12,7 @@ import prettyJson from 'json-pretty-html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase, Workflow } from '../../model/argo_template';
-import { PlotMetadata } from '../../model/output_metadata';
+import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
 import { JobGraph } from '../job-graph/job-graph';
 
@@ -63,7 +63,8 @@ export class JobDetails extends Polymer.Element implements PageElement {
         const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
         if (metadataFile) {
           const metadataJson = await Apis.readFile(metadataFile);
-          this.push('outputPlots', JSON.parse(metadataJson) as PlotMetadata);
+          const metadata = JSON.parse(metadataJson) as OutputMetadata;
+          this.outputPlots = this.outputPlots.concat(metadata.outputs);
         }
       });
 

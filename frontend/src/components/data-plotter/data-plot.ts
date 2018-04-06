@@ -1,4 +1,4 @@
-import 'polymer/polymer-element.html';
+import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
@@ -21,6 +21,15 @@ export class DataPlot extends Polymer.Element {
   @property({ type: String })
   public plotTitle = '';
 
+  @property({ type: Boolean })
+  protected _showTensorboardControls = false;
+
+  @property({ type: String })
+  protected _podAddress = '';
+
+  @property({ type: Boolean })
+  protected _tensorboardBusy = false;
+
   ready() {
     super.ready();
     if (this.plotMetadata) {
@@ -31,10 +40,27 @@ export class DataPlot extends Polymer.Element {
         case PlotType.ROC:
           this._plotRocCurve(this.plotMetadata);
           break;
+        case PlotType.TENSORBOARD:
+          this._addTensorboardControls();
+          break;
         default:
           Utils.log.error('Unknown plotType:', this.plotMetadata.type);
       }
     }
+  }
+
+  protected async _startTensorboard() {
+    if (!this.plotMetadata) {
+      return;
+    }
+    this._tensorboardBusy = true;
+    try {
+      await Apis.startPod(PlotType.TENSORBOARD,
+        '--logdir=' + encodeURIComponent(this.plotMetadata.source));
+    } finally {
+      this._tensorboardBusy = false;
+    }
+    this._addTensorboardControls();
   }
 
   private async _plotConfusionMatrix(metadata: PlotMetadata) {
@@ -59,7 +85,7 @@ export class DataPlot extends Polymer.Element {
 
     // Render the confusion matrix
     drawMatrix({
-      container: this.$.plot as HTMLElement,
+      container: this.$.container as HTMLElement,
       data: matrix,
       endColor: getComputedStyle(this).getPropertyValue('--accent-color'),
       labels,
@@ -74,12 +100,23 @@ export class DataPlot extends Polymer.Element {
 
     // Render the ROC plot
     drawROC({
-      container: this.$.plot as HTMLElement,
+      container: this.$.container as HTMLElement,
       data: csvParseRows(await Apis.readFile(metadata.source)),
       height: 450,
       lineColor: getComputedStyle(this).getPropertyValue('--accent-color'),
       margin: 50,
       width: 650
     });
+  }
+
+  private async _addTensorboardControls() {
+    if (!this.plotMetadata) {
+      return;
+    }
+    const podAddress = await Apis.getPod(
+      PlotType.TENSORBOARD, '--logdir=' + this.plotMetadata.source);
+    this._podAddress = encodeURIComponent(podAddress);
+    this._showTensorboardControls = true;
+    this.plotTitle = 'Tensorboard for logdir: ' + this.plotMetadata.source;
   }
 }

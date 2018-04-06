@@ -1,7 +1,7 @@
 import * as proxy from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 
-export function _extractUrlFromReferer(proxyPrefix: string, referer: string) {
+export function _extractUrlFromReferer(proxyPrefix: string, referer: string = '') {
   const index = referer.indexOf(proxyPrefix);
   return index > -1 ?
     referer.substr(index + proxyPrefix.length) :
@@ -14,11 +14,12 @@ export function _trimProxyPrefix(proxyPrefix: string, path: string) {
     path;
 }
 
-export function _routePathWithReferer(proxyPrefix: string, path: string, referer?: string) {
+export function _routePathWithReferer(proxyPrefix: string, path: string, referer = '') {
   // If a referer header is included, extract the referer URL, otherwise
   // just trim out the /_proxy/ prefix. Use the origin of the resulting URL.
-  const decodedPath = decodeURIComponent(referer ?
-    _extractUrlFromReferer(proxyPrefix, referer) :
+  const proxiedUrlInReferer = _extractUrlFromReferer(proxyPrefix, referer);
+  const decodedPath = decodeURIComponent(
+    proxiedUrlInReferer ||
     _trimProxyPrefix(proxyPrefix, path));
   return new URL(decodedPath).origin;
 }

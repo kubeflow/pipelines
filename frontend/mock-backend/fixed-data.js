@@ -487,6 +487,18 @@ module.exports = {
                       }
                     },
                     {
+                      name: 'tensorboard',
+                      template: 'tensorboard',
+                      arguments: {
+                        parameters: [
+                          {
+                            name: 'output',
+                            value: '{{inputs.parameters.output}}/{{workflow.name}}/tensorboard'
+                          }
+                        ]
+                      }
+                    },
+                    {
                       name: 'confusionmatrix',
                       template: 'confusionmatrix',
                       arguments: {

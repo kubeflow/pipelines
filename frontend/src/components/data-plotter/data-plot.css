@@ -8,7 +8,7 @@
   text-align: center;
 }
 
-.plot {
+.container {
   border-bottom: 1px solid var(--line-color);
   flex-grow: 1;
   overflow: auto;
@@ -47,4 +47,8 @@
 
 .column-label.active, .row-label.active {
   fill: var(--accent-color);
+}
+
+paper-spinner {
+  vertical-align: middle;
 }

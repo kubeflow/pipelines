@@ -101,7 +101,7 @@ export async function getJob(pipelineId: number, jobId: string): Promise<Workflo
 }
 
 /**
- * List files at a given path from content service using server.
+ * Lists files at a given path from content service using server.
  */
 export async function listFiles(path: string): Promise<string[]> {
   const response = await fetch(apisPrefix + `/artifacts/list/${encodeURIComponent(path)}`);
@@ -109,9 +109,30 @@ export async function listFiles(path: string): Promise<string[]> {
 }
 
 /**
- * Read file from storage using server.
+ * Reads file from storage using server.
  */
 export async function readFile(path: string): Promise<string> {
   const response = await fetch(apisPrefix + `/artifacts/get/${encodeURIComponent(path)}`);
+  return await response.text();
+}
+
+/**
+ * Gets the address (IP + port) of a pod running a certain process
+ */
+export async function getPod(processName: string, args: string): Promise<string> {
+  const response = await fetch(apisPrefix + `/pods/${processName}?${encodeURIComponent(args)}`);
+  return await response.text();
+}
+
+/**
+ * Starts a pod given a process name and arguments
+ */
+export async function startPod(processName: string, args: string) {
+  const response = await fetch(apisPrefix + `/pods/${processName}?${encodeURIComponent(args)}`, {
+    headers: {
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+  });
   return await response.text();
 }

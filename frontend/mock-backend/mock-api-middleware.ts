@@ -6,13 +6,15 @@ const prefix = __dirname + '/pipeline-data';
 
 const fixedData = require('./fixed-data');
 
-const rocMetadataJsonPath = './roc/metadata.json';
-const rocDataPath = './roc/roc.csv';
+const rocMetadataJsonPath = './eval-output/metadata.json';
+const rocDataPath = './eval-output/roc.csv';
 
-const confusionMatrixMetadataJsonPath = './confusionmatrix/metadata.json';
-const confusionMatrixPath = './confusionmatrix/confusion_matrix.csv';
+const confusionMatrixMetadataJsonPath = './model-output/metadata.json';
+const confusionMatrixPath = './model-output/confusion_matrix.csv';
 
 const apisPrefix = '/apis/v1alpha1';
+
+let tensorboardPod = '';
 
 export default (app) => {
 
@@ -85,6 +87,27 @@ export default (app) => {
     } else {
       res.send('dummy file');
     }
+  });
+
+  app.get(apisPrefix + '/pods/:processName', (req, res) => {
+    const processName = req.params.processName;
+    if (processName === 'tensorboard') {
+      res.send(tensorboardPod);
+    } else {
+      res.status(400).send('No process found with this name');
+    }
+  });
+
+  app.post(apisPrefix + '/pods/:processName', (req, res) => {
+    const processName = req.params.processName;
+    if (processName === 'tensorboard') {
+      tensorboardPod = 'http://tensorboardserver:port';
+    } else {
+      res.status(400).send('No process found with this name');
+    }
+    setTimeout(() => {
+      res.send('ok');
+    }, 1000);
   });
 
   proxyMiddleware(app, apisPrefix);

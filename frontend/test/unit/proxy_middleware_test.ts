@@ -12,9 +12,14 @@ const proxyPrefix = 'apis/vtest/_proxy/';
 
 describe('proxy middleware', () => {
 
-  it('extracts nothing when there is no referer url', () => {
+  it('extracts nothing when there is no proxied url in referer', () => {
     const referer = 'http://path/with/no/proxy';
     assert.equal(_extractUrlFromReferer(proxyPrefix, referer), '');
+  });
+
+  it('extracts nothing when there is no referer header', () => {
+    const referer = 'http://path/with/no/proxy';
+    assert.equal(_extractUrlFromReferer(proxyPrefix, ''), '');
   });
 
   it('extracts simple referer urls', () => {
