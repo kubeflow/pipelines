@@ -1,5 +1,3 @@
-/// <reference path="../../../bower_components/paper-input/paper-input.d.ts" />
-
 import 'iron-icons/iron-icons.html';
 import 'neon-animation/web-animations.html';
 import 'paper-checkbox/paper-checkbox.html';
@@ -59,7 +57,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     this.newPipeline = new Pipeline();
 
     // Initialize input to valid to avoid error messages on page load.
-    (this.$.name as PaperInputElement).invalid = false;
+    (this.$.name as any).invalid = false;
 
     this.set('newPipeline.packageId',
       this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1);
