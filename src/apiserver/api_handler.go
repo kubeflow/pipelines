@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"ml/src/message"
-	"ml/src/storage"
+	"ml/src/resource"
 	"ml/src/util"
 
 	"github.com/golang/glog"
@@ -46,16 +46,13 @@ const (
 )
 
 type APIHandler struct {
-	packageStore   storage.PackageStoreInterface
-	pipelineStore  storage.PipelineStoreInterface
-	jobStore       storage.JobStoreInterface
-	packageManager storage.PackageManagerInterface
+	resourceManager *resource.ResourceManager
 }
 
 func (a APIHandler) ListPackages(ctx iris.Context) {
 	glog.Infof("List packages called")
 
-	packages, err := a.packageStore.ListPackages()
+	packages, err := a.resourceManager.GetPackageStore().ListPackages()
 	if err != nil {
 		util.HandleError("ListPackages", ctx, err)
 		return
@@ -72,7 +69,7 @@ func (a APIHandler) GetPackage(ctx iris.Context) {
 		util.HandleError("GetPackage_GetParam", ctx, util.NewInvalidInputError("The package ID is invalid.", err.Error()))
 		return
 	}
-	pkg, err := a.packageStore.GetPackage(uint(id))
+	pkg, err := a.resourceManager.GetPackageStore().GetPackage(uint(id))
 
 	if err != nil {
 		util.HandleError("GetPackage", ctx, err)
@@ -106,7 +103,7 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 	}
 
 	// Store the package file
-	err = a.packageManager.CreatePackageFile(pkgFile, info.Filename)
+	err = a.resourceManager.GetPackageManager().CreatePackageFile(pkgFile, info.Filename)
 	if err != nil {
 		util.HandleError("UploadPackage_StorePackageFile", ctx, err)
 		return
@@ -120,7 +117,7 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 	}
 	pkg := &message.Package{Name: info.Filename, Parameters: params}
 
-	err = a.packageStore.CreatePackage(pkg)
+	err = a.resourceManager.GetPackageStore().CreatePackage(pkg)
 	if err != nil {
 		util.HandleError("UploadPackage_CreatePackage", ctx, err)
 		return
@@ -133,16 +130,17 @@ func (a APIHandler) GetTemplate(ctx iris.Context) {
 
 	id, err := ctx.Params().GetInt64("id")
 	if err != nil {
-		util.HandleError("GetTemplate_GetParam", ctx, util.NewInvalidInputError("The package ID is invalid.", err.Error()))
+		util.HandleError("GetTemplate_GetParam", ctx,
+			util.NewInvalidInputError("The package ID is invalid.", err.Error()))
 		return
 	}
-	pkg, err := a.packageStore.GetPackage(uint(id))
+	pkg, err := a.resourceManager.GetPackageStore().GetPackage(uint(id))
 	if err != nil {
 		util.HandleError("GetTemplate_GetPackage", ctx, err)
 		return
 	}
 
-	template, err := a.packageManager.GetTemplate(pkg.Name)
+	template, err := a.resourceManager.GetPackageManager().GetTemplate(pkg.Name)
 	if err != nil {
 		util.HandleError("GetTemplate_GetPackageFile", ctx, err)
 		return
@@ -153,7 +151,7 @@ func (a APIHandler) GetTemplate(ctx iris.Context) {
 func (a APIHandler) ListPipelines(ctx iris.Context) {
 	glog.Infof("List pipelines called")
 
-	pipelines, err := a.pipelineStore.ListPipelines()
+	pipelines, err := a.resourceManager.GetPipelineStore().ListPipelines()
 	if err != nil {
 		util.HandleError("ListPipelines", ctx, err)
 		return
@@ -170,7 +168,7 @@ func (a APIHandler) GetPipeline(ctx iris.Context) {
 		util.HandleError("GetPipeline_GetParam", ctx, util.NewInvalidInputError("The pipeline ID is invalid.", err.Error()))
 		return
 	}
-	pipeline, err := a.pipelineStore.GetPipeline(uint(id))
+	pipeline, err := a.resourceManager.GetPipelineStore().GetPipeline(uint(id))
 
 	if err != nil {
 		util.HandleError("GetPipeline", ctx, err)
@@ -201,7 +199,7 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 func (a APIHandler) createPipelineInternal(pipeline *message.Pipeline) (error, string) {
 
 	// Verify the package exists
-	pkg, err := a.packageStore.GetPackage(pipeline.PackageId)
+	pkg, err := a.resourceManager.GetPackageStore().GetPackage(pipeline.PackageId)
 	if err != nil {
 		return err, "CreatePipeline_ValidPackageExist"
 	}
@@ -219,7 +217,7 @@ func (a APIHandler) createPipelineInternal(pipeline *message.Pipeline) (error, s
 	}
 
 	// Create pipeline metadata
-	err = a.pipelineStore.CreatePipeline(pipeline)
+	err = a.resourceManager.GetPipelineStore().CreatePipeline(pipeline)
 	if err != nil {
 		return err, "CreatePipeline"
 	}
@@ -227,7 +225,7 @@ func (a APIHandler) createPipelineInternal(pipeline *message.Pipeline) (error, s
 	// If there is no pipeline schedule, the job is created immediately.
 	if pipeline.Schedule == "" {
 
-		template, err := a.packageManager.GetTemplate(pkg.Name)
+		template, err := a.resourceManager.GetPackageManager().GetTemplate(pkg.Name)
 		if err != nil {
 			return err, "CreatePipeline_GetPackageFile"
 		}
@@ -238,7 +236,8 @@ func (a APIHandler) createPipelineInternal(pipeline *message.Pipeline) (error, s
 			return err, "CreatePipeline_CreateJob_InjectParameter"
 		}
 
-		_, err = a.jobStore.CreateJob(pipeline.ID, workflow)
+		_, err = a.resourceManager.GetJobStore().CreateJob(pipeline.ID, workflow,
+			a.resourceManager.GetTime().Now().Unix())
 		if err != nil {
 			return err, "CreatePipeline_CreateJob"
 		}
@@ -267,24 +266,13 @@ func (a APIHandler) enablePipeline(ctx iris.Context, enabled bool) {
 		return
 	}
 
-	err = a.enablePipelineInternal(uint(pipelineID), enabled)
+	err = a.resourceManager.EnablePipeline(uint(pipelineID), enabled)
 	if err != nil {
 		util.PopulateContextAndLogError(ctx, err)
 		return
 	}
 }
 
-func (a APIHandler) enablePipelineInternal(pipelineID uint, enabled bool) error {
-
-	// Note: no validation needed.
-	err := a.pipelineStore.EnablePipeline(pipelineID, enabled)
-	if err != nil {
-		return util.Wrapf(err, "Failed to enable/disable pipeline. Enabled: %v, pipelineID: %v",
-			enabled, pipelineID)
-	}
-
-	return nil
-}
 
 func (a APIHandler) ListJobs(ctx iris.Context) {
 	glog.Infof("List jobs called")
@@ -295,7 +283,7 @@ func (a APIHandler) ListJobs(ctx iris.Context) {
 		return
 	}
 
-	jobs, err := a.jobStore.ListJobs(uint(pipelineId))
+	jobs, err := a.resourceManager.GetJobStore().ListJobs(uint(pipelineId))
 	if err != nil {
 		util.HandleError("ListJobs", ctx, err)
 		return
@@ -315,7 +303,7 @@ func (a APIHandler) GetJob(ctx iris.Context) {
 
 	jobName := ctx.Params().Get("jobName")
 
-	job, err := a.jobStore.GetJob(uint(pipelineId), jobName)
+	job, err := a.resourceManager.GetJobStore().GetJob(uint(pipelineId), jobName)
 	if err != nil {
 		util.HandleError("GetJob", ctx, err)
 		return
@@ -325,11 +313,11 @@ func (a APIHandler) GetJob(ctx iris.Context) {
 }
 
 func newApp(clientManager ClientManager) *iris.Application {
+	
 	apiHandler := &APIHandler{
-		packageStore:   clientManager.packageStore,
-		pipelineStore:  clientManager.pipelineStore,
-		jobStore:       clientManager.jobStore,
-		packageManager: clientManager.packageManager,
+		resourceManager: resource.NewResourceManager(
+			clientManager.packageStore, clientManager.pipelineStore,
+			clientManager.jobStore, clientManager.packageManager, clientManager.time),
 	}
 
 	app := iris.New()

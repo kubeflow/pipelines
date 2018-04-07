@@ -20,13 +20,14 @@ import (
 
 // Job metadata of a job.
 type Job struct {
-	*Metadata                 `json:",omitempty"`
-	Name              string  `json:"name" gorm:"not null"`
-	ScheduledAtInSec  int64   `json:"scheduledAt" gorm:"not null"`
-	PipelineID        uint    `json:"-"` /* Foreign key */
+	*Metadata        `json:",omitempty"`
+	Name             string `json:"name" gorm:"not null"`
+	ScheduledAtInSec int64  `json:"scheduledAt" gorm:"not null"`
+	PipelineID       uint   `json:"-"` /* Foreign key */
 }
 
 // JobDetail a detailed view of a Argo job, including templates, job status etc.
 type JobDetail struct {
-	Workflow *v1alpha1.Workflow `json:"job"`
+	Workflow *v1alpha1.Workflow `json:"job"` // TODO: should we call this workflow in json?
+	Job      *Job               `json:"metadata"`
 }

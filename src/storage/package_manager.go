@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"ml/src/util"
 
-	"github.com/minio/minio-go"
+	minio "github.com/minio/minio-go"
 )
 
 // Manager managing actual package file.

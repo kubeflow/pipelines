@@ -29,6 +29,7 @@ type FakeStore struct {
 	PackageStore       PackageStoreInterface
 	PipelineStore      PipelineStoreInterface
 	JobStore           JobStoreInterface
+	PackageManager     PackageManagerInterface
 	WorkflowClientFake *FakeWorkflowClient
 	Time               util.TimeInterface
 }
@@ -57,6 +58,7 @@ func NewFakeStore(time util.TimeInterface) (*FakeStore, error) {
 		PipelineStore:      NewPipelineStore(db, time),
 		JobStore:           NewJobStore(db, workflowClient, time),
 		WorkflowClientFake: workflowClient,
+		PackageManager:     NewFakePackageManager(),
 		Time:               time,
 	}, nil
 }

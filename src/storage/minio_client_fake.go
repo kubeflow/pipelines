@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/minio/minio-go"
+	minio "github.com/minio/minio-go"
 )
 
 type FakeMinioClient struct {

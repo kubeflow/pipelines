@@ -20,7 +20,7 @@ import (
 	"ml/src/util"
 	"testing"
 
-	"github.com/minio/minio-go"
+	minio "github.com/minio/minio-go"
 	"github.com/stretchr/testify/assert"
 )
 

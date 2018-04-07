@@ -27,7 +27,8 @@ import (
 type JobStoreInterface interface {
 	GetJob(pipelineId uint, jobName string) (*message.JobDetail, error)
 	ListJobs(pipelineId uint) ([]message.Job, error)
-	CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (*message.JobDetail, error)
+	CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64) (
+		*message.JobDetail, error)
 }
 
 type JobStore struct {
@@ -46,27 +47,28 @@ func (s *JobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 }
 
 // CreateJob create Workflow by calling CRD, and store the metadata to DB
-func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow) (*message.JobDetail, error) {
+func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64) (
+	*message.JobDetail, error) {
 	newWf, err := s.wfClient.Create(wf)
 	if err != nil {
 		return nil, util.NewInternalError("Failed to create job",
 			"Failed to create job . Error: %s", err.Error())
 	}
 	job := &message.Job{
-		Name:       newWf.Name,
-		PipelineID: pipelineId,
-		// TODO: Use the scheduled time when pipelines are scheduled.
-		ScheduledAtInSec: s.time.Now().Unix()}
+		Name:             newWf.Name,
+		PipelineID:       pipelineId,
+		ScheduledAtInSec: scheduledAtInSec}
 	if r := s.db.Create(job); r.Error != nil {
 		return nil, util.NewInternalError("Failed to store job metadata", r.Error.Error())
 	}
-	return &message.JobDetail{Workflow: newWf}, nil
+	return &message.JobDetail{Workflow: newWf, Job: job}, nil
 }
 
 // GetJob Get the job manifest from Workflow CRD
 func (s *JobStore) GetJob(pipelineId uint, jobName string) (*message.JobDetail, error) {
 	// validate the the pipeline has the job.
-	err := queryJob(s.db, pipelineId, jobName, &message.Job{})
+	job := &message.Job{}
+	err := queryJob(s.db, pipelineId, jobName, job)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +81,7 @@ func (s *JobStore) GetJob(pipelineId uint, jobName string) (*message.JobDetail, 
 		return nil, util.NewInternalError("Failed to get a job",
 			"Failed to get workflow %s from K8s CRD. Error: %s", jobName, err.Error())
 	}
-	return &message.JobDetail{Workflow: wf}, nil
+	return &message.JobDetail{Workflow: wf, Job: job}, nil
 }
 
 func queryJob(db *gorm.DB, pipelineId uint, jobName string, job *message.Job) error {

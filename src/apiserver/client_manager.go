@@ -22,11 +22,9 @@ import (
 	"ml/src/storage"
 	"ml/src/util"
 
-	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/minio/minio-go"
 )
 
 const (
@@ -44,6 +42,7 @@ type ClientManager struct {
 	pipelineStore  storage.PipelineStoreInterface
 	jobStore       storage.JobStoreInterface
 	packageManager storage.PackageManagerInterface
+	time           util.TimeInterface
 }
 
 func (clientManager *ClientManager) Init() {
@@ -51,17 +50,20 @@ func (clientManager *ClientManager) Init() {
 
 	db := initDBClient()
 
+	// time
+	clientManager.time = util.NewRealTime()
+
 	// Initialize package store
 	clientManager.db = db
 	clientManager.packageStore = storage.NewPackageStore(db)
 
 	// Initialize pipeline store
 	clientManager.db = db
-	clientManager.pipelineStore = storage.NewPipelineStore(db, util.NewRealTime())
+	clientManager.pipelineStore = storage.NewPipelineStore(db, clientManager.time)
 
 	// Initialize job store
-	wfClient := initWorkflowClient()
-	clientManager.jobStore = storage.NewJobStore(db, wfClient, util.NewRealTime())
+	wfClient := client.CreateWorkflowClientOrFatal()
+	clientManager.jobStore = storage.NewJobStore(db, wfClient, clientManager.time)
 
 	// Initialize package manager.
 	clientManager.packageManager = initMinioClient()
@@ -118,19 +120,18 @@ func initMysql(driverName string) string {
 }
 
 func initMinioClient() storage.PackageManagerInterface {
+	// Create minio client.
 	minioServiceHost := getConfig(minioServiceHost)
 	minioServicePort := getConfig(minioServicePort)
-	minioClient, err := minio.New(
-		fmt.Sprintf("%s:%s", minioServiceHost, minioServicePort),
-		getConfig("PackageManagerConfig.AccessKey"),
-		getConfig("PackageManagerConfig.SecretAccessKey"),
-		false /* Secure connection */)
-	if err != nil {
-		glog.Fatalf("Failed to create Minio client. Error: %v", err)
-	}
-
+	accessKey := getConfig("PackageManagerConfig.AccessKey")
+	secretKey := getConfig("PackageManagerConfig.SecretAccessKey")
 	bucketName := getConfig("PackageManagerConfig.BucketName")
-	err = minioClient.MakeBucket(bucketName, "")
+
+	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
+		secretKey)
+
+	// Create bucket if it does not exist
+	err := minioClient.MakeBucket(bucketName, "")
 	if err != nil {
 		// Check to see if we already own this bucket.
 		exists, err := minioClient.BucketExists(bucketName)
@@ -140,17 +141,8 @@ func initMinioClient() storage.PackageManagerInterface {
 			glog.Fatalf("Failed to create Minio bucket. Error: %v", err)
 		}
 	}
-	glog.Infof("Successfully created %s\n", bucketName)
+	glog.Infof("Successfully created bucket %s\n", bucketName)
 	return storage.NewMinioPackageManager(&storage.MinioClient{Client: minioClient}, bucketName)
-}
-
-// creates a new client for the Kubernetes Workflow CRD.
-func initWorkflowClient() v1alpha1.WorkflowInterface {
-	wfClient, err := client.CreateWorkflowClient()
-	if err != nil {
-		glog.Fatalf("Failed to create workflow client. Error: %v", err)
-	}
-	return wfClient
 }
 
 // newClientManager creates and Init a new instance of ClientManager

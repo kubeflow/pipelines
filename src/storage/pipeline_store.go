@@ -137,7 +137,7 @@ func NewPipelineStore(db *gorm.DB, time util.TimeInterface) *PipelineStore {
 }
 
 type PipelineAndLatestJob struct {
-	PipelineID             string
+	PipelineID             uint
 	PipelineName           string
 	PipelineSchedule       string
 	JobName                *string

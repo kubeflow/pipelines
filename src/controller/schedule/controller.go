@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"ml/src/client"
+	"ml/src/resource"
 	"ml/src/storage"
 	"ml/src/util"
 	"time"
@@ -35,18 +36,20 @@ const (
 	mysqlServiceHostFlagName         = "mysql_service_host"
 	mysqlServicePortFlagName         = "mysql_service_port"
 	mysqlDBNameFlagName              = "mysql_db_name"
+	minioServiceHostFlagName         = "minio_service_host"
+	minioServicePortFlagName         = "minio_service_port"
+	minioAccessKeyFlagName           = "minio_access_key"
+	minioSecretKeyFlagName           = "minio_secret_key"
+	minioBucketNameFlagName          = "minio_bucket_name"
 )
 
 type Controller struct {
-	pipelineStore storage.PipelineStoreInterface
-	time          util.TimeInterface
+	resourceManager *resource.ResourceManager
 }
 
-func NewController(pipelineStore storage.PipelineStoreInterface,
-	time util.TimeInterface) *Controller {
+func NewController(resourceManager *resource.ResourceManager) *Controller {
 	return &Controller{
-		pipelineStore: pipelineStore,
-		time:          time,
+		resourceManager: resourceManager,
 	}
 }
 
@@ -79,7 +82,7 @@ func mustRun(schedule string, lastJobRunAt time.Time, now time.Time, pipelineEna
 
 	// Return whether a new job must be run, as well as the time at which the job was supposed
 	// to be scheduled.
-	return now.Before(nextStartTime), nextStartTime, nil
+	return nextStartTime.Before(now), nextStartTime, nil
 }
 
 func (c Controller) runForSingleRow(pipeline *storage.PipelineAndLatestJob) (
@@ -110,7 +113,7 @@ func (c Controller) runForSingleRow(pipeline *storage.PipelineAndLatestJob) (
 		lastJobScheduledAt = time.Unix(0, 0).UTC()
 	}
 
-	now := c.time.Now().UTC()
+	now := c.resourceManager.GetTime().Now().UTC()
 
 	mustRun, scheduledTime, err := mustRun(
 		pipeline.PipelineSchedule,
@@ -120,13 +123,25 @@ func (c Controller) runForSingleRow(pipeline *storage.PipelineAndLatestJob) (
 
 	if err != nil {
 		return false, time.Unix(0, 0).UTC(), errors.Wrapf(err,
-			"Could not figure out whether a job should be created at time '%v' for pipeline: %v",
+			"Could not figure out whether a job should be created at time '%v' for pipeline: %+v",
 			now, pipeline)
 	}
 
+	glog.Infof(
+		"Should a pipeline run for pipeline %v? %v. Details: DB row: %+v, schedule: %v, lastJobScheduledAt: %v, now: %v, pipelineEnabledAt: %v, scheduledTime: %v",
+		pipeline.PipelineID, mustRun, pipeline, pipeline.PipelineSchedule, lastJobScheduledAt, now,
+		pipelineEnabledAt, scheduledTime)
+
 	if mustRun {
 
-		// TODO: Schedule a job
+		jobDetail, err := c.resourceManager.CreateJobFromPipelineID(pipeline.PipelineID,
+			scheduledTime.Unix())
+		if err != nil {
+			return false, time.Unix(0, 0), errors.Wrapf(err, "Failed to create a job for pipeline: %+v",
+				pipeline)
+		}
+		glog.Infof("Successfully created job '%v' for scheduled time '%v' for pipeline: %+v",
+			jobDetail.Workflow.Name, jobDetail.Job.ScheduledAtInSec, pipeline)
 		return true, scheduledTime, nil
 	}
 
@@ -135,7 +150,7 @@ func (c Controller) runForSingleRow(pipeline *storage.PipelineAndLatestJob) (
 
 func (c Controller) runForQuery() error {
 
-	iterator, err := c.pipelineStore.GetPipelineAndLatestJobIterator()
+	iterator, err := c.resourceManager.GetPipelineAndLatestJobIterator()
 
 	if err != nil {
 		return err
@@ -160,10 +175,10 @@ func (c Controller) runForQuery() error {
 				pipelineAndLatestJob, err)
 			continue
 		} else if ran {
-			glog.Infof("Scheduled a job for time '%v' for pipeline: %v", scheduledTime,
+			glog.Errorf("Scheduled a job for time '%v' for pipeline: %v", scheduledTime,
 				pipelineAndLatestJob)
 		} else {
-			glog.Infof("No yet time to schedule a job for time '%v' for pipeline: %v", scheduledTime,
+			glog.Errorf("No yet time to schedule a job for time '%v' for pipeline: %v", scheduledTime,
 				pipelineAndLatestJob)
 		}
 	}
@@ -201,6 +216,12 @@ func main() {
 	mysqlServicePort := flag.String(mysqlServicePortFlagName, "",
 		"The MySQL service port.")
 	mysqlDBName := flag.String(mysqlDBNameFlagName, "", "The MySQL database name.")
+	minioServiceHost := flag.String(minioServiceHostFlagName, "", "The Minio service host.")
+	minioServicePort := flag.String(minioServicePortFlagName, "", "The Minio service port.")
+	minioAccessKey := flag.String(minioAccessKeyFlagName, "", "The Minio access key.")
+	minioSecretKey := flag.String(minioSecretKeyFlagName, "", "The Minio secret key.")
+	minioBucketName := flag.String(minioBucketNameFlagName, "", "The Minio bucket name.")
+
 	flag.Parse()
 
 	checkFlagNotEmptyOrFatal(dbDriverName, dbDriverNameFlagName)
@@ -211,8 +232,14 @@ func main() {
 		checkFlagNotEmptyOrFatal(mysqlDBName, mysqlDBNameFlagName)
 	}
 
+	checkFlagNotEmptyOrFatal(minioServiceHost, minioServiceHostFlagName)
+	checkFlagNotEmptyOrFatal(minioServicePort, minioServicePortFlagName)
+	checkFlagNotEmptyOrFatal(minioAccessKey, minioAccessKeyFlagName)
+	checkFlagNotEmptyOrFatal(minioSecretKey, minioSecretKeyFlagName)
+	checkFlagNotEmptyOrFatal(minioBucketName, minioBucketNameFlagName)
+
 	time := util.NewRealTime()
-	gormClient, err := client.CreateGormClient(
+	db, err := client.CreateGormClient(
 		*dbDriverName,
 		*sqliteDatasourceName,
 		*user,
@@ -224,11 +251,20 @@ func main() {
 		glog.Fatalf("The GORM client could not be created: %+v", err)
 	}
 
-	defer gormClient.Close()
+	defer db.Close()
 
-	pipelineStore := storage.NewPipelineStore(gormClient, time)
+	packageStore := storage.NewPackageStore(db)
+	pipelineStore := storage.NewPipelineStore(db, time)
+	workflowClient := client.CreateWorkflowClientOrFatal()
+	jobStore := storage.NewJobStore(db, workflowClient, time)
+	minioClient := client.CreateMinioClientOrFatal(*minioServiceHost, *minioServicePort,
+		*minioAccessKey, *minioSecretKey)
+	packageManager := storage.NewMinioPackageManager(&storage.MinioClient{Client: minioClient},
+		*minioBucketName)
 
-	controller := NewController(pipelineStore, time)
+	manager := resource.NewResourceManager(packageStore, pipelineStore, jobStore, packageManager,
+		time)
 
+	controller := NewController(manager)
 	controller.run(*sleepDurationBetweenRuns)
 }

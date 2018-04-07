@@ -226,8 +226,8 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 
 	store.PipelineStore.CreatePipeline(pipeline1)
 	store.PipelineStore.CreatePipeline(pipeline2)
-	store.JobStore.CreateJob(1, &workflow1)
-	store.JobStore.CreateJob(1, &workflow2)
+	store.JobStore.CreateJob(1, &workflow1, defaultScheduledTimeInSec)
+	store.JobStore.CreateJob(1, &workflow2, defaultScheduledTimeInSec+5)
 
 	// Checking the first row, which does not have a job.
 	iterator, err := store.PipelineStore.GetPipelineAndLatestJobIterator()
@@ -239,7 +239,7 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 	assert.Nil(t, err)
 
 	expected := &PipelineAndLatestJob{
-		PipelineID:             "2",
+		PipelineID:             2,
 		PipelineName:           pipeline2.Name,
 		PipelineSchedule:       pipeline2.Schedule,
 		JobName:                nil,
@@ -256,13 +256,12 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 	result, err = iterator.Get()
 	assert.Nil(t, err)
 
-	scheduledSec := int64(4)
 	expected = &PipelineAndLatestJob{
-		PipelineID:             "1",
+		PipelineID:             1,
 		PipelineName:           pipeline1.Name,
 		PipelineSchedule:       pipeline1.Schedule,
 		JobName:                &workflow2.Name,
-		JobScheduledAtInSec:    &scheduledSec,
+		JobScheduledAtInSec:    util.Int64Pointer(defaultScheduledTimeInSec + 5),
 		PipelineEnabled:        true,
 		PipelineEnabledAtInSec: 1,
 	}
@@ -303,8 +302,8 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 
 	store.PipelineStore.CreatePipeline(pipeline1)
 	store.PipelineStore.CreatePipeline(pipeline2)
-	store.JobStore.CreateJob(1, &workflow1)
-	store.JobStore.CreateJob(1, &workflow2)
+	store.JobStore.CreateJob(1, &workflow1, defaultScheduledTimeInSec+5)
+	store.JobStore.CreateJob(1, &workflow2, defaultScheduledTimeInSec)
 
 	// Checking the first row, which does not have a job.
 	iterator, err := store.PipelineStore.GetPipelineAndLatestJobIterator()
@@ -315,13 +314,12 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 	result, err := iterator.Get()
 	assert.Nil(t, err)
 
-	scheduledSec := int64(4)
 	expected := &PipelineAndLatestJob{
-		PipelineID:             "1",
+		PipelineID:             1,
 		PipelineName:           pipeline1.Name,
 		PipelineSchedule:       pipeline1.Schedule,
-		JobName:                &workflow2.Name,
-		JobScheduledAtInSec:    &scheduledSec,
+		JobName:                &workflow1.Name,
+		JobScheduledAtInSec:    util.Int64Pointer(defaultScheduledTimeInSec + 5),
 		PipelineEnabled:        true,
 		PipelineEnabledAtInSec: 1,
 	}

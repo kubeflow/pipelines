@@ -19,6 +19,7 @@ import (
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -34,7 +35,8 @@ func NewWorkflowClientFake() *FakeWorkflowClient {
 	}
 }
 
-func (c *FakeWorkflowClient) Create(workflow *v1alpha1.Workflow) (result *v1alpha1.Workflow, err error) {
+func (c *FakeWorkflowClient) Create(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+	workflow.Name = workflow.Name + uuid.New().String()
 	c.workflows[workflow.Name] = workflow
 	return workflow, nil
 }
@@ -43,7 +45,15 @@ func (c *FakeWorkflowClient) GetWorkflowCount() int {
 	return len(c.workflows)
 }
 
-func (c *FakeWorkflowClient) Get(name string, options v1.GetOptions) (result *v1alpha1.Workflow, err error) {
+func (c *FakeWorkflowClient) GetWorkflowKeys() map[string]bool {
+	result := map[string]bool{}
+	for key, _ := range c.workflows {
+		result[key] = true
+	}
+	return result
+}
+
+func (c *FakeWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
 	workflow, ok := c.workflows[name]
 	if ok {
 		return workflow, nil
@@ -51,7 +61,7 @@ func (c *FakeWorkflowClient) Get(name string, options v1.GetOptions) (result *v1
 	return nil, errors.New("not found")
 }
 
-func (c *FakeWorkflowClient) List(opts v1.ListOptions) (result *v1alpha1.WorkflowList, err error) {
+func (c *FakeWorkflowClient) List(opts v1.ListOptions) (*v1alpha1.WorkflowList, error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
 }
@@ -61,7 +71,7 @@ func (c *FakeWorkflowClient) Watch(opts v1.ListOptions) (watch.Interface, error)
 	return nil, nil
 }
 
-func (c *FakeWorkflowClient) Update(workflow *v1alpha1.Workflow) (result *v1alpha1.Workflow, err error) {
+func (c *FakeWorkflowClient) Update(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
 }
@@ -71,12 +81,14 @@ func (c *FakeWorkflowClient) Delete(name string, options *v1.DeleteOptions) erro
 	return nil
 }
 
-func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions,
+	listOptions v1.ListOptions) error {
 	glog.Error("This fake method is not yet implemented.")
 	return nil
 }
 
-func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Workflow, err error) {
+func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
+	subresources ...string) (*v1alpha1.Workflow, error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
 }

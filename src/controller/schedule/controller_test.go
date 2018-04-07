@@ -15,6 +15,8 @@
 package schedule
 
 import (
+	"ml/src/message"
+	"ml/src/resource"
 	"ml/src/storage"
 	"ml/src/util"
 	"testing"
@@ -26,6 +28,22 @@ import (
 const (
 	timeFarInTheFutureSec = 99999999
 )
+
+func getDefaultPipelineAndLatestJob() *storage.PipelineAndLatestJob {
+	return &storage.PipelineAndLatestJob{
+		PipelineID:             1,
+		PipelineName:           "PIPELINE_NAME",
+		PipelineSchedule:       "* 1 * * * *",
+		JobName:                util.StringPointer("JOB_NAME"),
+		JobScheduledAtInSec:    util.Int64Pointer(10),
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 20,
+	}
+}
+
+func createPkg(name string) *message.Package {
+	return &message.Package{Name: name}
+}
 
 func TestGetNextStartTimeAfter(t *testing.T) {
 
@@ -110,7 +128,7 @@ func TestMustRun(t *testing.T) {
 	run, scheduledTime, err := mustRun(schedule, lastJobRunAt.UTC(), now.UTC(),
 		pipelineEnabledAt.UTC())
 	assert.Nil(t, err)
-	assert.True(t, run)
+	assert.False(t, run)
 	assert.Equal(t, expected.UTC(), scheduledTime)
 
 	// Pipeline enabled before last job, current time is before next run.
@@ -122,7 +140,7 @@ func TestMustRun(t *testing.T) {
 	run, scheduledTime, err = mustRun(schedule, lastJobRunAt.UTC(), now.UTC(),
 		pipelineEnabledAt.UTC())
 	assert.Nil(t, err)
-	assert.True(t, run)
+	assert.False(t, run)
 	assert.Equal(t, expected.UTC(), scheduledTime)
 
 	// Pipeline enabled after last job, current time is after next run.
@@ -134,7 +152,7 @@ func TestMustRun(t *testing.T) {
 	run, scheduledTime, err = mustRun(schedule, lastJobRunAt.UTC(), now.UTC(),
 		pipelineEnabledAt.UTC())
 	assert.Nil(t, err)
-	assert.False(t, run)
+	assert.True(t, run)
 	assert.Equal(t, expected.UTC(), scheduledTime)
 
 	// Pipeline enabled before last job, current time is after next run.
@@ -146,7 +164,7 @@ func TestMustRun(t *testing.T) {
 	run, scheduledTime, err = mustRun(schedule, lastJobRunAt.UTC(), now.UTC(),
 		pipelineEnabledAt.UTC())
 	assert.Nil(t, err)
-	assert.False(t, run)
+	assert.True(t, run)
 	assert.Equal(t, expected.UTC(), scheduledTime)
 
 }
@@ -170,18 +188,16 @@ func TestMustRunWrongSchedule(t *testing.T) {
 	assert.Equal(t, expected, scheduledTime)
 }
 
-func TestRunForSingleRowJobRuns(t *testing.T) {
+func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
 
 	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
 	assert.Nil(t, err)
+	defer store.Close()
 
-	controller := &Controller{
-		pipelineStore: store.PipelineStore,
-		time:          store.Time,
-	}
+	controller := NewController(resource.NewResourceManagerTestOnly(store))
 
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
-		PipelineID:             "PIPELINE_ID",
+		PipelineID:             100,
 		PipelineName:           "PIPELINE_NAME",
 		PipelineSchedule:       "* 1 * * * *",
 		JobName:                util.StringPointer("JOB_NAME"),
@@ -190,49 +206,47 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 		PipelineEnabledAtInSec: 20,
 	})
 
-	assert.True(t, hasRun)
-	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
-	assert.Nil(t, err)
-}
-
-func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
-
-	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
-	assert.Nil(t, err)
-
-	controller := &Controller{
-		pipelineStore: store.PipelineStore,
-		time:          store.Time,
-	}
-
-	hasRun, scheduledTime, err := controller.runForSingleRow(getDefaultPipelineAndLatestJob())
-
 	assert.False(t, hasRun)
 	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
 	assert.Nil(t, err)
+	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
 }
 
-func getDefaultPipelineAndLatestJob() *storage.PipelineAndLatestJob {
-	return &storage.PipelineAndLatestJob{
-		PipelineID:             "PIPELINE_ID",
-		PipelineName:           "PIPELINE_NAME",
-		PipelineSchedule:       "* 1 * * * *",
-		JobName:                util.StringPointer("JOB_NAME"),
-		JobScheduledAtInSec:    util.Int64Pointer(10),
-		PipelineEnabled:        true,
-		PipelineEnabledAtInSec: 20,
-	}
+func TestRunForSingleRowJobRuns(t *testing.T) {
+
+	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
+	assert.Nil(t, err)
+	defer store.Close()
+	manager := resource.NewResourceManagerTestOnly(store)
+	controller := NewController(manager)
+
+	// Create package and pipeline.
+	store.PackageStore.CreatePackage(createPkg("pkg1"))
+	store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	pipeline := &message.Pipeline{
+		Name:      "MY_PIPELINE",
+		Schedule:  "* * * * * *",
+		PackageId: 1}
+	err, _ = manager.CreatePipeline(pipeline)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+
+	// Create job.
+	hasRun, scheduledTime, err := controller.runForSingleRow(getDefaultPipelineAndLatestJob())
+
+	assert.Nil(t, err)
+	assert.True(t, hasRun)
+	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
+	assert.Equal(t, 1, store.WorkflowClientFake.GetWorkflowCount())
 }
 
 func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 
 	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(0, 0)))
 	assert.Nil(t, err)
+	defer store.Close()
 
-	controller := &Controller{
-		pipelineStore: store.PipelineStore,
-		time:          store.Time,
-	}
+	controller := NewController(resource.NewResourceManagerTestOnly(store))
 
 	pipeline := getDefaultPipelineAndLatestJob()
 	pipeline.PipelineSchedule = ""
@@ -254,46 +268,19 @@ func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 	assert.False(t, hasRun)
 	assert.Equal(t, time.Unix(0, 0).UTC(), scheduledTime)
 	assert.Contains(t, err.Error(), "PipelineEnabledAtInSec should not be 0")
-
-}
-
-func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
-
-	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(0, 0)))
-	assert.Nil(t, err)
-
-	controller := &Controller{
-		pipelineStore: store.PipelineStore,
-		time:          store.Time,
-	}
-
-	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
-		PipelineID:             "PIPELINE_ID",
-		PipelineName:           "PIPELINE_NAME",
-		PipelineSchedule:       "* 1 * * * *",
-		JobName:                nil,
-		JobScheduledAtInSec:    nil,
-		PipelineEnabled:        true,
-		PipelineEnabledAtInSec: 20,
-	})
-
-	assert.Nil(t, err)
-	assert.True(t, hasRun)
-	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
+	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
 }
 
 func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 
-	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
+	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(0, 0)))
 	assert.Nil(t, err)
+	defer store.Close()
 
-	controller := &Controller{
-		pipelineStore: store.PipelineStore,
-		time:          store.Time,
-	}
+	controller := NewController(resource.NewResourceManagerTestOnly(store))
 
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
-		PipelineID:             "PIPELINE_ID",
+		PipelineID:             100,
 		PipelineName:           "PIPELINE_NAME",
 		PipelineSchedule:       "* 1 * * * *",
 		JobName:                nil,
@@ -305,12 +292,79 @@ func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, hasRun)
 	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
+	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
 }
 
-func TestRunForQuery(t *testing.T) {
-	// TODO: test this once we have implemented running the jobs.
+func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
+	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
+	assert.Nil(t, err)
+	defer store.Close()
+	manager := resource.NewResourceManagerTestOnly(store)
+	controller := NewController(manager)
+
+	// Create package and pipeline.
+	store.PackageStore.CreatePackage(createPkg("pkg1"))
+	store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	pipeline := &message.Pipeline{
+		Name:      "MY_PIPELINE",
+		Schedule:  "* * * * * *",
+		PackageId: 1}
+	err, _ = manager.CreatePipeline(pipeline)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+
+	// Run job.
+	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
+		PipelineID:             1,
+		PipelineName:           "PIPELINE_NAME",
+		PipelineSchedule:       "* 1 * * * *",
+		JobName:                nil,
+		JobScheduledAtInSec:    nil,
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: 20,
+	})
+
+	assert.Nil(t, err)
+	assert.True(t, hasRun)
+	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
+	assert.Equal(t, 1, store.WorkflowClientFake.GetWorkflowCount())
 }
 
-func TestRun(t *testing.T) {
-	// TODO: test this once we have implemented running the jobs.
+func TestRunForSingleRowPreviousJobAndDoesNotRun(t *testing.T) {
+
+	store, err := storage.NewFakeStore(util.NewFakeTime(
+		util.ParseTimeOrFatal("1970-10-01T01:00:00+00:00")))
+	assert.Nil(t, err)
+	defer store.Close()
+
+	controller := NewController(resource.NewResourceManagerTestOnly(store))
+
+	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
+		PipelineID:       100,
+		PipelineName:     "PIPELINE_NAME",
+		PipelineSchedule: "* 5 * * * *",
+		JobName:          util.StringPointer("JOB_NAME"),
+		JobScheduledAtInSec: util.Int64Pointer(
+			util.ParseTimeOrFatal("1970-10-01T00:59:00+00:00").Unix()),
+		PipelineEnabled:        true,
+		PipelineEnabledAtInSec: util.ParseTimeOrFatal("1970-01-01T01:00:00+00:00").Unix(),
+	})
+
+	assert.Nil(t, err)
+	assert.False(t, hasRun)
+	assert.Equal(t, util.ParseTimeOrFatal("1970-10-01T01:05:00+00:00"), scheduledTime)
+	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+}
+
+func TestRunForQueryNothingToDo(t *testing.T) {
+
+	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	assert.Nil(t, err)
+	defer store.Close()
+
+	controller := NewController(resource.NewResourceManagerTestOnly(store))
+
+	err = controller.runForQuery()
+	assert.Nil(t, err)
+
 }

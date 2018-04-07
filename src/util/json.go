@@ -9,6 +9,6 @@ import (
 func MarshalOrFail(data string, v interface{}) {
 	err := json.Unmarshal([]byte(data), v)
 	if err != nil {
-		glog.Fatalf("Failed to marshal the object.")
+		glog.Fatalf("Failed to marshal the object: ", data)
 	}
 }

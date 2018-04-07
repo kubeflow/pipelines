@@ -32,6 +32,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	defaultScheduledAtInSec = 5
+)
+
 func createPkg(name string) *message.Package {
 	return &message.Package{Name: name}
 }
@@ -83,7 +87,8 @@ func (s *FakeBadJobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 	return nil, util.NewInternalError("bad job store", "")
 }
 
-func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow) (*message.JobDetail, error) {
+func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow,
+	scheduledAtInSec int64) (*message.JobDetail, error) {
 	return nil, util.NewInternalError("bad job store", "")
 }
 
@@ -129,7 +134,8 @@ func initApiHandlerTest(
 		packageStore:   ps,
 		jobStore:       js,
 		pipelineStore:  pls,
-		packageManager: pm}
+		packageManager: pm,
+		time:           util.NewFakeTimeForEpoch()}
 	return newApp(clientManager)
 }
 
@@ -458,88 +464,6 @@ func TestCreatePipeline_InvalidSchedule(t *testing.T) {
 	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
 }
 
-func TestCreatePipelineInternalNoSchedule(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	store.PackageStore.CreatePackage(createPkg("pkg1"))
-	pm := storage.NewFakePackageManager()
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
-	apiHandler := APIHandler{store.PackageStore, store.PipelineStore, store.JobStore,
-		pm}
-
-	pipeline := &message.Pipeline{
-		Name:      "MY_PIPELINE",
-		PackageId: 1}
-	err, errPrefix := apiHandler.createPipelineInternal(pipeline)
-
-	assert.Nil(t, err, "There should not be an error: %v", err)
-
-	expected := message.Pipeline{
-		Metadata:       &message.Metadata{ID: 1},
-		Name:           "MY_PIPELINE",
-		PackageId:      1,
-		Schedule:       "",
-		Enabled:        true,
-		EnabledAtInSec: 1}
-
-	assert.Equalf(t, expected, *pipeline, "Unexpected pipeline structure. Expect %v. Got %v.",
-		expected, *pipeline)
-	assert.Empty(t, errPrefix)
-	assert.Equal(t, 1, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
-}
-
-func TestCreatePipelineInternalValidSchedule(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	store.PackageStore.CreatePackage(createPkg("pkg1"))
-	pm := storage.NewFakePackageManager()
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
-	apiHandler := APIHandler{store.PackageStore, store.PipelineStore, store.JobStore,
-		pm}
-
-	pipeline := &message.Pipeline{
-		Name:      "MY_PIPELINE",
-		PackageId: 1,
-		Schedule:  "1 0 * * *"}
-	err, errPrefix := apiHandler.createPipelineInternal(pipeline)
-
-	assert.Nil(t, err, "There should not be an error: %v", err)
-
-	expected := message.Pipeline{
-		Metadata:       &message.Metadata{ID: 1},
-		Name:           "MY_PIPELINE",
-		PackageId:      1,
-		Schedule:       "1 0 * * *",
-		Enabled:        true,
-		EnabledAtInSec: 1}
-
-	assert.Equalf(t, expected, *pipeline, "Unexpected pipeline structure. Expect %v. Got %v.",
-		expected, *pipeline)
-	assert.Empty(t, errPrefix)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
-}
-
-func TestCreatePipelineInternalInvalidSchedule(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	store.PackageStore.CreatePackage(createPkg("pkg1"))
-	pm := storage.NewFakePackageManager()
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
-	apiHandler := APIHandler{store.PackageStore, store.PipelineStore, store.JobStore,
-		pm}
-
-	pipeline := &message.Pipeline{
-		Name:      "MY_PIPELINE",
-		PackageId: 1,
-		Schedule:  "abcdef"}
-	err, errPrefix := apiHandler.createPipelineInternal(pipeline)
-
-	assert.Contains(t, err.Error(),
-		"Invalid input: The pipeline schedule cannot be parsed: abcdef: Expected 5 to 6 fields")
-	assert.Equal(t, errPrefix, "CreatePipeline_ValidSchedule")
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
-}
-
 func TestEnablePipeline(t *testing.T) {
 	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
 	assert.Nil(t, err)
@@ -610,12 +534,15 @@ func TestEnablePipelineNotFound(t *testing.T) {
 func TestListJobs(t *testing.T) {
 	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	store.JobStore.CreateJob(1, createWorkflow("wf1"))
-	store.JobStore.CreateJob(2, createWorkflow("wf2"))
+	jobDetail1, err := store.JobStore.CreateJob(1, createWorkflow("wf1"), defaultScheduledAtInSec)
+	assert.Nil(t, err)
+	_, err = store.JobStore.CreateJob(2, createWorkflow("wf2"), defaultScheduledAtInSec)
+	assert.Nil(t, err)
+
 	expectedResponse := []message.Job{
 		{Metadata: &message.Metadata{ID: 1},
-			Name:             createWorkflow("wf1").Name,
-			ScheduledAtInSec: 1,
+			Name:             jobDetail1.Job.Name,
+			ScheduledAtInSec: defaultScheduledAtInSec,
 		}}
 	e := httptest.New(t, initApiHandlerTest(nil, store.JobStore, nil, nil))
 
@@ -635,14 +562,23 @@ func TestListJobsReturnError(t *testing.T) {
 func TestGetJob(t *testing.T) {
 	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	store.JobStore.CreateJob(1, createWorkflow("wf1"))
-	expectedResponse := message.JobDetail{Workflow: createWorkflow("wf1")}
+	jobDetail, err := store.JobStore.CreateJob(1, createWorkflow("wf1"), defaultScheduledAtInSec)
+	assert.Nil(t, err)
+	expectedResponse := message.JobDetail{
+		Workflow: createWorkflow(jobDetail.Job.Name),
+		Job: &message.Job{
+			Name:             jobDetail.Job.Name,
+			ScheduledAtInSec: defaultScheduledAtInSec,
+			PipelineID:       0,
+		}}
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore, store.JobStore, store.PipelineStore,
 		storage.NewFakePackageManager()))
 
-	response := e.GET("/apis/v1alpha1/pipelines/1/jobs/wf1").Expect().Status(httptest.StatusOK)
+	response := e.GET(fmt.Sprintf("/apis/v1alpha1/pipelines/1/jobs/%v", jobDetail.Job.Name)).
+		Expect().Status(httptest.StatusOK)
 	var actual message.JobDetail
 	util.MarshalOrFail(response.Body().Raw(), &actual)
+	actual.Job.Metadata = nil
 	assert.Equal(t, expectedResponse, actual)
 }
 
