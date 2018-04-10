@@ -26,7 +26,9 @@ To be able to use GKE, the Docker images need to be uploaded to a public Docker 
 
 Here is an example to build API server image and upload to GCR.  
 ````
+# Run under src/ directory 
 docker build -t gcr.io/your-gcr/api-server:latest src/apiserver
+# Push to GCR
 gcloud docker -- push gcr.io/your-gcr/api-server:latest
 ````
 
