@@ -14,16 +14,16 @@ func createPkg(name string) *message.Package {
 }
 
 func TestCreatePipelineInternalNoSchedule(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManagerTestOnly(store)
-	store.PackageStore.CreatePackage(createPkg("pkg1"))
-	store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	manager := NewResourceManager(store)
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 
 	pipeline := &message.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1}
-	err, errPrefix := manager.CreatePipeline(pipeline)
+	err := manager.CreatePipeline(pipeline)
 
 	assert.Nil(t, err, "There should not be an error: %v", err)
 
@@ -37,22 +37,21 @@ func TestCreatePipelineInternalNoSchedule(t *testing.T) {
 
 	assert.Equalf(t, expected, *pipeline, "Unexpected pipeline structure. Expect %v. Got %v.",
 		expected, *pipeline)
-	assert.Empty(t, errPrefix)
-	assert.Equal(t, 1, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
+	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 }
 
 func TestCreatePipelineInternalValidSchedule(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManagerTestOnly(store)
-	store.PackageStore.CreatePackage(createPkg("pkg1"))
-	store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	manager := NewResourceManager(store)
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 
 	pipeline := &message.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "1 0 * * *"}
-	err, errPrefix := manager.CreatePipeline(pipeline)
+	err := manager.CreatePipeline(pipeline)
 
 	assert.Nil(t, err, "There should not be an error: %v", err)
 
@@ -66,50 +65,48 @@ func TestCreatePipelineInternalValidSchedule(t *testing.T) {
 
 	assert.Equalf(t, expected, *pipeline, "Unexpected pipeline structure. Expect %v. Got %v.",
 		expected, *pipeline)
-	assert.Empty(t, errPrefix)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 }
 
 func TestCreatePipelineInternalInvalidSchedule(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManagerTestOnly(store)
-	store.PackageStore.CreatePackage(createPkg("pkg1"))
-	store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	manager := NewResourceManager(store)
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 
 	pipeline := &message.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "abcdef"}
-	err, errPrefix := manager.CreatePipeline(pipeline)
+	err := manager.CreatePipeline(pipeline)
 
 	assert.Contains(t, err.Error(),
-		"Invalid input: The pipeline schedule cannot be parsed: abcdef: Expected 5 to 6 fields")
-	assert.Equal(t, errPrefix, "CreatePipeline_ValidSchedule")
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount(), "Unexpected number of workflows.")
+		"InvalidInputError: The pipeline schedule cannot be parsed: abcdef: Expected 5 to 6 fields")
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 }
 
 func TestCreateJobFromPipelineID(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManagerTestOnly(store)
+	manager := NewResourceManager(store)
 
 	// Create package.
-	err := store.PackageStore.CreatePackage(createPkg("pkg1"))
+	err := store.PackageStore().CreatePackage(createPkg("pkg1"))
 	assert.Nil(t, err)
 
-	err = store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	err = store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 	assert.Nil(t, err)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
 	// Create pipeline with a schedule.
 	pipeline := &message.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "* * * * * *"}
-	err = store.PipelineStore.CreatePipeline(pipeline)
+	err = store.PipelineStore().CreatePipeline(pipeline)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
 	// Create job.
 	scheduledAtInSec := int64(5)
@@ -122,13 +119,13 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 		PipelineID:       1,
 	}
 	assert.Equal(t, map[string]bool{jobDetail1.Workflow.Name: true},
-		store.WorkflowClientFake.GetWorkflowKeys())
+		store.WorkflowClientFake().GetWorkflowKeys())
 	assert.Equal(t, expectedJob1, jobDetail1.Job)
 
-	_, err = store.JobStore.GetJob(pipeline.ID, jobDetail1.Workflow.Name)
+	_, err = store.JobStore().GetJob(pipeline.ID, jobDetail1.Workflow.Name)
 	assert.Nil(t, err)
 
-	jobs, err := store.JobStore.ListJobs(pipeline.ID)
+	jobs, err := store.JobStore().ListJobs(pipeline.ID)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 1)
 
@@ -143,29 +140,29 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 		PipelineID:       1,
 	}
 	assert.Equal(t, map[string]bool{jobDetail1.Workflow.Name: true, jobDetail2.Workflow.Name: true},
-		store.WorkflowClientFake.GetWorkflowKeys())
+		store.WorkflowClientFake().GetWorkflowKeys())
 	assert.Equal(t, expectedJob2, jobDetail2.Job)
 
-	_, err = store.JobStore.GetJob(pipeline.ID, jobDetail2.Workflow.Name)
+	_, err = store.JobStore().GetJob(pipeline.ID, jobDetail2.Workflow.Name)
 	assert.Nil(t, err)
 
-	jobs, err = store.JobStore.ListJobs(pipeline.ID)
+	jobs, err = store.JobStore().ListJobs(pipeline.ID)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 2)
 }
 
 func TestCreateJobFromPipelineIDGetPipelineError(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManagerTestOnly(store)
+	manager := NewResourceManager(store)
 
 	// Create package.
-	err := store.PackageStore.CreatePackage(createPkg("pkg1"))
+	err := store.PackageStore().CreatePackage(createPkg("pkg1"))
 	assert.Nil(t, err)
 
-	err = store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	err = store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 	assert.Nil(t, err)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
 	// We do not create the pipeline!
 
@@ -176,9 +173,9 @@ func TestCreateJobFromPipelineIDGetPipelineError(t *testing.T) {
 }
 
 func TestCreateJobFromPipelineIDGetPackageError(t *testing.T) {
-	store := storage.NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	manager := NewResourceManagerTestOnly(store)
+	manager := NewResourceManager(store)
 
 	// We do not create the package!
 
@@ -187,9 +184,9 @@ func TestCreateJobFromPipelineIDGetPackageError(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "* * * * * *"}
-	err := store.PipelineStore.CreatePipeline(pipeline)
+	err := store.PipelineStore().CreatePipeline(pipeline)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
 	// Create job.
 	scheduledAtInSec := int64(5)

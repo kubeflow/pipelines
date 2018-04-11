@@ -45,34 +45,54 @@ type ClientManager struct {
 	time           util.TimeInterface
 }
 
-func (clientManager *ClientManager) Init() {
+func (c *ClientManager) PackageStore() storage.PackageStoreInterface {
+	return c.packageStore
+}
+
+func (c *ClientManager) PipelineStore() storage.PipelineStoreInterface {
+	return c.pipelineStore
+}
+
+func (c *ClientManager) JobStore() storage.JobStoreInterface {
+	return c.jobStore
+}
+
+func (c *ClientManager) PackageManager() storage.PackageManagerInterface {
+	return c.packageManager
+}
+
+func (c *ClientManager) Time() util.TimeInterface {
+	return c.time
+}
+
+func (c *ClientManager) init() {
 	glog.Infof("Initializing client manager")
 
 	db := initDBClient()
 
 	// time
-	clientManager.time = util.NewRealTime()
+	c.time = util.NewRealTime()
 
 	// Initialize package store
-	clientManager.db = db
-	clientManager.packageStore = storage.NewPackageStore(db)
+	c.db = db
+	c.packageStore = storage.NewPackageStore(db)
 
 	// Initialize pipeline store
-	clientManager.db = db
-	clientManager.pipelineStore = storage.NewPipelineStore(db, clientManager.time)
+	c.db = db
+	c.pipelineStore = storage.NewPipelineStore(db, c.time)
 
 	// Initialize job store
 	wfClient := client.CreateWorkflowClientOrFatal()
-	clientManager.jobStore = storage.NewJobStore(db, wfClient, clientManager.time)
+	c.jobStore = storage.NewJobStore(db, wfClient, c.time)
 
 	// Initialize package manager.
-	clientManager.packageManager = initMinioClient()
+	c.packageManager = initMinioClient()
 
 	glog.Infof("Client manager initialized successfully")
 }
 
-func (clientManager *ClientManager) End() {
-	clientManager.db.Close()
+func (c *ClientManager) Close() {
+	c.db.Close()
 }
 
 func initDBClient() *gorm.DB {
@@ -148,7 +168,7 @@ func initMinioClient() storage.PackageManagerInterface {
 // newClientManager creates and Init a new instance of ClientManager
 func newClientManager() ClientManager {
 	clientManager := ClientManager{}
-	clientManager.Init()
+	clientManager.init()
 
 	return clientManager
 }

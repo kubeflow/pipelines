@@ -17,6 +17,7 @@ package storage
 import (
 	"ml/src/message"
 	"ml/src/util"
+	"net/http"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -38,10 +39,10 @@ func pipelineExpected1() message.Pipeline {
 }
 
 func TestListPipelines(t *testing.T) {
-	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	store.PipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
-	store.PipelineStore.CreatePipeline(createPipeline("pipeline2", 2))
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline2", 2))
 	pipelinesExpected := []message.Pipeline{
 		pipelineExpected1(),
 		{Metadata: &message.Metadata{ID: 2},
@@ -51,78 +52,82 @@ func TestListPipelines(t *testing.T) {
 			EnabledAtInSec: 2,
 			Parameters:     []message.Parameter{}}}
 
-	pipelines, err := store.PipelineStore.ListPipelines()
+	pipelines, err := store.PipelineStore().ListPipelines()
 	assert.Nil(t, err)
 	assert.Equal(t, pipelinesExpected, pipelines, "Got unexpected pipelines")
 }
 
 func TestListPipelinesError(t *testing.T) {
-	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	store.DB.Close()
-	_, err := store.PipelineStore.ListPipelines()
+	store.DB().Close()
+	_, err := store.PipelineStore().ListPipelines()
 
-	assert.IsType(t, new(util.InternalError), err, "Expected to list pipeline to return error")
+	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+		"Expected to list pipeline to return error")
 }
 
 func TestGetPipeline(t *testing.T) {
-	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	store.PipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
 
-	pipeline, err := store.PipelineStore.GetPipeline(1)
+	pipeline, err := store.PipelineStore().GetPipeline(1)
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
 }
 
 func TestGetPipeline_NotFoundError(t *testing.T) {
-	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	_, err := store.PipelineStore.GetPipeline(1)
-	assert.IsType(t, new(util.ResourceNotFoundError), err, "Expected get pipeline to return not found error")
+	_, err := store.PipelineStore().GetPipeline(1)
+	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode(),
+		"Expected get pipeline to return not found error")
 }
 
 func TestGetPipeline_InternalError(t *testing.T) {
-	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	store.DB.Close()
-	_, err := store.PipelineStore.GetPipeline(1)
-	assert.IsType(t, new(util.InternalError), err, "Expected get pipeline to return internal error")
+	store.DB().Close()
+	_, err := store.PipelineStore().GetPipeline(1)
+	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+		"Expected get pipeline to return internal error")
 }
 
 func TestCreatePipeline(t *testing.T) {
-	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	pipeline := createPipeline("pipeline1", 1)
-	err := store.PipelineStore.CreatePipeline(pipeline)
+	err := store.PipelineStore().CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
 }
 
 func TestCreatePipelineError(t *testing.T) {
-	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	store.DB.Close()
+	store.DB().Close()
 
 	pipeline := createPipeline("pipeline1", 1)
-	err := store.PipelineStore.CreatePipeline(pipeline)
-	assert.IsType(t, new(util.InternalError), err, "Expected create pipeline to return error")
+	err := store.PipelineStore().CreatePipeline(pipeline)
+	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+		"Expected create pipeline to return error")
 }
 
 func TestEnablePipeline(t *testing.T) {
 
-	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch())
 	assert.Nil(t, err)
 	defer store.Close()
 
 	// Creating a pipeline. It is enabled by default.
 	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
-	err = store.PipelineStore.CreatePipeline(createdPipeline)
+	err = store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
 
 	// Verify that the created pipeline is enabled.
-	createdPipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	createdPipeline, err = store.PipelineStore().GetPipeline(pipelineID)
 	assert.Nil(t, err)
 	assert.Equal(t, true, createdPipeline.Enabled, "The pipeline must be enabled.")
 	assert.Equal(t, int64(1), createdPipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
@@ -130,33 +135,33 @@ func TestEnablePipeline(t *testing.T) {
 
 	// Verify that enabling the pipeline has no effect. In particular, EnabledAtInSec should
 	// not change.
-	err = store.PipelineStore.EnablePipeline(pipelineID, true)
+	err = store.PipelineStore().EnablePipeline(pipelineID, true)
 	assert.Nil(t, err)
-	pipeline, err := store.PipelineStore.GetPipeline(pipelineID)
+	pipeline, err := store.PipelineStore().GetPipeline(pipelineID)
 	assert.Nil(t, err)
 	assert.Equal(t, true, pipeline.Enabled, "The pipeline must be enabled.")
 	assert.Equal(t, int64(1), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
 
 	// Verify that disabling the pipeline changes both Enabled and EnabledAtInSec
-	err = store.PipelineStore.EnablePipeline(pipelineID, false)
+	err = store.PipelineStore().EnablePipeline(pipelineID, false)
 	assert.Nil(t, err)
-	pipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	pipeline, err = store.PipelineStore().GetPipeline(pipelineID)
 	assert.Nil(t, err)
 	assert.Equal(t, false, pipeline.Enabled, "The pipeline must be enabled.")
 	assert.Equal(t, int64(2), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
 
 	// Verify that disabling again as no effect.
-	err = store.PipelineStore.EnablePipeline(pipelineID, false)
+	err = store.PipelineStore().EnablePipeline(pipelineID, false)
 	assert.Nil(t, err)
-	pipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	pipeline, err = store.PipelineStore().GetPipeline(pipelineID)
 	assert.Nil(t, err)
 	assert.Equal(t, false, pipeline.Enabled, "The pipeline must be enabled.")
 	assert.Equal(t, int64(2), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
 
 	// Verify that enabling the pipeline changes both Enabled and EnabledAtInSec
-	err = store.PipelineStore.EnablePipeline(pipelineID, true)
+	err = store.PipelineStore().EnablePipeline(pipelineID, true)
 	assert.Nil(t, err)
-	pipeline, err = store.PipelineStore.GetPipeline(pipelineID)
+	pipeline, err = store.PipelineStore().GetPipeline(pipelineID)
 	assert.Nil(t, err)
 	assert.Equal(t, true, pipeline.Enabled, "The pipeline must be enabled.")
 	assert.Equal(t, int64(3), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
@@ -169,24 +174,23 @@ func TestEnablePipeline(t *testing.T) {
 }
 
 func TestEnablePipelineRecordNotFound(t *testing.T) {
-	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch())
 	assert.Nil(t, err)
 	defer store.Close()
 
-	err = store.PipelineStore.EnablePipeline(12, true)
+	err = store.PipelineStore().EnablePipeline(12, true)
 	assert.IsType(t, &util.UserError{}, err)
-	assert.Contains(t, err.(*util.UserError).Internal().Error(), "record not found")
-	assert.IsType(t, &util.ResourceNotFoundError{}, err.(*util.UserError).External())
+	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestEnablePipelineDatabaseError(t *testing.T) {
-	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch())
 	assert.Nil(t, err)
 	defer store.Close()
 
 	// Creating a pipeline. It is enabled by default.
 	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
-	err = store.PipelineStore.CreatePipeline(createdPipeline)
+	err = store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
 
@@ -194,12 +198,12 @@ func TestEnablePipelineDatabaseError(t *testing.T) {
 	store.Close()
 
 	// Enabling the pipeline.
-	err = store.PipelineStore.EnablePipeline(pipelineID, true)
+	err = store.PipelineStore().EnablePipeline(pipelineID, true)
 	assert.Contains(t, err.Error(), "Error when enabling pipeline 1 to true: sql: database is closed")
 }
 
 func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
-	store := NewFakeStoreOrFatal(util.NewFakeTimeForEpoch())
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	pipeline1 := &message.Pipeline{
@@ -224,13 +228,13 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 		},
 	}
 
-	store.PipelineStore.CreatePipeline(pipeline1)
-	store.PipelineStore.CreatePipeline(pipeline2)
-	store.JobStore.CreateJob(1, &workflow1, defaultScheduledTimeInSec)
-	store.JobStore.CreateJob(1, &workflow2, defaultScheduledTimeInSec+5)
+	store.PipelineStore().CreatePipeline(pipeline1)
+	store.PipelineStore().CreatePipeline(pipeline2)
+	store.JobStore().CreateJob(1, &workflow1, defaultScheduledTimeInSec)
+	store.JobStore().CreateJob(1, &workflow2, defaultScheduledTimeInSec+5)
 
 	// Checking the first row, which does not have a job.
-	iterator, err := store.PipelineStore.GetPipelineAndLatestJobIterator()
+	iterator, err := store.PipelineStore().GetPipelineAndLatestJobIterator()
 
 	assert.Nil(t, err)
 	assert.True(t, iterator.Next())
@@ -274,7 +278,7 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 }
 
 func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
-	store, err := NewFakeStore(util.NewFakeTimeForEpoch())
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch())
 	assert.Nil(t, err)
 	defer store.Close()
 
@@ -300,13 +304,13 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 		},
 	}
 
-	store.PipelineStore.CreatePipeline(pipeline1)
-	store.PipelineStore.CreatePipeline(pipeline2)
-	store.JobStore.CreateJob(1, &workflow1, defaultScheduledTimeInSec+5)
-	store.JobStore.CreateJob(1, &workflow2, defaultScheduledTimeInSec)
+	store.PipelineStore().CreatePipeline(pipeline1)
+	store.PipelineStore().CreatePipeline(pipeline2)
+	store.JobStore().CreateJob(1, &workflow1, defaultScheduledTimeInSec+5)
+	store.JobStore().CreateJob(1, &workflow2, defaultScheduledTimeInSec)
 
 	// Checking the first row, which does not have a job.
-	iterator, err := store.PipelineStore.GetPipelineAndLatestJobIterator()
+	iterator, err := store.PipelineStore().GetPipelineAndLatestJobIterator()
 
 	assert.Nil(t, err)
 	assert.True(t, iterator.Next())

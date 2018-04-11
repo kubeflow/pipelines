@@ -25,7 +25,7 @@ func GetParameters(template []byte) ([]message.Parameter, error) {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, NewInvalidInputError("Failed to parse the parameter.", err.Error())
+		return nil, NewInvalidInputError(err, "Failed to parse the parameter.", err.Error())
 	}
 	return message.ToParameters(wf.Spec.Arguments.Parameters), nil
 }
@@ -37,7 +37,7 @@ func InjectParameters(template []byte, parameters []message.Parameter) (*v1alpha
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return &wf, NewBadRequestError("The template isn't a valid argo template.", err.Error())
+		return &wf, NewBadRequestError(err, "The template isn't a valid argo template.", err.Error())
 	}
 
 	newParams := make([]v1alpha1.Parameter, 0)

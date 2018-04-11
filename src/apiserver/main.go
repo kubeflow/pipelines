@@ -42,5 +42,5 @@ func main() {
 		// Post limit at 32MB.
 		iris.WithPostMaxMemory(32<<20))
 
-	clientManager.End()
+	clientManager.Close()
 }

@@ -39,7 +39,7 @@ type MinioPackageManager struct {
 func (m *MinioPackageManager) CreatePackageFile(template []byte, fileName string) error {
 	_, err := m.minioClient.PutObject(m.bucketName, fileName, bytes.NewReader(template), -1, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
-		return util.NewInternalError("Failed to store a new package.", err.Error())
+		return util.NewInternalServerError(err, "Failed to store a new package: %v", err.Error())
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func (m *MinioPackageManager) CreatePackageFile(template []byte, fileName string
 func (m *MinioPackageManager) GetTemplate(pkgName string) ([]byte, error) {
 	reader, err := m.minioClient.GetObject(m.bucketName, pkgName, minio.GetObjectOptions{})
 	if err != nil {
-		return nil, util.NewInternalError("Failed to get a new package.", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get a new package: %v", err.Error())
 	}
 
 	buf := new(bytes.Buffer)

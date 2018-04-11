@@ -41,7 +41,7 @@ type JobStore struct {
 func (s *JobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 	var jobs []message.Job
 	if r := s.db.Where("pipeline_id = ?", pipelineId).Find(&jobs); r.Error != nil {
-		return nil, util.NewInternalError("Failed to list jobs.", r.Error.Error())
+		return nil, util.NewInternalServerError(r.Error, "Failed to list jobs: %v", r.Error.Error())
 	}
 	return jobs, nil
 }
@@ -51,15 +51,15 @@ func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAt
 	*message.JobDetail, error) {
 	newWf, err := s.wfClient.Create(wf)
 	if err != nil {
-		return nil, util.NewInternalError("Failed to create job",
-			"Failed to create job . Error: %s", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to create job . Error: %s", err.Error())
 	}
 	job := &message.Job{
 		Name:             newWf.Name,
 		PipelineID:       pipelineId,
 		ScheduledAtInSec: scheduledAtInSec}
 	if r := s.db.Create(job); r.Error != nil {
-		return nil, util.NewInternalError("Failed to store job metadata", r.Error.Error())
+		return nil, util.NewInternalServerError(r.Error, "Failed to store job metadata: %v",
+			r.Error.Error())
 	}
 	return &message.JobDetail{Workflow: newWf, Job: job}, nil
 }
@@ -78,7 +78,7 @@ func (s *JobStore) GetJob(pipelineId uint, jobName string) (*message.JobDetail, 
 		// We should always expect the job to exist. In case the job is not found, it's an
 		// unexpected scenario that implies something is wrong internally. So we don't differentiate
 		// resource not found or other exceptions here, just always return internal error.
-		return nil, util.NewInternalError("Failed to get a job",
+		return nil, util.NewInternalServerError(err,
 			"Failed to get workflow %s from K8s CRD. Error: %s", jobName, err.Error())
 	}
 	return &message.JobDetail{Workflow: wf, Job: job}, nil
@@ -91,7 +91,7 @@ func queryJob(db *gorm.DB, pipelineId uint, jobName string, job *message.Job) er
 	}
 	if result.Error != nil {
 		// TODO result can return multiple errors. log all of the errors when error handling v2 in place.
-		return util.NewInternalError("Failed to get job", result.Error.Error())
+		return util.NewInternalServerError(result.Error, "Failed to get job: %v", result.Error.Error())
 	}
 	return nil
 }

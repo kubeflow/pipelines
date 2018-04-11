@@ -46,7 +46,8 @@ func (s *PipelineStore) ListPipelines() ([]message.Pipeline, error) {
 	// List the pipelines as well as their parameters.
 	// Preload parameter table first to optimize DB transaction.
 	if r := s.db.Preload("Parameters").Find(&pipelines); r.Error != nil {
-		return nil, util.NewInternalError("Failed to list pipelines", r.Error.Error())
+		return nil, util.NewInternalServerError(r.Error, "Failed to list pipelines: %v",
+			r.Error.Error())
 	}
 	return pipelines, nil
 }
@@ -60,7 +61,7 @@ func (s *PipelineStore) GetPipeline(id uint) (*message.Pipeline, error) {
 	}
 	if r.Error != nil {
 		// Error returns when no pipeline found.
-		return nil, util.NewInternalError("Failed to get pipeline", r.Error.Error())
+		return nil, util.NewInternalServerError(r.Error, "Failed to get pipeline: %v", r.Error.Error())
 	}
 	return &pipeline, nil
 }
@@ -70,7 +71,8 @@ func (s *PipelineStore) CreatePipeline(p *message.Pipeline) error {
 	p.EnabledAtInSec = s.time.Now().Unix()
 
 	if r := s.db.Create(&p); r.Error != nil {
-		return util.NewInternalError("Failed to add pipeline to pipeline table", r.Error.Error())
+		return util.NewInternalServerError(r.Error, "Failed to add pipeline to pipeline table: %v",
+			r.Error.Error())
 	}
 	return nil
 }
@@ -96,9 +98,7 @@ func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
 	tx = tx.Find(&pipeline)
 	if tx.RecordNotFound() {
 		tx.Rollback()
-		return util.NewUserError(
-			errors.Wrap(tx.Error, errorMessage),
-			util.NewResourceNotFoundError(pipelineNotFoundString, fmt.Sprint(id)))
+		return util.NewResourceNotFoundError(pipelineNotFoundString, fmt.Sprint(id))
 	} else if tx.Error != nil {
 		tx.Rollback()
 		return errors.Wrap(tx.Error, errorMessage)

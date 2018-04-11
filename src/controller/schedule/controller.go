@@ -17,10 +17,8 @@ package schedule
 import (
 	"flag"
 	"fmt"
-	"ml/src/client"
 	"ml/src/resource"
 	"ml/src/storage"
-	"ml/src/util"
 	"time"
 
 	"github.com/golang/glog"
@@ -238,33 +236,24 @@ func main() {
 	checkFlagNotEmptyOrFatal(minioSecretKey, minioSecretKeyFlagName)
 	checkFlagNotEmptyOrFatal(minioBucketName, minioBucketNameFlagName)
 
-	time := util.NewRealTime()
-	db, err := client.CreateGormClient(
-		*dbDriverName,
-		*sqliteDatasourceName,
-		*user,
-		*mysqlServiceHost,
-		*mysqlServicePort,
-		*mysqlDBName)
-
+	clientManager, err := NewClientManager(&ClientManagerParams{
+		DBDriverName: *dbDriverName,
+		SqliteDatasourceName: *sqliteDatasourceName,
+		User: *user,
+		MysqlServiceHost: *mysqlServiceHost,
+		MysqlServicePort: *mysqlServicePort,
+		MysqlDBName: *mysqlDBName,
+		MinioServiceHost: *minioServiceHost,
+		MinioServicePort: *minioServicePort,
+		MinioAccessKey: *minioAccessKey,
+		MinioSecretKey: *minioSecretKey,
+		MinioBucketName: *minioBucketName})
 	if err != nil {
-		glog.Fatalf("The GORM client could not be created: %+v", err)
+		glog.Fatalf("Could not instantiate the ClientManager: %+v", err)
 	}
+	defer clientManager.Close()
 
-	defer db.Close()
-
-	packageStore := storage.NewPackageStore(db)
-	pipelineStore := storage.NewPipelineStore(db, time)
-	workflowClient := client.CreateWorkflowClientOrFatal()
-	jobStore := storage.NewJobStore(db, workflowClient, time)
-	minioClient := client.CreateMinioClientOrFatal(*minioServiceHost, *minioServicePort,
-		*minioAccessKey, *minioSecretKey)
-	packageManager := storage.NewMinioPackageManager(&storage.MinioClient{Client: minioClient},
-		*minioBucketName)
-
-	manager := resource.NewResourceManager(packageStore, pipelineStore, jobStore, packageManager,
-		time)
-
+	manager := resource.NewResourceManager(clientManager)
 	controller := NewController(manager)
 	controller.run(*sleepDurationBetweenRuns)
 }

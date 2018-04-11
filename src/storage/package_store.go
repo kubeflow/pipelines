@@ -36,7 +36,7 @@ func (s *PackageStore) ListPackages() ([]message.Package, error) {
 	var packages []message.Package
 	// List all packages.
 	if r := s.db.Preload("Parameters").Find(&packages); r.Error != nil {
-		return nil, util.NewInternalError("Failed to list packages", r.Error.Error())
+		return nil, util.NewInternalServerError(r.Error, "Failed to list packages: %v", r.Error.Error())
 	}
 	return packages, nil
 }
@@ -49,14 +49,15 @@ func (s *PackageStore) GetPackage(id uint) (*message.Package, error) {
 	}
 	if r.Error != nil {
 		// TODO query can return multiple errors. log all of the errors when error handling v2 in place.
-		return nil, util.NewInternalError("Failed to get package", r.Error.Error())
+		return nil, util.NewInternalServerError(r.Error, "Failed to get package: %v", r.Error.Error())
 	}
 	return &pkg, nil
 }
 
 func (s *PackageStore) CreatePackage(p *message.Package) error {
 	if r := s.db.Create(&p); r.Error != nil {
-		return util.NewInternalError("Failed to add package to package table", r.Error.Error())
+		return util.NewInternalServerError(r.Error, "Failed to add package to package table: %v",
+			r.Error.Error())
 	}
 	return nil
 }

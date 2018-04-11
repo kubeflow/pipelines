@@ -1,0 +1,114 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package schedule
+
+import (
+	"ml/src/client"
+	"ml/src/storage"
+	"ml/src/util"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/pkg/errors"
+)
+
+type ClientManager struct {
+	db                 *gorm.DB
+	packageStore       storage.PackageStoreInterface
+	pipelineStore      storage.PipelineStoreInterface
+	jobStore           storage.JobStoreInterface
+	packageManager     storage.PackageManagerInterface
+	workflowClientFake *storage.FakeWorkflowClient
+	time               util.TimeInterface
+}
+
+type ClientManagerParams struct {
+	DBDriverName string
+	SqliteDatasourceName string
+	User string
+	MysqlServiceHost string
+	MysqlServicePort string
+	MysqlDBName string
+	MinioServiceHost string
+	MinioServicePort string
+	MinioAccessKey string
+	MinioSecretKey string
+	MinioBucketName string
+}
+
+func NewClientManager(params *ClientManagerParams) (*ClientManager, error) {
+
+	time := util.NewRealTime()
+	db, err := client.CreateGormClient(
+		params.DBDriverName,
+		params.SqliteDatasourceName,
+		params.User,
+		params.MysqlServiceHost,
+		params.MysqlServicePort,
+		params.MysqlDBName)
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error while creating GORM client: %+v", err)
+	}
+
+	workflowClient, err := client.CreateWorkflowClient()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error while creating workflow client: %+v", err)
+	}
+
+	minioClient, err := client.CreateMinioClient(
+		params.MinioServiceHost,
+		params.MinioServicePort,
+		params.MinioAccessKey,
+		params.MinioSecretKey)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error while create Minio client: %+v", err)
+	}
+
+	return &ClientManager{
+		db:             db,
+		packageStore:   storage.NewPackageStore(db),
+		pipelineStore:  storage.NewPipelineStore(db, time),
+		jobStore:       storage.NewJobStore(db, workflowClient, time),
+		packageManager: storage.NewMinioPackageManager(
+			&storage.MinioClient{Client: minioClient},
+			params.MinioBucketName),
+		time:           time,
+	}, nil
+}
+
+func (c *ClientManager) PackageStore() storage.PackageStoreInterface {
+	return c.packageStore
+}
+
+func (c *ClientManager) PipelineStore() storage.PipelineStoreInterface {
+	return c.pipelineStore
+}
+
+func (c *ClientManager) JobStore() storage.JobStoreInterface {
+	return c.jobStore
+}
+
+func (c *ClientManager) PackageManager() storage.PackageManagerInterface {
+	return c.packageManager
+}
+
+func (c *ClientManager) Time() util.TimeInterface {
+	return c.time
+}
+
+func (s *ClientManager) Close() error {
+	return s.db.Close()
+}

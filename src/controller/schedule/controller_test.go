@@ -190,11 +190,11 @@ func TestMustRunWrongSchedule(t *testing.T) {
 
 func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
 
-	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	store, err := storage.NewFakeClientManager(util.NewFakeTimeForEpoch())
 	assert.Nil(t, err)
 	defer store.Close()
 
-	controller := NewController(resource.NewResourceManagerTestOnly(store))
+	controller := NewController(resource.NewResourceManager(store))
 
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
 		PipelineID:             100,
@@ -209,27 +209,27 @@ func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
 	assert.False(t, hasRun)
 	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 }
 
 func TestRunForSingleRowJobRuns(t *testing.T) {
 
-	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
+	store, err := storage.NewFakeClientManager(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
 	assert.Nil(t, err)
 	defer store.Close()
-	manager := resource.NewResourceManagerTestOnly(store)
+	manager := resource.NewResourceManager(store)
 	controller := NewController(manager)
 
 	// Create package and pipeline.
-	store.PackageStore.CreatePackage(createPkg("pkg1"))
-	store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 	pipeline := &message.Pipeline{
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
 		PackageId: 1}
-	err, _ = manager.CreatePipeline(pipeline)
+	err = manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
 	// Create job.
 	hasRun, scheduledTime, err := controller.runForSingleRow(getDefaultPipelineAndLatestJob())
@@ -237,16 +237,16 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, hasRun)
 	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
-	assert.Equal(t, 1, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount())
 }
 
 func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 
-	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(0, 0)))
+	store, err := storage.NewFakeClientManager(util.NewFakeTime(time.Unix(0, 0)))
 	assert.Nil(t, err)
 	defer store.Close()
 
-	controller := NewController(resource.NewResourceManagerTestOnly(store))
+	controller := NewController(resource.NewResourceManager(store))
 
 	pipeline := getDefaultPipelineAndLatestJob()
 	pipeline.PipelineSchedule = ""
@@ -268,16 +268,16 @@ func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 	assert.False(t, hasRun)
 	assert.Equal(t, time.Unix(0, 0).UTC(), scheduledTime)
 	assert.Contains(t, err.Error(), "PipelineEnabledAtInSec should not be 0")
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 }
 
 func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 
-	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(0, 0)))
+	store, err := storage.NewFakeClientManager(util.NewFakeTime(time.Unix(0, 0)))
 	assert.Nil(t, err)
 	defer store.Close()
 
-	controller := NewController(resource.NewResourceManagerTestOnly(store))
+	controller := NewController(resource.NewResourceManager(store))
 
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
 		PipelineID:             100,
@@ -292,26 +292,26 @@ func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, hasRun)
 	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 }
 
 func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
-	store, err := storage.NewFakeStore(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
+	store, err := storage.NewFakeClientManager(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
 	assert.Nil(t, err)
 	defer store.Close()
-	manager := resource.NewResourceManagerTestOnly(store)
+	manager := resource.NewResourceManager(store)
 	controller := NewController(manager)
 
 	// Create package and pipeline.
-	store.PackageStore.CreatePackage(createPkg("pkg1"))
-	store.PackageManager.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 	pipeline := &message.Pipeline{
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
 		PackageId: 1}
-	err, _ = manager.CreatePipeline(pipeline)
+	err = manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
 	// Run job.
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
@@ -327,17 +327,17 @@ func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, hasRun)
 	assert.Equal(t, util.ParseTimeOrFatal("1970-01-01T00:01:00+00:00"), scheduledTime)
-	assert.Equal(t, 1, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount())
 }
 
 func TestRunForSingleRowPreviousJobAndDoesNotRun(t *testing.T) {
 
-	store, err := storage.NewFakeStore(util.NewFakeTime(
+	store, err := storage.NewFakeClientManager(util.NewFakeTime(
 		util.ParseTimeOrFatal("1970-10-01T01:00:00+00:00")))
 	assert.Nil(t, err)
 	defer store.Close()
 
-	controller := NewController(resource.NewResourceManagerTestOnly(store))
+	controller := NewController(resource.NewResourceManager(store))
 
 	hasRun, scheduledTime, err := controller.runForSingleRow(&storage.PipelineAndLatestJob{
 		PipelineID:       100,
@@ -353,16 +353,16 @@ func TestRunForSingleRowPreviousJobAndDoesNotRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, hasRun)
 	assert.Equal(t, util.ParseTimeOrFatal("1970-10-01T01:05:00+00:00"), scheduledTime)
-	assert.Equal(t, 0, store.WorkflowClientFake.GetWorkflowCount())
+	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 }
 
 func TestRunForQueryNothingToDo(t *testing.T) {
 
-	store, err := storage.NewFakeStore(util.NewFakeTimeForEpoch())
+	store, err := storage.NewFakeClientManager(util.NewFakeTimeForEpoch())
 	assert.Nil(t, err)
 	defer store.Close()
 
-	controller := NewController(resource.NewResourceManagerTestOnly(store))
+	controller := NewController(resource.NewResourceManager(store))
 
 	err = controller.runForQuery()
 	assert.Nil(t, err)

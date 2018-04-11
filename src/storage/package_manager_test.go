@@ -18,6 +18,7 @@ import (
 	"errors"
 	"io"
 	"ml/src/util"
+	"net/http"
 	"testing"
 
 	minio "github.com/minio/minio-go"
@@ -47,7 +48,8 @@ func TestCreatePackageFile(t *testing.T) {
 func TestCreatePackageFileError(t *testing.T) {
 	manager := &MinioPackageManager{minioClient: &FakeBadMinioClient{}}
 	error := manager.CreatePackageFile([]byte("abc"), "file1")
-	assert.IsType(t, new(util.InternalError), error, "Expected new internal error.")
+	assert.Equal(t, http.StatusInternalServerError, error.(*util.UserError).ExternalStatusCode(),
+		"Expected new internal error.")
 }
 
 func TestGetTemplate(t *testing.T) {
@@ -61,5 +63,6 @@ func TestGetTemplate(t *testing.T) {
 func TestGetTemplateError(t *testing.T) {
 	manager := &MinioPackageManager{minioClient: &FakeBadMinioClient{}}
 	_, error := manager.GetTemplate("file name")
-	assert.IsType(t, new(util.InternalError), error, "Expected new internal error.")
+	assert.Equal(t, http.StatusInternalServerError, error.(*util.UserError).ExternalStatusCode(),
+		"Expected new internal error.")
 }

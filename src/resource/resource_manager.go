@@ -11,6 +11,14 @@ import (
 	"github.com/robfig/cron"
 )
 
+type ClientManagerInterface interface {
+	PackageStore()   storage.PackageStoreInterface
+	PipelineStore()  storage.PipelineStoreInterface
+	JobStore()       storage.JobStoreInterface
+	PackageManager() storage.PackageManagerInterface
+	Time()           util.TimeInterface
+}
+
 type ResourceManager struct {
 	packageStore   storage.PackageStoreInterface
 	pipelineStore  storage.PipelineStoreInterface
@@ -19,51 +27,53 @@ type ResourceManager struct {
 	time           util.TimeInterface
 }
 
-func NewResourceManager(
-	packageStore storage.PackageStoreInterface,
-	pipelineStore storage.PipelineStoreInterface,
-	jobStore storage.JobStoreInterface,
-	packageManager storage.PackageManagerInterface,
-	time util.TimeInterface) *ResourceManager {
+func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		packageStore:   packageStore,
-		pipelineStore:  pipelineStore,
-		jobStore:       jobStore,
-		packageManager: packageManager,
-		time:           time,
+		packageStore: clientManager.PackageStore(),
+		pipelineStore: clientManager.PipelineStore(),
+		jobStore: clientManager.JobStore(),
+		packageManager: clientManager.PackageManager(),
+		time: clientManager.Time(),
 	}
 }
 
-func NewResourceManagerTestOnly(store *storage.FakeStore) *ResourceManager {
-	return NewResourceManager(store.PackageStore, store.PipelineStore, store.JobStore,
-		store.PackageManager, store.Time)
-}
-
-func (r ResourceManager) GetPackageStore() storage.PackageStoreInterface {
-	return r.packageStore
-}
-
-func (r ResourceManager) GetPipelineStore() storage.PipelineStoreInterface {
-	return r.pipelineStore
-}
-
-func (r ResourceManager) GetJobStore() storage.JobStoreInterface {
-	return r.jobStore
-}
-
-func (r ResourceManager) GetPackageManager() storage.PackageManagerInterface {
-	return r.packageManager
-}
-
-func (r ResourceManager) GetTime() util.TimeInterface {
+func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r ResourceManager) CreatePipeline(pipeline *message.Pipeline) (error, string) {
+func (r *ResourceManager) ListPackages() ([]message.Package, error) {
+	return r.packageStore.ListPackages()
+}
+
+func (r *ResourceManager) GetPackage(packageId uint) (*message.Package, error) {
+	return r.packageStore.GetPackage(packageId)
+}
+
+func (r *ResourceManager) CreatePackage(p *message.Package) error {
+	return r.packageStore.CreatePackage(p)
+}
+
+func (r *ResourceManager) CreatePackageFile(template []byte, fileName string) error {
+	return r.packageManager.CreatePackageFile(template, fileName)
+}
+
+func (r *ResourceManager) GetTemplate(pkgName string) ([]byte, error) {
+	return r.packageManager.GetTemplate(pkgName)
+}
+
+func (r *ResourceManager) ListPipelines() ([]message.Pipeline, error) {
+	return r.pipelineStore.ListPipelines()
+}
+
+func (r *ResourceManager) GetPipeline(id uint) (*message.Pipeline, error) {
+	return r.pipelineStore.GetPipeline(id)
+}
+
+func (r *ResourceManager) CreatePipeline(pipeline *message.Pipeline) error {
 	// Verify the package exists
 	pkg, err := r.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
-		return err, "CreatePipeline_ValidPackageExist"
+		return err
 	}
 
 	// If the pipeline runs on a schedule
@@ -72,16 +82,17 @@ func (r ResourceManager) CreatePipeline(pipeline *message.Pipeline) (error, stri
 		_, err := cron.Parse(pipeline.Schedule)
 		if err != nil {
 			error := util.NewInvalidInputError(
+				err,
 				fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err),
 				err.Error())
-			return error, "CreatePipeline_ValidSchedule"
+			return error
 		}
 	}
 
 	// Create pipeline metadata
 	err = r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
-		return err, "CreatePipeline"
+		return err
 	}
 
 	// If there is no pipeline schedule, the job is created immediately.
@@ -89,14 +100,14 @@ func (r ResourceManager) CreatePipeline(pipeline *message.Pipeline) (error, stri
 
 		_, err := r.createJobFromPipeline(pipeline, pkg.Name, time.Now().Unix())
 		if err != nil {
-			return err, "CreatePipeline_CreateJob"
+			return err
 		}
 	}
 
-	return nil, ""
+	return nil
 }
 
-func (r ResourceManager) CreateJobFromPipelineID(pipelineID uint, scheduledAtInSec int64) (
+func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint, scheduledAtInSec int64) (
 	*message.JobDetail, error) {
 	// Get the pipeline.
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineID)
@@ -123,7 +134,7 @@ func (r ResourceManager) CreateJobFromPipelineID(pipelineID uint, scheduledAtInS
 	return jobDetail, nil
 }
 
-func (r ResourceManager) createJobFromPipeline(pipeline *message.Pipeline, pkgName string,
+func (r *ResourceManager) createJobFromPipeline(pipeline *message.Pipeline, pkgName string,
 	scheduledAtInSec int64) (*message.JobDetail, error) {
 	template, err := r.packageManager.GetTemplate(pkgName)
 	if err != nil {
@@ -147,7 +158,7 @@ func (r ResourceManager) createJobFromPipeline(pipeline *message.Pipeline, pkgNa
 	return jobDetail, nil
 }
 
-func (r ResourceManager) EnablePipeline(pipelineID uint, enabled bool) error {
+func (r *ResourceManager) EnablePipeline(pipelineID uint, enabled bool) error {
 	// Note: no validation needed.
 	err := r.pipelineStore.EnablePipeline(pipelineID, enabled)
 	if err != nil {
@@ -158,7 +169,14 @@ func (r ResourceManager) EnablePipeline(pipelineID uint, enabled bool) error {
 	return nil
 }
 
-func (r ResourceManager) GetPipelineAndLatestJobIterator() (*storage.PipelineAndLatestJobIterator,
+func (r *ResourceManager) GetJob(pipelineId uint, jobName string) (*message.JobDetail, error) {
+	return r.jobStore.GetJob(pipelineId, jobName)
+}
+func (r *ResourceManager) ListJobs(pipelineId uint) ([]message.Job, error) {
+	return r.jobStore.ListJobs(pipelineId)
+}
+
+func (r *ResourceManager) GetPipelineAndLatestJobIterator() (*storage.PipelineAndLatestJobIterator,
 	error) {
 	return r.pipelineStore.GetPipelineAndLatestJobIterator()
 }
