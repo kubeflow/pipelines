@@ -12,25 +12,29 @@ API_SERVER_IMAGE=gcr.io/ml-pipeline/api-server
 # Default ml pipeline ui image
 UI_IMAGE=gcr.io/ml-pipeline/frontend
 
+# Whether deploy K8s roles for services or not
+ROLES=true
+
 # Parameter supported:
-# -n namespace
-# -a ml-pipeline apiserver docker image
-# -u ml-pipeline frontend docker image
-while getopts "n:a:u:" opt; do
-  case $opt in
-    n)
-      NAMESPACE="$OPTARG"
-      ;;
-    a)
-      API_SERVER_IMAGE="$OPTARG"
-      ;;
-    u)
-      UI_IMAGE="$OPTARG"
-      ;;
-    *)
-      echo "-$opt not recognized"
-      ;;
-  esac
+# -n | --namespace   namespace
+# -a | --apiserver   ml-pipeline apiserver docker image
+# -u | --ui          ml-pipeline frontend UI docker image
+# -r | --roles       deploy roles or not. Roles are needed for GKE
+while [ "$1" != "" ]; do
+    case $1 in
+        -n | --namespace )      shift
+                                NAMESPACE=$1
+                                ;;
+        -a | --apiserver )      shift
+                                API_SERVER_IMAGE=$1
+                                ;;
+        -u | --ui )             shift
+                                UI_IMAGE=$1
+                                ;;
+        * )                     usage
+                                exit 1
+    esac
+    shift
 done
 
 
@@ -77,5 +81,4 @@ time="`date +%Y%m%d%H%M%S`"
 ( cd ${APP_DIR} && ks param set ml-pipeline-${time} report_usage "true" )
 ( cd ${APP_DIR} && ks param set ml-pipeline-${time} usage_id $(uuidgen) )
 
-# Deploy ml-pipeline
 ( cd ${APP_DIR} && ks apply default -c ml-pipeline-${time} )

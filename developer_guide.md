@@ -9,7 +9,7 @@ By default the deployment uses the official images stored in [GCR](https://cloud
 You can use the deployment script, and provide your own UI or API server image. See next section on how to build your own image.
 ```
 NAMESPACE=[namespace]
-deploy/deploy.sh -n ${NAMESPACE} -a [api-image] -u [ui-image]
+deploy/deploy.sh --namespace ${NAMESPACE} --apiserver [api-image] --ui [ui-image]
 ```
 Note Ksonnet creates an [app](https://ksonnet.io/docs/concepts#application) folder under the current path. If you want to update or delete the K8s resource created by the deployment, run
 ```
@@ -37,7 +37,7 @@ Minikube can pick your local Docker image so you don't need to upload to remote 
 
 For example, to build API server image  
 ```
-docker build -t ml-pipeline-api-server src/apiserver
+docker build -t ml-pipeline-api-server src
 ```
 
 ## Unit test

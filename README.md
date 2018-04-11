@@ -32,7 +32,7 @@ By default the deployment uses the official GCR images and deploy to default nam
 You can choose the k8s namespace you want the resources to be deployed to by passing namespace argument
 ```
 NAMESPACE=[namespace]
-deploy/deploy.sh -n ${NAMESPACE}
+deploy/deploy.sh --namespace ${NAMESPACE}
 ```
 Note Ksonnet creates an [app](https://ksonnet.io/docs/concepts#application) folder under the current path. If you want to delete the K8s resource created by the deployment, run
 ```

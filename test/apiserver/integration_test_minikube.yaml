@@ -1,0 +1,76 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: api-server-integration-test-
+spec:
+  entrypoint: integration-test
+  onExit: delete-namespace
+  arguments:
+      parameters:
+      # namespace the tests run in
+      - name: namespace
+        value: ml-pipeline-test
+  templates:
+  - name: integration-test
+    steps:
+    - - name: create-namespace
+        template: create-namespace
+    - - name: build-image
+        template: build-image
+    - - name: deploy-ml-pipeline
+        template: deploy-ml-pipeline
+    - - name: run-tests
+        template: run-tests
+
+  - name: create-namespace
+    container:
+      image: gcr.io/ml-pipeline/kubetool
+      command: [kubectl]
+      args: ["create", "ns", "{{workflow.parameters.namespace}}"]
+
+  - name: build-image
+    container:
+      image: docker:17.10
+      command: [sh, -c]
+      args: ["until docker ps; do sleep 3; done; docker build -t ml-pipeline-api-server-integration-test /go/src/ml/src/"]
+      volumeMounts:
+      - mountPath: /var/run/docker.sock
+        name: docker-sock-volume
+      - mountPath: /go/src/ml
+        name: repo-dir
+
+  - name: deploy-ml-pipeline
+    container:
+      image: gcr.io/ml-pipeline/kubetool
+      command: [sh, -c]
+      args: ["/go/src/ml/test/kubetool/minikube_bootstrapper.sh; /go/src/ml/deploy/deploy.sh --namespace {{workflow.parameters.namespace}} --apiserver ml-pipeline-api-server-integration-test"]
+      volumeMounts:
+      - mountPath: /var/run/docker.sock
+        name: docker-sock-volume
+      - mountPath: /go/src/ml
+        name: repo-dir
+
+  - name: run-tests
+    container:
+      image: golang
+      command: [sh, -c]
+      args: ["cd /go/src/ml/test/apiserver; go get -t ./...; go test ./... -namespace {{workflow.parameters.namespace}}"]
+      volumeMounts:
+      - mountPath: /go/src/ml
+        name: repo-dir
+
+  - name: delete-namespace
+    container:
+      image: gcr.io/ml-pipeline/kubetool
+      command: [kubectl]
+      args: ["delete", "ns", "{{workflow.parameters.namespace}}"]
+
+  volumes:
+  - name: docker-sock-volume
+    hostPath:
+      path: /var/run/docker.sock
+      # this field is optional
+      type: File
+  - name: repo-dir
+    hostPath:
+      path: /Users/yangpa/go/src/ml

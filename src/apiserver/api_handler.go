@@ -27,6 +27,8 @@ import (
 const (
 	apiRouterPrefix = "/apis/v1alpha1"
 
+	healthz = "/healthz"
+
 	listPackages  = "/packages"
 	getPackage    = "/packages/{id:long min(1)}"
 	uploadPackage = "/packages/upload"
@@ -292,6 +294,9 @@ func newApp(clientManager ClientManager) *iris.Application {
 	// Jobs
 	apiRouter.Get(listJobs, apiHandler.ListJobs)
 	apiRouter.Get(getJob, apiHandler.GetJob)
+
+	// Monitoring
+	apiRouter.Get(healthz, func(iris.Context) {})
 	return app
 }
 
