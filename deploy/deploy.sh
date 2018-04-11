@@ -74,6 +74,8 @@ time="`date +%Y%m%d%H%M%S`"
 ( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline-${time} --namespace=${NAMESPACE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline-${time} api_image ${API_SERVER_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline-${time} ui_image ${UI_IMAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline-${time} report_usage "true" )
+( cd ${APP_DIR} && ks param set ml-pipeline-${time} usage_id $(uuidgen) )
 
 # Deploy ml-pipeline
 ( cd ${APP_DIR} && ks apply default -c ml-pipeline-${time} )

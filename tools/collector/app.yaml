@@ -1,0 +1,16 @@
+runtime: custom
+env: flex
+
+beta_settings:
+  service_account_scopes: https://www.googleapis.com/auth/bigquery
+
+liveness_check:
+  path: "/healthz"
+
+readiness_check:
+  path: "/healthz"
+
+env_variables:
+  PROJECT: "__PROJECT_ID__"
+  DATASET: "__DATASET__"
+  TABLE: "__TABLE__"
