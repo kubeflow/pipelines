@@ -13,7 +13,7 @@
     local ui_image = params.ui_image,
     local report_usage = params.report_usage,
     local usage_id = params.usage_id,
-    reporting:: if report_usage then
+    reporting:: if (report_usage == true) || (report_usage == "true") then
                   spartakus.all(namespace,usage_id)
                 else [],
     all:: argo.parts(namespace).all +
