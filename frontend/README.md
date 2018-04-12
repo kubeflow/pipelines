@@ -28,6 +28,6 @@ production UI code by running `npm run mock:api` and `npm run mock:server`.
 You can also do `npm run docker` if you have docker installed to build an
 image containing the production bundle and the server pieces. In order to run
 this image, you'll need to port forward 3000, and pass the environment
-variables `ML_PIPELINE_MANAGER_SERVICE_HOST` and
-`ML_PIPELINE_MANAGER_SERVICE_PORT` with the details of the API server, which
+variables `ML_PIPELINE_SERVICE_HOST` and
+`ML_PIPELINE_SERVICE_PORT` with the details of the API server, which
 you can run using `npm run api` separately.
