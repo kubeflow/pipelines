@@ -5,18 +5,18 @@ import (
 	"ml/src/message"
 	"ml/src/storage"
 	"ml/src/util"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/robfig/cron"
 )
 
 type ClientManagerInterface interface {
-	PackageStore()   storage.PackageStoreInterface
-	PipelineStore()  storage.PipelineStoreInterface
-	JobStore()       storage.JobStoreInterface
+	PackageStore() storage.PackageStoreInterface
+	PipelineStore() storage.PipelineStoreInterface
+	JobStore() storage.JobStoreInterface
 	PackageManager() storage.PackageManagerInterface
-	Time()           util.TimeInterface
+	Time() util.TimeInterface
+	UUID() util.UUIDGeneratorInterface
 }
 
 type ResourceManager struct {
@@ -25,15 +25,17 @@ type ResourceManager struct {
 	jobStore       storage.JobStoreInterface
 	packageManager storage.PackageManagerInterface
 	time           util.TimeInterface
+	uuid           util.UUIDGeneratorInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		packageStore: clientManager.PackageStore(),
-		pipelineStore: clientManager.PipelineStore(),
-		jobStore: clientManager.JobStore(),
+		packageStore:   clientManager.PackageStore(),
+		pipelineStore:  clientManager.PipelineStore(),
+		jobStore:       clientManager.JobStore(),
 		packageManager: clientManager.PackageManager(),
-		time: clientManager.Time(),
+		time:           clientManager.Time(),
+		uuid:           clientManager.UUID(),
 	}
 }
 
@@ -98,7 +100,7 @@ func (r *ResourceManager) CreatePipeline(pipeline *message.Pipeline) error {
 	// If there is no pipeline schedule, the job is created immediately.
 	if pipeline.Schedule == "" {
 
-		_, err := r.createJobFromPipeline(pipeline, pkg.Name, time.Now().Unix())
+		_, err := r.createJobFromPipeline(pipeline, pkg.Name, r.time.Now().Unix())
 		if err != nil {
 			return err
 		}
@@ -147,7 +149,17 @@ func (r *ResourceManager) createJobFromPipeline(pipeline *message.Pipeline, pkgN
 		return nil, err
 	}
 
-	jobDetail, err := r.jobStore.CreateJob(pipeline.ID, workflow, scheduledAtInSec)
+	// Define the time at which the workflow is created in the DB. The same time should be stored
+	// in the DB and substituted in the workflow parameters (i.e. time.Now() should not be
+	// called multiple times.
+	createdAtInSec := r.time.Now().Unix()
+
+	// Format the parameters of the workflow and the workflow name
+	formatter := util.NewWorkflowFormatter(r.uuid, scheduledAtInSec, createdAtInSec)
+	formatter.Format(workflow)
+
+	// Create job.
+	jobDetail, err := r.jobStore.CreateJob(pipeline.ID, workflow, scheduledAtInSec, createdAtInSec)
 	if err != nil {
 		return nil, err
 	}

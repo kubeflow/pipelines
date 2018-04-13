@@ -6,9 +6,17 @@ import (
 	"github.com/golang/glog"
 )
 
-func MarshalOrFail(data string, v interface{}) {
+func UnmarshalOrFail(data string, v interface{}) {
 	err := json.Unmarshal([]byte(data), v)
 	if err != nil {
-		glog.Fatalf("Failed to marshal the object: ", data)
+		glog.Fatalf("Failed to unmarshal the object: %v", data)
 	}
+}
+
+func MarshalOrFail(v interface{}) []byte {
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		glog.Fatalf("Failed to marshal the object: %+v", v)
+	}
+	return bytes
 }

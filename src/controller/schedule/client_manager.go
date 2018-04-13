@@ -32,6 +32,7 @@ type ClientManager struct {
 	packageManager     storage.PackageManagerInterface
 	workflowClientFake *storage.FakeWorkflowClient
 	time               util.TimeInterface
+	uuid               util.UUIDGeneratorInterface
 }
 
 type ClientManagerParams struct {
@@ -86,6 +87,7 @@ func NewClientManager(params *ClientManagerParams) (*ClientManager, error) {
 			&storage.MinioClient{Client: minioClient},
 			params.MinioBucketName),
 		time:           time,
+		uuid:           util.NewUUIDGenerator(),
 	}, nil
 }
 
@@ -107,6 +109,10 @@ func (c *ClientManager) PackageManager() storage.PackageManagerInterface {
 
 func (c *ClientManager) Time() util.TimeInterface {
 	return c.time
+}
+
+func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
+	return c.uuid
 }
 
 func (s *ClientManager) Close() error {

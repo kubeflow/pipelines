@@ -34,6 +34,8 @@ import (
 
 const (
 	defaultScheduledAtInSec = 5
+	defaultCreatedAtInSec = 10
+	defaultUUID = "123e4567-e89b-12d3-a456-426655440000"
 )
 
 func createPkg(name string) *message.Package {
@@ -88,7 +90,7 @@ func (s *FakeBadJobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 }
 
 func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow,
-	scheduledAtInSec int64) (*message.JobDetail, error) {
+	scheduledAtInSec int64, createdAtInSec int64) (*message.JobDetail, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad job store")
 }
 
@@ -135,7 +137,8 @@ func initApiHandlerTest(
 		jobStore:       js,
 		pipelineStore:  pls,
 		packageManager: pm,
-		time:           util.NewFakeTimeForEpoch()}
+		time:           util.NewFakeTimeForEpoch(),
+		uuid:           util.NewFakeUUIDGeneratorOrFatal(defaultUUID, nil)}
 	return newApp(clientManager)
 }
 
@@ -153,7 +156,7 @@ func TestListPackages(t *testing.T) {
 
 	response := e.GET("/apis/v1alpha1/packages").Expect().Status(httptest.StatusOK)
 	var actual []message.Package
-	util.MarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 }
 
@@ -172,7 +175,7 @@ func TestGetPackage(t *testing.T) {
 
 	response := e.GET("/apis/v1alpha1/packages/1").Expect().Status(httptest.StatusOK)
 	var actual message.Package
-	util.MarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, *expectedPkg1, actual)
 }
 
@@ -318,7 +321,7 @@ func TestListPipelines(t *testing.T) {
 			EnabledAtInSec: 2,
 			Parameters:     []message.Parameter(nil)}}
 	var actual []message.Pipeline
-	util.MarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 }
 
@@ -336,7 +339,7 @@ func TestGetPipeline(t *testing.T) {
 
 	response := e.GET("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusOK)
 	var actual message.Pipeline
-	util.MarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, createPipelineExpected1(), actual)
 }
 
@@ -366,7 +369,7 @@ func TestCreatePipeline_NoSchedule(t *testing.T) {
 
 	response := e.POST("/apis/v1alpha1/pipelines").WithBytes(createPipelineByte1()).Expect().Status(httptest.StatusOK)
 	var actual message.Pipeline
-	util.MarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, createPipelineExpected1(), actual)
 	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 }
@@ -450,7 +453,7 @@ func TestCreatePipeline_ValidSchedule(t *testing.T) {
 		Enabled:        true,
 		EnabledAtInSec: 1}
 	var actual message.Pipeline
-	util.MarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 }
@@ -475,13 +478,12 @@ func TestCreatePipeline_InvalidSchedule(t *testing.T) {
 }
 
 func TestEnablePipeline(t *testing.T) {
-	store, err := storage.NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	// Creating a pipeline
 	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
-	err = store.PipelineStore().CreatePipeline(createdPipeline)
+	err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
 
@@ -516,9 +518,8 @@ func TestEnablePipeline(t *testing.T) {
 }
 
 func TestEnablePipelineDatabaseError(t *testing.T) {
-	store, err := storage.NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
-	err = store.Close()
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	err := store.Close()
 	assert.Nil(t, err)
 
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
@@ -530,8 +531,7 @@ func TestEnablePipelineDatabaseError(t *testing.T) {
 }
 
 func TestEnablePipelineNotFound(t *testing.T) {
-	store, err := storage.NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
@@ -544,9 +544,11 @@ func TestEnablePipelineNotFound(t *testing.T) {
 func TestListJobs(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	jobDetail1, err := store.JobStore().CreateJob(1, createWorkflow("wf1"), defaultScheduledAtInSec)
+	jobDetail1, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Nil(t, err)
-	_, err = store.JobStore().CreateJob(2, createWorkflow("wf2"), defaultScheduledAtInSec)
+	_, err = store.JobStore().CreateJob(2, createWorkflow("wf2"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Nil(t, err)
 
 	expectedResponse := []message.Job{
@@ -558,7 +560,7 @@ func TestListJobs(t *testing.T) {
 
 	response := e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK)
 	var actual []message.Job
-	util.MarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 }
 
@@ -572,7 +574,8 @@ func TestListJobsReturnError(t *testing.T) {
 func TestGetJob(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"), defaultScheduledAtInSec)
+	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Nil(t, err)
 	expectedResponse := message.JobDetail{
 		Workflow: createWorkflow(jobDetail.Job.Name),
@@ -587,7 +590,7 @@ func TestGetJob(t *testing.T) {
 	response := e.GET(fmt.Sprintf("/apis/v1alpha1/pipelines/1/jobs/%v", jobDetail.Job.Name)).
 		Expect().Status(httptest.StatusOK)
 	var actual message.JobDetail
-	util.MarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	actual.Job.Metadata = nil
 	assert.Equal(t, expectedResponse, actual)
 }

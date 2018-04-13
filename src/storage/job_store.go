@@ -27,7 +27,7 @@ import (
 type JobStoreInterface interface {
 	GetJob(pipelineId uint, jobName string) (*message.JobDetail, error)
 	ListJobs(pipelineId uint) ([]message.Job, error)
-	CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64) (
+	CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64, createdAtInSec int64) (
 		*message.JobDetail, error)
 }
 
@@ -47,7 +47,8 @@ func (s *JobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 }
 
 // CreateJob create Workflow by calling CRD, and store the metadata to DB
-func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64) (
+func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64,
+	createdAtInSec int64) (
 	*message.JobDetail, error) {
 	newWf, err := s.wfClient.Create(wf)
 	if err != nil {
@@ -56,7 +57,8 @@ func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAt
 	job := &message.Job{
 		Name:             newWf.Name,
 		PipelineID:       pipelineId,
-		ScheduledAtInSec: scheduledAtInSec}
+		ScheduledAtInSec: scheduledAtInSec,
+		CreatedAtInSec:   createdAtInSec}
 	if r := s.db.Create(job); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to store job metadata: %v",
 			r.Error.Error())

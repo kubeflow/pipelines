@@ -24,6 +24,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const(
+	DefaultFakeUUID = "123e4567-e89b-12d3-a456-426655440000"
+)
+
 type FakeClientManager struct {
 	db                 *gorm.DB
 	packageStore       PackageStoreInterface
@@ -32,9 +36,19 @@ type FakeClientManager struct {
 	packageManager     PackageManagerInterface
 	workflowClientFake *FakeWorkflowClient
 	time               util.TimeInterface
+	uuid 					     util.UUIDGeneratorInterface
 }
 
-func NewFakeClientManager(time util.TimeInterface) (*FakeClientManager, error) {
+func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
+	*FakeClientManager, error) {
+
+	if time == nil {
+		glog.Fatalf("The time parameter must not be null.") // Must never happen
+	}
+
+	if uuid == nil {
+		glog.Fatalf("The UUID generator must not be null.") // Must never happen
+	}
 
 	// Initialize GORM
 	db, err := gorm.Open("sqlite3", ":memory:")
@@ -60,7 +74,17 @@ func NewFakeClientManager(time util.TimeInterface) (*FakeClientManager, error) {
 		workflowClientFake: workflowClient,
 		packageManager:     NewFakePackageManager(),
 		time:               time,
+		uuid:               uuid,
 	}, nil
+}
+
+func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
+	uuid := util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil)
+	fakeStore, err := NewFakeClientManager(time, uuid)
+	if err != nil {
+		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
+	}
+	return fakeStore
 }
 
 func (f *FakeClientManager) PackageStore() PackageStoreInterface {
@@ -83,20 +107,16 @@ func (f *FakeClientManager) Time() util.TimeInterface {
 	return f.time
 }
 
+func (c *FakeClientManager) UUID() util.UUIDGeneratorInterface {
+	return c.uuid
+}
+
 func (f *FakeClientManager) DB() *gorm.DB {
 	return f.db
 }
 
 func (f *FakeClientManager) WorkflowClientFake() *FakeWorkflowClient {
 	return f.workflowClientFake
-}
-
-func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
-	fakeStore, err := NewFakeClientManager(time)
-	if err != nil {
-		glog.Exitf("The fake store doesn't create successfully. Fail fast.")
-	}
-	return fakeStore
 }
 
 func (f *FakeClientManager) Close() error {

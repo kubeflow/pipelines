@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	defaultScheduledTimeInSec = 10
+	defaultScheduledAtInSec = 10
+	defaultCreatedAtInSec = 20
 )
 
 func createWorkflow(name string) *v1alpha1.Workflow {
@@ -40,12 +41,14 @@ func TestCreateJob(t *testing.T) {
 	defer store.Close()
 
 	wf1 := createWorkflow("wf1")
-	jobDetail, err := store.JobStore().CreateJob(1, wf1, defaultScheduledTimeInSec)
+	jobDetail, err := store.JobStore().CreateJob(1, wf1,
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	jobExpected := message.Job{
 		Metadata:         &message.Metadata{ID: 1},
 		Name:             jobDetail.Job.Name,
-		ScheduledAtInSec: defaultScheduledTimeInSec,
+		ScheduledAtInSec: defaultScheduledAtInSec,
+		CreatedAtInSec: defaultCreatedAtInSec,
 		PipelineID:       1,
 	}
 
@@ -65,7 +68,8 @@ func TestCreateJob(t *testing.T) {
 
 func TestCreateJob_CreateWorkflowError(t *testing.T) {
 	store := &JobStore{wfClient: &FakeBadWorkflowClient{}}
-	_, err := store.CreateJob(1, createWorkflow("wf1"), defaultScheduledTimeInSec)
+	_, err := store.CreateJob(1, createWorkflow("wf1"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 	assert.Contains(t, err.Error(), "Failed to create job")
@@ -76,7 +80,8 @@ func TestCreateJob_StoreMetadataError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 
-	_, err := store.JobStore().CreateJob(1, &v1alpha1.Workflow{}, defaultScheduledTimeInSec)
+	_, err := store.JobStore().CreateJob(1, &v1alpha1.Workflow{},
+	defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
@@ -86,13 +91,16 @@ func TestCreateJob_StoreMetadataError(t *testing.T) {
 func TestListJobs(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"), defaultScheduledTimeInSec)
-	store.JobStore().CreateJob(2, createWorkflow("wf2"), defaultScheduledTimeInSec)
+	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
+	store.JobStore().CreateJob(2, createWorkflow("wf2"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	jobsExpected := []message.Job{
 		{Metadata: &message.Metadata{ID: 1},
 			Name:             jobDetail.Job.Name,
-			ScheduledAtInSec: defaultScheduledTimeInSec,
+			ScheduledAtInSec: defaultScheduledAtInSec,
+			CreatedAtInSec: defaultCreatedAtInSec,
 			PipelineID:       1,
 		}}
 	jobs, err := store.JobStore().ListJobs(1)
@@ -116,14 +124,16 @@ func TestGetJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	wf1 := createWorkflow("wf1")
-	createdJobDetail, err := store.JobStore().CreateJob(1, wf1, defaultScheduledTimeInSec)
+	createdJobDetail, err := store.JobStore().CreateJob(1, wf1,
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Nil(t, err)
 	jobDetailExpect := message.JobDetail{
 		Workflow: wf1,
 		Job: &message.Job{
 			Metadata:         &message.Metadata{ID: 1},
 			Name:             createdJobDetail.Job.Name,
-			ScheduledAtInSec: defaultScheduledTimeInSec,
+			ScheduledAtInSec: defaultScheduledAtInSec,
+			CreatedAtInSec: defaultCreatedAtInSec,
 			PipelineID:       1,
 		}}
 
@@ -146,7 +156,8 @@ func TestGetJob_InternalError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	wf1 := createWorkflow("wf1")
-	store.JobStore().CreateJob(1, wf1, defaultScheduledTimeInSec)
+	store.JobStore().CreateJob(1, wf1,
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	store.DB().Close()
 
 	_, err := store.JobStore().GetJob(1, wf1.Name)
@@ -158,7 +169,8 @@ func TestGetJob_GetWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	wf1 := createWorkflow("wf1")
-	store.JobStore().CreateJob(1, wf1, defaultScheduledTimeInSec)
+	store.JobStore().CreateJob(1, wf1,
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	jobStore := NewJobStore(store.DB(), &FakeBadWorkflowClient{}, util.NewFakeTimeForEpoch())
 	_, err := jobStore.GetJob(1, wf1.Name)

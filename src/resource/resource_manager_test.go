@@ -6,7 +6,9 @@ import (
 	"ml/src/util"
 	"testing"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func createPkg(name string) *message.Package {
@@ -38,6 +40,63 @@ func TestCreatePipelineInternalNoSchedule(t *testing.T) {
 	assert.Equalf(t, expected, *pipeline, "Unexpected pipeline structure. Expect %v. Got %v.",
 		expected, *pipeline)
 	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
+}
+
+func TestCreatePipelineFormatWorkflow(t *testing.T) {
+	// Prepare store
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name-"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					v1alpha1.Parameter{Name: "param1", Value: util.StringPointer("value1-[[schedule]]")},
+					v1alpha1.Parameter{Name: "param2", Value: util.StringPointer("value2-[[now]]-suffix")},
+				},
+			}}}
+	store, err := storage.NewFakeClientManager(
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440000", nil))
+	assert.Nil(t, err)
+	defer store.Close()
+	manager := NewResourceManager(store)
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageManager().CreatePackageFile(util.MarshalOrFail(workflow), "pkg1")
+
+	// Create pipeline
+	pipeline := &message.Pipeline{
+		Name:      "MY_PIPELINE",
+		PackageId: 1}
+	err = manager.CreatePipeline(pipeline)
+	assert.Nil(t, err)
+
+	// Check pipeline
+	expected := message.Pipeline{
+		Metadata:       &message.Metadata{ID: 1},
+		Name:           "MY_PIPELINE",
+		PackageId:      1,
+		Schedule:       "",
+		Enabled:        true,
+		EnabledAtInSec: 1}
+	assert.Equal(t, expected, *pipeline)
+
+	// Check workflow
+	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
+
+	expectedWorkflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name-123e4567-e89b-12d3-a456-426655440000"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					v1alpha1.Parameter{Name: "param1", Value: util.StringPointer(
+						"value1-19700101000002")},
+					v1alpha1.Parameter{Name: "param2", Value: util.StringPointer(
+						"value2-19700101000003-suffix")},
+				},
+			}}}
+
+	jobDetail, err := store.JobStore().GetJob(1, "workflow-name-123e4567-e89b-12d3-a456-426655440000")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedWorkflow, jobDetail.Workflow)
 }
 
 func TestCreatePipelineInternalValidSchedule(t *testing.T) {
@@ -116,6 +175,7 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	expectedJob1 := &message.Job{
 		Name:             jobDetail1.Workflow.Name,
 		ScheduledAtInSec: 5,
+		CreatedAtInSec:   2,
 		PipelineID:       1,
 	}
 	assert.Equal(t, map[string]bool{jobDetail1.Workflow.Name: true},
@@ -137,6 +197,7 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	expectedJob2 := &message.Job{
 		Name:             jobDetail2.Workflow.Name,
 		ScheduledAtInSec: 6,
+		CreatedAtInSec:   3,
 		PipelineID:       1,
 	}
 	assert.Equal(t, map[string]bool{jobDetail1.Workflow.Name: true, jobDetail2.Workflow.Name: true},

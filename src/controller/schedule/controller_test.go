@@ -190,8 +190,7 @@ func TestMustRunWrongSchedule(t *testing.T) {
 
 func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
 
-	store, err := storage.NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))
@@ -214,8 +213,8 @@ func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
 
 func TestRunForSingleRowJobRuns(t *testing.T) {
 
-	store, err := storage.NewFakeClientManager(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
-	assert.Nil(t, err)
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(
+		time.Unix(timeFarInTheFutureSec, 0)))
 	defer store.Close()
 	manager := resource.NewResourceManager(store)
 	controller := NewController(manager)
@@ -227,7 +226,7 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
 		PackageId: 1}
-	err = manager.CreatePipeline(pipeline)
+	err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
@@ -242,8 +241,7 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 
 func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 
-	store, err := storage.NewFakeClientManager(util.NewFakeTime(time.Unix(0, 0)))
-	assert.Nil(t, err)
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(time.Unix(0, 0)))
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))
@@ -273,8 +271,7 @@ func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 
 func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 
-	store, err := storage.NewFakeClientManager(util.NewFakeTime(time.Unix(0, 0)))
-	assert.Nil(t, err)
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(time.Unix(0, 0)))
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))
@@ -296,8 +293,8 @@ func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 }
 
 func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
-	store, err := storage.NewFakeClientManager(util.NewFakeTime(time.Unix(timeFarInTheFutureSec, 0)))
-	assert.Nil(t, err)
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(
+		time.Unix(timeFarInTheFutureSec, 0)))
 	defer store.Close()
 	manager := resource.NewResourceManager(store)
 	controller := NewController(manager)
@@ -309,7 +306,7 @@ func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
 		PackageId: 1}
-	err = manager.CreatePipeline(pipeline)
+	err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
@@ -332,9 +329,8 @@ func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
 
 func TestRunForSingleRowPreviousJobAndDoesNotRun(t *testing.T) {
 
-	store, err := storage.NewFakeClientManager(util.NewFakeTime(
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(
 		util.ParseTimeOrFatal("1970-10-01T01:00:00+00:00")))
-	assert.Nil(t, err)
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))
@@ -358,13 +354,12 @@ func TestRunForSingleRowPreviousJobAndDoesNotRun(t *testing.T) {
 
 func TestRunForQueryNothingToDo(t *testing.T) {
 
-	store, err := storage.NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))
 
-	err = controller.runForQuery()
+	err := controller.runForQuery()
 	assert.Nil(t, err)
 
 }

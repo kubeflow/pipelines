@@ -43,6 +43,7 @@ type ClientManager struct {
 	jobStore       storage.JobStoreInterface
 	packageManager storage.PackageManagerInterface
 	time           util.TimeInterface
+	uuid           util.UUIDGeneratorInterface
 }
 
 func (c *ClientManager) PackageStore() storage.PackageStoreInterface {
@@ -65,6 +66,10 @@ func (c *ClientManager) Time() util.TimeInterface {
 	return c.time
 }
 
+func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
+	return c.uuid
+}
+
 func (c *ClientManager) init() {
 	glog.Infof("Initializing client manager")
 
@@ -72,6 +77,9 @@ func (c *ClientManager) init() {
 
 	// time
 	c.time = util.NewRealTime()
+
+	// UUID generator
+	c.uuid = util.NewUUIDGenerator()
 
 	// Initialize package store
 	c.db = db

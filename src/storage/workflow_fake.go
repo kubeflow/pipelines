@@ -19,7 +19,6 @@ import (
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
-	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -36,7 +35,7 @@ func NewWorkflowClientFake() *FakeWorkflowClient {
 }
 
 func (c *FakeWorkflowClient) Create(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	workflow.Name = workflow.Name + uuid.New().String()
+	workflow.Name = workflow.Name
 	c.workflows[workflow.Name] = workflow
 	return workflow, nil
 }

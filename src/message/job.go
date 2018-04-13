@@ -23,6 +23,7 @@ type Job struct {
 	*Metadata        `json:",omitempty"`
 	Name             string `json:"name" gorm:"not null"`
 	ScheduledAtInSec int64  `json:"scheduledAt" gorm:"not null"`
+	CreatedAtInSec   int64  `json:"-" gorm:"not null"`
 	PipelineID       uint   `json:"-"` /* Foreign key */
 }
 

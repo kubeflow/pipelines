@@ -116,13 +116,12 @@ func TestCreatePipelineError(t *testing.T) {
 
 func TestEnablePipeline(t *testing.T) {
 
-	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	// Creating a pipeline. It is enabled by default.
 	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
-	err = store.PipelineStore().CreatePipeline(createdPipeline)
+	err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
 
@@ -174,23 +173,21 @@ func TestEnablePipeline(t *testing.T) {
 }
 
 func TestEnablePipelineRecordNotFound(t *testing.T) {
-	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
-	err = store.PipelineStore().EnablePipeline(12, true)
+	err := store.PipelineStore().EnablePipeline(12, true)
 	assert.IsType(t, &util.UserError{}, err)
 	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestEnablePipelineDatabaseError(t *testing.T) {
-	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	// Creating a pipeline. It is enabled by default.
 	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
-	err = store.PipelineStore().CreatePipeline(createdPipeline)
+	err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
 
@@ -230,8 +227,8 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 
 	store.PipelineStore().CreatePipeline(pipeline1)
 	store.PipelineStore().CreatePipeline(pipeline2)
-	store.JobStore().CreateJob(1, &workflow1, defaultScheduledTimeInSec)
-	store.JobStore().CreateJob(1, &workflow2, defaultScheduledTimeInSec+5)
+	store.JobStore().CreateJob(1, &workflow1, defaultScheduledAtInSec, defaultCreatedAtInSec)
+	store.JobStore().CreateJob(1, &workflow2, defaultScheduledAtInSec+5, defaultCreatedAtInSec)
 
 	// Checking the first row, which does not have a job.
 	iterator, err := store.PipelineStore().GetPipelineAndLatestJobIterator()
@@ -265,7 +262,7 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 		PipelineName:           pipeline1.Name,
 		PipelineSchedule:       pipeline1.Schedule,
 		JobName:                &workflow2.Name,
-		JobScheduledAtInSec:    util.Int64Pointer(defaultScheduledTimeInSec + 5),
+		JobScheduledAtInSec:    util.Int64Pointer(defaultScheduledAtInSec + 5),
 		PipelineEnabled:        true,
 		PipelineEnabledAtInSec: 1,
 	}
@@ -278,8 +275,7 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 }
 
 func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
-	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch())
-	assert.Nil(t, err)
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	pipeline1 := &message.Pipeline{
@@ -306,8 +302,8 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 
 	store.PipelineStore().CreatePipeline(pipeline1)
 	store.PipelineStore().CreatePipeline(pipeline2)
-	store.JobStore().CreateJob(1, &workflow1, defaultScheduledTimeInSec+5)
-	store.JobStore().CreateJob(1, &workflow2, defaultScheduledTimeInSec)
+	store.JobStore().CreateJob(1, &workflow1, defaultScheduledAtInSec+5, defaultCreatedAtInSec)
+	store.JobStore().CreateJob(1, &workflow2, defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	// Checking the first row, which does not have a job.
 	iterator, err := store.PipelineStore().GetPipelineAndLatestJobIterator()
@@ -323,7 +319,7 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 		PipelineName:           pipeline1.Name,
 		PipelineSchedule:       pipeline1.Schedule,
 		JobName:                &workflow1.Name,
-		JobScheduledAtInSec:    util.Int64Pointer(defaultScheduledTimeInSec + 5),
+		JobScheduledAtInSec:    util.Int64Pointer(defaultScheduledAtInSec + 5),
 		PipelineEnabled:        true,
 		PipelineEnabledAtInSec: 1,
 	}
