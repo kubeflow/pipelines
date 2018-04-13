@@ -62,16 +62,18 @@ def main(argv=None):
     df_cm.to_csv(f, columns=['target', 'predicted', 'count'], header=False, index=False)
 
   metadata = {
-    'type': 'confusion_matrix',
-    'storage': 'gcs',
-    'format': 'csv',
-    'schema': [
-      {'name': 'target', 'type': 'CATEGORY'},
-      {'name': 'predicted', 'type': 'CATEGORY'},
-      {'name': 'count', 'type': 'NUMBER'},
-    ],
-    'source': cm_file,
-    'labels': vocab,
+    'outputs' : [{
+      'type': 'confusion_matrix',
+      'storage': 'gcs',
+      'format': 'csv',
+      'schema': [
+        {'name': 'target', 'type': 'CATEGORY'},
+        {'name': 'predicted', 'type': 'CATEGORY'},
+        {'name': 'count', 'type': 'NUMBER'},
+      ],
+      'source': cm_file,
+      'labels': vocab,
+    }]
   }
   with file_io.FileIO(os.path.join(args.output, 'metadata.json'), 'w') as f:
     json.dump(metadata, f)

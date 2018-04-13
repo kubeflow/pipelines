@@ -52,15 +52,17 @@ def main(argv=None):
     df_roc.to_csv(f, columns=['fpr', 'tpr', 'thresholds'], header=False, index=False)
   
   metadata = {
-    'type': 'roc',
-    'storage': 'gcs',
-    'format': 'csv',
-    'schema': [
-      {'name': 'fpr', 'type': 'NUMBER'},
-      {'name': 'tpr', 'type': 'NUMBER'},
-      {'name': 'thresholds', 'type': 'NUMBER'},
-    ],
-    'source': roc_file
+    'outputs': [{
+      'type': 'roc',
+      'storage': 'gcs',
+      'format': 'csv',
+      'schema': [
+        {'name': 'fpr', 'type': 'NUMBER'},
+        {'name': 'tpr', 'type': 'NUMBER'},
+        {'name': 'thresholds', 'type': 'NUMBER'},
+      ],
+      'source': roc_file
+    }]
   }
   with file_io.FileIO(os.path.join(args.output, 'metadata.json'), 'w') as f:
     json.dump(metadata, f)

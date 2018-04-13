@@ -72,6 +72,9 @@ def parse_arguments():
                       type=str,
                       required=True,
                       help='The GCP project to run the dataflow job.')
+  parser.add_argument('--mode',
+                      choices=['local', 'cloud'],
+                      help='whether to run the job locally or in Cloud Dataflow.')
 
   args = parser.parse_args()
   return args
@@ -187,7 +190,7 @@ def make_tft_input_metadata(schema):
   return dataset_metadata.DatasetMetadata(dataset_schema.Schema(tft_schema))
 
 
-def run_transform(output_dir, schema, train_data_file, eval_data_file, project):
+def run_transform(output_dir, schema, train_data_file, eval_data_file, project, mode):
   """Writes a tft transform fn, and metadata files.
   Args:
     output_dir: output folder
@@ -195,20 +198,29 @@ def run_transform(output_dir, schema, train_data_file, eval_data_file, project):
     train_data_file: training data file pattern.
     eval_data_file: eval data file pattern.
     project: the project to run dataflow in.
+    local: whether the job should be local or cloud.
   """
 
   tft_input_metadata = make_tft_input_metadata(schema)
   temp_dir = os.path.join(output_dir, 'tmp')
   preprocessing_fn = make_preprocessing_fn(schema, temp_dir)
 
-  options = {
-    'job_name': 'pipeline-tft-' + datetime.datetime.now().strftime('%y%m%d-%H%M%S'),
-    'temp_location': temp_dir,
-    'project': project,
-    'extra_packages': ['gs://ml-pipeline-playground/tensorflow-transform-0.6.0.dev0.tar.gz']
-  }
-  pipeline_options = beam.pipeline.PipelineOptions(flags=[], **options)
-  with beam.Pipeline('DataflowRunner', options=pipeline_options) as p:
+  if mode == 'local':
+    pipeline_options = None
+    runner = 'DirectRunner'
+  elif mode == 'cloud':
+    options = {
+      'job_name': 'pipeline-tft-' + datetime.datetime.now().strftime('%y%m%d-%H%M%S'),
+      'temp_location': temp_dir,
+      'project': project,
+      'extra_packages': ['gs://ml-pipeline-playground/tensorflow-transform-0.6.0.dev0.tar.gz']
+    }
+    pipeline_options = beam.pipeline.PipelineOptions(flags=[], **options)
+    runner = 'DataFlowRunner'
+  else:
+    raise ValueError("Invalid mode %s." % mode)
+
+  with beam.Pipeline(runner, options=pipeline_options) as p:
     with beam_impl.Context(temp_dir=temp_dir):
       names = [x['name'] for x in schema]
       converter = CsvCoder(names, tft_input_metadata.schema)
@@ -255,7 +267,7 @@ def main():
   logging.getLogger().setLevel(logging.INFO)
   args = parse_arguments()
   schema = json.loads(file_io.read_file_to_string(args.schema))
-  run_transform(args.output, schema, args.train, args.eval, args.project)
+  run_transform(args.output, schema, args.train, args.eval, args.project, args.mode)
 
 
 if __name__== "__main__":
