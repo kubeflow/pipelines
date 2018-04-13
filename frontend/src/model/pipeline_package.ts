@@ -1,9 +1,9 @@
 import { Parameter } from './parameter';
 
 export interface PipelinePackage {
-  createdAt?: string;
   id: number;
-  description: string;
+  createdAt: string;
   name: string;
+  description?: string;
   parameters: Parameter[];
 }

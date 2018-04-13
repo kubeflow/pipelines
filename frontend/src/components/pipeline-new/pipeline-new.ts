@@ -131,6 +131,9 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   }
 
   protected async _deploy() {
+    // TODO: The frontend shouldn't really be sending this, but currently the
+    // backend breaks if it receives an empty string, undefined, or null.
+    this.newPipeline.createdAt = new Date().toISOString();
     await Apis.newPipeline(this.newPipeline);
     this.dispatchEvent(new RouteEvent('/pipelines'));
   }

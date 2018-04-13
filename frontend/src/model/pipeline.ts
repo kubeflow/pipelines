@@ -1,24 +1,26 @@
 import { Parameter } from './parameter';
 
 export class Pipeline {
+  public id: number;
   public createdAt: string;
-  public id?: number;
-  public author: string;
-  public description: string;
   public name: string;
+  public author?: string;
+  public description?: string;
   public packageId: number;
+  public schedule: string;
+  public enabled: boolean;
+  public enabledAt: number;
   public parameters: Parameter[];
-  public recurring: boolean;
-  public recurringIntervalHours: number;
 
   constructor() {
     this.createdAt = '';
+    this.name = '';
     this.author = '';
     this.description = '';
-    this.name = '';
     this.packageId = -1;
+    this.schedule = '';
+    this.enabled = false;
+    this.enabledAt = -1;
     this.parameters = [];
-    this.recurring = false;
-    this.recurringIntervalHours = -1;
   }
 }

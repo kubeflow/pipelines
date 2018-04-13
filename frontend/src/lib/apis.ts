@@ -1,13 +1,8 @@
-import { Workflow } from '../model/argo_template';
+import { Job, JobMetadata } from '../model/job';
 import { Pipeline } from '../model/pipeline';
 import { PipelinePackage } from '../model/pipeline_package';
 
 const apisPrefix = '/apis/v1alpha1';
-
-export interface JobMetadata {
-  name: string;
-  scheduledAt: number;
-}
 
 /**
  * Gets a list of the pipeline packages defined on the backend.
@@ -93,11 +88,11 @@ export async function getJobs(pipelineId: number): Promise<JobMetadata[]> {
 }
 
 /**
- * Gets the details of a certain pipeline pipeline job given its id.
+ * Gets a pipeline job given its id.
  */
-export async function getJob(pipelineId: number, jobId: string): Promise<Workflow> {
+export async function getJob(pipelineId: number, jobId: string): Promise<Job> {
   const response = await fetch(apisPrefix + `/pipelines/${pipelineId}/jobs/${jobId}`);
-  return (await response.json()).job;
+  return await response.json();
 }
 
 /**

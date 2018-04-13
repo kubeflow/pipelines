@@ -22,7 +22,7 @@
       <div class="tabs-container">
         <paper-tabs class="no-shrink" selected="{{selectedTab}}">
           <paper-tab>Basic Config</paper-tab>
-          <paper-tab>Past Runs</paper-tab>
+          <paper-tab>Jobs</paper-tab>
         </paper-tabs>
       </div>
 
@@ -42,18 +42,14 @@
               <span>[[pipeline.description]]</span>
             </div>
             <div>
-              <span class="detail-title">Created</span>
+              <span class="detail-title">Created at</span>
               <span>[[_formatDateString(pipeline.createdAt)]]</span>
             </div>
-            <div>
-              <span class="detail-title">Recurring</span>
-              <span>[[pipeline.recurring]]</span>
-            </div>
 
-            <template is="dom-if" if="[[pipeline.recurring]]">
+            <template is="dom-if" if="[[pipeline.schedule]]">
               <div>
-                <span class="detail-title">Runs every</span>
-                <span>[[pipeline.recurringIntervalHours]] hours</span>
+                <span class="detail-title">Schedule</span>
+                <span>[[pipeline.schedule]]</span>
               </div>
             </template>
 

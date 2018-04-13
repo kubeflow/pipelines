@@ -27,7 +27,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
   public outputPlots: PlotMetadata[] = [];
 
   @property({ type: Object })
-  public job: Workflow | null = null;
+  public jobDetail: Workflow;
 
   @property({ type: Number })
   public selectedTab = 0;
@@ -41,7 +41,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
     if (queryParams.jobId !== undefined && queryParams.pipelineId > -1) {
       this._pipelineId = queryParams.pipelineId;
       this._jobId = queryParams.jobId;
-      this.job = await Apis.getJob(this._pipelineId, this._jobId);
+      this.jobDetail = (await Apis.getJob(this._pipelineId, this._jobId)).jobDetail;
 
       const pipeline = await Apis.getPipeline(this._pipelineId);
       const templateYaml = await Apis.getPackageTemplate(pipeline.packageId);
@@ -69,7 +69,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
       });
 
       // Render the job graph
-      (this.$.jobGraph as JobGraph).refresh(this.job);
+      (this.$.jobGraph as JobGraph).refresh(this.jobDetail);
     }
   }
 

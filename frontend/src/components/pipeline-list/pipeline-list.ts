@@ -27,8 +27,8 @@ export class PipelineList extends Polymer.Element implements PageElement {
     { name: 'Name', type: ColumnTypeName.STRING },
     { name: 'Description', type: ColumnTypeName.STRING },
     { name: 'Package ID', type: ColumnTypeName.NUMBER },
-    { name: 'Created', type: ColumnTypeName.DATE },
-    { name: 'Recurring', type: ColumnTypeName.STRING },
+    { name: 'Created at', type: ColumnTypeName.DATE },
+    { name: 'Schedule', type: ColumnTypeName.STRING },
   ];
 
   ready() {
@@ -53,7 +53,7 @@ export class PipelineList extends Polymer.Element implements PageElement {
           pipeline.description,
           pipeline.packageId,
           pipeline.createdAt ? new Date(pipeline.createdAt) : '-',
-          pipeline.recurring ? 'True' : 'False',
+          pipeline.schedule,
         ],
         selected: false,
       });

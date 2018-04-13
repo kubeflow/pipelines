@@ -36,14 +36,14 @@ export default (app) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
     const p = fixedData.pipelines.filter((p) => p.id === pid);
-    const jobs = p[0].jobs.map((j) => ({ 'name': j.metadata.name, scheduledAt: 0 }));
+    // TODO: Is it guaranteed that j.metadata.name and j.workflow.metadata.name
+    // are the same?
+    const jobs = p[0].jobs.map((j) => j.metadata);
     res.json(jobs);
   });
 
   app.get(apisPrefix + '/pipelines/:pid/jobs/:jname', (req, res) => {
-    res.json({
-      job: JSON.parse(fs.readFileSync('./mock-backend/mock-job-runtime.json', 'utf-8')),
-    });
+    res.json(JSON.parse(fs.readFileSync('./mock-backend/mock-job-runtime.json', 'utf-8')));
   });
 
   app.get(apisPrefix + '/packages', (req, res) => {

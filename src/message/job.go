@@ -28,6 +28,6 @@ type Job struct {
 
 // JobDetail a detailed view of a Argo job, including templates, job status etc.
 type JobDetail struct {
-	Workflow *v1alpha1.Workflow `json:"job"` // TODO: should we call this workflow in json?
+	Workflow *v1alpha1.Workflow `json:"jobDetail"`
 	Job      *Job               `json:"metadata"`
 }

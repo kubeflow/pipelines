@@ -6,6 +6,7 @@ import * as Utils from '../../lib/utils';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { NodePhase } from '../../model/argo_template';
 import { ItemClickEvent, RouteEvent } from '../../model/events';
+import { JobMetadata } from '../../model/job';
 import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
 
 import './job-list.html';
@@ -14,7 +15,7 @@ import './job-list.html';
 export class JobList extends Polymer.Element {
 
   @property({ type: Array })
-  public jobs: Apis.JobMetadata[] = [];
+  public jobs: JobMetadata[] = [];
 
   protected jobListRows: ItemListRow[] = [];
 
