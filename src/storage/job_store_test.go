@@ -15,20 +15,29 @@
 package storage
 
 import (
+	"errors"
 	"ml/src/message"
 	"ml/src/util"
 	"net/http"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	defaultScheduledAtInSec = 10
-	defaultCreatedAtInSec = 20
+	defaultCreatedAtInSec   = 20
 )
+
+func initializeJobDB() (*gorm.DB, sqlmock.Sqlmock) {
+	db, mock, _ := sqlmock.New()
+	gormDB, _ := gorm.Open("sqlite3", db)
+	return gormDB, mock
+}
 
 func createWorkflow(name string) *v1alpha1.Workflow {
 	return &v1alpha1.Workflow{
@@ -41,51 +50,93 @@ func TestCreateJob(t *testing.T) {
 	defer store.Close()
 
 	wf1 := createWorkflow("wf1")
-	jobDetail, err := store.JobStore().CreateJob(1, wf1,
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	jobExpected := message.Job{
-		Metadata:         &message.Metadata{ID: 1},
-		Name:             jobDetail.Job.Name,
+		CreatedAtInSec:   defaultCreatedAtInSec,
+		Name:             wf1.Name,
 		ScheduledAtInSec: defaultScheduledAtInSec,
-		CreatedAtInSec: defaultCreatedAtInSec,
+		Status:           message.JobExecutionPending,
+		UpdatedAtInSec:   1,
 		PipelineID:       1,
 	}
-
-	wfExpected := createWorkflow(jobDetail.Job.Name)
-
+	wfExpected := createWorkflow(wf1.Name)
 	jobDetailExpect := message.JobDetail{
 		Workflow: wfExpected,
 		Job:      &jobExpected}
+	jobDetail, err := store.JobStore().CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	assert.Nil(t, err)
 	assert.Equal(t, jobDetailExpect, *jobDetail, "Unexpected Job parsed.")
 
-	var job message.Job
-	queryJob(store.DB(), 1, wf1.Name, &job)
-	assert.Equal(t, jobExpected, job)
+	job, err := getJobMetadata(store.DB(), 1, wf1.Name)
+	assert.Equal(t, jobExpected, *job)
 }
 
-func TestCreateJob_CreateWorkflowError(t *testing.T) {
-	store := &JobStore{wfClient: &FakeBadWorkflowClient{}}
-	_, err := store.CreateJob(1, createWorkflow("wf1"),
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
-		"Expected to throw an internal error")
-	assert.Contains(t, err.Error(), "Failed to create job")
+func TestCreateJob_CreateWorkflowFailed(t *testing.T) {
+	fakeClients := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer fakeClients.Close()
+	store := &JobStore{db: fakeClients.DB(), wfClient: &FakeBadWorkflowClient{}, time: fakeClients.time}
+
+	wf1 := createWorkflow("wf1")
+	jobExpected := message.Job{
+		CreatedAtInSec:   defaultCreatedAtInSec,
+		UpdatedAtInSec:   defaultCreatedAtInSec,
+		Name:             wf1.Name,
+		Status:           message.JobCreationPending,
+		ScheduledAtInSec: defaultScheduledAtInSec,
+		PipelineID:       1,
+	}
+	wfExpected := createWorkflow(wf1.Name)
+	jobDetailExpect := message.JobDetail{
+		Workflow: wfExpected,
+		Job:      &jobExpected}
+
+	jobDetail, err := store.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
+	assert.Nil(t, err)
+	assert.Equal(t, jobDetailExpect, *jobDetail, "Unexpected Job parsed.")
+
+	job, err := getJobMetadata(fakeClients.DB(), 1, wf1.Name)
+	assert.Equal(t, jobExpected, *job)
 }
 
-func TestCreateJob_StoreMetadataError(t *testing.T) {
+func TestCreateJob_CreateMetadataError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.DB().Close()
 
 	_, err := store.JobStore().CreateJob(1, &v1alpha1.Workflow{},
-	defaultScheduledAtInSec, defaultCreatedAtInSec)
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
 	assert.Contains(t, err.(*util.UserError).Error(), "Failed to store job metadata")
+}
+
+func TestCreateJob_UpdateMetadataFailed(t *testing.T) {
+	db, mock := initializeJobDB()
+	mock.ExpectExec("INSERT INTO \"jobs\"").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("UPDATE jobs").WillReturnError(errors.New("something"))
+
+	store := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
+	wf1 := createWorkflow("wf1")
+	jobExpected := message.Job{
+		CreatedAtInSec:   defaultCreatedAtInSec,
+		UpdatedAtInSec:   defaultCreatedAtInSec,
+		Name:             wf1.Name,
+		Status:           message.JobExecutionPending,
+		ScheduledAtInSec: defaultScheduledAtInSec,
+		PipelineID:       1,
+	}
+	wfExpected := createWorkflow(wf1.Name)
+	jobDetailExpect := message.JobDetail{
+		Workflow: wfExpected,
+		Job:      &jobExpected}
+
+	jobDetail, err := store.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
+
+	assert.Nil(t, err)
+	assert.Equal(t, jobDetailExpect, *jobDetail)
 }
 
 func TestListJobs(t *testing.T) {
@@ -97,10 +148,12 @@ func TestListJobs(t *testing.T) {
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	jobsExpected := []message.Job{
-		{Metadata: &message.Metadata{ID: 1},
+		{
+			CreatedAtInSec:   defaultCreatedAtInSec,
+			UpdatedAtInSec:   1,
 			Name:             jobDetail.Job.Name,
+			Status:           message.JobExecutionPending,
 			ScheduledAtInSec: defaultScheduledAtInSec,
-			CreatedAtInSec: defaultCreatedAtInSec,
 			PipelineID:       1,
 		}}
 	jobs, err := store.JobStore().ListJobs(1)
@@ -130,15 +183,15 @@ func TestGetJob(t *testing.T) {
 	jobDetailExpect := message.JobDetail{
 		Workflow: wf1,
 		Job: &message.Job{
-			Metadata:         &message.Metadata{ID: 1},
+			CreatedAtInSec:   defaultCreatedAtInSec,
+			UpdatedAtInSec:   1,
+			Status:           message.JobExecutionPending,
 			Name:             createdJobDetail.Job.Name,
 			ScheduledAtInSec: defaultScheduledAtInSec,
-			CreatedAtInSec: defaultCreatedAtInSec,
 			PipelineID:       1,
 		}}
 
 	jobDetail, err := store.JobStore().GetJob(1, wf1.Name)
-	jobDetail.Job.Metadata = &message.Metadata{ID: jobDetail.Job.ID}
 	assert.Nil(t, err)
 	assert.Equal(t, jobDetailExpect, *jobDetail)
 }

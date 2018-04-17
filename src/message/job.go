@@ -18,13 +18,26 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 )
 
+// JobStatus is a label for the status of the job
+type JobStatus string
+
+const (
+	JobCreationPending  JobStatus = "CREATION_PENDING"  /* Waiting for K8s resource to be created */
+	JobExecutionPending JobStatus = "EXECUTION_PENDING" /* Waiting for Ks8 workflow to run */
+)
+
 // Job metadata of a job.
 type Job struct {
-	*Metadata        `json:",omitempty"`
-	Name             string `json:"name" gorm:"not null"`
-	ScheduledAtInSec int64  `json:"scheduledAt" gorm:"not null"`
-	CreatedAtInSec   int64  `json:"-" gorm:"not null"`
-	PipelineID       uint   `json:"-"` /* Foreign key */
+	Name           string `json:"name" gorm:"not null;primary_key"`
+	CreatedAtInSec int64  `json:"createdAt" gorm:"not null"`
+	UpdatedAtInSec int64  `json:"-" gorm:"not null"`
+
+	// We don't expose the status of the job for now, since the Sync service is not in place yet to
+	// sync the status of a job from K8s CRD to the DB. We only use Status column to track whether
+	// K8s resource is created successfully.
+	Status           JobStatus `json:"-"`
+	ScheduledAtInSec int64     `json:"scheduledAt" gorm:"not null"`
+	PipelineID       uint      `json:"-"` /* Foreign key */
 }
 
 // JobDetail a detailed view of a Argo job, including templates, job status etc.

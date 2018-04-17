@@ -36,17 +36,17 @@ type ClientManager struct {
 }
 
 type ClientManagerParams struct {
-	DBDriverName string
+	DBDriverName         string
 	SqliteDatasourceName string
-	User string
-	MysqlServiceHost string
-	MysqlServicePort string
-	MysqlDBName string
-	MinioServiceHost string
-	MinioServicePort string
-	MinioAccessKey string
-	MinioSecretKey string
-	MinioBucketName string
+	User                 string
+	MysqlServiceHost     string
+	MysqlServicePort     string
+	MysqlDBName          string
+	MinioServiceHost     string
+	MinioServicePort     string
+	MinioAccessKey       string
+	MinioSecretKey       string
+	MinioBucketName      string
 }
 
 func NewClientManager(params *ClientManagerParams) (*ClientManager, error) {
@@ -79,15 +79,15 @@ func NewClientManager(params *ClientManagerParams) (*ClientManager, error) {
 	}
 
 	return &ClientManager{
-		db:             db,
-		packageStore:   storage.NewPackageStore(db),
-		pipelineStore:  storage.NewPipelineStore(db, time),
-		jobStore:       storage.NewJobStore(db, workflowClient, time),
+		db:            db,
+		packageStore:  storage.NewPackageStore(db, time),
+		pipelineStore: storage.NewPipelineStore(db, time),
+		jobStore:      storage.NewJobStore(db, workflowClient, time),
 		packageManager: storage.NewMinioPackageManager(
 			&storage.MinioClient{Client: minioClient},
 			params.MinioBucketName),
-		time:           time,
-		uuid:           util.NewUUIDGenerator(),
+		time: time,
+		uuid: util.NewUUIDGenerator(),
 	}, nil
 }
 

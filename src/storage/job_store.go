@@ -20,7 +20,9 @@ import (
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	k8sclient "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -48,29 +50,53 @@ func (s *JobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 
 // CreateJob create Workflow by calling CRD, and store the metadata to DB
 func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64,
-	createdAtInSec int64) (
-	*message.JobDetail, error) {
-	newWf, err := s.wfClient.Create(wf)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create job . Error: %s", err.Error())
-	}
+	createdAtInSec int64) (*message.JobDetail, error) {
 	job := &message.Job{
-		Name:             newWf.Name,
+		CreatedAtInSec:   createdAtInSec,
+		UpdatedAtInSec:   createdAtInSec,
+		Name:             wf.Name,
+		Status:           message.JobCreationPending,
 		PipelineID:       pipelineId,
 		ScheduledAtInSec: scheduledAtInSec,
-		CreatedAtInSec:   createdAtInSec}
+	}
 	if r := s.db.Create(job); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to store job metadata: %v",
 			r.Error.Error())
 	}
-	return &message.JobDetail{Workflow: newWf, Job: job}, nil
+	result := &message.JobDetail{Workflow: wf, Job: job}
+
+	// Try schedule the job once
+	newWf, err := s.wfClient.Create(wf)
+	if err != nil {
+		// Not retry nor fail the request if failed to schedule the Argo workflow.
+		// There will be a scheduler that checks jobs that are in pending creation state for long time
+		// and schedule them.
+		// TODO: https://github.com/googleprivate/ml/issues/304
+		glog.Errorf("%+v", errors.Wrapf(err, "Failed to create an Argo workflow for job %s.", wf.Name))
+		return result, nil
+	}
+
+	result.Workflow = newWf
+	job.Status = message.JobExecutionPending
+
+	job, err = s.updateJobStatus(job)
+	if err != nil {
+		// Logs an error but not fail the request.
+		// The scheduler will check if the Argo workflow is created first,
+		// and only update the DB status if already created.
+		// TODO: https://github.com/googleprivate/ml/issues/304
+		glog.Errorf("%+v", errors.Wrapf(err, "Failed to update job status to EXECUTION_PENDING for job %s.", wf.Name))
+		return result, nil
+	}
+
+	result.Job = job
+	return result, nil
 }
 
 // GetJob Get the job manifest from Workflow CRD
 func (s *JobStore) GetJob(pipelineId uint, jobName string) (*message.JobDetail, error) {
 	// validate the the pipeline has the job.
-	job := &message.Job{}
-	err := queryJob(s.db, pipelineId, jobName, job)
+	job, err := getJobMetadata(s.db, pipelineId, jobName)
 	if err != nil {
 		return nil, err
 	}
@@ -86,16 +112,28 @@ func (s *JobStore) GetJob(pipelineId uint, jobName string) (*message.JobDetail, 
 	return &message.JobDetail{Workflow: wf, Job: job}, nil
 }
 
-func queryJob(db *gorm.DB, pipelineId uint, jobName string, job *message.Job) error {
-	result := db.Where("pipeline_id = ? and name = ?", pipelineId, jobName).First(job)
+// UpdateJobStatus update the job's status field. Only this field is supported to update for now.
+func (s *JobStore) updateJobStatus(job *message.Job) (*message.Job, error) {
+	newJob := *job
+	newJob.UpdatedAtInSec = s.time.Now().Unix()
+	r := s.db.Exec(`UPDATE jobs SET status = ?, updated_at_in_sec = ? WHERE name = ?`, newJob.Status, newJob.UpdatedAtInSec, newJob.Name)
+	if r.Error != nil {
+		return nil, util.NewInternalServerError(r.Error, "Failed to update the job metadata: %s", r.Error.Error())
+	}
+	return &newJob, nil
+}
+
+func getJobMetadata(db *gorm.DB, pipelineId uint, jobName string) (*message.Job, error) {
+	job := &message.Job{}
+	result := db.Raw("SELECT * FROM jobs where pipeline_id = ? and name = ?", pipelineId, jobName).Scan(job)
 	if result.RecordNotFound() {
-		return util.NewResourceNotFoundError("Job", jobName)
+		return nil, util.NewResourceNotFoundError("Job", jobName)
 	}
 	if result.Error != nil {
 		// TODO result can return multiple errors. log all of the errors when error handling v2 in place.
-		return util.NewInternalServerError(result.Error, "Failed to get job: %v", result.Error.Error())
+		return nil, util.NewInternalServerError(result.Error, "Failed to get job: %v", result.Error.Error())
 	}
-	return nil
+	return job, nil
 }
 
 // factory function for package store

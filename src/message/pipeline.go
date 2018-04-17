@@ -15,10 +15,10 @@
 package message
 
 type Pipeline struct {
-	*Metadata `json:",omitempty"`
-	CreatedAtInSec int64       `json:"-" gorm:"not null"`
-	UpdatedAtInSec int64       `json:"-" gorm:"not null"`
-	DeletedAtInSec *int64      `json:"-" sql:"index"`
+	ID             uint  `json:"id" gorm:"primary_key"`
+	CreatedAtInSec int64 `json:"createdAt" gorm:"not null"`
+	UpdatedAtInSec int64 `json:"-" gorm:"not null"`
+
 	Name           string      `json:"name" gorm:"not null"`
 	Description    string      `json:"description,omitempty"`
 	PackageId      uint        `json:"packageId" gorm:"not null"`

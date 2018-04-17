@@ -35,7 +35,6 @@ func NewWorkflowClientFake() *FakeWorkflowClient {
 }
 
 func (c *FakeWorkflowClient) Create(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	workflow.Name = workflow.Name
 	c.workflows[workflow.Name] = workflow
 	return workflow, nil
 }

@@ -33,9 +33,11 @@ func TestListPackages(t *testing.T) {
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageStore().CreatePackage(createPkg("pkg2"))
 	expectedPkg1 := *createPkg("pkg1")
-	expectedPkg1.Metadata = &message.Metadata{ID: 1}
+	expectedPkg1.ID = 1
+	expectedPkg1.CreatedAtInSec = 1
 	expectedPkg2 := *createPkg("pkg2")
-	expectedPkg2.Metadata = &message.Metadata{ID: 2}
+	expectedPkg2.ID = 2
+	expectedPkg2.CreatedAtInSec = 2
 	pkgsExpected := []message.Package{expectedPkg1, expectedPkg2}
 
 	pkgs, err := store.PackageStore().ListPackages()
@@ -57,9 +59,10 @@ func TestGetPackage(t *testing.T) {
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	pkgExpected := message.Package{
-		Metadata:   &message.Metadata{ID: 1},
-		Name:       "pkg1",
-		Parameters: []message.Parameter{},
+		ID:             1,
+		CreatedAtInSec: 1,
+		Name:           "pkg1",
+		Parameters:     []message.Parameter{},
 	}
 
 	pkg, err := store.PackageStore().GetPackage(1)
@@ -89,12 +92,13 @@ func TestCreatePackage(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	pkgExpected := message.Package{
-		Metadata:   &message.Metadata{ID: 1},
-		Name:       "pkg1",
-		Parameters: []message.Parameter{},
+		ID:             1,
+		CreatedAtInSec: 1,
+		Name:           "pkg1",
+		Parameters:     []message.Parameter{},
 	}
 	pkg := createPkg("pkg1")
-	err := store.PackageStore().CreatePackage(pkg)
+	pkg, err := store.PackageStore().CreatePackage(pkg)
 	assert.Nil(t, err)
 	assert.Equal(t, pkgExpected, *pkg, "Got unexpected package.")
 }
@@ -105,7 +109,7 @@ func TestCreatePackageError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 
-	err := store.PackageStore().CreatePackage(pkg)
+	_, err := store.PackageStore().CreatePackage(pkg)
 	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create package to return error")
 }

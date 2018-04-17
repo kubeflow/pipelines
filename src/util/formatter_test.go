@@ -146,8 +146,8 @@ func TestFormatNothingToDoExceptAddUUID(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: StringPointer("value1")},
-					v1alpha1.Parameter{Name: "param2", Value: StringPointer("value2")},
+					{Name: "param1", Value: StringPointer("value1")},
+					{Name: "param2", Value: StringPointer("value2")},
 				},
 			}}}
 
@@ -156,8 +156,8 @@ func TestFormatNothingToDoExceptAddUUID(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: StringPointer("value1")},
-					v1alpha1.Parameter{Name: "param2", Value: StringPointer("value2")},
+					{Name: "param1", Value: StringPointer("value1")},
+					{Name: "param2", Value: StringPointer("value2")},
 				},
 			}}}
 
@@ -177,8 +177,8 @@ func TestFormatEverytingToChange(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: StringPointer("value1-[[schedule]]")},
-					v1alpha1.Parameter{Name: "param2", Value: StringPointer("value2-[[now]]-suffix")},
+					{Name: "param1", Value: StringPointer("value1-[[schedule]]")},
+					{Name: "param2", Value: StringPointer("value2-[[now]]-suffix")},
 				},
 			}}}
 
@@ -187,8 +187,8 @@ func TestFormatEverytingToChange(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: StringPointer("value1-20170706050403")},
-					v1alpha1.Parameter{Name: "param2", Value: StringPointer("value2-20180807060504-suffix")},
+					{Name: "param1", Value: StringPointer("value1-20170706050403")},
+					{Name: "param2", Value: StringPointer("value2-20180807060504-suffix")},
 				},
 			}}}
 
@@ -276,8 +276,8 @@ func TestFormatOnlyWorkflowParameters(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: StringPointer("value1-[[schedule]]")},
-					v1alpha1.Parameter{Name: "param2", Value: StringPointer("value2-[[now]]-suffix")},
+					{Name: "param1", Value: StringPointer("value1-[[schedule]]")},
+					{Name: "param2", Value: StringPointer("value2-[[now]]-suffix")},
 				},
 			}}}
 
@@ -286,8 +286,8 @@ func TestFormatOnlyWorkflowParameters(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: StringPointer("value1-20170706050403")},
-					v1alpha1.Parameter{Name: "param2", Value: StringPointer("value2-20180807060504-suffix")},
+					{Name: "param1", Value: StringPointer("value1-20170706050403")},
+					{Name: "param2", Value: StringPointer("value2-20180807060504-suffix")},
 				},
 			}}}
 
@@ -323,8 +323,8 @@ func TestFormatError(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: StringPointer("value1-[[schedule]]")},
-					v1alpha1.Parameter{Name: "param2", Value: StringPointer("value2-[[now]]-suffix")},
+					{Name: "param1", Value: StringPointer("value1-[[schedule]]")},
+					{Name: "param2", Value: StringPointer("value2-[[now]]-suffix")},
 				},
 			}}}
 

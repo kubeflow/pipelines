@@ -25,17 +25,19 @@ func TestCreatePipelineInternalNoSchedule(t *testing.T) {
 	pipeline := &message.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1}
-	err := manager.CreatePipeline(pipeline)
+	pipeline, err := manager.CreatePipeline(pipeline)
 
 	assert.Nil(t, err, "There should not be an error: %v", err)
 
 	expected := message.Pipeline{
-		Metadata:       &message.Metadata{ID: 1},
+		ID:             1,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 		Name:           "MY_PIPELINE",
 		PackageId:      1,
 		Schedule:       "",
 		Enabled:        true,
-		EnabledAtInSec: 1}
+		EnabledAtInSec: 2}
 
 	assert.Equalf(t, expected, *pipeline, "Unexpected pipeline structure. Expect %v. Got %v.",
 		expected, *pipeline)
@@ -43,21 +45,18 @@ func TestCreatePipelineInternalNoSchedule(t *testing.T) {
 }
 
 func TestCreatePipelineFormatWorkflow(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
 	// Prepare store
 	workflow := &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{Name: "workflow-name-"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: util.StringPointer("value1-[[schedule]]")},
-					v1alpha1.Parameter{Name: "param2", Value: util.StringPointer("value2-[[now]]-suffix")},
+					{Name: "param1", Value: util.StringPointer("value1-[[schedule]]")},
+					{Name: "param2", Value: util.StringPointer("value2-[[now]]-suffix")},
 				},
 			}}}
-	store, err := storage.NewFakeClientManager(
-		util.NewFakeTimeForEpoch(),
-		util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440000", nil))
-	assert.Nil(t, err)
-	defer store.Close()
 	manager := NewResourceManager(store)
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageManager().CreatePackageFile(util.MarshalOrFail(workflow), "pkg1")
@@ -66,17 +65,19 @@ func TestCreatePipelineFormatWorkflow(t *testing.T) {
 	pipeline := &message.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1}
-	err = manager.CreatePipeline(pipeline)
+	pipeline, err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
 
 	// Check pipeline
 	expected := message.Pipeline{
-		Metadata:       &message.Metadata{ID: 1},
+		ID:             1,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 		Name:           "MY_PIPELINE",
 		PackageId:      1,
 		Schedule:       "",
 		Enabled:        true,
-		EnabledAtInSec: 1}
+		EnabledAtInSec: 2}
 	assert.Equal(t, expected, *pipeline)
 
 	// Check workflow
@@ -87,10 +88,8 @@ func TestCreatePipelineFormatWorkflow(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					v1alpha1.Parameter{Name: "param1", Value: util.StringPointer(
-						"value1-19700101000002")},
-					v1alpha1.Parameter{Name: "param2", Value: util.StringPointer(
-						"value2-19700101000003-suffix")},
+					{Name: "param1", Value: util.StringPointer("value1-19700101000003")},
+					{Name: "param2", Value: util.StringPointer("value2-19700101000004-suffix")},
 				},
 			}}}
 
@@ -110,17 +109,19 @@ func TestCreatePipelineInternalValidSchedule(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "1 0 * * *"}
-	err := manager.CreatePipeline(pipeline)
+	pipeline, err := manager.CreatePipeline(pipeline)
 
 	assert.Nil(t, err, "There should not be an error: %v", err)
 
 	expected := message.Pipeline{
-		Metadata:       &message.Metadata{ID: 1},
+		ID:             1,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 		Name:           "MY_PIPELINE",
 		PackageId:      1,
 		Schedule:       "1 0 * * *",
 		Enabled:        true,
-		EnabledAtInSec: 1}
+		EnabledAtInSec: 2}
 
 	assert.Equalf(t, expected, *pipeline, "Unexpected pipeline structure. Expect %v. Got %v.",
 		expected, *pipeline)
@@ -138,7 +139,7 @@ func TestCreatePipelineInternalInvalidSchedule(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "abcdef"}
-	err := manager.CreatePipeline(pipeline)
+	pipeline, err := manager.CreatePipeline(pipeline)
 
 	assert.Contains(t, err.Error(),
 		"InvalidInputError: The pipeline schedule cannot be parsed: abcdef: Expected 5 to 6 fields")
@@ -146,12 +147,14 @@ func TestCreatePipelineInternalInvalidSchedule(t *testing.T) {
 }
 
 func TestCreateJobFromPipelineID(t *testing.T) {
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	// Use a real UUID in this test case to guarantee job with unique name
+	store, err := storage.NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	assert.Nil(t, err)
 	defer store.Close()
 	manager := NewResourceManager(store)
 
 	// Create package.
-	err := store.PackageStore().CreatePackage(createPkg("pkg1"))
+	_, err = store.PackageStore().CreatePackage(createPkg("pkg1"))
 	assert.Nil(t, err)
 
 	err = store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
@@ -163,7 +166,7 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "* * * * * *"}
-	err = store.PipelineStore().CreatePipeline(pipeline)
+	pipeline, err = store.PipelineStore().CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
@@ -171,11 +174,12 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	scheduledAtInSec := int64(5)
 	jobDetail1, err := manager.CreateJobFromPipelineID(pipeline.ID, scheduledAtInSec)
 	assert.Nil(t, err)
-	jobDetail1.Job.Metadata = nil // TODO: make the fields in Metadata testable.
 	expectedJob1 := &message.Job{
 		Name:             jobDetail1.Workflow.Name,
+		CreatedAtInSec:   3,
+		UpdatedAtInSec:   4,
+		Status:           message.JobExecutionPending,
 		ScheduledAtInSec: 5,
-		CreatedAtInSec:   2,
 		PipelineID:       1,
 	}
 	assert.Equal(t, map[string]bool{jobDetail1.Workflow.Name: true},
@@ -193,11 +197,12 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	scheduledAtInSec = int64(6)
 	jobDetail2, err := manager.CreateJobFromPipelineID(pipeline.ID, scheduledAtInSec)
 	assert.Nil(t, err)
-	jobDetail2.Job.Metadata = nil // TODO: make the fields in Metadata testable.
 	expectedJob2 := &message.Job{
 		Name:             jobDetail2.Workflow.Name,
+		CreatedAtInSec:   5,
+		UpdatedAtInSec:   6,
+		Status:           message.JobExecutionPending,
 		ScheduledAtInSec: 6,
-		CreatedAtInSec:   3,
 		PipelineID:       1,
 	}
 	assert.Equal(t, map[string]bool{jobDetail1.Workflow.Name: true, jobDetail2.Workflow.Name: true},
@@ -218,7 +223,7 @@ func TestCreateJobFromPipelineIDGetPipelineError(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create package.
-	err := store.PackageStore().CreatePackage(createPkg("pkg1"))
+	_, err := store.PackageStore().CreatePackage(createPkg("pkg1"))
 	assert.Nil(t, err)
 
 	err = store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
@@ -245,7 +250,7 @@ func TestCreateJobFromPipelineIDGetPackageError(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "* * * * * *"}
-	err := store.PipelineStore().CreatePipeline(pipeline)
+	pipeline, err := store.PipelineStore().CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 

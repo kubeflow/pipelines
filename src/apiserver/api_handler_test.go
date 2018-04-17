@@ -34,8 +34,8 @@ import (
 
 const (
 	defaultScheduledAtInSec = 5
-	defaultCreatedAtInSec = 10
-	defaultUUID = "123e4567-e89b-12d3-a456-426655440000"
+	defaultCreatedAtInSec   = 10
+	defaultUUID             = "123e4567-e89b-12d3-a456-426655440000"
 )
 
 func createPkg(name string) *message.Package {
@@ -47,7 +47,9 @@ func createFakePipeline(name string, pkgId uint) *message.Pipeline {
 }
 
 func createPipelineExpected1() message.Pipeline {
-	return message.Pipeline{Metadata: &message.Metadata{ID: 1},
+	return message.Pipeline{
+		ID:             1,
+		CreatedAtInSec: 1,
 		Name:           "pipeline1",
 		PackageId:      1,
 		Enabled:        true,
@@ -75,8 +77,8 @@ func (s *FakeBadPackageStore) GetPackage(packageId uint) (*message.Package, erro
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
 
-func (s *FakeBadPackageStore) CreatePackage(*message.Package) error {
-	return util.NewInternalServerError(errors.New("Error"), "bad package store")
+func (s *FakeBadPackageStore) CreatePackage(*message.Package) (*message.Package, error) {
+	return nil, util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
 
 type FakeBadJobStore struct{}
@@ -114,8 +116,8 @@ func (s *FakeBadPipelineStore) GetPipeline(id uint) (*message.Pipeline, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad pipeline store")
 }
 
-func (s *FakeBadPipelineStore) CreatePipeline(*message.Pipeline) error {
-	return util.NewInternalServerError(errors.New("Error"), "bad pipeline store")
+func (s *FakeBadPipelineStore) CreatePipeline(*message.Pipeline) (*message.Pipeline, error) {
+	return nil, util.NewInternalServerError(errors.New("Error"), "bad pipeline store")
 }
 
 func (s *FakeBadPipelineStore) GetPipelineAndLatestJobIterator() (
@@ -148,9 +150,11 @@ func TestListPackages(t *testing.T) {
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageStore().CreatePackage(createPkg("pkg2"))
 	expectedPkg1 := createPkg("pkg1")
-	expectedPkg1.Metadata = &message.Metadata{ID: 1}
+	expectedPkg1.ID = 1
+	expectedPkg1.CreatedAtInSec = 1
 	expectedPkg2 := createPkg("pkg2")
-	expectedPkg2.Metadata = &message.Metadata{ID: 2}
+	expectedPkg2.ID = 2
+	expectedPkg2.CreatedAtInSec = 2
 	expectedResponse := []message.Package{*expectedPkg1, *expectedPkg2}
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, nil))
 
@@ -171,7 +175,8 @@ func TestGetPackage(t *testing.T) {
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, nil))
 	expectedPkg1 := createPkg("pkg1")
-	expectedPkg1.Metadata = &message.Metadata{ID: 1}
+	expectedPkg1.ID = 1
+	expectedPkg1.CreatedAtInSec = 1
 
 	response := e.GET("/apis/v1alpha1/packages/1").Expect().Status(httptest.StatusOK)
 	var actual message.Package
@@ -202,7 +207,11 @@ func TestUploadPackage(t *testing.T) {
 	w.CreateFormFile("uploadfile", "hello-world")
 	w.Close()
 	pkgsExpect := []message.Package{
-		{Metadata: &message.Metadata{ID: 1}, Name: "hello-world", Parameters: []message.Parameter{}}}
+		{
+			ID:             1,
+			CreatedAtInSec: 1,
+			Name:           "hello-world",
+			Parameters:     []message.Parameter{}}}
 	// Check response
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, pm))
 	e.POST("/apis/v1alpha1/packages/upload").
@@ -232,7 +241,7 @@ func TestUploadPackage_CreatePackageFileError(t *testing.T) {
 	e.POST("/apis/v1alpha1/packages/upload").
 		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
 		Expect().Status(httptest.StatusInternalServerError).Body().Equal(
-			"InternalServerError: bad package manager: Error")
+		"InternalServerError: bad package manager: Error")
 }
 
 func TestUploadPackage_GetFormFileError(t *testing.T) {
@@ -260,7 +269,7 @@ func TestUploadPackage_CreatePackageError(t *testing.T) {
 	e.POST("/apis/v1alpha1/packages/upload").
 		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
 		Expect().Status(httptest.StatusInternalServerError).Body().Equal(
-			"InternalServerError: bad package store: Error")
+		"InternalServerError: bad package store: Error")
 }
 
 func TestUploadPackage_GetParametersError(t *testing.T) {
@@ -311,10 +320,14 @@ func TestListPipelines(t *testing.T) {
 	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline2", 2))
 	e := httptest.New(t, initApiHandlerTest(nil, nil, store.PipelineStore(), nil))
 
+	store.PipelineStore().ListPipelines()
+
 	response := e.GET("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusOK)
 	expectedResponse := []message.Pipeline{
 		createPipelineExpected1(),
-		{Metadata: &message.Metadata{ID: 2},
+		{
+			ID:             2,
+			CreatedAtInSec: 2,
 			Name:           "pipeline2",
 			PackageId:      2,
 			Enabled:        true,
@@ -370,7 +383,14 @@ func TestCreatePipeline_NoSchedule(t *testing.T) {
 	response := e.POST("/apis/v1alpha1/pipelines").WithBytes(createPipelineByte1()).Expect().Status(httptest.StatusOK)
 	var actual message.Pipeline
 	util.UnmarshalOrFail(response.Body().Raw(), &actual)
-	assert.Equal(t, createPipelineExpected1(), actual)
+	expectedResponse := message.Pipeline{
+		ID:             1,
+		CreatedAtInSec: 2,
+		Name:           "pipeline1",
+		PackageId:      1,
+		Enabled:        true,
+		EnabledAtInSec: 2}
+	assert.Equal(t, expectedResponse, actual)
 	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 }
 
@@ -378,7 +398,7 @@ func TestCreatePipeline_BadPipelineFormatError(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, store.JobStore(),
-	store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakePackageManager()))
 
 	e.POST("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusBadRequest).
 		Body().Contains("The pipeline has invalid format.")
@@ -446,12 +466,13 @@ func TestCreatePipeline_ValidSchedule(t *testing.T) {
 	response := e.POST("/apis/v1alpha1/pipelines").WithBytes([]byte(b)).Expect().Status(httptest.StatusOK)
 
 	expectedResponse := message.Pipeline{
-		Metadata:       &message.Metadata{ID: 1},
+		ID:             1,
+		CreatedAtInSec: 2,
 		Name:           "MY_PIPELINE",
 		PackageId:      1,
 		Schedule:       "1 0 * * *",
 		Enabled:        true,
-		EnabledAtInSec: 1}
+		EnabledAtInSec: 2}
 	var actual message.Pipeline
 	util.UnmarshalOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
@@ -483,7 +504,7 @@ func TestEnablePipeline(t *testing.T) {
 
 	// Creating a pipeline
 	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
-	err := store.PipelineStore().CreatePipeline(createdPipeline)
+	createdPipeline, err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
 
@@ -552,7 +573,8 @@ func TestListJobs(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedResponse := []message.Job{
-		{Metadata: &message.Metadata{ID: 1},
+		{
+			CreatedAtInSec:   defaultCreatedAtInSec,
 			Name:             jobDetail1.Job.Name,
 			ScheduledAtInSec: defaultScheduledAtInSec,
 		}}
@@ -580,6 +602,7 @@ func TestGetJob(t *testing.T) {
 	expectedResponse := message.JobDetail{
 		Workflow: createWorkflow(jobDetail.Job.Name),
 		Job: &message.Job{
+			CreatedAtInSec:   defaultCreatedAtInSec,
 			Name:             jobDetail.Job.Name,
 			ScheduledAtInSec: defaultScheduledAtInSec,
 			PipelineID:       0,
@@ -591,7 +614,6 @@ func TestGetJob(t *testing.T) {
 		Expect().Status(httptest.StatusOK)
 	var actual message.JobDetail
 	util.UnmarshalOrFail(response.Body().Raw(), &actual)
-	actual.Job.Metadata = nil
 	assert.Equal(t, expectedResponse, actual)
 }
 

@@ -51,7 +51,7 @@ func (r *ResourceManager) GetPackage(packageId uint) (*message.Package, error) {
 	return r.packageStore.GetPackage(packageId)
 }
 
-func (r *ResourceManager) CreatePackage(p *message.Package) error {
+func (r *ResourceManager) CreatePackage(p *message.Package) (*message.Package, error) {
 	return r.packageStore.CreatePackage(p)
 }
 
@@ -71,11 +71,11 @@ func (r *ResourceManager) GetPipeline(id uint) (*message.Pipeline, error) {
 	return r.pipelineStore.GetPipeline(id)
 }
 
-func (r *ResourceManager) CreatePipeline(pipeline *message.Pipeline) error {
+func (r *ResourceManager) CreatePipeline(pipeline *message.Pipeline) (*message.Pipeline, error) {
 	// Verify the package exists
 	pkg, err := r.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If the pipeline runs on a schedule
@@ -87,26 +87,25 @@ func (r *ResourceManager) CreatePipeline(pipeline *message.Pipeline) error {
 				err,
 				fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err),
 				err.Error())
-			return error
+			return nil, error
 		}
 	}
 
 	// Create pipeline metadata
-	err = r.pipelineStore.CreatePipeline(pipeline)
+	pipeline, err = r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// If there is no pipeline schedule, the job is created immediately.
 	if pipeline.Schedule == "" {
-
 		_, err := r.createJobFromPipeline(pipeline, pkg.Name, r.time.Now().Unix())
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return pipeline, nil
 }
 
 func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint, scheduledAtInSec int64) (

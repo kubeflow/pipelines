@@ -24,7 +24,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const(
+const (
 	DefaultFakeUUID = "123e4567-e89b-12d3-a456-426655440000"
 )
 
@@ -36,7 +36,7 @@ type FakeClientManager struct {
 	packageManager     PackageManagerInterface
 	workflowClientFake *FakeWorkflowClient
 	time               util.TimeInterface
-	uuid 					     util.UUIDGeneratorInterface
+	uuid               util.UUIDGeneratorInterface
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
@@ -56,10 +56,6 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		return nil, fmt.Errorf("Could not create the GORM database: %v", err)
 	}
 
-	// Skip auto populating the CreatedAt/UpdatedAt/DeletedAt field to avoid unpredictable value.
-	db.Callback().Create().Remove("gorm:update_time_stamp")
-	db.Callback().Update().Remove("gorm:update_time_stamp")
-
 	// Create tables
 	db.AutoMigrate(&message.Package{}, &message.Pipeline{},
 		&message.Parameter{}, &message.Job{})
@@ -68,7 +64,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 
 	return &FakeClientManager{
 		db:                 db,
-		packageStore:       NewPackageStore(db),
+		packageStore:       NewPackageStore(db, time),
 		pipelineStore:      NewPipelineStore(db, time),
 		jobStore:           NewJobStore(db, workflowClient, time),
 		workflowClientFake: workflowClient,

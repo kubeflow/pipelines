@@ -119,12 +119,12 @@ func (a APIHandler) UploadPackage(ctx iris.Context) {
 	}
 	pkg := &message.Package{Name: info.Filename, Parameters: params}
 
-	err = a.resourceManager.CreatePackage(pkg)
+	newPkg, err := a.resourceManager.CreatePackage(pkg)
 	if err != nil {
 		util.PopulateContextAndLogError(ctx, err)
 		return
 	}
-	ctx.JSON(pkg)
+	ctx.JSON(newPkg)
 }
 
 func (a APIHandler) GetTemplate(ctx iris.Context) {
@@ -190,13 +190,13 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) {
 			"The pipeline has invalid format.", err.Error()))
 		return
 	}
-	err := a.resourceManager.CreatePipeline(pipeline)
+	newPipeline, err := a.resourceManager.CreatePipeline(pipeline)
 	if err != nil {
 		util.PopulateContextAndLogError(ctx, err)
 		return
 	}
 
-	ctx.JSON(pipeline)
+	ctx.JSON(newPipeline)
 }
 
 func (a APIHandler) EnablePipeline(ctx iris.Context) {

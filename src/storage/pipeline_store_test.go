@@ -30,7 +30,10 @@ func createPipeline(name string, pkgId uint) *message.Pipeline {
 }
 
 func pipelineExpected1() message.Pipeline {
-	return message.Pipeline{Metadata: &message.Metadata{ID: 1},
+	return message.Pipeline{
+		ID:             1,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
 		Name:           "pipeline1",
 		PackageId:      1,
 		Enabled:        true,
@@ -45,7 +48,10 @@ func TestListPipelines(t *testing.T) {
 	store.PipelineStore().CreatePipeline(createPipeline("pipeline2", 2))
 	pipelinesExpected := []message.Pipeline{
 		pipelineExpected1(),
-		{Metadata: &message.Metadata{ID: 2},
+		{
+			ID:             2,
+			CreatedAtInSec: 2,
+			UpdatedAtInSec: 2,
 			Name:           "pipeline2",
 			PackageId:      2,
 			Enabled:        true,
@@ -98,7 +104,7 @@ func TestCreatePipeline(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	pipeline := createPipeline("pipeline1", 1)
-	err := store.PipelineStore().CreatePipeline(pipeline)
+	pipeline, err := store.PipelineStore().CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
 }
@@ -109,7 +115,7 @@ func TestCreatePipelineError(t *testing.T) {
 	store.DB().Close()
 
 	pipeline := createPipeline("pipeline1", 1)
-	err := store.PipelineStore().CreatePipeline(pipeline)
+	pipeline, err := store.PipelineStore().CreatePipeline(pipeline)
 	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create pipeline to return error")
 }
@@ -121,7 +127,7 @@ func TestEnablePipeline(t *testing.T) {
 
 	// Creating a pipeline. It is enabled by default.
 	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
-	err := store.PipelineStore().CreatePipeline(createdPipeline)
+	createdPipeline, err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
 
@@ -130,7 +136,7 @@ func TestEnablePipeline(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, true, createdPipeline.Enabled, "The pipeline must be enabled.")
 	assert.Equal(t, int64(1), createdPipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
-	assert.Equal(t, int64(0), createdPipeline.UpdatedAtInSec, "Unexpected value of UpdatedAtInSec.")
+	assert.Equal(t, int64(1), createdPipeline.UpdatedAtInSec, "Unexpected value of UpdatedAtInSec.")
 
 	// Verify that enabling the pipeline has no effect. In particular, EnabledAtInSec should
 	// not change.
@@ -166,7 +172,6 @@ func TestEnablePipeline(t *testing.T) {
 	assert.Equal(t, int64(3), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
 
 	// Verify that none of the fields of the pipeline have changed.
-	createdPipeline.UpdatedAt = pipeline.UpdatedAt
 	createdPipeline.EnabledAtInSec = pipeline.EnabledAtInSec
 	createdPipeline.UpdatedAtInSec = pipeline.UpdatedAtInSec
 	assert.Equal(t, createdPipeline, pipeline)
@@ -187,7 +192,7 @@ func TestEnablePipelineDatabaseError(t *testing.T) {
 
 	// Creating a pipeline. It is enabled by default.
 	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
-	err := store.PipelineStore().CreatePipeline(createdPipeline)
+	createdPipeline, err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
 

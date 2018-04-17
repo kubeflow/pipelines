@@ -83,7 +83,7 @@ func (c *ClientManager) init() {
 
 	// Initialize package store
 	c.db = db
-	c.packageStore = storage.NewPackageStore(db)
+	c.packageStore = storage.NewPackageStore(db, c.time)
 
 	// Initialize pipeline store
 	c.db = db

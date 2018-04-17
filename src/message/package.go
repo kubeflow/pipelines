@@ -15,7 +15,10 @@
 package message
 
 type Package struct {
-	*Metadata   `json:",omitempty"`
+	ID             uint   `json:"id" gorm:"primary_key"`
+	CreatedAtInSec int64  `json:"createdAt" gorm:"not null"`
+	DeletedAtInSec *int64 `json:"-" sql:"index"`
+
 	Name        string      `json:"name"`
 	Description string      `json:"description,omitempty"`
 	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`

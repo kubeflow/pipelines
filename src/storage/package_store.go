@@ -25,11 +25,12 @@ import (
 type PackageStoreInterface interface {
 	ListPackages() ([]message.Package, error)
 	GetPackage(packageId uint) (*message.Package, error)
-	CreatePackage(*message.Package) error
+	CreatePackage(*message.Package) (*message.Package, error)
 }
 
 type PackageStore struct {
-	db *gorm.DB
+	db   *gorm.DB
+	time util.TimeInterface
 }
 
 func (s *PackageStore) ListPackages() ([]message.Package, error) {
@@ -54,15 +55,18 @@ func (s *PackageStore) GetPackage(id uint) (*message.Package, error) {
 	return &pkg, nil
 }
 
-func (s *PackageStore) CreatePackage(p *message.Package) error {
-	if r := s.db.Create(&p); r.Error != nil {
-		return util.NewInternalServerError(r.Error, "Failed to add package to package table: %v",
+func (s *PackageStore) CreatePackage(p *message.Package) (*message.Package, error) {
+	newPackage := *p
+	now := s.time.Now().Unix()
+	newPackage.CreatedAtInSec = now
+	if r := s.db.Create(&newPackage); r.Error != nil {
+		return nil, util.NewInternalServerError(r.Error, "Failed to add package to package table: %v",
 			r.Error.Error())
 	}
-	return nil
+	return &newPackage, nil
 }
 
 // factory function for package store
-func NewPackageStore(db *gorm.DB) *PackageStore {
-	return &PackageStore{db: db}
+func NewPackageStore(db *gorm.DB, time util.TimeInterface) *PackageStore {
+	return &PackageStore{db: db, time: time}
 }

@@ -226,7 +226,7 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
 		PackageId: 1}
-	err := manager.CreatePipeline(pipeline)
+	_, err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
@@ -306,7 +306,7 @@ func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
 		PackageId: 1}
-	err := manager.CreatePipeline(pipeline)
+	_, err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 

@@ -31,7 +31,7 @@ const (
 type PipelineStoreInterface interface {
 	ListPipelines() ([]message.Pipeline, error)
 	GetPipeline(id uint) (*message.Pipeline, error)
-	CreatePipeline(*message.Pipeline) error
+	CreatePipeline(*message.Pipeline) (*message.Pipeline, error)
 	GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error)
 	EnablePipeline(id uint, enabled bool) error
 }
@@ -66,15 +66,19 @@ func (s *PipelineStore) GetPipeline(id uint) (*message.Pipeline, error) {
 	return &pipeline, nil
 }
 
-func (s *PipelineStore) CreatePipeline(p *message.Pipeline) error {
-	p.Enabled = true
-	p.EnabledAtInSec = s.time.Now().Unix()
+func (s *PipelineStore) CreatePipeline(p *message.Pipeline) (*message.Pipeline, error) {
+	newPipeline := *p
+	now := s.time.Now().Unix()
+	newPipeline.CreatedAtInSec = now
+	newPipeline.UpdatedAtInSec = now
+	newPipeline.EnabledAtInSec = now
+	newPipeline.Enabled = true
 
-	if r := s.db.Create(&p); r.Error != nil {
-		return util.NewInternalServerError(r.Error, "Failed to add pipeline to pipeline table: %v",
+	if r := s.db.Create(&newPipeline); r.Error != nil {
+		return nil, util.NewInternalServerError(r.Error, "Failed to add pipeline to pipeline table: %v",
 			r.Error.Error())
 	}
-	return nil
+	return &newPipeline, nil
 }
 
 func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
@@ -94,7 +98,7 @@ func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
 	}
 
 	// Get pipeline
-	pipeline := message.Pipeline{Metadata: &message.Metadata{ID: id}}
+	pipeline := message.Pipeline{ID: id}
 	tx = tx.Find(&pipeline)
 	if tx.RecordNotFound() {
 		tx.Rollback()
@@ -117,7 +121,6 @@ func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
 			enabled_at_in_sec = ?, 
 			updated_at_in_sec = ?  
 		WHERE 
-			pipelines.deleted_at_in_sec IS NULL AND 
 			"pipelines".id = ?`, enabled, now, now, id)
 
 	if tx.Error != nil {
@@ -181,8 +184,7 @@ func newPipelineAndLatestJobIterator(db *gorm.DB) (*PipelineAndLatestJobIterator
 		ON (pipelines.ID=jobs.pipeline_id)
 		WHERE
 			pipelines.schedule != "" AND
-			pipelines.enabled = 1 AND
-			pipelines.deleted_at_in_sec IS NULL 
+			pipelines.enabled = 1
 		GROUP BY
 			pipelines.ID,
 			pipelines.name,
