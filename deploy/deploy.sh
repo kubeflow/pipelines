@@ -12,24 +12,33 @@ API_SERVER_IMAGE=gcr.io/ml-pipeline/api-server
 # Default ml pipeline ui image
 UI_IMAGE=gcr.io/ml-pipeline/frontend
 
-# Whether deploy K8s roles for services or not
-ROLES=true
+# Whether report usage or not. Default yes.
+REPORT_USAGE="true"
+
+# Whether this is an install or uninstall.
+UNINSTALL=false
 
 # Parameter supported:
-# -n | --namespace   namespace
-# -a | --apiserver   ml-pipeline apiserver docker image
-# -u | --ui          ml-pipeline frontend UI docker image
-# -r | --roles       deploy roles or not. Roles are needed for GKE
+# -n | --namespace      namespace
+# -a | --api_image      ml-pipeline apiserver docker image
+# -u | --ui_image       ml-pipeline frontend UI docker image
+# -r | --report_usage   deploy roles or not. Roles are needed for GKE
+# --uninstall           uninstall ml pipeline
 while [ "$1" != "" ]; do
     case $1 in
         -n | --namespace )      shift
                                 NAMESPACE=$1
                                 ;;
-        -a | --apiserver )      shift
+        -a | --api_image )      shift
                                 API_SERVER_IMAGE=$1
                                 ;;
-        -u | --ui )             shift
+        -u | --ui_image )       shift
                                 UI_IMAGE=$1
+                                ;;
+        -r | --report_usage )   shift
+                                REPORT_USAGE=$1
+                                ;;
+        --uninstall )           UNINSTALL=true
                                 ;;
         * )                     usage
                                 exit 1
@@ -37,10 +46,13 @@ while [ "$1" != "" ]; do
     shift
 done
 
+echo "Configure ksonnet ..."
+/deploy/bootstrapper.sh
+echo "Configure ksonnet completed successfully"
 
 echo "Initialize a ksonnet APP ..."
 ks init ${APP_DIR}
-echo "Initialized ksonnet APP successfully"
+echo "Initialized ksonnet APP completed successfully"
 
 
 # Import pipeline registry
@@ -72,13 +84,15 @@ else
   kubectl create ns ${NAMESPACE}
 fi
 
-time="`date +%Y%m%d%H%M%S`"
-
 # Generate a ksonnet component manifest and assign parameters
-( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline-${time} --namespace=${NAMESPACE} )
-( cd ${APP_DIR} && ks param set ml-pipeline-${time} api_image ${API_SERVER_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline-${time} ui_image ${UI_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline-${time} report_usage "true" )
-( cd ${APP_DIR} && ks param set ml-pipeline-${time} usage_id $(uuidgen) )
+( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline --namespace=${NAMESPACE} )
+( cd ${APP_DIR} && ks param set ml-pipeline api_image ${API_SERVER_IMAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline ui_image ${UI_IMAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline report_usage ${REPORT_USAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
 
-( cd ${APP_DIR} && ks apply default -c ml-pipeline-${time} )
+if ${UNINSTALL} ; then
+  ( cd ${APP_DIR} && ks delete default)
+else
+  ( cd ${APP_DIR} && ks apply default -c ml-pipeline)
+fi

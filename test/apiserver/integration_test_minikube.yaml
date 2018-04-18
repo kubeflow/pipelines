@@ -5,11 +5,6 @@ metadata:
 spec:
   entrypoint: integration-test
   onExit: delete-namespace
-  arguments:
-      parameters:
-      # namespace the tests run in
-      - name: namespace
-        value: ml-pipeline-test
   templates:
   - name: integration-test
     steps:
@@ -24,9 +19,9 @@ spec:
 
   - name: create-namespace
     container:
-      image: gcr.io/ml-pipeline/kubetool
+      image: gcr.io/ml-pipeline/bootstrapper
       command: [kubectl]
-      args: ["create", "ns", "{{workflow.parameters.namespace}}"]
+      args: ["create", "ns", "{{workflow.name}}"]
 
   - name: build-image
     container:
@@ -41,29 +36,29 @@ spec:
 
   - name: deploy-ml-pipeline
     container:
-      image: gcr.io/ml-pipeline/kubetool
-      command: [sh, -c]
-      args: ["/go/src/ml/test/kubetool/minikube_bootstrapper.sh; /go/src/ml/deploy/deploy.sh --namespace {{workflow.parameters.namespace}} --apiserver ml-pipeline-api-server-integration-test"]
+      image: gcr.io/ml-pipeline/bootstrapper
+      args: [
+        "--namespace", "{{workflow.name}}",
+        "--api_image", "ml-pipeline-api-server-integration-test",
+      ]
       volumeMounts:
       - mountPath: /var/run/docker.sock
         name: docker-sock-volume
-      - mountPath: /go/src/ml
-        name: repo-dir
 
   - name: run-tests
     container:
       image: golang
       command: [sh, -c]
-      args: ["cd /go/src/ml/test/apiserver; go get -t ./...; go test ./... -namespace {{workflow.parameters.namespace}}"]
+      args: ["cd /go/src/ml/test/apiserver; go get -t ./...; go test ./... -namespace {{workflow.name}}"]
       volumeMounts:
       - mountPath: /go/src/ml
         name: repo-dir
 
   - name: delete-namespace
     container:
-      image: gcr.io/ml-pipeline/kubetool
+      image: gcr.io/ml-pipeline/bootstrapper
       command: [kubectl]
-      args: ["delete", "ns", "{{workflow.parameters.namespace}}"]
+      args: ["delete", "ns", "{{workflow.name}}"]
 
   volumes:
   - name: docker-sock-volume

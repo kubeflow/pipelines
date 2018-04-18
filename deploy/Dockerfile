@@ -20,10 +20,15 @@ RUN mv ./ks_0.9.2_linux_amd64/ks /usr/local/bin/
 
 # Set USER env variable to workaround a known issue
 # https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#error-user-current-not-implemented-on-linuxamd64
-ENV USER=minikube
+ENV USER=default
 
 # Copy bootstrapper files
-COPY ./minikube_bootstrapper.sh /
-RUN chmod +x /minikube_bootstrapper.sh
+COPY . /deploy/
+RUN chmod +x /deploy/bootstrapper.sh
+RUN chmod +x /deploy/deploy.sh
 
-ENTRYPOINT ["top", "-b"]
+# install uuidgen. Used for reporting usage
+RUN apt-get install uuid-runtime
+
+ENTRYPOINT ["/deploy/deploy.sh"]
+CMD []

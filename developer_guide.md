@@ -2,34 +2,48 @@
 
 This document describes the development guideline to contribute to ML pipeline project. Please check the [main page](https://github.com/googleprivate/ml/blob/master/README.md) for instruction on how to deploy a ML pipeline system.
 
-## Deploy with your own image
+## ML pipeline deployment
 
-By default the deployment uses the official images stored in [GCR](https://cloud.google.com/container-registry/). 
+The ML pipeline system uses [Ksonnet](https://ksonnet.io/) as part of the deployment process.
+Ksonnet provides the flexibility to generate Kubernetes manifests from parameterized templates and
+makes it easy to customize Kubernetes manifests for different use cases.
+The Ksonnet is wrapped in a customized bootstrap container so a user don't need to explicitly deal
+with Ksonnet to install ML pipeline.
 
-You can use the deployment script, and provide your own UI or API server image. See next section on how to build your own image.
+The docker container accepts various parameters to customize your deployment.
+- **--namespace** the namespace to deploy to
+- **--api_image** the API server image to use
+- **--ui_image** the webserver image to use
+- **--report_usage** whether to report usage for the deployment
+- **--uninstall** to uninstall everything.
+
+See [bootstrapper.yaml](https://github.com/googleprivate/ml/blob/master/bootstrapper.yaml) for examples on how to pass in parameter.
+
+Alternatively, you can use [deploy.sh](https://github.com/googleprivate/ml/blob/master/deploy/deploy.sh) if you want to interact with Ksonnet directly.
+To deploy, run the script locally.
 ```
-NAMESPACE=[namespace]
-deploy/deploy.sh --namespace ${NAMESPACE} --apiserver [api-image] --ui [ui-image]
+$ deploy/deploy.sh
 ```
-Note Ksonnet creates an [app](https://ksonnet.io/docs/concepts#application) folder under the current path. If you want to update or delete the K8s resource created by the deployment, run
+And you will se a Ksonnet [APP](https://ksonnet.io/docs/concepts#application) folder generated in your current path. If you want to update or delete the K8s resource created by the deployment, run
 ```
 # Update
-cd ml-pipeline && ks apply default 
+$ cd ml-pipeline && ks apply default
 # Delete
-cd ml-pipeline && ks delete default 
+$ cd ml-pipeline && ks delete default
 ```
 
+
 ## Build Image
- 
+
 ### GKE
 To be able to use GKE, the Docker images need to be uploaded to a public Docker repository, such as [GCR](https://cloud.google.com/container-registry/)
 
-Here is an example to build API server image and upload to GCR.  
+Here is an example to build API server image and upload to GCR. 
 ````
 # Run under src/ directory 
-docker build -t gcr.io/your-gcr/api-server:latest src/apiserver
+$ docker build -t gcr.io/your-gcr/api-server:latest src/apiserver
 # Push to GCR
-gcloud docker -- push gcr.io/your-gcr/api-server:latest
+$ gcloud docker -- push gcr.io/your-gcr/api-server:latest
 ````
 
 ### Minikube
@@ -37,7 +51,15 @@ Minikube can pick your local Docker image so you don't need to upload to remote 
 
 For example, to build API server image  
 ```
-docker build -t ml-pipeline-api-server src
+$ docker build -t ml-pipeline-api-server src
+```
+
+### Update deployment image
+If your change updates deployment image (e.g. add new service account, change image version etc.),
+remember to update the deployment image as well, and use that image to create deployment job.
+```
+$ docker build -t gcr.io/your-gcr/bootstrapper deploy/
+$ gcloud docker -- push gcr.io/your-gcr/bootstrapper
 ```
 
 ## Unit test
@@ -51,18 +73,26 @@ cd src/ && go test ./...
 TODO: add instruction
 
 ## Integration test
-TODO: Add instruction for for frontend and backend
+
+### API server
+Check [this](https://github.com/googleprivate/ml/blob/master/test/apiserver/README.md) page for more details.
 
 ## E2E test
 TODO: Add instruction
 
 ## Publish [optional]
-**[Note]** The published images are used as private release for the ML pipeline team. Please have things tested before publishing. 
+**[Note]** The published images are used as official release for the ML pipeline team. Please have things tested before publishing.
 
 To publish an updated version of the image to GCR 
 ```
 docker build -t gcr.io/ml-pipeline/api-server:v1alpha1.x src/apiserver
 gcloud docker -- push gcr.io/ml-pipeline/api-server:v1alpha1.x
+```
+
+To publish an updated version of the bootstrapper image
+```
+docker build -t gcr.io/ml-pipeline/bootstrapper deploy/
+gcloud docker -- push gcr.io/ml-pipeline/bootstrapper
 ```
 
 ## Troubleshooting
