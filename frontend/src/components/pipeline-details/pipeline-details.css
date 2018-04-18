@@ -1,12 +1,6 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-.input-param-header {
-  font-size: 16px;
-  margin: auto 0;
-  padding-right: 20px;
-}
-
 .pipeline-name {
   color: var(--fg-color-strong);
   font-size: var(--font-size-strong);

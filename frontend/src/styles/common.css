@@ -66,6 +66,12 @@ hr {
   padding: 20px;
 }
 
+.param-header {
+  font-size: 16px;
+  margin: auto 0;
+  padding-right: 20px;
+}
+
 .details-table > div {
   border-bottom: 1px solid var(--line-color);
   padding: 3px;

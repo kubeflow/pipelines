@@ -61,17 +61,20 @@
                    autofocus required maxlength="50" value="{{newPipeline.name}}"
                    auto-validate error-message="Pipeline must have a name">
       </paper-input>
-      <paper-input id="description" label="Description" value="{{newPipeline.description}}">
+      <paper-input id="description" class="metadata-input" label="Description"
+                   value="{{newPipeline.description}}">
       </paper-input>
 
       <template is="dom-if" if="[[newPipeline.parameters.length]]">
-        <br>
-        <span class="strong">Parameters</span>
+
+        <hr>
+
+        <div class="param-header">Parameters</div>
         <template is="dom-repeat" items="{{newPipeline.parameters}}" as="param">
-          <div class="flex param-container">
+          <div class="param-description">[[param.description]]</div>
+          <div class="param-container">
             <paper-input class="param-input no-shrink" value="{{param.value}}"
                          label="[[param.name]]"></paper-input>
-            <span>[[param.description]]</span>
           </div>
         </template>
       </template>

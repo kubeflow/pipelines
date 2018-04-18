@@ -9,7 +9,8 @@ paper-dropdown-menu, paper-input {
   --paper-input-container-focus-color: var(--accent-color);
   background-color: var(--bg-color-darker);
   border-radius: 5px;
-  width: 500px;
+  min-width: 400px;
+  width: 40%;
 }
 
 paper-item {
@@ -31,13 +32,17 @@ paper-icon-button, paper-icon-button {
   margin-bottom: 26px;
 }
 
+.param-description {
+  margin: 15px 0 8px 0;
+}
+
 .param-container {
   margin-bottom: 10px;
 }
 
 .param-input {
-  margin-left: 10px;
-  width: 300px;
+  min-width: 400px;
+  width: 40%;
 }
 
 .overlay {

@@ -14,6 +14,7 @@ import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase, Workflow } from '../../model/argo_template';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
+import { Pipeline } from '../../model/pipeline';
 import { JobGraph } from '../job-graph/job-graph';
 
 import '../data-plotter/data-plot';
@@ -29,6 +30,9 @@ export class JobDetails extends Polymer.Element implements PageElement {
   @property({ type: Object })
   public jobDetail: Workflow;
 
+  @property({ type: Object })
+  public pipeline: Pipeline;
+
   @property({ type: Number })
   public selectedTab = 0;
 
@@ -43,10 +47,10 @@ export class JobDetails extends Polymer.Element implements PageElement {
       this._jobId = queryParams.jobId;
       this.jobDetail = (await Apis.getJob(this._pipelineId, this._jobId)).jobDetail;
 
-      const pipeline = await Apis.getPipeline(this._pipelineId);
-      const templateYaml = await Apis.getPackageTemplate(pipeline.packageId);
+      this.pipeline = await Apis.getPipeline(this._pipelineId);
+      const templateYaml = await Apis.getPackageTemplate(this.pipeline.packageId);
 
-      const baseOutputPathValue = pipeline
+      const baseOutputPathValue = this.pipeline
         .parameters
         .filter((p) => p.name === 'output')[0]
         .value;

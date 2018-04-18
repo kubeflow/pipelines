@@ -15,13 +15,14 @@ import './job-list.html';
 export class JobList extends Polymer.Element {
 
   @property({ type: Array })
-  public jobs: JobMetadata[] = [];
+  public jobsMetadata: JobMetadata[] = [];
 
   protected jobListRows: ItemListRow[] = [];
 
   protected jobListColumns: ItemListColumn[] = [
     { name: 'Job Name', type: ColumnTypeName.STRING },
-    { name: 'Scheduled Time', type: ColumnTypeName.DATE },
+    { name: 'Created at', type: ColumnTypeName.DATE },
+    { name: 'Scheduled at', type: ColumnTypeName.DATE },
   ];
 
   private _pipelineId = -1;
@@ -35,13 +36,14 @@ export class JobList extends Polymer.Element {
   // TODO: should these jobs be cached?
   public async loadJobs(pipelineId: number) {
     this._pipelineId = pipelineId;
-    this.jobs = await Apis.getJobs(this._pipelineId);
+    this.jobsMetadata = await Apis.getJobs(this._pipelineId);
 
-    this.jobListRows = this.jobs.map((job) => {
+    this.jobListRows = this.jobsMetadata.map((jobMetadata) => {
       const row = new ItemListRow({
         columns: [
-          job.name,
-          job.scheduledAt,
+          jobMetadata.name,
+          new Date(jobMetadata.createdAt),
+          new Date(jobMetadata.scheduledAt),
         ],
         selected: false,
       });
@@ -50,7 +52,7 @@ export class JobList extends Polymer.Element {
   }
 
   protected _navigate(ev: ItemClickEvent) {
-    const jobId = this.jobs[ev.detail.index].name;
+    const jobId = this.jobsMetadata[ev.detail.index].name;
     this.dispatchEvent(
       new RouteEvent(`/pipelineJob?pipelineId=${this._pipelineId}&jobId=${jobId}`));
   }

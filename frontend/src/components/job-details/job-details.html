@@ -60,6 +60,20 @@
               <span>[[_getRuntime(jobDetail.status.startedAt, jobDetail.status.finishedAt, jobDetail.status.phase)]]</span>
             </div>
           </div>
+
+          <br/>
+          <br/>
+
+          <div class="param-header">Job Parameters</div>
+          <div class="details-table">
+            <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+              <div>
+                <span class="detail-title">[[param.name]]</span>
+                <span>[[param.value]]</span>
+              </div>
+            </template>
+          </div>
+
         </div>
 
         <!-- iron-page tab 2 -->
