@@ -80,20 +80,6 @@ Check [this](https://github.com/googleprivate/ml/blob/master/test/apiserver/READ
 ## E2E test
 TODO: Add instruction
 
-## Publish [optional]
-**[Note]** The published images are used as official release for the ML pipeline team. Please have things tested before publishing.
-
-To publish an updated version of the image to GCR 
-```
-docker build -t gcr.io/ml-pipeline/api-server:v1alpha1.x src/apiserver
-gcloud docker -- push gcr.io/ml-pipeline/api-server:v1alpha1.x
-```
-
-To publish an updated version of the bootstrapper image
-```
-docker build -t gcr.io/ml-pipeline/bootstrapper deploy/
-gcloud docker -- push gcr.io/ml-pipeline/bootstrapper
-```
 
 ## Troubleshooting
 
