@@ -17,7 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/util"
 
 	"github.com/jinzhu/gorm"
@@ -29,9 +29,9 @@ const (
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines() ([]message.Pipeline, error)
-	GetPipeline(id uint) (*message.Pipeline, error)
-	CreatePipeline(*message.Pipeline) (*message.Pipeline, error)
+	ListPipelines() ([]model.Pipeline, error)
+	GetPipeline(id uint) (*model.Pipeline, error)
+	CreatePipeline(*model.Pipeline) (*model.Pipeline, error)
 	GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error)
 	EnablePipeline(id uint, enabled bool) error
 }
@@ -41,8 +41,8 @@ type PipelineStore struct {
 	time util.TimeInterface
 }
 
-func (s *PipelineStore) ListPipelines() ([]message.Pipeline, error) {
-	var pipelines []message.Pipeline
+func (s *PipelineStore) ListPipelines() ([]model.Pipeline, error) {
+	var pipelines []model.Pipeline
 	// List the pipelines as well as their parameters.
 	// Preload parameter table first to optimize DB transaction.
 	if r := s.db.Preload("Parameters").Find(&pipelines); r.Error != nil {
@@ -52,8 +52,8 @@ func (s *PipelineStore) ListPipelines() ([]message.Pipeline, error) {
 	return pipelines, nil
 }
 
-func (s *PipelineStore) GetPipeline(id uint) (*message.Pipeline, error) {
-	var pipeline message.Pipeline
+func (s *PipelineStore) GetPipeline(id uint) (*model.Pipeline, error) {
+	var pipeline model.Pipeline
 	// Get the pipeline as well as its parameter.
 	r := s.db.Preload("Parameters").First(&pipeline, id)
 	if r.RecordNotFound() {
@@ -66,7 +66,7 @@ func (s *PipelineStore) GetPipeline(id uint) (*message.Pipeline, error) {
 	return &pipeline, nil
 }
 
-func (s *PipelineStore) CreatePipeline(p *message.Pipeline) (*message.Pipeline, error) {
+func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
 	newPipeline := *p
 	now := s.time.Now().Unix()
 	newPipeline.CreatedAtInSec = now
@@ -98,7 +98,7 @@ func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
 	}
 
 	// Get pipeline
-	pipeline := message.Pipeline{ID: id}
+	pipeline := model.Pipeline{ID: id}
 	tx = tx.Find(&pipeline)
 	if tx.RecordNotFound() {
 		tx.Rollback()

@@ -15,7 +15,7 @@
 package storage
 
 import (
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/util"
 	"net/http"
 	"testing"
@@ -23,8 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createPkg(name string) *message.Package {
-	return &message.Package{Name: name, Parameters: []message.Parameter{}}
+func createPkg(name string) *model.Package {
+	return &model.Package{Name: name, Parameters: []model.Parameter{{Name: "param1"}}}
 }
 
 func TestListPackages(t *testing.T) {
@@ -32,13 +32,17 @@ func TestListPackages(t *testing.T) {
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageStore().CreatePackage(createPkg("pkg2"))
-	expectedPkg1 := *createPkg("pkg1")
-	expectedPkg1.ID = 1
-	expectedPkg1.CreatedAtInSec = 1
-	expectedPkg2 := *createPkg("pkg2")
-	expectedPkg2.ID = 2
-	expectedPkg2.CreatedAtInSec = 2
-	pkgsExpected := []message.Package{expectedPkg1, expectedPkg2}
+	expectedPkg1 := model.Package{
+		ID:             1,
+		CreatedAtInSec: 1,
+		Name:           "pkg1",
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}}}
+	expectedPkg2 := model.Package{
+		ID:             2,
+		CreatedAtInSec: 2,
+		Name:           "pkg2",
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 2, OwnerType: "packages"}}}
+	pkgsExpected := []model.Package{expectedPkg1, expectedPkg2}
 
 	pkgs, err := store.PackageStore().ListPackages()
 	assert.Nil(t, err)
@@ -58,11 +62,11 @@ func TestGetPackage(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	pkgExpected := message.Package{
+	pkgExpected := model.Package{
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []message.Parameter{},
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
 	}
 
 	pkg, err := store.PackageStore().GetPackage(1)
@@ -91,12 +95,12 @@ func TestGetPackage_InternalError(t *testing.T) {
 func TestCreatePackage(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	pkgExpected := message.Package{
+	pkgExpected := model.Package{
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []message.Parameter{},
-	}
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}}}
+
 	pkg := createPkg("pkg1")
 	pkg, err := store.PackageStore().CreatePackage(pkg)
 	assert.Nil(t, err)
@@ -104,7 +108,7 @@ func TestCreatePackage(t *testing.T) {
 }
 
 func TestCreatePackageError(t *testing.T) {
-	pkg := &message.Package{Name: "Package123"}
+	pkg := &model.Package{Name: "Package123"}
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.DB().Close()

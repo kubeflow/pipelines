@@ -15,7 +15,7 @@
 package storage
 
 import (
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/util"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -27,10 +27,10 @@ import (
 )
 
 type JobStoreInterface interface {
-	GetJob(pipelineId uint, jobName string) (*message.JobDetail, error)
-	ListJobs(pipelineId uint) ([]message.Job, error)
+	GetJob(pipelineId uint, jobName string) (*model.JobDetail, error)
+	ListJobs(pipelineId uint) ([]model.Job, error)
 	CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64, createdAtInSec int64) (
-		*message.JobDetail, error)
+		*model.JobDetail, error)
 }
 
 type JobStore struct {
@@ -40,8 +40,8 @@ type JobStore struct {
 }
 
 // ListJobs list the job metadata for a pipeline from DB
-func (s *JobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
-	var jobs []message.Job
+func (s *JobStore) ListJobs(pipelineId uint) ([]model.Job, error) {
+	var jobs []model.Job
 	if r := s.db.Where("pipeline_id = ?", pipelineId).Find(&jobs); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list jobs: %v", r.Error.Error())
 	}
@@ -50,12 +50,12 @@ func (s *JobStore) ListJobs(pipelineId uint) ([]message.Job, error) {
 
 // CreateJob create Workflow by calling CRD, and store the metadata to DB
 func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64,
-	createdAtInSec int64) (*message.JobDetail, error) {
-	job := &message.Job{
+	createdAtInSec int64) (*model.JobDetail, error) {
+	job := &model.Job{
 		CreatedAtInSec:   createdAtInSec,
 		UpdatedAtInSec:   createdAtInSec,
 		Name:             wf.Name,
-		Status:           message.JobCreationPending,
+		Status:           model.JobCreationPending,
 		PipelineID:       pipelineId,
 		ScheduledAtInSec: scheduledAtInSec,
 	}
@@ -63,7 +63,7 @@ func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAt
 		return nil, util.NewInternalServerError(r.Error, "Failed to store job metadata: %v",
 			r.Error.Error())
 	}
-	result := &message.JobDetail{Workflow: wf, Job: job}
+	result := &model.JobDetail{Workflow: wf, Job: job}
 
 	// Try schedule the job once
 	newWf, err := s.wfClient.Create(wf)
@@ -77,7 +77,7 @@ func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAt
 	}
 
 	result.Workflow = newWf
-	job.Status = message.JobExecutionPending
+	job.Status = model.JobExecutionPending
 
 	job, err = s.updateJobStatus(job)
 	if err != nil {
@@ -94,7 +94,7 @@ func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAt
 }
 
 // GetJob Get the job manifest from Workflow CRD
-func (s *JobStore) GetJob(pipelineId uint, jobName string) (*message.JobDetail, error) {
+func (s *JobStore) GetJob(pipelineId uint, jobName string) (*model.JobDetail, error) {
 	// validate the the pipeline has the job.
 	job, err := getJobMetadata(s.db, pipelineId, jobName)
 	if err != nil {
@@ -109,11 +109,11 @@ func (s *JobStore) GetJob(pipelineId uint, jobName string) (*message.JobDetail, 
 		return nil, util.NewInternalServerError(err,
 			"Failed to get workflow %s from K8s CRD. Error: %s", jobName, err.Error())
 	}
-	return &message.JobDetail{Workflow: wf, Job: job}, nil
+	return &model.JobDetail{Workflow: wf, Job: job}, nil
 }
 
 // UpdateJobStatus update the job's status field. Only this field is supported to update for now.
-func (s *JobStore) updateJobStatus(job *message.Job) (*message.Job, error) {
+func (s *JobStore) updateJobStatus(job *model.Job) (*model.Job, error) {
 	newJob := *job
 	newJob.UpdatedAtInSec = s.time.Now().Unix()
 	r := s.db.Exec(`UPDATE jobs SET status = ?, updated_at_in_sec = ? WHERE name = ?`, newJob.Status, newJob.UpdatedAtInSec, newJob.Name)
@@ -123,8 +123,8 @@ func (s *JobStore) updateJobStatus(job *message.Job) (*message.Job, error) {
 	return &newJob, nil
 }
 
-func getJobMetadata(db *gorm.DB, pipelineId uint, jobName string) (*message.Job, error) {
-	job := &message.Job{}
+func getJobMetadata(db *gorm.DB, pipelineId uint, jobName string) (*model.Job, error) {
+	job := &model.Job{}
 	result := db.Raw("SELECT * FROM jobs where pipeline_id = ? and name = ?", pipelineId, jobName).Scan(job)
 	if result.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Job", jobName)

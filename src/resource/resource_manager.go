@@ -2,7 +2,7 @@ package resource
 
 import (
 	"fmt"
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/storage"
 	"ml/src/util"
 
@@ -43,15 +43,15 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) ListPackages() ([]message.Package, error) {
+func (r *ResourceManager) ListPackages() ([]model.Package, error) {
 	return r.packageStore.ListPackages()
 }
 
-func (r *ResourceManager) GetPackage(packageId uint) (*message.Package, error) {
+func (r *ResourceManager) GetPackage(packageId uint) (*model.Package, error) {
 	return r.packageStore.GetPackage(packageId)
 }
 
-func (r *ResourceManager) CreatePackage(p *message.Package) (*message.Package, error) {
+func (r *ResourceManager) CreatePackage(p *model.Package) (*model.Package, error) {
 	return r.packageStore.CreatePackage(p)
 }
 
@@ -63,15 +63,15 @@ func (r *ResourceManager) GetTemplate(pkgName string) ([]byte, error) {
 	return r.packageManager.GetTemplate(pkgName)
 }
 
-func (r *ResourceManager) ListPipelines() ([]message.Pipeline, error) {
+func (r *ResourceManager) ListPipelines() ([]model.Pipeline, error) {
 	return r.pipelineStore.ListPipelines()
 }
 
-func (r *ResourceManager) GetPipeline(id uint) (*message.Pipeline, error) {
+func (r *ResourceManager) GetPipeline(id uint) (*model.Pipeline, error) {
 	return r.pipelineStore.GetPipeline(id)
 }
 
-func (r *ResourceManager) CreatePipeline(pipeline *message.Pipeline) (*message.Pipeline, error) {
+func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error) {
 	// Verify the package exists
 	pkg, err := r.packageStore.GetPackage(pipeline.PackageId)
 	if err != nil {
@@ -109,7 +109,7 @@ func (r *ResourceManager) CreatePipeline(pipeline *message.Pipeline) (*message.P
 }
 
 func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint, scheduledAtInSec int64) (
-	*message.JobDetail, error) {
+	*model.JobDetail, error) {
 	// Get the pipeline.
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineID)
 	if err != nil {
@@ -135,8 +135,8 @@ func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint, scheduledAtIn
 	return jobDetail, nil
 }
 
-func (r *ResourceManager) createJobFromPipeline(pipeline *message.Pipeline, pkgName string,
-	scheduledAtInSec int64) (*message.JobDetail, error) {
+func (r *ResourceManager) createJobFromPipeline(pipeline *model.Pipeline, pkgName string,
+	scheduledAtInSec int64) (*model.JobDetail, error) {
 	template, err := r.packageManager.GetTemplate(pkgName)
 	if err != nil {
 		return nil, err
@@ -180,10 +180,10 @@ func (r *ResourceManager) EnablePipeline(pipelineID uint, enabled bool) error {
 	return nil
 }
 
-func (r *ResourceManager) GetJob(pipelineId uint, jobName string) (*message.JobDetail, error) {
+func (r *ResourceManager) GetJob(pipelineId uint, jobName string) (*model.JobDetail, error) {
 	return r.jobStore.GetJob(pipelineId, jobName)
 }
-func (r *ResourceManager) ListJobs(pipelineId uint) ([]message.Job, error) {
+func (r *ResourceManager) ListJobs(pipelineId uint) ([]model.Job, error) {
 	return r.jobStore.ListJobs(pipelineId)
 }
 

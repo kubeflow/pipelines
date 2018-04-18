@@ -15,25 +15,25 @@
 package util
 
 import (
-	"ml/src/message"
+	"ml/src/model"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 )
 
-func GetParameters(template []byte) ([]message.Parameter, error) {
+func GetParameters(template []byte) ([]model.Parameter, error) {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
 		return nil, NewInvalidInputError(err, "Failed to parse the parameter.", err.Error())
 	}
-	return message.ToParameters(wf.Spec.Arguments.Parameters), nil
+	return model.ToParameters(wf.Spec.Arguments.Parameters), nil
 }
 
 // Inject the parameter to the workflow template.
 // If the value of a parameter exists in both template and the parameters to be injected,
 // the latter one will take the precedence and override the template one.
-func InjectParameters(template []byte, parameters []message.Parameter) (*v1alpha1.Workflow, error) {
+func InjectParameters(template []byte, parameters []model.Parameter) (*v1alpha1.Workflow, error) {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {

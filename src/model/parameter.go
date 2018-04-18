@@ -12,14 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package message
+package model
 
-type Package struct {
-	ID             uint   `json:"id" gorm:"primary_key"`
-	CreatedAtInSec int64  `json:"createdAt" gorm:"not null"`
-	DeletedAtInSec *int64 `json:"-" sql:"index"`
+import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
-	Name        string      `json:"name"`
-	Description string      `json:"description,omitempty"`
-	Parameters  []Parameter `json:"parameters,omitempty" gorm:"polymorphic:Owner;"`
+type Parameter struct {
+	Name      string `gorm:"not null;primary_key"`
+	Value     *string
+	OwnerID   uint   `gorm:"primary_key"` /* Foreign key */
+	OwnerType string `gorm:"primary_key"`
+}
+
+func ToParameters(argoParameters []v1alpha1.Parameter) []Parameter {
+	newParams := make([]Parameter, 0)
+	for _, argoParam := range argoParameters {
+		param := Parameter{
+			Name:  argoParam.Name,
+			Value: argoParam.Value,
+		}
+		newParams = append(newParams, param)
+	}
+	return newParams
 }

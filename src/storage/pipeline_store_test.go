@@ -15,7 +15,7 @@
 package storage
 
 import (
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/util"
 	"net/http"
 	"testing"
@@ -25,12 +25,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func createPipeline(name string, pkgId uint) *message.Pipeline {
-	return &message.Pipeline{Name: name, PackageId: pkgId, Parameters: []message.Parameter{}}
+func createPipeline(name string, pkgId uint) *model.Pipeline {
+	return &model.Pipeline{Name: name, PackageId: pkgId, Parameters: []model.Parameter{}}
 }
 
-func pipelineExpected1() message.Pipeline {
-	return message.Pipeline{
+func pipelineExpected1() model.Pipeline {
+	return model.Pipeline{
 		ID:             1,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -38,7 +38,7 @@ func pipelineExpected1() message.Pipeline {
 		PackageId:      1,
 		Enabled:        true,
 		EnabledAtInSec: 1,
-		Parameters:     []message.Parameter{}}
+		Parameters:     []model.Parameter{}}
 }
 
 func TestListPipelines(t *testing.T) {
@@ -46,7 +46,7 @@ func TestListPipelines(t *testing.T) {
 	defer store.Close()
 	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
 	store.PipelineStore().CreatePipeline(createPipeline("pipeline2", 2))
-	pipelinesExpected := []message.Pipeline{
+	pipelinesExpected := []model.Pipeline{
 		pipelineExpected1(),
 		{
 			ID:             2,
@@ -56,7 +56,7 @@ func TestListPipelines(t *testing.T) {
 			PackageId:      2,
 			Enabled:        true,
 			EnabledAtInSec: 2,
-			Parameters:     []message.Parameter{}}}
+			Parameters:     []model.Parameter{}}}
 
 	pipelines, err := store.PipelineStore().ListPipelines()
 	assert.Nil(t, err)
@@ -126,7 +126,7 @@ func TestEnablePipeline(t *testing.T) {
 	defer store.Close()
 
 	// Creating a pipeline. It is enabled by default.
-	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
+	createdPipeline := &model.Pipeline{Name: "Pipeline123"}
 	createdPipeline, err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
@@ -191,7 +191,7 @@ func TestEnablePipelineDatabaseError(t *testing.T) {
 	defer store.Close()
 
 	// Creating a pipeline. It is enabled by default.
-	createdPipeline := &message.Pipeline{Name: "Pipeline123"}
+	createdPipeline := &model.Pipeline{Name: "Pipeline123"}
 	createdPipeline, err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
@@ -208,12 +208,12 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
-	pipeline1 := &message.Pipeline{
+	pipeline1 := &model.Pipeline{
 		Name:      "MY_PIPELINE_1",
 		PackageId: 123,
 		Schedule:  "1 0 * * *"}
 
-	pipeline2 := &message.Pipeline{
+	pipeline2 := &model.Pipeline{
 		Name:      "MY_PIPELINE_2",
 		PackageId: 123,
 		Schedule:  "1 0 * * 1"}
@@ -283,12 +283,12 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
-	pipeline1 := &message.Pipeline{
+	pipeline1 := &model.Pipeline{
 		Name:      "MY_PIPELINE_1",
 		PackageId: 123,
 		Schedule:  "1 0 * * *"}
 
-	pipeline2 := &message.Pipeline{
+	pipeline2 := &model.Pipeline{
 		Name:      "MY_PIPELINE_2",
 		PackageId: 123,
 		Schedule:  ""}

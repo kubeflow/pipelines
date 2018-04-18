@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/storage"
 	"ml/src/util"
 	"testing"
@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func createPkg(name string) *message.Package {
-	return &message.Package{Name: name}
+func createPkg(name string) *model.Package {
+	return &model.Package{Name: name}
 }
 
 func TestCreatePipelineInternalNoSchedule(t *testing.T) {
@@ -22,14 +22,14 @@ func TestCreatePipelineInternalNoSchedule(t *testing.T) {
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 
-	pipeline := &message.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1}
 	pipeline, err := manager.CreatePipeline(pipeline)
 
 	assert.Nil(t, err, "There should not be an error: %v", err)
 
-	expected := message.Pipeline{
+	expected := model.Pipeline{
 		ID:             1,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -62,14 +62,14 @@ func TestCreatePipelineFormatWorkflow(t *testing.T) {
 	store.PackageManager().CreatePackageFile(util.MarshalOrFail(workflow), "pkg1")
 
 	// Create pipeline
-	pipeline := &message.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1}
 	pipeline, err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
 
 	// Check pipeline
-	expected := message.Pipeline{
+	expected := model.Pipeline{
 		ID:             1,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -105,7 +105,7 @@ func TestCreatePipelineInternalValidSchedule(t *testing.T) {
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 
-	pipeline := &message.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "1 0 * * *"}
@@ -113,7 +113,7 @@ func TestCreatePipelineInternalValidSchedule(t *testing.T) {
 
 	assert.Nil(t, err, "There should not be an error: %v", err)
 
-	expected := message.Pipeline{
+	expected := model.Pipeline{
 		ID:             1,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -135,7 +135,7 @@ func TestCreatePipelineInternalInvalidSchedule(t *testing.T) {
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
 
-	pipeline := &message.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "abcdef"}
@@ -162,7 +162,7 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount())
 
 	// Create pipeline with a schedule.
-	pipeline := &message.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "* * * * * *"}
@@ -174,11 +174,11 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	scheduledAtInSec := int64(5)
 	jobDetail1, err := manager.CreateJobFromPipelineID(pipeline.ID, scheduledAtInSec)
 	assert.Nil(t, err)
-	expectedJob1 := &message.Job{
+	expectedJob1 := &model.Job{
 		Name:             jobDetail1.Workflow.Name,
 		CreatedAtInSec:   3,
 		UpdatedAtInSec:   4,
-		Status:           message.JobExecutionPending,
+		Status:           model.JobExecutionPending,
 		ScheduledAtInSec: 5,
 		PipelineID:       1,
 	}
@@ -197,11 +197,11 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	scheduledAtInSec = int64(6)
 	jobDetail2, err := manager.CreateJobFromPipelineID(pipeline.ID, scheduledAtInSec)
 	assert.Nil(t, err)
-	expectedJob2 := &message.Job{
+	expectedJob2 := &model.Job{
 		Name:             jobDetail2.Workflow.Name,
 		CreatedAtInSec:   5,
 		UpdatedAtInSec:   6,
-		Status:           message.JobExecutionPending,
+		Status:           model.JobExecutionPending,
 		ScheduledAtInSec: 6,
 		PipelineID:       1,
 	}
@@ -246,7 +246,7 @@ func TestCreateJobFromPipelineIDGetPackageError(t *testing.T) {
 	// We do not create the package!
 
 	// Create pipeline.
-	pipeline := &message.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
 		Schedule:  "* * * * * *"}

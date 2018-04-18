@@ -18,7 +18,7 @@ import (
 	"database/sql"
 	"fmt"
 	"ml/src/client"
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/storage"
 	"ml/src/util"
 
@@ -123,8 +123,8 @@ func initDBClient() *gorm.DB {
 	util.TerminateIfError(err)
 
 	// Create table
-	db.AutoMigrate(&message.Package{}, &message.Pipeline{},
-		&message.Parameter{}, &message.Job{})
+	db.AutoMigrate(&model.Package{}, &model.Pipeline{},
+		&model.Parameter{}, &model.Job{})
 	return db
 }
 

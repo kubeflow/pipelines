@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package message
+package model
 
-import (
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-)
+import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
 // JobStatus is a label for the status of the job
 type JobStatus string
@@ -28,20 +26,16 @@ const (
 
 // Job metadata of a job.
 type Job struct {
-	Name           string `json:"name" gorm:"not null;primary_key"`
-	CreatedAtInSec int64  `json:"createdAt" gorm:"not null"`
-	UpdatedAtInSec int64  `json:"-" gorm:"not null"`
-
-	// We don't expose the status of the job for now, since the Sync service is not in place yet to
-	// sync the status of a job from K8s CRD to the DB. We only use Status column to track whether
-	// K8s resource is created successfully.
-	Status           JobStatus `json:"-"`
-	ScheduledAtInSec int64     `json:"scheduledAt" gorm:"not null"`
-	PipelineID       uint      `json:"-"` /* Foreign key */
+	Name             string    `gorm:"not null;primary_key"`
+	CreatedAtInSec   int64     `gorm:"not null"`
+	UpdatedAtInSec   int64     `gorm:"not null"`
+	Status           JobStatus `gorm:"not null"`
+	ScheduledAtInSec int64     `gorm:"not null"`
+	PipelineID       uint      `gorm:"not null"` /* Foreign key */
 }
 
-// JobDetail a detailed view of a Argo job, including templates, job status etc.
+// JobDetail a wrapper around both Argo workflow and Job metadata
 type JobDetail struct {
-	Workflow *v1alpha1.Workflow `json:"jobDetail"`
-	Job      *Job               `json:"metadata"`
+	Workflow *v1alpha1.Workflow
+	Job      *Job
 }

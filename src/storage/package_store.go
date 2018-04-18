@@ -16,16 +16,16 @@ package storage
 
 import (
 	"fmt"
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/util"
 
 	"github.com/jinzhu/gorm"
 )
 
 type PackageStoreInterface interface {
-	ListPackages() ([]message.Package, error)
-	GetPackage(packageId uint) (*message.Package, error)
-	CreatePackage(*message.Package) (*message.Package, error)
+	ListPackages() ([]model.Package, error)
+	GetPackage(packageId uint) (*model.Package, error)
+	CreatePackage(*model.Package) (*model.Package, error)
 }
 
 type PackageStore struct {
@@ -33,8 +33,8 @@ type PackageStore struct {
 	time util.TimeInterface
 }
 
-func (s *PackageStore) ListPackages() ([]message.Package, error) {
-	var packages []message.Package
+func (s *PackageStore) ListPackages() ([]model.Package, error) {
+	var packages []model.Package
 	// List all packages.
 	if r := s.db.Preload("Parameters").Find(&packages); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list packages: %v", r.Error.Error())
@@ -42,8 +42,8 @@ func (s *PackageStore) ListPackages() ([]message.Package, error) {
 	return packages, nil
 }
 
-func (s *PackageStore) GetPackage(id uint) (*message.Package, error) {
-	var pkg message.Package
+func (s *PackageStore) GetPackage(id uint) (*model.Package, error) {
+	var pkg model.Package
 	r := s.db.Preload("Parameters").First(&pkg, id)
 	if r.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
@@ -55,7 +55,7 @@ func (s *PackageStore) GetPackage(id uint) (*message.Package, error) {
 	return &pkg, nil
 }
 
-func (s *PackageStore) CreatePackage(p *message.Package) (*message.Package, error) {
+func (s *PackageStore) CreatePackage(p *model.Package) (*model.Package, error) {
 	newPackage := *p
 	now := s.time.Now().Unix()
 	newPackage.CreatedAtInSec = now

@@ -15,7 +15,7 @@
 package schedule
 
 import (
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/resource"
 	"ml/src/storage"
 	"ml/src/util"
@@ -41,8 +41,8 @@ func getDefaultPipelineAndLatestJob() *storage.PipelineAndLatestJob {
 	}
 }
 
-func createPkg(name string) *message.Package {
-	return &message.Package{Name: name}
+func createPkg(name string) *model.Package {
+	return &model.Package{Name: name}
 }
 
 func TestGetNextStartTimeAfter(t *testing.T) {
@@ -222,7 +222,7 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 	// Create package and pipeline.
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
-	pipeline := &message.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
 		PackageId: 1}
@@ -302,7 +302,7 @@ func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
 	// Create package and pipeline.
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
-	pipeline := &message.Pipeline{
+	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
 		PackageId: 1}

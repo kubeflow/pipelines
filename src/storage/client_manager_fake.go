@@ -16,7 +16,7 @@ package storage
 
 import (
 	"fmt"
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/util"
 
 	"github.com/golang/glog"
@@ -57,8 +57,8 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	}
 
 	// Create tables
-	db.AutoMigrate(&message.Package{}, &message.Pipeline{},
-		&message.Parameter{}, &message.Job{})
+	db.AutoMigrate(&model.Package{}, &model.Pipeline{},
+		&model.Parameter{}, &model.Job{})
 
 	workflowClient := NewWorkflowClientFake()
 

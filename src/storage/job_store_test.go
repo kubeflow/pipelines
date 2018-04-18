@@ -16,7 +16,7 @@ package storage
 
 import (
 	"errors"
-	"ml/src/message"
+	"ml/src/model"
 	"ml/src/util"
 	"net/http"
 	"testing"
@@ -51,16 +51,16 @@ func TestCreateJob(t *testing.T) {
 
 	wf1 := createWorkflow("wf1")
 
-	jobExpected := message.Job{
+	jobExpected := model.Job{
 		CreatedAtInSec:   defaultCreatedAtInSec,
 		Name:             wf1.Name,
 		ScheduledAtInSec: defaultScheduledAtInSec,
-		Status:           message.JobExecutionPending,
+		Status:           model.JobExecutionPending,
 		UpdatedAtInSec:   1,
 		PipelineID:       1,
 	}
 	wfExpected := createWorkflow(wf1.Name)
-	jobDetailExpect := message.JobDetail{
+	jobDetailExpect := model.JobDetail{
 		Workflow: wfExpected,
 		Job:      &jobExpected}
 	jobDetail, err := store.JobStore().CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
@@ -78,16 +78,16 @@ func TestCreateJob_CreateWorkflowFailed(t *testing.T) {
 	store := &JobStore{db: fakeClients.DB(), wfClient: &FakeBadWorkflowClient{}, time: fakeClients.time}
 
 	wf1 := createWorkflow("wf1")
-	jobExpected := message.Job{
+	jobExpected := model.Job{
 		CreatedAtInSec:   defaultCreatedAtInSec,
 		UpdatedAtInSec:   defaultCreatedAtInSec,
 		Name:             wf1.Name,
-		Status:           message.JobCreationPending,
+		Status:           model.JobCreationPending,
 		ScheduledAtInSec: defaultScheduledAtInSec,
 		PipelineID:       1,
 	}
 	wfExpected := createWorkflow(wf1.Name)
-	jobDetailExpect := message.JobDetail{
+	jobDetailExpect := model.JobDetail{
 		Workflow: wfExpected,
 		Job:      &jobExpected}
 
@@ -120,16 +120,16 @@ func TestCreateJob_UpdateMetadataFailed(t *testing.T) {
 
 	store := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
 	wf1 := createWorkflow("wf1")
-	jobExpected := message.Job{
+	jobExpected := model.Job{
 		CreatedAtInSec:   defaultCreatedAtInSec,
 		UpdatedAtInSec:   defaultCreatedAtInSec,
 		Name:             wf1.Name,
-		Status:           message.JobExecutionPending,
+		Status:           model.JobExecutionPending,
 		ScheduledAtInSec: defaultScheduledAtInSec,
 		PipelineID:       1,
 	}
 	wfExpected := createWorkflow(wf1.Name)
-	jobDetailExpect := message.JobDetail{
+	jobDetailExpect := model.JobDetail{
 		Workflow: wfExpected,
 		Job:      &jobExpected}
 
@@ -147,12 +147,12 @@ func TestListJobs(t *testing.T) {
 	store.JobStore().CreateJob(2, createWorkflow("wf2"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
-	jobsExpected := []message.Job{
+	jobsExpected := []model.Job{
 		{
 			CreatedAtInSec:   defaultCreatedAtInSec,
 			UpdatedAtInSec:   1,
 			Name:             jobDetail.Job.Name,
-			Status:           message.JobExecutionPending,
+			Status:           model.JobExecutionPending,
 			ScheduledAtInSec: defaultScheduledAtInSec,
 			PipelineID:       1,
 		}}
@@ -180,12 +180,12 @@ func TestGetJob(t *testing.T) {
 	createdJobDetail, err := store.JobStore().CreateJob(1, wf1,
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Nil(t, err)
-	jobDetailExpect := message.JobDetail{
+	jobDetailExpect := model.JobDetail{
 		Workflow: wf1,
-		Job: &message.Job{
+		Job: &model.Job{
 			CreatedAtInSec:   defaultCreatedAtInSec,
 			UpdatedAtInSec:   1,
-			Status:           message.JobExecutionPending,
+			Status:           model.JobExecutionPending,
 			Name:             createdJobDetail.Job.Name,
 			ScheduledAtInSec: defaultScheduledAtInSec,
 			PipelineID:       1,
