@@ -21,11 +21,11 @@ else
   PROJECT_ID=$1
 fi
 
-mkdir -p ./build
-rsync -arvp "../../launcher"/ ./build/
+# build base image
+pushd ../base
+./build.sh
+popd
 
-docker build -t ml-pipeline-kubeflow-tf .
-rm -rf ./build
-
-docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
+docker build -t ml-pipeline-dataproc-transform .
+docker tag ml-pipeline-dataproc-transform gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-transform
+gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-transform

@@ -1,4 +1,4 @@
-# Copyright 2015 Google Inc. All rights reserved.
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# We use different base images for GPU vs CPU Dockerfiles, so we expect
-# that the appropriate image is pulled and tagged locally.
-# CPU should use ubuntu:16.04
-# and GPU uses nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+
 FROM ubuntu:16.04
 
 RUN apt-get update -y

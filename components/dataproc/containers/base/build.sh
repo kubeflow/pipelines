@@ -14,18 +14,9 @@
 # limitations under the License.
 
 
-if [ -z "$1" ]
-  then
-    PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
-else
-  PROJECT_ID=$1
-fi
-
 mkdir -p ./build
-rsync -arvp "../../launcher"/ ./build/
+rsync -arvp "../../xgboost"/ ./build/
 
-docker build -t ml-pipeline-kubeflow-tf .
+docker build -t ml-pipeline-dataproc-base .
 rm -rf ./build
 
-docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf

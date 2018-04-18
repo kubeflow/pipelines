@@ -180,9 +180,8 @@ spec:
       - name: name
       - name: staging
     container:
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
-      command: [sh, -c]
-      args: ["python /ml/create_cluster.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --name {{inputs.parameters.name}} --staging {{inputs.parameters.staging}}"]
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster
+      args: ["--project", "{{inputs.parameters.project}}", "--region", "{{inputs.parameters.region}}", "--name", "{{inputs.parameters.name}}", "--staging", "{{inputs.parameters.staging}}"]
 
   - name: analyze
     inputs:
@@ -194,9 +193,8 @@ spec:
       - name: train
       - name: schema
     container:
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
-      command: [sh, -c]
-      args: ["python /ml/analyze.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --schema {{inputs.parameters.schema}}" ]
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze
+      args: ["--project", "{{inputs.parameters.project}}", "--region", "{{inputs.parameters.region}}", "--cluster", "{{inputs.parameters.cluster}}", "--output", "{{inputs.parameters.output}}", "--train", "{{inputs.parameters.train}}", "--schema", "{{inputs.parameters.schema}}"]
 
   - name: transform
     inputs:
@@ -210,9 +208,8 @@ spec:
       - name: target
       - name: analysis
     container:
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
-      command: [sh, -c]
-      args: ["python /ml/transform.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --target {{inputs.parameters.target}} --analysis {{inputs.parameters.analysis}}" ]
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-transform
+      args: ["--project", "{{inputs.parameters.project}}", "--region", "{{inputs.parameters.region}}", "--cluster", "{{inputs.parameters.cluster}}", "--output", "{{inputs.parameters.output}}", "--train", "{{inputs.parameters.train}}", "--eval", "{{inputs.parameters.eval}}", "--target", "{{inputs.parameters.target}}", "--analysis", "{{inputs.parameters.analysis}}" ]
 
   - name: train
     inputs:
@@ -230,9 +227,21 @@ spec:
       - name: rounds
       - name: conf
     container:
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
-      command: [sh, -c]
-      args: ["python /ml/train.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --target {{inputs.parameters.target}} --analysis {{inputs.parameters.analysis}} --package {{inputs.parameters.package}} --workers {{inputs.parameters.workers}} --rounds {{inputs.parameters.rounds}} --conf {{inputs.parameters.conf}}" ]
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-train
+      args: [
+          "--project", "{{inputs.parameters.project}}",
+          "--region", "{{inputs.parameters.region}}",
+          "--cluster", "{{inputs.parameters.cluster}}",
+          "--output", "{{inputs.parameters.output}}",
+          "--train", "{{inputs.parameters.train}}",
+          "--eval", "{{inputs.parameters.eval}}",
+          "--target", "{{inputs.parameters.target}}",
+          "--analysis", "{{inputs.parameters.analysis}}",
+          "--package", "{{inputs.parameters.package}}",
+          "--workers", "{{inputs.parameters.workers}}",
+          "--rounds", "{{inputs.parameters.rounds}}",
+          "--conf", "{{inputs.parameters.conf}}",
+      ]
 
   - name: batchpredict
     inputs:
@@ -247,9 +256,18 @@ spec:
       - name: package
       - name: analysis
     container:
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
-      command: [sh, -c]
-      args: ["python /ml/predict.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --cluster {{inputs.parameters.cluster}} --output {{inputs.parameters.output}} --predict {{inputs.parameters.eval}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}} --model {{inputs.parameters.model}} --package {{inputs.parameters.package}} " ]
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-predict
+      args: [
+          "--project", "{{inputs.parameters.project}}",
+          "--region", "{{inputs.parameters.region}}",
+          "--cluster", "{{inputs.parameters.cluster}}",
+          "--output", "{{inputs.parameters.output}}",
+          "--predict", "{{inputs.parameters.eval}}",
+          "--analysis", "{{inputs.parameters.analysis}}",
+          "--target", "{{inputs.parameters.target}}",
+          "--model", "{{inputs.parameters.model}}",
+          "--package", "{{inputs.parameters.package}}"
+      ]
 
   - name: confusionmatrix
     inputs:
@@ -259,9 +277,13 @@ spec:
       - name: predictions
       - name: target
     container:
-      image: gcr.io/ml-pipeline/ml-pipeline-local
-      command: [sh, -c]
-      args: ["python /ml/confusion_matrix.py --output {{inputs.parameters.output}} --predictions {{inputs.parameters.predictions}} --analysis {{inputs.parameters.analysis}} --target {{inputs.parameters.target}}" ]    
+      image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix
+      args: [
+          "--output", "{{inputs.parameters.output}}",
+          "--predictions", "{{inputs.parameters.predictions}}",
+          "--analysis", "{{inputs.parameters.analysis}}",
+          "--target", "{{inputs.parameters.target}}",
+      ]
 
   - name: deletecluster
     inputs:
@@ -270,6 +292,9 @@ spec:
       - name: region
       - name: name
     container:
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-xgboost
-      command: [sh, -c]
-      args: ["python /ml/delete_cluster.py --project {{inputs.parameters.project}} --region {{inputs.parameters.region}} --name {{inputs.parameters.name}}" ]
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster
+      args: [
+          "--project", "{{inputs.parameters.project}}",
+          "--region", "{{inputs.parameters.region}}",
+          "--name", "{{inputs.parameters.name}}"
+      ]

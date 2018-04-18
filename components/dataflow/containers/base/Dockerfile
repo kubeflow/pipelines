@@ -1,4 +1,4 @@
-# Copyright 2018 Google Inc. All rights reserved.
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# We use different base images for GPU vs CPU Dockerfiles, so we expect
-# that the appropriate image is pulled and tagged locally.
-# CPU should use ubuntu:16.04
-# and GPU uses nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 FROM ubuntu:16.04
 
 RUN apt-get update -y
 
-RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip
+RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools \
+                                                  wget unzip git
 
 RUN easy_install pip
 
-RUN pip install google-api-python-client==1.6.2
-RUN pip install pandas==0.18.1
-RUN pip install scikit-learn==0.19.1
-RUN pip install scipy==1.0.0
-RUN pip install tensorflow==1.5
+RUN pip install pyyaml==3.12 six==1.11.0 tensorflow==1.6.0
+
+RUN pip install tensorflow-transform==0.6.0
 
 RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     unzip -qq google-cloud-sdk.zip -d tools && \

@@ -45,3 +45,5 @@ ENV PATH $PATH:/tools/google-cloud-sdk/bin:/tools/ks/bin
 
 ADD build /ml
 
+ENTRYPOINT ["python", "/ml/train.py"]
+

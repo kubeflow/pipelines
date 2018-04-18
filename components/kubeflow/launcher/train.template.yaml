@@ -9,7 +9,7 @@ spec:
       template:
         spec:
           containers:
-            - image: gcr.io/ml-pipeline-playground/ml-pipeline-kubeflow-trainer
+            - image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer
               name: tensorflow
               command:
                 - python
@@ -21,7 +21,7 @@ spec:
       template:
         spec:
           containers:
-            - image: gcr.io/ml-pipeline-playground/ml-pipeline-kubeflow-trainer
+            - image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer
               name: tensorflow
               command:
                 - python
@@ -33,7 +33,7 @@ spec:
       template:
         spec:
           containers:
-            - image: gcr.io/ml-pipeline-playground/ml-pipeline-kubeflow-trainer
+            - image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer
               name: tensorflow
               command:
                 - python

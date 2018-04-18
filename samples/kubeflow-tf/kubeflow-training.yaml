@@ -11,6 +11,8 @@ spec:
       - name: eval
       - name: project
       - name: schema
+      - name: preprocess-mode
+        value: cloud
       - name: target
       - name: learning-rate
       - name: hidden-layer-size
@@ -28,6 +30,7 @@ spec:
       - name: eval
       - name: project
       - name: schema
+      - name: preprocess-mode
       - name: target
       - name: learning-rate
       - name: hidden-layer-size
@@ -49,6 +52,8 @@ spec:
             value: "{{inputs.parameters.schema}}"
           - name: project
             value: "{{inputs.parameters.project}}"
+          - name: preprocess-mode
+            value: "{{inputs.parameters.preprocess-mode}}"
     - - name: train
         template: train
         arguments:
@@ -79,10 +84,17 @@ spec:
       - name: eval
       - name: schema
       - name: project
+      - name: preprocess-mode
     container:
-      image: gcr.io/ml-pipeline/ml-pipeline-dataflow
-      command: [sh, -c]
-      args: ["python /ml/transform.py --train {{inputs.parameters.train}} --eval {{inputs.parameters.eval}} --schema {{inputs.parameters.schema}} --output {{inputs.parameters.output}} --project {{inputs.parameters.project}}"]
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft
+      args: [
+          "--train", "{{inputs.parameters.train}}",
+          "--eval", "{{inputs.parameters.eval}}",
+          "--schema", "{{inputs.parameters.schema}}",
+          "--output", "{{inputs.parameters.output}}",
+          "--project", "{{inputs.parameters.project}}",
+          "--mode", "{{inputs.parameters.preprocess-mode}}",
+      ]
   - name: train
     inputs:
       parameters:
@@ -97,5 +109,14 @@ spec:
       - name: pss
     container:
       image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
-      command: [sh, -c]
-      args: ["python /ml/train.py --job-dir {{inputs.parameters.output}} --transformed-data-dir {{inputs.parameters.transformed}} --schema {{inputs.parameters.schema}} --learning-rate {{inputs.parameters.learning-rate}} --hidden-layer-size {{inputs.parameters.hidden-layer-size}} --steps {{inputs.parameters.steps}} --target {{inputs.parameters.target}} --workers {{inputs.parameters.workers}} --pss {{inputs.parameters.pss}}"]
+      args: [
+          "--job-dir", "{{inputs.parameters.output}}",
+          "--transformed-data-dir", "{{inputs.parameters.transformed}}",
+          "--schema", "{{inputs.parameters.schema}}",
+          "--learning-rate", "{{inputs.parameters.learning-rate}}",
+          "--hidden-layer-size", "{{inputs.parameters.hidden-layer-size}}",
+          "--steps", "{{inputs.parameters.steps}}",
+          "--target", "{{inputs.parameters.target}}",
+          "--workers", "{{inputs.parameters.workers}}",
+          "--pss", "{{inputs.parameters.pss}}",
+      ]

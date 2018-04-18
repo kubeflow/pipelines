@@ -21,11 +21,13 @@ else
   PROJECT_ID=$1
 fi
 
-mkdir -p ./build
-rsync -arvp "../../launcher"/ ./build/
+# build base image
+pushd ../base
+./build.sh
+popd
 
-docker build -t ml-pipeline-kubeflow-tf .
-rm -rf ./build
+docker build -t ml-pipeline-dataproc-delete-cluster .
+docker tag ml-pipeline-dataproc-delete-cluster gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-delete-cluster
+gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-delete-cluster
 
-docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
+

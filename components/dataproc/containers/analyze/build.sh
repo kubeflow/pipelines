@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 if [ -z "$1" ]
   then
     PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
@@ -21,11 +20,13 @@ else
   PROJECT_ID=$1
 fi
 
-mkdir -p ./build
-rsync -arvp "../../launcher"/ ./build/
+# build base image
+pushd ../base
+./build.sh
+popd
 
-docker build -t ml-pipeline-kubeflow-tf .
-rm -rf ./build
+docker build -t ml-pipeline-dataproc-analyze .
+docker tag ml-pipeline-dataproc-analyze gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-analyze
+gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-analyze
 
-docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
+

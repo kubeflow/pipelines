@@ -1,4 +1,3 @@
-#!/bin/bash -e
 # Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM ml-pipeline-dataproc-base
 
-if [ -z "$1" ]
-  then
-    PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
-else
-  PROJECT_ID=$1
-fi
-
-mkdir -p ./build
-rsync -arvp "../../launcher"/ ./build/
-
-docker build -t ml-pipeline-kubeflow-tf .
-rm -rf ./build
-
-docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf
+ENTRYPOINT ["python", "/ml/predict.py"]

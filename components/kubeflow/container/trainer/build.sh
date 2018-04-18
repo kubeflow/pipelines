@@ -14,7 +14,13 @@
 # limitations under the License.
 
 
-export PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
+if [ -z "$1" ]
+  then
+    PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
+else
+  PROJECT_ID=$1
+fi
+
 mkdir -p ./build
 rsync -arvp "../../dnntrainer"/ ./build/
 

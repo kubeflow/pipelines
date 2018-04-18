@@ -14,12 +14,8 @@
 # limitations under the License.
 
 
-export PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
 mkdir -p ./build
-rsync -arvp "../tft"/ ./build/
+rsync -arvp "../../evaluation"/ ./build/
 
-docker build -t ml-pipeline-dataflow .
+docker build -t ml-pipeline-local-base .
 rm -rf ./build
-
-docker tag ml-pipeline-dataflow gcr.io/${PROJECT_ID}/ml-pipeline-dataflow
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataflow

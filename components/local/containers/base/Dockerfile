@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 FROM ubuntu:16.04
 
 RUN apt-get update -y
 
-RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools \
-                                                  wget unzip git
+RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip
 
 RUN easy_install pip
 
-RUN pip install pyyaml==3.12 six==1.11.0 tensorflow==1.5.0
-
-# TODO: Due to a pickling bug that causes image preprocessing failure we have to use HEAD.
-# Install tft 0.6 when it is released.
-RUN pip install https://storage.googleapis.com/ml-pipeline-playground/tensorflow-transform-0.6.0.dev0.tar.gz
+RUN pip install google-api-python-client==1.6.2
+RUN pip install pandas==0.18.1
+RUN pip install scikit-learn==0.19.1
+RUN pip install scipy==1.0.0
+RUN pip install tensorflow==1.5
 
 RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     unzip -qq google-cloud-sdk.zip -d tools && \
