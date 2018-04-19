@@ -1,300 +1,254 @@
 {
-  "metadata": {
-    "id": 1,
-    "createdAt": "2018-03-08T01:55:12Z",
-    "name": "xgboost-evaluation-asdlk2",
-    "scheduledAt": "1483258600"
-  },
   "jobDetail": {
     "metadata": {
-      "creationTimestamp": "2018-03-16T00:47:03.000Z",
+      "name": "coinflip-recursive-q7dqb",
       "generateName": "coinflip-recursive-",
+      "namespace": "default",
+      "selfLink": "/apis/argoproj.io/v1alpha1/namespaces/default/workflows/coinflip-recursive-q7dqb",
+      "uid": "114660ca-4282-11e8-bba7-42010a8a0fc2",
+      "resourceVersion": "848911",
+      "creationTimestamp": "2018-04-17T20:58:23Z",
       "labels": {
         "workflows.argoproj.io/completed": "true",
         "workflows.argoproj.io/phase": "Succeeded"
-      },
-      "name": "coinflip-recursive-hbxnm",
-      "namespace": "default",
-      "resourceVersion": "2364",
-      "selfLink": "/apis/argoproj.io/v1alpha1/namespaces/default/workflows/coinflip-recursive-hbxnm",
-      "uid": "8b79e9a4-28b3-11e8-b933-080027f97bca"
+      }
     },
     "spec": {
-      "arguments": {},
-      "entrypoint": "coinflip",
       "templates": [
         {
-          "inputs": {},
           "name": "coinflip",
+          "inputs": {},
           "outputs": {},
+          "metadata": {},
           "steps": [
             [
               {
-                "arguments": {},
                 "name": "flip-coin",
-                "template": "flip-coin"
+                "template": "flip-coin",
+                "arguments": {}
               }
             ],
             [
               {
-                "arguments": {},
                 "name": "heads",
                 "template": "heads",
+                "arguments": {},
                 "when": "{{steps.flip-coin.outputs.result}} == heads"
               },
               {
-                "arguments": {},
                 "name": "tails",
                 "template": "coinflip",
+                "arguments": {},
                 "when": "{{steps.flip-coin.outputs.result}} == tails"
               }
             ]
           ]
         },
         {
-          "inputs": {},
           "name": "flip-coin",
+          "inputs": {},
           "outputs": {},
+          "metadata": {},
           "script": {
+            "name": "",
+            "image": "python:alpine3.6",
             "command": [
               "python"
             ],
-            "image": "python:3.6",
+            "resources": {},
             "source": "import random\nresult = \"heads\" if random.randint(0,1) == 0 else \"tails\"\nprint(result)\n"
           }
         },
         {
+          "name": "heads",
+          "inputs": {},
+          "outputs": {},
+          "metadata": {},
           "container": {
-            "args": [
-              "echo \"it was heads\""
-            ],
+            "name": "",
+            "image": "alpine:3.6",
             "command": [
               "sh",
               "-c"
             ],
-            "image": "alpine:3.6",
-            "name": "",
+            "args": [
+              "echo \"it was heads\""
+            ],
             "resources": {}
-          },
-          "inputs": {},
-          "name": "heads",
-          "outputs": {}
+          }
         }
-      ]
+      ],
+      "entrypoint": "coinflip",
+      "arguments": {}
     },
     "status": {
-      "finishedAt": "2018-03-16T00:47:49.000Z",
+      "phase": "Succeeded",
+      "startedAt": "2018-04-17T20:58:23Z",
+      "finishedAt": "2018-04-17T20:58:38Z",
       "nodes": {
-        "coinflip-recursive-hbxnm": {
-          "children": [
-            "coinflip-recursive-hbxnm-3940947886",
-            "coinflip-recursive-hbxnm-652387467"
-          ],
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm",
-          "name": "coinflip-recursive-hbxnm",
+        "coinflip-recursive-q7dqb": {
+          "id": "coinflip-recursive-q7dqb",
+          "name": "coinflip-recursive-q7dqb",
+          "displayName": "coinflip-recursive-q7dqb",
+          "type": "Steps",
+          "templateName": "coinflip",
           "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:03.000Z"
-        },
-        "coinflip-recursive-hbxnm-306158614": {
+          "startedAt": "2018-04-17T20:58:23Z",
+          "finishedAt": "2018-04-17T20:58:38Z",
           "children": [
-            "coinflip-recursive-hbxnm-413413512",
-            "coinflip-recursive-hbxnm-1554041341"
+            "coinflip-recursive-q7dqb-1787723858",
+            "coinflip-recursive-q7dqb-1720466287"
           ],
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm-306158614",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails",
+          "outboundNodes": [
+            "coinflip-recursive-q7dqb-3721646052"
+          ]
+        },
+        "coinflip-recursive-q7dqb-1720466287": {
+          "id": "coinflip-recursive-q7dqb-1720466287",
+          "name": "coinflip-recursive-q7dqb[1]",
+          "displayName": "[1]",
+          "type": "StepGroup",
           "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:41.000Z"
-        },
-        "coinflip-recursive-hbxnm-413413512": {
+          "boundaryID": "coinflip-recursive-q7dqb",
+          "startedAt": "2018-04-17T20:58:28Z",
+          "finishedAt": "2018-04-17T20:58:38Z",
           "children": [
-            "coinflip-recursive-hbxnm-1959542385"
-          ],
-          "finishedAt": "2018-03-16T00:47:44.000Z",
-          "id": "coinflip-recursive-hbxnm-413413512",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[0]",
+            "coinflip-recursive-q7dqb-4011569486",
+            "coinflip-recursive-q7dqb-3266226990"
+          ]
+        },
+        "coinflip-recursive-q7dqb-1787723858": {
+          "id": "coinflip-recursive-q7dqb-1787723858",
+          "name": "coinflip-recursive-q7dqb[0]",
+          "displayName": "[0]",
+          "type": "StepGroup",
           "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:41.000Z"
-        },
-        "coinflip-recursive-hbxnm-652387467": {
+          "boundaryID": "coinflip-recursive-q7dqb",
+          "startedAt": "2018-04-17T20:58:23Z",
+          "finishedAt": "2018-04-17T20:58:28Z",
           "children": [
-            "coinflip-recursive-hbxnm-3120917218",
-            "coinflip-recursive-hbxnm-3101930738"
-          ],
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm-652387467",
-          "name": "coinflip-recursive-hbxnm[1]",
-          "phase": "Running",
-          "startedAt": "2018-03-16T00:47:34.000Z"
+            "coinflip-recursive-q7dqb-311338607"
+          ]
         },
-        "coinflip-recursive-hbxnm-827698599": {
-          "children": [
-            "coinflip-recursive-hbxnm-4019035334",
-            "coinflip-recursive-hbxnm-306158614"
-          ],
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm-827698599",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1]",
+        "coinflip-recursive-q7dqb-2934726852": {
+          "id": "coinflip-recursive-q7dqb-2934726852",
+          "name": "coinflip-recursive-q7dqb[1].tails[1].tails",
+          "displayName": "tails",
+          "type": "Skipped",
+          "phase": "Skipped",
+          "boundaryID": "coinflip-recursive-q7dqb-3266226990",
+          "message": "when 'heads == tails' evaluated false",
+          "startedAt": "2018-04-17T20:58:34Z",
+          "finishedAt": "2018-04-17T20:58:34Z"
+        },
+        "coinflip-recursive-q7dqb-311338607": {
+          "id": "coinflip-recursive-q7dqb-311338607",
+          "name": "coinflip-recursive-q7dqb[0].flip-coin",
+          "displayName": "flip-coin",
+          "type": "Pod",
+          "templateName": "flip-coin",
           "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:41.000Z"
-        },
-        "coinflip-recursive-hbxnm-894956170": {
-          "children": [
-            "coinflip-recursive-hbxnm-1580065463"
-          ],
-          "finishedAt": "2018-03-16T00:47:41.000Z",
-          "id": "coinflip-recursive-hbxnm-894956170",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[0]",
-          "phase": "Running",
-          "startedAt": "2018-03-16T00:47:38.000Z"
-        },
-        "coinflip-recursive-hbxnm-1554041341": {
-          "children": [
-            "coinflip-recursive-hbxnm-2533273628",
-            "coinflip-recursive-hbxnm-3775512684"
-          ],
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm-1554041341",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[1]",
-          "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:44.000Z"
-        },
-        "coinflip-recursive-hbxnm-1580065463": {
-          "finishedAt": "2018-03-16T00:47:41.000Z",
-          "id": "coinflip-recursive-hbxnm-1580065463",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[0].flip-coin",
+          "boundaryID": "coinflip-recursive-q7dqb",
+          "startedAt": "2018-04-17T20:58:23Z",
+          "finishedAt": "2018-04-17T20:58:28Z",
           "outputs": {
             "result": "tails"
           },
-          "phase": "Running",
-          "startedAt": "2018-03-16T00:47:38.000Z"
-        },
-        "coinflip-recursive-hbxnm-1599223017": {
           "children": [
-            "coinflip-recursive-hbxnm-1806019728",
-            "coinflip-recursive-hbxnm-1739003824"
-          ],
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm-1599223017",
-          "name": "coinflip-recursive-hbxnm[1].tails[1]",
-          "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:38.000Z"
+            "coinflip-recursive-q7dqb-1720466287"
+          ]
         },
-        "coinflip-recursive-hbxnm-1739003824": {
+        "coinflip-recursive-q7dqb-3266226990": {
+          "id": "coinflip-recursive-q7dqb-3266226990",
+          "name": "coinflip-recursive-q7dqb[1].tails",
+          "displayName": "tails",
+          "type": "Steps",
+          "templateName": "coinflip",
+          "phase": "Succeeded",
+          "boundaryID": "coinflip-recursive-q7dqb",
+          "startedAt": "2018-04-17T20:58:28Z",
+          "finishedAt": "2018-04-17T20:58:38Z",
           "children": [
-            "coinflip-recursive-hbxnm-894956170",
-            "coinflip-recursive-hbxnm-827698599"
+            "coinflip-recursive-q7dqb-4010083248",
+            "coinflip-recursive-q7dqb-855846949"
           ],
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm-1739003824",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails",
+          "outboundNodes": [
+            "coinflip-recursive-q7dqb-3721646052"
+          ]
+        },
+        "coinflip-recursive-q7dqb-3466727817": {
+          "id": "coinflip-recursive-q7dqb-3466727817",
+          "name": "coinflip-recursive-q7dqb[1].tails[0].flip-coin",
+          "displayName": "flip-coin",
+          "type": "Pod",
+          "templateName": "flip-coin",
           "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:38.000Z"
-        },
-        "coinflip-recursive-hbxnm-1806019728": {
-          "finishedAt": "2018-03-16T00:47:38.000Z",
-          "id": "coinflip-recursive-hbxnm-1806019728",
-          "message": "when 'tails == heads' evaluated false",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].heads",
-          "phase": "Skipped",
-          "startedAt": "2018-03-16T00:47:38.000Z"
-        },
-        "coinflip-recursive-hbxnm-1959542385": {
-          "finishedAt": "2018-03-16T00:47:44.000Z",
-          "id": "coinflip-recursive-hbxnm-1959542385",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[0].flip-coin",
+          "boundaryID": "coinflip-recursive-q7dqb-3266226990",
+          "startedAt": "2018-04-17T20:58:28Z",
+          "finishedAt": "2018-04-17T20:58:33Z",
           "outputs": {
             "result": "heads"
           },
-          "phase": "Error",
-          "startedAt": "2018-03-16T00:47:41.000Z"
-        },
-        "coinflip-recursive-hbxnm-2140376685": {
-          "finishedAt": "2018-03-16T00:47:37.000Z",
-          "id": "coinflip-recursive-hbxnm-2140376685",
-          "name": "coinflip-recursive-hbxnm[1].tails[0].flip-coin",
-          "outputs": {
-            "result": "tails"
-          },
-          "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:34.000Z"
-        },
-        "coinflip-recursive-hbxnm-2533273628": {
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm-2533273628",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[1].heads",
-          "phase": "Error",
-          "startedAt": "2018-03-16T00:47:44.000Z"
-        },
-        "coinflip-recursive-hbxnm-2606027252": {
           "children": [
-            "coinflip-recursive-hbxnm-2140376685"
-          ],
-          "finishedAt": "2018-03-16T00:47:38.000Z",
-          "id": "coinflip-recursive-hbxnm-2606027252",
-          "name": "coinflip-recursive-hbxnm[1].tails[0]",
-          "phase": "Failed",
-          "startedAt": "2018-03-16T00:47:34.000Z"
+            "coinflip-recursive-q7dqb-855846949"
+          ]
         },
-        "coinflip-recursive-hbxnm-3101930738": {
-          "children": [
-            "coinflip-recursive-hbxnm-2606027252",
-            "coinflip-recursive-hbxnm-1599223017"
-          ],
-          "finishedAt": "2018-03-16T00:47:49.000Z",
-          "id": "coinflip-recursive-hbxnm-3101930738",
-          "name": "coinflip-recursive-hbxnm[1].tails",
+        "coinflip-recursive-q7dqb-3721646052": {
+          "id": "coinflip-recursive-q7dqb-3721646052",
+          "name": "coinflip-recursive-q7dqb[1].tails[1].heads",
+          "displayName": "heads",
+          "type": "Pod",
+          "templateName": "heads",
           "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:34.000Z"
+          "boundaryID": "coinflip-recursive-q7dqb-3266226990",
+          "startedAt": "2018-04-17T20:58:34Z",
+          "finishedAt": "2018-04-17T20:58:37Z"
         },
-        "coinflip-recursive-hbxnm-3120917218": {
-          "finishedAt": "2018-03-16T00:47:34.000Z",
-          "id": "coinflip-recursive-hbxnm-3120917218",
+        "coinflip-recursive-q7dqb-4010083248": {
+          "id": "coinflip-recursive-q7dqb-4010083248",
+          "name": "coinflip-recursive-q7dqb[1].tails[0]",
+          "displayName": "[0]",
+          "type": "StepGroup",
+          "phase": "Succeeded",
+          "boundaryID": "coinflip-recursive-q7dqb-3266226990",
+          "startedAt": "2018-04-17T20:58:28Z",
+          "finishedAt": "2018-04-17T20:58:34Z",
+          "children": [
+            "coinflip-recursive-q7dqb-3466727817"
+          ]
+        },
+        "coinflip-recursive-q7dqb-4011569486": {
+          "id": "coinflip-recursive-q7dqb-4011569486",
+          "name": "coinflip-recursive-q7dqb[1].heads",
+          "displayName": "heads",
+          "type": "Skipped",
+          "phase": "Skipped",
+          "boundaryID": "coinflip-recursive-q7dqb",
           "message": "when 'tails == heads' evaluated false",
-          "name": "coinflip-recursive-hbxnm[1].heads",
-          "phase": "Skipped",
-          "startedAt": "2018-03-16T00:47:34.000Z"
+          "startedAt": "2018-04-17T20:58:28Z",
+          "finishedAt": "2018-04-17T20:58:28Z"
         },
-        "coinflip-recursive-hbxnm-3630215275": {
-          "finishedAt": "2018-03-16T00:47:34.000Z",
-          "id": "coinflip-recursive-hbxnm-3630215275",
-          "name": "coinflip-recursive-hbxnm[0].flip-coin",
-          "outputs": {
-            "result": "tails"
-          },
+        "coinflip-recursive-q7dqb-855846949": {
+          "id": "coinflip-recursive-q7dqb-855846949",
+          "name": "coinflip-recursive-q7dqb[1].tails[1]",
+          "displayName": "[1]",
+          "type": "StepGroup",
           "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:03.000Z"
-        },
-        "coinflip-recursive-hbxnm-3775512684": {
-          "finishedAt": "2018-03-16T00:47:44.000Z",
-          "id": "coinflip-recursive-hbxnm-3775512684",
-          "message": "when 'heads == tails' evaluated false",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].tails[1].tails",
-          "phase": "Skipped",
-          "startedAt": "2018-03-16T00:47:44.000Z"
-        },
-        "coinflip-recursive-hbxnm-3940947886": {
+          "boundaryID": "coinflip-recursive-q7dqb-3266226990",
+          "startedAt": "2018-04-17T20:58:34Z",
+          "finishedAt": "2018-04-17T20:58:38Z",
           "children": [
-            "coinflip-recursive-hbxnm-3630215275"
-          ],
-          "finishedAt": "2018-03-16T00:47:34.000Z",
-          "id": "coinflip-recursive-hbxnm-3940947886",
-          "name": "coinflip-recursive-hbxnm[0]",
-          "phase": "Succeeded",
-          "startedAt": "2018-03-16T00:47:03.000Z"
-        },
-        "coinflip-recursive-hbxnm-4019035334": {
-          "finishedAt": "2018-03-16T00:47:41.000Z",
-          "id": "coinflip-recursive-hbxnm-4019035334",
-          "message": "when 'tails == heads' evaluated false",
-          "name": "coinflip-recursive-hbxnm[1].tails[1].tails[1].heads",
-          "phase": "Skipped",
-          "startedAt": "2018-03-16T00:47:41.000Z"
+            "coinflip-recursive-q7dqb-3721646052",
+            "coinflip-recursive-q7dqb-2934726852"
+          ]
         }
-      },
-      "phase": "Succeeded",
-      "startedAt": "2018-03-16T00:47:03.000Z"
+      }
     }
+  },
+  "metadata": {
+    "id": 1212,
+    "createdAt": "2018-04-17T23:37:49Z",
+    "name": "coinflip-recursive-q7dqb",
+    "scheduledAt": 1523921868
   }
 }

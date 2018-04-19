@@ -1,6 +1,11 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
+.line {
+  border-top: 1px solid #777;
+  position: absolute;
+}
+
 .pipeline-dag {
   position: relative;
 }
@@ -24,7 +29,7 @@
 }
 
 .pipeline-node .label {
-  line-height: 3em;
+  line-height: 2em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -42,17 +47,21 @@
   white-space: initial;
 }
 
-.pipeline-edge .line {
-  border-top: 1px solid #777;
-  position: absolute;
-}
-
 /* Arrow head */
 .pipeline-edge .line:nth-last-child(2)::after {
   color: #777;
   content: '\25BA';
   font-size: 10px;
+  left: -1px;
   position: absolute;
   top: -7px;
   transform: rotate(180deg);
+}
+
+.virtual-node {
+  border: 1px dashed #aaa;
+  border-radius: 10px;
+  position: absolute;
+  /* TODO: Get these values programmatically */
+  transform: translate(69px, 20px);
 }
