@@ -4,7 +4,7 @@ WORKDIR ./src
 
 COPY . .
 
-RUN npm install
+RUN npm install && cd server && npm install
 RUN ./node_modules/bower/bin/bower i --allow-root
 RUN npm run build
 
