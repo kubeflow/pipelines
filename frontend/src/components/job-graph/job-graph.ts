@@ -52,6 +52,9 @@ export class JobGraph extends Polymer.Element {
   protected _workflowEdges: Edge[] = [];
 
   refresh(graph: ArgoTemplate) {
+    // Ensure that we're working with an empty array.
+    this._workflowEdges = [];
+
     this.jobGraph = graph;
 
     const g = new dagre.graphlib.Graph();
@@ -60,6 +63,17 @@ export class JobGraph extends Polymer.Element {
 
     const workflowNodes = this.jobGraph.status.nodes;
     const workflowName = this.jobGraph.metadata.name || '';
+
+    // Ensure that the exit handler nodes are appended to the graph.
+    // Uses the root node, so this needs to happen before we remove the root
+    // node below.
+    const onExitHandlerNodeId =
+        Object.keys(workflowNodes).find((id) =>
+            workflowNodes[id].name === `${workflowName}.onExit`);
+    if (onExitHandlerNodeId) {
+      this._getOutboundNodes(this.jobGraph, workflowName).forEach((nodeId) =>
+        g.setEdge(nodeId, onExitHandlerNodeId));
+    }
 
     // Remove the root node that Argo creates to manage the workflow.
     delete workflowNodes[workflowName];
@@ -85,15 +99,6 @@ export class JobGraph extends Polymer.Element {
             g.setEdge(nodeId, childNodeId));
         }
       });
-
-    // Ensure that the exit handler nodes are appended to the graph
-    const onExitHandlerNodeId =
-        Object.keys(workflowNodes).find((id) =>
-            workflowNodes[id].name === `${workflowName}.onExit`);
-    if (onExitHandlerNodeId) {
-      this._getOutboundNodes(this.jobGraph, workflowName).forEach((nodeId) =>
-        g.setEdge(nodeId, onExitHandlerNodeId));
-    }
 
     dagre.layout(g);
 

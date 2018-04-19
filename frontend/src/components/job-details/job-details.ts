@@ -1,5 +1,6 @@
 import 'iron-icons/iron-icons.html';
 import 'paper-progress/paper-progress.html';
+import 'paper-spinner/paper-spinner.html';
 import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
@@ -36,19 +37,38 @@ export class JobDetails extends Polymer.Element implements PageElement {
   @property({ type: Number })
   public selectedTab = 0;
 
+  @property({ type: Boolean })
+  protected _loadingJob = false;
+
+  @property({ type: Boolean })
+  protected _loadingOutputs = false;
+
   @property({ type: Number })
   protected _pipelineId = -1;
 
   private _jobId = '';
 
   public async load(_: string, queryParams: { jobId?: string, pipelineId: number }) {
+    // Reset the selected tab each time the user navigates to this page.
+    this.selectedTab = 0;
+
     if (queryParams.jobId !== undefined && queryParams.pipelineId > -1) {
       this._pipelineId = queryParams.pipelineId;
       this._jobId = queryParams.jobId;
-      this.jobDetail = (await Apis.getJob(this._pipelineId, this._jobId)).jobDetail;
 
-      this.pipeline = await Apis.getPipeline(this._pipelineId);
-      const templateYaml = await Apis.getPackageTemplate(this.pipeline.packageId);
+      let templateYaml = '';
+      this._loadingJob = true;
+      try {
+        this.jobDetail = (await Apis.getJob(this._pipelineId, this._jobId)).jobDetail;
+        this.pipeline = await Apis.getPipeline(this._pipelineId);
+        templateYaml = await Apis.getPackageTemplate(this.pipeline.packageId);
+      } finally {
+        // TODO: Handle errors.
+        this._loadingJob = false;
+      }
+
+      // Render the job graph
+      (this.$.jobGraph as JobGraph).refresh(this.jobDetail);
 
       const baseOutputPathValue = this.pipeline
         .parameters
@@ -62,18 +82,21 @@ export class JobDetails extends Polymer.Element implements PageElement {
       // Clear outputPlots to keep from re-adding the same outputs over and over.
       this.set('outputPlots', []);
 
-      outputPaths.forEach(async (path) => {
-        const fileList = await Apis.listFiles(path);
-        const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
-        if (metadataFile) {
-          const metadataJson = await Apis.readFile(metadataFile);
-          const metadata = JSON.parse(metadataJson) as OutputMetadata;
-          this.outputPlots = this.outputPlots.concat(metadata.outputs);
-        }
-      });
-
-      // Render the job graph
-      (this.$.jobGraph as JobGraph).refresh(this.jobDetail);
+      this._loadingOutputs = true;
+      try {
+        outputPaths.forEach(async (path) => {
+          const fileList = await Apis.listFiles(path);
+          const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
+          if (metadataFile) {
+            const metadataJson = await Apis.readFile(metadataFile);
+            const metadata = JSON.parse(metadataJson) as OutputMetadata;
+            this.outputPlots = this.outputPlots.concat(metadata.outputs);
+          }
+        });
+      } finally {
+        // TODO: Handle errors.
+        this._loadingOutputs = false;
+      }
     }
   }
 

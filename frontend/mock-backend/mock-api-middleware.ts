@@ -43,7 +43,11 @@ export default (app) => {
   });
 
   app.get(apisPrefix + '/pipelines/:pid/jobs/:jname', (req, res) => {
-    res.json(JSON.parse(fs.readFileSync('./mock-backend/mock-job-runtime.json', 'utf-8')));
+    const pid = Number.parseInt(req.params.pid);
+    // This simply allows us to have multiple mocked graphs.
+    const mockJobFileName = pid === 1 ?
+      'mock-coinflip-job-runtime.json' : 'mock-xgboost-job-runtime.json';
+    res.json(JSON.parse(fs.readFileSync(`./mock-backend/${mockJobFileName}`, 'utf-8')));
   });
 
   app.get(apisPrefix + '/packages', (req, res) => {

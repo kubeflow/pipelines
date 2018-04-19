@@ -53,9 +53,3 @@ paper-icon-button, paper-icon-button {
   right: 0;
   top: 0;
 }
-
-paper-spinner {
-  position: absolute;
-  left: calc(50% - 50px / 2);
-  top: calc(50% - 50px / 2);
-}

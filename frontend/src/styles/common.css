@@ -96,6 +96,12 @@ paper-tab:not(:first-child) {
   border-left: 1px solid var(--line-color);
 }
 
+.absolute-spinner {
+  position: absolute;
+  left: calc(50% - 50px / 2);
+  top: calc(50% - 50px / 2);
+}
+
 .action-button {
   background-color: var(--accent-color);
   color: white;

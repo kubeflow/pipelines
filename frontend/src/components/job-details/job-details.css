@@ -25,15 +25,32 @@
   flex-grow: 1;
 }
 
+.container[loading] {
+  opacity: 0.6;
+}
+
 .tabs-container {
   border-bottom: solid 1px var(--line-color);
   flex: 50px 0 0;
   position: relative;
 }
 
+.title-bar {
+  /*
+    TODO: This prevents the page from jerking when the job title text is
+    filled, but there's likely a better way than this magical integer.
+  */
+  min-height: 53px;
+}
+
 paper-progress {
   --paper-progress-active-color: var(--progress-color);
   --paper-progress-height: 10px;
+}
+
+paper-spinner {
+  height: 50px;
+  width: 50px;
 }
 
 paper-tabs {
@@ -51,6 +68,10 @@ paper-tab {
   display: flex;
   flex-flow: column;
   flex-grow: 1;
+}
+
+.plot-container[loading] {
+  opacity: 0.6;
 }
 
 #plotContainer,
