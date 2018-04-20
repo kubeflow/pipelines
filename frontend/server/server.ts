@@ -122,7 +122,7 @@ app.get(apisPrefix + '/artifacts/get/*', (req, res, next) => {
 
 });
 
-app.get(apisPrefix + '/apps/tensorboard*', (req, res) => {
+app.get(apisPrefix + '/apps/tensorboard', (req, res) => {
   const logdir = decodeURIComponent(req.query.logdir);
   if (!logdir) {
     res.status(404).send('logdir argument is required');
@@ -145,7 +145,7 @@ app.get(apisPrefix + '/apps/tensorboard*', (req, res) => {
     });
 });
 
-app.post(apisPrefix + '/apps/tensorboard*', (req, res) => {
+app.post(apisPrefix + '/apps/tensorboard', (req, res) => {
   const logdir = decodeURIComponent(req.query.logdir);
   if (!logdir) {
     res.status(404).send('logdir argument is required');

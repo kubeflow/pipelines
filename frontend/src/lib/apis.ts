@@ -112,18 +112,18 @@ export async function readFile(path: string): Promise<string> {
 }
 
 /**
- * Gets the address (IP + port) of a pod running a certain process
+ * Gets the address (IP + port) of a service running a certain app
  */
-export async function getPod(processName: string, args: string): Promise<string> {
-  const response = await fetch(apisPrefix + `/pods/${processName}?${encodeURIComponent(args)}`);
+export async function getApp(processName: string, args: string): Promise<string> {
+  const response = await fetch(apisPrefix + `/apps/${processName}?${encodeURIComponent(args)}`);
   return await response.text();
 }
 
 /**
- * Starts a pod given a process name and arguments
+ * Starts a deployment and service given an app name and arguments
  */
-export async function startPod(processName: string, args: string) {
-  const response = await fetch(apisPrefix + `/pods/${processName}?${encodeURIComponent(args)}`, {
+export async function startApp(processName: string, args: string) {
+  const response = await fetch(apisPrefix + `/apps/${processName}?${encodeURIComponent(args)}`, {
     headers: {
       'content-type': 'application/json',
     },

@@ -93,22 +93,12 @@ export default (app) => {
     }
   });
 
-  app.get(apisPrefix + '/pods/:processName', (req, res) => {
-    const processName = req.params.processName;
-    if (processName === 'tensorboard') {
-      res.send(tensorboardPod);
-    } else {
-      res.status(400).send('No process found with this name');
-    }
+  app.get(apisPrefix + '/apps/tensorboard', (req, res) => {
+    res.send(tensorboardPod);
   });
 
-  app.post(apisPrefix + '/pods/:processName', (req, res) => {
-    const processName = req.params.processName;
-    if (processName === 'tensorboard') {
-      tensorboardPod = 'http://tensorboardserver:port';
-    } else {
-      res.status(400).send('No process found with this name');
-    }
+  app.post(apisPrefix + '/apps/tensorboard', (req, res) => {
+    tensorboardPod = 'http://tensorboardserver:port';
     setTimeout(() => {
       res.send('ok');
     }, 1000);

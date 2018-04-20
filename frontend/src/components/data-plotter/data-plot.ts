@@ -55,7 +55,7 @@ export class DataPlot extends Polymer.Element {
     }
     this._tensorboardBusy = true;
     try {
-      await Apis.startPod(PlotType.TENSORBOARD,
+      await Apis.startApp(PlotType.TENSORBOARD,
         '--logdir=' + encodeURIComponent(this.plotMetadata.source));
     } finally {
       this._tensorboardBusy = false;
@@ -113,7 +113,7 @@ export class DataPlot extends Polymer.Element {
     if (!this.plotMetadata) {
       return;
     }
-    const podAddress = await Apis.getPod(
+    const podAddress = await Apis.getApp(
       PlotType.TENSORBOARD, '--logdir=' + this.plotMetadata.source);
     this._podAddress = encodeURIComponent(podAddress);
     this._showTensorboardControls = true;
