@@ -6,8 +6,32 @@ import proxy = require('http-proxy-middleware');
 import path = require('path');
 import process = require('process');
 import tmp = require('tmp');
+import * as Utils from './utils';
+const k8s = require('@kubernetes/client-node');
 
 const app = express() as express.Application;
+
+// Get the current pod's namespace, which is written by k8s at this path:
+const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
+const namespace = fs.readFileSync(namespaceFilePath);
+
+// Get the k8s client object. We need both the v1 API client, as well as the
+// v1beta1 client. The first is needed for all base operations, the second to
+// provide extensions, such as creating deployments.
+// TODO: extract this into a separate k8s APIs wrapper.
+const k8sV1Client = k8s.Config.defaultClient();
+const k8sHost = process.env.KUBERNETES_SERVICE_HOST;
+const k8sPort = process.env.KUBERNETES_SERVICE_PORT;
+const caCert = fs.readFileSync(k8s.Config.SERVICEACCOUNT_CA_PATH);
+const token = fs.readFileSync(k8s.Config.SERVICEACCOUNT_TOKEN_PATH);
+const k8sV1Beta1Client =
+  new k8s.Extensions_v1beta1Api(`https://${k8sHost}:${k8sPort}`);
+k8sV1Beta1Client.setDefaultAuthentication({
+  'applyToRequest': (opts) => {
+    opts.ca = caCert;
+    opts.headers['Authorization'] = 'Bearer ' + token;
+  }
+});
 
 if (process.argv.length < 3) {
   console.error(`\
@@ -45,7 +69,7 @@ app.get(apisPrefix + '/artifacts/list/*', (req, res) => {
 
     storage
       .bucket(bucket)
-      .getFiles({prefix: filepath})
+      .getFiles({ prefix: filepath })
       .then((results) => res.send(results[0].map((f) => `gs://${bucket}/${f.name}`)))
       .catch((err) => {
         console.error('Error listing files:', err);
@@ -96,6 +120,98 @@ app.get(apisPrefix + '/artifacts/get/*', (req, res, next) => {
     res.status(404).send('Error: Unsupported path.');
   }
 
+});
+
+app.get(apisPrefix + '/apps/tensorboard*', (req, res) => {
+  const logdir = decodeURIComponent(req.query.logdir);
+  if (!logdir) {
+    res.status(404).send('logdir argument is required');
+    return;
+  }
+
+  k8sV1Client.listNamespacedPod(namespace)
+    .then(response => {
+      const items = response.body.items;
+      const args = ['tensorboard', '--logdir', logdir];
+      const tensorboard = items.find(i =>
+        i.spec.containers.find(c => Utils.equalArrays(c.args, args)));
+      if (tensorboard && tensorboard.status) {
+        res.send(encodeURIComponent(`http://${tensorboard.status.podIP}:6006`));
+      } else {
+        res.send('No Tensorboard deployment with the given logdir');
+      }
+    }, err => {
+      res.status(404).send(err);
+    });
+});
+
+app.post(apisPrefix + '/apps/tensorboard*', (req, res) => {
+  const logdir = decodeURIComponent(req.query.logdir);
+  if (!logdir) {
+    res.status(404).send('logdir argument is required');
+    return;
+  }
+
+  const randomSuffix = Utils.generateRandomString(15);
+  const deploymentName = 'tensorboard-' + randomSuffix;
+  const serviceName = 'tensorboard-service-' + randomSuffix;
+
+  // TODO: take the configurations below to a separate file
+  const tbDeployment = {
+    kind: 'Deployment',
+    metadata: {
+      name: deploymentName,
+    },
+    spec: {
+      selector: {
+        matchLabels: {
+          app: deploymentName,
+        },
+      },
+      template: {
+        metadata: {
+          labels: {
+            app: deploymentName,
+          },
+        },
+        spec: {
+          containers: [{
+            args: [
+              'tensorboard',
+              '--logdir',
+              logdir,
+            ],
+            name: 'tensorflow',
+            image: 'tensorflow/tensorflow',
+            ports: [{
+              containerPort: 6006,
+            }],
+          }],
+        },
+      },
+    },
+  };
+  const tbService = {
+    kind: 'Service',
+    metadata: {
+      name: serviceName,
+    },
+    spec: {
+      selector: {
+        app: deploymentName,
+      },
+      ports: [{
+        protocol: 'TCP',
+        port: 6006,
+        targetPort: 6006,
+      }],
+    },
+    type: 'ClusterIP',
+  };
+  k8sV1Beta1Client.createNamespacedDeployment(namespace, tbDeployment);
+  k8sV1Client.createNamespacedService(namespace, tbService);
+
+  res.send('Started deployment and service');
 });
 
 proxyMiddleware(app, apisPrefix);

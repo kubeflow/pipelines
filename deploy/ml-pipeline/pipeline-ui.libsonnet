@@ -119,12 +119,10 @@
               {
                 name: "ml-pipeline-ui",
                 image: image,
-                imagePullPolicy: "IfNotPresent",
-                ports: [
-                    {
-                      containerPort: 3000,
-                    },
-                  ],
+                imagePullPolicy: "Always",
+                ports: [{
+                  containerPort: 3000,
+                }],
               },
             ],
           },
