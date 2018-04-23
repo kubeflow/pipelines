@@ -11,10 +11,10 @@ If you don't want to install [Minikube](https://kubernetes.io/docs/tasks/tools/i
 
 ## Install
 
-To install ML pipeline, just create a bootstrapper job using [bootstrapper.yaml](https://github.com/googleprivate/ml/blob/master/bootstrapper.yaml)
+To install ML pipeline, just create a bootstrapper job using [bootstrapper.yaml](https://storage.googleapis.com/ml-pipeline/bootstrapper.yaml)
 ```
 TODO(yangpa): Use github path when project is public.  
-$ kubectl create -f bootstrapper.yaml
+$ kubectl create -f https://storage.googleapis.com/ml-pipeline/bootstrapper.yaml
 ```
 And you should see a job created that deploys all ML pipeline components in the cluster.
 ```
@@ -27,7 +27,7 @@ By default, the ML pipeline will be deployed to the default namespace, with usag
 We use [Spartakus](https://github.com/kubernetes-incubator/spartakus) which does not report any personal identifiable information (PII).
 
 If you want to turn off the usage report, or deploy to a different namespace, you can pass in additional arguments to the deployment job.
-See [bootstrapper.yaml](https://github.com/googleprivate/ml/blob/master/bootstrapper.yaml) file for example arguments.
+See [bootstrapper.yaml](https://storage.googleapis.com/ml-pipeline/bootstrapper.yaml) file for example arguments.
 
 Once deployment is completed, you can check the resource created
 ```
@@ -67,7 +67,7 @@ You can now access the ML pipeline UI at [localhost:8080](http://localhost:8080)
 
 ## Uninstall
 To uninstall ML pipeline, create a job following the same steps as installation, with additional uninstall argument. 
-Check [bootstrapper.yaml](https://github.com/googleprivate/ml/blob/master/bootstrapper.yaml) for details.
+Check [bootstrapper.yaml](https://storage.googleapis.com/ml-pipeline/bootstrapper.yaml) for details.
 
 ## Samples
 Checkout [here](https://github.com/googleprivate/ml/blob/master/samples) for a list of samples. 
