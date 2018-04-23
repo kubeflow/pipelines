@@ -1,0 +1,32 @@
+FROM golang
+
+WORKDIR /go/src/ml/src
+COPY . .
+
+RUN go get ./...
+RUN go build -o /bin/scheduler ./controller/schedule/*.go
+
+
+FROM ubuntu
+RUN set -ex \
+    && apt-get update -yqq \
+    && apt-get install -yqq --no-install-recommends \
+       sqlite3 \
+       libsqlite3-dev
+
+WORKDIR /bin
+
+COPY --from=0 /bin/scheduler /bin/scheduler
+RUN chmod +x /bin/scheduler
+
+CMD scheduler \
+  --db_driver_name=mysql \
+  --mysql_service_host=${MYSQL_SERVICE_HOST} \
+  --mysql_service_port=${MYSQL_SERVICE_PORT} \
+  --mysql_db_name=mlpipeline \
+  --minio_service_host=${MINIO_SERVICE_SERVICE_HOST} \
+  --minio_service_port=${MINIO_SERVICE_SERVICE_PORT} \
+  --minio_access_key=minio \
+  --minio_secret_key=minio123 \
+  --minio_bucket_name=packagemanager \
+  --alsologtostderr=true

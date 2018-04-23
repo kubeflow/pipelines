@@ -38,12 +38,20 @@ $ cd ml-pipeline && ks delete default
 ### GKE
 To be able to use GKE, the Docker images need to be uploaded to a public Docker repository, such as [GCR](https://cloud.google.com/container-registry/)
 
-Here is an example to build API server image and upload to GCR. 
+To build the API server image and upload it to GCR: 
 ````
-# Run under src/ directory 
-$ docker build -t gcr.io/your-gcr/api-server:latest src/apiserver
+# Run in the repository root directory 
+$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f src/Dockerfile ./src
 # Push to GCR
-$ gcloud docker -- push gcr.io/your-gcr/api-server:latest
+$ gcloud docker -- push gcr.io/<your-gcp-project>/api-server:latest
+````
+
+To build the scheduling controller image and upload it to GCR: 
+````
+# Run in the repository root directory 
+$ docker build -t gcr.io/<your-gcp-project>/scheduler:latest -f src/Dockerfile.scheduler ./src
+# Push to GCR
+$ gcloud docker -- push gcr.io/<your-gcp-project>/scheduler:latest
 ````
 
 ### Minikube
@@ -58,8 +66,8 @@ $ docker build -t ml-pipeline-api-server src
 If your change updates deployment image (e.g. add new service account, change image version etc.),
 remember to update the deployment image as well, and use that image to create deployment job.
 ```
-$ docker build -t gcr.io/your-gcr/bootstrapper deploy/
-$ gcloud docker -- push gcr.io/your-gcr/bootstrapper
+$ docker build -t gcr.io/<your-gcp-project>/bootstrapper deploy/
+$ gcloud docker -- push gcr.io/<your-gcp-project>/bootstrapper
 ```
 
 ## Unit test

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package schedule
+package main
 
 import (
 	"flag"
@@ -173,10 +173,10 @@ func (c Controller) runForQuery() error {
 				pipelineAndLatestJob, err)
 			continue
 		} else if ran {
-			glog.Errorf("Scheduled a job for time '%v' for pipeline: %v", scheduledTime,
+			glog.Infof("Scheduled a job for time '%v' for pipeline: %v", scheduledTime,
 				pipelineAndLatestJob)
 		} else {
-			glog.Errorf("No yet time to schedule a job for time '%v' for pipeline: %v", scheduledTime,
+			glog.Infof("Not yet time to schedule a job for time '%v' for pipeline: %v", scheduledTime,
 				pipelineAndLatestJob)
 		}
 	}
@@ -187,9 +187,12 @@ func (c Controller) runForQuery() error {
 func (c Controller) run(sleepDurationBetweenRuns time.Duration) error {
 
 	for {
+		glog.Info("Querying for jobs to schedule...")
 		err := c.runForQuery()
 		if err != nil {
 			glog.Errorf("Error while scheduling jobs (will try again): %+v", err)
+		} else {
+			glog.Info("Successfully scheduled any job that needed to be scheduled.")
 		}
 		time.Sleep(sleepDurationBetweenRuns)
 	}
@@ -221,6 +224,8 @@ func main() {
 	minioBucketName := flag.String(minioBucketNameFlagName, "", "The Minio bucket name.")
 
 	flag.Parse()
+
+	glog.Infof("Starting the controller...")
 
 	checkFlagNotEmptyOrFatal(dbDriverName, dbDriverNameFlagName)
 
