@@ -126,7 +126,7 @@
               {
                 name: "ml-pipeline-api-server",
                 image: image,
-                imagePullPolicy: 'IfNotPresent',
+                imagePullPolicy: 'Always',
                 ports: [
                     {
                       containerPort: 8888,

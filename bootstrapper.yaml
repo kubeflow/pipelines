@@ -51,6 +51,7 @@ spec:
       containers:
       - name: deploy
         image: gcr.io/ml-pipeline/bootstrapper
+        imagePullPolicy: 'Always'
         # Additional parameter available:
         args: [
           # "--namespace", "foo",
