@@ -112,18 +112,20 @@ export async function readFile(path: string): Promise<string> {
 }
 
 /**
- * Gets the address (IP + port) of a service running a certain app
+ * Gets the address (IP + port) of a Tensorboard service given the logdir
  */
-export async function getApp(processName: string, args: string): Promise<string> {
-  const response = await fetch(apisPrefix + `/apps/${processName}?${encodeURIComponent(args)}`);
+export async function getTensorboardApp(logdir: string): Promise<string> {
+  const response = await fetch(apisPrefix +
+    `/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
   return await response.text();
 }
 
 /**
- * Starts a deployment and service given an app name and arguments
+ * Starts a deployment and service for Tensorboard given the logdir
  */
-export async function startApp(processName: string, args: string) {
-  const response = await fetch(apisPrefix + `/apps/${processName}?${encodeURIComponent(args)}`, {
+export async function startTensorboardApp(logdir: string) {
+  const response = await fetch(apisPrefix +
+    `/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`, {
     headers: {
       'content-type': 'application/json',
     },

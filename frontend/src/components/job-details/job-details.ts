@@ -68,7 +68,11 @@ export class JobDetails extends Polymer.Element implements PageElement {
       }
 
       // Render the job graph
-      (this.$.jobGraph as JobGraph).refresh(this.jobDetail);
+      try {
+        (this.$.jobGraph as JobGraph).refresh(this.jobDetail);
+      } catch (err) {
+        Utils.log.error('Could not draw job graph from object:', this.jobDetail);
+      }
 
       const baseOutputPathValue = this.pipeline
         .parameters

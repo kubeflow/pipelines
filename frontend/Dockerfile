@@ -17,5 +17,6 @@ WORKDIR /app
 
 EXPOSE 3000
 RUN npm install
+RUN npm run build
 ENV API_SERVER_ADDRESS http://localhost:3001
-CMD npm start
+CMD node dist/server.js ./dist/ 3000
