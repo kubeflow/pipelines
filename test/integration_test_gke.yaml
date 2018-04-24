@@ -1,0 +1,240 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: api-server-integration-test-
+spec:
+  entrypoint: integration-test
+  arguments:
+    parameters:
+    - name: branch
+      value: master
+    - name: cleanup
+      value: true
+    - name: bootstrapper-image-suffix
+      value: bootstrapper
+    - name: api-image-suffix
+      value: api
+    - name: frontend-image-suffix
+      value: frontend
+  onExit: clean-up
+  templates:
+  - name: integration-test
+    inputs:
+      parameters:
+      - name: branch
+      - name: bootstrapper-image-suffix
+      - name: api-image-suffix
+      - name: frontend-image-suffix
+    steps:
+    - - name: create-namespace
+        template: create-namespace
+    - - name: get-project
+        template: get-project
+    - - name: build-bootstrapper-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+          - name: docker-path
+            value: deploy
+          - name: image-suffix
+            value: "{{inputs.parameters.bootstrapper-image-suffix}}"
+      - name: build-api-server-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+          - name: docker-path
+            value: src
+          - name: image-suffix
+            value: "{{inputs.parameters.api-image-suffix}}"
+      - name: build-frontend-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+          - name: docker-path
+            value: frontend
+          - name: image-suffix
+            value: "{{inputs.parameters.frontend-image-suffix}}"
+    - - name: deploy-ml-pipeline
+        template: deploy-ml-pipeline
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+          - name: bootstrapper-image-suffix
+            value: "{{inputs.parameters.bootstrapper-image-suffix}}"
+          - name: api-image-suffix
+            value: "{{inputs.parameters.api-image-suffix}}"
+          - name: frontend-image-suffix
+            value: "{{inputs.parameters.frontend-image-suffix}}"
+    - - name: run-tests
+        template: run-tests
+        arguments:
+          parameters:
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+
+  - name: get-project
+    script:
+      image: google/cloud-sdk
+      command: [bash]
+      source: |
+        gcloud config config-helper --format "value(configuration.properties.core.project)"
+
+  - name: create-namespace
+    container:
+      image: gcr.io/ml-pipeline/bootstrapper
+      command: [kubectl]
+      args: ["create", "ns", "{{workflow.name}}"]
+
+  # Build image and upload to GCR in the specified project
+  - name: build-image
+    inputs:
+      parameters:
+      # The project that image deployed to
+      - name: project
+      # The github branch to pull code from
+      - name: branch
+      # The relative code path to the Dockerfile
+      - name: docker-path
+      # Name of the Docker file to use. "Dockerfile" by default
+      - name: docker-file
+        value: Dockerfile
+      - name: image-suffix
+    container:
+      image: gcr.io/ml-pipeline/image-builder
+      imagePullPolicy: 'Always'
+      args: [
+        "--branch", "{{inputs.parameters.branch}}",
+        "--docker_path", "{{inputs.parameters.docker-path}}",
+        "--docker_file", "{{inputs.parameters.docker-file}}",
+        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.image-suffix}}",
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh"
+      env:
+      - name: TEST_ID
+        value: "{{workflow.name}}"
+      - name: DOCKER_HOST
+        value: 127.0.0.1
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind
+      securityContext:
+        privileged: true
+      mirrorVolumeMounts: true
+
+  # Use the newly built bootstrapper image to deploy
+  - name: deploy-ml-pipeline
+    inputs:
+      parameters:
+      - name: project
+      - name: branch
+      - name: bootstrapper-image-suffix
+      - name: api-image-suffix
+      - name: frontend-image-suffix
+    container:
+      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.bootstrapper-image-suffix}}
+      args: [
+        "--namespace", "{{workflow.name}}",
+        "--api_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.api-image-suffix}}",
+        "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.frontend-image-suffix}}",
+      ]
+
+  - name: run-tests
+    inputs:
+      parameters:
+      - name: branch
+    container:
+      image: golang
+      command: [sh, -c]
+      args: [
+        "ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts; \
+         git clone -b {{inputs.parameters.branch}} git@github.com:googleprivate/ml.git /go/src/ml; \
+         cd /go/src/ml/test/apiserver; \
+         go get -t ./...; \
+         go test ./... -namespace {{workflow.name}}"
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh"
+
+  - name: clean-up
+    inputs:
+      parameters:
+      - name: branch
+      - name: bootstrapper-image-suffix
+      - name: api-image-suffix
+      - name: frontend-image-suffix
+      - name: cleanup
+    steps:
+    - - name: delete-namespace
+        template: delete-namespace
+        when: "{{inputs.parameters.cleanup}} == true"
+      - name: delete-api-images
+        template: delete-images
+        when: "{{inputs.parameters.cleanup}} == true"
+        arguments:
+          parameters:
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.api-image-suffix}}"
+      - name: delete-frontend-images
+        template: delete-images
+        when: "{{inputs.parameters.cleanup}} == true"
+        arguments:
+          parameters:
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.frontend-image-suffix}}"
+      - name: delete-bootstrapper-images
+        template: delete-images
+        when: "{{inputs.parameters.cleanup}} == true"
+        arguments:
+          parameters:
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.bootstrapper-image-suffix}}"
+
+  - name: delete-namespace
+    container:
+      image: gcr.io/ml-pipeline/bootstrapper
+      command: [kubectl]
+      args: ["delete", "ns", "{{workflow.name}}"]
+
+  - name: delete-images
+    inputs:
+      parameters:
+      - name: branch
+      - name: image-suffix
+    container:
+      image: google/cloud-sdk
+      command: [sh, -c]
+      args: [
+        "gcloud container images delete \
+        gcr.io/$(gcloud config config-helper --format \"value(configuration.properties.core.project)\")/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.image-suffix}} \
+        --force-delete-tags --quiet"
+      ]
+
+  volumes:
+  - name: secret-volume
+    secret:
+      defaultMode: 256
+      secretName: ssh-key-secret

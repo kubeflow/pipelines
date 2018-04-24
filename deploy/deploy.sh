@@ -21,13 +21,18 @@ REPORT_USAGE="true"
 # Whether this is an install or uninstall.
 UNINSTALL=false
 
-# Parameter supported:
-# -n | --namespace         namespace
-# -a | --api_image         ml-pipeline apiserver docker image
-# -s | --scheduler_image   ml-pipeline scheduling controller image
-# -u | --ui_image          ml-pipeline frontend UI docker image
-# -r | --report_usage      deploy roles or not. Roles are needed for GKE
-# --uninstall              uninstall ml pipeline
+usage()
+{
+    echo "usage: deploy.sh
+    [-n | --namespace namespace ]
+    [-a | --api_image ml-pipeline apiserver docker image to use ]
+    [-s | --scheduler_image ml-pipeline scheduling controller image]
+    [-u | --ui_image ml-pipeline frontend UI docker image]
+    [-r | --report_usage deploy roles or not. Roles are needed for GKE]
+    [--uninstall uninstall ml pipeline]
+    [-h help]"
+}
+
 while [ "$1" != "" ]; do
     case $1 in
         -n | --namespace )          shift
@@ -46,6 +51,9 @@ while [ "$1" != "" ]; do
                                     REPORT_USAGE=$1
                                     ;;
         --uninstall )               UNINSTALL=true
+                                    ;;
+        -h | --help )               usage
+                                    exit
                                     ;;
         * )                         usage
                                     exit 1

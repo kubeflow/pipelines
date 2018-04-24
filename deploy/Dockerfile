@@ -1,5 +1,5 @@
 # This is a dockerfile for an image with kubectl and ksonnet installed
-# Available at gcr.io/ml-pipeline/kubetool
+# Available at gcr.io/ml-pipeline/bootstrapper
 
 FROM ubuntu
 

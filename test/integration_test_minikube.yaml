@@ -68,4 +68,4 @@ spec:
       type: File
   - name: repo-dir
     hostPath:
-      path: /Users/yangpa/go/src/ml
+      path: #########Path-To-Your-Repository#########

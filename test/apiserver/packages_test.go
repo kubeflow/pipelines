@@ -48,7 +48,6 @@ func (suite *PackageSuite) TearDownTest() {
 func (suite *PackageSuite) TestListPipelines() {
 	t := suite.T()
 	clientSet, err := getKubernetesClient()
-
 	if err != nil {
 		t.Fatalf("Can't initialize a Kubernete client. Error: %s", err.Error())
 	}

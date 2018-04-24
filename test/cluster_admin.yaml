@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cluster-admin
+  name: ml-pipeline-test-cluster-admin
 rules:
 - apiGroups:
   - '*'
@@ -19,11 +19,11 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   creationTimestamp: null
-  name: admin-role-binding
+  name: ml-pipeline-test-cluster-admin-role-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: ml-pipeline-test-cluster-admin
 subjects:
 - kind: ServiceAccount
   name: default

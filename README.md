@@ -6,7 +6,7 @@ This document guides you through the steps to install Machine Learning Pipelines
 - Install Kubernetes v1.8 or later
 - Install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
  
-If you don't want to install [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) and its dependencies(such as VirtualBox), you can use [GKE](https://cloud.google.com/kubernetes-engine/) instead. See [Appendix](#setup-gke) for more information about setting up an GKE cluster.
+If you don't want to install [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) and its dependencies(such as VirtualBox), you can use [GKE](https://cloud.google.com/kubernetes-engine/) instead. See [Appendix](#setup-gke) for more information about setting up a GKE cluster.
 
 
 ## Install
