@@ -26,11 +26,13 @@
 
 import argparse
 import datetime
+import json
 import os
 import logging
 import requests
 import subprocess
 import six
+from tensorflow.python.lib.io import file_io
 import time
 import yaml
 
@@ -131,6 +133,16 @@ def main(argv=None):
   
   logging.info('Start training.')
   subprocess.call(['kubectl', 'create', '-f', 'train.yaml', '--namespace', 'kubeflow'])
+
+  # Create metadata.json file for visualization.
+  metadata = {
+    'outputs' : [{
+      'type': 'tensorboard',
+      'source': args.job_dir,
+    }]
+  }
+  with file_io.FileIO(os.path.join(args.job_dir, 'metadata.json'), 'w') as f:
+    json.dump(metadata, f)
 
   # TODO: Replace polling with kubeflow API calls.
   while True:

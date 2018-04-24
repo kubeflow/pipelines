@@ -20,7 +20,7 @@ RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev pyt
 
 RUN easy_install pip
 
-RUN pip install pyyaml==3.12 six==1.11.0 requests==2.18.4
+RUN pip install pyyaml==3.12 six==1.11.0 requests==2.18.4 tensorflow==1.7.0
 
 RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     unzip -qq google-cloud-sdk.zip -d tools && \
