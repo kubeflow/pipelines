@@ -1,18 +1,19 @@
 :root {
+  --accent-color: #1473c2;
   --bg-color: #f6f6f6;
   --bg-color-darker: #f0f0f0;
+  --disabled-color: #aaa;
+  --disabled-fg-color: #aaa;
+  --fail-color: #dd0000;
   --fg-color: #444;
   --fg-color-strong: black;
-  --accent-color: #1473c2;
+  --hover-bg-color: #ddd;
   --line-color: #e7e7e7;
   --line-color-darker: #ddd;
-  --hover-bg-color: #ddd;
-  --disabled-color: #aaa;
   --neutral-color: #777;
-  --success-color: #009900;
-  --fail-color: #dd0000;
   --progress-color: #6f97d4;
   --selected-color: #4b82cc;
+  --success-color: #009900;
   --white: #fff;
 
   --font-size: 14px;
@@ -21,6 +22,4 @@
   --app-animation-duration: 0.3s;
   --app-content-font-size: 12px;
   --toolbar-height: 50px;
-
-  --disabled-fg-color: #aaa;
 }
