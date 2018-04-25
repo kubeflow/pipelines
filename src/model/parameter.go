@@ -19,7 +19,7 @@ import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 type Parameter struct {
 	Name      string `gorm:"not null;primary_key"`
 	Value     *string
-	OwnerID   uint   `gorm:"primary_key"` /* Foreign key */
+	OwnerID   uint   `gorm:"primary_key;auto_increment:false"` /* Foreign key */
 	OwnerType string `gorm:"primary_key"`
 }
 

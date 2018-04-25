@@ -18,6 +18,10 @@ UI_IMAGE=gcr.io/ml-pipeline/frontend
 # Whether report usage or not. Default yes.
 REPORT_USAGE="true"
 
+# Whether to deploy argo or not. Argo might already exist in the cluster,
+# installed by Kubeflow or exist in a test cluster.
+DEPLOY_ARGO="true"
+
 # Whether this is an install or uninstall.
 UNINSTALL=false
 
@@ -29,6 +33,7 @@ usage()
     [-s | --scheduler_image ml-pipeline scheduling controller image]
     [-u | --ui_image ml-pipeline frontend UI docker image]
     [-r | --report_usage deploy roles or not. Roles are needed for GKE]
+    [--deploy_argo whether to deploy argo or not]
     [--uninstall uninstall ml pipeline]
     [-h help]"
 }
@@ -49,6 +54,9 @@ while [ "$1" != "" ]; do
                                     ;;
         -r | --report_usage )       shift
                                     REPORT_USAGE=$1
+                                    ;;
+        --deploy_argo )             shift
+                                    DEPLOY_ARGO=$1
                                     ;;
         --uninstall )               UNINSTALL=true
                                     ;;
@@ -104,6 +112,7 @@ fi
 ( cd ${APP_DIR} && ks param set ml-pipeline api_image ${API_SERVER_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline scheduler_image ${SCHEDULER_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline ui_image ${UI_IMAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline deploy_argo ${DEPLOY_ARGO} )
 ( cd ${APP_DIR} && ks param set ml-pipeline report_usage ${REPORT_USAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
 

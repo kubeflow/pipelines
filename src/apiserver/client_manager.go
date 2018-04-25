@@ -32,6 +32,7 @@ const (
 	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
 	mysqlServiceHost = "MYSQL_SERVICE_HOST"
 	mysqlServicePort = "MYSQL_SERVICE_PORT"
+	podNamespace     = "POD_NAMESPACE"
 	dbName           = "mlpipeline"
 )
 
@@ -90,7 +91,7 @@ func (c *ClientManager) init() {
 	c.pipelineStore = storage.NewPipelineStore(db, c.time)
 
 	// Initialize job store
-	wfClient := client.CreateWorkflowClientOrFatal()
+	wfClient := client.CreateWorkflowClientOrFatal(getConfig(podNamespace))
 	c.jobStore = storage.NewJobStore(db, wfClient, c.time)
 
 	// Initialize package manager.

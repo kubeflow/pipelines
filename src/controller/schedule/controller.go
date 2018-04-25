@@ -39,6 +39,7 @@ const (
 	minioAccessKeyFlagName           = "minio_access_key"
 	minioSecretKeyFlagName           = "minio_secret_key"
 	minioBucketNameFlagName          = "minio_bucket_name"
+	namespaceFlagName                = "namespace"
 )
 
 type Controller struct {
@@ -222,6 +223,7 @@ func main() {
 	minioAccessKey := flag.String(minioAccessKeyFlagName, "", "The Minio access key.")
 	minioSecretKey := flag.String(minioSecretKeyFlagName, "", "The Minio secret key.")
 	minioBucketName := flag.String(minioBucketNameFlagName, "", "The Minio bucket name.")
+	namespace := flag.String(namespaceFlagName, "", "The pod namespace")
 
 	flag.Parse()
 
@@ -240,19 +242,21 @@ func main() {
 	checkFlagNotEmptyOrFatal(minioAccessKey, minioAccessKeyFlagName)
 	checkFlagNotEmptyOrFatal(minioSecretKey, minioSecretKeyFlagName)
 	checkFlagNotEmptyOrFatal(minioBucketName, minioBucketNameFlagName)
+	checkFlagNotEmptyOrFatal(namespace, namespaceFlagName)
 
 	clientManager, err := NewClientManager(&ClientManagerParams{
-		DBDriverName: *dbDriverName,
+		DBDriverName:         *dbDriverName,
 		SqliteDatasourceName: *sqliteDatasourceName,
-		User: *user,
-		MysqlServiceHost: *mysqlServiceHost,
-		MysqlServicePort: *mysqlServicePort,
-		MysqlDBName: *mysqlDBName,
-		MinioServiceHost: *minioServiceHost,
-		MinioServicePort: *minioServicePort,
-		MinioAccessKey: *minioAccessKey,
-		MinioSecretKey: *minioSecretKey,
-		MinioBucketName: *minioBucketName})
+		User:                 *user,
+		MysqlServiceHost:     *mysqlServiceHost,
+		MysqlServicePort:     *mysqlServicePort,
+		MysqlDBName:          *mysqlDBName,
+		MinioServiceHost:     *minioServiceHost,
+		MinioServicePort:     *minioServicePort,
+		MinioAccessKey:       *minioAccessKey,
+		MinioSecretKey:       *minioSecretKey,
+		MinioBucketName:      *minioBucketName,
+		Namespace:            *namespace})
 	if err != nil {
 		glog.Fatalf("Could not instantiate the ClientManager: %+v", err)
 	}

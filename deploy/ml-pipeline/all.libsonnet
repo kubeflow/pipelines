@@ -13,17 +13,21 @@
     local api_image = params.api_image,
     local scheduler_image = params.scheduler_image,
     local ui_image = params.ui_image,
+    local deploy_argo = params.deploy_argo,
     local report_usage = params.report_usage,
     local usage_id = params.usage_id,
     reporting:: if (report_usage == true) || (report_usage == "true") then
                   spartakus.all(namespace,usage_id)
                 else [],
-    all:: argo.parts(namespace).all +
-          minio.parts(namespace).all +
+    argo:: if (deploy_argo == true) || (deploy_argo == "true") then
+             argo.parts(namespace).all
+           else [],
+    all:: minio.parts(namespace).all +
           mysql.parts(namespace).all +
           pipeline_apiserver.all(namespace,api_image) +
           pipeline_scheduler.all(namespace,scheduler_image) +
           pipeline_ui.all(namespace,ui_image) +
+          $.parts(params).argo +
           $.parts(params).reporting,
   },
 }

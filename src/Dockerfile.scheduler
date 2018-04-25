@@ -29,4 +29,5 @@ CMD scheduler \
   --minio_access_key=minio \
   --minio_secret_key=minio123 \
   --minio_bucket_name=packagemanager \
-  --alsologtostderr=true
+  --alsologtostderr=true \
+  --namespace=${POD_NAMESPACE}

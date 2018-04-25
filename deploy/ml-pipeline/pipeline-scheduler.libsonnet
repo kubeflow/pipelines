@@ -18,7 +18,7 @@
 
     roleBinding:: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
-      kind: "ClusterRoleBinding",
+      kind: "RoleBinding",
       metadata: {
         labels: {
           app: "ml-pipeline-scheduler",
@@ -28,7 +28,7 @@
       },
       roleRef: {
         apiGroup: "rbac.authorization.k8s.io",
-        kind: "ClusterRole",
+        kind: "Role",
         name: "ml-pipeline-scheduler",
       },
       subjects: [
@@ -42,7 +42,7 @@
 
     role: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
-      kind: "ClusterRole",
+      kind: "Role",
       metadata: {
         labels: {
           app: "ml-pipeline-scheduler",
@@ -98,6 +98,16 @@
                 name: "ml-pipeline-scheduler",
                 image: image,
                 imagePullPolicy: 'IfNotPresent',
+                env: [
+                  {
+                    name: "POD_NAMESPACE",
+                    valueFrom: {
+                      fieldRef: {
+                        fieldPath: "metadata.namespace",
+                      },
+                    },
+                  },
+                ],
               },
             ],
             serviceAccountName: "ml-pipeline-scheduler",

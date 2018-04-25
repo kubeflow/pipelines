@@ -44,7 +44,7 @@
 
     roleBinding:: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
-      kind: "ClusterRoleBinding",
+      kind: "RoleBinding",
       metadata: {
         labels: {
           app: "ml-pipeline-ui",
@@ -54,7 +54,7 @@
       },
       roleRef: {
         apiGroup: "rbac.authorization.k8s.io",
-        kind: "ClusterRole",
+        kind: "Role",
         name: "ml-pipeline-ui",
       },
       subjects: [
@@ -68,7 +68,7 @@
 
     role: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
-      kind: "ClusterRole",
+      kind: "Role",
       metadata: {
         labels: {
           app: "ml-pipeline-ui",

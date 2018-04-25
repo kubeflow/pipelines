@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: api-server-integration-test-
+  generateName: integration-test-
 spec:
   entrypoint: integration-test
   arguments:
@@ -153,6 +153,7 @@ spec:
         "--namespace", "{{workflow.name}}",
         "--api_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.api-image-suffix}}",
         "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.frontend-image-suffix}}",
+        "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
       ]
 
   - name: run-tests

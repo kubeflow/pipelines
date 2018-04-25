@@ -47,6 +47,7 @@ type ClientManagerParams struct {
 	MinioAccessKey       string
 	MinioSecretKey       string
 	MinioBucketName      string
+	Namespace            string
 }
 
 func NewClientManager(params *ClientManagerParams) (*ClientManager, error) {
@@ -64,7 +65,7 @@ func NewClientManager(params *ClientManagerParams) (*ClientManager, error) {
 		return nil, errors.Wrapf(err, "Error while creating GORM client: %+v: %+v", params, err)
 	}
 
-	workflowClient, err := client.CreateWorkflowClient()
+	workflowClient, err := client.CreateWorkflowClient(params.Namespace)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating workflow client: %+v", err)
 	}

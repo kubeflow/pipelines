@@ -15,18 +15,24 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 const (
-	// ML pipeline API root URL
-	mlPipelineBase = "/api/v1/proxy/namespaces/%s/services/ml-pipeline:8888/apis/v1alpha1/%s"
+	// ML pipeline API server root URL
+	mlPipelineAPIServerBase = "/api/v1/proxy/namespaces/%s/services/ml-pipeline:8888/apis/v1alpha1/%s"
 )
 
 func getKubernetesClient() (*kubernetes.Clientset, error) {
@@ -52,7 +58,7 @@ func waitForReady(namespace string, initializeTimeout time.Duration) error {
 
 	var operation = func() error {
 		response := clientSet.RESTClient().Get().
-			AbsPath(fmt.Sprintf(mlPipelineBase, namespace, "healthz")).Do()
+			AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, namespace, "healthz")).Do()
 		if response.Error() == nil {
 			return nil
 		}
@@ -69,6 +75,32 @@ func waitForReady(namespace string, initializeTimeout time.Duration) error {
 	b.MaxElapsedTime = initializeTimeout
 	err = backoff.Retry(operation, b)
 	return errors.Wrapf(err, "Waiting for ml pipeline failed after all attempts.")
+}
+
+func uploadPackageFileOrFail(path string) (*bytes.Buffer, *multipart.Writer) {
+	file, err := os.Open(path)
+	if err != nil {
+		glog.Fatalf("Failed to open the package file: %v", err.Error())
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("uploadfile", filepath.Base(path))
+	if err != nil {
+		glog.Fatalf("Failed to create form file: %v", err.Error())
+	}
+	_, err = io.Copy(part, file)
+	if err != nil {
+		glog.Fatalf("Failed to copy file to multipart writer: %v", err.Error())
+	}
+
+	err = writer.Close()
+	if err != nil {
+		glog.Fatalf("Failed to close multipart writer: %v", err.Error())
+	}
+
+	return body, writer
 }
 
 func initTest(namespace string, initializeTimeout time.Duration) error {

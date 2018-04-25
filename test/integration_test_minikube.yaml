@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: api-server-integration-test-
+  generateName: integration-test-
 spec:
   entrypoint: integration-test
   onExit: delete-namespace

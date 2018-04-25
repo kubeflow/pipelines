@@ -35,7 +35,6 @@ while [ "$1" != "" ]; do
     shift
 done
 
-
 BASE_DIR=/ml
 
 ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts
