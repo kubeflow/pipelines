@@ -66,6 +66,7 @@ paper-tab:not(:first-child) {
   @apply --shadow-elevation-3dp;
 }
 
+
 .action-button[disabled] {
   background-color: var(--neutral-color);
 }
@@ -119,8 +120,13 @@ paper-tab:not(:first-child) {
   padding: 20px;
 }
 
+.padded-left {
+  padding-left: 10px;
+}
+
 .param-header {
   font-size: 16px;
+  font-weight: bold;
   margin: auto 0;
   padding-right: 20px;
 }

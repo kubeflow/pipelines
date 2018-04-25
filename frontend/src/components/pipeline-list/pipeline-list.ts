@@ -66,9 +66,10 @@ export class PipelineList extends Polymer.Element implements PageElement {
     this.dispatchEvent(new RouteEvent(`/pipelines/details/${pipelineId}`));
   }
 
-  protected _isOneItemSelected(ev: ItemClickEvent) {
+  protected _isOneItemSelected() {
     const itemList = this.$.pipelinesItemList as ItemListElement;
-    this.oneItemIsSelected = itemList.selectedIndices ? itemList.selectedIndices.length === 1 : false;
+    this.oneItemIsSelected =
+      itemList.selectedIndices ? itemList.selectedIndices.length === 1 : false;
   }
 
   protected _clonePipeline() {

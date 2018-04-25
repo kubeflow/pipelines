@@ -1,0 +1,29 @@
+@import '../../styles/common.css';
+@import '../../styles/inputs.css';
+@import '../../styles/vars.css';
+
+app-datepicker-dialog {
+  --app-datepicker-button-color: var(--accent-color);
+  --app-datepicker-calendar-color: #000;
+  --app-datepicker-date-hover-background-color: var(--accent-color-light);
+  --app-datepicker-date-hover-color: var(--fg-color-light);
+  --app-datepicker-iron-selected: var(--fg-color-light);
+  --app-datepicker-selected-day-bg: var(--accent-color);
+  --app-datepicker-selected-year-color: var(--accent-color);
+  --app-datepicker-selection-bg: var(--accent-color);
+  --app-datepicker-selection-color: var(--fg-color-light);
+  --app-datepicker-today-color: #000;
+}
+
+paper-toggle-button.am-pm {
+  --paper-toggle-button-checked-bar-color: var(--accent-color);
+  --paper-toggle-button-checked-button-color: var(--accent-color);
+  --paper-toggle-button-checked-ink-color: var(--accent-color);
+  --paper-toggle-button-unchecked-bar-color: var(--paper-teal-500);
+  --paper-toggle-button-unchecked-button-color: var(--paper-teal-500);
+  --paper-toggle-button-unchecked-ink-color: var(--paper-teal-500);
+}
+
+.checkbox-margin-adjust {
+  margin-bottom: 5px;
+}

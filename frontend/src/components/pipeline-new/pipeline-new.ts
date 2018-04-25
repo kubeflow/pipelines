@@ -1,6 +1,5 @@
 import 'iron-icons/iron-icons.html';
 import 'neon-animation/web-animations.html';
-import 'paper-checkbox/paper-checkbox.html';
 import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-input/paper-input.html';
 import 'paper-item/paper-item.html';
@@ -16,6 +15,7 @@ import { PageElement } from '../../model/page_element';
 import { Parameter } from '../../model/parameter';
 import { Pipeline } from '../../model/pipeline';
 import { PipelinePackage } from '../../model/pipeline_package';
+import { PipelineSchedule } from '../pipeline-schedule/pipeline-schedule';
 
 import './pipeline-new.html';
 
@@ -40,8 +40,11 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   @property({ type: Number })
   protected _packageIndex = -1;
 
-  @property({ computed: '_updateDeployButtonState(newPipeline.name)', type: Boolean })
-  protected inputIsInvalid = false;
+  @property({ computed: '_updateDeployButtonState(newPipeline.name, _scheduleIsValid)', type: Boolean })
+  protected _inputIsValid = true;
+
+  @property({ type: Boolean})
+  protected _scheduleIsValid = true;
 
   protected _busy = false;
   protected _overwriteData?: NewPipelineData;
@@ -92,10 +95,21 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     } finally {
       this._busy = false;
     }
+    const pipelineSchedule = this.$.schedule as PipelineSchedule;
+    pipelineSchedule.load('');
+    // Allow schedule to affect deploy button state.
+    pipelineSchedule.addEventListener('shedule-is-valid-changed',
+                                      this._scheduleValidationUpdated.bind(this));
   }
 
-  protected _updateDeployButtonState(pipelineName: string) {
-    return !pipelineName;
+  protected _scheduleValidationUpdated() {
+    const pipelineSchedule = this.$.schedule as PipelineSchedule;
+    this._scheduleIsValid = pipelineSchedule.sheduleIsValid;
+  }
+
+  // Sets Disabled attribute. true === enabled, false === disabled
+  protected _updateDeployButtonState(pipelineName: string, scheduleIsValid: boolean) {
+    return pipelineName && scheduleIsValid;
   }
 
   @observe('_packageIndex')

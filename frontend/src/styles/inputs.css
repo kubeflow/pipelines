@@ -1,0 +1,40 @@
+paper-dropdown-menu, paper-input {
+  --paper-input-container-focus-color: var(--accent-color);
+  background-color: var(--bg-color-darker);
+  border-radius: 5px;
+}
+
+paper-item {
+  cursor: default;
+  padding: 0 30px;
+  white-space: nowrap; /* To avoid a flicker when items first show up */
+}
+
+paper-ripple {
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  top: 0px;
+}
+
+.metadata-input {
+  margin-bottom: 26px;
+}
+
+.param-description {
+  margin: 15px 0 8px 0;
+}
+
+.param-container {
+  margin-bottom: 10px;
+}
+
+.param-input-small {
+  min-width: initial;
+  width: 10%;
+}
+
+.param-input {
+  min-width: 400px;
+  width: 40%;
+}

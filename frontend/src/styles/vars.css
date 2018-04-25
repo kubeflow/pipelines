@@ -1,10 +1,12 @@
 :root {
-  --accent-color: #1473c2;
+  --accent-color: #1474c2;
+  --accent-color-light: #82acce;
   --bg-color: #f6f6f6;
   --bg-color-darker: #f0f0f0;
   --disabled-color: #aaa;
   --disabled-fg-color: #aaa;
   --fail-color: #dd0000;
+  --fg-color-light: #fefefe;
   --fg-color: #444;
   --fg-color-strong: black;
   --hover-bg-color: #ddd;

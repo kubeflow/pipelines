@@ -15,6 +15,7 @@ import '../job-list/job-list';
 import '../pipeline-details/pipeline-details';
 import '../pipeline-list/pipeline-list';
 import '../pipeline-new/pipeline-new';
+import '../pipeline-schedule/pipeline-schedule';
 import './app-shell.html';
 
 const defaultPage = 'pipelines';
