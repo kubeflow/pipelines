@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="./job-details.css">
 
     <div class="toolbar">
-      <a href="/pipelines/details/[[_pipelineId]]" class="unstyled">
+      <a href="/pipelines/details/[[_pipelineId]]" class="unstyled toolbar-arrow-back">
         <paper-icon-button icon="arrow-back"></paper-icon-button>
       </a>
       <div class="toolbar-title">Job Details</div>
@@ -11,9 +11,9 @@
 
     <paper-spinner class="absolute-spinner" active hidden$="[[!_loadingJob]]"></paper-spinner>
 
-    <div class="padded-20 container" loading$="[[_loadingJob]]">
+    <div class="padded-spacing-base container" loading$="[[_loadingJob]]">
       <div class="flex title-bar">
-        <div class="job-name padded">[[jobDetail.metadata.name]]</div>
+        <div class="job-name">[[jobDetail.metadata.name]]</div>
         <div class="right">
           <div class="flex">
             <iron-icon class="status-icon" icon$=[[_getStatusIcon(jobDetail.status.phase)]]></iron-icon>

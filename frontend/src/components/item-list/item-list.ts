@@ -443,10 +443,13 @@ export class ItemListElement extends Polymer.Element {
     this.dispatchEvent(new ItemClickEvent('itemDoubleClick', { detail: {index: realIndex} }));
   }
 
+  _isEqualTo(x: number, y: number): boolean {
+      return x === y;
+  }
+  
   private _displayIndexToRealIndex(index: number): number {
     const element = this.$.listContainer.querySelector(
       'paper-item:nth-of-type(' + (index + 1 ) + ')') as HTMLElement;
     return ((this.$.list as Polymer.DomRepeat).modelForElement(element) as any).itemsIndex;
   }
-
 }

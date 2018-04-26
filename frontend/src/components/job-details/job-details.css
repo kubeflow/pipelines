@@ -9,7 +9,9 @@
 .job-name {
   color: var(--fg-color-strong);
   flex-grow: 1;
-  font-size: var(--font-size-strong);
+  font-size: var(--paper-font-title_-_font-size);
+  line-height: var(--paper-font-title_-_line-height);
+  font-weight: var(--paper-font-title_-_font-weight);
 }
 
 .status-icon {
@@ -31,7 +33,7 @@
 
 .tabs-container {
   border-bottom: solid 1px var(--line-color);
-  flex: 50px 0 0;
+  flex: var(--height-small) 0 0;
   position: relative;
 }
 

@@ -10,12 +10,13 @@
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
-  font-family: monospace;
-  height: 48px;
+  font-family: "Roboto", "Helvetica Neue", sans-serif;
+  height: var(--height-large);
   -webkit-box-pack: justify;
       -ms-flex-pack: justify;
           justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 var(--spacing-base);
+  box-shadow: var(--shadow-elevation-3dp_-_box-shadow);
 }
 
 .left {

@@ -23,5 +23,28 @@
 
   --app-animation-duration: 0.3s;
   --app-content-font-size: 12px;
-  --toolbar-height: 50px;
+  --toolbar-height: 64px;
+
+  --spacing-none: 0;
+  --spacing-minus-6: 2px;
+  --spacing-minus-5: 4px;
+  --spacing-minus-4: 8px;
+  --spacing-minus-3: 12px;
+  --spacing-minus-2: 16px;
+  --spacing-minus-1: 20px;
+  --spacing-base: 24px;
+  --spacing-plus-1: 28px;
+  --spacing-plus-2: 32px;
+  --spacing-plus-3: 36px;
+  --spacing-plus-4: 40px;
+  --spacing-plus-5: 48px;
+  --spacing-plus-6: 56px;
+
+  --height-xsmall: 32px;
+  --height-small: 36px;
+  --height-base: 40px;
+  --height-large: 48px;
+  --height-xlarge: 56px;
+  --height-jumbo: 64px;
+  --height-auto: auto;
 }

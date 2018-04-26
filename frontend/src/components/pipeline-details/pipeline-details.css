@@ -3,12 +3,14 @@
 
 .pipeline-name {
   color: var(--fg-color-strong);
-  font-size: var(--font-size-strong);
+  font-size: var(--paper-font-title_-_font-size);
+  line-height: var(--paper-font-title_-_line-height);
+  font-weight: var(--paper-font-title_-_font-weight);
 }
 
 .tabs-container {
   border-bottom: solid 1px var(--line-color);
-  height: 50px;
+  height: var(--height-small);
   position: relative;
 }
 

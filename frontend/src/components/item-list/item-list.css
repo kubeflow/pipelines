@@ -46,7 +46,7 @@ div {
 }
 .checkbox-col {
   flex: 0 0 65px;
-  padding-left: 15px;
+  padding-left: var(--spacing-base);
 }
 .checkbox-col > iron-icon {
   width: 17px;
@@ -81,7 +81,7 @@ div {
   display: flex;
   justify-content: flex-start;
   width: 100%;
-  padding: 0 10px;
+  padding: 0;
   margin: 0;
   border-radius: 0;
   text-transform: none;
@@ -94,7 +94,7 @@ div {
   flex: 1;
   max-width: 150px;
   color: var(--neutral-color);
-  padding-left: 10px;
+  padding-left: var(--spacing-minus-2);
 }
 #filterToggle {
   width: 34px;
@@ -133,4 +133,10 @@ div {
 }
 #filterBox:active {
   border: solid 1px var(--line-color);
+}
+.link {
+  cursor: pointer;
+}
+.link:hover {
+  text-decoration: underline;
 }
