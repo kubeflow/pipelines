@@ -20,6 +20,14 @@ export default (app) => {
 
   app.set('json spaces', 2);
 
+  app.get(apisPrefix + '/healthz', (req, res) => {
+    res.json({
+      buildDate: 'now',
+      commitHash: 'no_commit_hash',
+      version: 'local build',
+    });
+  });
+
   app.get(apisPrefix + '/pipelines', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.pipelines);

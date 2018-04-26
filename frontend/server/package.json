@@ -17,7 +17,11 @@
     "typescript": "2.6.2"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "postbuild": "npm run writeversion & npm run writegithash & npm run writebuilddate",
+    "writeversion": "node -p \"require('../package.json').version\" > ./dist/VERSION",
+    "writegithash": "git rev-parse HEAD > ./dist/COMMIT_HASH",
+    "writebuilddate": "date > ./dist/BUILD_DATE"
   },
   "repository": {
     "type": "git",
