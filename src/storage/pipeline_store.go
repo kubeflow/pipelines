@@ -32,6 +32,7 @@ type PipelineStoreInterface interface {
 	ListPipelines() ([]model.Pipeline, error)
 	GetPipeline(id uint) (*model.Pipeline, error)
 	CreatePipeline(*model.Pipeline) (*model.Pipeline, error)
+	DeletePipeline(id uint) error
 	GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error)
 	EnablePipeline(id uint, enabled bool) error
 }
@@ -60,10 +61,17 @@ func (s *PipelineStore) GetPipeline(id uint) (*model.Pipeline, error) {
 		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}
 	if r.Error != nil {
-		// Error returns when no pipeline found.
 		return nil, util.NewInternalServerError(r.Error, "Failed to get pipeline: %v", r.Error.Error())
 	}
 	return &pipeline, nil
+}
+
+func (s *PipelineStore) DeletePipeline(id uint) error {
+	r := s.db.Exec(`DELETE FROM pipelines WHERE id=?`, id)
+	if r.Error != nil {
+		return util.NewInternalServerError(r.Error, "Failed to delete pipeline: %v", r.Error.Error())
+	}
+	return nil
 }
 
 func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {

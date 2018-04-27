@@ -24,6 +24,7 @@ import (
 	"ml/src/model"
 	"ml/src/storage"
 	"ml/src/util"
+	"net/http"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -117,6 +118,10 @@ func (s *FakeBadPipelineStore) ListPipelines() ([]model.Pipeline, error) {
 
 func (s *FakeBadPipelineStore) GetPipeline(id uint) (*model.Pipeline, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad pipeline store")
+}
+
+func (s *FakeBadPipelineStore) DeletePipeline(id uint) error {
+	return util.NewInternalServerError(errors.New("Error"), "bad pipeline store")
 }
 
 func (s *FakeBadPipelineStore) CreatePipeline(*model.Pipeline) (*model.Pipeline, error) {
@@ -317,8 +322,6 @@ func TestListPipelines(t *testing.T) {
 	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline2", 2))
 	e := httptest.New(t, initApiHandlerTest(nil, nil, store.PipelineStore(), nil))
 
-	store.PipelineStore().ListPipelines()
-
 	response := e.GET("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusOK)
 	expectedResponse := []api.Pipeline{
 		createPipelineExpected1(),
@@ -366,6 +369,23 @@ func TestGetPipeline_NotFound(t *testing.T) {
 
 	e.GET("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusNotFound).
 		Body().Contains("Pipeline 1 not found")
+}
+
+func TestDeletePipeline(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
+	e := httptest.New(t, initApiHandlerTest(nil, nil, store.PipelineStore(), nil))
+
+	e.DELETE("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusOK)
+	_, err := store.PipelineStore().GetPipeline(1)
+	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestDeletePipeline_InternalError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakeBadPipelineStore{}, nil))
+	e.DELETE("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusInternalServerError).
+		Body().Equal("InternalServerError: bad pipeline store: Error")
 }
 
 func TestCreatePipeline_NoSchedule(t *testing.T) {
@@ -562,6 +582,7 @@ func TestEnablePipelineNotFound(t *testing.T) {
 func TestListJobs(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
+	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
 	jobDetail1, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Nil(t, err)
@@ -575,7 +596,7 @@ func TestListJobs(t *testing.T) {
 			Name:             jobDetail1.Job.Name,
 			ScheduledAtInSec: defaultScheduledAtInSec,
 		}}
-	e := httptest.New(t, initApiHandlerTest(nil, store.JobStore(), nil, nil))
+	e := httptest.New(t, initApiHandlerTest(nil, store.JobStore(), store.PipelineStore(), nil))
 
 	response := e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK)
 	var actual []api.Job
@@ -583,16 +604,26 @@ func TestListJobs(t *testing.T) {
 	assert.Equal(t, expectedResponse, actual)
 }
 
-func TestListJobsReturnError(t *testing.T) {
-	e := httptest.New(t, initApiHandlerTest(nil, &FakeBadJobStore{}, nil, nil))
+func TestListJobs_PipelineStoreInternalError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(nil, &FakeBadJobStore{}, &FakeBadPipelineStore{}, nil))
 
 	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusInternalServerError).
-		Body().Equal("InternalServerError: bad job store: Error")
+		Body().Contains("InternalServerError: bad pipeline store: Error")
+}
+
+func TestListJobs_PipelineNotFound(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	e := httptest.New(t, initApiHandlerTest(nil, store.JobStore(), store.PipelineStore(), nil))
+	e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusNotFound).
+		Body().Contains("Pipeline 1 not found")
 }
 
 func TestGetJob(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
+	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
+
 	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Nil(t, err)
@@ -616,6 +647,7 @@ func TestGetJob(t *testing.T) {
 func TestGetJob_InternalError(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
+	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), &FakeBadJobStore{},
 		store.PipelineStore(), storage.NewFakePackageManager()))
 
@@ -623,12 +655,23 @@ func TestGetJob_InternalError(t *testing.T) {
 		Body().Equal("InternalServerError: bad job store: Error")
 }
 
-func TestGetJob_NotFound(t *testing.T) {
+func TestGetJob_JobNotFound(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
+		store.PipelineStore(), storage.NewFakePackageManager()))
+
+	e.GET("/apis/v1alpha1/pipelines/1/jobs/wf1").Expect().Status(httptest.StatusNotFound).
+		Body().Contains("Job wf1 not found")
+}
+
+func TestGetJob_PipelineNotFound(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
 		store.PipelineStore(), storage.NewFakePackageManager()))
 
 	e.GET("/apis/v1alpha1/pipelines/1/jobs/wf1").Expect().Status(httptest.StatusNotFound).
-		Body().Contains("Job wf1 not found")
+		Body().Contains("Pipeline 1 not found")
 }

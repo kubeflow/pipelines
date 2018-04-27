@@ -71,6 +71,10 @@ func (r *ResourceManager) GetPipeline(id uint) (*model.Pipeline, error) {
 	return r.pipelineStore.GetPipeline(id)
 }
 
+func (r *ResourceManager) DeletePipeline(id uint) error {
+	return r.pipelineStore.DeletePipeline(id)
+}
+
 func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error) {
 	// Verify the package exists
 	pkg, err := r.packageStore.GetPackage(pipeline.PackageId)
@@ -181,9 +185,18 @@ func (r *ResourceManager) EnablePipeline(pipelineID uint, enabled bool) error {
 }
 
 func (r *ResourceManager) GetJob(pipelineId uint, jobName string) (*model.JobDetail, error) {
+	_, err := r.pipelineStore.GetPipeline(pipelineId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get job failed")
+	}
 	return r.jobStore.GetJob(pipelineId, jobName)
 }
+
 func (r *ResourceManager) ListJobs(pipelineId uint) ([]model.Job, error) {
+	_, err := r.pipelineStore.GetPipeline(pipelineId)
+	if err != nil {
+		return nil, util.Wrap(err, "List jobs failed")
+	}
 	return r.jobStore.ListJobs(pipelineId)
 }
 

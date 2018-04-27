@@ -259,3 +259,73 @@ func TestCreateJobFromPipelineIDGetPackageError(t *testing.T) {
 	_, err = manager.CreateJobFromPipelineID(1, scheduledAtInSec)
 	assert.Contains(t, err.Error(), "Could not get the package from the package ID")
 }
+
+func TestListJob(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+
+	pipeline := &model.Pipeline{
+		Name:      "MY_PIPELINE",
+		PackageId: 1}
+	pipeline, err := manager.CreatePipeline(pipeline)
+	assert.Nil(t, err, "There should not be an error: %v", err)
+
+	jobs, err := manager.ListJobs(pipeline.ID)
+	jobsExpected := []model.Job{{
+		CreatedAtInSec:   4,
+		UpdatedAtInSec:   5,
+		Name:             "123e4567-e89b-12d3-a456-426655440000",
+		Status:           model.JobExecutionPending,
+		ScheduledAtInSec: 3,
+		PipelineID:       1,
+	}}
+
+	assert.Equal(t, jobsExpected, jobs)
+}
+
+func TestListJob_PipelineNotFoundError(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	_, err := manager.ListJobs(1)
+	assert.Contains(t, err.Error(), "Pipeline 1 not found")
+}
+
+func TestGetJob(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageManager().CreatePackageFile([]byte(""), "pkg1")
+
+	pipeline := &model.Pipeline{
+		Name:      "MY_PIPELINE",
+		PackageId: 1}
+	pipeline, err := manager.CreatePipeline(pipeline)
+	assert.Nil(t, err, "There should not be an error: %v", err)
+
+	job, err := manager.GetJob(pipeline.ID, "123e4567-e89b-12d3-a456-426655440000")
+	jobExpected := &model.Job{
+		CreatedAtInSec:   4,
+		UpdatedAtInSec:   5,
+		Name:             "123e4567-e89b-12d3-a456-426655440000",
+		Status:           model.JobExecutionPending,
+		ScheduledAtInSec: 3,
+		PipelineID:       1,
+	}
+	assert.Equal(t, jobExpected, job.Job)
+	assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", job.Workflow.Name)
+}
+
+func TestGetJob_PipelineNotFoundError(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	_, err := manager.GetJob(1, "foo")
+	assert.Contains(t, err.Error(), "Pipeline 1 not found")
+}

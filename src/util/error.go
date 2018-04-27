@@ -33,10 +33,10 @@ type UserError struct {
 }
 
 func newUserError(internalError error, externalMessage string,
-		externalStatusCode int) *UserError {
+	externalStatusCode int) *UserError {
 	return &UserError{
-		internalError: internalError,
-		externalMessage: externalMessage,
+		internalError:      internalError,
+		externalMessage:    externalMessage,
 		externalStatusCode: externalStatusCode,
 	}
 }
@@ -141,7 +141,7 @@ func Wrap(err error, message string) error {
 
 	switch err.(type) {
 	case *UserError:
-		return err.(*UserError).wrapf(message)
+		return err.(*UserError).wrap(message)
 	default:
 		return errors.Wrapf(err, message)
 	}

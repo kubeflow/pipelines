@@ -24,6 +24,8 @@ import (
 
 	"io/ioutil"
 
+	"net/http"
+
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -67,12 +69,12 @@ func (suite *OneTimePipelineTestSuite) TestOneTimePipeline() {
 	/* ---------- Verify no package exist ---------- */
 	response, err := clientSet.RESTClient().Get().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages")).Do().Raw()
-	checkPackageInitialState(t, response, err)
+	checkNoPackageExists(t, response, err)
 
 	/* ---------- Verify no pipeline exist ---------- */
 	response, err = clientSet.RESTClient().Get().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines")).Do().Raw()
-	checkPipelineInitialState(t, response, err)
+	checkNoPipelineExists(t, response, err)
 
 	/* ---------- Upload a package ---------- */
 	requestStartTime := time.Now().Unix()
@@ -140,21 +142,45 @@ func (suite *OneTimePipelineTestSuite) TestOneTimePipeline() {
 	if err != nil {
 		assert.Fail(t, "The job doesn't complete. Error: <%s>", err.Error())
 	}
+
+	/* ---------- Verify delete pipeline works ---------- */
+	var statusCode int
+	clientSet.RESTClient().Delete().
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines/1")).Do().StatusCode(&statusCode)
+	assert.Equal(t, http.StatusOK, statusCode)
+
+	/* ---------- Verify no pipeline exist ---------- */
+	response, err = clientSet.RESTClient().Get().
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines")).Do().Raw()
+	checkNoPipelineExists(t, response, err)
+
+	/* ---------- Verify can't retrieve the job ---------- */
+	clientSet.RESTClient().Get().
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines/1/jobs/"+jobName)).Do().StatusCode(&statusCode)
+	assert.Equal(t, http.StatusNotFound, statusCode)
 }
 
-func checkPackageInitialState(t *testing.T, response []byte, err error) {
+func checkNoPackageExists(t *testing.T, response []byte, err error) {
 	assert.Nil(t, err)
 	var pkgs []api.Package
 	util.UnmarshalOrFail(string(response), &pkgs)
 	assert.Empty(t, pkgs)
 }
 
-func checkPipelineInitialState(t *testing.T, response []byte, err error) {
+func checkNoPipelineExists(t *testing.T, response []byte, err error) {
 	assert.Nil(t, err)
 	var pipelines []api.Package
 	util.UnmarshalOrFail(string(response), &pipelines)
 	assert.Empty(t, pipelines)
 }
+
+func checkNoJobExists(t *testing.T, response []byte, err error) {
+	assert.Nil(t, err)
+	var jobs []api.Job
+	util.UnmarshalOrFail(string(response), &jobs)
+	assert.Empty(t, jobs)
+}
+
 func checkUpdatePackageResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var pkg api.Package

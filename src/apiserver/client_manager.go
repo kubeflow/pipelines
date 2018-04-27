@@ -112,8 +112,6 @@ func initDBClient() *gorm.DB {
 	switch driverName {
 	case "mysql":
 		arg = initMysql(driverName)
-	case "sqlite3":
-		arg = getConfig("DBConfig.DataSourceName")
 	default:
 		glog.Fatalf("Driver %v is not supported", driverName)
 	}
@@ -124,8 +122,18 @@ func initDBClient() *gorm.DB {
 	util.TerminateIfError(err)
 
 	// Create table
-	db.AutoMigrate(&model.Package{}, &model.Pipeline{},
+	response := db.AutoMigrate(&model.Package{}, &model.Pipeline{},
 		&model.Parameter{}, &model.Job{})
+	if response.Error != nil {
+		glog.Fatalf("Failed to initialize the databases.")
+	}
+
+	// Create a foreign key so deleting a pipeline will delete all jobs associated with it.
+	response = db.Model(&model.Job{}).
+		AddForeignKey("pipeline_id", "pipelines(id)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	if response.Error != nil {
+		glog.Fatalf("Failed to create a foreign key for pipelineId in job table.")
+	}
 	return db
 }
 

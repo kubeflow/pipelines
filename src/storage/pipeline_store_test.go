@@ -100,6 +100,26 @@ func TestGetPipeline_InternalError(t *testing.T) {
 		"Expected get pipeline to return internal error")
 }
 
+func TestDeletePipeline(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
+
+	err := store.PipelineStore().DeletePipeline(1)
+	assert.Nil(t, err)
+	_, err = store.PipelineStore().GetPipeline(1)
+	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestDeletePipeline_InternalError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB().Close()
+	err := store.PipelineStore().DeletePipeline(1)
+	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+		"Expected delete pipeline to return internal error")
+}
+
 func TestCreatePipeline(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()

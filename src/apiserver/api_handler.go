@@ -38,9 +38,10 @@ const (
 	uploadPackage = "/packages/upload"
 	getTemplate   = "/packages/{packageID:long min(1)}/templates"
 
+	createPipeline  = "/pipelines"
 	listPipelines   = "/pipelines"
 	getPipeline     = "/pipelines/{pipelineID:long min(1)}"
-	createPipeline  = "/pipelines"
+	deletePipeline  = "/pipelines/{pipelineID:long min(1)}"
 	enablePipeline  = "/pipelines/{pipelineID:long min(1)}/enable"
 	disablePipeline = "/pipelines/{pipelineID:long min(1)}/disable"
 
@@ -186,6 +187,21 @@ func (a APIHandler) CreatePipeline(ctx iris.Context) (apiResponse, error) {
 	return api.ToApiPipeline(newPipeline), nil
 }
 
+func (a APIHandler) DeletePipeline(ctx iris.Context) (apiResponse, error) {
+	glog.Infof("Delete pipeline called")
+	pipelineID, err := getInt64ID(ctx, "pipelineID")
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.resourceManager.DeletePipeline(uint(pipelineID))
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 func (a APIHandler) EnablePipeline(ctx iris.Context) (apiResponse, error) {
 	return a.enablePipeline(ctx, true)
 }
@@ -279,6 +295,7 @@ func newApp(clientManager ClientManager) *iris.Application {
 	apiRouter.Options(createPipeline, func(iris.Context) {})
 	apiRouter.Post(enablePipeline, newHandler(apiHandler.EnablePipeline))
 	apiRouter.Post(disablePipeline, newHandler(apiHandler.DisablePipeline))
+	apiRouter.Delete(deletePipeline, newHandler(apiHandler.DeletePipeline))
 
 	// Jobs
 	apiRouter.Get(listJobs, newHandler(apiHandler.ListJobs))
