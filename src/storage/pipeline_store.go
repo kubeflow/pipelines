@@ -121,7 +121,7 @@ func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
 			enabled_at_in_sec = ?, 
 			updated_at_in_sec = ?  
 		WHERE 
-			"pipelines".id = ?`, enabled, now, now, id)
+			id = ?`, enabled, now, now, id)
 
 	if tx.Error != nil {
 		tx.Rollback()
