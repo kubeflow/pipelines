@@ -51,7 +51,7 @@ export class JobGraph extends Polymer.Element {
   @property({ type: Array })
   protected _workflowEdges: Edge[] = [];
 
-  refresh(graph: ArgoTemplate) {
+  refresh(graph: ArgoTemplate): void {
     // Ensure that we're working with an empty array.
     this._workflowEdges = [];
 
@@ -135,7 +135,7 @@ export class JobGraph extends Polymer.Element {
     });
   }
 
-  protected _getNodeCssClass(node: NodeStatus) {
+  protected _getNodeCssClass(node: NodeStatus): string {
     return this._isVirtual(node) ? 'virtual-node' : 'pipeline-node';
   }
 
@@ -162,7 +162,7 @@ export class JobGraph extends Polymer.Element {
   // Returns whether or not the given node is one of the intermediate nodes used
   // by Argo to orchestrate the workflow. Such nodes are not generally
   // meaningful from a user's perspective.
-  private _isVirtual(node: NodeStatus) {
+  private _isVirtual(node: NodeStatus): boolean {
     return (node.type === 'StepGroup' || node.type === 'DAG') && !!node.boundaryID;
   }
 }

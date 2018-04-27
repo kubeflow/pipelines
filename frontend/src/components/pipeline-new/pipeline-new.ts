@@ -41,7 +41,8 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   @property({ type: Number })
   protected _packageIndex = -1;
 
-  @property({ computed: '_updateDeployButtonState(newPipeline.name, _scheduleIsValid)', type: Boolean })
+  @property({ computed: '_updateDeployButtonState(newPipeline.name, _scheduleIsValid)',
+    type: Boolean })
   protected _inputIsValid = true;
 
   @property({ type: Boolean})
@@ -51,7 +52,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   protected _overwriteData?: NewPipelineData;
 
   public async load(_: string, queryParams: NewPipelineQueryParams,
-                    pipelineData?: NewPipelineData) {
+                    pipelineData?: NewPipelineData): Promise<void> {
     this._busy = true;
     this._overwriteData = pipelineData;
     const packageList = this.$.packagesListbox as any;
@@ -103,18 +104,18 @@ export class PipelineNew extends Polymer.Element implements PageElement {
                                       this._scheduleValidationUpdated.bind(this));
   }
 
-  protected _scheduleValidationUpdated() {
+  protected _scheduleValidationUpdated(): void {
     const pipelineSchedule = this.$.schedule as PipelineSchedule;
     this._scheduleIsValid = pipelineSchedule.scheduleIsValid;
   }
 
   // Sets Disabled attribute. true === enabled, false === disabled
-  protected _updateDeployButtonState(pipelineName: string, scheduleIsValid: boolean) {
-    return pipelineName && scheduleIsValid;
+  protected _updateDeployButtonState(pipelineName: string, scheduleIsValid: boolean): boolean {
+    return !!pipelineName && scheduleIsValid;
   }
 
   @observe('_packageIndex')
-  protected _packageIndexChanged(newIndex: number) {
+  protected _packageIndexChanged(newIndex: number): void {
     if (newIndex === undefined || this.packages === undefined) {
       return;
     }
@@ -123,11 +124,11 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     this.set('newPipeline.parameters', pkg.parameters);
   }
 
-  protected _altUpload() {
+  protected _altUpload(): void {
     (this.$.altFileUpload as HTMLInputElement).click();
   }
 
-  protected async _upload() {
+  protected async _upload(): Promise<void> {
     const files = (this.$.altFileUpload as HTMLInputElement).files;
 
     if (!files) {
@@ -145,7 +146,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     (this.$.altFileUpload as HTMLInputElement).value = '';
   }
 
-  protected async _deploy() {
+  protected async _deploy(): Promise<void> {
     // TODO: The frontend shouldn't really be sending this, but currently the
     // backend breaks if it receives an empty string, undefined, or null.
     this.newPipeline.createdAt = new Date().toISOString();

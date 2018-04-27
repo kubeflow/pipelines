@@ -64,7 +64,7 @@ export async function getPipeline(id: number): Promise<Pipeline> {
 /**
  * Sends a new pipeline request to the backend.
  */
-export async function newPipeline(pipeline: Pipeline) {
+export async function newPipeline(pipeline: Pipeline): Promise<Pipeline> {
   const response = await fetch(apisPrefix + '/pipelines', {
     body: JSON.stringify(pipeline),
     cache: 'no-cache',
@@ -79,7 +79,7 @@ export async function newPipeline(pipeline: Pipeline) {
 /**
  * Sends an enable pipeline request to the backend.
  */
-export async function enablePipeline(id: number) {
+export async function enablePipeline(id: number): Promise<string> {
   const response = await fetch(apisPrefix + `/pipelines/${id}/enable`, {
     cache: 'no-cache',
     headers: {
@@ -97,7 +97,7 @@ export async function enablePipeline(id: number) {
 /**
  * Sends a disable pipeline request to the backend.
  */
-export async function disablePipeline(id: number) {
+export async function disablePipeline(id: number): Promise<string> {
   const response = await fetch(apisPrefix + `/pipelines/${id}/disable`, {
     cache: 'no-cache',
     headers: {
@@ -159,7 +159,7 @@ export async function getTensorboardApp(logdir: string): Promise<string> {
 /**
  * Starts a deployment and service for Tensorboard given the logdir
  */
-export async function startTensorboardApp(logdir: string) {
+export async function startTensorboardApp(logdir: string): Promise<string> {
   const response = await fetch(apisPrefix +
     `/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`, {
     headers: {

@@ -35,7 +35,8 @@ export interface Artifact {
      */
     http?: HTTPArtifact;
     /**
-     * mode bits to use on this file, must be a value between 0 and 0777 set when loading input artifacts.
+     * mode bits to use on this file, must be a value between 0 and 0777 set
+     * when loading input artifacts.
      */
     mode?: number;
     /**
@@ -56,9 +57,10 @@ export interface Artifact {
     s3?: S3Artifact;
 }
 /**
- * ArtifactLocation describes a location for a single or multiple artifacts.
- * It is used as single artifact in the context of inputs/outputs (e.g. outputs.artifacts.artname).
- * It is also used to describe the location of multiple artifacts such as the archive location of a single workflow step,
+ * ArtifactLocation describes a location for a single or multiple artifacts. It
+ * is used as single artifact in the context of inputs/outputs (e.g.
+ * outputs.artifacts.artname). It is also used to describe the location of
+ * multiple artifacts such as the archive location of a single workflow step,
  * which the executor will use as a default location to store its files.
  */
 export interface ArtifactLocation {
@@ -189,7 +191,9 @@ export interface Parameter {
      */
     name: string;
     /**
-     * Value is the literal value to use for the parameter. If specified in the context of an input parameter, the value takes precedence over any passed values
+     * Value is the literal value to use for the parameter. If specified in the
+     * context of an input parameter, the value takes precedence over any
+     * passed values
      */
     value?: string;
     /**
@@ -211,11 +215,13 @@ export interface RawArtifact {
  */
 export interface ResourceTemplate {
     /**
-     * Action is the action to perform to the resource. Must be one of: get, create, apply, delete, replace
+     * Action is the action to perform to the resource. Must be one of: get,
+     * create, apply, delete, replace
      */
     action: string;
     /**
-     * FailureCondition is a label selector expression which describes the conditions of the k8s resource in which the step was considered failed
+     * FailureCondition is a label selector expression which describes the
+     * conditions of the k8s resource in which the step was considered failed
      */
     failureCondition?: string;
     /**
@@ -223,7 +229,9 @@ export interface ResourceTemplate {
      */
     manifest: string;
     /**
-     * SuccessCondition is a label selector expression which describes the conditions of the k8s resource in which it is acceptable to proceed to the following step
+     * SuccessCondition is a label selector expression which describes the
+     * conditions of the k8s resource in which it is acceptable to proceed to
+     * the following step
      */
     successCondition?: string;
 }
@@ -333,11 +341,13 @@ export interface Sidecar {
     args?: string[];
 
     /**
-     * Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided.
-     * Variable references $(VAR_NAME) are expanded using the container's environment.
-     * If a variable cannot be resolved, the reference in the input string will be unchanged.
-     * The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded,
-     * regardless of whether the variable exists or not. Cannot be updated.
+     * Entrypoint array. Not executed within a shell. The docker image's
+     * ENTRYPOINT is used if this is not provided. Variable references
+     * $(VAR_NAME) are expanded using the container's environment. If a
+     * variable cannot be resolved, the reference in the input string will be
+     * unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie:
+     * $$(VAR_NAME). Escaped references will never be expanded, regardless of
+     * whether the variable exists or not. Cannot be updated.
      *
      */
     command?: string[];
@@ -346,9 +356,12 @@ export interface Sidecar {
      */
     env?: kubernetes.EnvVar[];
     /**
-     * List of sources to populate environment variables in the container. The keys defined within a source must be a C_IDENTIFIER.
-     * All invalid keys will be reported as an event when the container is starting. When a key exists in multiple sources,
-     * the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Cannot be updated.
+     * List of sources to populate environment variables in the container. The
+     * keys defined within a source must be a C_IDENTIFIER. All invalid keys
+     * will be reported as an event when the container is starting. When a key
+     * exists in multiple sources, the value associated with the last source
+     * will take precedence. Values defined by an Env with a duplicate key will
+     * take precedence. Cannot be updated.
      */
     envFrom?: kubernetes.EnvFromSource[];
     /**
@@ -357,11 +370,13 @@ export interface Sidecar {
     image?: string;
 
     /**
-     * Image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+     * Image pull policy. One of Always, Never, IfNotPresent. Defaults to
+     * Always if :latest tag is specified, or IfNotPresent otherwise.
      */
     imagePullPolicy?: string;
     /**
-     * Actions that the management system should take in response to container lifecycle events. Cannot be updated.
+     * Actions that the management system should take in response to container
+     * lifecycle events. Cannot be updated.
      */
     lifecycle?: kubernetes.Lifecycle;
 
@@ -371,23 +386,30 @@ export interface Sidecar {
      */
     livenessProbe?: kubernetes.Probe;
     /**
-     * MirrorVolumeMounts will mount the same volumes specified in the main container to the sidecar (including artifacts), at the same mountPaths.
-     * This enables dind daemon to partially see the same filesystem as the main container in order to use features such as docker volume binding
+     * MirrorVolumeMounts will mount the same volumes specified in the main
+     * container to the sidecar (including artifacts), at the same mountPaths.
+     * This enables dind daemon to partially see the same filesystem as the
+     * main container in order to use features such as docker volume binding
      */
     mirrorVolumeMounts?: boolean;
     /**
-     * Name of the container specified as a DNS_LABEL. Each container in a pod must have a unique name (DNS_LABEL). Cannot be updated.
+     * Name of the container specified as a DNS_LABEL. Each container in a pod
+     * must have a unique name (DNS_LABEL). Cannot be updated.
      */
     name: string;
     /**
-     * List of ports to expose from the container. Exposing a port here gives the system additional information about the network connections a container uses,
-     * but is primarily informational. Not specifying a port here DOES NOT prevent that port from being exposed.
-     * Any port which is listening on the default \"0.0.0.0\" address inside a container will be accessible from the network. Cannot be updated.
+     * List of ports to expose from the container. Exposing a port here gives
+     * the system additional information about the network connections a
+     * container uses, but is primarily informational. Not specifying a port
+     * here DOES NOT prevent that port from being exposed. Any port which is
+     * listening on the default \"0.0.0.0\" address inside a container will be
+     * accessible from the network. Cannot be updated.
      */
     ports?: kubernetes.ContainerPort[];
 
     /**
-     * Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails.
+     * Periodic probe of container service readiness. Container will be removed
+     * from service endpoints if the probe fails.
      */
     readinessProbe?: kubernetes.Probe;
     /**
@@ -399,39 +421,51 @@ export interface Sidecar {
      */
     securityContext?: kubernetes.SecurityContext;
     /**
-     * Whether this container should allocate a buffer for stdin in the container runtime.
-     * If this is not set, reads from stdin in the container will always result in EOF. Default is false.
+     * Whether this container should allocate a buffer for stdin in the
+     * container runtime. If this is not set, reads from stdin in the container
+     * will always result in EOF. Default is false.
      */
     stdin?: boolean;
     /**
-     * Whether the container runtime should close the stdin channel after it has been opened by a single attach.
-     * When stdin is true the stdin stream will remain open across multiple attach sessions.
-     * If stdinOnce is set to true, stdin is opened on container start, is empty until the first client attaches to stdin,
-     * and then remains open and accepts data until the client disconnects, at which time stdin is closed and remains closed until the container is restarted.
-     * If this flag is false, a container processes that reads from stdin will never receive an EOF. Default is false
+     * Whether the container runtime should close the stdin channel after it
+     * has been opened by a single attach. When stdin is true the stdin stream
+     * will remain open across multiple attach sessions. If stdinOnce is set to
+     * true, stdin is opened on container start, is empty until the first
+     * client attaches to stdin, and then remains open and accepts data until
+     * the client disconnects, at which time stdin is closed and remains closed
+     * until the container is restarted. If this flag is false, a container
+     * processes that reads from stdin will never receive an EOF. Default is
+     * false
      */
     stdinOnce?: boolean;
 
     /**
-     * Optional: Path at which the file to which the container's termination message will be written is mounted into the container's filesystem.
-     * Message written is intended to be brief final status, such as an assertion failure message.
-     * Will be truncated by the node if greater than 4096 bytes. The total message length across all containers will be limited to 12kb.
-     * Defaults to /dev/termination-log. Cannot be updated.
+     * Optional: Path at which the file to which the container's termination
+     * message will be written is mounted into the container's filesystem.
+     * Message written is intended to be brief final status, such as an
+     * assertion failure message. Will be truncated by the node if greater than
+     * 4096 bytes. The total message length across all containers will be
+     * limited to 12kb. Defaults to /dev/termination-log. Cannot be updated.
      */
     terminationMessagePath?: string;
     /**
-     * Indicate how the termination message should be populated. File will use the contents of terminationMessagePath
-     * to populate the container status message on both success and failure. FallbackToLogsOnError will use the last chunk of container log output
-     * if the termination message file is empty and the container exited with an error.
-     * The log output is limited to 2048 bytes or 80 lines, whichever is smaller. Defaults to File. Cannot be updated.
+     * Indicate how the termination message should be populated. File will use
+     * the contents of terminationMessagePath to populate the container status
+     * message on both success and failure. FallbackToLogsOnError will use the
+     * last chunk of container log output if the termination message file is
+     * empty and the container exited with an error. The log output is limited
+     * to 2048 bytes or 80 lines, whichever is smaller. Defaults to File.
+     * Cannot be updated.
      */
     terminationMessagePolicy?: string;
     /**
-     * Whether this container should allocate a TTY for itself, also requires 'stdin' to be true. Default is false.
+     * Whether this container should allocate a TTY for itself, also requires
+     * 'stdin' to be true. Default is false.
      */
     tty?: boolean;
     /**
-     * volumeDevices is the list of block devices to be used by the container. This is an alpha feature and may change in the future.
+     * volumeDevices is the list of block devices to be used by the container.
+     * This is an alpha feature and may change in the future.
      */
     volumeDevices?: kubernetes.VolumeDevice[];
     /**
@@ -439,17 +473,22 @@ export interface Sidecar {
      */
     volumeMounts?: kubernetes.VolumeMount[];
     /**
-     * Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image. Cannot be updated.
+     * Container's working directory. If not specified, the container runtime's
+     * default will be used, which might be configured in the container image.
+     * Cannot be updated.
      */
     workingDir?: string;
 }
 /**
- * SidecarOptions provide a way to customize the behavior of a sidecar and how it affects the main container.
+ * SidecarOptions provide a way to customize the behavior of a sidecar and how
+ * it affects the main container.
  */
 export interface SidecarOptions {
     /**
-     * MirrorVolumeMounts will mount the same volumes specified in the main container to the sidecar (including artifacts), at the same mountPaths.
-     * This enables dind daemon to partially see the same filesystem as the main container in order to use features such as docker volume binding
+     * MirrorVolumeMounts will mount the same volumes specified in the main
+     * container to the sidecar (including artifacts), at the same mountPaths.
+     * This enables dind daemon to partially see the same filesystem as the
+     * main container in order to use features such as docker volume binding
      */
     mirrorVolumeMounts?: boolean;
 }
@@ -459,18 +498,22 @@ export interface SidecarOptions {
  */
 export interface Template {
     /**
-     * Optional duration in seconds relative to the StartTime that the pod may be active on a node before the system actively tries to terminate the pod;
-     * value must be positive integer This field is only applicable to container and script templates.
+     * Optional duration in seconds relative to the StartTime that the pod may
+     * be active on a node before the system actively tries to terminate the
+     * pod; value must be positive integer This field is only applicable to
+     * container and script templates.
      */
     activeDeadlineSeconds?: number;
     /**
-     * Affinity sets the pod's scheduling constraints Overrides the affinity set at the workflow level (if any)
+     * Affinity sets the pod's scheduling constraints Overrides the affinity
+     * set at the workflow level (if any)
      */
     affinity?: kubernetes.Affinity;
     /**
-     * Location in which all files related to the step will be stored (logs, artifacts, etc...).
-     * Can be overridden by individual items in Outputs.
-     * If omitted, will use the default artifact repository location configured in the controller, appended with the <workflowname>/<nodename> in the key.
+     * Location in which all files related to the step will be stored (logs,
+     * artifacts, etc...). Can be overridden by individual items in Outputs. If
+     * omitted, will use the default artifact repository location configured in
+     * the controller, appended with the <workflowname>/<nodename> in the key.
      */
     archiveLocation?: ArtifactLocation;
     /**
@@ -478,7 +521,8 @@ export interface Template {
      */
     container?: kubernetes.Container;
     /**
-     * Deamon will allow a workflow to proceed to the next step so long as the container reaches readiness
+     * Deamon will allow a workflow to proceed to the next step so long as the
+     * container reaches readiness
      */
     daemon?: boolean;
     /**
@@ -490,7 +534,9 @@ export interface Template {
      */
     name: string;
     /**
-     * NodeSelector is a selector to schedule this step of the workflow to be run on the selected node(s). Overrides the selector set at the workflow level.
+     * NodeSelector is a selector to schedule this step of the workflow to be
+     * run on the selected node(s). Overrides the selector set at the workflow
+     * level.
      */
     nodeSelector?: { [key: string]: string; };
     /**
@@ -510,7 +556,8 @@ export interface Template {
      */
     script?: Script;
     /**
-     * Sidecars is a list of containers which run alongside the main container Sidecars are automatically killed when the main container completes
+     * Sidecars is a list of containers which run alongside the main container
+     * Sidecars are automatically killed when the main container completes
      */
     sidecars?: Sidecar[];
     /**
@@ -536,7 +583,8 @@ export interface ValueFrom {
      */
     jsonPath?: string;
     /**
-     * Parameter reference to a step or dag task in which to retrieve an output parameter value from (e.g. '{{steps.mystep.outputs.myparam}}')
+     * Parameter reference to a step or dag task in which to retrieve an output
+     * parameter value from (e.g. '{{steps.mystep.outputs.myparam}}')
      */
     parameter?: string;
     /**
@@ -551,11 +599,14 @@ export interface ValueFrom {
 export interface Workflow {
     /**
      * APIVersion defines the versioned schema of this representation of an object.
-     * Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values.
+     * Servers should convert recognized schemas to the latest internal value,
+     * and may reject unrecognized values.
      */
     apiVersion?: string;
     /**
-     * Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to.
+     * Kind is a string value representing the REST resource this object
+     * represents. Servers may infer this from the endpoint the client submits
+     * requests to.
      * Cannot be updated. In CamelCase.
      */
     kind?: string;
@@ -574,7 +625,8 @@ export interface NodeStatus {
     id: string;
 
     /**
-     * Display name is a human readable representation of the node. Unique within a template boundary
+     * Display name is a human readable representation of the node. Unique
+     * within a template boundary
      */
     displayName: string;
 
@@ -595,7 +647,8 @@ export interface NodeStatus {
     phase: NodePhase;
 
     /**
-     * BoundaryID indicates the node ID of the associated template root node in which this node belongs to
+     * BoundaryID indicates the node ID of the associated template root node in
+     * which this node belongs to
      */
     boundaryID: string;
 
@@ -637,26 +690,32 @@ export interface NodeStatus {
     children: string[];
 
     /**
-     * OutboundNodes tracks the node IDs which are considered "outbound" nodes to a template invocation.
-     * For every invocation of a template, there are nodes which we considered as "outbound". Essentially,
-     * these are last nodes in the execution sequence to run, before the template is considered completed.
-     * These nodes are then connected as parents to a following step.
+     * OutboundNodes tracks the node IDs which are considered "outbound" nodes
+     * to a template invocation. For every invocation of a template, there are
+     * nodes which we considered as "outbound". Essentially, these are last
+     * nodes in the execution sequence to run, before the template is
+     * considered completed. These nodes are then connected as parents to a
+     * following step.
      *
-     * In the case of single pod steps (i.e. container, script, resource templates), this list will be nil
-     * since the pod itself is already considered the "outbound" node.
-     * In the case of DAGs, outbound nodes are the "target" tasks (tasks with no children).
-     * In the case of steps, outbound nodes are all the containers involved in the last step group.
-     * NOTE: since templates are composable, the list of outbound nodes are carried upwards when
-     * a DAG/steps template invokes another DAG/steps template. In other words, the outbound nodes of
-     * a template, will be a superset of the outbound nodes of its last children.
+     * In the case of single pod steps (i.e. container, script, resource
+     * templates), this list will be nil since the pod itself is already
+     * considered the "outbound" node. In the case of DAGs, outbound nodes are
+     * the "target" tasks (tasks with no children). In the case of steps,
+     * outbound nodes are all the containers involved in the last step group.
+     * NOTE: since templates are composable, the list of outbound nodes are
+     * carried upwards when a DAG/steps template invokes another DAG/steps
+     * template. In other words, the outbound nodes of a template, will be a
+     * superset of the outbound nodes of its last children.
      */
     outboundNodes: string[];
     /**
-     * TemplateName is the template name which this node corresponds to. Not applicable to virtual nodes (e.g. Retry, StepGroup)
+     * TemplateName is the template name which this node corresponds to. Not
+     * applicable to virtual nodes (e.g. Retry, StepGroup)
      */
     templateName: string;
     /**
-     * Inputs captures input parameter values and artifact locations supplied to this template invocation
+     * Inputs captures input parameter values and artifact locations supplied
+     * to this template invocation
      */
     inputs: Inputs;
 }
@@ -692,7 +751,8 @@ export interface WorkflowStatus {
 export interface WorkflowList {
     /**
      * APIVersion defines the versioned schema of this representation of an object.
-     * Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values.
+     * Servers should convert recognized schemas to the latest internal value,
+     * and may reject unrecognized values.
      */
     apiVersion?: string;
     items: Workflow[];
@@ -709,12 +769,15 @@ export interface WorkflowList {
  */
 export interface WorkflowSpec {
     /**
-     * Affinity sets the scheduling constraints for all pods in the workflow. Can be overridden by an affinity specified in the template
+     * Affinity sets the scheduling constraints for all pods in the workflow.
+     * Can be overridden by an affinity specified in the template
      */
     affinity?: kubernetes.Affinity;
     /**
-     * Arguments contain the parameters and artifacts sent to the workflow entrypoint.
-     * Parameters are referencable globally using the 'workflow' variable prefix. e.g. {{workflow.parameters.myparam}}
+     * Arguments contain the parameters and artifacts sent to the workflow
+     * entrypoint.
+     * Parameters are referencable globally using the 'workflow' variable
+     * prefix. e.g. {{workflow.parameters.myparam}}
      */
     arguments?: Arguments;
     /**
@@ -722,18 +785,25 @@ export interface WorkflowSpec {
      */
     entrypoint: string;
     /**
-     * ImagePullSecrets is a list of references to secrets in the same namespace to use for pulling any images in pods that reference this ServiceAccount.
-     * ImagePullSecrets are distinct from Secrets because Secrets can be mounted in the pod, but ImagePullSecrets are only accessed by the kubelet.
+     * ImagePullSecrets is a list of references to secrets in the same
+     * namespace to use for pulling any images in pods that reference this
+     * ServiceAccount.
+     * ImagePullSecrets are distinct from Secrets because Secrets can be
+     * mounted in the pod, but ImagePullSecrets are only accessed by the
+     * kubelet.
      */
     imagePullSecrets?: kubernetes.LocalObjectReference[];
 
     /**
-     * NodeSelector is a selector which will result in all pods of the workflow to be scheduled on the selected node(s).
+     * NodeSelector is a selector which will result in all pods of the workflow
+     * to be scheduled on the selected node(s).
      * This is able to be overridden by a nodeSelector specified in the template.
      */
     nodeSelector?: { [key: string]: string; };
     /**
-     * OnExit is a template reference which is invoked at the end of the workflow, irrespective of the success, failure, or error of the primary workflow.
+     * OnExit is a template reference which is invoked at the end of the
+     * workflow, irrespective of the success, failure, or error of the primary
+     * workflow.
      */
     onExit?: string;
     /**
@@ -746,7 +816,8 @@ export interface WorkflowSpec {
     templates: Template[];
     /**
      * VolumeClaimTemplates is a list of claims that containers are allowed to reference.
-     * The Workflow controller will create the claims at the beginning of the workflow and delete the claims upon completion of the workflow
+     * The Workflow controller will create the claims at the beginning of the
+     * workflow and delete the claims upon completion of the workflow
      */
     volumeClaimTemplates?: kubernetes.PersistentVolumeClaim[];
     /**
@@ -815,9 +886,9 @@ export interface WorkflowStep {
 export type NodePhase = 'Running' | 'Succeeded' | 'Skipped' | 'Failed' | 'Error';
 
 export const NODE_PHASE = {
-  ERROR: 'Error',
-  FAILED: 'Failed',
-  RUNNING: 'Running',
-  SKIPPED: 'Skipped',
-  SUCCEEDED: 'Succeeded',
+    ERROR: 'Error',
+    FAILED: 'Failed',
+    RUNNING: 'Running',
+    SKIPPED: 'Skipped',
+    SUCCEEDED: 'Succeeded',
 };

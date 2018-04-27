@@ -7,7 +7,12 @@ import { customElement, property } from 'polymer-decorators/src/decorators';
 import { NodePhase } from '../../model/argo_template';
 import { ItemClickEvent, RouteEvent } from '../../model/events';
 import { JobMetadata } from '../../model/job';
-import { ColumnTypeName, ItemListColumn, ItemListElement, ItemListRow } from '../item-list/item-list';
+import {
+  ColumnTypeName,
+  ItemListColumn,
+  ItemListElement,
+  ItemListRow
+} from '../item-list/item-list';
 
 import './job-list.html';
 
@@ -27,14 +32,14 @@ export class JobList extends Polymer.Element {
 
   private _pipelineId = -1;
 
-  ready() {
+  ready(): void {
     super.ready();
     const itemList = this.$.jobsItemList as ItemListElement;
     itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
   }
 
   // TODO: should these jobs be cached?
-  public async loadJobs(pipelineId: number) {
+  public async loadJobs(pipelineId: number): Promise<void> {
     this._pipelineId = pipelineId;
     this.jobsMetadata = await Apis.getJobs(this._pipelineId);
 
@@ -51,21 +56,21 @@ export class JobList extends Polymer.Element {
     });
   }
 
-  protected _navigate(ev: ItemClickEvent) {
+  protected _navigate(ev: ItemClickEvent): void {
     const jobId = this.jobsMetadata[ev.detail.index].name;
     this.dispatchEvent(
       new RouteEvent(`/pipelineJob?pipelineId=${this._pipelineId}&jobId=${jobId}`));
   }
 
-  protected _paramsToArray(paramsObject: {}) {
+  protected _paramsToArray(paramsObject: {}): any[] {
     return Utils.objectToArray(paramsObject);
   }
 
-  protected _getStatusIcon(status: NodePhase) {
+  protected _getStatusIcon(status: NodePhase): string {
     return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRuntime(start: string, end: string, status: NodePhase) {
+  protected _getRuntime(start: string, end: string, status: NodePhase): string {
     if (!status) {
       return '-';
     }

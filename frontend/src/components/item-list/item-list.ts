@@ -64,10 +64,10 @@ export class ItemListRow {
    * and the icon attribute should be empty. If instead it's an icon name,
    * these two attributes should be reversed.
    */
-  get icon() { return this._hasLinkIcon() ? '' : this._icon; }
-  get src() { return this._hasLinkIcon() ? this._icon : ''; }
+  get icon(): string { return this._hasLinkIcon() ? '' : this._icon; }
+  get src(): string { return this._hasLinkIcon() ? this._icon : ''; }
 
-  private _hasLinkIcon() {
+  private _hasLinkIcon(): boolean {
     return this._icon.startsWith('http://') || this._icon.startsWith('https://');
   }
 }
@@ -147,7 +147,7 @@ export class ItemListElement extends Polymer.Element {
   };
   private _lastSelectedIndex = -1;
 
-  ready() {
+  ready(): void {
     super.ready();
 
     // Add box-shadow to header container on scroll
@@ -163,7 +163,7 @@ export class ItemListElement extends Polymer.Element {
     this._sortBy(0);
   }
 
-  resetFilter() {
+  resetFilter(): void {
     this._filterString = '';
   }
 
@@ -179,11 +179,11 @@ export class ItemListElement extends Polymer.Element {
     }
   }
 
-  _columnButtonClicked(e: any) {
+  _columnButtonClicked(e: any): void {
     this._sortBy(e.model.itemsIndex);
   }
 
-  _sortBy(column: number) {
+  _sortBy(column: number): void {
     // If sort is requested on the current sort column, reverse the sort order.
     // Otherwise, set the current sort column to that.
     if (this._currentSort.column === column) {
@@ -224,7 +224,7 @@ export class ItemListElement extends Polymer.Element {
   }
 
   @observe('rows', 'columns')
-  _updateSortIcons() {
+  _updateSortIcons(): void {
     // Make sure all elements have rendered.
     Polymer.flush();
     const iconEls = this.$.header.querySelectorAll('.sort-icon') as NodeListOf<HTMLElement>;
@@ -236,7 +236,7 @@ export class ItemListElement extends Polymer.Element {
     }
   }
 
-  _toggleFilter() {
+  _toggleFilter(): void {
     this._showFilterBox = !this._showFilterBox;
 
     // If the filter box is now visible, focus it.
@@ -248,7 +248,7 @@ export class ItemListElement extends Polymer.Element {
     }
   }
 
-  _computeFilter(filterString: string) {
+  _computeFilter(filterString: string): Function | null {
     if (!filterString) {
       // set filter to null to disable filtering
       return null;
@@ -256,8 +256,8 @@ export class ItemListElement extends Polymer.Element {
       // return a filter function for the current search string
       filterString = filterString.toLowerCase();
       return (item: ItemListRow) => {
-          const strVal = this._formatColumnValue(item.columns[0], 0, this.columns);
-          return strVal.toLowerCase().indexOf(filterString) > -1;
+        const strVal = this._formatColumnValue(item.columns[0], 0, this.columns);
+        return strVal.toLowerCase().indexOf(filterString) > -1;
       };
     }
   }
@@ -266,7 +266,7 @@ export class ItemListElement extends Polymer.Element {
    * Returns value for the computed property selectedIndices, which is the list
    * of indices of the currently selected items.
    */
-  _computeSelectedIndices() {
+  _computeSelectedIndices(): number[] {
     const selected: number[] = [];
     this.rows.forEach((row, i) => {
       if (row.selected) {
@@ -280,14 +280,14 @@ export class ItemListElement extends Polymer.Element {
    * Returns the value for the computed property isAllSelected, which is whether
    * all items in the list are selected.
    */
-  _computeIsAllSelected() {
+  _computeIsAllSelected(): boolean {
     return this.rows.length > 0 && this.rows.length === this.selectedIndices.length;
   }
 
   /**
    * Returns the value for the computed property hideCheckboxes.
    */
-  _computeHideCheckboxes(disableSelection: boolean, noMultiselect: boolean) {
+  _computeHideCheckboxes(disableSelection: boolean, noMultiselect: boolean): boolean {
     return disableSelection || noMultiselect;
   }
 
@@ -297,7 +297,7 @@ export class ItemListElement extends Polymer.Element {
    * @param index display index of item to select
    * @param single true if we are not being called in a bulk operation
    */
-  _selectItemByDisplayIndex(index: number, single?: boolean) {
+  _selectItemByDisplayIndex(index: number, single?: boolean): void {
     const realIndex = this._displayIndexToRealIndex(index);
     this._selectItemByRealIndex(realIndex, single);
   }
@@ -308,7 +308,7 @@ export class ItemListElement extends Polymer.Element {
    * @param index display index of item to unselect
    * @param single true if we are not being called in a bulk operation
    */
-  _unselectItemByDisplayIndex(index: number, single?: boolean) {
+  _unselectItemByDisplayIndex(index: number, single?: boolean): void {
     const realIndex = this._displayIndexToRealIndex(index);
     this._unselectItemByRealIndex(realIndex, single);
   }
@@ -316,7 +316,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * Selects an item in the list using its real index.
    */
-  _selectItemByRealIndex(realIndex: number, single?: boolean) {
+  _selectItemByRealIndex(realIndex: number, single?: boolean): void {
     if (this.rows[realIndex].selected && !single) {
       return;   // Avoid lots of useless work when no change.
     }
@@ -326,7 +326,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * Unselects an item in the list using its real index.
    */
-  _unselectItemByRealIndex(realIndex: number, single?: boolean) {
+  _unselectItemByRealIndex(realIndex: number, single?: boolean): void {
     if (!this.rows[realIndex].selected && !single) {
       return;   // Avoid lots of useless work when no change.
     }
@@ -336,7 +336,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * Selects all displayed items in the list.
    */
-  _selectAllDisplayedItems() {
+  _selectAllDisplayedItems(): void {
     const allElements = this.$.listContainer.querySelectorAll('paper-item') as NodeList;
     allElements.forEach((_, i) => this._selectItemByDisplayIndex(i));
   }
@@ -344,7 +344,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * Unselects all displayed items in the list.
    */
-  _unselectAllDisplayedItems() {
+  _unselectAllDisplayedItems(): void {
     const allElements = this.$.listContainer.querySelectorAll('paper-item') as NodeList;
     allElements.forEach((_, i) => this._unselectItemByDisplayIndex(i));
   }
@@ -352,7 +352,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * Selects all items in the list.
    */
-  _selectAll() {
+  _selectAll(): void {
     for (let i = 0; i < this.rows.length; ++i) {
       this._selectItemByRealIndex(i);
     }
@@ -361,7 +361,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * Unselects all items in the list.
    */
-  _unselectAll() {
+  _unselectAll(): void {
     for (let i = 0; i < this.rows.length; ++i) {
       this._unselectItemByRealIndex(i);
     }
@@ -370,7 +370,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * Called when the select/unselect all checkbox checked value is changed.
    */
-  _selectAllChanged() {
+  _selectAllChanged(): void {
     if ((this.$.selectAllCheckbox as HTMLInputElement).checked === true) {
       this._selectAllDisplayedItems();
     } else {
@@ -386,7 +386,7 @@ export class ItemListElement extends Polymer.Element {
    * original list that was submitted to the item-list element. These might be
    * different when filtering or sorting.
    */
-  _rowClicked(e: MouseEvent) {
+  _rowClicked(e: MouseEvent): void {
     if (this.disableSelection) {
       return;
     }
@@ -437,8 +437,9 @@ export class ItemListElement extends Polymer.Element {
   /**
    * On row double click, fires an event with the clicked item's index.
    */
-  _rowDoubleClicked(e: MouseEvent) {
-    const displayIndex = (this.$.list as Polymer.DomRepeat).indexForElement(e.target as HTMLElement) || 0;
+  _rowDoubleClicked(e: MouseEvent): void {
+    const displayIndex =
+      (this.$.list as Polymer.DomRepeat).indexForElement(e.target as HTMLElement) || 0;
     const realIndex = this._displayIndexToRealIndex(displayIndex);
     this.dispatchEvent(new ItemClickEvent('itemDoubleClick', { detail: {index: realIndex} }));
   }

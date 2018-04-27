@@ -17,7 +17,7 @@ export interface RocOptions {
  *   ...
  * ]
  */
-export function drawROC(config: RocOptions) {
+export function drawROC(config: RocOptions): void {
   const margin = config.margin;
   const width = config.width;
   const height = config.height;
@@ -104,7 +104,7 @@ export function drawROC(config: RocOptions) {
 
   // Provides an interactive dot and label that moves along the plot as the
   // mouse moves.
-  function mousemove() {
+  function mousemove(): void {
     // Convert the mouse's horizontal position into a value in the domain.
     const mouseX = x.invert(d3.mouse(svg.node() as any)[0]);
 

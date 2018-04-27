@@ -4,7 +4,7 @@ import { NODE_PHASE, NodePhase } from '../model/argo_template';
 import 'paper-toast/paper-toast';
 import '../components/message-dialog/message-dialog';
 
-export function deleteAllChildren(parent: HTMLElement) {
+export function deleteAllChildren(parent: HTMLElement): void {
   while (parent.firstChild) {
     parent.removeChild(parent.firstChild);
   }
@@ -21,7 +21,7 @@ export const log = {
   },
 };
 
-export function listenOnce(element: Node, eventName: string, cb: Function) {
+export function listenOnce(element: Node, eventName: string, cb: Function): void {
   const listener = (e: Event) => {
     e.target.removeEventListener(e.type, listener);
     return cb(e);
@@ -29,7 +29,7 @@ export function listenOnce(element: Node, eventName: string, cb: Function) {
   element.addEventListener(eventName, listener);
 }
 
-export function formatDateString(date: string) {
+export function formatDateString(date: string): string {
   return date ? new Date(date).toLocaleString() : '-';
 }
 
@@ -43,7 +43,7 @@ export function dateDiffToString(diff: number): string {
   return `${hours.toFixed()}:${minutes.toFixed()}:${seconds.toFixed()}`;
 }
 
-export function objectToArray(obj: {}) {
+export function objectToArray(obj: {}): any[] {
   if (!obj) {
     return [];
   }
@@ -55,14 +55,14 @@ export function objectToArray(obj: {}) {
   });
 }
 
-export function getAncestorElementWithClass(element: HTMLElement, className: string) {
+export function getAncestorElementWithClass(element: HTMLElement, className: string): Element {
   while (!element.classList.contains(className) && element.parentElement) {
     element = element.parentElement;
   }
   return element;
 }
 
-export function nodePhaseToIcon(status: NodePhase) {
+export function nodePhaseToIcon(status: NodePhase): string {
   switch (status) {
     case NODE_PHASE.RUNNING: return 'device:access-time';
     case NODE_PHASE.SUCCEEDED: return 'check-circle';
@@ -75,7 +75,7 @@ export function nodePhaseToIcon(status: NodePhase) {
   }
 }
 
-export function nodePhaseToColor(status: NodePhase) {
+export function nodePhaseToColor(status: NodePhase): string {
   switch (status) {
     case NODE_PHASE.SUCCEEDED: return '--success-color';
     case NODE_PHASE.ERROR: return '--error-color';
@@ -88,7 +88,7 @@ export function nodePhaseToColor(status: NodePhase) {
   }
 }
 
-export function showDialog(message: string) {
+export function showDialog(message: string): void {
   const dialog = document.createElement('message-dialog') as MessageDialog;
   document.body.appendChild(dialog);
   dialog.addEventListener('iron-overlay-closed', () => {
@@ -99,7 +99,7 @@ export function showDialog(message: string) {
   dialog.open();
 }
 
-export function showNotification(message: string) {
+export function showNotification(message: string): void {
   const toast = document.createElement('paper-toast');
   document.body.appendChild(toast);
   toast.addEventListener('iron-overlay-closed', () => {

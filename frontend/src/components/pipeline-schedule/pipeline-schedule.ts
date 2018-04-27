@@ -90,7 +90,7 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   @property({ type: String })
   protected _crontab = '';
 
-  public async load(_: string) {
+  public async load(_: string): Promise<void> {
     // TODO: disable or don't include invalid times.
     // Create an array with 12 hours + half hours for scheduling time.
     this._times.push('12:00');
@@ -108,7 +108,7 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   // TODO: Maybe use a polymer validator (property?) here?
   @observe('_scheduleTypeIndex, _startDate, _endDate, _hasEndDate,\
     _startTimeIndex, _endTimeIndex, _isStartPM, _isEndPM, _runIntervalIndex')
-  protected _validateSchedule() {
+  protected _validateSchedule(): void {
     // Start and end time can't be invalid if we're running the job immediately.
     if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
       this.scheduleIsValid = true;
@@ -126,7 +126,7 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
 
   // Ensure that end date is always >= start date.
   @observe('_startDate')
-  protected _startDateChanged(newStartDate: string) {
+  protected _startDateChanged(newStartDate: string): void {
     if (newStartDate > this._endDate) {
       this._endDate = newStartDate;
       (this.$.endDatepicker as any).inputDate = this._endDate;
@@ -134,13 +134,13 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   }
 
   // Launch datepicker dialog for starting date.
-  protected _pickStartDate() {
+  protected _pickStartDate(): void {
     const datepicker = this.$.startDatepicker as any;
     datepicker.open();
   }
 
   // Launch datepicker dialog for ending date.
-  protected _pickEndDate() {
+  protected _pickEndDate(): void {
     const datepicker = this.$.endDatepicker as any;
     datepicker.open();
   }
@@ -157,7 +157,7 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   }
 
   // TODO: Do we need to localize time?
-  private _updateCrontab() {
+  private _updateCrontab(): void {
     const startDateTime = this._getStartDateTime();
     const minute = startDateTime.getMinutes();
     let hour = '*';

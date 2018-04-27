@@ -31,16 +31,16 @@ export class AppShell extends Polymer.Element {
 
   private _debouncer: Polymer.Debouncer;
 
-  static get observers() {
+  static get observers(): string[] {
     return ['_routePathChanged(route.path)'];
   }
 
-  ready() {
+  ready(): void {
     super.ready();
     this.addEventListener(ROUTE_EVENT, this._routeEventListener.bind(this));
   }
 
-  protected _routePathChanged(newPath: string) {
+  protected _routePathChanged(newPath: string): void {
     // Workaround for https://github.com/PolymerElements/app-route/issues/173
     // to handle navigation events only once.
     this._debouncer = Polymer.Debouncer.debounce(
@@ -70,7 +70,7 @@ export class AppShell extends Polymer.Element {
     );
   }
 
-  private _routeEventListener(e: RouteEvent) {
+  private _routeEventListener(e: RouteEvent): void {
     const url = new URL(e.detail.path, window.location.href);
     this.set('route.path', url.pathname);
     const queryParams = {} as any;

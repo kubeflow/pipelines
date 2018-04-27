@@ -40,7 +40,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
               type: Boolean })
   protected _allowPipelineDisable = false;
 
-  public async load(path: string) {
+  public async load(path: string): Promise<void> {
     if (path !== '') {
       const id = Number.parseInt(path);
       if (isNaN(id)) {
@@ -61,7 +61,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected _clonePipeline() {
+  protected _clonePipeline(): void {
     if (this.pipeline) {
       this.dispatchEvent(
         new RouteEvent(
@@ -73,7 +73,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected async _enablePipeline() {
+  protected async _enablePipeline(): Promise<void> {
     if (this.pipeline) {
       try {
         this._busy = true;
@@ -88,7 +88,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected async _disablePipeline() {
+  protected async _disablePipeline(): Promise<void> {
     if (this.pipeline) {
       try {
         this._busy = true;
@@ -103,17 +103,17 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected _formatDateString(date: string) {
+  protected _formatDateString(date: string): string {
     return Utils.formatDateString(date);
   }
 
   // Pipeline can only be enabled/disabled if there's a schedule
-  protected _computeAllowPipelineEnable(enabled: boolean, schedule: string) {
+  protected _computeAllowPipelineEnable(enabled: boolean, schedule: string): boolean {
     return !!schedule && !enabled;
   }
 
   // Pipeline can only be enabled/disabled if there's a schedule
-  protected _computeAllowPipelineDisable(enabled: boolean, schedule: string) {
+  protected _computeAllowPipelineDisable(enabled: boolean, schedule: string): boolean {
     return !!schedule && enabled;
   }
 }

@@ -48,7 +48,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
 
   private _jobId = '';
 
-  public async load(_: string, queryParams: { jobId?: string, pipelineId: number }) {
+  public async load(_: string, queryParams: { jobId?: string, pipelineId: number }): Promise<void> {
     // Reset the selected tab each time the user navigates to this page.
     this.selectedTab = 0;
 
@@ -104,15 +104,15 @@ export class JobDetails extends Polymer.Element implements PageElement {
     }
   }
 
-  protected _formatDateString(date: string) {
+  protected _formatDateString(date: string): string {
     return Utils.formatDateString(date);
   }
 
-  protected _getStatusIcon(status: NodePhase) {
+  protected _getStatusIcon(status: NodePhase): string {
     return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRuntime(start: string, end: string, status: NodePhase) {
+  protected _getRuntime(start: string, end: string, status: NodePhase): string {
     if (!status) {
       return '-';
     }
@@ -123,7 +123,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
       Utils.dateDiffToString(parsedEnd - parsedStart) : '-';
   }
 
-  protected _getProgressColor(status: NodePhase) {
+  protected _getProgressColor(status: NodePhase): string {
     return Utils.nodePhaseToColor(status);
   }
 }

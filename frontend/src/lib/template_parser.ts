@@ -6,13 +6,15 @@ import {
   WorkflowStep as ArgoTemplateStep,
 } from '../model/argo_template';
 
-function replacePlaceholders(path: string, baseOutputPath: string, jobId: string) {
+function replacePlaceholders(path: string, baseOutputPath: string, jobId: string): string {
   return path
     .replace(/{{inputs.parameters.output}}/, baseOutputPath)
     .replace(/{{workflow.name}}/, jobId);
 }
 
-export function parseTemplateOuputPaths(templateYaml: string, baseOutputPath: string, jobId: string) {
+export function parseTemplateOuputPaths(templateYaml: string,
+                                        baseOutputPath: string,
+                                        jobId: string): string[] {
   const argoTemplate = jsYaml.safeLoad(templateYaml) as ArgoTemplate;
 
   // TODO: Support templates with no entrypoint (only one template element)

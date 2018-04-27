@@ -30,7 +30,7 @@ export class DataPlot extends Polymer.Element {
   @property({ type: Boolean })
   protected _tensorboardBusy = false;
 
-  ready() {
+  ready(): void {
     super.ready();
     if (this.plotMetadata) {
       switch (this.plotMetadata.type) {
@@ -49,7 +49,7 @@ export class DataPlot extends Polymer.Element {
     }
   }
 
-  protected async _startTensorboard() {
+  protected async _startTensorboard(): Promise<void> {
     if (!this.plotMetadata) {
       return;
     }
@@ -62,7 +62,7 @@ export class DataPlot extends Polymer.Element {
     this._addTensorboardControls();
   }
 
-  private async _plotConfusionMatrix(metadata: PlotMetadata) {
+  private async _plotConfusionMatrix(metadata: PlotMetadata): Promise<void> {
     const data = csvParseRows(await Apis.readFile(metadata.source));
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
@@ -94,7 +94,7 @@ export class DataPlot extends Polymer.Element {
     });
   }
 
-  private async _plotRocCurve(metadata: PlotMetadata) {
+  private async _plotRocCurve(metadata: PlotMetadata): Promise<void> {
     this.plotTitle = 'ROC curve from file: ' + metadata.source;
 
     // Render the ROC plot
@@ -108,7 +108,7 @@ export class DataPlot extends Polymer.Element {
     });
   }
 
-  private async _addTensorboardControls() {
+  private async _addTensorboardControls(): Promise<void> {
     if (!this.plotMetadata) {
       return;
     }

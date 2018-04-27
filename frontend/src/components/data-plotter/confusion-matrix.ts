@@ -17,7 +17,7 @@ const margin = { top: 50, right: 50, bottom: 200, left: 200 };
  * is the HTMLElement container, which gets populated with the matrix
  * elements.
  */
-export function drawMatrix(options: MatrixOptions) {
+export function drawMatrix(options: MatrixOptions): void {
   const width = 750;
   const height = 750;
   const data = options.data;
@@ -68,8 +68,8 @@ export function drawMatrix(options: MatrixOptions) {
   const cell = row.selectAll('.cell')
     .data((d) => d)
     .enter().append('g')
-      .on('mouseover', function() { cellMouse(container, this, true); })
-      .on('mouseout', function() { cellMouse(container, this, false); })
+      .on('mouseover', function(): void { cellMouse(container, this, true); })
+      .on('mouseout', function(): void { cellMouse(container, this, false); })
       .attr('class', 'cell')
       .attr('column', (_, i) => i)
       .attr('transform', (d, i) => `translate(${x(i.toString())}, 0)`);
@@ -191,7 +191,7 @@ export function drawMatrix(options: MatrixOptions) {
     .call(d3.axisRight(legendY) as any);
 }
 
-export function cellMouse(container: HTMLElement, cell: any, mouseIn: boolean) {
+export function cellMouse(container: HTMLElement, cell: any, mouseIn: boolean): void {
   const row = Number.parseInt(cell.parentElement.getAttribute('row'));
   const col = Number.parseInt(cell.getAttribute('column'));
   const rowLabel = container.querySelector(`.row-label.row-${row}`) as HTMLElement;
