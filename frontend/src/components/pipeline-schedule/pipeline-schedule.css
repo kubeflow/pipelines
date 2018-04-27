@@ -27,3 +27,7 @@ paper-toggle-button.am-pm {
 .checkbox-margin-adjust {
   margin-bottom: 5px;
 }
+
+.padded {
+  padding: var(--spacing-minus-1);
+}

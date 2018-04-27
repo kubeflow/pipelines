@@ -105,7 +105,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
 
   protected _scheduleValidationUpdated() {
     const pipelineSchedule = this.$.schedule as PipelineSchedule;
-    this._scheduleIsValid = pipelineSchedule.sheduleIsValid;
+    this._scheduleIsValid = pipelineSchedule.scheduleIsValid;
   }
 
   // Sets Disabled attribute. true === enabled, false === disabled
@@ -149,6 +149,8 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     // TODO: The frontend shouldn't really be sending this, but currently the
     // backend breaks if it receives an empty string, undefined, or null.
     this.newPipeline.createdAt = new Date().toISOString();
+    this.newPipeline.schedule =
+      (this.$.schedule as PipelineSchedule).scheduleAsCrontab();
     await Apis.newPipeline(this.newPipeline);
     this.dispatchEvent(new RouteEvent('/pipelines'));
   }

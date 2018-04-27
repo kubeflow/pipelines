@@ -8,6 +8,8 @@ import 'paper-listbox/paper-listbox.html';
 import 'paper-toggle-button/paper-toggle-button.html';
 import 'polymer/polymer.html';
 
+import * as Utils from '../../lib/utils';
+
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { PageElement } from '../../model/page_element';
 
@@ -17,22 +19,13 @@ const IMMEDIATELY = 'Run right away';
 const RECURRING = 'Recurring';
 const SPECIFIC_TIME = 'Run at a specific time';
 
-const RUN_INTERVALS_SINGULAR = [
-  'hour',
-  'day',
-  'week',
-  'month',
-];
-
 const DATE_FORMAT_PATTERN = /^[1-2]\d{3}\/\d?\d\/\d?\d$/;
-
-const RUN_INTERVALS_PLURAL = RUN_INTERVALS_SINGULAR.map((i) => i + 's');
 
 @customElement('pipeline-schedule')
 export class PipelineSchedule extends Polymer.Element implements PageElement {
 
   @property({ notify: true, type: Boolean })
-  public sheduleIsValid = true;
+  public scheduleIsValid = true;
 
   @property({ type: Array })
   protected readonly _SCHEDULES = [
@@ -47,11 +40,13 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   @property({ type: Number })
   protected _runIntervalIndex = 0;
 
-  @property({ type: Number })
-  protected _runIntervalFrequency = 1;
-
   @property({ type: Array })
-  protected _runIntervals = RUN_INTERVALS_SINGULAR;
+  protected _runIntervals = [
+    'hourly',
+    'daily',
+    'weekly',
+    'monthly',
+  ];
 
   @property({ type: String })
   protected _minStartDate = new Date().toLocaleDateString();
@@ -92,6 +87,9 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   @property({ type: String })
   protected _endTimeErrorMessage = '';
 
+  @property({ type: String })
+  protected _crontab = '';
+
   public async load(_: string) {
     // TODO: disable or don't include invalid times.
     // Create an array with 12 hours + half hours for scheduling time.
@@ -103,15 +101,27 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
     }
   }
 
+  public scheduleAsCrontab(): string {
+    return this._crontab;
+  }
+
   // TODO: Maybe use a polymer validator (property?) here?
   @observe('_scheduleTypeIndex, _startDate, _endDate, _hasEndDate,\
-    _startTimeIndex, _endTimeIndex, _isStartPM, _isEndPM')
+    _startTimeIndex, _endTimeIndex, _isStartPM, _isEndPM, _runIntervalIndex')
   protected _validateSchedule() {
-    // Update these properties to update validation UI.
-    this._startTimeIsValid = this._isStartTimeValid();
-    this._endTimeIsValid = this._isEndTimeValid();
+    // Start and end time can't be invalid if we're running the job immediately.
+    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
+      this.scheduleIsValid = true;
+    } else {
+      // Update these properties to update validation UI.
+      this._startTimeIsValid = this._isStartTimeValid();
+      this._endTimeIsValid = this._isEndTimeValid();
 
-    this.sheduleIsValid = this._startTimeIsValid && this._endTimeIsValid;
+      this.scheduleIsValid = this._startTimeIsValid && this._endTimeIsValid;
+      if (this.scheduleIsValid) {
+        this._updateCrontab();
+      }
+    }
   }
 
   // Ensure that end date is always >= start date.
@@ -120,21 +130,6 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
     if (newStartDate > this._endDate) {
       this._endDate = newStartDate;
       (this.$.endDatepicker as any).inputDate = this._endDate;
-    }
-  }
-
-  // This takes a string because that's what the observer passes it.
-  // We immediately convert to a number so that it's clear that it represents a
-  // number.
-  @observe('_runIntervalFrequency')
-  protected _runIntervalFrequencyChanged(newFrequencyString: string) {
-    const newFrequency = Number(newFrequencyString);
-    const root = this.shadowRoot as ShadowRoot;
-    if (root.querySelector('#runIntervalDropdown')) {
-      this._runIntervals =
-        newFrequency === 1 ? RUN_INTERVALS_SINGULAR : RUN_INTERVALS_PLURAL;
-      (root.querySelector('#runIntervalDropdown') as any).value =
-        this._runIntervals[this._runIntervalIndex];
     }
   }
 
@@ -151,18 +146,51 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   }
 
   // Show schedule inputs for a single run that will execute at a future time.
-  protected _showSpecificTimeScheduleInputs(scheduleTypeIndex: number) {
+  protected _showSpecificTimeScheduleInputs(scheduleTypeIndex: number): boolean {
     return this._SCHEDULES[scheduleTypeIndex] === SPECIFIC_TIME ||
       this._showRecurringScheduleInputs(scheduleTypeIndex);
   }
 
   // Show schedule inputs for recurring runs.
-  protected _showRecurringScheduleInputs(scheduleTypeIndex: number) {
+  protected _showRecurringScheduleInputs(scheduleTypeIndex: number): boolean {
     return this._SCHEDULES[scheduleTypeIndex] === RECURRING;
   }
 
-  private _toDate(date: string, timeSelectorIndex: number,
-                  isPm: boolean): Date {
+  // TODO: Do we need to localize time?
+  private _updateCrontab() {
+    const startDateTime = this._getStartDateTime();
+    const minute = startDateTime.getMinutes();
+    let hour = '*';
+    let dayOfMonth = '*';
+    const month = '*';
+    const dayOfWeek = '*';
+    switch (this._runIntervals[this._runIntervalIndex]) {
+      case 'hourly':
+        break;
+      case 'daily':
+        hour = '' + startDateTime.getHours();
+        break;
+      case 'weekly':
+        // TODO: Add support for selecting days of the week.
+        hour = '' + startDateTime.getHours();
+        dayOfMonth += '/7';
+        break;
+      case 'monthly':
+        hour = '' + startDateTime.getHours();
+        dayOfMonth = '' + startDateTime.getDate();
+        break;
+      default:
+        Utils.log.error('Invalid interval index:', this._runIntervalIndex);
+    }
+    this._crontab =
+      minute + ' ' + hour + ' ' + dayOfMonth + ' ' + month + ' ' + dayOfWeek;
+  }
+
+  private _getStartDateTime(): Date {
+    return this._toDate(this._startDate, this._startTimeIndex, this._isStartPM);
+  }
+
+  private _toDate(date: string, timeSelectorIndex: number, isPm: boolean): Date {
     const dateAsArray = date.split('/').map((s) => Number(s));
     // If/when start/end have different backing time arrays, this will need to
     // be updated.
@@ -177,11 +205,6 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   }
 
   private _isStartTimeValid(): boolean {
-    // Start time can't be invalid if we're running the job immediately.
-    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
-      return true;
-    }
-
     // Check that start date is of form YYYY/MM/DD and is a valid date.
     if (!(this._startDate.match(DATE_FORMAT_PATTERN)) ||
         isNaN(Date.parse(this._startDate))) {
@@ -190,8 +213,7 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
     }
 
     // Check that start time is not in the past.
-    if (this._toDate(this._startDate, this._startTimeIndex, this._isStartPM) <
-        new Date()) {
+    if (this._getStartDateTime() < new Date()) {
       this._startTimeErrorMessage = 'Start date/time cannot be in the past';
       return false;
     }
@@ -202,8 +224,7 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   private _isEndTimeValid(): boolean {
     // End time can't be invalid if we're running the job immediately or at a
     // specific time or if there's no end time.
-    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY ||
-        this._SCHEDULES[this._scheduleTypeIndex] === SPECIFIC_TIME ||
+    if (this._SCHEDULES[this._scheduleTypeIndex] === SPECIFIC_TIME ||
         !this._hasEndDate) {
       return true;
     }
@@ -225,8 +246,7 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
     }
 
     // End date/time is invalid if it is earlier than start date/time.
-    const selectedStartDate =
-      this._toDate(this._startDate, this._startTimeIndex, this._isStartPM);
+    const selectedStartDate = this._getStartDateTime();
     if (selectedEndDate < selectedStartDate) {
       this._endTimeErrorMessage =
         'End date/time must be later than start date/time';

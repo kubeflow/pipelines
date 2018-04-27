@@ -39,6 +39,16 @@
           overflow: visible;
         }
       }
+
+      paper-input.crontab {
+        --paper-input-container-disabled: {
+          opacity: 0.7;
+        }
+        --paper-input-container-input: {
+          font-family: 'Roboto Mono', monospace;
+          padding-left: 6px;
+        }
+      }
     </style>
 
     <div class="flex metadata-input">
@@ -57,7 +67,7 @@
     <!-- Starting date and time selectors -->
     <template is="dom-if"
               if="{{_showSpecificTimeScheduleInputs(_scheduleTypeIndex)}}">
-      <div class="flex metadata-input padded-left">
+      <div class="flex metadata-input padded">
         <!-- Start date picker -->
         <paper-input class="error-overflow" label="Starts (YYYY/MM/DD)"
                      value="{{_startDate}}" on-click="_pickStartDate"
@@ -86,15 +96,7 @@
       <template is="dom-if"
                 if="{{_showRecurringScheduleInputs(_scheduleTypeIndex)}}">
         <div class="flex metadata-input">
-          <span class="padded">Repeat every</span>
-
-          <paper-input label="Frequency" value="{{_runIntervalFrequency}}"
-                       min="1" max="999" type="number" auto-validate
-                       allowed-pattern="[0-9]"
-                       error-message="Must be number between 1 and 999">
-          </paper-input>
-
-          <span class="padded"></span>
+          <span class="padded">Repeat </span>
 
           <!-- TODO: Add "certain days of the week" as interval type -->
           <paper-dropdown-menu id="runIntervalDropdown"
@@ -109,7 +111,7 @@
         </div>
 
         <!-- Optional Ending date and time selectors -->
-        <div class="flex param-container">
+        <div class="flex metadata-input">
           <!--
             This element ends up 5px smaller than inputs, so without the extra
             margin, the screen jumps when the checkbox is (un)checked.
@@ -143,6 +145,18 @@
             <span class="padded">PM</span>
           </template>
         </div>
+
+        <!-- Crontab text field -->
+        <div class="flex metadata-input">
+          <!--
+            TODO: Allow users to update crontab manually and automatically
+            update the rest of the UI based on it.
+          -->
+          <paper-input class="crontab" label="crontab" readonly disabled
+                       value="[[_crontab]]">
+          </paper-input>
+        </div>
+
       </template>
     </template>
     <app-datepicker-dialog with-backdrop id="startDatepicker"
