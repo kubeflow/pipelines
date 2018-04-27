@@ -594,5 +594,30 @@ module.exports = {
         },
       ],
     },
+    {
+      id: 3,
+      createdAt: '2018-03-23T22:27:32Z',
+      description: 'Some random long description',
+      name: 'jobName#3',
+      packageId: 2,
+      schedule: '',
+      enabled: false,
+      enabledAt: -1,
+      parameters: [
+        {
+          name: 'x',
+          value: 10
+        },
+        {
+          name: 'y',
+          value: 20
+        },
+        {
+          name: 'output',
+          value: 'some-output-path',
+        }
+      ],
+      jobs: []
+    },
   ],
 };

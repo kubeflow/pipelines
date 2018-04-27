@@ -50,6 +50,24 @@ export default (app) => {
     res.json(jobs);
   });
 
+  app.post(apisPrefix + '/pipelines/:pid/enable', (req, res) => {
+    setTimeout(() => {
+      const pid = Number.parseInt(req.params.pid);
+      const pipeline = fixedData.pipelines.find((p) => p.id === pid);
+      pipeline.enabled = true;
+      res.send('ok');
+    }, 1000);
+  });
+
+  app.post(apisPrefix + '/pipelines/:pid/disable', (req, res) => {
+    setTimeout(() => {
+      const pid = Number.parseInt(req.params.pid);
+      const pipeline = fixedData.pipelines.find((p) => p.id === pid);
+      pipeline.enabled = false;
+      res.send('ok');
+    }, 1000);
+  });
+
   app.get(apisPrefix + '/pipelines/:pid/jobs/:jname', (req, res) => {
     const pid = Number.parseInt(req.params.pid);
     // This simply allows us to have multiple mocked graphs.

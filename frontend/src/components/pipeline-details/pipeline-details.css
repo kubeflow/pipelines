@@ -8,6 +8,16 @@
   font-weight: var(--paper-font-title_-_font-weight);
 }
 
+.toolbar {
+  border-bottom: none;
+}
+
+paper-progress {
+  --paper-progress-active-color: var(--accent-color);
+  height: 1px;
+  width: 100%;
+}
+
 .tabs-container {
   border-bottom: solid 1px var(--line-color);
   height: var(--height-small);

@@ -4,7 +4,6 @@ export class Pipeline {
   public id: number;
   public createdAt: string;
   public name: string;
-  public author?: string;
   public description?: string;
   public packageId: number;
   public schedule: string;
@@ -15,7 +14,6 @@ export class Pipeline {
   constructor() {
     this.createdAt = '';
     this.name = '';
-    this.author = '';
     this.description = '';
     this.packageId = -1;
     this.schedule = '';

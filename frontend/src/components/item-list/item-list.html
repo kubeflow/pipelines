@@ -54,12 +54,12 @@ the License.
           </div>
           <template is="dom-repeat" items="{{row.columns}}" as="column" index-as="columnIndex">
             <div class="column">
-              <template is="dom-if" if="{{_isEqualTo(columnIndex, 0)}}">
+              <template is="dom-if" if="[[_isFirstColumn(columnIndex)]]">
                 <span class="link" on-click="_rowDoubleClicked">
                   [[_formatColumnValue(column, columnIndex, columns)]]
                 </span>
               </template>
-              <template is="dom-if" if="{{!_isEqualTo(columnIndex, 0)}}">
+              <template is="dom-if" if="[[!_isFirstColumn(columnIndex)]]">
                 <span>[[_formatColumnValue(column, columnIndex, columns)]]</span>
               </template>
             </div>

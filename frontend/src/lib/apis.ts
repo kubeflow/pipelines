@@ -77,6 +77,42 @@ export async function newPipeline(pipeline: Pipeline) {
 }
 
 /**
+ * Sends an enable pipeline request to the backend.
+ */
+export async function enablePipeline(id: number) {
+  const response = await fetch(apisPrefix + `/pipelines/${id}/enable`, {
+    cache: 'no-cache',
+    headers: {
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+  });
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(responseText);
+  }
+  return responseText;
+}
+
+/**
+ * Sends a disable pipeline request to the backend.
+ */
+export async function disablePipeline(id: number) {
+  const response = await fetch(apisPrefix + `/pipelines/${id}/disable`, {
+    cache: 'no-cache',
+    headers: {
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+  });
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(responseText);
+  }
+  return responseText;
+}
+
+/**
  * Gets a list of all the pipeline jobs belonging to the specified pipelined
  * from the backend.
  */

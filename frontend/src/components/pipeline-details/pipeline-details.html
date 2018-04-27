@@ -11,7 +11,18 @@
         <iron-icon icon="content-copy"></iron-icon>
         Clone
       </paper-button>
+      <paper-button class="toolbar-button" on-click="_enablePipeline"
+                    disabled="[[!_allowPipelineEnable]]" title="Enable pipeline schedule">
+        <iron-icon icon="av:play-circle-filled"></iron-icon>
+        Enable
+      </paper-button>
+      <paper-button class="toolbar-button" on-click="_disablePipeline"
+                    disabled="[[!_allowPipelineDisable]]" title="Disable pipeline schedule">
+        <iron-icon icon="av:stop"></iron-icon>
+        Disable
+      </paper-button>
     </div>
+    <paper-progress indeterminate disabled="[[!_busy]]"></paper-progress>
 
     <div class="padded-spacing-base">
       <div class="pipeline-name">
