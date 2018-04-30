@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-const k8s = require('@kubernetes/client-node');
+import { Config } from '@kubernetes/client-node';
 import * as Utils from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
@@ -12,7 +12,7 @@ export const isInCluster = fs.existsSync(namespaceFilePath);
 
 if (isInCluster) {
   namespace = fs.readFileSync(namespaceFilePath);
-  k8sV1Client = k8s.Config.defaultClient();
+  k8sV1Client = Config.defaultClient();
 }
 
 /**

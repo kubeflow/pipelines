@@ -5,7 +5,7 @@
   "main": "server.js",
   "dependencies": {
     "@google-cloud/storage": "^1.6.0",
-    "@kubernetes/client-node": "^0.2.1",
+    "@kubernetes/client-node": "^0.3.0",
     "express": "^4.16.3",
     "http-proxy-middleware": "^0.18.0",
     "tmp": "0.0.33"
