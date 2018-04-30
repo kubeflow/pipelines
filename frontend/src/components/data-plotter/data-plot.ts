@@ -86,9 +86,9 @@ export class DataPlot extends Polymer.Element {
     drawMatrix({
       container: this.$.container as HTMLElement,
       data: matrix,
-      endColor: getComputedStyle(this).getPropertyValue('--accent-color'),
+      endColor: getComputedStyle(this).getPropertyValue('--theme-primary-color'),
       labels,
-      startColor: getComputedStyle(this).getPropertyValue('--bg-color'),
+      startColor: getComputedStyle(this).getPropertyValue('--background-contrast-color'),
       xAxisLabel: axisLabels[0],
       yAxisLabel: axisLabels[1],
     });
@@ -102,7 +102,7 @@ export class DataPlot extends Polymer.Element {
       container: this.$.container as HTMLElement,
       data: csvParseRows(await Apis.readFile(metadata.source)),
       height: 450,
-      lineColor: getComputedStyle(this).getPropertyValue('--accent-color'),
+      lineColor: getComputedStyle(this).getPropertyValue('--theme-primary-color'),
       margin: 50,
       width: 650
     });

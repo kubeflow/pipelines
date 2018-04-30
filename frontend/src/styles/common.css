@@ -4,37 +4,37 @@
 
 html, body {
   height: 100%;
-  background-color: var(--bg-color);
-  color: var(--fg-color);
+  background-color: var(--background-contrast-color);
+  color: var(--secondary-text-color);
   font-size: var(--font-size);
 }
 
 hr {
   margin: var(--spacing-base) 0;
   border: 0px none transparent;
-  border-top: 1px solid var(--line-color);
+  border-top: 1px solid var(--divider-color);
 }
 
 iron-icon[icon="check-circle"] {
-  color: var(--success-color);
+  color: var(--good-color);
 }
 
 iron-icon[icon="av:skip-next"] {
-  color: var(--neutral-color);
+  color: var(--inactive-color);
 }
 
 iron-icon[icon="error-outline"] {
-  color: var(--fail-color);
+  color: var(--danger-color);
 }
 
 paper-tabs {
-  --paper-tab-ink: var(--accent-color);
-  --paper-tabs-selection-bar-color: var(--accent-color);
+  --paper-tab-ink: var(--theme-primary-color);
+  --paper-tabs-selection-bar-color: var(--theme-primary-color);
   height: var(--height-small);
 }
 
 paper-tab:not(:first-child) {
-  border-left: 1px solid var(--line-color);
+  border-left: 1px solid var(--divider-color);
 }
 
 /* Custom elements common styling */
@@ -55,7 +55,7 @@ paper-tab:not(:first-child) {
 }
 
 .action-button {
-  background-color: var(--accent-color);
+  background-color: var(--theme-primary-color);
   color: white;
   max-height: var(--height-xsmall);
   min-width: 64px;
@@ -68,9 +68,9 @@ paper-tab:not(:first-child) {
   @apply --shadow-elevation-3dp;
 }
 
-
 .action-button[disabled] {
-  background-color: var(--neutral-color);
+  background-color: transparent;
+  color: var(--disabled-color);
 }
 
 .block {
@@ -78,7 +78,7 @@ paper-tab:not(:first-child) {
 }
 
 .details-table > div {
-  border-bottom: 1px solid var(--line-color);
+  border-bottom: 1px solid var(--divider-color);
   padding: 3px;
   padding-top: 5px;
   width: 600px;
@@ -140,7 +140,7 @@ paper-tab:not(:first-child) {
 
 .toolbar {
   align-items: center;
-  border-bottom: solid 1px var(--line-color);
+  border-bottom: solid 1px var(--divider-color);
   display: flex;
   flex-shrink: 0;
   height: var(--toolbar-height);
@@ -150,7 +150,7 @@ paper-tab:not(:first-child) {
   margin-left: -12px;
 }
 .toolbar-button {
-  color: var(--accent-color);
+  color: var(--theme-primary-color);
   font-size: 13px;
   font-weight: bold;
   height: var(--height-xsmall);
@@ -167,11 +167,11 @@ paper-tab:not(:first-child) {
 
 .toolbar-button[disabled] {
   background-color: inherit;
-  color: var(--disabled-color);
+  color: var(--disabled-button-color);
 }
 
 .toolbar-button:hover {
-  background-color: var(--hover-bg-color);
+  background-color: var(--flat-button-hover-color);
 }
 
 .toolbar-title {

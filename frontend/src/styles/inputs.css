@@ -1,6 +1,6 @@
 paper-dropdown-menu, paper-input {
-  --paper-input-container-focus-color: var(--accent-color);
-  background-color: var(--bg-color-darker);
+  --paper-input-container-focus-color: var(--theme-primary-color);
+  background-color: var(--background-contrast-color);
   border-radius: 5px;
 }
 

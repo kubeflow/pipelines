@@ -77,14 +77,14 @@ export function nodePhaseToIcon(status: NodePhase): string {
 
 export function nodePhaseToColor(status: NodePhase): string {
   switch (status) {
-    case NODE_PHASE.SUCCEEDED: return '--success-color';
-    case NODE_PHASE.ERROR: return '--error-color';
-    case NODE_PHASE.FAILED: return '--error-color';
-    case NODE_PHASE.RUNNING: return '--progress-color';
-    case NODE_PHASE.SKIPPED: return '--neutral-color';
+    case NODE_PHASE.SUCCEEDED: return '--good-color';
+    case NODE_PHASE.ERROR: return '--danger-color';
+    case NODE_PHASE.FAILED: return '--danger-color';
+    case NODE_PHASE.RUNNING: return '--theme-primary-color';
+    case NODE_PHASE.SKIPPED: return '--inactive-color';
     default:
       log.error('Unknown status:', status);
-      return '--neutral-color';
+      return '--inactive-color';
   }
 }
 

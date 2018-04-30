@@ -1,23 +1,4 @@
 :root {
-  --accent-color: #1474c2;
-  --accent-color-light: #82acce;
-  --bg-color: #f6f6f6;
-  --bg-color-darker: #f0f0f0;
-  --disabled-color: #aaa;
-  --disabled-fg-color: #aaa;
-  --fail-color: #dd0000;
-  --fg-color-light: #fefefe;
-  --fg-color: #444;
-  --fg-color-strong: black;
-  --hover-bg-color: #ddd;
-  --line-color: #e7e7e7;
-  --line-color-darker: #ddd;
-  --neutral-color: #777;
-  --progress-color: #6f97d4;
-  --selected-color: #4b82cc;
-  --success-color: #009900;
-  --white: #fff;
-
   --font-size: 14px;
   --font-size-strong: 16px;
 
@@ -47,4 +28,97 @@
   --height-xlarge: 56px;
   --height-jumbo: 64px;
   --height-auto: auto;
+
+  /* Background colors */
+  --background-base-color: #FAFAFA;
+  --background-contrast-color: #FFFFFF;
+  --background-input-color: rgba(0, 0, 0, .04);
+  --column-header-color: rgba(0, 0, 0, .04);
+  --loading-overlay-color: rgba(255, 255, 255, .5);
+  --message-bar-background-color: rgba(0, 0, 0, .05);
+  --modal-backdrop-color: rgba(33, 33, 33, .48);
+  --tooltip-background-color: #8A8A8A;
+  
+  /* Typography */
+  --disabled-text-color: rgba(0, 0, 0, .54);
+  --error-text-color: #D50000;
+  --primary-dark-color: #000;
+  --primary-text-color: #000;
+  --primary-text-inverse-color: #FFF;
+  --secondary-text-color: rgba(0, 0, 0, .66);
+  --secondary-text-inverse-color: rgba(255, 255, 255, .72);
+  --tertiary-text-inverse-color: rgba(255, 255, 255, .3); 
+
+  /* Theme */
+  --theme-primary-color: #3367D6;
+  --theme-primary-inverse-color: #A1C2FA;
+
+  /* Shelf/Product app bars */
+  --api-console-color: #FFF;
+  --cloud-platform-color: #3B78E7;
+
+  /* Dividers & lines */
+  --divider-button-color: rgba(0, 0, 0, .12);
+  --divider-button-inverse-color: rgba(255, 255, 255, .12);
+  --divider-color: rgba(0, 0, 0, .12);
+  --divider-inverse-color: rgba(255, 255, 255, .12);
+  --input-underline-color: rgba(0, 0, 0, .54);
+  --link-underline-color: rgba(0, 0, 0, .38);
+  --link-underline-primary-color: #3367D6;
+  --usage-divider-color: #FFF;
+
+  /* Hover/focus backgrounds */
+  --button-active-color: rgba(51, 103, 214, .12);
+  --button-active-inverse-color: rgba(255, 255, 255, .12);
+  --button-active-neutral-color: rgba(0, 0, 0, .12);
+  --flat-button-hover-color: rgba(0, 0, 0, .08);
+  --item-focus-color: rgba(0, 0, 0, .08);
+  --row-active-color: rgba(161, 194, 250, .16);
+  --row-hover-color: rgba(0, 0, 0, .04);
+
+  /* Buttons & icons */
+  --disabled-button-color: rgba(0, 0, 0, .38); 
+  --disabled-button-inverse-color: rgba(255, 255, 255, .3);
+  --disabled-button-raised-color: rgba(0, 0, 0, .12);
+  --primary-button-color: #3367D6;
+  --primary-button-inverse-color: #A1C2FA;
+  --primary-button-inverse-hover-color: #BBDEFB;
+  --secondary-button-color: #FFF;
+  --secondary-button-inverse-color: #FFF;
+
+  /* Controls */
+  --active-color: #3B78E7;
+  --active-inverse-color: #A1C2FA;
+  --disabled-color: rgba(0, 0, 0, .38);
+  --disabled-inverse-color: rgba(255, 255, 255, .3);
+  --inactive-color: rgba(0, 0, 0, .56);
+  --inactive-inverse-color: rgba(255, 255, 255, .72);
+
+  /* Status/messaging */
+  --danger-color: #D50000;
+  --danger-soft-color: #FBE9E7;
+  --good-color: #0F9D58;
+  --info-color: rgba(0, 0, 0, .38);
+  --info-strong-color: #3367D6;
+  --resource-color: #455A64;
+  --warning-color: #F2A600;
+
+  /* Progress */
+  --danger-fill-color: #FF6E40;
+  --default-fill-color: #00BFA5;
+  --unfilled-blue-color: rgba(51, 103, 214, .2);
+  --unfilled-grey-color: rgba(0, 0, 0, .1);
+  --warning-fill-color: #FFBC00;
+
+  /* Code */
+  --blue-grey-800-color: #37474F;
+  --code-base-light-color: #F7F7F7;
+  --deep-orange-600-color: #F4511E;
+  --google-blue-700-color: #3367D6;
+  --google-green-600-color: #0D904F;
+  --pink-600-color: #D81B60;
+  --purple-500-color: #9C27B0;
+
+  /* Chips */
+  --read-chips-bg-color: rgba(0, 0, 0, .08);
 }

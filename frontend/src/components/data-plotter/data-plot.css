@@ -9,7 +9,7 @@
 }
 
 .container {
-  border-bottom: 1px solid var(--line-color);
+  border-bottom: 1px solid var(--divider-color);
   flex-grow: 1;
   overflow: auto;
   padding: 20px;
@@ -46,7 +46,7 @@
 }
 
 .column-label.active, .row-label.active {
-  fill: var(--accent-color);
+  fill: var(--theme-primary-color);
 }
 
 paper-spinner {

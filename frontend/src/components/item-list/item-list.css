@@ -8,7 +8,7 @@
 div {
   font-family: var(--app-content-font-family);
   font-size: var(--app-content-font-size);
-  color: var(--fg-color);
+  color: var(--primary-text-color);
 }
 #headerContainer {
   flex: 0 0 var(--toolbar-height);
@@ -18,7 +18,7 @@ div {
   user-select: none;
   display: flex;
   line-height: calc(var(--toolbar-height) - 1px);
-  border-bottom: 1px solid var(--line-color);
+  border-bottom: 1px solid var(--divider-color);
 }
 #listContainer {
   flex: 1 1 auto;
@@ -32,14 +32,11 @@ div {
   line-height: 35px;
   cursor: default;
 }
-.row:nth-of-type(even) {
-  background-color: var(--bg-color-darker);
-}
 .row:hover {
-  background-color: var(--hover-bg-color);
+  background-color: var(--row-hover-color);
 }
 .row[selected] > * {
-  color: var(--selected-color) !important;
+  color: var(--theme-primary-color) !important;
 }
 .row-details {
   padding: 0px;
@@ -54,8 +51,8 @@ div {
 }
 .checkbox-col > paper-checkbox {
   --paper-checkbox-size: 15px;
-  --paper-checkbox-unchecked-color: var(--neutral-color);
-  --paper-checkbox-checked-color: var(--selected-color);
+  --paper-checkbox-unchecked-color: var(--inactive-color);
+  --paper-checkbox-checked-color: var(--theme-primary-color);
 }
 .first-col {
   flex-grow: 1;
@@ -72,9 +69,10 @@ div {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--secondary-text-color);
 }
 #header > .column {
-  color: var(--fg-color);
+  color: var(--primary-text-color);
   font-size: 13px;
 }
 .column-button {
@@ -93,7 +91,6 @@ div {
 .column + .column {
   flex: 1;
   max-width: 150px;
-  color: var(--neutral-color);
   padding-left: var(--spacing-minus-2);
 }
 #filterToggle {
@@ -101,10 +98,10 @@ div {
   height: 34px;
 }
 .filterShown--true {
-  color: var(--selected-color);
+  color: var(--theme-primary-color);
 }
 .filterShown--false {
-  color: var(--disabled-fg-color);
+  color: var(--inactive-color);
 }
 #filter-div {
   position: relative;
@@ -113,26 +110,26 @@ div {
   position: absolute;
   top: 8px;
   right: 10px;
-  color: var(--disabled-fg-color);
+  color: var(--inactive-color);
   width: 18px;
   height: 18px;
 }
 #filterBox {
   height: 35px;
   width: 100%;
-  border: solid 1px var(--line-color);
+  border: solid 1px var(--divider-color);
   text-indent: 75px;
   padding: 5px;
   box-sizing: border-box;
-  background-color: var(--bg-color);
-  color: var(--fg-color);
+  background-color: var(--background-contrast-color);
+  color: var(--primary-text-color);
   outline: none;
 }
 #filterBox:hover {
-  border: solid 1px var(--line-color);
+  border: solid 1px var(--divider-color);
 }
 #filterBox:active {
-  border: solid 1px var(--line-color);
+  border: solid 1px var(--divider-color);
 }
 .link {
   cursor: pointer;

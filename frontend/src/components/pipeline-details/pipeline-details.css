@@ -2,7 +2,7 @@
 @import '../../styles/common.css';
 
 .pipeline-name {
-  color: var(--fg-color-strong);
+  color: var(--primary-text-color);
   font-size: var(--paper-font-title_-_font-size);
   line-height: var(--paper-font-title_-_line-height);
   font-weight: var(--paper-font-title_-_font-weight);
@@ -13,13 +13,13 @@
 }
 
 paper-progress {
-  --paper-progress-active-color: var(--accent-color);
+  --paper-progress-active-color: var(--theme-primary-color);
   height: 1px;
   width: 100%;
 }
 
 .tabs-container {
-  border-bottom: solid 1px var(--line-color);
+  border-bottom: solid 1px var(--divider-color);
   height: var(--height-small);
   position: relative;
 }
