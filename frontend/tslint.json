@@ -1,6 +1,6 @@
 {
   "defaultSeverity": "error",
-  "extends": ["tslint:recommended"],
+  "extends": ["tslint:recommended", "tslint-eslint-rules"],
   "linterOptions": {
     "exclude": [
       "**/bower_components/**",
@@ -8,6 +8,7 @@
     ]
   },
   "rules": {
+    "align": false,
     "array-type": [true,
       "array-simple"
     ],
@@ -22,7 +23,6 @@
     "curly": true,
     "eofline": true,
     "forin": true,
-    "indent": [true, "spaces", 2],
     "interface-name": [true, "never-prefix"],
     "jsdoc-format": true,
     "label-position": true,
@@ -54,6 +54,21 @@
     "radix": true,
     "semicolon": [true, "always", "ignore-bound-class-methods"],
     "switch-default": true,
+    "ter-indent": [true, 2, {
+      "CallExpression": {
+        "arguments": 2
+      },
+      "FunctionDeclaration": {
+        "body": 1,
+        "parameters": 2
+      },
+      "FunctionExpression": {
+        "body": 1,
+        "parameters": 2
+      },
+      "MemberExpression": 1,
+      "SwitchCase": 1
+    }],
     "trailing-comma": true,
     "triple-equals": [true, "allow-null-check"],
     "typedef": [

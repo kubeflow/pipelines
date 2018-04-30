@@ -33,11 +33,11 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
   protected _busy = false;
 
   @property({ computed: '_computeAllowPipelineEnable(pipeline.enabled, pipeline.schedule)',
-              type: Boolean })
+    type: Boolean })
   protected _allowPipelineEnable = false;
 
   @property({ computed: '_computeAllowPipelineDisable(pipeline.enabled, pipeline.schedule)',
-              type: Boolean })
+    type: Boolean })
   protected _allowPipelineDisable = false;
 
   public async load(path: string): Promise<void> {
@@ -64,12 +64,12 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
   protected _clonePipeline(): void {
     if (this.pipeline) {
       this.dispatchEvent(
-        new RouteEvent(
-          '/pipelines/new',
-          {
-            packageId: this.pipeline.packageId,
-            parameters: this.pipeline.parameters
-          }));
+          new RouteEvent(
+            '/pipelines/new',
+            {
+              packageId: this.pipeline.packageId,
+              parameters: this.pipeline.parameters
+            }));
     }
   }
 

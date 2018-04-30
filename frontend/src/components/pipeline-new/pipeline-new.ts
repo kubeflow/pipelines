@@ -52,7 +52,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   protected _overwriteData?: NewPipelineData;
 
   public async load(_: string, queryParams: NewPipelineQueryParams,
-                    pipelineData?: NewPipelineData): Promise<void> {
+      pipelineData?: NewPipelineData): Promise<void> {
     this._busy = true;
     this._overwriteData = pipelineData;
     const packageList = this.$.packagesListbox as any;
@@ -65,7 +65,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     (this.$.name as any).invalid = false;
 
     this.set('newPipeline.packageId',
-      this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1);
+        this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1);
 
     try {
       this.packages = await Apis.getPackages();
@@ -101,7 +101,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     pipelineSchedule.load('');
     // Allow schedule to affect deploy button state.
     pipelineSchedule.addEventListener('shedule-is-valid-changed',
-                                      this._scheduleValidationUpdated.bind(this));
+        this._scheduleValidationUpdated.bind(this));
   }
 
   protected _scheduleValidationUpdated(): void {

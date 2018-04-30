@@ -11,7 +11,7 @@ export class MessageDialog extends Polymer.Element {
   message = '';
 
   open(): void {
-      (this.$.dialog as any).open();
+    (this.$.dialog as any).open();
   }
 
   close(): void {

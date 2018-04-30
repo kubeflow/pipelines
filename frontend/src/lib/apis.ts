@@ -162,10 +162,11 @@ export async function getTensorboardApp(logdir: string): Promise<string> {
 export async function startTensorboardApp(logdir: string): Promise<string> {
   const response = await fetch(apisPrefix +
     `/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`, {
-    headers: {
-      'content-type': 'application/json',
-    },
-    method: 'POST',
-  });
+      headers: {
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    }
+  );
   return await response.text();
 }

@@ -82,12 +82,12 @@ export class PipelineList extends Polymer.Element implements PageElement {
     // Clone Pipeline button is only enabled if there is one selected item.
     const selectedPipeline = this.pipelines[itemList.selectedIndices[0]];
     this.dispatchEvent(
-      new RouteEvent(
-        '/pipelines/new',
-        {
-          packageId: selectedPipeline.packageId,
-          parameters: selectedPipeline.parameters
-        }));
+        new RouteEvent(
+          '/pipelines/new',
+          {
+            packageId: selectedPipeline.packageId,
+            parameters: selectedPipeline.parameters
+          }));
   }
 
   protected _newPipeline(): void {

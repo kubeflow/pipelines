@@ -124,19 +124,16 @@ export class ItemListElement extends Polymer.Element {
   /**
    * The list of currently selected indices
    */
-  @property({
-      computed: '_computeSelectedIndices(rows.*)', notify: true, type: Array})
+  @property({ computed: '_computeSelectedIndices(rows.*)', notify: true, type: Array })
   public selectedIndices: number[] = [];
 
-  @property({type: Boolean})
+  @property({ type: Boolean })
   _showFilterBox = false;
 
-  @property({
-      computed: '_computeIsAllSelected(selectedIndices)', type: Boolean})
+  @property({ computed: '_computeIsAllSelected(selectedIndices)', type: Boolean })
   _isAllSelected: boolean;
 
-  @property({
-      computed: '_computeHideCheckboxes(disableSelection, noMultiselect)', type: Boolean})
+  @property({ computed: '_computeHideCheckboxes(disableSelection, noMultiselect)', type: Boolean })
   _hideCheckboxes: boolean;
 
   _filterString = '';
@@ -450,7 +447,7 @@ export class ItemListElement extends Polymer.Element {
 
   private _displayIndexToRealIndex(index: number): number {
     const element = this.$.listContainer.querySelector(
-      'paper-item:nth-of-type(' + (index + 1 ) + ')') as HTMLElement;
+        'paper-item:nth-of-type(' + (index + 1 ) + ')') as HTMLElement;
     return ((this.$.list as Polymer.DomRepeat).modelForElement(element) as any).itemsIndex;
   }
 }

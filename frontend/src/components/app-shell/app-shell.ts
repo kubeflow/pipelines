@@ -44,29 +44,29 @@ export class AppShell extends Polymer.Element {
     // Workaround for https://github.com/PolymerElements/app-route/issues/173
     // to handle navigation events only once.
     this._debouncer = Polymer.Debouncer.debounce(
-      this._debouncer,
-      Polymer.Async.timeOut.after(100),
-      () => {
-        if (newPath !== undefined) {
-          const parts = newPath.substr(1).split('/');
-          if (parts.length) {
-            // If there's only one part, that's the page name. If there's more,
-            // the page name is the first two, to allow for things like pipelines/details
-            // and job/details. The rest are the argument to that page.
-            const args = parts.splice(2).join('/');
-            let pageName = `${parts.join('/')}`;
-            // For root '/', return the default page
-            if (!pageName) {
-              pageName = defaultPage;
+        this._debouncer,
+        Polymer.Async.timeOut.after(100),
+        () => {
+          if (newPath !== undefined) {
+            const parts = newPath.substr(1).split('/');
+            if (parts.length) {
+              // If there's only one part, that's the page name. If there's more,
+              // the page name is the first two, to allow for things like pipelines/details
+              // and job/details. The rest are the argument to that page.
+              const args = parts.splice(2).join('/');
+              let pageName = `${parts.join('/')}`;
+              // For root '/', return the default page
+              if (!pageName) {
+                pageName = defaultPage;
+              }
+              const pageEl = this._getPageElement(pageName);
+              pageEl.load(args, (this.route as any).__queryParams, (this.route as any).__data);
+              this.page = pageName;
+            } else {
+              Utils.log.error(`Bad path: ${newPath}`);
             }
-            const pageEl = this._getPageElement(pageName);
-            pageEl.load(args, (this.route as any).__queryParams, (this.route as any).__data);
-            this.page = pageName;
-          } else {
-            Utils.log.error(`Bad path: ${newPath}`);
           }
         }
-      }
     );
   }
 
