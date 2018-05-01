@@ -34,7 +34,7 @@
         }
       }
 
-      paper-input.error-overflow {
+      .error-overflow {
         --paper-input-error: {
           overflow: visible;
         }
@@ -67,7 +67,7 @@
     <!-- Starting date and time selectors -->
     <template is="dom-if"
               if="{{_showSpecificTimeScheduleInputs(_scheduleTypeIndex)}}">
-      <div class="flex metadata-input padded">
+      <div class="flex metadata-input padded-spacing-minus-1">
         <!-- Start date picker -->
         <paper-input class="error-overflow" label="Starts (YYYY/MM/DD)"
                      value="{{_startDate}}" on-click="_pickStartDate"
@@ -75,7 +75,7 @@
                      error-message="[[_startTimeErrorMessage]]">
         </paper-input>
 
-        <span class="padded">at</span>
+        <span class="padded-spacing-minus-1">at</span>
 
         <!-- Start time picker -->
         <paper-dropdown-menu class="param-input-small" label="Time"
@@ -86,21 +86,21 @@
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
-        <span class="padded">AM</span>
+        <span class="padded-spacing-minus-1">AM</span>
         <paper-toggle-button class="am-pm" checked="{{_isStartPM}}">
         </paper-toggle-button>
-        <span class="padded">PM</span>
+        <span class="padded-spacing-minus-1">PM</span>
       </div>
 
-      <!-- Recurrence frequency and interval -->
+      <!-- Recurrence interval -->
       <template is="dom-if"
                 if="{{_showRecurringScheduleInputs(_scheduleTypeIndex)}}">
         <div class="flex metadata-input">
-          <span class="padded">Repeat </span>
+          <span class="padded-spacing-minus-1">Repeat </span>
 
-          <!-- TODO: Add "certain days of the week" as interval type -->
-          <paper-dropdown-menu id="runIntervalDropdown"
-                               class="param-input-small" label="Interval">
+          <paper-dropdown-menu class="param-input-small error-overflow"
+                               label="Interval" invalid="[[!_weekdaySelectionIsValid]]"
+                               error-message="Please select at least one weekday">
             <paper-listbox slot="dropdown-content" class="dropdown-content"
                            selected="{{_runIntervalIndex}}">
               <template is="dom-repeat" items="[[_runIntervals]]" as="interval">
@@ -110,13 +110,34 @@
           </paper-dropdown-menu>
         </div>
 
+        <!-- Weekday picker -->
+        <div class="flex metadata-input">
+          <span class="padded-spacing-minus-1">on</span>
+          <paper-checkbox id="allWeekdaysCheckbox"
+                          disabled="[[!_enableWeekdayButtons]]"
+                          checked="{{_allDaysOfWeekActive}}"
+                          on-checked-changed="_selectAllWeekdaysCheckboxChanged">
+          All
+          </paper-checkbox>
+          <span class="padded-spacing-minus-4">-</span>
+          <span id="weekdayButtons">
+            <template is="dom-repeat" items="{{_weekdays}}" as="weekday">
+              <paper-button class="toggle" active="{{weekday.active}}" toggles
+                            raised disabled="[[!_enableWeekdayButtons]]">
+                            <!-- TODO: do we need raised? -->
+              [[weekday.day]]
+              </paper-button>
+            </template>
+          </span>
+        </div>
+
         <!-- Optional Ending date and time selectors -->
         <div class="flex metadata-input">
           <!--
             This element ends up 5px smaller than inputs, so without the extra
             margin, the screen jumps when the checkbox is (un)checked.
           -->
-          <span class="padded checkbox-margin-adjust">
+          <span class="padded-spacing-minus-1 checkbox-margin-adjust">
             <paper-checkbox checked="{{_hasEndDate}}">Has end</paper-checkbox>
           </span>
           <template is="dom-if" if="[[_hasEndDate]]">
@@ -127,7 +148,7 @@
                          error-message="[[_endTimeErrorMessage]]">
             </paper-input>
 
-            <span class="padded">at</span>
+            <span class="padded-spacing-minus-1">at</span>
 
             <!-- End time picker -->
             <paper-dropdown-menu class="param-input-small" label="Time"
@@ -139,10 +160,10 @@
                 </template>
               </paper-listbox>
             </paper-dropdown-menu>
-            <span class="padded">AM</span>
+            <span class="padded-spacing-minus-1">AM</span>
             <paper-toggle-button class="am-pm" checked="{{_isEndPM}}">
             </paper-toggle-button>
-            <span class="padded">PM</span>
+            <span class="padded-spacing-minus-1">PM</span>
           </template>
         </div>
 

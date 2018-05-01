@@ -26,11 +26,11 @@ paper-ripple {
 }
 
 .param-container {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .param-input-small {
-  min-width: initial;
+  min-width: 100px;
   width: 10%;
 }
 

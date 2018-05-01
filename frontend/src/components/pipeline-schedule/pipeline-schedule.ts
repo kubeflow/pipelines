@@ -1,5 +1,6 @@
 import 'app-datepicker/app-datepicker-dialog.html';
 import 'neon-animation/web-animations.html';
+import 'paper-button/paper-button.html';
 import 'paper-checkbox/paper-checkbox.html';
 import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-input/paper-input.html';
@@ -19,6 +20,13 @@ const RECURRING = 'Recurring';
 const SPECIFIC_TIME = 'Run at a specific time';
 
 const DATE_FORMAT_PATTERN = /^[1-2]\d{3}\/\d?\d\/\d?\d$/;
+
+enum Intervals {
+  HOURLY = 'hourly',
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  MONTHLY = 'monthly',
+}
 
 @customElement('pipeline-schedule')
 export class PipelineSchedule extends Polymer.Element {
@@ -41,10 +49,10 @@ export class PipelineSchedule extends Polymer.Element {
 
   @property({ type: Array })
   protected _runIntervals = [
-    'hourly',
-    'daily',
-    'weekly',
-    'monthly',
+    Intervals.HOURLY,
+    Intervals.DAILY,
+    Intervals.WEEKLY,
+    Intervals.MONTHLY,
   ];
 
   @property({ type: String })
@@ -89,6 +97,26 @@ export class PipelineSchedule extends Polymer.Element {
   @property({ type: String })
   protected _crontab = '';
 
+  @property({ computed: '_checkIfAllActive(_weekdays.*)', type: Boolean })
+  protected _allDaysOfWeekActive = true;
+
+  @property({ type: Array })
+  protected _weekdays = [
+    { day: 'S', active: true },
+    { day: 'M', active: true },
+    { day: 'T', active: true },
+    { day: 'W', active: true },
+    { day: 'T', active: true },
+    { day: 'F', active: true },
+    { day: 'S', active: true }
+  ];
+
+  @property({ type: Boolean })
+  protected _enableWeekdayButtons = true;
+
+  @property({ type: Boolean })
+  protected _weekdaySelectionIsValid = true;
+
   constructor() {
     super();
     // TODO: disable or don't include invalid times.
@@ -107,7 +135,8 @@ export class PipelineSchedule extends Polymer.Element {
 
   // TODO: Maybe use a polymer validator (property?) here?
   @observe('_scheduleTypeIndex, _startDate, _endDate, _hasEndDate,\
-    _startTimeIndex, _endTimeIndex, _isStartPM, _isEndPM, _runIntervalIndex')
+    _startTimeIndex, _endTimeIndex, _isStartPM, _isEndPM, _runIntervalIndex,\
+    _weekdays.*')
   protected _validateSchedule(): void {
     // Start and end time can't be invalid if we're running the job immediately.
     if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
@@ -117,7 +146,15 @@ export class PipelineSchedule extends Polymer.Element {
       this._startTimeIsValid = this._isStartTimeValid();
       this._endTimeIsValid = this._isEndTimeValid();
 
-      this.scheduleIsValid = this._startTimeIsValid && this._endTimeIsValid;
+      // Weekday selection is valid if interval is not weekly or any weekday is
+      // selected.
+      this._weekdaySelectionIsValid =
+          this._runIntervals[this._runIntervalIndex] !== Intervals.WEEKLY ||
+          this._weekdays.map((w) => w.active).reduce((prev, cur) => prev || cur);
+
+      this.scheduleIsValid = this._startTimeIsValid && this._endTimeIsValid &&
+          this._weekdaySelectionIsValid;
+
       if (this.scheduleIsValid) {
         this._updateCrontab();
       }
@@ -130,6 +167,37 @@ export class PipelineSchedule extends Polymer.Element {
     if (newStartDate > this._endDate) {
       this._endDate = newStartDate;
       (this.$.endDatepicker as any).inputDate = this._endDate;
+    }
+  }
+
+  // Update all-weekdays checkbox when a weekday button is pressed.
+  protected _checkIfAllActive(): boolean {
+    return this._weekdays.map((w) => w.active).reduce((prev, cur) => prev && cur);
+  }
+
+  // Update all weekday buttons when all-weekdays checkbox is (un)checked.
+  protected _selectAllWeekdaysCheckboxChanged(): void {
+    const root = this.shadowRoot as ShadowRoot;
+    // If this function is called on-checked-changed, the property in this
+    // class won't have actually been updated yet, so we have to get it this
+    // way.
+    const allWeekdaysCheckbox = root.querySelector('#allWeekdaysCheckbox');
+    if (allWeekdaysCheckbox) {
+      const allWeekdaysCheckboxChecked = (allWeekdaysCheckbox as any).checked;
+      this._weekdays.forEach((_, i) =>
+          this.set('_weekdays.' + i + '.active', allWeekdaysCheckboxChecked));
+    }
+  }
+
+  @observe('_runIntervalIndex')
+  protected _updateWeekdayButtonEnabledState(): void {
+    // Weekdays are only enabled if interval is 'weekly'.
+    this._enableWeekdayButtons =
+        this._runIntervals[this._runIntervalIndex] === Intervals.WEEKLY;
+    if (!this._enableWeekdayButtons) {
+      // Check 'All weekdays' checkbox and update individual weekday buttons.
+      this._allDaysOfWeekActive = true;
+      this._selectAllWeekdaysCheckboxChanged();
     }
   }
 
@@ -157,25 +225,33 @@ export class PipelineSchedule extends Polymer.Element {
   }
 
   // TODO: Do we need to localize time?
+  @observe('_weekdays.*')
   private _updateCrontab(): void {
     const startDateTime = this._getStartDateTime();
     const minute = startDateTime.getMinutes();
     let hour = '*';
     let dayOfMonth = '*';
     const month = '*';
-    const dayOfWeek = '*';
+    let dayOfWeek = '*';
     switch (this._runIntervals[this._runIntervalIndex]) {
-      case 'hourly':
+      case Intervals.HOURLY:
         break;
-      case 'daily':
+      case Intervals.DAILY:
         hour = '' + startDateTime.getHours();
         break;
-      case 'weekly':
-        // TODO: Add support for selecting days of the week.
+      case Intervals.WEEKLY:
         hour = '' + startDateTime.getHours();
-        dayOfMonth += '/7';
+        if (!this._checkIfAllActive()) {
+          // Convert weekdays to array of indices of active days and join them.
+          dayOfWeek = this._weekdays.reduce(
+              (result: number[], day, i) => {
+                if (day.active) { result.push(i); }
+                return result;
+              },
+              []).join(',');
+        }
         break;
-      case 'monthly':
+      case Intervals.MONTHLY:
         hour = '' + startDateTime.getHours();
         dayOfMonth = '' + startDateTime.getDate();
         break;

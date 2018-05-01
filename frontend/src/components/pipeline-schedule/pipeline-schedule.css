@@ -15,6 +15,27 @@ app-datepicker-dialog {
   --app-datepicker-today-color: #000;
 }
 
+paper-button.toggle {
+  @apply --shadow-elevation-3dp;
+  background-color: var(--background-contrast-color);
+  border-radius: 50%;
+  color: var(--primary-text-color);
+  height: var(--height-xsmall);
+  min-width: var(--height-xsmall);
+  width: var(--height-xsmall);
+}
+
+paper-button.toggle[active] {
+  background-color: var(--theme-primary-color);
+  color: var(--secondary-button-color);
+}
+
+paper-button.toggle[disabled] {
+  @apply --shadow-none;
+  background-color: transparent;
+  color: var(--disabled-color);
+}
+
 paper-toggle-button.am-pm {
   --paper-toggle-button-checked-bar-color: var(--theme-primary-color);
   --paper-toggle-button-checked-button-color: var(--theme-primary-color);
@@ -26,8 +47,4 @@ paper-toggle-button.am-pm {
 
 .checkbox-margin-adjust {
   margin-bottom: 5px;
-}
-
-.padded {
-  padding: var(--spacing-minus-1);
 }
