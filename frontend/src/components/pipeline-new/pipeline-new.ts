@@ -98,7 +98,6 @@ export class PipelineNew extends Polymer.Element implements PageElement {
       this._busy = false;
     }
     const pipelineSchedule = this.$.schedule as PipelineSchedule;
-    pipelineSchedule.load('');
     // Allow schedule to affect deploy button state.
     pipelineSchedule.addEventListener('shedule-is-valid-changed',
         this._scheduleValidationUpdated.bind(this));

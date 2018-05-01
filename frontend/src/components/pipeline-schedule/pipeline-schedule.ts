@@ -11,7 +11,6 @@ import 'polymer/polymer.html';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
-import { PageElement } from '../../model/page_element';
 
 import './pipeline-schedule.html';
 
@@ -22,7 +21,7 @@ const SPECIFIC_TIME = 'Run at a specific time';
 const DATE_FORMAT_PATTERN = /^[1-2]\d{3}\/\d?\d\/\d?\d$/;
 
 @customElement('pipeline-schedule')
-export class PipelineSchedule extends Polymer.Element implements PageElement {
+export class PipelineSchedule extends Polymer.Element {
 
   @property({ notify: true, type: Boolean })
   public scheduleIsValid = true;
@@ -90,7 +89,8 @@ export class PipelineSchedule extends Polymer.Element implements PageElement {
   @property({ type: String })
   protected _crontab = '';
 
-  public async load(_: string): Promise<void> {
+  constructor() {
+    super();
     // TODO: disable or don't include invalid times.
     // Create an array with 12 hours + half hours for scheduling time.
     this._times.push('12:00');
