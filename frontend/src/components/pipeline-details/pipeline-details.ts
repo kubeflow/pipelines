@@ -14,6 +14,7 @@ import { customElement, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';
+import { JobList } from '../job-list/job-list';
 
 import './pipeline-details.html';
 
@@ -52,7 +53,7 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
         pipeline.createdAt = new Date(pipeline.createdAt).toLocaleString();
       }
 
-      (this.$.jobs as any).loadJobs(pipeline.id);
+      (this.$.jobs as JobList).loadJobs(pipeline.id);
 
       this.pipeline = pipeline;
       if (this.pipeline) {

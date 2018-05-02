@@ -183,7 +183,7 @@ export class PipelineSchedule extends Polymer.Element {
     // way.
     const allWeekdaysCheckbox = root.querySelector('#allWeekdaysCheckbox');
     if (allWeekdaysCheckbox) {
-      const allWeekdaysCheckboxChecked = (allWeekdaysCheckbox as any).checked;
+      const allWeekdaysCheckboxChecked = (allWeekdaysCheckbox as PaperCheckboxElement).checked;
       this._weekdays.forEach((_, i) =>
           this.set('_weekdays.' + i + '.active', allWeekdaysCheckboxChecked));
     }

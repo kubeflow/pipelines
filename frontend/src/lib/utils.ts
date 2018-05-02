@@ -43,18 +43,6 @@ export function dateDiffToString(diff: number): string {
   return `${hours.toFixed()}:${minutes.toFixed()}:${seconds.toFixed()}`;
 }
 
-export function objectToArray(obj: {}): any[] {
-  if (!obj) {
-    return [];
-  }
-  return Object.keys(obj).map((k) => {
-    return {
-      name: k,
-      value: (obj as any)[k],
-    };
-  });
-}
-
 export function getAncestorElementWithClass(element: HTMLElement, className: string): Element {
   while (!element.classList.contains(className) && element.parentElement) {
     element = element.parentElement;

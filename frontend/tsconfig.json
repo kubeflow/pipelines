@@ -20,9 +20,7 @@
     "target": "es2015"
   },
   "include": [
-    "./src"
-  ],
-  "exclude": [
-    "./bower_components"
+    "./src",
+    "./bower_components/**/*.d.ts",
   ]
 }

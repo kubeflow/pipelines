@@ -62,10 +62,6 @@ export class JobList extends Polymer.Element {
         new RouteEvent(`/pipelineJob?pipelineId=${this._pipelineId}&jobId=${jobId}`));
   }
 
-  protected _paramsToArray(paramsObject: {}): any[] {
-    return Utils.objectToArray(paramsObject);
-  }
-
   protected _getStatusIcon(status: NodePhase): string {
     return Utils.nodePhaseToIcon(status);
   }

@@ -41,8 +41,10 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   @property({ type: Number })
   protected _packageIndex = -1;
 
-  @property({ computed: '_updateDeployButtonState(newPipeline.name, _scheduleIsValid)',
-    type: Boolean })
+  @property({
+    computed: '_updateDeployButtonState(newPipeline.name, _scheduleIsValid)',
+    type: Boolean
+  })
   protected _inputIsValid = true;
 
   @property({ type: Boolean})
@@ -55,17 +57,17 @@ export class PipelineNew extends Polymer.Element implements PageElement {
       pipelineData?: NewPipelineData): Promise<void> {
     this._busy = true;
     this._overwriteData = pipelineData;
-    const packageList = this.$.packagesListbox as any;
+    const packageList = this.$.packagesListbox as PaperListboxElement;
 
     // Clear package selection on each component load
-    packageList.select();
+    packageList.select(-1);
     this.newPipeline = new Pipeline();
 
     // Initialize input to valid to avoid error messages on page load.
-    (this.$.name as any).invalid = false;
+    (this.$.name as PaperInputElement).invalid = false;
 
-    this.set('newPipeline.packageId',
-        this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1);
+    this.set('newPipeline.packageId', this._overwriteData ?
+        this._overwriteData.packageId : queryParams.packageId || -1);
 
     try {
       this.packages = await Apis.getPackages();
@@ -85,7 +87,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
         // achieve this, first deep clone the parameters array, then for each
         // parameter, check if there one with the same name in the overwrite
         // data, Object.assign them.
-        const augmentedParams = this.newPipeline.parameters.map((p) => ({...p}));
+        const augmentedParams = this.newPipeline.parameters.map((p) => ({ ...p }));
         this._overwriteData.parameters.forEach((p) => {
           const param = augmentedParams.filter((_p) => _p.name === p.name);
           if (param.length === 1) {
@@ -100,7 +102,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     const pipelineSchedule = this.$.schedule as PipelineSchedule;
     // Allow schedule to affect deploy button state.
     pipelineSchedule.addEventListener('schedule-is-valid-changed',
-                                      this._scheduleValidationUpdated.bind(this));
+        this._scheduleValidationUpdated.bind(this));
   }
 
   protected _scheduleValidationUpdated(): void {
@@ -115,7 +117,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
 
   @observe('_packageIndex')
   protected _packageIndexChanged(newIndex: number): void {
-    if (newIndex === undefined || this.packages === undefined) {
+    if (newIndex === undefined || newIndex < 0 || this.packages === undefined) {
       return;
     }
     const pkg = this.packages[newIndex];
@@ -139,7 +141,8 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     const pkg = await Apis.uploadPackage(file);
     // Add the parsed package to the dropdown list, and select it
     this.push('packages', pkg);
-    (this.$.packagesListbox as any).selected = (this.$.packagesListbox as any).items.length;
+    (this.$.packagesListbox as PaperListboxElement).selected =
+        (this.$.packagesListbox as PaperListboxElement).items!.length;
     this._busy = false;
 
     (this.$.altFileUpload as HTMLInputElement).value = '';

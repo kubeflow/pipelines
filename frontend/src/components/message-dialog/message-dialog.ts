@@ -11,10 +11,10 @@ export class MessageDialog extends Polymer.Element {
   message = '';
 
   open(): void {
-    (this.$.dialog as any).open();
+    (this.$.dialog as PaperDialogElement).open();
   }
 
   close(): void {
-    (this.$.dialog as any).close();
+    (this.$.dialog as PaperDialogElement).close();
   }
 }
