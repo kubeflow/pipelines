@@ -12,7 +12,7 @@ spec:
       - name: project
       - name: schema
       - name: preprocess-mode
-        value: cloud
+        value: local
       - name: target
       - name: learning-rate
       - name: hidden-layer-size
@@ -21,6 +21,8 @@ spec:
         value: 0
       - name: pss
         value: 0
+      - name: predict-mode
+        value: local
   templates:
   - name: kubeflow-training
     inputs:
@@ -37,6 +39,7 @@ spec:
       - name: steps
       - name: workers
       - name: pss
+      - name: predict-mode
     steps:
     - - name: preprocess
         template: preprocess
@@ -76,6 +79,32 @@ spec:
             value: "{{inputs.parameters.workers}}"
           - name: pss
             value: "{{inputs.parameters.pss}}"
+    - - name: predict
+        template: predict
+        arguments:
+          parameters:
+          - name: output
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/predict"
+          - name: data
+            value: "{{inputs.parameters.eval}}"
+          - name: schema
+            value: "{{inputs.parameters.schema}}"
+          - name: target
+            value: "{{inputs.parameters.target}}"
+          - name: model
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/train"
+          - name: predict-mode
+            value: "{{inputs.parameters.predict-mode}}"
+          - name: project
+            value: "{{inputs.parameters.project}}"
+    - - name: confusionmatrix
+        template: confusionmatrix
+        arguments:
+          parameters:
+          - name: output
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix"
+          - name: predictions
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/predict/prediction_results-*"
   - name: preprocess
     inputs:
       parameters:
@@ -119,4 +148,36 @@ spec:
           "--target", "{{inputs.parameters.target}}",
           "--workers", "{{inputs.parameters.workers}}",
           "--pss", "{{inputs.parameters.pss}}",
+      ]
+  - name: predict
+    inputs:
+      parameters:
+      - name: output
+      - name: data
+      - name: schema
+      - name: target
+      - name: model
+      - name: predict-mode
+      - name: project
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict
+      args: [
+          "--output", "{{inputs.parameters.output}}",
+          "--data", "{{inputs.parameters.data}}",
+          "--schema", "{{inputs.parameters.schema}}",
+          "--target", "{{inputs.parameters.target}}",
+          "--model", "{{inputs.parameters.model}}",
+          "--mode", "{{inputs.parameters.predict-mode}}",
+          "--project", "{{inputs.parameters.project}}",
+      ]
+  - name: confusionmatrix
+    inputs:
+      parameters:
+      - name: output
+      - name: predictions
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix
+      args: [
+          "--output", "{{inputs.parameters.output}}",
+          "--predictions", "{{inputs.parameters.predictions}}",
       ]

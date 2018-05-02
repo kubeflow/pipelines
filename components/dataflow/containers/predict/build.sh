@@ -14,10 +14,19 @@
 # limitations under the License.
 
 
-mkdir -p ./build
-rsync -arvp "../../tft"/ ./build/
-rsync -arvp "../../predict"/ ./build/
+if [ -z "$1" ]
+  then
+    PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
+else
+  PROJECT_ID=$1
+fi
 
-docker build -t ml-pipeline-dataflow-base .
-rm -rf ./build
+# build base image
+pushd ../base
+./build.sh
+popd
+
+docker build -t ml-pipeline-dataflow-tf-predict .
+docker tag ml-pipeline-dataflow-tf-predict gcr.io/${PROJECT_ID}/ml-pipeline-dataflow-tf-predict
+gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataflow-tf-predict
 

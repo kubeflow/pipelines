@@ -135,7 +135,7 @@ def make_preprocessing_fn(schema, target_name):
     for col_schema in schema:
       col_name = col_schema['name']
       if col_schema['type'] == 'NUMBER':
-        features_dict[col_name] = tft.scale_to_0_1(inputs[col_name])
+        features_dict[col_name] = inputs[col_name]
       elif col_schema['type'] == 'CATEGORY':
         features_dict[col_name] = tft.string_to_int(inputs[col_name],
                                                     vocab_filename='vocab_' + col_name)

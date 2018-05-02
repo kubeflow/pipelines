@@ -12,7 +12,7 @@ The sample
 
 To run an image classification training pipeline sample:
 
-argo submit kubeflow-training.yaml \
+argo submit kubeflow-training-classification.yaml \
      -p project=MY_GCP_PROJECT \
      -p output="gs://my-bucket/flowermodel" \
      -p schema=gs://ml-pipeline-playground/flower/schema.json \
@@ -27,7 +27,7 @@ argo submit kubeflow-training.yaml \
 
 To run a chicago taxi fare prediction training pipeline sample:
 
-argo submit kubeflow-training.yaml \
+argo submit kubeflow-training-regression.yaml \
      -p project=MY_GCP_PROJECT \
      -p output="gs://my-bucket/taximodel" \
      -p schema=gs://ml-pipeline-playground/taxi/schema.json \

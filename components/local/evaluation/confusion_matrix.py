@@ -31,8 +31,6 @@ from tensorflow.python.lib.io import file_io
 def main(argv=None):
   parser = argparse.ArgumentParser(description='ML Trainer')
   parser.add_argument('--predictions', type=str, help='GCS path of prediction file pattern.')
-  parser.add_argument('--analysis', type=str, help='GCS path of analysis results.')
-  parser.add_argument('--target', type=str, help='Target column name.')
   parser.add_argument('--output', type=str, help='GCS path of the output directory.')
   args = parser.parse_args()
 
@@ -46,10 +44,7 @@ def main(argv=None):
       dfs.append(pd.read_csv(f, names=names))
     
   df = pd.concat(dfs)
-
-  with file_io.FileIO(os.path.join(args.analysis, 'vocab_' + args.target + '.csv'), 'r') as f:
-    vocab = list(pd.read_csv(f, names=['vocab', 'freq'])['vocab'])
-
+  vocab = list(df['target'].unique())
   cm = confusion_matrix(df['target'], df['predicted'], labels=vocab)
   data = []
   for target_index, target_row in enumerate(cm):

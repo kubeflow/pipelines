@@ -1,4 +1,3 @@
-#!/bin/bash -e
 # Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM ml-pipeline-dataflow-base
 
-mkdir -p ./build
-rsync -arvp "../../tft"/ ./build/
-rsync -arvp "../../predict"/ ./build/
-
-docker build -t ml-pipeline-dataflow-base .
-rm -rf ./build
-
+ENTRYPOINT ["python", "/ml/predict.py"]

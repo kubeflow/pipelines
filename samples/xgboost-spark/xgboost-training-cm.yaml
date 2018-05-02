@@ -167,10 +167,6 @@ spec:
             value: "{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix"
           - name: predictions
             value: "{{inputs.parameters.output}}/{{workflow.name}}/batchpredict/part-*.csv"
-          - name: analysis
-            value: "{{inputs.parameters.output}}/{{workflow.name}}/analysis"
-          - name: target
-            value: "{{inputs.parameters.target}}"
 
   - name: createcluster
     inputs:
@@ -273,16 +269,12 @@ spec:
     inputs:
       parameters:
       - name: output
-      - name: analysis
       - name: predictions
-      - name: target
     container:
       image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix
       args: [
           "--output", "{{inputs.parameters.output}}",
           "--predictions", "{{inputs.parameters.predictions}}",
-          "--analysis", "{{inputs.parameters.analysis}}",
-          "--target", "{{inputs.parameters.target}}",
       ]
 
   - name: deletecluster
