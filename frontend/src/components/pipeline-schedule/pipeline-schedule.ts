@@ -228,6 +228,7 @@ export class PipelineSchedule extends Polymer.Element {
   @observe('_weekdays.*')
   private _updateCrontab(): void {
     const startDateTime = this._getStartDateTime();
+    const second = '*';
     const minute = startDateTime.getMinutes();
     let hour = '*';
     let dayOfMonth = '*';
@@ -259,7 +260,7 @@ export class PipelineSchedule extends Polymer.Element {
         Utils.log.error('Invalid interval index:', this._runIntervalIndex);
     }
     this._crontab =
-      minute + ' ' + hour + ' ' + dayOfMonth + ' ' + month + ' ' + dayOfWeek;
+        [ second, minute, hour, dayOfMonth, month, dayOfWeek ].join(' ');
   }
 
   private _getStartDateTime(): Date {

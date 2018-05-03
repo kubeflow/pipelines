@@ -48,3 +48,7 @@ paper-toggle-button.am-pm {
 .checkbox-margin-adjust {
   margin-bottom: 5px;
 }
+
+.crontab {
+  min-width: 240px;
+}
