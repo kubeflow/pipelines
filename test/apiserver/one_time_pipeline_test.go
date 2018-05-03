@@ -17,8 +17,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"ml/src/apiserver/api"
-	"ml/src/util"
+	"ml/backend/src/apiserver/api"
+	"ml/backend/src/util"
 	"testing"
 	"time"
 

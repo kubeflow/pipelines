@@ -51,7 +51,7 @@ spec:
           - name: branch
             value: "{{inputs.parameters.branch}}"
           - name: docker-path
-            value: src
+            value: backend/src
           - name: image-suffix
             value: "{{inputs.parameters.api-image-suffix}}"
       - name: build-frontend-image

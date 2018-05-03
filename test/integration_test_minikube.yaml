@@ -27,7 +27,7 @@ spec:
     container:
       image: docker:17.10
       command: [sh, -c]
-      args: ["until docker ps; do sleep 3; done; docker build -t ml-pipeline-api-server-integration-test /go/src/ml/src/"]
+      args: ["until docker ps; do sleep 3; done; docker build -t ml-pipeline-api-server-integration-test /go/src/ml/backend/src"]
       volumeMounts:
       - mountPath: /var/run/docker.sock
         name: docker-sock-volume
