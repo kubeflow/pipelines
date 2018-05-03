@@ -129,8 +129,13 @@ export class PipelineSchedule extends Polymer.Element {
     }
   }
 
-  public scheduleAsCrontab(): string {
-    return this._crontab;
+  // Backend expects the crontab in UTC.
+  public scheduleAsUTCCrontab(): string {
+    const startDateTime = this._getStartDateTime();
+    return this._generateCrontab(
+      startDateTime.getUTCDate(),
+      startDateTime.getUTCHours(),
+      startDateTime.getUTCMinutes());
   }
 
   // TODO: Maybe use a polymer validator (property?) here?
@@ -156,7 +161,7 @@ export class PipelineSchedule extends Polymer.Element {
           this._weekdaySelectionIsValid;
 
       if (this.scheduleIsValid) {
-        this._updateCrontab();
+        this._updateDisplayCrontab();
       }
     }
   }
@@ -224,12 +229,12 @@ export class PipelineSchedule extends Polymer.Element {
     return this._SCHEDULES[scheduleTypeIndex] === RECURRING;
   }
 
-  // TODO: Do we need to localize time?
-  @observe('_weekdays.*')
-  private _updateCrontab(): void {
-    const startDateTime = this._getStartDateTime();
+  // We don't simply take a Date object here because the crontab we send to the
+  // backend needs to be UTC, and Date objects are automatically local.
+  private _generateCrontab(targetDateDay: number, targetDateHours: number,
+      targetDateMinutes: number): string {
     const second = '*';
-    const minute = startDateTime.getMinutes();
+    const minute = targetDateMinutes;
     let hour = '*';
     let dayOfMonth = '*';
     const month = '*';
@@ -238,10 +243,10 @@ export class PipelineSchedule extends Polymer.Element {
       case Intervals.HOURLY:
         break;
       case Intervals.DAILY:
-        hour = '' + startDateTime.getHours();
+        hour = '' + targetDateHours;
         break;
       case Intervals.WEEKLY:
-        hour = '' + startDateTime.getHours();
+        hour = '' + targetDateHours;
         if (!this._checkIfAllActive()) {
           // Convert weekdays to array of indices of active days and join them.
           dayOfWeek = this._weekdays.reduce(
@@ -253,14 +258,22 @@ export class PipelineSchedule extends Polymer.Element {
         }
         break;
       case Intervals.MONTHLY:
-        hour = '' + startDateTime.getHours();
-        dayOfMonth = '' + startDateTime.getDate();
+        hour = '' + targetDateHours;
+        dayOfMonth = '' + targetDateDay;
         break;
       default:
         Utils.log.error('Invalid interval index:', this._runIntervalIndex);
     }
-    this._crontab =
-        [ second, minute, hour, dayOfMonth, month, dayOfWeek ].join(' ');
+    return [ second, minute, hour, dayOfMonth, month, dayOfWeek ].join(' ');
+  }
+
+  @observe('_weekdays.*')
+  private _updateDisplayCrontab(): void {
+    const startDateTime = this._getStartDateTime();
+    this._crontab = this._generateCrontab(
+      startDateTime.getDate(),
+      startDateTime.getHours(),
+      startDateTime.getMinutes());
   }
 
   private _getStartDateTime(): Date {

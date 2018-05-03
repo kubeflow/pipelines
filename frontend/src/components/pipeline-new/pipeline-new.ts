@@ -161,7 +161,7 @@ export class PipelineNew extends PageElement {
     // backend breaks if it receives an empty string, undefined, or null.
     this.newPipeline.createdAt = new Date().toISOString();
     this.newPipeline.schedule =
-      (this.$.schedule as PipelineSchedule).scheduleAsCrontab();
+      (this.$.schedule as PipelineSchedule).scheduleAsUTCCrontab();
     try {
       await Apis.newPipeline(this.newPipeline);
       this.dispatchEvent(new RouteEvent('/pipelines'));
