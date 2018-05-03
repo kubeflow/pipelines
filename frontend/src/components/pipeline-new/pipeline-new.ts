@@ -9,6 +9,7 @@ import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
+import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
@@ -30,7 +31,7 @@ interface NewPipelineData {
 }
 
 @customElement('pipeline-new')
-export class PipelineNew extends Polymer.Element implements PageElement {
+export class PipelineNew extends PageElement {
 
   @property({ type: Array })
   public packages: PipelinePackage[];
@@ -47,7 +48,7 @@ export class PipelineNew extends Polymer.Element implements PageElement {
   })
   protected _inputIsValid = true;
 
-  @property({ type: Boolean})
+  @property({ type: Boolean })
   protected _scheduleIsValid = true;
 
   protected _busy = false;
@@ -96,6 +97,9 @@ export class PipelineNew extends Polymer.Element implements PageElement {
         });
         this.set('newPipeline.parameters', augmentedParams);
       }
+    } catch (err) {
+      this.showPageError('There was an error while loading packages.');
+      Utils.log.error('Error loading packages:', err);
     } finally {
       this._busy = false;
     }
@@ -138,14 +142,18 @@ export class PipelineNew extends Polymer.Element implements PageElement {
 
     const file = files[0];
     this._busy = true;
-    const pkg = await Apis.uploadPackage(file);
-    // Add the parsed package to the dropdown list, and select it
-    this.push('packages', pkg);
-    (this.$.packagesListbox as PaperListboxElement).selected =
-        (this.$.packagesListbox as PaperListboxElement).items!.length;
-    this._busy = false;
-
-    (this.$.altFileUpload as HTMLInputElement).value = '';
+    try {
+      const pkg = await Apis.uploadPackage(file);
+      // Add the parsed package to the dropdown list, and select it
+      this.push('packages', pkg);
+      (this.$.packagesListbox as PaperListboxElement).selected =
+          (this.$.packagesListbox as PaperListboxElement).items!.length;
+      (this.$.altFileUpload as HTMLInputElement).value = '';
+    } catch (err) {
+      Utils.showDialog('There was an error uploading the package.');
+    } finally {
+      this._busy = false;
+    }
   }
 
   protected async _deploy(): Promise<void> {
@@ -154,7 +162,11 @@ export class PipelineNew extends Polymer.Element implements PageElement {
     this.newPipeline.createdAt = new Date().toISOString();
     this.newPipeline.schedule =
       (this.$.schedule as PipelineSchedule).scheduleAsCrontab();
-    await Apis.newPipeline(this.newPipeline);
-    this.dispatchEvent(new RouteEvent('/pipelines'));
+    try {
+      await Apis.newPipeline(this.newPipeline);
+      this.dispatchEvent(new RouteEvent('/pipelines'));
+    } catch (err) {
+      Utils.showDialog('There was an error deploying the pipeline.');
+    }
   }
 }

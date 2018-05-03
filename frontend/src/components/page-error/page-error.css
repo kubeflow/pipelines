@@ -1,0 +1,32 @@
+@import '../../styles/common.css';
+
+.error {
+  background-color: var(--error-background-color);
+  border: 1px solid var(--divider-color);
+  color: var(--error-text-color);
+  font-size: var(--app-content-font-size);
+  justify-content: space-between;
+  margin: var(--spacing-minus-1);
+  padding: var(--spacing-minus-4);
+}
+
+.error-message {
+  align-items: center;
+  display: flex;
+}
+
+.icon {
+  flex-shrink: 0;
+  height: 16px;
+  padding: 0 var(--spacing-minus-1);
+  width: 16px;
+}
+
+.refresh-btn {
+  background-color: var(--background-base-color);
+  color: var(--primary-text-color);
+  font-weight: bold;
+  margin: 0;
+  max-height: var(--height-xsmall);
+  min-width: 75px;
+}

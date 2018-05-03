@@ -1,0 +1,17 @@
+<dom-module id="page-error">
+  <template>
+    <link rel="stylesheet" href="./page-error.css">
+
+    <template is="dom-if" if="[[error]]">
+      <div class="flex error">
+        <div class="error-message">
+          <iron-icon class="icon" icon="error"></iron-icon>
+          [[error]]
+        </div>
+        <paper-button class="refresh-btn" on-click="_refresh" raised>
+          Refresh
+        </paper-button>
+      </div>
+    </template>
+  </template>
+</dom-module>

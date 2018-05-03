@@ -34,6 +34,7 @@
   --background-contrast-color: #FFFFFF;
   --background-input-color: rgba(0, 0, 0, .04);
   --column-header-color: rgba(0, 0, 0, .04);
+  --error-background-color: #FBE9E7;
   --loading-overlay-color: rgba(255, 255, 255, .5);
   --message-bar-background-color: rgba(0, 0, 0, .05);
   --modal-backdrop-color: rgba(33, 33, 33, .48);

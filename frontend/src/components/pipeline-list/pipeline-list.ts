@@ -3,6 +3,7 @@ import 'paper-button/paper-button.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
+import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { ItemClickEvent, RouteEvent } from '../../model/events';
@@ -18,7 +19,7 @@ import {
 import './pipeline-list.html';
 
 @customElement('pipeline-list')
-export class PipelineList extends Polymer.Element implements PageElement {
+export class PipelineList extends PageElement {
 
   @property({ type: Array })
   public pipelines: Pipeline[] = [];
@@ -44,12 +45,17 @@ export class PipelineList extends Polymer.Element implements PageElement {
   }
 
   public async load(_: string): Promise<void> {
-    this.pipelines = (await Apis.getPipelines()).map((p) => {
-      if (p.createdAt) {
-        p.createdAt = new Date(p.createdAt || '').toLocaleString();
-      }
-      return p;
-    });
+    try {
+      this.pipelines = (await Apis.getPipelines()).map((p) => {
+        if (p.createdAt) {
+          p.createdAt = new Date(p.createdAt || '').toLocaleString();
+        }
+        return p;
+      });
+    } catch (err) {
+      this.showPageError('There was an error while loading the pipeline list.');
+      Utils.log.error('Error loading pipelines:', err);
+    }
 
     this.pipelineListRows = this.pipelines.map((pipeline) => {
       const row = new ItemListRow({

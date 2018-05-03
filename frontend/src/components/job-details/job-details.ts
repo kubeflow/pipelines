@@ -23,7 +23,7 @@ import '../job-graph/job-graph';
 import './job-details.html';
 
 @customElement('job-details')
-export class JobDetails extends Polymer.Element implements PageElement {
+export class JobDetails extends PageElement {
 
   @property({ type: Array })
   public outputPlots: PlotMetadata[] = [];
@@ -62,8 +62,10 @@ export class JobDetails extends Polymer.Element implements PageElement {
         this.jobDetail = (await Apis.getJob(this._pipelineId, this._jobId)).jobDetail;
         this.pipeline = await Apis.getPipeline(this._pipelineId);
         templateYaml = await Apis.getPackageTemplate(this.pipeline.packageId);
+      } catch (err) {
+        this.showPageError('There was an error while loading details for job: ' + this._jobId);
+        Utils.log.error('Error loading job details:', err);
       } finally {
-        // TODO: Handle errors.
         this._loadingJob = false;
       }
 
@@ -71,6 +73,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
       try {
         (this.$.jobGraph as JobGraph).refresh(this.jobDetail);
       } catch (err) {
+        this.showPageError('There was an error while loading the job graph');
         Utils.log.error('Could not draw job graph from object:', this.jobDetail);
       }
 
@@ -88,7 +91,7 @@ export class JobDetails extends Polymer.Element implements PageElement {
 
       this._loadingOutputs = true;
       try {
-        outputPaths.forEach(async (path) => {
+        await Promise.all(outputPaths.map(async (path) => {
           const fileList = await Apis.listFiles(path);
           const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
           if (metadataFile) {
@@ -96,9 +99,11 @@ export class JobDetails extends Polymer.Element implements PageElement {
             const metadata = JSON.parse(metadataJson) as OutputMetadata;
             this.outputPlots = this.outputPlots.concat(metadata.outputs);
           }
-        });
+        }));
+      } catch (err) {
+        this.showPageError('There was an error while loading details for this job');
+        Utils.log.error('Error loading job details:', err);
       } finally {
-        // TODO: Handle errors.
         this._loadingOutputs = false;
       }
     }

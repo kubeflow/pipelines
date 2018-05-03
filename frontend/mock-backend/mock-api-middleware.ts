@@ -70,6 +70,13 @@ export default (app) => {
 
   app.get(apisPrefix + '/pipelines/:pid/jobs/:jname', (req, res) => {
     const pid = Number.parseInt(req.params.pid);
+    const jname = req.params.jname;
+    const pipeline = fixedData.pipelines.find((p) => p.id === pid);
+    const job = pipeline.jobs.find((j) => j.metadata.name === jname);
+    if (!job) {
+      res.status(404).send('Cannot find a job with name: ' + jname);
+      return;
+    }
     // This simply allows us to have multiple mocked graphs.
     const mockJobFileName = pid === 1 ?
       'mock-coinflip-job-runtime.json' : 'mock-xgboost-job-runtime.json';
@@ -128,6 +135,10 @@ export default (app) => {
     setTimeout(() => {
       res.send('ok');
     }, 1000);
+  });
+
+  app.all(apisPrefix + '*', (req, res) => {
+    res.status(404).send('Bad request endpoint.');
   });
 
   proxyMiddleware(app, apisPrefix);

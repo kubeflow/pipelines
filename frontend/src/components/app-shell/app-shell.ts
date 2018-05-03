@@ -12,6 +12,7 @@ import { PageElement } from '../../model/page_element';
 
 import '../job-details/job-details';
 import '../job-list/job-list';
+import '../page-error/page-error';
 import '../pipeline-details/pipeline-details';
 import '../pipeline-list/pipeline-list';
 import '../pipeline-new/pipeline-new';

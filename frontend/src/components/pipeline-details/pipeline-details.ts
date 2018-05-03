@@ -19,7 +19,7 @@ import { JobList } from '../job-list/job-list';
 import './pipeline-details.html';
 
 @customElement('pipeline-details')
-export class PipelineDetails extends Polymer.Element implements PageElement {
+export class PipelineDetails extends PageElement {
 
   @property({ type: Object })
   public pipeline: Pipeline | null = null;
@@ -33,12 +33,16 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
   @property({ type: Boolean })
   protected _busy = false;
 
-  @property({ computed: '_computeAllowPipelineEnable(pipeline.enabled, pipeline.schedule)',
-    type: Boolean })
+  @property({
+    computed: '_computeAllowPipelineEnable(pipeline.enabled, pipeline.schedule)',
+    type: Boolean
+  })
   protected _allowPipelineEnable = false;
 
-  @property({ computed: '_computeAllowPipelineDisable(pipeline.enabled, pipeline.schedule)',
-    type: Boolean })
+  @property({
+    computed: '_computeAllowPipelineDisable(pipeline.enabled, pipeline.schedule)',
+    type: Boolean
+  })
   protected _allowPipelineDisable = false;
 
   public async load(path: string): Promise<void> {
@@ -48,16 +52,17 @@ export class PipelineDetails extends Polymer.Element implements PageElement {
         Utils.log.error(`Bad pipeline path: ${id}`);
         return;
       }
-      const pipeline = await Apis.getPipeline(id);
-      if (pipeline.createdAt) {
+
+      try {
+        const pipeline = await Apis.getPipeline(id);
         pipeline.createdAt = new Date(pipeline.createdAt).toLocaleString();
-      }
+        this.pipeline = pipeline;
 
-      (this.$.jobs as JobList).loadJobs(pipeline.id);
-
-      this.pipeline = pipeline;
-      if (this.pipeline) {
+        (this.$.jobs as JobList).loadJobs(this.pipeline.id);
         this.disableClonePipelineButton = false;
+      } catch (err) {
+        this.showPageError('There was an error while loading details for pipeline ' + id);
+        Utils.log.error('Error loading pipeline:', err);
       }
     }
   }

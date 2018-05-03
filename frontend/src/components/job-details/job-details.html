@@ -9,6 +9,8 @@
       <div class="toolbar-title">Job Details</div>
     </div>
 
+    <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
+
     <paper-spinner class="absolute-spinner" active hidden$="[[!_loadingJob]]"></paper-spinner>
 
     <div class="padded-spacing-base container" loading$="[[_loadingJob]]">
