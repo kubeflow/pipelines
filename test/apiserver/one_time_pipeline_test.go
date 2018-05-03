@@ -113,7 +113,7 @@ func (suite *OneTimePipelineTestSuite) TestOneTimePipeline() {
 	}
 	response, err = clientSet.RESTClient().Post().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines")).
-		Body(util.MarshalOrFail(pipeline)).Do().Raw()
+		Body(util.MarshalJsonOrFail(pipeline)).Do().Raw()
 	checkInstantiatePipelineResponse(t, response, err, requestStartTime)
 
 	/* ---------- Verify list pipelines works ---------- */
@@ -158,47 +158,50 @@ func (suite *OneTimePipelineTestSuite) TestOneTimePipeline() {
 	clientSet.RESTClient().Get().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines/1/jobs/"+jobName)).Do().StatusCode(&statusCode)
 	assert.Equal(t, http.StatusNotFound, statusCode)
+
+	/* ---------- Verify delete package works ---------- */
+	clientSet.RESTClient().Delete().
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages/1")).Do().StatusCode(&statusCode)
+	assert.Equal(t, http.StatusOK, statusCode)
+
+	/* ---------- Verify no package exist ---------- */
+	response, err = clientSet.RESTClient().Get().
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages")).Do().Raw()
+	checkNoPackageExists(t, response, err)
 }
 
 func checkNoPackageExists(t *testing.T, response []byte, err error) {
 	assert.Nil(t, err)
 	var pkgs []api.Package
-	util.UnmarshalOrFail(string(response), &pkgs)
+	util.UnmarshalJsonOrFail(string(response), &pkgs)
 	assert.Empty(t, pkgs)
 }
 
 func checkNoPipelineExists(t *testing.T, response []byte, err error) {
 	assert.Nil(t, err)
 	var pipelines []api.Package
-	util.UnmarshalOrFail(string(response), &pipelines)
+	util.UnmarshalJsonOrFail(string(response), &pipelines)
 	assert.Empty(t, pipelines)
-}
-
-func checkNoJobExists(t *testing.T, response []byte, err error) {
-	assert.Nil(t, err)
-	var jobs []api.Job
-	util.UnmarshalOrFail(string(response), &jobs)
-	assert.Empty(t, jobs)
 }
 
 func checkUpdatePackageResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var pkg api.Package
-	util.UnmarshalOrFail(string(response), &pkg)
+	util.UnmarshalJsonOrFail(string(response), &pkg)
 	verifyPackage(t, pkg, requestStartTime)
 }
 
 func checkListPackagesResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var pkgs []api.Package
-	util.UnmarshalOrFail(string(response), &pkgs)
+	util.UnmarshalJsonOrFail(string(response), &pkgs)
 	assert.Equal(t, 1, len(pkgs))
 	verifyPackage(t, pkgs[0], requestStartTime)
 }
 func checkGetPackageResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var pkg api.Package
-	util.UnmarshalOrFail(string(response), &pkg)
+	util.UnmarshalJsonOrFail(string(response), &pkg)
 	verifyPackage(t, pkg, requestStartTime)
 }
 
@@ -212,14 +215,14 @@ func checkGetTemplateResponse(t *testing.T, response []byte, err error) {
 func checkInstantiatePipelineResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var pipeline api.Pipeline
-	util.UnmarshalOrFail(string(response), &pipeline)
+	util.UnmarshalJsonOrFail(string(response), &pipeline)
 	verifyPipeline(t, pipeline, requestStartTime)
 }
 
 func checkListPipelinesResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var pipelines []api.Pipeline
-	util.UnmarshalOrFail(string(response), &pipelines)
+	util.UnmarshalJsonOrFail(string(response), &pipelines)
 	assert.Equal(t, 1, len(pipelines))
 	verifyPipeline(t, pipelines[0], requestStartTime)
 }
@@ -227,14 +230,14 @@ func checkListPipelinesResponse(t *testing.T, response []byte, err error, reques
 func checkGetPipelineResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var pipeline api.Pipeline
-	util.UnmarshalOrFail(string(response), &pipeline)
+	util.UnmarshalJsonOrFail(string(response), &pipeline)
 	verifyPipeline(t, pipeline, requestStartTime)
 }
 
 func checkListJobsResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var jobs []api.Job
-	util.UnmarshalOrFail(string(response), &jobs)
+	util.UnmarshalJsonOrFail(string(response), &jobs)
 	assert.Equal(t, 1, len(jobs))
 	verifyJob(t, jobs[0], requestStartTime)
 }
@@ -242,7 +245,7 @@ func checkListJobsResponse(t *testing.T, response []byte, err error, requestStar
 func checkGetJobResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
 	var jobDetail api.JobDetail
-	util.UnmarshalOrFail(string(response), &jobDetail)
+	util.UnmarshalJsonOrFail(string(response), &jobDetail)
 	verifyJob(t, *jobDetail.Job, requestStartTime)
 
 	// The Argo workflow might not be created. Only verify if it's created.
@@ -277,7 +280,7 @@ func checkJobSucceed(clientSet *kubernetes.Clientset, namespace string, pipeline
 
 func getJobStatus(response []byte) *v1alpha1.NodePhase {
 	var jobDetail api.JobDetail
-	util.UnmarshalOrFail(string(response), &jobDetail)
+	util.UnmarshalJsonOrFail(string(response), &jobDetail)
 	if jobDetail.Workflow != nil {
 		return &jobDetail.Workflow.Status.Phase
 	}
@@ -329,7 +332,7 @@ func verifyJob(t *testing.T, actual api.Job, requestStartTime int64) {
 
 func getJobName(response []byte) string {
 	var jobs []api.Job
-	util.UnmarshalOrFail(string(response), &jobs)
+	util.UnmarshalJsonOrFail(string(response), &jobs)
 	return jobs[0].Name
 }
 

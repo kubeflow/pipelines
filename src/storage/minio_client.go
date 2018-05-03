@@ -24,6 +24,7 @@ import (
 type MinioClientInterface interface {
 	PutObject(bucketName, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (n int64, err error)
 	GetObject(bucketName, objectName string, opts minio.GetObjectOptions) (io.Reader, error)
+	DeleteObject(bucketName, objectName string) error
 }
 
 type MinioClient struct {
@@ -36,4 +37,8 @@ func (c *MinioClient) PutObject(bucketName, objectName string, reader io.Reader,
 
 func (c *MinioClient) GetObject(bucketName, objectName string, opts minio.GetObjectOptions) (io.Reader, error) {
 	return c.Client.GetObject(bucketName, objectName, opts)
+}
+
+func (c *MinioClient) DeleteObject(bucketName, objectName string) error {
+	return c.Client.RemoveObject(bucketName, objectName)
 }

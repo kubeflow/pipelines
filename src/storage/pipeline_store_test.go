@@ -25,8 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func createPipeline(name string, pkgId uint) *model.Pipeline {
-	return &model.Pipeline{Name: name, PackageId: pkgId, Parameters: []model.Parameter{}}
+func createPipeline(name string, packageId uint) *model.Pipeline {
+	return &model.Pipeline{Name: name, PackageId: packageId, Parameters: []model.Parameter{}, Status: model.PipelineReady}
 }
 
 func pipelineExpected1() model.Pipeline {
@@ -38,7 +38,8 @@ func pipelineExpected1() model.Pipeline {
 		PackageId:      1,
 		Enabled:        true,
 		EnabledAtInSec: 1,
-		Parameters:     []model.Parameter{}}
+		Parameters:     []model.Parameter{},
+		Status:         model.PipelineReady}
 }
 
 func TestListPipelines(t *testing.T) {
@@ -46,6 +47,7 @@ func TestListPipelines(t *testing.T) {
 	defer store.Close()
 	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
 	store.PipelineStore().CreatePipeline(createPipeline("pipeline2", 2))
+	store.PipelineStore().CreatePipeline(&model.Pipeline{Name: "pipeline3", PackageId: 3, Status: model.PipelineCreating})
 	pipelinesExpected := []model.Pipeline{
 		pipelineExpected1(),
 		{
@@ -56,7 +58,9 @@ func TestListPipelines(t *testing.T) {
 			PackageId:      2,
 			Enabled:        true,
 			EnabledAtInSec: 2,
-			Parameters:     []model.Parameter{}}}
+			Parameters:     []model.Parameter{},
+			Status:         model.PipelineReady,
+		}}
 
 	pipelines, err := store.PipelineStore().ListPipelines()
 	assert.Nil(t, err)
@@ -81,6 +85,16 @@ func TestGetPipeline(t *testing.T) {
 	pipeline, err := store.PipelineStore().GetPipeline(1)
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
+}
+
+func TestGetPipeline_NotFound_Creating(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PipelineStore().CreatePipeline(&model.Pipeline{Name: "pipeline3", PackageId: 3, Status: model.PipelineCreating})
+
+	_, err := store.PipelineStore().GetPipeline(1)
+	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode(),
+		"Expected get pipeline to return not found error")
 }
 
 func TestGetPipeline_NotFoundError(t *testing.T) {
@@ -146,7 +160,7 @@ func TestEnablePipeline(t *testing.T) {
 	defer store.Close()
 
 	// Creating a pipeline. It is enabled by default.
-	createdPipeline := &model.Pipeline{Name: "Pipeline123"}
+	createdPipeline := &model.Pipeline{Name: "Pipeline123", Status: model.PipelineReady}
 	createdPipeline, err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
@@ -224,6 +238,26 @@ func TestEnablePipelineDatabaseError(t *testing.T) {
 	assert.Contains(t, err.Error(), "Error when enabling pipeline 1 to true: sql: database is closed")
 }
 
+func TestUpdatePipelineStatus(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	pipeline, err := store.PipelineStore().CreatePipeline(&model.Pipeline{Name: "pipeline1", PackageId: 1, Parameters: []model.Parameter{}, Status: model.PipelineCreating})
+	assert.Nil(t, err)
+	err = store.PipelineStore().UpdatePipelineStatus(pipeline.ID, model.PipelineReady)
+
+	store.DB().First(&pipeline, pipeline.ID)
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
+}
+
+func TestUpdatePipelineStatusError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB().Close()
+	err := store.PipelineStore().UpdatePipelineStatus(1, model.PipelineReady)
+	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+}
+
 func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -231,12 +265,14 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
 	pipeline1 := &model.Pipeline{
 		Name:      "MY_PIPELINE_1",
 		PackageId: 123,
-		Schedule:  "1 0 * * *"}
+		Schedule:  "1 0 * * *",
+		Status:    model.PipelineReady}
 
 	pipeline2 := &model.Pipeline{
 		Name:      "MY_PIPELINE_2",
 		PackageId: 123,
-		Schedule:  "1 0 * * 1"}
+		Schedule:  "1 0 * * 1",
+		Status:    model.PipelineReady}
 
 	workflow1 := v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -306,12 +342,14 @@ func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
 	pipeline1 := &model.Pipeline{
 		Name:      "MY_PIPELINE_1",
 		PackageId: 123,
-		Schedule:  "1 0 * * *"}
+		Schedule:  "1 0 * * *",
+		Status:    model.PipelineReady}
 
 	pipeline2 := &model.Pipeline{
 		Name:      "MY_PIPELINE_2",
 		PackageId: 123,
-		Schedule:  ""}
+		Schedule:  "",
+		Status:    model.PipelineReady}
 
 	workflow1 := v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{

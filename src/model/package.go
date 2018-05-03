@@ -14,11 +14,21 @@
 
 package model
 
+// PackageStatus a label for the status of the Package.
+// This is intend to make package creation and deletion atomic.
+type PackageStatus string
+
+const (
+	PackageCreating PackageStatus = "CREATING"
+	PackageReady    PackageStatus = "READY"
+	PackageDeleting PackageStatus = "DELETING"
+)
+
 type Package struct {
 	ID             uint   `gorm:"primary_key"`
 	CreatedAtInSec int64  `gorm:"not null"`
-	DeletedAtInSec *int64 `gorm:"index"`
 	Name           string `gorm:"not null"`
 	Description    string
-	Parameters     []Parameter `gorm:"polymorphic:Owner;"`
+	Parameters     []Parameter   `gorm:"polymorphic:Owner;"`
+	Status         PackageStatus `gorm:"not null"`
 }

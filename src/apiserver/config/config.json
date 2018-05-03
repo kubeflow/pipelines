@@ -3,9 +3,9 @@
     "DriverName": "mysql",
     "DataSourceName": ""
   },
-  "PackageManagerConfig":{
+  "ObjectStoreConfig":{
     "AccessKey": "minio",
     "SecretAccessKey": "minio123",
-    "BucketName": "packagemanager"
+    "BucketName": "mlpipeline"
   }
 }

@@ -6,7 +6,9 @@ import (
 	"ml/src/storage"
 	"ml/src/util"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 )
 
@@ -14,28 +16,28 @@ type ClientManagerInterface interface {
 	PackageStore() storage.PackageStoreInterface
 	PipelineStore() storage.PipelineStoreInterface
 	JobStore() storage.JobStoreInterface
-	PackageManager() storage.PackageManagerInterface
+	ObjectStore() storage.ObjectStoreInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
 
 type ResourceManager struct {
-	packageStore   storage.PackageStoreInterface
-	pipelineStore  storage.PipelineStoreInterface
-	jobStore       storage.JobStoreInterface
-	packageManager storage.PackageManagerInterface
-	time           util.TimeInterface
-	uuid           util.UUIDGeneratorInterface
+	packageStore  storage.PackageStoreInterface
+	pipelineStore storage.PipelineStoreInterface
+	jobStore      storage.JobStoreInterface
+	objectStore   storage.ObjectStoreInterface
+	time          util.TimeInterface
+	uuid          util.UUIDGeneratorInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		packageStore:   clientManager.PackageStore(),
-		pipelineStore:  clientManager.PipelineStore(),
-		jobStore:       clientManager.JobStore(),
-		packageManager: clientManager.PackageManager(),
-		time:           clientManager.Time(),
-		uuid:           clientManager.UUID(),
+		packageStore:  clientManager.PackageStore(),
+		pipelineStore: clientManager.PipelineStore(),
+		jobStore:      clientManager.JobStore(),
+		objectStore:   clientManager.ObjectStore(),
+		time:          clientManager.Time(),
+		uuid:          clientManager.UUID(),
 	}
 }
 
@@ -51,16 +53,78 @@ func (r *ResourceManager) GetPackage(packageId uint) (*model.Package, error) {
 	return r.packageStore.GetPackage(packageId)
 }
 
-func (r *ResourceManager) CreatePackage(p *model.Package) (*model.Package, error) {
-	return r.packageStore.CreatePackage(p)
+func (r *ResourceManager) DeletePackage(packageId uint) error {
+	_, err := r.packageStore.GetPackage(packageId)
+	if err != nil {
+		return util.Wrap(err, "Delete package failed")
+	}
+
+	// Mark package as deleting so it's not visible to user.
+	err = r.packageStore.UpdatePackageStatus(packageId, model.PackageDeleting)
+	if err != nil {
+		return util.Wrap(err, "Delete package failed")
+	}
+
+	// Delete package file and DB entry.
+	// Not fail the request if this step failed. A background job will do the cleanup.
+	// https://github.com/googleprivate/ml/issues/388
+	err = r.objectStore.DeleteFile(storage.PackageFolder, fmt.Sprint(packageId))
+	if err != nil {
+		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete package file for package %v", packageId))
+		return nil
+	}
+	err = r.packageStore.DeletePackage(packageId)
+	if err != nil {
+		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete package DB entry for package %v", packageId))
+	}
+	return nil
 }
 
-func (r *ResourceManager) CreatePackageFile(template []byte, fileName string) error {
-	return r.packageManager.CreatePackageFile(template, fileName)
+func (r *ResourceManager) CreatePackage(name string, pkgFile []byte) (*model.Package, error) {
+	// Extract the parameter from the package
+	params, err := util.GetParameters(pkgFile)
+	if err != nil {
+		return nil, util.Wrap(err, "Create package failed")
+	}
+
+	// Create an entry with status of creating the package
+	pkg := &model.Package{Name: name, Parameters: params, Status: model.PackageCreating}
+	newPkg, err := r.packageStore.CreatePackage(pkg)
+	if err != nil {
+		return nil, util.Wrap(err, "Create package failed")
+	}
+
+	// Store the package file
+	err = r.objectStore.AddFile(pkgFile, storage.PackageFolder, fmt.Sprint(newPkg.ID))
+	if err != nil {
+		return nil, util.Wrap(err, "Create package failed")
+	}
+
+	newPkg.Status = model.PackageReady
+	err = r.packageStore.UpdatePackageStatus(newPkg.ID, newPkg.Status)
+	if err != nil {
+		return nil, util.Wrap(err, "Create package failed")
+	}
+	return newPkg, nil
 }
 
-func (r *ResourceManager) GetTemplate(pkgName string) ([]byte, error) {
-	return r.packageManager.GetTemplate(pkgName)
+func (r *ResourceManager) UpdatePackageStatus(packageId uint, status model.PackageStatus) error {
+	return r.packageStore.UpdatePackageStatus(packageId, status)
+}
+
+func (r *ResourceManager) GetPackageTemplate(packageId uint) ([]byte, error) {
+	// Verify package exist
+	_, err := r.packageStore.GetPackage(packageId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get package template failed")
+	}
+
+	template, err := r.objectStore.GetFile(storage.PackageFolder, fmt.Sprint(packageId))
+	if err != nil {
+		return nil, util.Wrap(err, "Get package template failed")
+	}
+
+	return template, nil
 }
 
 func (r *ResourceManager) ListPipelines() ([]model.Pipeline, error) {
@@ -72,16 +136,34 @@ func (r *ResourceManager) GetPipeline(id uint) (*model.Pipeline, error) {
 }
 
 func (r *ResourceManager) DeletePipeline(id uint) error {
-	return r.pipelineStore.DeletePipeline(id)
+	_, err := r.pipelineStore.GetPipeline(id)
+	if err != nil {
+		return util.Wrap(err, "Delete pipeline failed")
+	}
+
+	// Mark pipeline as deleted so it's not visible to user anymore
+	err = r.pipelineStore.UpdatePipelineStatus(id, model.PipelineDeleting)
+	if err != nil {
+		return util.Wrap(err, "Delete pipeline failed")
+	}
+
+	// Delete pipeline file and DB entry.
+	// Not fail the request if this step failed. A background job will do the cleanup.
+	// https://github.com/googleprivate/ml/issues/388
+	err = r.objectStore.DeleteFile(storage.PipelineFolder, fmt.Sprint(id))
+	if err != nil {
+		glog.Errorf("%+v", errors.Wrapf(err, "Failed to delete pipeline yaml file for pipeline %v", id))
+		return nil
+	}
+	err = r.pipelineStore.DeletePipeline(id)
+	if err != nil {
+		glog.Errorf("%+v", errors.Wrapf(err, "Failed to delete pipeline DB entry for pipeline %v", id))
+	}
+
+	return nil
 }
 
 func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error) {
-	// Verify the package exists
-	pkg, err := r.packageStore.GetPackage(pipeline.PackageId)
-	if err != nil {
-		return nil, err
-	}
-
 	// If the pipeline runs on a schedule
 	if pipeline.Schedule != "" {
 		// Validate the pipeline schedule.
@@ -95,17 +177,47 @@ func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipel
 		}
 	}
 
+	_, err := r.packageStore.GetPackage(pipeline.PackageId)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+
+	// store pipeline template to the object store.
+	template, err := r.GetPackageTemplate(pipeline.PackageId)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+
+	// Inject parameters user provided to the pipeline template.
+	workflow, err := util.InjectParameters(template, pipeline.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+
+	pipeline.Status = model.PipelineCreating
 	// Create pipeline metadata
 	pipeline, err = r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+
+	err = r.objectStore.AddAsYamlFile(workflow, storage.PipelineFolder, fmt.Sprint(pipeline.ID))
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+
+	pipeline.Status = model.PipelineReady
+	// Mark pipeline ready so it's visible to user
+	err = r.pipelineStore.UpdatePipelineStatus(pipeline.ID, pipeline.Status)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
 	// If there is no pipeline schedule, the job is created immediately.
 	if pipeline.Schedule == "" {
-		_, err := r.createJobFromPipeline(pipeline, pkg.Name, r.time.Now().Unix())
+		_, err := r.createJobFromPipeline(pipeline, r.time.Now().Unix())
 		if err != nil {
-			return nil, err
+			return nil, util.Wrap(err, "Create pipeline failed")
 		}
 	}
 
@@ -120,36 +232,21 @@ func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint, scheduledAtIn
 		return nil, util.Wrapf(err, "Could not get pipeline from pipeline ID: %v", pipelineID)
 	}
 
-	// Get the package.
-	// TODO: should the package be indexed by the package primary key in the object store?
-	// https://github.com/googleprivate/ml/issues/274
-	pkg, err := r.packageStore.GetPackage(pipeline.PackageId)
-	if err != nil {
-		return nil, util.Wrapf(err, "Could not get the package from the package ID: %v",
-			pipeline.PackageId)
-	}
-
 	// Create the job.
-	jobDetail, err := r.createJobFromPipeline(pipeline, pkg.Name, scheduledAtInSec)
+	jobDetail, err := r.createJobFromPipeline(pipeline, scheduledAtInSec)
 	if err != nil {
-		return nil, util.Wrapf(err, "Could not create a job for pipeline %v and package %v.",
-			pipeline.ID, pkg.Name)
+		return nil, util.Wrapf(err, "Could not create a job for pipeline %v.",
+			pipeline.ID)
 	}
 
 	return jobDetail, nil
 }
 
-func (r *ResourceManager) createJobFromPipeline(pipeline *model.Pipeline, pkgName string,
-	scheduledAtInSec int64) (*model.JobDetail, error) {
-	template, err := r.packageManager.GetTemplate(pkgName)
+func (r *ResourceManager) createJobFromPipeline(pipeline *model.Pipeline, scheduledAtInSec int64) (*model.JobDetail, error) {
+	var workflow v1alpha1.Workflow
+	err := r.objectStore.GetFromYamlFile(&workflow, storage.PipelineFolder, fmt.Sprint(pipeline.ID))
 	if err != nil {
-		return nil, err
-	}
-
-	// Inject parameters user provided to the pipeline template.
-	workflow, err := util.InjectParameters(template, pipeline.Parameters)
-	if err != nil {
-		return nil, err
+		return nil, util.Wrapf(err, "Could not read pipeline with ID %v from object store", pipeline.ID)
 	}
 
 	// Define the time at which the workflow is created in the DB. The same time should be stored
@@ -159,16 +256,16 @@ func (r *ResourceManager) createJobFromPipeline(pipeline *model.Pipeline, pkgNam
 
 	// Format the parameters of the workflow and the workflow name
 	formatter := util.NewWorkflowFormatter(r.uuid, scheduledAtInSec, createdAtInSec)
-	formatter.Format(workflow)
+	formatter.Format(&workflow)
 
 	// Create job.
-	jobDetail, err := r.jobStore.CreateJob(pipeline.ID, workflow, scheduledAtInSec, createdAtInSec)
+	jobDetail, err := r.jobStore.CreateJob(pipeline.ID, &workflow, scheduledAtInSec, createdAtInSec)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrapf(err, "Could not create job for pipeline %v", pipeline.ID)
 	}
 
-	glog.Infof("Successfully created job %v for pipeline %v and package %v.", jobDetail.Workflow.Name,
-		pipeline.ID, pkgName)
+	glog.Infof("Successfully created job %v for pipeline %v.", jobDetail.Workflow.Name,
+		pipeline.ID)
 
 	return jobDetail, nil
 }

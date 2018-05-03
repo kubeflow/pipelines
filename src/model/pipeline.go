@@ -14,15 +14,26 @@
 
 package model
 
+// PipelineStatus a label for the status of the Pipeline.
+// This is intend to make pipeline creation and deletion atomic.
+type PipelineStatus string
+
+const (
+	PipelineCreating PipelineStatus = "CREATING"
+	PipelineReady    PipelineStatus = "READY"
+	PipelineDeleting PipelineStatus = "DELETING"
+)
+
 type Pipeline struct {
 	ID             uint   `gorm:"primary_key"`
 	CreatedAtInSec int64  `gorm:"not null"`
 	UpdatedAtInSec int64  `gorm:"not null"`
 	Name           string `gorm:"not null"`
 	Description    string
-	PackageId      uint        `gorm:"not null"`
-	Schedule       string      `gorm:"not null"`
-	Enabled        bool        `gorm:"not null"`
-	EnabledAtInSec int64       `gorm:"not null"`
-	Parameters     []Parameter `gorm:"polymorphic:Owner;"`
+	PackageId      uint           `gorm:"not null"`
+	Schedule       string         `gorm:"not null"`
+	Enabled        bool           `gorm:"not null"`
+	EnabledAtInSec int64          `gorm:"not null"`
+	Parameters     []Parameter    `gorm:"polymorphic:Owner;"`
+	Status         PipelineStatus `gorm:"not null"`
 }

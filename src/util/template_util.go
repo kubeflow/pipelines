@@ -37,7 +37,7 @@ func InjectParameters(template []byte, parameters []model.Parameter) (*v1alpha1.
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return &wf, NewBadRequestError(err, "The template isn't a valid argo template.", err.Error())
+		return nil, NewBadRequestError(err, "The template isn't a valid argo template.", err.Error())
 	}
 
 	newParams := make([]v1alpha1.Parameter, 0)
@@ -62,6 +62,5 @@ func InjectParameters(template []byte, parameters []model.Parameter) (*v1alpha1.
 		newParams = append(newParams, param)
 	}
 	wf.Spec.Arguments.Parameters = newParams
-
 	return &wf, nil
 }

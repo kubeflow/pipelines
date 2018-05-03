@@ -24,7 +24,7 @@ import (
 )
 
 func createPkg(name string) *model.Package {
-	return &model.Package{Name: name, Parameters: []model.Parameter{{Name: "param1"}}}
+	return &model.Package{Name: name, Parameters: []model.Parameter{{Name: "param1"}}, Status: model.PackageReady}
 }
 
 func TestListPackages(t *testing.T) {
@@ -32,16 +32,19 @@ func TestListPackages(t *testing.T) {
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	store.PackageStore().CreatePackage(createPkg("pkg2"))
+	store.PackageStore().CreatePackage(&model.Package{Name: "pkg3", Status: model.PackageCreating})
 	expectedPkg1 := model.Package{
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}}}
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Status:         model.PackageReady}
 	expectedPkg2 := model.Package{
 		ID:             2,
 		CreatedAtInSec: 2,
 		Name:           "pkg2",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 2, OwnerType: "packages"}}}
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 2, OwnerType: "packages"}},
+		Status:         model.PackageReady}
 	pkgsExpected := []model.Package{expectedPkg1, expectedPkg2}
 
 	pkgs, err := store.PackageStore().ListPackages()
@@ -67,11 +70,22 @@ func TestGetPackage(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
 		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Status:         model.PackageReady,
 	}
 
 	pkg, err := store.PackageStore().GetPackage(1)
 	assert.Nil(t, err)
 	assert.Equal(t, pkgExpected, *pkg, "Got unexpected package.")
+}
+
+func TestGetPackage_NotFound_Creating(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PackageStore().CreatePackage(&model.Package{Name: "pkg3", Status: model.PackageCreating})
+
+	_, err := store.PackageStore().GetPackage(1)
+	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode(),
+		"Expected get package to return not found")
 }
 
 func TestGetPackage_NotFoundError(t *testing.T) {
@@ -99,7 +113,8 @@ func TestCreatePackage(t *testing.T) {
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}}}
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Status:         model.PackageReady}
 
 	pkg := createPkg("pkg1")
 	pkg, err := store.PackageStore().CreatePackage(pkg)
@@ -116,4 +131,49 @@ func TestCreatePackageError(t *testing.T) {
 	_, err := store.PackageStore().CreatePackage(pkg)
 	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create package to return error")
+}
+
+func TestDeletePackage(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	err := store.PackageStore().DeletePackage(1)
+	assert.Nil(t, err)
+	_, err = store.PackageStore().GetPackage(1)
+	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestDeletePackageError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB().Close()
+	err := store.PackageStore().DeletePackage(1)
+	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestUpdatePackageStatus(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	pkg, err := store.PackageStore().CreatePackage(createPkg("pkg1"))
+	assert.Nil(t, err)
+	pkgExpected := model.Package{
+		ID:             1,
+		CreatedAtInSec: 1,
+		Name:           "pkg1",
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Status:         model.PackageDeleting,
+	}
+	err = store.PackageStore().UpdatePackageStatus(pkg.ID, model.PackageDeleting)
+	assert.Nil(t, err)
+	r := store.DB().First(&pkg, pkg.ID)
+	assert.Nil(t, r.Error)
+	assert.Equal(t, pkgExpected, *pkg)
+}
+
+func TestUpdatePackageStatusError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB().Close()
+	err := store.PackageStore().UpdatePackageStatus(1, model.PackageDeleting)
+	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
 }

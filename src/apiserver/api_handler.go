@@ -17,7 +17,6 @@ package main
 import (
 	"io/ioutil"
 	"ml/src/apiserver/api"
-	"ml/src/model"
 	"ml/src/resource"
 	"ml/src/util"
 
@@ -34,8 +33,9 @@ const (
 	healthz = "/healthz"
 
 	listPackages  = "/packages"
-	getPackage    = "/packages/{packageID:long min(1)}"
 	uploadPackage = "/packages/upload"
+	getPackage    = "/packages/{packageID:long min(1)}"
+	deletePackage = "/packages/{packageID:long min(1)}"
 	getTemplate   = "/packages/{packageID:long min(1)}/templates"
 
 	createPipeline  = "/pipelines"
@@ -82,6 +82,22 @@ func (a APIHandler) GetPackage(ctx iris.Context) (apiResponse, error) {
 	return api.ToApiPackage(pkg), nil
 }
 
+func (a APIHandler) DeletePackage(ctx iris.Context) (apiResponse, error) {
+	glog.Infof("Delete package called")
+
+	packageID, err := getInt64ID(ctx, "packageID")
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.resourceManager.DeletePackage(uint(packageID))
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 // Stream the file to API server. This is OK for now since we only support YAML file which is small.
 // TODO(yangpa): In near future, use Minio Presigned Put instead.
 // For more info check https://docs.minio.io/docs/golang-client-api-reference#PresignedPutObject
@@ -102,20 +118,7 @@ func (a APIHandler) UploadPackage(ctx iris.Context) (apiResponse, error) {
 		return nil, util.NewBadRequestError(err, "Error while uploading: <%s>.", err.Error())
 	}
 
-	// Store the package file
-	err = a.resourceManager.CreatePackageFile(pkgFile, info.Filename)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract the parameter from the package
-	params, err := util.GetParameters(pkgFile)
-	if err != nil {
-		return nil, err
-	}
-	pkg := &model.Package{Name: info.Filename, Parameters: params}
-
-	newPkg, err := a.resourceManager.CreatePackage(pkg)
+	newPkg, err := a.resourceManager.CreatePackage(info.Filename, pkgFile)
 	if err != nil {
 		return nil, err
 	}
@@ -130,15 +133,11 @@ func (a APIHandler) GetTemplate(ctx iris.Context) (apiResponse, error) {
 		return nil, err
 	}
 
-	pkg, err := a.resourceManager.GetPackage(uint(packageID))
+	template, err := a.resourceManager.GetPackageTemplate(uint(packageID))
 	if err != nil {
 		return nil, err
 	}
 
-	template, err := a.resourceManager.GetTemplate(pkg.Name)
-	if err != nil {
-		return nil, err
-	}
 	// Write directly to context.
 	ctx.Write(template)
 	return nil, nil
@@ -287,6 +286,7 @@ func newApp(clientManager ClientManager) *iris.Application {
 	apiRouter.Get(getPackage, newHandler(apiHandler.GetPackage))
 	apiRouter.Post(uploadPackage, newHandler(apiHandler.UploadPackage))
 	apiRouter.Get(getTemplate, newHandler(apiHandler.GetTemplate))
+	apiRouter.Delete(deletePackage, newHandler(apiHandler.DeletePackage))
 
 	// Pipelines
 	apiRouter.Get(listPipelines, newHandler(apiHandler.ListPipelines))

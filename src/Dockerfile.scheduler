@@ -28,6 +28,6 @@ CMD scheduler \
   --minio_service_port=${MINIO_SERVICE_SERVICE_PORT} \
   --minio_access_key=minio \
   --minio_secret_key=minio123 \
-  --minio_bucket_name=packagemanager \
+  --minio_bucket_name=mlpipeline \
   --alsologtostderr=true \
   --namespace=${POD_NAMESPACE}

@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	minio "github.com/minio/minio-go"
 )
 
 const (
@@ -38,13 +39,13 @@ const (
 
 // Container for all service clients
 type ClientManager struct {
-	db             *gorm.DB
-	packageStore   storage.PackageStoreInterface
-	pipelineStore  storage.PipelineStoreInterface
-	jobStore       storage.JobStoreInterface
-	packageManager storage.PackageManagerInterface
-	time           util.TimeInterface
-	uuid           util.UUIDGeneratorInterface
+	db            *gorm.DB
+	packageStore  storage.PackageStoreInterface
+	pipelineStore storage.PipelineStoreInterface
+	jobStore      storage.JobStoreInterface
+	objectStore   storage.ObjectStoreInterface
+	time          util.TimeInterface
+	uuid          util.UUIDGeneratorInterface
 }
 
 func (c *ClientManager) PackageStore() storage.PackageStoreInterface {
@@ -59,8 +60,8 @@ func (c *ClientManager) JobStore() storage.JobStoreInterface {
 	return c.jobStore
 }
 
-func (c *ClientManager) PackageManager() storage.PackageManagerInterface {
-	return c.packageManager
+func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
+	return c.objectStore
 }
 
 func (c *ClientManager) Time() util.TimeInterface {
@@ -95,7 +96,7 @@ func (c *ClientManager) init() {
 	c.jobStore = storage.NewJobStore(db, wfClient, c.time)
 
 	// Initialize package manager.
-	c.packageManager = initMinioClient()
+	c.objectStore = initMinioClient()
 
 	glog.Infof("Client manager initialized successfully")
 }
@@ -156,17 +157,22 @@ func initMysql(driverName string) string {
 	return mysqlConfig.FormatDSN()
 }
 
-func initMinioClient() storage.PackageManagerInterface {
+func initMinioClient() storage.ObjectStoreInterface {
 	// Create minio client.
 	minioServiceHost := getConfig(minioServiceHost)
 	minioServicePort := getConfig(minioServicePort)
-	accessKey := getConfig("PackageManagerConfig.AccessKey")
-	secretKey := getConfig("PackageManagerConfig.SecretAccessKey")
-	bucketName := getConfig("PackageManagerConfig.BucketName")
+	accessKey := getConfig("ObjectStoreConfig.AccessKey")
+	secretKey := getConfig("ObjectStoreConfig.SecretAccessKey")
+	bucketName := getConfig("ObjectStoreConfig.BucketName")
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey)
+	createMinioBucket(minioClient, bucketName)
 
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName)
+}
+
+func createMinioBucket(minioClient *minio.Client, bucketName string) {
 	// Create bucket if it does not exist
 	err := minioClient.MakeBucket(bucketName, "")
 	if err != nil {
@@ -179,7 +185,6 @@ func initMinioClient() storage.PackageManagerInterface {
 		}
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
-	return storage.NewMinioPackageManager(&storage.MinioClient{Client: minioClient}, bucketName)
 }
 
 // newClientManager creates and Init a new instance of ClientManager

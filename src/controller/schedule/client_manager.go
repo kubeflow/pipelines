@@ -29,7 +29,7 @@ type ClientManager struct {
 	packageStore       storage.PackageStoreInterface
 	pipelineStore      storage.PipelineStoreInterface
 	jobStore           storage.JobStoreInterface
-	packageManager     storage.PackageManagerInterface
+	objectStore        storage.ObjectStoreInterface
 	workflowClientFake *storage.FakeWorkflowClient
 	time               util.TimeInterface
 	uuid               util.UUIDGeneratorInterface
@@ -84,7 +84,7 @@ func NewClientManager(params *ClientManagerParams) (*ClientManager, error) {
 		packageStore:  storage.NewPackageStore(db, time),
 		pipelineStore: storage.NewPipelineStore(db, time),
 		jobStore:      storage.NewJobStore(db, workflowClient, time),
-		packageManager: storage.NewMinioPackageManager(
+		objectStore: storage.NewMinioObjectStore(
 			&storage.MinioClient{Client: minioClient},
 			params.MinioBucketName),
 		time: time,
@@ -104,8 +104,8 @@ func (c *ClientManager) JobStore() storage.JobStoreInterface {
 	return c.jobStore
 }
 
-func (c *ClientManager) PackageManager() storage.PackageManagerInterface {
-	return c.packageManager
+func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
+	return c.objectStore
 }
 
 func (c *ClientManager) Time() util.TimeInterface {

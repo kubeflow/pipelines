@@ -33,7 +33,7 @@ type FakeClientManager struct {
 	packageStore       PackageStoreInterface
 	pipelineStore      PipelineStoreInterface
 	jobStore           JobStoreInterface
-	packageManager     PackageManagerInterface
+	objectStore        ObjectStoreInterface
 	workflowClientFake *FakeWorkflowClient
 	time               util.TimeInterface
 	uuid               util.UUIDGeneratorInterface
@@ -68,7 +68,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		pipelineStore:      NewPipelineStore(db, time),
 		jobStore:           NewJobStore(db, workflowClient, time),
 		workflowClientFake: workflowClient,
-		packageManager:     NewFakePackageManager(),
+		objectStore:        NewFakeObjectStore(),
 		time:               time,
 		uuid:               uuid,
 	}, nil
@@ -95,8 +95,8 @@ func (f *FakeClientManager) JobStore() JobStoreInterface {
 	return f.jobStore
 }
 
-func (f *FakeClientManager) PackageManager() PackageManagerInterface {
-	return f.packageManager
+func (f *FakeClientManager) ObjectStore() ObjectStoreInterface {
+	return f.objectStore
 }
 
 func (f *FakeClientManager) Time() util.TimeInterface {

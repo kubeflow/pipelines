@@ -41,11 +41,11 @@ const (
 )
 
 func createPkg(name string) *model.Package {
-	return &model.Package{Name: name}
+	return &model.Package{Name: name, Status: model.PackageReady}
 }
 
-func createFakePipeline(name string, pkgId uint) *model.Pipeline {
-	return &model.Pipeline{Name: name, PackageId: pkgId}
+func createFakePipeline(name string, packageId uint) *model.Pipeline {
+	return &model.Pipeline{Name: name, PackageId: packageId, Status: model.PipelineReady}
 }
 
 func createPipelineExpected1() api.Pipeline {
@@ -84,6 +84,13 @@ func (s *FakeBadPackageStore) GetPackage(packageId uint) (*model.Package, error)
 func (s *FakeBadPackageStore) CreatePackage(*model.Package) (*model.Package, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
+func (s *FakeBadPackageStore) DeletePackage(packageId uint) error {
+	return util.NewInternalServerError(errors.New("Error"), "bad package store")
+}
+
+func (s *FakeBadPackageStore) UpdatePackageStatus(uint, model.PackageStatus) error {
+	return util.NewInternalServerError(errors.New("Error"), "bad package store")
+}
 
 type FakeBadJobStore struct{}
 
@@ -100,14 +107,24 @@ func (s *FakeBadJobStore) CreateJob(pipelineId uint, workflow *v1alpha1.Workflow
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad job store")
 }
 
-type FakeBadPackageManager struct{}
+type FakeBadObjectStore struct{}
 
-func (m *FakeBadPackageManager) CreatePackageFile(template []byte, fileName string) error {
-	return util.NewInternalServerError(errors.New("Error"), "bad package manager")
+func (m *FakeBadObjectStore) AddFile(template []byte, bucket string, fileName string) error {
+	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadPackageManager) GetTemplate(fileName string) ([]byte, error) {
-	return nil, util.NewInternalServerError(errors.New("Error"), "bad package manager")
+func (m *FakeBadObjectStore) DeleteFile(bucket string, fileName string) error {
+	return util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+func (m *FakeBadObjectStore) GetFile(bucket string, fileName string) ([]byte, error) {
+	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+func (m *FakeBadObjectStore) AddAsYamlFile(o interface{}, bucket string, fileName string) error {
+	return util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, bucket string, fileName string) error {
+	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
 type FakeBadPipelineStore struct{}
@@ -137,18 +154,22 @@ func (s *FakeBadPipelineStore) EnablePipeline(id uint, enabled bool) error {
 	return errors.New("Not implemented.")
 }
 
+func (s *FakeBadPipelineStore) UpdatePipelineStatus(id uint, status model.PipelineStatus) error {
+	return errors.New("Not implemented.")
+}
+
 func initApiHandlerTest(
 	ps storage.PackageStoreInterface,
 	js storage.JobStoreInterface,
 	pls storage.PipelineStoreInterface,
-	pm storage.PackageManagerInterface) *iris.Application {
+	fm storage.ObjectStoreInterface) *iris.Application {
 	clientManager := ClientManager{
-		packageStore:   ps,
-		jobStore:       js,
-		pipelineStore:  pls,
-		packageManager: pm,
-		time:           util.NewFakeTimeForEpoch(),
-		uuid:           util.NewFakeUUIDGeneratorOrFatal(defaultUUID, nil)}
+		packageStore:  ps,
+		jobStore:      js,
+		pipelineStore: pls,
+		objectStore:   fm,
+		time:          util.NewFakeTimeForEpoch(),
+		uuid:          util.NewFakeUUIDGeneratorOrFatal(defaultUUID, nil)}
 	return newApp(clientManager)
 }
 
@@ -164,7 +185,7 @@ func TestListPackages(t *testing.T) {
 
 	response := e.GET("/apis/v1alpha1/packages").Expect().Status(httptest.StatusOK)
 	var actual []api.Package
-	util.UnmarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalJsonOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 }
 
@@ -182,7 +203,7 @@ func TestGetPackage(t *testing.T) {
 
 	response := e.GET("/apis/v1alpha1/packages/1").Expect().Status(httptest.StatusOK)
 	var actual api.Package
-	util.UnmarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalJsonOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedPkg1, actual)
 }
 
@@ -200,10 +221,41 @@ func TestGetPackage_NotFound(t *testing.T) {
 		Body().Contains("Package 1 not found")
 }
 
+func TestDeletePackage(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	fm := storage.NewFakeObjectStore()
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	fm.AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, fm))
+
+	e.DELETE("/apis/v1alpha1/packages/1").Expect().Status(httptest.StatusOK)
+	_, err := store.PackageStore().GetPackage(1)
+	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+	_, err = store.ObjectStore().GetFile(storage.PackageFolder, "1")
+	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestDeletePackage_NotFoundError(t *testing.T) {
+	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	fm := storage.NewFakeObjectStore()
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, fm))
+
+	e.DELETE("/apis/v1alpha1/packages/1").Expect().Status(httptest.StatusNotFound).
+		Body().Contains("Package 1 not found")
+}
+
+func TestDeletePackage_InternalError(t *testing.T) {
+	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, nil))
+	e.DELETE("/apis/v1alpha1/packages/1").Expect().Status(httptest.StatusInternalServerError).
+		Body().Contains("InternalServerError: bad package store: Error")
+}
+
 func TestUploadPackage(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	pm := storage.NewFakePackageManager()
+	fm := storage.NewFakeObjectStore()
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	w.CreateFormFile("uploadfile", "hello-world")
@@ -213,15 +265,16 @@ func TestUploadPackage(t *testing.T) {
 			ID:             1,
 			CreatedAtInSec: 1,
 			Name:           "hello-world",
-			Parameters:     []model.Parameter{}}}
+			Parameters:     []model.Parameter{},
+			Status:         model.PackageReady}}
 	// Check response
-	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, pm))
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, fm))
 	e.POST("/apis/v1alpha1/packages/upload").
 		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
 		Expect().Status(httptest.StatusOK).Body().Contains("\"name\":\"hello-world\"")
 
-	// Verify stored in package manager
-	template, err := pm.GetTemplate("hello-world")
+	// Verify stored in object store
+	template, err := fm.GetFile(storage.PackageFolder, "1")
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -231,25 +284,10 @@ func TestUploadPackage(t *testing.T) {
 	assert.Equal(t, pkg, pkgsExpect)
 }
 
-func TestUploadPackage_CreatePackageFileError(t *testing.T) {
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, &FakeBadPackageManager{}))
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	w.CreateFormFile("uploadfile", "hello-world.yaml")
-	w.Close()
-
-	e.POST("/apis/v1alpha1/packages/upload").
-		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
-		Expect().Status(httptest.StatusInternalServerError).Body().Equal(
-		"InternalServerError: bad package manager: Error")
-}
-
 func TestUploadPackage_GetFormFileError(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, storage.NewFakePackageManager()))
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, storage.NewFakeObjectStore()))
 	var b bytes.Buffer
 	b.WriteString("I am invalid file")
 	w := multipart.NewWriter(&b)
@@ -262,7 +300,7 @@ func TestUploadPackage_GetFormFileError(t *testing.T) {
 }
 
 func TestUploadPackage_CreatePackageError(t *testing.T) {
-	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, storage.NewFakePackageManager()))
+	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, storage.NewFakeObjectStore()))
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	w.CreateFormFile("uploadfile", "hello-world.yaml")
@@ -270,49 +308,36 @@ func TestUploadPackage_CreatePackageError(t *testing.T) {
 
 	e.POST("/apis/v1alpha1/packages/upload").
 		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
-		Expect().Status(httptest.StatusInternalServerError).Body().Equal(
+		Expect().Status(httptest.StatusInternalServerError).Body().Contains(
 		"InternalServerError: bad package store: Error")
 }
 
-func TestUploadPackage_GetParametersError(t *testing.T) {
-	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, storage.NewFakePackageManager()))
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
-	part.Write([]byte("I am invalid yaml"))
-	w.Close()
-
-	e.POST("/apis/v1alpha1/packages/upload").
-		WithHeader("Content-Type", w.FormDataContentType()).WithBytes(b.Bytes()).
-		Expect().Status(httptest.StatusBadRequest).Body().Equal("Failed to parse the parameter.")
-}
-
-func TestGetTemplate(t *testing.T) {
+func TestGetPackageTemplate(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	pm := storage.NewFakePackageManager()
+	fm := storage.NewFakeObjectStore()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
-	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, pm))
+	fm.AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, fm))
 
 	e.GET("/apis/v1alpha1/packages/1/templates").Expect().Status(httptest.StatusOK).
 		Body().Equal("kind: Workflow")
 }
 
 func TestGetTemplate_GetPackageError(t *testing.T) {
-	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, storage.NewFakePackageManager()))
+	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, nil, nil, storage.NewFakeObjectStore()))
 	e.GET("/apis/v1alpha1/packages/1/templates").Expect().Status(httptest.StatusInternalServerError).
-		Body().Equal("InternalServerError: bad package store: Error")
+		Body().Contains("InternalServerError: bad package store: Error")
 }
 
 func TestGetTemplate_GetPackageFileError(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, &FakeBadPackageManager{}))
+	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), nil, nil, &FakeBadObjectStore{}))
 
 	e.GET("/apis/v1alpha1/packages/1/templates").Expect().Status(httptest.StatusInternalServerError).
-		Body().Equal("InternalServerError: bad package manager: Error")
+		Body().Contains("InternalServerError: bad object store: Error")
 }
 
 func TestListPipelines(t *testing.T) {
@@ -334,7 +359,7 @@ func TestListPipelines(t *testing.T) {
 			EnabledAtInSec: 2,
 			Parameters:     []api.Parameter(nil)}}
 	var actual []api.Pipeline
-	util.UnmarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalJsonOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 }
 
@@ -352,7 +377,7 @@ func TestGetPipeline(t *testing.T) {
 
 	response := e.GET("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusOK)
 	var actual api.Pipeline
-	util.UnmarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalJsonOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, createPipelineExpected1(), actual)
 }
 
@@ -374,8 +399,11 @@ func TestGetPipeline_NotFound(t *testing.T) {
 func TestDeletePipeline(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
-	e := httptest.New(t, initApiHandlerTest(nil, nil, store.PipelineStore(), nil))
+	pipeline, _ := store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
+	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, fmt.Sprint(pipeline.ID))
+
+	e := httptest.New(t, initApiHandlerTest(nil, nil, store.PipelineStore(), store.ObjectStore()))
 
 	e.DELETE("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusOK)
 	_, err := store.PipelineStore().GetPipeline(1)
@@ -385,17 +413,17 @@ func TestDeletePipeline(t *testing.T) {
 func TestDeletePipeline_InternalError(t *testing.T) {
 	e := httptest.New(t, initApiHandlerTest(nil, nil, &FakeBadPipelineStore{}, nil))
 	e.DELETE("/apis/v1alpha1/pipelines/1").Expect().Status(httptest.StatusInternalServerError).
-		Body().Equal("InternalServerError: bad pipeline store: Error")
+		Body().Contains("InternalServerError: bad pipeline store: Error")
 }
 
 func TestCreatePipeline_NoSchedule(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	pm := storage.NewFakePackageManager()
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	fm := storage.NewFakeObjectStore()
+	fm.AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), pm))
+		store.PipelineStore(), fm))
 
 	expectedResponse := api.Pipeline{
 		ID:             1,
@@ -406,7 +434,7 @@ func TestCreatePipeline_NoSchedule(t *testing.T) {
 		EnabledAtInSec: 2}
 	response := e.POST("/apis/v1alpha1/pipelines").WithBytes(createPipelineByte1()).Expect().Status(httptest.StatusOK)
 	var actual api.Pipeline
-	util.UnmarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalJsonOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 }
@@ -415,7 +443,7 @@ func TestCreatePipeline_BadPipelineFormatError(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 
 	e.POST("/apis/v1alpha1/pipelines").Expect().Status(httptest.StatusBadRequest).
 		Body().Contains("The pipeline has invalid format.")
@@ -425,7 +453,7 @@ func TestCreatePipeline_PackageNotExistError(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	e := httptest.New(t, initApiHandlerTest(&FakeBadPackageStore{}, store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 
 	e.POST("/apis/v1alpha1/pipelines").WithBytes(createPipelineByte1()).Expect().Status(httptest.StatusInternalServerError).
 		Body().Contains("bad package store")
@@ -435,10 +463,10 @@ func TestCreatePipeline_MetadataError(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	pm := storage.NewFakePackageManager()
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	fm := storage.NewFakeObjectStore()
+	fm.AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		&FakeBadPipelineStore{}, pm))
+		&FakeBadPipelineStore{}, fm))
 
 	e.POST("/apis/v1alpha1/pipelines").WithBytes(createPipelineByte1()).Expect().Status(httptest.StatusInternalServerError).
 		Body().Contains("bad pipeline store")
@@ -449,20 +477,20 @@ func TestCreatePipeline_GetTemplateError(t *testing.T) {
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), &FakeBadPackageManager{}))
+		store.PipelineStore(), &FakeBadObjectStore{}))
 
 	e.POST("/apis/v1alpha1/pipelines").WithBytes(createPipelineByte1()).Expect().Status(httptest.StatusInternalServerError).
-		Body().Contains("bad package manager")
+		Body().Contains("bad object store")
 }
 
 func TestCreatePipeline_CreateJobError(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	pm := storage.NewFakePackageManager()
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	fm := storage.NewFakeObjectStore()
+	fm.AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), &FakeBadJobStore{},
-		store.PipelineStore(), pm))
+		store.PipelineStore(), fm))
 
 	e.POST("/apis/v1alpha1/pipelines").WithBytes(createPipelineByte1()).Expect().Status(httptest.StatusInternalServerError).
 		Body().Contains("bad job store")
@@ -472,10 +500,10 @@ func TestCreatePipeline_ValidSchedule(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	pm := storage.NewFakePackageManager()
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	fm := storage.NewFakeObjectStore()
+	fm.AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), pm))
+		store.PipelineStore(), fm))
 	b, _ := json.Marshal(model.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
@@ -491,7 +519,7 @@ func TestCreatePipeline_ValidSchedule(t *testing.T) {
 		Enabled:        true,
 		EnabledAtInSec: 2}
 	var actual api.Pipeline
-	util.UnmarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalJsonOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 	assert.Equal(t, 0, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 }
@@ -500,10 +528,10 @@ func TestCreatePipeline_InvalidSchedule(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	pm := storage.NewFakePackageManager()
-	pm.CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	fm := storage.NewFakeObjectStore()
+	fm.AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), pm))
+		store.PipelineStore(), fm))
 	b, _ := json.Marshal(model.Pipeline{
 		Name:      "MY_PIPELINE",
 		PackageId: 1,
@@ -520,7 +548,7 @@ func TestEnablePipeline(t *testing.T) {
 	defer store.Close()
 
 	// Creating a pipeline
-	createdPipeline := &model.Pipeline{Name: "Pipeline123"}
+	createdPipeline := &model.Pipeline{Name: "Pipeline123", Status: model.PipelineReady}
 	createdPipeline, err := store.PipelineStore().CreatePipeline(createdPipeline)
 	assert.Nil(t, err)
 	pipelineID := createdPipeline.ID
@@ -532,7 +560,7 @@ func TestEnablePipeline(t *testing.T) {
 
 	// Disabling the pipeline
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 	response := e.POST(fmt.Sprintf("/apis/v1alpha1/pipelines/%v/disable", pipelineID)).Expect().Status(
 		httptest.StatusOK)
 	assert.Empty(t, response.Body().Raw())
@@ -544,7 +572,7 @@ func TestEnablePipeline(t *testing.T) {
 
 	// Enabling the pipeline
 	e = httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 	response = e.POST(fmt.Sprintf("/apis/v1alpha1/pipelines/%v/enable", pipelineID)).Expect().Status(
 		httptest.StatusOK)
 	assert.Empty(t, response.Body().Raw())
@@ -561,7 +589,7 @@ func TestEnablePipelineDatabaseError(t *testing.T) {
 	assert.Nil(t, err)
 
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 
 	response := e.POST("/apis/v1alpha1/pipelines/1/enable").Expect().Status(
 		httptest.StatusInternalServerError)
@@ -573,7 +601,7 @@ func TestEnablePipelineNotFound(t *testing.T) {
 	defer store.Close()
 
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 
 	response := e.POST("/apis/v1alpha1/pipelines/1/enable").Expect().Status(httptest.StatusNotFound)
 	assert.Equal(t, "Pipeline 1 not found.", response.Body().Raw())
@@ -600,7 +628,7 @@ func TestListJobs(t *testing.T) {
 
 	response := e.GET("/apis/v1alpha1/pipelines/1/jobs").Expect().Status(httptest.StatusOK)
 	var actual []api.Job
-	util.UnmarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalJsonOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 }
 
@@ -635,12 +663,12 @@ func TestGetJob(t *testing.T) {
 			ScheduledAtInSec: defaultScheduledAtInSec,
 		}}
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 
 	response := e.GET(fmt.Sprintf("/apis/v1alpha1/pipelines/1/jobs/%v", jobDetail.Job.Name)).
 		Expect().Status(httptest.StatusOK)
 	var actual api.JobDetail
-	util.UnmarshalOrFail(response.Body().Raw(), &actual)
+	util.UnmarshalJsonOrFail(response.Body().Raw(), &actual)
 	assert.Equal(t, expectedResponse, actual)
 }
 
@@ -649,7 +677,7 @@ func TestGetJob_InternalError(t *testing.T) {
 	defer store.Close()
 	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), &FakeBadJobStore{},
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 
 	e.GET("/apis/v1alpha1/pipelines/1/jobs/job1").Expect().Status(httptest.StatusInternalServerError).
 		Body().Equal("InternalServerError: bad job store: Error")
@@ -660,7 +688,7 @@ func TestGetJob_JobNotFound(t *testing.T) {
 	defer store.Close()
 	store.PipelineStore().CreatePipeline(createFakePipeline("pipeline1", 1))
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 
 	e.GET("/apis/v1alpha1/pipelines/1/jobs/wf1").Expect().Status(httptest.StatusNotFound).
 		Body().Contains("Job wf1 not found")
@@ -670,7 +698,7 @@ func TestGetJob_PipelineNotFound(t *testing.T) {
 	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	e := httptest.New(t, initApiHandlerTest(store.PackageStore(), store.JobStore(),
-		store.PipelineStore(), storage.NewFakePackageManager()))
+		store.PipelineStore(), storage.NewFakeObjectStore()))
 
 	e.GET("/apis/v1alpha1/pipelines/1/jobs/wf1").Expect().Status(httptest.StatusNotFound).
 		Body().Contains("Pipeline 1 not found")

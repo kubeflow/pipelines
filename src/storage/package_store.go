@@ -25,7 +25,9 @@ import (
 type PackageStoreInterface interface {
 	ListPackages() ([]model.Package, error)
 	GetPackage(packageId uint) (*model.Package, error)
+	DeletePackage(packageId uint) error
 	CreatePackage(*model.Package) (*model.Package, error)
+	UpdatePackageStatus(uint, model.PackageStatus) error
 }
 
 type PackageStore struct {
@@ -36,7 +38,7 @@ type PackageStore struct {
 func (s *PackageStore) ListPackages() ([]model.Package, error) {
 	var packages []model.Package
 	// List all packages.
-	if r := s.db.Preload("Parameters").Find(&packages); r.Error != nil {
+	if r := s.db.Preload("Parameters").Where("status = ?", model.PackageReady).Find(&packages); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list packages: %v", r.Error.Error())
 	}
 	return packages, nil
@@ -44,7 +46,7 @@ func (s *PackageStore) ListPackages() ([]model.Package, error) {
 
 func (s *PackageStore) GetPackage(id uint) (*model.Package, error) {
 	var pkg model.Package
-	r := s.db.Preload("Parameters").First(&pkg, id)
+	r := s.db.Preload("Parameters").Where("status = ?", model.PackageReady).First(&pkg, id)
 	if r.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
 	}
@@ -53,6 +55,14 @@ func (s *PackageStore) GetPackage(id uint) (*model.Package, error) {
 		return nil, util.NewInternalServerError(r.Error, "Failed to get package: %v", r.Error.Error())
 	}
 	return &pkg, nil
+}
+
+func (s *PackageStore) DeletePackage(id uint) error {
+	r := s.db.Exec(`DELETE FROM packages WHERE id=?`, id)
+	if r.Error != nil {
+		return util.NewInternalServerError(r.Error, "Failed to delete package: %v", r.Error.Error())
+	}
+	return nil
 }
 
 func (s *PackageStore) CreatePackage(p *model.Package) (*model.Package, error) {
@@ -64,6 +74,14 @@ func (s *PackageStore) CreatePackage(p *model.Package) (*model.Package, error) {
 			r.Error.Error())
 	}
 	return &newPackage, nil
+}
+
+func (s *PackageStore) UpdatePackageStatus(id uint, status model.PackageStatus) error {
+	r := s.db.Exec(`UPDATE packages SET status=? WHERE id=?`, status, id)
+	if r.Error != nil {
+		return util.NewInternalServerError(r.Error, "Failed to update the package metadata: %s", r.Error.Error())
+	}
+	return nil
 }
 
 // factory function for package store

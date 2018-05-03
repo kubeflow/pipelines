@@ -14,7 +14,7 @@
 
 package storage
 
-// Return the package manager with faked minio client.
-func NewFakePackageManager() PackageManagerInterface {
-	return NewMinioPackageManager(NewFakeMinioClient(), "")
+// Return the object store with faked minio client.
+func NewFakeObjectStore() ObjectStoreInterface {
+	return NewMinioObjectStore(NewFakeMinioClient(), "")
 }

@@ -42,7 +42,7 @@ func getDefaultPipelineAndLatestJob() *storage.PipelineAndLatestJob {
 }
 
 func createPkg(name string) *model.Package {
-	return &model.Package{Name: name}
+	return &model.Package{Name: name, Status: model.PackageReady}
 }
 
 func TestGetNextStartTimeAfter(t *testing.T) {
@@ -221,7 +221,7 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 
 	// Create package and pipeline.
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	store.ObjectStore().AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",
@@ -301,7 +301,7 @@ func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
 
 	// Create package and pipeline.
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
-	store.PackageManager().CreatePackageFile([]byte("kind: Workflow"), "pkg1")
+	store.ObjectStore().AddFile([]byte("kind: Workflow"), storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		Name:      "MY_PIPELINE",
 		Schedule:  "* * * * * *",

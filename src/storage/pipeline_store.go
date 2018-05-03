@@ -35,6 +35,7 @@ type PipelineStoreInterface interface {
 	DeletePipeline(id uint) error
 	GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error)
 	EnablePipeline(id uint, enabled bool) error
+	UpdatePipelineStatus(id uint, status model.PipelineStatus) error
 }
 
 type PipelineStore struct {
@@ -46,7 +47,7 @@ func (s *PipelineStore) ListPipelines() ([]model.Pipeline, error) {
 	var pipelines []model.Pipeline
 	// List the pipelines as well as their parameters.
 	// Preload parameter table first to optimize DB transaction.
-	if r := s.db.Preload("Parameters").Find(&pipelines); r.Error != nil {
+	if r := s.db.Preload("Parameters").Where("status = ?", model.PipelineReady).Find(&pipelines); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list pipelines: %v",
 			r.Error.Error())
 	}
@@ -56,7 +57,7 @@ func (s *PipelineStore) ListPipelines() ([]model.Pipeline, error) {
 func (s *PipelineStore) GetPipeline(id uint) (*model.Pipeline, error) {
 	var pipeline model.Pipeline
 	// Get the pipeline as well as its parameter.
-	r := s.db.Preload("Parameters").First(&pipeline, id)
+	r := s.db.Preload("Parameters").Where("status = ?", model.PipelineReady).First(&pipeline, id)
 	if r.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}
@@ -139,6 +140,14 @@ func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
 	return errors.Wrap(tx.Commit().Error, errorMessage)
 }
 
+func (s *PipelineStore) UpdatePipelineStatus(id uint, status model.PipelineStatus) error {
+	r := s.db.Exec(`UPDATE pipelines SET status=? WHERE id=?`, status, id)
+	if r.Error != nil {
+		return util.NewInternalServerError(r.Error, "Failed to update the pipeline metadata: %s", r.Error.Error())
+	}
+	return nil
+}
+
 // factory function for pipeline store
 func NewPipelineStore(db *gorm.DB, time util.TimeInterface) *PipelineStore {
 	return &PipelineStore{
@@ -192,14 +201,15 @@ func newPipelineAndLatestJobIterator(db *gorm.DB) (*PipelineAndLatestJobIterator
 		ON (pipelines.ID=jobs.pipeline_id)
 		WHERE
 			pipelines.schedule != "" AND
-			pipelines.enabled = 1
+			pipelines.enabled = 1 AND
+			pipelines.status = ?
 		GROUP BY
 			pipelines.ID,
 			pipelines.name,
 			pipelines.schedule,
 			pipelines.enabled,
 			pipelines.enabled_at_in_sec
-		ORDER BY jobs.scheduled_at_in_sec ASC`).Rows()
+		ORDER BY jobs.scheduled_at_in_sec ASC`, model.PipelineReady).Rows()
 
 	if err != nil {
 		return nil, err

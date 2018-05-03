@@ -45,7 +45,7 @@ func (c *FakeWorkflowClient) GetWorkflowCount() int {
 
 func (c *FakeWorkflowClient) GetWorkflowKeys() map[string]bool {
 	result := map[string]bool{}
-	for key, _ := range c.workflows {
+	for key := range c.workflows {
 		result[key] = true
 	}
 	return result

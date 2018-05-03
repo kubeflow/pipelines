@@ -16,6 +16,7 @@ package storage
 
 import (
 	"bytes"
+	"errors"
 	"io"
 
 	minio "github.com/minio/minio-go"
@@ -38,9 +39,21 @@ func (c *FakeMinioClient) PutObject(bucketName, objectName string, reader io.Rea
 	c.minioClient[objectName] = buf.Bytes()
 	return 1, nil
 }
+
 func (c *FakeMinioClient) GetObject(bucketName, objectName string,
 	opts minio.GetObjectOptions) (io.Reader, error) {
+	if _, ok := c.minioClient[objectName]; !ok {
+		return nil, errors.New("object not found")
+	}
 	return bytes.NewReader(c.minioClient[objectName]), nil
+}
+
+func (c *FakeMinioClient) DeleteObject(bucketName, objectName string) error {
+	if _, ok := c.minioClient[objectName]; !ok {
+		return errors.New("object not found")
+	}
+	delete(c.minioClient, objectName)
+	return nil
 }
 
 func (c *FakeMinioClient) GetObjectCount() int {
