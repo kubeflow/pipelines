@@ -46,13 +46,6 @@ app.get(apisPrefix + '/healthz', (req, res) => {
 });
 
 app.get(apisPrefix + '/artifacts/list/*', async (req, res) => {
-  if (!req.params) {
-    res.status(404).send('Error: No path provided.');
-    return;
-  }
-
-  const storage = Storage();
-
   const decodedPath = decodeURIComponent(req.params[0]);
 
   if (decodedPath.match('^gs://')) {
@@ -61,6 +54,7 @@ app.get(apisPrefix + '/artifacts/list/*', async (req, res) => {
     const filepath = reqPath.slice(1).join('/');
 
     try {
+      const storage = Storage();
       const results = await storage.bucket(bucket).getFiles({ prefix: filepath });
       res.send(results[0].map((f) => `gs://${bucket}/${f.name}`));
     } catch (err) {
@@ -68,18 +62,11 @@ app.get(apisPrefix + '/artifacts/list/*', async (req, res) => {
       res.status(500).send('Error: ' + err);
     }
   } else {
-    res.status(404).send('Error: Unsupported path.');
+    res.status(404).send('Unsupported path.');
   }
 });
 
 app.get(apisPrefix + '/artifacts/get/*', async (req, res, next) => {
-  if (!req.params) {
-    res.status(404).send('Error: No path provided.');
-    return;
-  }
-
-  const storage = Storage();
-
   const decodedPath = decodeURIComponent(req.params[0]);
 
   if (decodedPath.match('^gs://')) {
@@ -89,6 +76,7 @@ app.get(apisPrefix + '/artifacts/get/*', async (req, res, next) => {
     const destFilename = tmp.tmpNameSync();
 
     try {
+      const storage = Storage();
       await storage.bucket(bucket).file(filename).download({ destination: destFilename });
       console.log(`gs://${bucket}/${filename} downloaded to ${destFilename}.`);
       res.sendFile(destFilename, undefined, (err) => {
@@ -104,10 +92,10 @@ app.get(apisPrefix + '/artifacts/get/*', async (req, res, next) => {
       });
     } catch (err) {
       console.error('Error getting file:', err);
-      res.status(500).send('Error: ' + err);
+      res.status(500).send('Failed to download file: ' + err);
     };
   } else {
-    res.status(404).send('Error: Unsupported path.');
+    res.status(404).send('Unsupported path.');
   }
 
 });
@@ -126,7 +114,7 @@ app.get(apisPrefix + '/apps/tensorboard', async (req, res) => {
   try {
     res.send(encodeURIComponent(await k8sHelper.getTensorboardAddress(logdir)));
   } catch (err) {
-    res.status(500).send(err);
+    res.status(500).send('Failed to list Tensorboard pods: ' + err);
   }
 });
 
@@ -146,7 +134,7 @@ app.post(apisPrefix + '/apps/tensorboard', async (req, res) => {
     const tensorboardAddress = await k8sHelper.waitForTensorboard(logdir, 60 * 1000);
     res.send(tensorboardAddress);
   } catch (err) {
-    res.status(500).send('Error starting app: ' + err);
+    res.status(500).send('Failed to start Tensorboard app: ' + err);
   }
 
 });
