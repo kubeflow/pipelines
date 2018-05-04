@@ -2,17 +2,33 @@
 @import './reset.css';
 @import './vars.css';
 
+/* Custom elements common styling */
+:host {
+  display: block;
+  font-family: 'Open Sans', Helvetica, sans-serif;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 html, body {
   height: 100%;
   background-color: var(--background-contrast-color);
   color: var(--secondary-text-color);
   font-size: var(--font-size);
+  min-width: 600px;
 }
 
 hr {
   margin: var(--spacing-base) 0;
   border: 0px none transparent;
   border-top: 1px solid var(--divider-color);
+}
+
+iron-icon {
+  min-height: var(--icon-dimension-large);
+  min-width: var(--icon-dimension-large);
 }
 
 iron-icon[icon="check-circle"] {
@@ -37,17 +53,6 @@ paper-tab:not(:first-child) {
   border-left: 1px solid var(--divider-color);
 }
 
-/* Custom elements common styling */
-:host {
-  display: block;
-  font-family: 'Open Sans', Helvetica, sans-serif;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-
 .absolute-spinner {
   position: absolute;
   left: calc(50% - 50px / 2);
@@ -58,10 +63,9 @@ paper-tab:not(:first-child) {
   background-color: var(--theme-primary-color);
   color: white;
   max-height: var(--height-xsmall);
-  min-width: 64px;
-  padding-left: var(--spacing-minus-4);
-  padding-right: var(--spacing-minus-4);
+  min-width: 186px;
   margin: 0;
+  padding: var(--spacing-minus-5) var(--spacing-minus-2);
 }
 
 .action-button:hover {
@@ -79,8 +83,7 @@ paper-tab:not(:first-child) {
 
 .details-table > div {
   border-bottom: 1px solid var(--divider-color);
-  padding: 3px;
-  padding-top: 5px;
+  padding: var(--spacing-minus-5) var(--spacing-minus-6);
   width: 600px;
 }
 
@@ -114,11 +117,6 @@ paper-tab:not(:first-child) {
   flex-shrink: 0;
 }
 
-.or-tag {
-  padding-left: var(--spacing-minus-4);
-  padding-right: var(--spacing-minus-4);
-}
-
 .padded-spacing-base {
   padding: var(--spacing-base);
 }
@@ -127,15 +125,27 @@ paper-tab:not(:first-child) {
   padding: var(--spacing-minus-1);
 }
 
+.padded-left-spacing-minus-1 {
+  padding-left: var(--spacing-minus-1);
+}
+
+.padded-spacing-minus-3 {
+  padding: var(--spacing-minus-3);
+}
+
 .padded-spacing-minus-4 {
   padding: var(--spacing-minus-4);
 }
 
+.padded-spacing-minus-5 {
+  padding: var(--spacing-minus-5);
+}
+
 .param-header {
-  font-size: 16px;
+  font-size: var(--font-size-strong);
   font-weight: bold;
   margin: auto 0;
-  padding-right: 20px;
+  padding-right: var(--spacing-minus-1);
 }
 
 .strong {
@@ -159,7 +169,7 @@ paper-tab:not(:first-child) {
 }
 .toolbar-button {
   color: var(--theme-primary-color);
-  font-size: 13px;
+  font-size: var(--font-size);
   font-weight: bold;
   height: var(--height-xsmall);
   margin: auto var(--spacing-minus-4);
@@ -168,9 +178,9 @@ paper-tab:not(:first-child) {
 }
 
 .toolbar-button iron-icon {
-  height: 20px;
-  padding-right: 3px;
-  width: 20px;
+  height: var(--spacing-minus-1);
+  padding-right: var(--spacing-minus-5);
+  width: var(--spacing-minus-1);
 }
 
 .toolbar-button[disabled] {
@@ -183,7 +193,7 @@ paper-tab:not(:first-child) {
 }
 
 .toolbar-title {
-  font-size: 18px;
+  font-size: var(--font-size-title);
   margin: auto var(--spacing-plus-6) auto 0;
 }
 

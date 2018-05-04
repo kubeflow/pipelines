@@ -1,23 +1,23 @@
 @import '../../styles/common.css';
 
+.btn {
+  background-color: #eee;
+  font-weight: bold;
+  height: var(--height-small);
+  padding: var(--spacing-minus-3);
+}
+
 .dialog {
   min-width: 300px;
 }
 
-.message {
-  margin: 0;
-  padding: 30px;
-}
-
 .footer {
   margin: 0;
-  padding: 0 20px 20px 20px;
+  padding: 0 var(--spacing-minus-1) var(--spacing-minus-1);
   text-align: right;
 }
 
-.btn {
-  background-color: #eee;
-  font-weight: bold;
-  height: 35px;
-  padding: 10px;
+.message {
+  margin: 0;
+  padding: var(--spacing-plus-2);
 }

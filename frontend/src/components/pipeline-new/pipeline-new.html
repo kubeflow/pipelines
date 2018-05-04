@@ -47,10 +47,10 @@
     <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
 
     <div class="padded-spacing-base">
-      <div class="flex metadata-input">
-        <paper-dropdown-menu class="param-input" label="Choose a Package">
-          <paper-listbox id="packagesListbox" slot="dropdown-content" class="dropdown-content"
-                         selected="{{_packageIndex}}">
+      <div class="flex">
+        <paper-dropdown-menu class="input-field-large" label="Choose a Package">
+          <paper-listbox id="packagesListbox" slot="dropdown-content"
+                         class="dropdown-content" selected="{{_packageIndex}}">
             <template is="dom-repeat" items="[[packages]]" as="pkg">
               <paper-item package-id="[[pkg.id]]">
                 <paper-item-body two-line>
@@ -69,11 +69,11 @@
         <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
       </div>
 
-      <paper-input id="name" class="param-input metadata-input" label="Pipeline Name"
+      <paper-input id="name" class="input-field-large" label="Pipeline Name"
                    autofocus required maxlength="50" value="{{newPipeline.name}}"
                    auto-validate error-message="Pipeline must have a name">
       </paper-input>
-      <paper-input id="description" class="param-input metadata-input" label="Description"
+      <paper-input id="description" class="input-field-large" label="Description"
                    value="{{newPipeline.description}}">
       </paper-input>
 
@@ -84,10 +84,9 @@
         <div class="param-header">Parameters</div>
         <template is="dom-repeat" items="{{newPipeline.parameters}}" as="param">
           <div class="param-description">[[param.description]]</div>
-          <div class="param-container">
-            <paper-input class="param-input no-shrink" value="{{param.value}}"
-                         label="[[param.name]]"></paper-input>
-          </div>
+          <paper-input class="input-field-large no-shrink"
+                       label="[[param.name]]" value="{{param.value}}">
+          </paper-input>
         </template>
         <hr>
       </template>

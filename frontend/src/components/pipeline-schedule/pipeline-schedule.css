@@ -44,11 +44,3 @@ paper-toggle-button.am-pm {
   --paper-toggle-button-unchecked-button-color: var(--paper-teal-500);
   --paper-toggle-button-unchecked-ink-color: var(--paper-teal-500);
 }
-
-.checkbox-margin-adjust {
-  margin-bottom: 5px;
-}
-
-.crontab {
-  min-width: 240px;
-}

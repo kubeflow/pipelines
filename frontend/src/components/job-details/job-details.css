@@ -6,45 +6,6 @@
   flex-flow: column;
 }
 
-.job-name {
-  color: var(--primary-text-color);
-  flex-grow: 1;
-  font-size: var(--paper-font-title_-_font-size);
-  line-height: var(--paper-font-title_-_line-height);
-  font-weight: var(--paper-font-title_-_font-weight);
-}
-
-.status-icon {
-  color: var(--primary-text-inverse-color);
-  height: 20px;
-  margin: 7px;
-  width: 20px;
-}
-
-.container {
-  display: flex;
-  flex-flow: column;
-  flex-grow: 1;
-}
-
-.container[loading] {
-  opacity: 0.6;
-}
-
-.tabs-container {
-  border-bottom: solid 1px var(--divider-color);
-  flex: var(--height-small) 0 0;
-  position: relative;
-}
-
-.title-bar {
-  /*
-    TODO: This prevents the page from jerking when the job title text is
-    filled, but there's likely a better way than this magical integer.
-  */
-  min-height: 53px;
-}
-
 paper-progress {
   --paper-progress-active-color: var(--theme-primary-color);
   --paper-progress-height: 10px;
@@ -66,6 +27,34 @@ paper-tab {
   min-width: 110px;
 }
 
+#plotContainer,
+#jobGraph {
+  background-color: var(--background-base-color);
+  border-radius: 0 0 5px 5px;
+  border-top: 0;
+  border: solid 1px #ddd;
+  flex-grow: 1;
+  overflow: auto;
+}
+
+.container {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+}
+
+.container[loading] {
+  opacity: 0.6;
+}
+
+.job-name {
+  color: var(--primary-text-color);
+  flex-grow: 1;
+  font-size: var(--paper-font-title_-_font-size);
+  font-weight: var(--paper-font-title_-_font-weight);
+  line-height: var(--paper-font-title_-_line-height);
+}
+
 .pages {
   display: flex;
   flex-flow: column;
@@ -76,12 +65,15 @@ paper-tab {
   opacity: 0.6;
 }
 
-#plotContainer,
-#jobGraph {
-  background-color: var(--background-base-color);
-  border-radius: 0 0 5px 5px;
-  border-top: 0;
-  border: solid 1px #ddd;
-  flex-grow: 1;
-  overflow: auto;
+.status-icon {
+  color: var(--primary-text-inverse-color);
+  height: 20px;
+  margin: 7px;
+  width: 20px;
+}
+
+.tabs-container {
+  border-bottom: solid 1px var(--divider-color);
+  flex: var(--height-small) 0 0;
+  position: relative;
 }

@@ -10,6 +10,17 @@
   position: relative;
 }
 
+/* Arrow head */
+.pipeline-edge .line:nth-last-child(2)::after {
+  color: #777;
+  content: '\25BA';
+  font-size: 10px;
+  left: -1px;
+  position: absolute;
+  top: -7px;
+  transform: rotate(180deg);
+}
+
 .pipeline-node {
   background-color: #eee;
   border: solid 1px #aaa;
@@ -45,17 +56,6 @@
 .pipeline-node:hover .label {
   line-height: initial !important;
   white-space: initial;
-}
-
-/* Arrow head */
-.pipeline-edge .line:nth-last-child(2)::after {
-  color: #777;
-  content: '\25BA';
-  font-size: 10px;
-  left: -1px;
-  position: absolute;
-  top: -7px;
-  transform: rotate(180deg);
 }
 
 .virtual-node {

@@ -10,9 +10,9 @@ paper-icon-button, paper-icon-button {
   align-self: flex-end;
 }
 
-.package-link {
-  align-self: flex-end;
-  margin: 6px 10px;
+.or-tag {
+  min-width: 32px;
+  padding: 0 var(--spacing-minus-4);
 }
 
 .overlay {

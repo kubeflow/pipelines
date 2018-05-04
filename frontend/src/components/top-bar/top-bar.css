@@ -1,24 +1,6 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-.top-bar {
-  -webkit-box-align: center;
-      -ms-flex-align: center;
-          align-items: center;
-  background-color: var(--theme-primary-color);
-  color: var(--primary-text-inverse-color);
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  font-family: "Roboto", "Helvetica Neue", sans-serif;
-  height: var(--height-large);
-  -webkit-box-pack: justify;
-      -ms-flex-pack: justify;
-          justify-content: space-between;
-  padding: 0 var(--spacing-base);
-  box-shadow: var(--shadow-elevation-3dp_-_box-shadow);
-}
-
 .left {
   justify-self: flex-start;
 }
@@ -29,4 +11,22 @@
 
 .right {
   justify-content: flex-end;
+}
+
+.top-bar {
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  background-color: var(--theme-primary-color);
+  box-shadow: var(--shadow-elevation-3dp_-_box-shadow);
+  color: var(--primary-text-inverse-color);
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  font-family: "Roboto", "Helvetica Neue", sans-serif;
+  height: var(--height-large);
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  padding: 0 var(--spacing-base);
 }

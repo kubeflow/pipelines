@@ -1,27 +1,15 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-.pipeline-name {
-  color: var(--primary-text-color);
-  font-size: var(--paper-font-title_-_font-size);
-  line-height: var(--paper-font-title_-_line-height);
-  font-weight: var(--paper-font-title_-_font-weight);
-}
-
-.toolbar {
-  border-bottom: none;
-}
-
 paper-progress {
   --paper-progress-active-color: var(--theme-primary-color);
   height: 1px;
   width: 100%;
 }
 
-.tabs-container {
-  border-bottom: solid 1px var(--divider-color);
-  height: var(--height-small);
-  position: relative;
+paper-tab {
+  font-size: var(--font-size);
+  min-width: 110px;
 }
 
 paper-tabs {
@@ -30,7 +18,23 @@ paper-tabs {
   position: absolute;
 }
 
-paper-tab {
-  font-size: 13px;
-  min-width: 110px;
+.pipeline-name {
+  color: var(--primary-text-color);
+  font-size: var(--paper-font-title_-_font-size);
+  font-weight: var(--paper-font-title_-_font-weight);
+  line-height: var(--paper-font-title_-_line-height);
+}
+
+.pipeline-id {
+  padding: 0 var(--spacing-minus-3);
+}
+
+.tabs-container {
+  border-bottom: solid 1px var(--divider-color);
+  height: var(--height-small);
+  position: relative;
+}
+
+.toolbar {
+  border-bottom: none;
 }

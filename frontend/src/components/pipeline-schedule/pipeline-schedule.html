@@ -41,6 +41,7 @@
       }
 
       paper-input.crontab {
+        width: 240px;
         --paper-input-container-disabled: {
           opacity: 0.7;
         }
@@ -51,8 +52,8 @@
       }
     </style>
 
-    <div class="flex metadata-input">
-      <paper-dropdown-menu label="Type">
+    <div class="flex">
+      <paper-dropdown-menu class="input-field-large" label="Type">
         <paper-listbox slot="dropdown-content" class="dropdown-content"
                        selected="{{_scheduleTypeIndex}}">
           <template is="dom-repeat" items="[[_SCHEDULES]]" as="schedule">
@@ -67,18 +68,18 @@
     <!-- Starting date and time selectors -->
     <template is="dom-if"
               if="{{_showSpecificTimeScheduleInputs(_scheduleTypeIndex)}}">
-      <div class="flex metadata-input padded-spacing-minus-1">
+      <div class="flex input-container padded-left-spacing-minus-1">
         <!-- Start date picker -->
-        <paper-input class="error-overflow" label="Starts (YYYY/MM/DD)"
+        <paper-input class="input-field error-overflow" label="Starts (YYYY/MM/DD)"
                      value="{{_startDate}}" on-click="_pickStartDate"
                      allowed-pattern="[0-9/]" invalid="[[!_startTimeIsValid]]"
                      error-message="[[_startTimeErrorMessage]]">
         </paper-input>
 
-        <span class="padded-spacing-minus-1">at</span>
+        <span class="padded-spacing-minus-3">at</span>
 
         <!-- Start time picker -->
-        <paper-dropdown-menu class="param-input-small" label="Time"
+        <paper-dropdown-menu class="input-field-small" label="Time"
                              invalid="[[!_startTimeIsValid]]">
           <paper-listbox slot="dropdown-content" selected="{{_startTimeIndex}}">
             <template is="dom-repeat" items="[[_times]]" as="time">
@@ -86,19 +87,19 @@
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
-        <span class="padded-spacing-minus-1">AM</span>
+        <span class="padded-spacing-minus-4">AM</span>
         <paper-toggle-button class="am-pm" checked="{{_isStartPM}}">
         </paper-toggle-button>
-        <span class="padded-spacing-minus-1">PM</span>
+        <span class="padded-spacing-minus-5">PM</span>
       </div>
 
       <!-- Recurrence interval -->
       <template is="dom-if"
                 if="{{_showRecurringScheduleInputs(_scheduleTypeIndex)}}">
-        <div class="flex metadata-input">
+        <div class="flex">
           <span class="padded-spacing-minus-1">Repeat </span>
 
-          <paper-dropdown-menu class="param-input-small error-overflow"
+          <paper-dropdown-menu class="input-field-small error-overflow"
                                label="Interval" invalid="[[!_weekdaySelectionIsValid]]"
                                error-message="Please select at least one weekday">
             <paper-listbox slot="dropdown-content" class="dropdown-content"
@@ -111,7 +112,7 @@
         </div>
 
         <!-- Weekday picker -->
-        <div class="flex metadata-input">
+        <div class="flex">
           <span class="padded-spacing-minus-1">on</span>
           <paper-checkbox id="allWeekdaysCheckbox"
                           disabled="[[!_enableWeekdayButtons]]"
@@ -133,26 +134,26 @@
 
         <!-- Optional Ending date and time selectors -->
         <!-- TODO: Unhide once backend supports scheduling end date. -->
-        <div class="flex metadata-input" hidden>
+        <div class="flex input-container" hidden>
           <!--
             This element ends up 5px smaller than inputs, so without the extra
             margin, the screen jumps when the checkbox is (un)checked.
           -->
-          <span class="padded-spacing-minus-1 checkbox-margin-adjust">
-            <paper-checkbox checked="{{_hasEndDate}}">Has end</paper-checkbox>
+          <span class="padded-spacing-minus-1">
+            <paper-checkbox checked="{{_hasEndDate}}">Ends</paper-checkbox>
           </span>
           <template is="dom-if" if="[[_hasEndDate]]">
             <!-- End date picker -->
-            <paper-input class="error-overflow" label="Ends (YYYY/MM/DD)"
+            <paper-input class="input-field error-overflow" label="Ends (YYYY/MM/DD)"
                          value="[[_endDate]]" on-click="_pickEndDate"
                          allowed-pattern="[0-9/]" invalid="[[!_endTimeIsValid]]"
                          error-message="[[_endTimeErrorMessage]]">
             </paper-input>
 
-            <span class="padded-spacing-minus-1">at</span>
+            <span class="padded-spacing-minus-4">at</span>
 
             <!-- End time picker -->
-            <paper-dropdown-menu class="param-input-small" label="Time"
+            <paper-dropdown-menu class="input-field-small" label="Time"
                                  invalid="[[!_endTimeIsValid]]">
               <paper-listbox slot="dropdown-content"
                              selected="{{_endTimeIndex}}">
@@ -161,15 +162,15 @@
                 </template>
               </paper-listbox>
             </paper-dropdown-menu>
-            <span class="padded-spacing-minus-1">AM</span>
+            <span class="padded-spacing-minus-4">AM</span>
             <paper-toggle-button class="am-pm" checked="{{_isEndPM}}">
             </paper-toggle-button>
-            <span class="padded-spacing-minus-1">PM</span>
+            <span class="padded-spacing-minus-5">PM</span>
           </template>
         </div>
 
         <!-- Crontab text field -->
-        <div class="flex metadata-input">
+        <div class="flex">
           <!--
             TODO: Allow users to update crontab manually and automatically
             update the rest of the UI based on it.

@@ -17,24 +17,29 @@ paper-ripple {
   top: 0px;
 }
 
-.metadata-input {
+.input-container {
   margin-bottom: 26px;
 }
 
-.param-description {
-  margin: 15px 0 8px 0;
-}
-
-.param-container {
-  margin-bottom: 12px;
-}
-
-.param-input-small {
-  min-width: 100px;
+.input-field-small {
+  min-width: 85px;
+  max-width: 180px;
   width: 10%;
 }
 
-.param-input {
-  min-width: 400px;
+.input-field {
+  min-width: 136px;
+  max-width: 220px;
+  width: 20%;
+}
+
+.input-field-large {
+  margin-bottom: 26px;
+  max-width: 400px;
+  min-width: 220px;
   width: 40%;
+}
+
+.param-description {
+  margin: 15px 0 0 0;
 }

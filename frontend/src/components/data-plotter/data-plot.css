@@ -1,44 +1,8 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-.plotTitle {
-  flex: auto 0 0;
-  font-size: 18px;
-  margin-top: 25px;
-  text-align: center;
-}
-
-.container {
-  border-bottom: 1px solid var(--divider-color);
-  flex-grow: 1;
-  overflow: auto;
-  padding: 20px;
-  text-align: center;
-}
-
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
-
-.dottedLine {
-  stroke: #b2dfdb;
-  stroke-width: 2;
-  stroke-dasharray: 5,5;
-}
-
-.dot {
-  fill: none;
-}
-
-.point circle {
-  stroke: steelblue;
-}
-
-.overlay {
-  fill: none;
-  pointer-events: all;
+paper-spinner {
+  vertical-align: middle;
 }
 
 .cell.active, .row.active {
@@ -49,6 +13,42 @@
   fill: var(--theme-primary-color);
 }
 
-paper-spinner {
-  vertical-align: middle;
+.container {
+  border-bottom: 1px solid var(--divider-color);
+  flex-grow: 1;
+  overflow: auto;
+  padding: var(--spacing-minus-1);
+  text-align: center;
+}
+
+.dot {
+  fill: none;
+}
+
+.dottedLine {
+  stroke: #b2dfdb;
+  stroke-width: 2;
+  stroke-dasharray: 5,5;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.plotTitle {
+  flex: auto 0 0;
+  font-size: var(--font-size-title);
+  margin-top: var(--spacing-base);
+  text-align: center;
+}
+
+.point circle {
+  stroke: steelblue;
 }

@@ -1,6 +1,7 @@
 :root {
   --font-size: 14px;
   --font-size-strong: 16px;
+  --font-size-title: 18px;
 
   --app-animation-duration: 0.3s;
   --app-content-font-size: 12px;
@@ -29,6 +30,10 @@
   --height-jumbo: 64px;
   --height-auto: auto;
 
+  --icon-dimension-small: 16px;
+  --icon-dimension: 18px;
+  --icon-dimension-large: 20px;
+
   /* Background colors */
   --background-base-color: #FAFAFA;
   --background-contrast-color: #FFFFFF;
@@ -39,7 +44,7 @@
   --message-bar-background-color: rgba(0, 0, 0, .05);
   --modal-backdrop-color: rgba(33, 33, 33, .48);
   --tooltip-background-color: #8A8A8A;
-  
+
   /* Typography */
   --disabled-text-color: rgba(0, 0, 0, .54);
   --error-text-color: #D50000;
@@ -48,7 +53,7 @@
   --primary-text-inverse-color: #FFF;
   --secondary-text-color: rgba(0, 0, 0, .66);
   --secondary-text-inverse-color: rgba(255, 255, 255, .72);
-  --tertiary-text-inverse-color: rgba(255, 255, 255, .3); 
+  --tertiary-text-inverse-color: rgba(255, 255, 255, .3);
 
   /* Theme */
   --theme-primary-color: #3367D6;
@@ -78,7 +83,7 @@
   --row-hover-color: rgba(0, 0, 0, .04);
 
   /* Buttons & icons */
-  --disabled-button-color: rgba(0, 0, 0, .38); 
+  --disabled-button-color: rgba(0, 0, 0, .38);
   --disabled-button-inverse-color: rgba(255, 255, 255, .3);
   --disabled-button-raised-color: rgba(0, 0, 0, .12);
   --primary-button-color: #3367D6;

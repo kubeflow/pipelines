@@ -5,65 +5,90 @@
   display: flex;
   flex-direction: column;
 }
+
 div {
   font-family: var(--app-content-font-family);
   font-size: var(--app-content-font-size);
   color: var(--primary-text-color);
 }
+
+#filter-div {
+  position: relative;
+}
+
+#filter-icon {
+  color: var(--inactive-color);
+  height: var(--icon-dimension);
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  width: var(--icon-dimension);
+}
+
+#filterBox {
+  height: var(--height-small);
+  width: 100%;
+  border-bottom: solid 1px var(--divider-color);
+  border-width: 0 0 1px;
+  text-indent: 98px;
+  padding: var(--spacing-minus-5);
+  box-sizing: border-box;
+  background-color: var(--background-contrast-color);
+  color: var(--primary-text-color);
+  outline: none;
+}
+
+#filterBox:hover {
+  border-bottom: solid 1px var(--divider-color);
+}
+
+#filterBox:active {
+  border-bottom: solid 1px var(--divider-color);
+}
+
+#filterToggle {
+  height: var(--height-small);
+  width: var(--height-small);
+}
+
 #headerContainer {
   flex: 0 0 var(--toolbar-height);
   z-index: 1;
 }
+
 #header {
   user-select: none;
   display: flex;
   line-height: calc(var(--toolbar-height) - 1px);
   border-bottom: 1px solid var(--divider-color);
 }
+
+#header > .column {
+  color: var(--primary-text-color);
+  font-size: var(--font-size);
+}
+
 #listContainer {
   flex: 1 1 auto;
   overflow: auto;
 }
-.row {
-  user-select: none;
-  padding: 0px;
-  display: flex;
-  --paper-item-min-height: 35px;
-  line-height: 35px;
-  cursor: default;
-}
-.row:hover {
-  background-color: var(--row-hover-color);
-}
-.row[selected] > * {
-  color: var(--theme-primary-color) !important;
-}
-.row-details {
-  padding: 0px;
-}
+
 .checkbox-col {
-  flex: 0 0 65px;
+  flex: 0 0 80px;
   padding-left: var(--spacing-base);
 }
+
 .checkbox-col > iron-icon {
-  width: 17px;
-  height: 17px;
+  height: var(--icon-dimension);
+  width: var(--icon-dimension);
 }
+
 .checkbox-col > paper-checkbox {
-  --paper-checkbox-size: 15px;
+  --paper-checkbox-size: var(--icon-dimension-small);
   --paper-checkbox-unchecked-color: var(--inactive-color);
   --paper-checkbox-checked-color: var(--theme-primary-color);
 }
-.first-col {
-  flex-grow: 1;
-}
-.second-col {
-  flex-basis: 100px;
-}
-.title {
-  padding-left: 5px;
-  line-height: 26px;
-}
+
 .column {
   flex: 1.5;
   overflow: hidden;
@@ -71,10 +96,7 @@ div {
   white-space: nowrap;
   color: var(--secondary-text-color);
 }
-#header > .column {
-  color: var(--primary-text-color);
-  font-size: 13px;
-}
+
 .column-button {
   display: flex;
   justify-content: flex-start;
@@ -84,56 +106,64 @@ div {
   border-radius: 0;
   text-transform: none;
 }
+
 .column-button > iron-icon {
-  width: 15px;
-  padding-left: 3px;
+  width: var(--icon-dimension-small);
+  padding-left: var(--spacing-minus-5);
 }
+
 .column + .column {
   flex: 1;
   max-width: 150px;
   padding-left: var(--spacing-minus-2);
 }
-#filterToggle {
-  width: 34px;
-  height: 34px;
-}
+
 .filterShown--true {
   color: var(--theme-primary-color);
 }
+
 .filterShown--false {
   color: var(--inactive-color);
 }
-#filter-div {
-  position: relative;
+
+.first-col {
+  flex-grow: 1;
 }
-#filter-icon {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  color: var(--inactive-color);
-  width: 18px;
-  height: 18px;
-}
-#filterBox {
-  height: 35px;
-  width: 100%;
-  border: solid 1px var(--divider-color);
-  text-indent: 75px;
-  padding: 5px;
-  box-sizing: border-box;
-  background-color: var(--background-contrast-color);
-  color: var(--primary-text-color);
-  outline: none;
-}
-#filterBox:hover {
-  border: solid 1px var(--divider-color);
-}
-#filterBox:active {
-  border: solid 1px var(--divider-color);
-}
+
 .link {
   cursor: pointer;
 }
+
 .link:hover {
   text-decoration: underline;
+}
+
+.row {
+  --paper-item-min-height: var(--height-small);
+  cursor: default;
+  display: flex;
+  line-height: var(--height-small);
+  padding: 0;
+  user-select: none;
+}
+
+.row:hover {
+  background-color: var(--row-hover-color);
+}
+
+.row[selected] > * {
+  color: var(--theme-primary-color) !important;
+}
+
+.row-details {
+  padding: 0;
+}
+
+.second-col {
+  flex-basis: 100px;
+}
+
+.title {
+  padding-left: var(--spacing-minus-5);;
+  line-height: 26px;
 }
