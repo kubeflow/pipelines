@@ -39,7 +39,7 @@ describe('view job details', () => {
   });
 
   it('highlights a step upon hover', () => {
-    const selector = 'app-shell job-details job-graph .pipeline-node:first-child';
+    const selector = 'app-shell job-details job-graph .pipeline-node:nth-of-type(4)';
 
     browser.waitForVisible(selector);
     browser.moveToObject(selector, 0, 0);
