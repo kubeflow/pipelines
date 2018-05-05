@@ -1,10 +1,11 @@
 :root {
-  --font-size: 14px;
+  --app-min-width: 500px;
+
+  --font-size: 12px;
   --font-size-strong: 16px;
   --font-size-title: 18px;
 
   --app-animation-duration: 0.3s;
-  --app-content-font-size: 12px;
   --toolbar-height: 64px;
 
   --spacing-none: 0;

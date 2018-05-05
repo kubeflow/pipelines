@@ -8,7 +8,7 @@
 
 div {
   font-family: var(--app-content-font-family);
-  font-size: var(--app-content-font-size);
+  font-size: var(--font-size);
   color: var(--primary-text-color);
 }
 

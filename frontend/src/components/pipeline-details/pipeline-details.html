@@ -47,22 +47,22 @@
           <br/>
           <div class="details-table">
             <div>
-              <span class="detail-title">Pipeline Package ID</span>
-              <span>[[pipeline.packageId]]</span>
+              <span class="key">Pipeline Package ID</span>
+              <span class="value">[[pipeline.packageId]]</span>
             </div>
             <div>
-              <span class="detail-title">Description</span>
-              <span>[[pipeline.description]]</span>
+              <span class="key">Description</span>
+              <span class="value">[[pipeline.description]]</span>
             </div>
             <div>
-              <span class="detail-title">Created at</span>
-              <span>[[_formatDateString(pipeline.createdAt)]]</span>
+              <span class="key">Created at</span>
+              <span class="value">[[_formatDateString(pipeline.createdAt)]]</span>
             </div>
 
             <template is="dom-if" if="[[pipeline.schedule]]">
               <div>
-                <span class="detail-title">Schedule</span>
-                <span>[[pipeline.schedule]]</span>
+                <span class="key">Schedule</span>
+                <span class="value">[[pipeline.schedule]]</span>
               </div>
             </template>
 
@@ -76,8 +76,8 @@
             <div class="details-table">
               <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
                 <div>
-                  <span class="detail-title">[[param.name]]</span>
-                  <span>[[param.value]]</span>
+                  <span class="key">[[param.name]]</span>
+                  <span class="value">[[param.value]]</span>
                 </div>
               </template>
             </div>

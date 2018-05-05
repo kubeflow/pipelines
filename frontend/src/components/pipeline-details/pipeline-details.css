@@ -8,7 +8,7 @@ paper-progress {
 }
 
 paper-tab {
-  font-size: var(--font-size);
+  font-size: var(--font-size-strong);
   min-width: 110px;
 }
 

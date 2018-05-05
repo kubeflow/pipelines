@@ -27,7 +27,7 @@ paper-tab {
   min-width: 110px;
 }
 
-#plotContainer,
+.plot-container,
 #jobGraph {
   background-color: var(--background-base-color);
   border-radius: 0 0 5px 5px;

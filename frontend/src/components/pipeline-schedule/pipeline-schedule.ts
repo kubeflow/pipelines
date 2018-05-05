@@ -133,9 +133,9 @@ export class PipelineSchedule extends Polymer.Element {
   public scheduleAsUTCCrontab(): string {
     const startDateTime = this._getStartDateTime();
     return this._generateCrontab(
-      startDateTime.getUTCDate(),
-      startDateTime.getUTCHours(),
-      startDateTime.getUTCMinutes());
+        startDateTime.getUTCDate(),
+        startDateTime.getUTCHours(),
+        startDateTime.getUTCMinutes());
   }
 
   // TODO: Maybe use a polymer validator (property?) here?
@@ -271,9 +271,9 @@ export class PipelineSchedule extends Polymer.Element {
   private _updateDisplayCrontab(): void {
     const startDateTime = this._getStartDateTime();
     this._crontab = this._generateCrontab(
-      startDateTime.getDate(),
-      startDateTime.getHours(),
-      startDateTime.getMinutes());
+        startDateTime.getDate(),
+        startDateTime.getHours(),
+        startDateTime.getMinutes());
   }
 
   private _getStartDateTime(): Date {

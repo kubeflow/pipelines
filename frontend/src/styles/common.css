@@ -17,7 +17,7 @@ html, body {
   background-color: var(--background-contrast-color);
   color: var(--secondary-text-color);
   font-size: var(--font-size);
-  min-width: 600px;
+  min-width: var(--app-min-width);
 }
 
 hr {
@@ -62,14 +62,13 @@ paper-tab:not(:first-child) {
 .action-button {
   background-color: var(--theme-primary-color);
   color: white;
-  max-height: var(--height-xsmall);
-  min-width: 186px;
+  min-height: var(--height-xsmall);
   margin: 0;
   padding: var(--spacing-minus-5) var(--spacing-minus-2);
 }
 
 .action-button:hover {
-  @apply --shadow-elevation-3dp;
+  @apply --shadow-elevation-4dp;
 }
 
 .action-button[disabled] {
@@ -81,16 +80,20 @@ paper-tab:not(:first-child) {
   display: block;
 }
 
-.details-table > div {
-  border-bottom: 1px solid var(--divider-color);
-  padding: var(--spacing-minus-5) var(--spacing-minus-6);
-  width: 600px;
+.details-table {
+  max-width: 700px;
 }
 
-.detail-title {
+.details-table > div {
+  border-bottom: 1px solid var(--divider-color);
+  display: flex;
+  padding: var(--spacing-minus-5) var(--spacing-minus-6);
+}
+
+.details-table .key {
   display: inline-block;
   font-weight: bold;
-  width: 280px;
+  flex: 0 0 280px;
 }
 
 .ellipsis {
@@ -164,9 +167,11 @@ paper-tab:not(:first-child) {
   height: var(--toolbar-height);
   padding: 0 var(--spacing-base);
 }
+
 .toolbar-arrow-back {
   margin-left: -12px;
 }
+
 .toolbar-button {
   color: var(--theme-primary-color);
   font-size: var(--font-size);

@@ -44,24 +44,24 @@
           <br/>
           <div class="details-table">
             <div>
-              <span class="detail-title">Status</span>
-              <span>[[jobDetail.status.phase]]</span>
+              <span class="key">Status</span>
+              <span class="value">[[jobDetail.status.phase]]</span>
             </div>
             <div>
-              <span class="detail-title">Created at</span>
-              <span>[[_formatDateString(jobDetail.metadata.creationTimestamp)]]</span>
+              <span class="key">Created at</span>
+              <span class="value">[[_formatDateString(jobDetail.metadata.creationTimestamp)]]</span>
             </div>
             <div>
-              <span class="detail-title">Started at</span>
-              <span>[[_formatDateString(jobDetail.status.startedAt)]]</span>
+              <span class="key">Started at</span>
+              <span class="value">[[_formatDateString(jobDetail.status.startedAt)]]</span>
             </div>
             <div>
-              <span class="detail-title">Finished at</span>
-              <span>[[_formatDateString(jobDetail.status.finishedAt)]]</span>
+              <span class="key">Finished at</span>
+              <span class="value">[[_formatDateString(jobDetail.status.finishedAt)]]</span>
             </div>
             <div>
-              <span class="detail-title">Duration</span>
-              <span>[[_getRuntime(jobDetail.status.startedAt, jobDetail.status.finishedAt, jobDetail.status.phase)]]</span>
+              <span class="key">Duration</span>
+              <span class="value">[[_getRuntime(jobDetail.status.startedAt, jobDetail.status.finishedAt, jobDetail.status.phase)]]</span>
             </div>
           </div>
 
@@ -72,8 +72,8 @@
           <div class="details-table">
             <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
               <div>
-                <span class="detail-title">[[param.name]]</span>
-                <span>[[param.value]]</span>
+                <span class="key">[[param.name]]</span>
+                <span class="value">[[param.value]]</span>
               </div>
             </template>
           </div>
@@ -81,7 +81,7 @@
         </div>
 
         <!-- iron-page tab 2 -->
-        <div class="plotContainer" loading$="[[_loadingOutputs]]">
+        <div class="plot-container" loading$="[[_loadingOutputs]]">
           <paper-spinner class="absolute-spinner" active hidden$="[[!_loadingOutputs]]"></paper-spinner>
           <template is="dom-repeat" items="[[outputPlots]]" as="plotMetadata">
             <data-plot plot-metadata="[[plotMetadata]]"></data-plot>

@@ -16,7 +16,6 @@ paper-spinner {
 .container {
   border-bottom: 1px solid var(--divider-color);
   flex-grow: 1;
-  overflow: auto;
   padding: var(--spacing-minus-1);
   text-align: center;
 }
