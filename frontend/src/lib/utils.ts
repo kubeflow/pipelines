@@ -76,7 +76,7 @@ export function nodePhaseToColor(status: NodePhase): string {
   }
 }
 
-export function showDialog(message: string): void {
+export function showDialog(message: string, details?: string): void {
   const dialog = document.createElement('message-dialog') as MessageDialog;
   document.body.appendChild(dialog);
   dialog.addEventListener('iron-overlay-closed', () => {
@@ -84,6 +84,9 @@ export function showDialog(message: string): void {
   });
 
   dialog.message = message;
+  if (details) {
+    dialog.details = details;
+  }
   dialog.open();
 }
 

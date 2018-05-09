@@ -1,23 +1,50 @@
 @import '../../styles/common.css';
 
-.btn {
+.close-btn {
   background-color: #eee;
   font-weight: bold;
   height: var(--height-small);
   padding: var(--spacing-minus-3);
 }
 
+.collapse {
+  margin: 0;
+  padding: 0 var(--spacing-plus-2);
+}
+
+.details {
+  border-top: 1px solid #eee;
+  padding: var(--spacing-minus-1) 0;
+}
+
+.details-btn {
+  font-size: 12px;
+  height: var(--height-xsmall);
+  min-width: 64px;
+  padding: 0 var(--spacing-minus-4);
+}
+
+.details-icon {
+  height: 16px;
+  transition: transform 0.3s;
+  width: 16px;
+}
+
 .dialog {
   min-width: 300px;
 }
 
+.expanded.dialog .details-icon {
+  transform: rotate(180deg);
+}
+
 .footer {
   margin: 0;
-  padding: 0 var(--spacing-minus-1) var(--spacing-minus-1);
+  padding: var(--spacing-minus-1);
   text-align: right;
 }
 
 .message {
   margin: 0;
-  padding: var(--spacing-plus-2);
+  padding: var(--spacing-plus-2) var(--spacing-plus-2) 10px var(--spacing-plus-2);
 }

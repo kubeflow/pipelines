@@ -8,6 +8,7 @@
   "dependencies": {
     "app-datepicker": "motss/app-datepicker#^2.12.0",
     "app-route": "PolymerElements/app-route#^2.0.3",
+    "iron-collapse": "PolymerElements/iron-collapse#^2.2.1",
     "iron-form-element-behavior": "PolymerElements/iron-form-element-behavior#2.1.1",
     "iron-icons": "PolymerElements/iron-icons#^2.0.1",
     "iron-pages": "PolymerElements/iron-pages#^2.0.1",

@@ -2,9 +2,22 @@
   <template>
     <link rel="stylesheet" href="./message-dialog.css">
     <paper-dialog with-backdrop id="dialog" class="dialog">
-      <div class="message">[[message]]</div>
+      <div class="message">
+        <span>[[message]]</span>
+        <template is="dom-if" if="[[details]]">
+          <paper-button class="details-btn" on-click="toggleDetails">
+            Details
+            <iron-icon class="details-icon" icon="expand-more"></iron-icon>
+          </paper-button>
+        </template>
+      </div>
+      <iron-collapse id="detailsCollapse" class="collapse">
+        <div class="details">
+          [[details]]
+        </div>
+      </iron-collapse>
       <div class="footer">
-        <paper-button class="btn" on-click="close">Close</paper-button>
+        <paper-button class="close-btn" on-click="close">Close</paper-button>
       </div>
     </paper-dialog>
   </template>
