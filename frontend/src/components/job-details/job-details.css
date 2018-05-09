@@ -16,17 +16,6 @@ paper-spinner {
   width: 50px;
 }
 
-paper-tabs {
-  bottom: 0;
-  display: inline-block;
-  position: absolute;
-}
-
-paper-tab {
-  font-size: 13px;
-  min-width: 110px;
-}
-
 .plot-container,
 #jobGraph {
   background-color: var(--background-base-color);
@@ -53,12 +42,6 @@ paper-tab {
   font-size: var(--paper-font-title_-_font-size);
   font-weight: var(--paper-font-title_-_font-weight);
   line-height: var(--paper-font-title_-_line-height);
-}
-
-.pages {
-  display: flex;
-  flex-flow: column;
-  flex-grow: 1;
 }
 
 .plot-container[loading] {

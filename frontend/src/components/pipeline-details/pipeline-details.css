@@ -7,17 +7,6 @@ paper-progress {
   width: 100%;
 }
 
-paper-tab {
-  font-size: var(--font-size-strong);
-  min-width: 110px;
-}
-
-paper-tabs {
-  bottom: 0;
-  display: inline-block;
-  position: absolute;
-}
-
 .pipeline-name {
   color: var(--primary-text-color);
   font-size: var(--paper-font-title_-_font-size);

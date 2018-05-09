@@ -65,6 +65,7 @@
 
     <!-- TODO: vertically align the various input fields below. -->
 
+  <div class="flex-column">
     <!-- Starting date and time selectors -->
     <template is="dom-if"
               if="{{_showSpecificTimeScheduleInputs(_scheduleTypeIndex)}}">
@@ -182,6 +183,7 @@
 
       </template>
     </template>
+  </div>
     <app-datepicker-dialog with-backdrop id="startDatepicker"
                            disable-days="[]" min-date="[[_minStartDate]]"
                            date="{{_startDate}}">

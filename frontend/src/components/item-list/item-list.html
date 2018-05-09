@@ -42,7 +42,7 @@ the License.
     </div>
 
     <!--Item list-->
-    <div id="listContainer">
+    <div id="listContainer" class="overflow-auto">
       <template is="dom-repeat" id="list" items="{{rows}}" as="row"
                 filter="{{_computeFilter(_filterString)}}" initial-count="100">
         <paper-item class="row" selected$={{row.selected}} on-click="_rowClicked"

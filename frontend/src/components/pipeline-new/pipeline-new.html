@@ -46,7 +46,7 @@
 
     <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
 
-    <div class="padded-spacing-base">
+    <div class="flex-column overflow-auto padded">
       <div class="flex">
         <paper-dropdown-menu class="input-field-large" label="Choose a Package">
           <paper-listbox id="packagesListbox" slot="dropdown-content"
@@ -94,7 +94,7 @@
       <!-- Pipeline Run Schedule -->
       <div class="param-header">Schedule</div>
       <br>
-      <pipeline-schedule id="schedule"></pipeline-schedule>
+      <pipeline-schedule id="schedule" class="no-shrink"></pipeline-schedule>
 
       <hr>
 

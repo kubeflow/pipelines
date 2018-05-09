@@ -13,8 +13,8 @@
 
     <paper-spinner class="absolute-spinner" active hidden$="[[!_loadingJob]]"></paper-spinner>
 
-    <div class="padded-spacing-base container" loading$="[[_loadingJob]]">
-      <div class="flex">
+    <div class="padded-top-left container" loading$="[[_loadingJob]]">
+      <div class="flex padded-right">
         <div class="job-name">[[jobDetail.metadata.name]]</div>
         <div class="right">
           <div class="flex">
@@ -37,7 +37,7 @@
         </paper-tabs>
       </div>
 
-      <iron-pages class="pages" selected="{{selectedTab}}">
+      <iron-pages class="flex-column flex-grow overflow-auto" selected="{{selectedTab}}">
 
         <!-- iron-page tab 1 -->
         <div>

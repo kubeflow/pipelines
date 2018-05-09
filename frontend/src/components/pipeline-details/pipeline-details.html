@@ -22,24 +22,24 @@
         Disable
       </paper-button>
     </div>
-    <paper-progress indeterminate disabled="[[!_busy]]"></paper-progress>
+    <paper-progress class="no-shrink" indeterminate disabled="[[!_busy]]"></paper-progress>
 
     <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
 
-    <div class="padded-spacing-base">
+    <div class="flex-column padded-top-left">
       <div class="pipeline-name">
         <span>[[pipeline.name]]</span>
         <span class="faded pipeline-id">ID: [[pipeline.id]]</span>
       </div>
 
-      <div class="tabs-container">
+      <div class="no-shrink tabs-container">
         <paper-tabs class="no-shrink" selected="{{selectedTab}}">
           <paper-tab>Basic Config</paper-tab>
           <paper-tab>Jobs</paper-tab>
         </paper-tabs>
       </div>
 
-      <iron-pages selected="{{selectedTab}}">
+      <iron-pages class="flex-column overflow-auto" selected="{{selectedTab}}">
 
         <!-- iron-page tab 1 -->
         <div>
@@ -86,7 +86,7 @@
         </div>
 
         <!-- iron-page tab 2 -->
-        <job-list id="jobs"></job-list>
+        <job-list id="jobs" class="flex-column"></job-list>
       </iron-pages>
     </div>
 

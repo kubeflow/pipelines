@@ -1,11 +1,6 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-:host {
-  display: flex;
-  flex-direction: column;
-}
-
 div {
   font-family: var(--app-content-font-family);
   font-size: var(--font-size);
@@ -52,7 +47,6 @@ div {
 }
 
 #headerContainer {
-  flex: 0 0 var(--toolbar-height);
   z-index: 1;
 }
 
@@ -66,11 +60,6 @@ div {
 #header > .column {
   color: var(--primary-text-color);
   font-size: var(--font-size);
-}
-
-#listContainer {
-  flex: 1 1 auto;
-  overflow: auto;
 }
 
 .checkbox-col {
