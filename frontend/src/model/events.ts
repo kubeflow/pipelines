@@ -4,6 +4,13 @@ export class ItemClickEvent extends CustomEvent {
   };
 }
 
+export const FILTER_CHANGED_EVENT = 'filterChanged';
+export class FilterChangedEvent extends CustomEvent {
+  public detail: {
+    filterString: string,
+  };
+}
+
 export const ROUTE_EVENT = 'route';
 export class RouteEvent extends CustomEvent {
   public detail: {

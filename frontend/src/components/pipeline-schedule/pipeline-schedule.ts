@@ -287,11 +287,11 @@ export class PipelineSchedule extends Polymer.Element {
     const timeAsArray =
       this._times[timeSelectorIndex].split(':').map((s) => Number(s));
     return new Date(
-      dateAsArray[0],
-      dateAsArray[1] - 1,
-      dateAsArray[2],
-      (timeAsArray[0] % 12) + (isPm ? 12 : 0),
-      timeAsArray[1]);
+        dateAsArray[0],
+        dateAsArray[1] - 1,
+        dateAsArray[2],
+        (timeAsArray[0] % 12) + (isPm ? 12 : 0),
+        timeAsArray[1]);
   }
 
   private _isStartTimeValid(): boolean {

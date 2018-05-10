@@ -20,7 +20,7 @@ import 'paper-icon-button/paper-icon-button.html';
 import 'paper-item/paper-item.html';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
-import { ItemClickEvent } from '../../model/events';
+import { FILTER_CHANGED_EVENT, FilterChangedEvent, ItemClickEvent } from '../../model/events';
 
 import './item-list.html';
 
@@ -94,31 +94,31 @@ export class ItemListElement extends Polymer.Element {
   /**
    * List of data rows, each implementing the row interface
    */
-  @property({type: Array})
+  @property({ type: Array })
   public rows: ItemListRow[] = [];
 
   /**
    * List of string data columns names
    */
-  @property({type: Array})
+  @property({ type: Array })
   public columns: ItemListColumn[] = [];
 
   /**
    * Whether to hide the header row
    */
-  @property({type: Boolean})
+  @property({ type: Boolean })
   public hideHeader = false;
 
   /**
    * Whether to disable item selection
    */
-  @property({type: Boolean})
+  @property({ type: Boolean })
   public disableSelection = false;
 
   /**
    * Whether to disable multi-selection
    */
-  @property({type: Boolean})
+  @property({ type: Boolean })
   public noMultiselect = false;
 
   /**
@@ -126,6 +126,18 @@ export class ItemListElement extends Polymer.Element {
    */
   @property({ computed: '_computeSelectedIndices(rows.*)', notify: true, type: Array })
   public selectedIndices: number[] = [];
+
+  @property({ type: String })
+  public filterString = '';
+
+  /**
+   * If true, the ItemListElement component will handle filtering of its data.
+   * If false, the ItemListElement will do no filtering, however, its parent
+   * component can still listen for FILTER_CHANGED_EVENTs and handle them as
+   * desired.
+   */
+  @property({ type: Boolean })
+  public filterLocally = false;
 
   @property({ type: Boolean })
   _showFilterBox = false;
@@ -135,8 +147,6 @@ export class ItemListElement extends Polymer.Element {
 
   @property({ computed: '_computeHideCheckboxes(disableSelection, noMultiselect)', type: Boolean })
   _hideCheckboxes: boolean;
-
-  _filterString = '';
 
   private _currentSort = {
     asc: true,   // ascending or descending
@@ -161,7 +171,7 @@ export class ItemListElement extends Polymer.Element {
   }
 
   resetFilter(): void {
-    this._filterString = '';
+    this.filterString = '';
   }
 
   _formatColumnValue(value: ColumnType, i: number, columns: ItemListColumn[]): string {
@@ -241,12 +251,12 @@ export class ItemListElement extends Polymer.Element {
     if (this._showFilterBox) {
       (this.$.filterBox as HTMLElement).focus();
     } else {
-      this._filterString = '';
+      this.filterString = '';
     }
   }
 
   _computeFilter(filterString: string): Function | null {
-    if (!filterString) {
+    if (!filterString || !this.filterLocally) {
       // set filter to null to disable filtering
       return null;
     } else {
@@ -439,6 +449,13 @@ export class ItemListElement extends Polymer.Element {
       (this.$.list as Polymer.DomRepeat).indexForElement(e.target as HTMLElement) || 0;
     const realIndex = this._displayIndexToRealIndex(displayIndex);
     this.dispatchEvent(new ItemClickEvent('itemDoubleClick', { detail: {index: realIndex} }));
+  }
+
+  @observe('filterString')
+  _filterStringChanged(): void {
+    this.dispatchEvent(new FilterChangedEvent(
+      FILTER_CHANGED_EVENT,
+      { detail: { filterString: this.filterString }}));
   }
 
   _isFirstColumn(i: number): boolean {

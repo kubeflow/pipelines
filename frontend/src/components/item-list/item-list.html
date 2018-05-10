@@ -37,14 +37,14 @@ the License.
       <div id="filter-div" hidden$="[[!_showFilterBox]]">
         <iron-icon icon="filter-list" id="filter-icon"></iron-icon>
         <input id="filterBox" placeholder="Filter by [[columns.0.name]]"
-               value="{{_filterString::input}}"></input>
+               value="{{filterString::input}}"></input>
       </div>
     </div>
 
     <!--Item list-->
     <div id="listContainer" class="overflow-auto">
       <template is="dom-repeat" id="list" items="{{rows}}" as="row"
-                filter="{{_computeFilter(_filterString)}}" initial-count="100">
+                filter="{{_computeFilter(filterString)}}" initial-count="100">
         <paper-item class="row" selected$={{row.selected}} on-click="_rowClicked"
                     on-dblclick="_rowDoubleClicked">
           <div class="checkbox-col">

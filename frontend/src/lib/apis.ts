@@ -4,8 +4,9 @@ import { PipelinePackage } from '../model/pipeline_package';
 
 const apisPrefix = '/apis/v1alpha1';
 
-async function _fetch(path: string, init?: RequestInit): Promise<string> {
-  const response = await fetch(apisPrefix + path, init);
+async function _fetch(
+    path: string, query?: string, init?: RequestInit): Promise<string> {
+  const response = await fetch(apisPrefix + path + (query ? '?' + query : ''), init);
   const responseText = await response.text();
   if (response.ok) {
     return responseText;
@@ -42,7 +43,7 @@ export async function getPackageTemplate(id: number): Promise<string> {
 export async function uploadPackage(packageData: any): Promise<PipelinePackage> {
   const fd = new FormData();
   fd.append('uploadfile', packageData, packageData.name);
-  const response = await _fetch('/packages/upload', {
+  const response = await _fetch('/packages/upload', '', {
     body: fd,
     cache: 'no-cache',
     method: 'POST',
@@ -53,8 +54,9 @@ export async function uploadPackage(packageData: any): Promise<PipelinePackage> 
 /**
  * Gets a list of the pipeline package pipelines defined on the backend.
  */
-export async function getPipelines(): Promise<Pipeline[]> {
-  return JSON.parse(await _fetch('/pipelines'));
+export async function getPipelines(filterString?: string): Promise<Pipeline[]> {
+  const query = filterString ? 'filter=' + encodeURIComponent(filterString) : '';
+  return JSON.parse(await _fetch('/pipelines', query));
 }
 
 /**
@@ -68,7 +70,7 @@ export async function getPipeline(id: number): Promise<Pipeline> {
  * Sends a new pipeline request to the backend.
  */
 export async function newPipeline(pipeline: Pipeline): Promise<Pipeline> {
-  const response = await _fetch('/pipelines', {
+  const response = await _fetch('/pipelines', '', {
     body: JSON.stringify(pipeline),
     cache: 'no-cache',
     headers: {
@@ -83,7 +85,7 @@ export async function newPipeline(pipeline: Pipeline): Promise<Pipeline> {
  * Sends an enable pipeline request to the backend.
  */
 export async function enablePipeline(id: number): Promise<string> {
-  return await _fetch(`/pipelines/${id}/enable`, {
+  return await _fetch(`/pipelines/${id}/enable`, '', {
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',
@@ -96,7 +98,7 @@ export async function enablePipeline(id: number): Promise<string> {
  * Sends a disable pipeline request to the backend.
  */
 export async function disablePipeline(id: number): Promise<string> {
-  return await _fetch(`/pipelines/${id}/disable`, {
+  return await _fetch(`/pipelines/${id}/disable`, '', {
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',
@@ -109,8 +111,10 @@ export async function disablePipeline(id: number): Promise<string> {
  * Gets a list of all the pipeline jobs belonging to the specified pipelined
  * from the backend.
  */
-export async function getJobs(pipelineId: number): Promise<JobMetadata[]> {
-  return JSON.parse(await _fetch(`/pipelines/${pipelineId}/jobs`));
+export async function getJobs(
+    pipelineId: number, filterString?: string): Promise<JobMetadata[]> {
+  const query = filterString ? 'filter=' + encodeURIComponent(filterString) : '';
+  return JSON.parse(await _fetch(`/pipelines/${pipelineId}/jobs`, query));
 }
 
 /**
@@ -145,10 +149,9 @@ export async function getTensorboardApp(logdir: string): Promise<string> {
  * Starts a deployment and service for Tensorboard given the logdir
  */
 export async function startTensorboardApp(logdir: string): Promise<string> {
-  return await _fetch(`/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`, {
-    headers: {
-      'content-type': 'application/json',
-    },
-    method: 'POST',
-  });
+  return await _fetch(
+      `/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      '',
+      { headers: { 'content-type': 'application/json', }, method: 'POST', }
+  );
 }

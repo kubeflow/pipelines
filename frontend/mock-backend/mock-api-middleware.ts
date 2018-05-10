@@ -30,7 +30,14 @@ export default (app) => {
 
   app.get(apisPrefix + '/pipelines', (req, res) => {
     res.header('Content-Type', 'application/json');
-    res.json(fixedData.pipelines);
+    if (req.query && req.query.filter) {
+      // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
+      // This may need to be updated when the backend implements filtering.
+      res.json(fixedData.pipelines.filter((p) => p.name.toLocaleLowerCase().match(
+          decodeURIComponent(req.query.filter).toLocaleLowerCase())));
+    } else {
+      res.json(fixedData.pipelines);
+    }
   });
 
   app.get(apisPrefix + '/pipelines/:pid', (req, res) => {
@@ -43,11 +50,14 @@ export default (app) => {
   app.get(apisPrefix + '/pipelines/:pid/jobs', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
-    const p = fixedData.pipelines.filter((p) => p.id === pid);
-    // TODO: Is it guaranteed that j.metadata.name and j.workflow.metadata.name
-    // are the same?
-    const jobs = p[0].jobs.map((j) => j.metadata);
-    res.json(jobs);
+    let jobs = fixedData.pipelines.filter((p) => p.id === pid)[0].jobs;
+    if (req.query && req.query.filter) {
+      // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
+      // This may need to be updated when the backend implements filtering.
+      jobs = jobs.filter((j) => j.metadata.name.toLocaleLowerCase().match(
+            decodeURIComponent(req.query.filter).toLocaleLowerCase()));
+    }
+    res.json(jobs.map((j) => j.metadata));
   });
 
   app.post(apisPrefix + '/pipelines/:pid/enable', (req, res) => {
