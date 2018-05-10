@@ -2,7 +2,8 @@ import { Parameter } from './parameter';
 
 export class Pipeline {
   public id: number;
-  public createdAt: string;
+  // createdAt is SECONDS since epoch
+  public createdAt: number;
   public name: string;
   public description?: string;
   public packageId: number;
@@ -12,7 +13,7 @@ export class Pipeline {
   public parameters: Parameter[];
 
   constructor() {
-    this.createdAt = '';
+    this.createdAt = Math.floor(Date.now() / 1000);
     this.name = '';
     this.description = '';
     this.packageId = -1;

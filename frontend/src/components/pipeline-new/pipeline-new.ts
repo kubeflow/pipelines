@@ -159,7 +159,7 @@ export class PipelineNew extends PageElement {
   protected async _deploy(): Promise<void> {
     // TODO: The frontend shouldn't really be sending this, but currently the
     // backend breaks if it receives an empty string, undefined, or null.
-    this.newPipeline.createdAt = new Date().toISOString();
+    this.newPipeline.createdAt = Math.floor(Date.now() / 1000);
     this.newPipeline.schedule =
       (this.$.schedule as PipelineSchedule).scheduleAsUTCCrontab();
     try {

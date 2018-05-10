@@ -131,6 +131,10 @@ export class PipelineSchedule extends Polymer.Element {
 
   // Backend expects the crontab in UTC.
   public scheduleAsUTCCrontab(): string {
+    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
+      return '';
+    }
+    // TODO: verify specific time is working as intended.
     const startDateTime = this._getStartDateTime();
     return this._generateCrontab(
         startDateTime.getUTCDate(),

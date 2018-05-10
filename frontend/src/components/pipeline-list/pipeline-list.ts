@@ -101,12 +101,7 @@ export class PipelineList extends PageElement {
 
   private async _loadPipelines(filterString?: string): Promise<void> {
     try {
-      this.pipelines = (await Apis.getPipelines(filterString)).map((p) => {
-        if (p.createdAt) {
-          p.createdAt = new Date(p.createdAt || '').toLocaleString();
-        }
-        return p;
-      });
+      this.pipelines = await Apis.getPipelines(filterString);
     } catch (err) {
       this.showPageError('There was an error while loading the pipeline list.');
       Utils.log.error('Error loading pipelines:', err);
@@ -118,7 +113,7 @@ export class PipelineList extends PageElement {
           pipeline.name,
           pipeline.description,
           pipeline.packageId,
-          pipeline.createdAt ? new Date(pipeline.createdAt) : '-',
+          new Date(pipeline.createdAt * 1000),
           pipeline.schedule,
         ],
         selected: false,

@@ -55,7 +55,6 @@ export class PipelineDetails extends PageElement {
 
       try {
         const pipeline = await Apis.getPipeline(id);
-        pipeline.createdAt = new Date(pipeline.createdAt).toLocaleString();
         this.pipeline = pipeline;
 
         (this.$.jobs as JobList).loadJobs(this.pipeline.id);

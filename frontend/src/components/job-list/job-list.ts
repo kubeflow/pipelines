@@ -54,8 +54,8 @@ export class JobList extends Polymer.Element {
       const row = new ItemListRow({
         columns: [
           jobMetadata.name,
-          new Date(jobMetadata.createdAt),
-          new Date(jobMetadata.scheduledAt),
+          new Date(jobMetadata.createdAt * 1000),
+          new Date(jobMetadata.scheduledAt * 1000),
         ],
         selected: false,
       });
