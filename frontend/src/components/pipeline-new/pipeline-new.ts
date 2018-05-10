@@ -88,14 +88,16 @@ export class PipelineNew extends PageElement {
         // achieve this, first deep clone the parameters array, then for each
         // parameter, check if there one with the same name in the overwrite
         // data, Object.assign them.
-        const augmentedParams = this.newPipeline.parameters.map((p) => ({ ...p }));
-        this._overwriteData.parameters.forEach((p) => {
-          const param = augmentedParams.filter((_p) => _p.name === p.name);
-          if (param.length === 1) {
-            param[0] = Object.assign(param[0], p);
-          }
-        });
-        this.set('newPipeline.parameters', augmentedParams);
+        if (this.newPipeline.parameters) {
+          const augmentedParams = this.newPipeline.parameters.map((p) => ({ ...p }));
+          this._overwriteData.parameters.forEach((p) => {
+            const param = augmentedParams.filter((_p) => _p.name === p.name);
+            if (param.length === 1) {
+              param[0] = Object.assign(param[0], p);
+            }
+          });
+          this.set('newPipeline.parameters', augmentedParams);
+        }
       }
     } catch (err) {
       this.showPageError('There was an error while loading packages.');
