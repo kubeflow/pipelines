@@ -22,12 +22,9 @@ Usage: node server.js <static-dir> [port].
 
 const staticDir = path.resolve(process.argv[2]);
 const currentDir = path.resolve(__dirname);
-const version = fs.readFileSync(
-  path.join(currentDir, 'dist', 'VERSION'), 'utf-8').trim();
-const buildDate = fs.readFileSync(
-  path.join(currentDir, 'dist', 'BUILD_DATE'), 'utf-8').trim();
-const commitHash = fs.readFileSync(
-  path.join(currentDir, 'dist', 'COMMIT_HASH'), 'utf-8').trim();
+const version = fs.readFileSync(path.join(currentDir, 'VERSION'), 'utf-8').trim();
+const buildDate = fs.readFileSync(path.join(currentDir, 'BUILD_DATE'), 'utf-8').trim();
+const commitHash = fs.readFileSync(path.join(currentDir, 'COMMIT_HASH'), 'utf-8').trim();
 const port = process.argv[3] || 3000;
 const apiServerHost = process.env.ML_PIPELINE_SERVICE_HOST || 'localhost';
 const apiServerPort = process.env.ML_PIPELINE_SERVICE_PORT || '3001';
