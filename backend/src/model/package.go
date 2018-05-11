@@ -25,7 +25,7 @@ const (
 )
 
 type Package struct {
-	ID             uint   `gorm:"primary_key"`
+	ID             uint32 `gorm:"primary_key"`
 	CreatedAtInSec int64  `gorm:"not null"`
 	Name           string `gorm:"not null"`
 	Description    string

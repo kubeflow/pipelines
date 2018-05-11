@@ -17,10 +17,10 @@ package storage
 import (
 	"ml/backend/src/model"
 	"ml/backend/src/util"
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 )
 
 func createPkg(name string) *model.Package {
@@ -57,7 +57,7 @@ func TestListPackagesError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	_, err := store.PackageStore().ListPackages()
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to list packages to return error")
 }
 
@@ -84,7 +84,7 @@ func TestGetPackage_NotFound_Creating(t *testing.T) {
 	store.PackageStore().CreatePackage(&model.Package{Name: "pkg3", Status: model.PackageCreating})
 
 	_, err := store.PackageStore().GetPackage(1)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get package to return not found")
 }
 
@@ -93,7 +93,7 @@ func TestGetPackage_NotFoundError(t *testing.T) {
 	defer store.Close()
 
 	_, err := store.PackageStore().GetPackage(1)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get package to return not found")
 }
 
@@ -102,7 +102,7 @@ func TestGetPackage_InternalError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	_, err := store.PackageStore().GetPackage(123)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get package to return internal error")
 }
 
@@ -129,7 +129,7 @@ func TestCreatePackageError(t *testing.T) {
 	store.DB().Close()
 
 	_, err := store.PackageStore().CreatePackage(pkg)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create package to return error")
 }
 
@@ -140,7 +140,7 @@ func TestDeletePackage(t *testing.T) {
 	err := store.PackageStore().DeletePackage(1)
 	assert.Nil(t, err)
 	_, err = store.PackageStore().GetPackage(1)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestDeletePackageError(t *testing.T) {
@@ -148,7 +148,7 @@ func TestDeletePackageError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	err := store.PackageStore().DeletePackage(1)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestUpdatePackageStatus(t *testing.T) {
@@ -175,5 +175,5 @@ func TestUpdatePackageStatusError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	err := store.PackageStore().UpdatePackageStatus(1, model.PackageDeleting)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }

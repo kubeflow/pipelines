@@ -30,12 +30,12 @@ const (
 
 type PipelineStoreInterface interface {
 	ListPipelines() ([]model.Pipeline, error)
-	GetPipeline(id uint) (*model.Pipeline, error)
+	GetPipeline(id uint32) (*model.Pipeline, error)
 	CreatePipeline(*model.Pipeline) (*model.Pipeline, error)
-	DeletePipeline(id uint) error
+	DeletePipeline(id uint32) error
 	GetPipelineAndLatestJobIterator() (*PipelineAndLatestJobIterator, error)
-	EnablePipeline(id uint, enabled bool) error
-	UpdatePipelineStatus(id uint, status model.PipelineStatus) error
+	EnablePipeline(id uint32, enabled bool) error
+	UpdatePipelineStatus(id uint32, status model.PipelineStatus) error
 }
 
 type PipelineStore struct {
@@ -54,7 +54,7 @@ func (s *PipelineStore) ListPipelines() ([]model.Pipeline, error) {
 	return pipelines, nil
 }
 
-func (s *PipelineStore) GetPipeline(id uint) (*model.Pipeline, error) {
+func (s *PipelineStore) GetPipeline(id uint32) (*model.Pipeline, error) {
 	var pipeline model.Pipeline
 	// Get the pipeline as well as its parameter.
 	r := s.db.Preload("Parameters").Where("status = ?", model.PipelineReady).First(&pipeline, id)
@@ -67,7 +67,7 @@ func (s *PipelineStore) GetPipeline(id uint) (*model.Pipeline, error) {
 	return &pipeline, nil
 }
 
-func (s *PipelineStore) DeletePipeline(id uint) error {
+func (s *PipelineStore) DeletePipeline(id uint32) error {
 	r := s.db.Exec(`DELETE FROM pipelines WHERE id=?`, id)
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Failed to delete pipeline: %v", r.Error.Error())
@@ -90,7 +90,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	return &newPipeline, nil
 }
 
-func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
+func (s *PipelineStore) EnablePipeline(id uint32, enabled bool) error {
 
 	// Note: We need to query the DB before performing the update so that we don't modify the
 	// time at which the pipeline was enabled if it is already enabled.
@@ -140,7 +140,7 @@ func (s *PipelineStore) EnablePipeline(id uint, enabled bool) error {
 	return errors.Wrap(tx.Commit().Error, errorMessage)
 }
 
-func (s *PipelineStore) UpdatePipelineStatus(id uint, status model.PipelineStatus) error {
+func (s *PipelineStore) UpdatePipelineStatus(id uint32, status model.PipelineStatus) error {
 	r := s.db.Exec(`UPDATE pipelines SET status=? WHERE id=?`, status, id)
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Failed to update the pipeline metadata: %s", r.Error.Error())
@@ -157,7 +157,7 @@ func NewPipelineStore(db *gorm.DB, time util.TimeInterface) *PipelineStore {
 }
 
 type PipelineAndLatestJob struct {
-	PipelineID             uint
+	PipelineID             uint32
 	PipelineName           string
 	PipelineSchedule       string
 	JobName                *string

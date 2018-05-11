@@ -15,23 +15,24 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"ml/backend/src/apiserver/api"
+	"io/ioutil"
+	"ml/backend/api"
 	"ml/backend/src/util"
 	"testing"
 	"time"
 
-	"io/ioutil"
-
-	"net/http"
-
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -41,228 +42,144 @@ var testTimeout = flag.Duration("testTimeout", 2*time.Minute, "Duration to wait 
 
 type OneTimePipelineTestSuite struct {
 	suite.Suite
-	namespace string
+	namespace      string
+	conn           *grpc.ClientConn
+	packageClient  api.PackageServiceClient
+	pipelineClient api.PipelineServiceClient
+	jobClient      api.JobServiceClient
 }
 
 // Check the namespace have ML pipeline installed and ready
-func (suite *OneTimePipelineTestSuite) SetupTest() {
-	if err := initTest(*namespace, *initializeTimeout); err != nil {
+func (s *OneTimePipelineTestSuite) SetupTest() {
+	err := waitForReady(*namespace, *initializeTimeout)
+	if err != nil {
 		glog.Exit("Failed to initialize test. Error: %s", err.Error())
 	}
-	suite.namespace = *namespace
+	s.namespace = *namespace
+	s.conn, err = getRpcConnection(s.namespace)
+	if err != nil {
+		glog.Exit("Failed to get RPC connection. Error: %s", err.Error())
+	}
+	s.packageClient = api.NewPackageServiceClient(s.conn)
+	s.pipelineClient = api.NewPipelineServiceClient(s.conn)
+	s.jobClient = api.NewJobServiceClient(s.conn)
 }
 
-func (suite *OneTimePipelineTestSuite) TearDownTest() {
+func (s *OneTimePipelineTestSuite) TearDownTest() {
+	s.conn.Close()
 }
 
 // This test case tests a basic use case:
 // - Upload a package
 // - Create a pipeline with parameter
 // - Verify an one-time job is automatically scheduled.
-func (suite *OneTimePipelineTestSuite) TestOneTimePipeline() {
-	t := suite.T()
+func (s *OneTimePipelineTestSuite) TestOneTimePipeline() {
+	t := s.T()
 	clientSet, err := getKubernetesClient()
 	if err != nil {
 		t.Fatalf("Can't initialize a Kubernete client. Error: %s", err.Error())
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
 	/* ---------- Verify no package exist ---------- */
-	response, err := clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages")).Do().Raw()
-	checkNoPackageExists(t, response, err)
+	listPkgResponse, err := s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{})
+	checkNoPackageExists(t, listPkgResponse, err)
 
 	/* ---------- Verify no pipeline exist ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines")).Do().Raw()
-	checkNoPipelineExists(t, response, err)
+	listPipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
+	checkNoPipelineExists(t, listPipelineResponse, err)
 
 	/* ---------- Upload a package ---------- */
 	requestStartTime := time.Now().Unix()
 	pkgBody, writer := uploadPackageFileOrFail("resources/arguments-parameters.yaml")
-	response, err = clientSet.RESTClient().Post().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages/upload")).
+	uploadPkgResponse, err := clientSet.RESTClient().Post().
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "packages/upload")).
 		SetHeader("Content-Type", writer.FormDataContentType()).
 		Body(pkgBody).Do().Raw()
-	checkUpdatePackageResponse(t, response, err, requestStartTime)
+	checkUploadPackageResponse(t, uploadPkgResponse, err, requestStartTime)
 
 	/* ---------- Verify list package works ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages")).Do().Raw()
-	checkListPackagesResponse(t, response, err, requestStartTime)
+	listPkgResponse, err = s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{})
+	checkListPackagesResponse(t, listPkgResponse, err, requestStartTime)
 
 	/* ---------- Verify get package works ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages/1")).Do().Raw()
-	checkGetPackageResponse(t, response, err, requestStartTime)
+	getPkgResponse, err := s.packageClient.GetPackage(ctx, &api.GetPackageRequest{Id: 1})
+	checkGetPackageResponse(t, getPkgResponse, err, requestStartTime)
 
 	/* ---------- Verify get template works ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages/1/templates")).Do().Raw()
-	checkGetTemplateResponse(t, response, err)
+	getTmpResponse, err := s.packageClient.GetTemplate(ctx, &api.GetTemplateRequest{Id: 1})
+	checkGetTemplateResponse(t, getTmpResponse, err)
 
 	/* ---------- Instantiate pipeline using the package ---------- */
 	requestStartTime = time.Now().Unix()
-	pipeline := api.Pipeline{
+	pipeline := &api.Pipeline{
 		Name:        "hello-world",
 		PackageId:   1,
 		Description: "this is my first pipeline",
-		Parameters: []api.Parameter{
-			{Name: "param1", Value: util.StringPointer("goodbye")},
-			{Name: "param2", Value: util.StringPointer("world")},
+		Parameters: []*api.Parameter{
+			{Name: "param1", Value: "goodbye"},
+			{Name: "param2", Value: "world"},
 		},
 	}
-	response, err = clientSet.RESTClient().Post().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines")).
-		Body(util.MarshalJsonOrFail(pipeline)).Do().Raw()
-	checkInstantiatePipelineResponse(t, response, err, requestStartTime)
+	newPipeline, err := s.pipelineClient.CreatePipeline(ctx, &api.CreatePipelineRequest{Pipeline: pipeline})
+	checkInstantiatePipelineResponse(t, newPipeline, err, requestStartTime)
 
 	/* ---------- Verify list pipelines works ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines")).Do().Raw()
-	checkListPipelinesResponse(t, response, err, requestStartTime)
+	listPipResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
+	checkListPipelinesResponse(t, listPipResponse, err, requestStartTime)
 
 	/* ---------- Verify get pipeline works ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines/1")).Do().Raw()
-	checkGetPipelineResponse(t, response, err, requestStartTime)
+	getPipResponse, err := s.pipelineClient.GetPipeline(ctx, &api.GetPipelineRequest{Id: 1})
+	checkGetPipelineResponse(t, getPipResponse, err, requestStartTime)
 
 	/* ---------- Verify list job works ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines/1/jobs")).Do().Raw()
-	checkListJobsResponse(t, response, err, requestStartTime)
-
-	/* ---------- Verify get job works ---------- */
-	jobName := getJobName(response)
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines/1/jobs/"+jobName)).Do().Raw()
-	checkGetJobResponse(t, response, err, requestStartTime)
+	listJobsResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PipelineId: 1})
+	checkListJobsResponse(t, listJobsResponse, err, requestStartTime)
+	jobName := listJobsResponse.Jobs[0].Name
 
 	/* ---------- Verify job complete successfully ---------- */
-	err = checkJobSucceed(clientSet, suite.namespace, "1", jobName)
+	err = s.checkJobSucceed(clientSet, s.namespace, "1", jobName)
 	if err != nil {
-		assert.Fail(t, "The job doesn't complete. Error: <%s>", err.Error())
+		assert.Fail(t, "The job doesn't complete. Error: "+err.Error())
 	}
+
+	/* ---------- Verify get job works ---------- */
+	getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: 1, JobName: jobName})
+	checkGetJobResponse(t, getJobResponse, err, requestStartTime)
 
 	/* ---------- Verify delete pipeline works ---------- */
-	var statusCode int
-	clientSet.RESTClient().Delete().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines/1")).Do().StatusCode(&statusCode)
-	assert.Equal(t, http.StatusOK, statusCode)
+	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: 1})
+	assert.Nil(t, err)
 
 	/* ---------- Verify no pipeline exist ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines")).Do().Raw()
-	checkNoPipelineExists(t, response, err)
+	listPipResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
+	checkNoPipelineExists(t, listPipResponse, err)
 
 	/* ---------- Verify can't retrieve the job ---------- */
-	clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "pipelines/1/jobs/"+jobName)).Do().StatusCode(&statusCode)
-	assert.Equal(t, http.StatusNotFound, statusCode)
+	_, err = s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: 1, JobName: jobName})
+	assert.NotNil(t, err)
 
 	/* ---------- Verify delete package works ---------- */
-	clientSet.RESTClient().Delete().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages/1")).Do().StatusCode(&statusCode)
-	assert.Equal(t, http.StatusOK, statusCode)
+	_, err = s.packageClient.DeletePackage(ctx, &api.DeletePackageRequest{Id: 1})
+	assert.Nil(t, err)
 
 	/* ---------- Verify no package exist ---------- */
-	response, err = clientSet.RESTClient().Get().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, suite.namespace, "packages")).Do().Raw()
-	checkNoPackageExists(t, response, err)
+	listPkgResponse, err = s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{})
+	checkNoPackageExists(t, listPkgResponse, err)
 }
 
-func checkNoPackageExists(t *testing.T, response []byte, err error) {
-	assert.Nil(t, err)
-	var pkgs []api.Package
-	util.UnmarshalJsonOrFail(string(response), &pkgs)
-	assert.Empty(t, pkgs)
-}
-
-func checkNoPipelineExists(t *testing.T, response []byte, err error) {
-	assert.Nil(t, err)
-	var pipelines []api.Package
-	util.UnmarshalJsonOrFail(string(response), &pipelines)
-	assert.Empty(t, pipelines)
-}
-
-func checkUpdatePackageResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	var pkg api.Package
-	util.UnmarshalJsonOrFail(string(response), &pkg)
-	verifyPackage(t, pkg, requestStartTime)
-}
-
-func checkListPackagesResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	var pkgs []api.Package
-	util.UnmarshalJsonOrFail(string(response), &pkgs)
-	assert.Equal(t, 1, len(pkgs))
-	verifyPackage(t, pkgs[0], requestStartTime)
-}
-func checkGetPackageResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	var pkg api.Package
-	util.UnmarshalJsonOrFail(string(response), &pkg)
-	verifyPackage(t, pkg, requestStartTime)
-}
-
-func checkGetTemplateResponse(t *testing.T, response []byte, err error) {
-	assert.Nil(t, err)
-	expected, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
-	assert.Nil(t, err)
-	assert.Equal(t, expected, response)
-}
-
-func checkInstantiatePipelineResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	var pipeline api.Pipeline
-	util.UnmarshalJsonOrFail(string(response), &pipeline)
-	verifyPipeline(t, pipeline, requestStartTime)
-}
-
-func checkListPipelinesResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	var pipelines []api.Pipeline
-	util.UnmarshalJsonOrFail(string(response), &pipelines)
-	assert.Equal(t, 1, len(pipelines))
-	verifyPipeline(t, pipelines[0], requestStartTime)
-}
-
-func checkGetPipelineResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	var pipeline api.Pipeline
-	util.UnmarshalJsonOrFail(string(response), &pipeline)
-	verifyPipeline(t, pipeline, requestStartTime)
-}
-
-func checkListJobsResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	var jobs []api.Job
-	util.UnmarshalJsonOrFail(string(response), &jobs)
-	assert.Equal(t, 1, len(jobs))
-	verifyJob(t, jobs[0], requestStartTime)
-}
-
-func checkGetJobResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	var jobDetail api.JobDetail
-	util.UnmarshalJsonOrFail(string(response), &jobDetail)
-	verifyJob(t, *jobDetail.Job, requestStartTime)
-
-	// The Argo workflow might not be created. Only verify if it's created.
-	if jobDetail.Workflow != nil {
-		// Do some very basic verification to make sure argo workflow is returned
-		assert.Equal(t, jobDetail.Job.Name, jobDetail.Workflow.Name)
-	}
-}
-func checkJobSucceed(clientSet *kubernetes.Clientset, namespace string, pipelineId string, jobName string) error {
+func (s *OneTimePipelineTestSuite) checkJobSucceed(clientSet *kubernetes.Clientset, namespace string, pipelineId string, jobName string) error {
 	var waitForJobSucceed = func() error {
-		response, err := clientSet.RESTClient().Get().
-			AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, namespace, "pipelines/"+pipelineId+"/jobs/"+jobName)).Do().Raw()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: 1, JobName: jobName})
 		if err != nil {
-			return err
+			return errors.New("Can't get job.")
 		}
-		status := getJobStatus(response)
-		if status == nil {
+		status := getJobStatus(getJobResponse)
+		if status == nil || (*status) == "" {
 			return errors.New("Job hasn't started yet.")
 		}
 		if *status == v1alpha1.NodeSucceeded {
@@ -271,69 +188,140 @@ func checkJobSucceed(clientSet *kubernetes.Clientset, namespace string, pipeline
 		if *status == v1alpha1.NodeRunning {
 			return errors.New("Job is still running. Waiting for job to finish.")
 		}
-		return backoff.Permanent(errors.Errorf("Job failed to run with status %s.", *status))
+		return backoff.Permanent(errors.Errorf("Job failed to run with status " + string(*status)))
 	}
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = *testTimeout
 	return backoff.Retry(waitForJobSucceed, b)
 }
 
-func getJobStatus(response []byte) *v1alpha1.NodePhase {
-	var jobDetail api.JobDetail
-	util.UnmarshalJsonOrFail(string(response), &jobDetail)
-	if jobDetail.Workflow != nil {
-		return &jobDetail.Workflow.Status.Phase
+func getJobStatus(response *api.JobDetail) *v1alpha1.NodePhase {
+	if response.Workflow != nil {
+		var workflow v1alpha1.Workflow
+		yaml.Unmarshal(response.Workflow, &workflow)
+		return &workflow.Status.Phase
 	}
 	return nil
 }
 
-func verifyPackage(t *testing.T, actual api.Package, requestStartTime int64) {
-	// Only verify the time fields have valid value and in the right range.
-	assert.True(t, actual.CreatedAtInSec >= requestStartTime)
-	expected := api.Package{
-		ID:             1,
-		CreatedAtInSec: actual.CreatedAtInSec,
-		Name:           "arguments-parameters.yaml",
-		Parameters: []api.Parameter{
-			{Name: "param1", Value: util.StringPointer("hello")}, // Default value in the package template
-			{Name: "param2"},                                     // No default value in the package
-		},
-	}
-	assert.Equal(t, expected, actual)
+func checkNoPackageExists(t *testing.T, response *api.ListPackagesResponse, err error) {
+	assert.Nil(t, err)
+	assert.Empty(t, response.Packages)
 }
 
-func verifyPipeline(t *testing.T, actual api.Pipeline, requestStartTime int64) {
+func checkNoPipelineExists(t *testing.T, response *api.ListPipelinesResponse, err error) {
+	assert.Nil(t, err)
+	assert.Empty(t, response.Pipelines)
+}
+
+func checkUploadPackageResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
+	assert.Nil(t, err)
+	var pkg api.Package
+	util.UnmarshalJsonOrFail(string(response), &pkg)
+	verifyPackage(t, &pkg, requestStartTime)
+}
+
+func checkListPackagesResponse(t *testing.T, response *api.ListPackagesResponse, err error, requestStartTime int64) {
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(response.Packages))
+	verifyPackage(t, response.Packages[0], requestStartTime)
+}
+
+func checkGetPackageResponse(t *testing.T, pkg *api.Package, err error, requestStartTime int64) {
+	assert.Nil(t, err)
+	verifyPackage(t, pkg, requestStartTime)
+}
+
+func checkGetTemplateResponse(t *testing.T, response *api.GetTemplateResponse, err error) {
+	assert.Nil(t, err)
+	expected, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
+	assert.Nil(t, err)
+	assert.Equal(t, string(expected), response.Template)
+}
+
+func checkInstantiatePipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64) {
+	assert.Nil(t, err)
+	verifyPipeline(t, response, requestStartTime)
+}
+
+func checkListPipelinesResponse(t *testing.T, response *api.ListPipelinesResponse, err error, requestStartTime int64) {
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(response.Pipelines))
+	verifyPipeline(t, response.Pipelines[0], requestStartTime)
+}
+
+func checkGetPipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64) {
+	assert.Nil(t, err)
+	verifyPipeline(t, response, requestStartTime)
+}
+
+func checkListJobsResponse(t *testing.T, response *api.ListJobsResponse, err error, requestStartTime int64) {
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, 1, len(response.Jobs))
+	verifyJob(t, response.Jobs[0], requestStartTime)
+}
+
+func checkGetJobResponse(t *testing.T, response *api.JobDetail, err error, requestStartTime int64) {
+	assert.Nil(t, err)
+	verifyJob(t, response.Job, requestStartTime)
+
+	// The Argo workflow might not be created. Only verify if it's created.
+	if response.Workflow != nil {
+		var workflow v1alpha1.Workflow
+		err = yaml.Unmarshal(response.Workflow, &workflow)
+		assert.Nil(t, err)
+		// Do some very basic verification to make sure argo workflow is returned
+		assert.Equal(t, response.Job.Name, workflow.Name)
+	}
+}
+
+func verifyPackage(t *testing.T, pkg *api.Package, requestStartTime int64) {
 	// Only verify the time fields have valid value and in the right range.
-	assert.True(t, actual.CreatedAtInSec >= requestStartTime)
-	assert.True(t, actual.EnabledAtInSec >= requestStartTime)
+	assert.NotNil(t, *pkg)
+	assert.NotNil(t, pkg.CreatedAt)
+	assert.True(t, pkg.CreatedAt.GetSeconds() >= requestStartTime)
+	expected := api.Package{
+		Id:        1,
+		CreatedAt: &timestamp.Timestamp{Seconds: pkg.CreatedAt.Seconds},
+		Name:      "arguments-parameters.yaml",
+		Parameters: []*api.Parameter{
+			{Name: "param1", Value: "hello"}, // Default value in the package template
+			{Name: "param2"},                 // No default value in the package
+		},
+	}
+	assert.Equal(t, expected, *pkg)
+}
+
+func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64) {
+	assert.NotNil(t, *pipeline)
+	assert.NotNil(t, pipeline.CreatedAt)
+	assert.NotNil(t, pipeline.EnabledAt)
+	// Only verify the time fields have valid value and in the right range.
+	assert.True(t, pipeline.CreatedAt.Seconds >= requestStartTime)
+	assert.True(t, pipeline.EnabledAt.Seconds >= requestStartTime)
 
 	expected := api.Pipeline{
-		ID:             1,
-		CreatedAtInSec: actual.CreatedAtInSec,
-		Name:           "hello-world",
-		Description:    "this is my first pipeline",
-		PackageId:      1,
-		Enabled:        true,
-		EnabledAtInSec: actual.EnabledAtInSec,
-		Parameters: []api.Parameter{
-			{Name: "param1", Value: util.StringPointer("goodbye")},
-			{Name: "param2", Value: util.StringPointer("world")},
+		Id:          1,
+		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAt.Seconds},
+		Name:        "hello-world",
+		Description: "this is my first pipeline",
+		PackageId:   1,
+		Enabled:     true,
+		EnabledAt:   &timestamp.Timestamp{Seconds: pipeline.EnabledAt.Seconds},
+		Parameters: []*api.Parameter{
+			{Name: "param1", Value: "goodbye"},
+			{Name: "param2", Value: "world"},
 		},
 	}
-	assert.Equal(t, expected, actual)
+	assert.Equal(t, expected, *pipeline)
 }
 
-func verifyJob(t *testing.T, actual api.Job, requestStartTime int64) {
+func verifyJob(t *testing.T, actual *api.Job, requestStartTime int64) {
 	// Only verify the time fields have valid value and in the right range.
-	assert.True(t, actual.CreatedAtInSec >= requestStartTime)
-	assert.True(t, actual.ScheduledAtInSec >= requestStartTime)
+	assert.True(t, actual.CreatedAt.Seconds >= requestStartTime)
+	assert.True(t, actual.ScheduledAt.Seconds >= requestStartTime)
 	assert.Contains(t, actual.Name, "arguments-parameters-")
-}
-
-func getJobName(response []byte) string {
-	var jobs []api.Job
-	util.UnmarshalJsonOrFail(string(response), &jobs)
-	return jobs[0].Name
 }
 
 func TestOneTimePipeline(t *testing.T) {

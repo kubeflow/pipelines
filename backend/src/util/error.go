@@ -16,11 +16,12 @@ package util
 
 import (
 	"fmt"
-	"net/http"
+	"ml/backend/api"
 
 	"github.com/golang/glog"
-	"github.com/kataras/iris"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type UserError struct {
@@ -29,11 +30,11 @@ type UserError struct {
 	// Error message for the external client.
 	externalMessage string
 	// Status code for the external client.
-	externalStatusCode int
+	externalStatusCode codes.Code
 }
 
 func newUserError(internalError error, externalMessage string,
-	externalStatusCode int) *UserError {
+	externalStatusCode codes.Code) *UserError {
 	return &UserError{
 		internalError:      internalError,
 		externalMessage:    externalMessage,
@@ -47,7 +48,7 @@ func NewInternalServerError(err error, internalMessageFormat string,
 	return newUserError(
 		errors.Wrapf(err, fmt.Sprintf("InternalServerError: %v", internalMessage)),
 		"Internal Server Error",
-		http.StatusInternalServerError)
+		codes.Internal)
 }
 
 func NewResourceNotFoundError(resourceType string, resourceName string) *UserError {
@@ -55,7 +56,7 @@ func NewResourceNotFoundError(resourceType string, resourceName string) *UserErr
 	return newUserError(
 		errors.New(fmt.Sprintf("ResourceNotFoundError: %v", externalMessage)),
 		externalMessage,
-		http.StatusNotFound)
+		codes.NotFound)
 }
 
 func NewInvalidInputError(err error, externalMessage string, internalMessage string) *UserError {
@@ -63,7 +64,7 @@ func NewInvalidInputError(err error, externalMessage string, internalMessage str
 		errors.Wrapf(err, fmt.Sprintf("InvalidInputError: %v: %v", externalMessage,
 			internalMessage)),
 		externalMessage,
-		http.StatusBadRequest)
+		codes.InvalidArgument)
 }
 
 func NewBadRequestError(err error, externalFormat string, a ...interface{}) *UserError {
@@ -71,14 +72,14 @@ func NewBadRequestError(err error, externalFormat string, a ...interface{}) *Use
 	return newUserError(
 		errors.Wrapf(err, fmt.Sprintf("BadRequestError: %v", externalMessage)),
 		externalMessage,
-		http.StatusBadRequest)
+		codes.Aborted)
 }
 
 func (e *UserError) ExternalMessage() string {
 	return e.externalMessage
 }
 
-func (e *UserError) ExternalStatusCode() int {
+func (e *UserError) ExternalStatusCode() codes.Code {
 	return e.externalStatusCode
 }
 
@@ -101,23 +102,12 @@ func (e *UserError) wrap(message string) *UserError {
 		e.externalMessage, e.externalStatusCode)
 }
 
-func (e *UserError) PopulateContextAndLog(ctx iris.Context) {
+func (e *UserError) Log() {
 	switch e.externalStatusCode {
-	case http.StatusBadRequest:
-		glog.Infof("%+v", e)
-		ctx.StatusCode(e.externalStatusCode)
-		ctx.WriteString(e.externalMessage)
-	case http.StatusNotFound:
-		glog.Infof("%+v", e)
-		ctx.StatusCode(e.externalStatusCode)
-		ctx.WriteString(e.externalMessage)
+	case codes.Aborted, codes.InvalidArgument, codes.NotFound, codes.Internal:
+		glog.Infof("%+v", e.internalError)
 	default:
-		// By default, we return an internal error since we did not handle this case.
-		// We log all the details: both internal and external error.
-		glog.Errorf("%+v", e)
-		ctx.StatusCode(e.externalStatusCode)
-		// Since this is OSS, we return the details of the internal error (instead of e.externalMessage)
-		ctx.WriteString(fmt.Sprintf("%+v", e))
+		glog.Errorf("%+v", e.internalError)
 	}
 }
 
@@ -147,16 +137,46 @@ func Wrap(err error, message string) error {
 	}
 }
 
-func PopulateContextAndLogError(ctx iris.Context, err error) {
+func LogError(err error) {
 	switch err.(type) {
 	case *UserError:
-		err.(*UserError).PopulateContextAndLog(ctx)
+		err.(*UserError).Log()
 	default:
 		// We log all the details.
 		glog.Errorf("InternalError: %+v", err)
-		ctx.StatusCode(http.StatusInternalServerError)
-		// Since this is OSS, we return the details of the internal error.
-		ctx.WriteString(fmt.Sprintf("Internal error: %+v", err))
+	}
+}
+
+func ToGRPCError(err error) error {
+	switch err.(type) {
+	case *UserError:
+		userError := err.(*UserError)
+		stat := status.New(userError.externalStatusCode, userError.internalError.Error())
+		statWithDetail, err := stat.
+			WithDetails(&api.Error{
+				ErrorMessage: userError.externalMessage,
+				ErrorDetails: userError.internalError.Error(),
+			})
+
+		if err != nil {
+			// Failed to stream error message as proto.
+			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
+				userError.String(), err.Error())
+			return stat.Err()
+		}
+		return statWithDetail.Err()
+	default:
+		externalMessage := fmt.Sprintf("Internal error: %+v", err)
+		stat := status.New(codes.Internal, externalMessage)
+		statWithDetail, err := stat.
+			WithDetails(&api.Error{ErrorMessage: externalMessage, ErrorDetails: externalMessage})
+		if err != nil {
+			// Failed to stream error message as proto.
+			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
+				externalMessage, err.Error())
+			return stat.Err()
+		}
+		return statWithDetail.Err()
 	}
 }
 

@@ -31,7 +31,7 @@ type Job struct {
 	UpdatedAtInSec   int64     `gorm:"not null"`
 	Status           JobStatus `gorm:"not null"`
 	ScheduledAtInSec int64     `gorm:"not null"`
-	PipelineID       uint      `gorm:"not null"` /* Foreign key */
+	PipelineID       uint32    `gorm:"not null"` /* Foreign key */
 }
 
 // JobDetail a wrapper around both Argo workflow and Job metadata

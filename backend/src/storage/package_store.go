@@ -24,10 +24,10 @@ import (
 
 type PackageStoreInterface interface {
 	ListPackages() ([]model.Package, error)
-	GetPackage(packageId uint) (*model.Package, error)
-	DeletePackage(packageId uint) error
+	GetPackage(packageId uint32) (*model.Package, error)
+	DeletePackage(packageId uint32) error
 	CreatePackage(*model.Package) (*model.Package, error)
-	UpdatePackageStatus(uint, model.PackageStatus) error
+	UpdatePackageStatus(uint32, model.PackageStatus) error
 }
 
 type PackageStore struct {
@@ -44,7 +44,7 @@ func (s *PackageStore) ListPackages() ([]model.Package, error) {
 	return packages, nil
 }
 
-func (s *PackageStore) GetPackage(id uint) (*model.Package, error) {
+func (s *PackageStore) GetPackage(id uint32) (*model.Package, error) {
 	var pkg model.Package
 	r := s.db.Preload("Parameters").Where("status = ?", model.PackageReady).First(&pkg, id)
 	if r.RecordNotFound() {
@@ -57,7 +57,7 @@ func (s *PackageStore) GetPackage(id uint) (*model.Package, error) {
 	return &pkg, nil
 }
 
-func (s *PackageStore) DeletePackage(id uint) error {
+func (s *PackageStore) DeletePackage(id uint32) error {
 	r := s.db.Exec(`DELETE FROM packages WHERE id=?`, id)
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Failed to delete package: %v", r.Error.Error())
@@ -76,7 +76,7 @@ func (s *PackageStore) CreatePackage(p *model.Package) (*model.Package, error) {
 	return &newPackage, nil
 }
 
-func (s *PackageStore) UpdatePackageStatus(id uint, status model.PackageStatus) error {
+func (s *PackageStore) UpdatePackageStatus(id uint32, status model.PackageStatus) error {
 	r := s.db.Exec(`UPDATE packages SET status=? WHERE id=?`, status, id)
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Failed to update the package metadata: %s", r.Error.Error())

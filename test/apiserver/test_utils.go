@@ -26,6 +26,8 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -103,6 +105,19 @@ func uploadPackageFileOrFail(path string) (*bytes.Buffer, *multipart.Writer) {
 	return body, writer
 }
 
-func initTest(namespace string, initializeTimeout time.Duration) error {
-	return waitForReady(namespace, initializeTimeout)
+func getRpcConnection(namespace string) (*grpc.ClientConn, error) {
+	clientSet, err := getKubernetesClient()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to get K8s client set when getting RPC connection")
+	}
+	svc, err := clientSet.CoreV1().Services(namespace).Get("ml-pipeline", metav1.GetOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to get ml-pipeline service")
+	}
+	rpcAddress := svc.Spec.ClusterIP + ":8887"
+	conn, err := grpc.Dial(rpcAddress, grpc.WithInsecure())
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
+	}
+	return conn, nil
 }

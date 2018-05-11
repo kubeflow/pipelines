@@ -49,11 +49,11 @@ func (r *ResourceManager) ListPackages() ([]model.Package, error) {
 	return r.packageStore.ListPackages()
 }
 
-func (r *ResourceManager) GetPackage(packageId uint) (*model.Package, error) {
+func (r *ResourceManager) GetPackage(packageId uint32) (*model.Package, error) {
 	return r.packageStore.GetPackage(packageId)
 }
 
-func (r *ResourceManager) DeletePackage(packageId uint) error {
+func (r *ResourceManager) DeletePackage(packageId uint32) error {
 	_, err := r.packageStore.GetPackage(packageId)
 	if err != nil {
 		return util.Wrap(err, "Delete package failed")
@@ -108,11 +108,11 @@ func (r *ResourceManager) CreatePackage(name string, pkgFile []byte) (*model.Pac
 	return newPkg, nil
 }
 
-func (r *ResourceManager) UpdatePackageStatus(packageId uint, status model.PackageStatus) error {
+func (r *ResourceManager) UpdatePackageStatus(packageId uint32, status model.PackageStatus) error {
 	return r.packageStore.UpdatePackageStatus(packageId, status)
 }
 
-func (r *ResourceManager) GetPackageTemplate(packageId uint) ([]byte, error) {
+func (r *ResourceManager) GetPackageTemplate(packageId uint32) ([]byte, error) {
 	// Verify package exist
 	_, err := r.packageStore.GetPackage(packageId)
 	if err != nil {
@@ -131,11 +131,11 @@ func (r *ResourceManager) ListPipelines() ([]model.Pipeline, error) {
 	return r.pipelineStore.ListPipelines()
 }
 
-func (r *ResourceManager) GetPipeline(id uint) (*model.Pipeline, error) {
+func (r *ResourceManager) GetPipeline(id uint32) (*model.Pipeline, error) {
 	return r.pipelineStore.GetPipeline(id)
 }
 
-func (r *ResourceManager) DeletePipeline(id uint) error {
+func (r *ResourceManager) DeletePipeline(id uint32) error {
 	_, err := r.pipelineStore.GetPipeline(id)
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline failed")
@@ -224,7 +224,7 @@ func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipel
 	return pipeline, nil
 }
 
-func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint, scheduledAtInSec int64) (
+func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint32, scheduledAtInSec int64) (
 	*model.JobDetail, error) {
 	// Get the pipeline.
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineID)
@@ -270,7 +270,7 @@ func (r *ResourceManager) createJobFromPipeline(pipeline *model.Pipeline, schedu
 	return jobDetail, nil
 }
 
-func (r *ResourceManager) EnablePipeline(pipelineID uint, enabled bool) error {
+func (r *ResourceManager) EnablePipeline(pipelineID uint32, enabled bool) error {
 	// Note: no validation needed.
 	err := r.pipelineStore.EnablePipeline(pipelineID, enabled)
 	if err != nil {
@@ -281,7 +281,7 @@ func (r *ResourceManager) EnablePipeline(pipelineID uint, enabled bool) error {
 	return nil
 }
 
-func (r *ResourceManager) GetJob(pipelineId uint, jobName string) (*model.JobDetail, error) {
+func (r *ResourceManager) GetJob(pipelineId uint32, jobName string) (*model.JobDetail, error) {
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return nil, util.Wrap(err, "Get job failed")
@@ -289,7 +289,7 @@ func (r *ResourceManager) GetJob(pipelineId uint, jobName string) (*model.JobDet
 	return r.jobStore.GetJob(pipelineId, jobName)
 }
 
-func (r *ResourceManager) ListJobs(pipelineId uint) ([]model.Job, error) {
+func (r *ResourceManager) ListJobs(pipelineId uint32) ([]model.Job, error) {
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return nil, util.Wrap(err, "List jobs failed")

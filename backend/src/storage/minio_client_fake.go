@@ -16,10 +16,10 @@ package storage
 
 import (
 	"bytes"
-	"errors"
 	"io"
 
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
+	"github.com/pkg/errors"
 )
 
 type FakeMinioClient struct {

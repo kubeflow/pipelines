@@ -25,12 +25,12 @@ const (
 )
 
 type Pipeline struct {
-	ID             uint   `gorm:"primary_key"`
+	ID             uint32 `gorm:"primary_key"`
 	CreatedAtInSec int64  `gorm:"not null"`
 	UpdatedAtInSec int64  `gorm:"not null"`
 	Name           string `gorm:"not null"`
 	Description    string
-	PackageId      uint           `gorm:"not null"`
+	PackageId      uint32         `gorm:"not null"`
 	Schedule       string         `gorm:"not null"`
 	Enabled        bool           `gorm:"not null"`
 	EnabledAtInSec int64          `gorm:"not null"`

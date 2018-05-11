@@ -17,15 +17,15 @@ package storage
 import (
 	"ml/backend/src/model"
 	"ml/backend/src/util"
-	"net/http"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func createPipeline(name string, packageId uint) *model.Pipeline {
+func createPipeline(name string, packageId uint32) *model.Pipeline {
 	return &model.Pipeline{Name: name, PackageId: packageId, Parameters: []model.Parameter{}, Status: model.PipelineReady}
 }
 
@@ -73,7 +73,7 @@ func TestListPipelinesError(t *testing.T) {
 	store.DB().Close()
 	_, err := store.PipelineStore().ListPipelines()
 
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to list pipeline to return error")
 }
 
@@ -93,7 +93,7 @@ func TestGetPipeline_NotFound_Creating(t *testing.T) {
 	store.PipelineStore().CreatePipeline(&model.Pipeline{Name: "pipeline3", PackageId: 3, Status: model.PipelineCreating})
 
 	_, err := store.PipelineStore().GetPipeline(1)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return not found error")
 }
 
@@ -101,7 +101,7 @@ func TestGetPipeline_NotFoundError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	_, err := store.PipelineStore().GetPipeline(1)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return not found error")
 }
 
@@ -110,7 +110,7 @@ func TestGetPipeline_InternalError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	_, err := store.PipelineStore().GetPipeline(1)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return internal error")
 }
 
@@ -122,7 +122,7 @@ func TestDeletePipeline(t *testing.T) {
 	err := store.PipelineStore().DeletePipeline(1)
 	assert.Nil(t, err)
 	_, err = store.PipelineStore().GetPipeline(1)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestDeletePipeline_InternalError(t *testing.T) {
@@ -130,7 +130,7 @@ func TestDeletePipeline_InternalError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	err := store.PipelineStore().DeletePipeline(1)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected delete pipeline to return internal error")
 }
 
@@ -150,7 +150,7 @@ func TestCreatePipelineError(t *testing.T) {
 
 	pipeline := createPipeline("pipeline1", 1)
 	pipeline, err := store.PipelineStore().CreatePipeline(pipeline)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create pipeline to return error")
 }
 
@@ -217,7 +217,7 @@ func TestEnablePipelineRecordNotFound(t *testing.T) {
 
 	err := store.PipelineStore().EnablePipeline(12, true)
 	assert.IsType(t, &util.UserError{}, err)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestEnablePipelineDatabaseError(t *testing.T) {
@@ -255,7 +255,7 @@ func TestUpdatePipelineStatusError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	err := store.PipelineStore().UpdatePipelineStatus(1, model.PipelineReady)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {

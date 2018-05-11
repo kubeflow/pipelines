@@ -27,9 +27,9 @@ import (
 )
 
 type JobStoreInterface interface {
-	GetJob(pipelineId uint, jobName string) (*model.JobDetail, error)
-	ListJobs(pipelineId uint) ([]model.Job, error)
-	CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64, createdAtInSec int64) (
+	GetJob(pipelineId uint32, jobName string) (*model.JobDetail, error)
+	ListJobs(pipelineId uint32) ([]model.Job, error)
+	CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduledAtInSec int64, createdAtInSec int64) (
 		*model.JobDetail, error)
 }
 
@@ -40,7 +40,7 @@ type JobStore struct {
 }
 
 // ListJobs list the job metadata for a pipeline from DB
-func (s *JobStore) ListJobs(pipelineId uint) ([]model.Job, error) {
+func (s *JobStore) ListJobs(pipelineId uint32) ([]model.Job, error) {
 	var jobs []model.Job
 	if r := s.db.Where("pipeline_id = ?", pipelineId).Find(&jobs); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list jobs: %v", r.Error.Error())
@@ -49,7 +49,7 @@ func (s *JobStore) ListJobs(pipelineId uint) ([]model.Job, error) {
 }
 
 // CreateJob create Workflow by calling CRD, and store the metadata to DB
-func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAtInSec int64,
+func (s *JobStore) CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduledAtInSec int64,
 	createdAtInSec int64) (*model.JobDetail, error) {
 	job := &model.Job{
 		CreatedAtInSec:   createdAtInSec,
@@ -94,7 +94,7 @@ func (s *JobStore) CreateJob(pipelineId uint, wf *v1alpha1.Workflow, scheduledAt
 }
 
 // GetJob Get the job manifest from Workflow CRD
-func (s *JobStore) GetJob(pipelineId uint, jobName string) (*model.JobDetail, error) {
+func (s *JobStore) GetJob(pipelineId uint32, jobName string) (*model.JobDetail, error) {
 	// validate the the pipeline has the job.
 	job, err := getJobMetadata(s.db, pipelineId, jobName)
 	if err != nil {
@@ -123,7 +123,7 @@ func (s *JobStore) updateJobStatus(job *model.Job) (*model.Job, error) {
 	return &newJob, nil
 }
 
-func getJobMetadata(db *gorm.DB, pipelineId uint, jobName string) (*model.Job, error) {
+func getJobMetadata(db *gorm.DB, pipelineId uint32, jobName string) (*model.Job, error) {
 	job := &model.Job{}
 	result := db.Raw("SELECT * FROM jobs where pipeline_id = ? and name = ?", pipelineId, jobName).Scan(job)
 	if result.RecordNotFound() {

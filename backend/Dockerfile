@@ -1,8 +1,9 @@
 FROM golang
 
-WORKDIR /go/src/ml/backend/src
+WORKDIR /go/src/ml/backend
 COPY . .
 
+WORKDIR /go/src/ml/backend/src
 RUN go get ./...
 RUN go build -o /bin/apiserver apiserver/*.go
 
@@ -17,7 +18,7 @@ RUN set -ex \
 WORKDIR /bin
 
 COPY --from=0 /bin/apiserver /bin/apiserver
-COPY apiserver/config/ /config
+COPY src/apiserver/config/ /config
 
 # Expose apiserver port
 EXPOSE 8888

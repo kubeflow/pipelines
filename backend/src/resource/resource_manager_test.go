@@ -5,12 +5,12 @@ import (
 	"ml/backend/src/model"
 	"ml/backend/src/storage"
 	"ml/backend/src/util"
-	"net/http"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -217,7 +217,7 @@ func TestCreatePipeline_CreatePipelineFileError(t *testing.T) {
 	pipeline := &model.Pipeline{Name: "MY_PIPELINE", PackageId: 1}
 
 	_, err := manager.CreatePipeline(pipeline)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "bad object store")
 	r := store.DB().First(&pipeline, "1")
 	assert.Nil(t, r.Error)
@@ -396,7 +396,7 @@ func TestDeletePackage_PackageNotFoundError(t *testing.T) {
 
 	err := manager.DeletePackage(1)
 	assert.NotNil(t, err)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Package 1 not found")
 }
 
@@ -410,7 +410,7 @@ func TestDeletePackage_UpdatePackageMetadataError(t *testing.T) {
 
 	store.DB().Close()
 	err := manager.DeletePackage(pkg.ID)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to get package")
 }
 
@@ -453,7 +453,7 @@ func TestDeletePipeline_PipelineNotFoundError(t *testing.T) {
 
 	err := manager.DeletePipeline(1)
 	assert.NotNil(t, err)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Pipeline 1 not found")
 }
 
@@ -467,7 +467,7 @@ func TestDeletePipeline_pdatePipelineMetadataError(t *testing.T) {
 
 	store.DB().Close() // Close DB early
 	err := manager.DeletePipeline(pipeline.ID)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to get pipeline")
 }
 
@@ -506,7 +506,7 @@ func TestCreatePackage_GetParametersError(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	_, err := manager.CreatePackage("package1", []byte("I am invalid yaml"))
-	assert.Equal(t, http.StatusBadRequest, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to parse the parameter")
 }
 
@@ -516,7 +516,7 @@ func TestCreatePackage_StorePackageMetadataError(t *testing.T) {
 	store.DB().Close()
 	manager := NewResourceManager(store)
 	_, err := manager.CreatePackage("package1", []byte(""))
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to add package to package table")
 }
 
@@ -527,7 +527,7 @@ func TestCreatePackage_CreatePackageFileError(t *testing.T) {
 	// Use a bad object store
 	manager.objectStore = &FakeBadObjectStore{}
 	_, err := manager.CreatePackage("package1", []byte(""))
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "bad object store")
 	var pkg model.Package
 	r := store.DB().First(&pkg, "1")
@@ -554,7 +554,7 @@ func TestGetPackageTemplate_PackageMetadataNotFound(t *testing.T) {
 	store.ObjectStore().AddFile(template, storage.PackageFolder, fmt.Sprint(1))
 	manager := NewResourceManager(store)
 	_, err := manager.GetPackageTemplate(1)
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Package 1 not found")
 }
 
@@ -564,6 +564,6 @@ func TestGetPackageTemplate_PackageFileNotFound(t *testing.T) {
 	pkg, _ := store.PackageStore().CreatePackage(createPkg("pkg1"))
 	manager := NewResourceManager(store)
 	_, err := manager.GetPackageTemplate(pkg.ID)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to get 1 from packages: object not found")
 }

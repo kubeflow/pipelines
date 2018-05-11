@@ -15,15 +15,15 @@
 package storage
 
 import (
-	"errors"
 	"ml/backend/src/model"
 	"ml/backend/src/util"
-	"net/http"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -106,7 +106,7 @@ func TestCreateJob_CreateMetadataError(t *testing.T) {
 
 	_, err := store.JobStore().CreateJob(1, &v1alpha1.Workflow{},
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
 	assert.Contains(t, err.(*util.UserError).Error(), "Failed to store job metadata")
@@ -169,7 +169,7 @@ func TestListJobsError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	_, err := store.JobStore().ListJobs(1)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }
 
@@ -201,7 +201,7 @@ func TestGetJob_NotFoundError(t *testing.T) {
 	defer store.Close()
 
 	_, err := store.JobStore().GetJob(1, "wf1")
-	assert.Equal(t, http.StatusNotFound, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected not to find the job")
 }
 
@@ -214,7 +214,7 @@ func TestGetJob_InternalError(t *testing.T) {
 	store.DB().Close()
 
 	_, err := store.JobStore().GetJob(1, wf1.Name)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get job to return internal error")
 }
 
@@ -227,6 +227,6 @@ func TestGetJob_GetWorkflowError(t *testing.T) {
 
 	jobStore := NewJobStore(store.DB(), &FakeBadWorkflowClient{}, util.NewFakeTimeForEpoch())
 	_, err := jobStore.GetJob(1, wf1.Name)
-	assert.Equal(t, http.StatusInternalServerError, err.(*util.UserError).ExternalStatusCode(),
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }

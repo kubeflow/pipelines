@@ -15,16 +15,15 @@
 package storage
 
 import (
-	"errors"
+	"bytes"
 	"io"
 	"ml/backend/src/util"
-	"net/http"
 	"testing"
 
-	"bytes"
-
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 )
 
 type Foo struct{ ID int }
@@ -56,7 +55,7 @@ func TestAddFile(t *testing.T) {
 func TestAddFileError(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}}
 	error := manager.AddFile([]byte("abc"), PackageFolder, "1")
-	assert.Equal(t, http.StatusInternalServerError, error.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
 func TestGetFile(t *testing.T) {
@@ -70,7 +69,7 @@ func TestGetFile(t *testing.T) {
 func TestGetFileError(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}}
 	_, error := manager.GetFile(PackageFolder, "1")
-	assert.Equal(t, http.StatusInternalServerError, error.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
 func TestDeleteFile(t *testing.T) {
@@ -85,7 +84,7 @@ func TestDeleteFile(t *testing.T) {
 func TestDeleteFileError(t *testing.T) {
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}}
 	error := manager.DeleteFile(PackageFolder, "1")
-	assert.Equal(t, http.StatusInternalServerError, error.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
 func TestAddAsYamlFile(t *testing.T) {
@@ -119,6 +118,6 @@ func TestGetFromYamlFile_UnmarshalError(t *testing.T) {
 		minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	var foo Foo
 	error := manager.GetFromYamlFile(&foo, PackageFolder, "1")
-	assert.Equal(t, http.StatusInternalServerError, error.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, error.Error(), "Failed to unmarshal")
 }

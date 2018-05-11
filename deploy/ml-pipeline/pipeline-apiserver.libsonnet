@@ -89,6 +89,12 @@
             protocol: "TCP",
             name: "http",
           },
+          {
+            port: 8887,
+            targetPort: 8887,
+            protocol: "TCP",
+            name: "grpc",
+          },
         ],
         selector: {
           app: "ml-pipeline",
