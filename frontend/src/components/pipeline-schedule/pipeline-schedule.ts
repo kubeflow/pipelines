@@ -22,6 +22,7 @@ const SPECIFIC_TIME = 'Run at a specific time';
 const DATE_FORMAT_PATTERN = /^[1-2]\d{3}\/\d?\d\/\d?\d$/;
 
 enum Intervals {
+  MINUTE = 'every minute',
   HOURLY = 'hourly',
   DAILY = 'daily',
   WEEKLY = 'weekly',
@@ -37,7 +38,6 @@ export class PipelineSchedule extends Polymer.Element {
   @property({ type: Array })
   protected readonly _SCHEDULES = [
     IMMEDIATELY,
-    SPECIFIC_TIME,
     RECURRING,
   ];
 
@@ -45,10 +45,11 @@ export class PipelineSchedule extends Polymer.Element {
   protected _scheduleTypeIndex = 0;
 
   @property({ type: Number })
-  protected _runIntervalIndex = 0;
+  protected _runIntervalIndex = 1;
 
   @property({ type: Array })
   protected _runIntervals = [
+    Intervals.MINUTE,
     Intervals.HOURLY,
     Intervals.DAILY,
     Intervals.WEEKLY,
@@ -237,21 +238,30 @@ export class PipelineSchedule extends Polymer.Element {
   // backend needs to be UTC, and Date objects are automatically local.
   private _generateCrontab(targetDateDay: number, targetDateHours: number,
       targetDateMinutes: number): string {
-    const second = '*';
-    const minute = targetDateMinutes;
+    // The default values here correspond to 'run at second 0 of every minute'
+    const second = '0';
+    let minute = '*';
     let hour = '*';
     let dayOfMonth = '*';
     const month = '*';
-    let dayOfWeek = '*';
+    let dayOfWeek = '?';
     switch (this._runIntervals[this._runIntervalIndex]) {
+      case Intervals.MINUTE:
+        break;
       case Intervals.HOURLY:
+        minute = '' + targetDateMinutes;
         break;
       case Intervals.DAILY:
+        minute = '' + targetDateMinutes;
         hour = '' + targetDateHours;
         break;
       case Intervals.WEEKLY:
+        minute = '' + targetDateMinutes;
         hour = '' + targetDateHours;
-        if (!this._checkIfAllActive()) {
+        dayOfMonth = '?';
+        if (this._checkIfAllActive()) {
+          dayOfWeek = '*';
+        } else {
           // Convert weekdays to array of indices of active days and join them.
           dayOfWeek = this._weekdays.reduce(
               (result: number[], day, i) => {
@@ -262,6 +272,7 @@ export class PipelineSchedule extends Polymer.Element {
         }
         break;
       case Intervals.MONTHLY:
+        minute = '' + targetDateMinutes;
         hour = '' + targetDateHours;
         dayOfMonth = '' + targetDateDay;
         break;
