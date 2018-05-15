@@ -75,6 +75,11 @@ def parse_arguments():
   parser.add_argument('--mode',
                       choices=['local', 'cloud'],
                       help='whether to run the job locally or in Cloud Dataflow.')
+  parser.add_argument('--preprocessing_module',
+                      type=str,
+                      required=False,
+                      help=('GCS path to a python file defining '
+                            'a "preprocess" function.'))
 
   args = parser.parse_args()
   return args
@@ -113,11 +118,10 @@ def _image_to_vec(image_str_tensor):
   return inception_embeddings
 
 
-def make_preprocessing_fn(schema, target_name):
+def make_preprocessing_fn(schema):
   """Makes a preprocessing function.
   Args:
     schema: the schema of the training data.
-    target_name: the name of the target column.
   Returns:
     a preprocessing_fn function used by tft.
   """
@@ -190,7 +194,8 @@ def make_tft_input_metadata(schema):
   return dataset_metadata.DatasetMetadata(dataset_schema.Schema(tft_schema))
 
 
-def run_transform(output_dir, schema, train_data_file, eval_data_file, project, mode):
+def run_transform(output_dir, schema, train_data_file, eval_data_file,
+                  project, mode, preprocessing_fn=None):
   """Writes a tft transform fn, and metadata files.
   Args:
     output_dir: output folder
@@ -199,11 +204,14 @@ def run_transform(output_dir, schema, train_data_file, eval_data_file, project, 
     eval_data_file: eval data file pattern.
     project: the project to run dataflow in.
     local: whether the job should be local or cloud.
+    preprocessing_fn: a function used to preprocess the raw data. If not
+                      specified, a function will be automatically inferred
+                      from the schema.
   """
 
   tft_input_metadata = make_tft_input_metadata(schema)
   temp_dir = os.path.join(output_dir, 'tmp')
-  preprocessing_fn = make_preprocessing_fn(schema, temp_dir)
+  preprocessing_fn = preprocessing_fn or make_preprocessing_fn(schema)
 
   if mode == 'local':
     pipeline_options = None
@@ -267,7 +275,17 @@ def main():
   logging.getLogger().setLevel(logging.INFO)
   args = parse_arguments()
   schema = json.loads(file_io.read_file_to_string(args.schema))
-  run_transform(args.output, schema, args.train, args.eval, args.project, args.mode)
+
+  preprocessing_fn = None
+  if args.preprocessing_module:
+    with open('preprocessing.py', 'w+') as preprocessing_file:
+      preprocessing_file.write(
+          file_io.read_file_to_string(args.preprocessing_module))
+    import preprocessing
+    preprocessing_fn = preprocessing.preprocess
+
+  run_transform(args.output, schema, args.train, args.eval,
+                args.project, args.mode, preprocessing_fn=preprocessing_fn)
 
 
 if __name__== "__main__":
