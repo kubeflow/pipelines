@@ -51,6 +51,8 @@ export class JobDetails extends PageElement {
   public async load(_: string, queryParams: { jobId?: string, pipelineId: number }): Promise<void> {
     // Reset the selected tab each time the user navigates to this page.
     this.selectedTab = 0;
+    // Clear outputPlots to keep from re-adding the same outputs over and over.
+    this.set('outputPlots', []);
 
     if (queryParams.jobId !== undefined && queryParams.pipelineId > -1) {
       this._pipelineId = queryParams.pipelineId;
@@ -77,34 +79,11 @@ export class JobDetails extends PageElement {
         Utils.log.error('Could not draw job graph from object:', this.jobDetail);
       }
 
-      const baseOutputPathValue = this.pipeline
-        .parameters
-        .filter((p) => p.name === 'output')[0]
-        .value;
-      const baseOutputPath = baseOutputPathValue ? baseOutputPathValue.toString() : '';
-
-      // TODO: Catch and show template parsing errors here
-      const outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);
-
-      // Clear outputPlots to keep from re-adding the same outputs over and over.
-      this.set('outputPlots', []);
-
-      this._loadingOutputs = true;
-      try {
-        await Promise.all(outputPaths.map(async (path) => {
-          const fileList = await Apis.listFiles(path);
-          const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
-          if (metadataFile) {
-            const metadataJson = await Apis.readFile(metadataFile);
-            const metadata = JSON.parse(metadataJson) as OutputMetadata;
-            this.outputPlots = this.outputPlots.concat(metadata.outputs);
-          }
-        }));
-      } catch (err) {
-        this.showPageError('There was an error while loading details for this job');
-        Utils.log.error('Error loading job details:', err);
-      } finally {
-        this._loadingOutputs = false;
+      // If pipeline params include output, retrieve them so they can be rendered by the data-plot
+      // component.
+      const baseOutputPath = this._getBaseOutputPath();
+      if (baseOutputPath) {
+        this._loadJobOutputs(baseOutputPath, templateYaml);
       }
     }
   }
@@ -131,4 +110,46 @@ export class JobDetails extends PageElement {
   protected _getProgressColor(status: NodePhase): string {
     return Utils.nodePhaseToColor(status);
   }
+
+  private _getBaseOutputPath(): string {
+    if (this.pipeline.parameters) {
+      const output = this.pipeline.parameters.find((p) => p.name === 'output');
+
+      const baseOutputPathValue = output ? output.value : '';
+
+      return baseOutputPathValue ? baseOutputPathValue.toString() : '';
+    }
+    return '';
+  }
+
+  private async _loadJobOutputs(baseOutputPath: string, templateYaml: string): Promise<void> {
+    let outputPaths = [];
+    try {
+      outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);
+    } catch (err) {
+      // TODO: Determine how to display additional error details to user.
+      this.showPageError('There was an error while parsing this job\'s YAML template');
+      Utils.log.error('Error parsing job YAML:', err);
+      return;
+    }
+
+    this._loadingOutputs = true;
+    try {
+      await Promise.all(outputPaths.map(async (path) => {
+        const fileList = await Apis.listFiles(path);
+        const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
+        if (metadataFile) {
+          const metadataJson = await Apis.readFile(metadataFile);
+          const metadata = JSON.parse(metadataJson) as OutputMetadata;
+          this.outputPlots = this.outputPlots.concat(metadata.outputs);
+        }
+      }));
+    } catch (err) {
+      this.showPageError('There was an error while loading details for this job');
+      Utils.log.error('Error loading job details:', err);
+    } finally {
+      this._loadingOutputs = false;
+    }
+  }
+
 }

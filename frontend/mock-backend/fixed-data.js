@@ -1,106 +1,6 @@
 // The number of simple, dummy Pipelines that will be appended to the list.
 const NUM_DUMMY_PIPELINES = 15;
 
-function generateNPipelines() {
-  pipelines = [];
-  for (i = 0; i < NUM_DUMMY_PIPELINES; i++) {
-    pipelines.push( {
-      id: i,
-      createdAt: '2018-03-23T22:27:32Z',
-      description: 'Some description',
-      name: 'Pipeline#' + i,
-      packageId: (i % 6) + 1,
-      schedule: '',
-      enabled: false,
-      enabledAt: -1,
-      parameters: [
-        {
-          name: 'x',
-          value: 10
-        },
-        {
-          name: 'output',
-          value: 'some-output-path',
-        }
-      ],
-      jobs: jobs
-    });
-  }
-  return pipelines;
-}
-
-fixedData = {
-  packages: [
-    {
-      id: 0,
-      createdAt: '2018-03-21T22:27:32Z',
-      name: 'Unstructured text',
-      description: 'An awesome unstructured text pipeline package.',
-      parameters: [
-        {
-          name: 'x',
-          description: 'The x parameter description.'
-        },
-        {
-          name: 'y',
-          description: 'The y parameter description. This can be very long!'
-        },
-        {
-          name: 'output',
-          description: 'The base output path',
-        }
-      ]
-    },
-    {
-      id: 1,
-      createdAt: '2018-03-21T22:27:32Z',
-      name: 'Image classification',
-      description: 'An awesome image classification pipeline package.',
-      parameters: [
-        {
-          name: 'x',
-          description: 'The x parameter'
-        },
-        {
-          name: 'y',
-          description: 'The y parameter'
-        },
-        {
-          name: 'output',
-          description: 'The base output path',
-        }
-      ]
-    }
-  ],
-  pipelines: [
-    {
-      id: 1,
-      createdAt: '2018-03-04T01:55:12Z',
-      name: 'No Jobs',
-      description: 'Try 10 for x',
-      packageId: 1,
-      schedule: '30 * * * *',
-      enabled: true,
-      enabledAt: 1483257600,
-      parameters: [
-        {
-          name: 'x',
-          value: 10
-        },
-        {
-          name: 'y',
-          value: 20
-        },
-        {
-          name: 'output',
-          value: 'some-output-path',
-        }
-      ],
-      jobs: [],
-    },
-  ],
-};
-
 jobs = [
   {
     metadata: {
@@ -455,6 +355,132 @@ jobs = [
     },
   },
 ];
+
+fixedData = {
+  packages: [
+    {
+      id: 0,
+      createdAt: '2018-03-21T22:27:32Z',
+      name: 'Unstructured text',
+      description: 'An awesome unstructured text pipeline package.',
+      parameters: [
+        {
+          name: 'x',
+          description: 'The x parameter description.'
+        },
+        {
+          name: 'y',
+          description: 'The y parameter description. This can be very long!'
+        },
+        {
+          name: 'output',
+          description: 'The base output path',
+        }
+      ]
+    },
+    {
+      id: 1,
+      createdAt: '2018-03-21T22:27:32Z',
+      name: 'Image classification',
+      description: 'An awesome image classification pipeline package.',
+      parameters: [
+        {
+          name: 'x',
+          description: 'The x parameter'
+        },
+        {
+          name: 'y',
+          description: 'The y parameter'
+        },
+        {
+          name: 'output',
+          description: 'The base output path',
+        }
+      ]
+    },
+    {
+      id: 2,
+      createdAt: '2018-03-21T22:27:32Z',
+      name: 'Undefined params',
+      description: 'A pipeline package with undefined parameters.',
+      parameters: undefined
+    },
+    {
+      id: 3,
+      createdAt: '2018-03-21T22:27:32Z',
+      name: 'No params',
+      description: 'A pipeline package with no parameters ([]).',
+      parameters: []
+    }
+  ],
+  pipelines: [
+    {
+      id: 1,
+      createdAt: '2018-03-04T01:55:12Z',
+      name: 'No Jobs',
+      description: 'Try 10 for x',
+      packageId: 1,
+      schedule: '30 * * * *',
+      enabled: true,
+      enabledAt: 1483257600,
+      parameters: [
+        {
+          name: 'x',
+          value: 10
+        },
+        {
+          name: 'y',
+          value: 20
+        },
+        {
+          name: 'output',
+          value: 'some-output-path',
+        }
+      ],
+      jobs: [],
+    },
+    {
+      id: 2,
+      createdAt: '2018-03-23T22:27:32Z',
+      description: 'Some description',
+      name: 'No params',
+      packageId: 2,
+      schedule: '',
+      enabled: false,
+      enabledAt: -1,
+      parameters: [],
+      jobs: jobs
+    }
+  ],
+};
+
+function generateNPipelines() {
+  pipelines = [];
+  for (i = 0; i < NUM_DUMMY_PIPELINES; i++) {
+    pipelines.push( {
+      id: i,
+      createdAt: '2018-03-23T22:27:32Z',
+      description: 'Some description',
+      name: 'Pipeline#' + i,
+      packageId: (i % 6) + 1,
+      schedule: '',
+      enabled: false,
+      enabledAt: -1,
+      parameters: [
+        {
+          name: 'x',
+          value: 10
+        },
+        {
+          name: 'output',
+          value: 'some-output-path',
+        }
+      ],
+      jobs: jobs
+    });
+  }
+  return pipelines;
+}
 
 fixedData.pipelines.push(...generateNPipelines());
 

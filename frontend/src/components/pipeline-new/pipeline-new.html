@@ -50,9 +50,10 @@
       <div class="flex">
         <paper-dropdown-menu class="input-field-large" label="Choose a Package">
           <paper-listbox id="packagesListbox" slot="dropdown-content"
-                         class="dropdown-content" selected="{{_packageIndex}}">
+                         class="dropdown-content" selected="{{_packageIndex}}"
+                         on-selected-item-changed="_packageSelectionChanged">
             <template is="dom-repeat" items="[[packages]]" as="pkg">
-              <paper-item package-id="[[pkg.id]]">
+              <paper-item package-id="[[pkg.id]]" parameters="[[pkg.parameters]]">
                 <paper-item-body two-line>
                   <div>[[pkg.name]]</div>
                   <div secondary>ID: [[pkg.id]]</div>
@@ -70,19 +71,19 @@
       </div>
 
       <paper-input id="name" class="input-field-large" label="Pipeline Name"
-                   autofocus required maxlength="50" value="{{newPipeline.name}}"
+                   autofocus required maxlength="50" value="{{_name}}"
                    auto-validate error-message="Pipeline must have a name">
       </paper-input>
       <paper-input id="description" class="input-field-large" label="Description"
-                   value="{{newPipeline.description}}">
+                   value="{{_description}}">
       </paper-input>
 
       <hr>
 
       <!-- Pipeline Parameters -->
-      <template is="dom-if" if="[[newPipeline.parameters.length]]">
+      <template is="dom-if" if="[[_parameters.length]]">
         <div class="param-header">Parameters</div>
-        <template is="dom-repeat" items="{{newPipeline.parameters}}" as="param">
+        <template is="dom-repeat" items="{{_parameters}}" as="param">
           <div class="param-description">[[param.description]]</div>
           <paper-input class="input-field-large no-shrink"
                        label="[[param.name]]" value="{{param.value}}">
