@@ -194,16 +194,15 @@ export class PipelineSchedule extends Polymer.Element {
     const allWeekdaysCheckbox = root.querySelector('#allWeekdaysCheckbox');
     if (allWeekdaysCheckbox) {
       const allWeekdaysCheckboxChecked = (allWeekdaysCheckbox as PaperCheckboxElement).checked;
-      this._weekdays.forEach((_, i) =>
-          this.set('_weekdays.' + i + '.active', allWeekdaysCheckboxChecked));
+      this._weekdays.forEach(
+          (_, i) => this.set('_weekdays.' + i + '.active', allWeekdaysCheckboxChecked));
     }
   }
 
   @observe('_runIntervalIndex')
   protected _updateWeekdayButtonEnabledState(): void {
     // Weekdays are only enabled if interval is 'weekly'.
-    this._enableWeekdayButtons =
-        this._runIntervals[this._runIntervalIndex] === Intervals.WEEKLY;
+    this._enableWeekdayButtons = this._runIntervals[this._runIntervalIndex] === Intervals.WEEKLY;
     if (!this._enableWeekdayButtons) {
       // Check 'All weekdays' checkbox and update individual weekday buttons.
       this._allDaysOfWeekActive = true;
@@ -299,8 +298,7 @@ export class PipelineSchedule extends Polymer.Element {
     const dateAsArray = date.split('/').map((s) => Number(s));
     // If/when start/end have different backing time arrays, this will need to
     // be updated.
-    const timeAsArray =
-      this._times[timeSelectorIndex].split(':').map((s) => Number(s));
+    const timeAsArray = this._times[timeSelectorIndex].split(':').map((s) => Number(s));
     return new Date(
         dateAsArray[0],
         dateAsArray[1] - 1,
@@ -311,8 +309,7 @@ export class PipelineSchedule extends Polymer.Element {
 
   private _isStartTimeValid(): boolean {
     // Check that start date is of form YYYY/MM/DD and is a valid date.
-    if (!(this._startDate.match(DATE_FORMAT_PATTERN)) ||
-        isNaN(Date.parse(this._startDate))) {
+    if (!(this._startDate.match(DATE_FORMAT_PATTERN)) || isNaN(Date.parse(this._startDate))) {
       this._startTimeErrorMessage = 'Must be valid date of the form YYYY/MM/DD';
       return false;
     }
@@ -329,20 +326,17 @@ export class PipelineSchedule extends Polymer.Element {
   private _isEndTimeValid(): boolean {
     // End time can't be invalid if we're running the job immediately or at a
     // specific time or if there's no end time.
-    if (this._SCHEDULES[this._scheduleTypeIndex] === SPECIFIC_TIME ||
-        !this._hasEndDate) {
+    if (this._SCHEDULES[this._scheduleTypeIndex] === SPECIFIC_TIME || !this._hasEndDate) {
       return true;
     }
 
     // Check that start date is of form YYYY/MM/DD and is a valid date.
-    if (!(this._endDate.match(DATE_FORMAT_PATTERN)) ||
-        isNaN(Date.parse(this._endDate))) {
+    if (!(this._endDate.match(DATE_FORMAT_PATTERN)) || isNaN(Date.parse(this._endDate))) {
       this._endTimeErrorMessage = 'Must be valid date of the form YYYY/MM/DD';
       return false;
     }
 
-    const selectedEndDate =
-      this._toDate(this._endDate, this._endTimeIndex, this._isEndPM);
+    const selectedEndDate = this._toDate(this._endDate, this._endTimeIndex, this._isEndPM);
 
     // If end time is in the past, it is invalid regardless of the start time.
     if (selectedEndDate < new Date()) {
@@ -353,8 +347,7 @@ export class PipelineSchedule extends Polymer.Element {
     // End date/time is invalid if it is earlier than start date/time.
     const selectedStartDate = this._getStartDateTime();
     if (selectedEndDate < selectedStartDate) {
-      this._endTimeErrorMessage =
-        'End date/time must be later than start date/time';
+      this._endTimeErrorMessage = 'End date/time must be later than start date/time';
       return false;
     }
     return true;
