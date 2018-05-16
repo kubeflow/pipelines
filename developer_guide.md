@@ -41,7 +41,7 @@ To be able to use GKE, the Docker images need to be uploaded to a public Docker 
 To build the API server image and upload it to GCR: 
 ````
 # Run in the repository root directory 
-$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f src/Dockerfile ./src
+$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/src/Dockerfile ./backend/src
 # Push to GCR
 $ gcloud docker -- push gcr.io/<your-gcp-project>/api-server:latest
 ````
@@ -49,7 +49,7 @@ $ gcloud docker -- push gcr.io/<your-gcp-project>/api-server:latest
 To build the scheduling controller image and upload it to GCR: 
 ````
 # Run in the repository root directory 
-$ docker build -t gcr.io/<your-gcp-project>/scheduler:latest -f src/Dockerfile.scheduler ./src
+$ docker build -t gcr.io/<your-gcp-project>/scheduler:latest -f backend/src/Dockerfile.scheduler ./backend/src
 # Push to GCR
 $ gcloud docker -- push gcr.io/<your-gcp-project>/scheduler:latest
 ````
@@ -59,7 +59,7 @@ Minikube can pick your local Docker image so you don't need to upload to remote 
 
 For example, to build API server image  
 ```
-$ docker build -t ml-pipeline-api-server src
+$ docker build -t ml-pipeline-api-server backend/src
 ```
 
 ### Update deployment image
@@ -75,7 +75,7 @@ $ gcloud docker -- push gcr.io/<your-gcp-project>/bootstrapper
 ### API server
 Run unit test for the API server
 ```
-cd src/ && go test ./...
+cd backend/src/ && go test ./...
 ```
 ### Frontend
 TODO: add instruction
