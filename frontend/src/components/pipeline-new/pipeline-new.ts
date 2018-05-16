@@ -82,6 +82,14 @@ export class PipelineNew extends PageElement {
     this._packageId =
         this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1;
 
+    // Reset schedule component on each page load.
+    Utils.deleteAllChildren(this.$.schedule as HTMLElement);
+
+    const newSchedule = new PipelineSchedule();
+    this.$.schedule.appendChild(newSchedule);
+    newSchedule.addEventListener(
+        'schedule-is-valid-changed', this._scheduleValidationUpdated.bind(this));
+
     try {
       this.packages = await Apis.getPackages();
 
@@ -117,10 +125,6 @@ export class PipelineNew extends PageElement {
     } finally {
       this._busy = false;
     }
-    const pipelineSchedule = this.$.schedule as PipelineSchedule;
-    // Allow schedule to affect deploy button state.
-    pipelineSchedule.addEventListener('schedule-is-valid-changed',
-        this._scheduleValidationUpdated.bind(this));
   }
 
   protected _scheduleValidationUpdated(): void {
