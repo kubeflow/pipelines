@@ -40,11 +40,27 @@ export default (app) => {
     }
   });
 
-  app.get(apisPrefix + '/pipelines/:pid', (req, res) => {
+  app.all(apisPrefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
-    const p = fixedData.pipelines.filter((p) => p.id === pid);
-    res.json(p[0]);
+    switch (req.method) {
+      case 'DELETE':
+        const i = fixedData.pipelines.findIndex((p) => p.id === pid);
+        if (fixedData.pipelines[i].name.startsWith('Cannot be deleted')) {
+          res.status(502).send(`Deletion failed for Pipeline: '${fixedData.pipelines[i].name}'`);
+        } else {
+          // Delete the Pipeline from fixedData.
+          fixedData.pipelines.splice(i, 1);
+          res.send('ok');
+        }
+        break;
+      case 'GET':
+        const p = fixedData.pipelines.filter((p) => p.id === pid);
+        res.json(p[0]);
+        break;
+      default:
+        res.status(405).send('Unsupported request type: ' + res.method);
+    }
   });
 
   app.get(apisPrefix + '/pipelines/:pid/jobs', (req, res) => {

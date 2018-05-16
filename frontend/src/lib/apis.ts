@@ -67,6 +67,19 @@ export async function getPipeline(id: number): Promise<Pipeline> {
 }
 
 /**
+ * Sends a request to the backened to permanently delete a pipeline.
+ */
+export async function deletePipeline(id: number): Promise<string> {
+  return await _fetch(`/pipelines/${id}`, '', {
+    cache: 'no-cache',
+    headers: {
+      'content-type': 'application/json',
+    },
+    method: 'DELETE',
+  });
+}
+
+/**
  * Sends a new pipeline request to the backend.
  */
 export async function newPipeline(pipeline: Pipeline): Promise<Pipeline> {

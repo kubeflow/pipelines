@@ -8,23 +8,24 @@
         <iron-icon icon="add"></iron-icon>
         New Pipeline
       </paper-button>
-      <paper-button class="toolbar-button">
-        <iron-icon icon="compare-arrows"></iron-icon>
-        Compare Pipelines
-      </paper-button>
       <paper-button class="toolbar-button" on-click="_clonePipeline" disabled="[[!oneItemIsSelected]]">
         <iron-icon icon="content-copy"></iron-icon>
         Clone
       </paper-button>
-      <paper-button class="toolbar-button">
-        <iron-icon icon="archive"></iron-icon>
-        Archive
+      <paper-button class="toolbar-button" on-click="_deletePipeline" disabled="[[!atLeastOneItemIsSelected]]">
+        <iron-icon icon="delete">
+        </iron-icon>
+        Delete
       </paper-button>
     </div>
 
-    <item-list id="pipelinesItemList" rows="[[pipelineListRows]]"
-               columns="[[pipelineListColumns]]">
-    </item-list>
+    <paper-spinner class="absolute-spinner" active hidden$="[[!_busy]]"></paper-spinner>
+
+    <div class="dimmable-container" busy$="[[_busy]]">
+      <item-list id="pipelinesItemList" rows="[[pipelineListRows]]"
+                columns="[[pipelineListColumns]]">
+      </item-list>
+    </div>
 
     <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
 

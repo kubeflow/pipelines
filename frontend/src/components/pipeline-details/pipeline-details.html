@@ -21,12 +21,17 @@
         <iron-icon icon="av:stop"></iron-icon>
         Disable
       </paper-button>
+      <paper-button class="toolbar-button" on-click="_deletePipeline">
+        <iron-icon icon="delete">
+        </iron-icon>
+        Delete
+      </paper-button>
     </div>
     <paper-progress class="no-shrink" indeterminate disabled="[[!_busy]]"></paper-progress>
 
     <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
 
-    <div class="flex-column padded-top-left">
+    <div class="flex-column padded-top-left dimmable-container" busy$="[[_busy]]">
       <div class="pipeline-name">
         <span>[[pipeline.name]]</span>
         <span class="faded pipeline-id">ID: [[pipeline.id]]</span>

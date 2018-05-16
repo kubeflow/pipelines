@@ -13,7 +13,7 @@
 
     <paper-spinner class="absolute-spinner" active hidden$="[[!_loadingJob]]"></paper-spinner>
 
-    <div class="padded-top-left container" loading$="[[_loadingJob]]">
+    <div class="padded-top-left dimmable-container" busy$="[[_loadingJob]]">
       <div class="flex padded-right">
         <div class="job-name">[[jobDetail.metadata.name]]</div>
         <div class="right">

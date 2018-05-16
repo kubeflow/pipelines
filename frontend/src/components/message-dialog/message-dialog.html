@@ -11,7 +11,11 @@
           </paper-button>
         </template>
       </div>
-      <iron-collapse id="detailsCollapse" class="collapse">
+      <!--
+        Animation is disabled because it lags behind the repositioning so the dialog ends up
+        off-center.
+      -->
+      <iron-collapse id="detailsCollapse" class="collapse" no-animation>
         <div class="details">
           [[details]]
         </div>

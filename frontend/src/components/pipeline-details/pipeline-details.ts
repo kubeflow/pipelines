@@ -108,6 +108,24 @@ export class PipelineDetails extends PageElement {
     }
   }
 
+  protected async _deletePipeline(): Promise<void> {
+    if (this.pipeline) {
+      this._busy = true;
+      try {
+        await Apis.deletePipeline(this.pipeline.id);
+
+        Utils.showNotification(`Successfully deleted Pipeline: "${this.pipeline.name}"`);
+
+        // Navigate back to Pipeline list page upon successful deletion.
+        this.dispatchEvent(new RouteEvent('/pipelines'));
+      } catch (err) {
+        Utils.showDialog('Failed to delete Pipeline', err);
+      } finally {
+        this._busy = false;
+      }
+    }
+  }
+
   protected _formatDateString(date: string): string {
     return Utils.formatDateString(date);
   }

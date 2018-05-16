@@ -27,5 +27,6 @@ export class MessageDialog extends Polymer.Element {
   toggleDetails(): void {
     (this.$.detailsCollapse as IronCollapseElement).toggle();
     (this.$.dialog as PaperDialogElement).classList.toggle('expanded');
+    (this.$.dialog as PaperDialogElement).notifyResize();
   }
 }

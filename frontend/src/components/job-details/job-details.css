@@ -11,11 +11,6 @@ paper-progress {
   --paper-progress-height: 10px;
 }
 
-paper-spinner {
-  height: 50px;
-  width: 50px;
-}
-
 .plot-container,
 #jobGraph {
   background-color: var(--background-base-color);
@@ -26,14 +21,10 @@ paper-spinner {
   overflow: auto;
 }
 
-.container {
+.dimmable-container {
   display: flex;
   flex-flow: column;
   flex-grow: 1;
-}
-
-.container[loading] {
-  opacity: 0.6;
 }
 
 .job-name {

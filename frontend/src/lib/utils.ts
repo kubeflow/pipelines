@@ -92,6 +92,7 @@ export function showDialog(message: string, details?: string): void {
 
 export function showNotification(message: string): void {
   const toast = document.createElement('paper-toast');
+  toast.duration = 5000;
   document.body.appendChild(toast);
   toast.addEventListener('iron-overlay-closed', () => {
     document.body.removeChild(toast);

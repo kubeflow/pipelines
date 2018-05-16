@@ -44,6 +44,11 @@ iron-icon[icon="error-outline"] {
   color: var(--danger-color);
 }
 
+paper-spinner {
+  height: 50px;
+  width: 50px;
+}
+
 paper-tab {
   font-size: var(--font-size-strong);
   min-width: 110px;
@@ -87,6 +92,10 @@ paper-tab:not(:first-child) {
 
 .block {
   display: block;
+}
+
+.dimmable-container[busy] {
+  opacity: 0.6;
 }
 
 .details-table {

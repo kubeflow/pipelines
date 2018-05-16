@@ -1,5 +1,6 @@
 import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
+import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
@@ -30,7 +31,13 @@ export class PipelineList extends PageElement {
   public pipelines: Pipeline[] = [];
 
   @property({ type: Boolean })
+  protected _busy = false;
+
+  @property({ type: Boolean })
   protected oneItemIsSelected = false;
+
+  @property({ type: Boolean })
+  protected atLeastOneItemIsSelected = false;
 
   protected pipelineListRows: ItemListRow[] = [];
 
@@ -48,7 +55,7 @@ export class PipelineList extends PageElement {
     super.ready();
     const itemList = this.$.pipelinesItemList as ItemListElement;
     itemList.addEventListener(FILTER_CHANGED_EVENT, this._filterChanged.bind(this));
-    itemList.addEventListener('selected-indices-changed', this._isOneItemSelected.bind(this));
+    itemList.addEventListener('selected-indices-changed', this._selectedItemsChanged.bind(this));
     itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
   }
 
@@ -59,12 +66,6 @@ export class PipelineList extends PageElement {
   protected _navigate(ev: ItemClickEvent): void {
     const pipelineId = this.pipelines[ev.detail.index].id;
     this.dispatchEvent(new RouteEvent(`/pipelines/details/${pipelineId}`));
-  }
-
-  protected _isOneItemSelected(): void {
-    const itemList = this.$.pipelinesItemList as ItemListElement;
-    this.oneItemIsSelected =
-      itemList.selectedIndices ? itemList.selectedIndices.length === 1 : false;
   }
 
   protected _clonePipeline(): void {
@@ -80,8 +81,47 @@ export class PipelineList extends PageElement {
           }));
   }
 
+  protected async _deletePipeline(): Promise<void> {
+    const itemList = this.$.pipelinesItemList as ItemListElement;
+    this._busy = true;
+    let unsuccessfulDeletes = 0;
+    let errorMessage = '';
+
+    await Promise.all(itemList.selectedIndices.map(async (i) => {
+      try {
+        await Apis.deletePipeline(this.pipelines[i].id);
+      } catch (err) {
+        errorMessage = `Deleting Pipeline: "${this.pipelines[i].name}" failed with error: "${err}"`;
+        unsuccessfulDeletes++;
+      }
+    }));
+
+    const successfulDeletes = itemList.selectedIndices.length - unsuccessfulDeletes;
+    if (successfulDeletes > 0) {
+      Utils.showNotification(`Successfully deleted ${successfulDeletes} Pipelines!`);
+      this._loadPipelines();
+    }
+
+    if (unsuccessfulDeletes > 0) {
+      Utils.showDialog(`Failed to delete ${unsuccessfulDeletes} Pipelines`, errorMessage);
+    }
+
+    this._busy = false;
+  }
+
   protected _newPipeline(): void {
     this.dispatchEvent(new RouteEvent('/pipelines/new'));
+  }
+
+  private _selectedItemsChanged(): void {
+    const itemList = this.$.pipelinesItemList as ItemListElement;
+    if (itemList.selectedIndices) {
+      this.oneItemIsSelected = itemList.selectedIndices.length === 1;
+      this.atLeastOneItemIsSelected = itemList.selectedIndices.length > 0;
+    } else {
+      this.oneItemIsSelected = false;
+      this.atLeastOneItemIsSelected = false;
+    }
   }
 
   // TODO: figure out what to set the browser cache time for these queries to so
