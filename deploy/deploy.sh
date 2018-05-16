@@ -7,13 +7,13 @@ NAMESPACE=default
 APP_DIR=ml-pipeline
 
 # Default ml pipeline api server image
-API_SERVER_IMAGE=gcr.io/ml-pipeline/api-server
+API_SERVER_IMAGE=gcr.io/ml-pipeline/api-server:0.0.7
 
 # Default ml pipeline scheduling controller image
-SCHEDULER_IMAGE=gcr.io/ml-pipeline/scheduler
+SCHEDULER_IMAGE=gcr.io/ml-pipeline/scheduler:0.0.7
 
 # Default ml pipeline ui image
-UI_IMAGE=gcr.io/ml-pipeline/frontend
+UI_IMAGE=gcr.io/ml-pipeline/frontend:0.0.7
 
 # Whether report usage or not. Default yes.
 REPORT_USAGE="true"

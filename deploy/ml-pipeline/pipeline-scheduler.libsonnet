@@ -97,7 +97,7 @@
               {
                 name: "ml-pipeline-scheduler",
                 image: image,
-                imagePullPolicy: 'IfNotPresent',
+                imagePullPolicy: 'Always',
                 env: [
                   {
                     name: "POD_NAMESPACE",
