@@ -1,12 +1,6 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-paper-progress {
-  --paper-progress-active-color: var(--theme-primary-color);
-  height: 1px;
-  width: 100%;
-}
-
 .pipeline-name {
   color: var(--primary-text-color);
   font-size: var(--paper-font-title_-_font-size);

@@ -19,12 +19,15 @@
       </paper-button>
     </div>
 
-    <paper-spinner class="absolute-spinner" active hidden$="[[!_busy]]"></paper-spinner>
-
-    <div class="dimmable-container" busy$="[[_busy]]">
-      <item-list id="pipelinesItemList" rows="[[pipelineListRows]]"
-                columns="[[pipelineListColumns]]">
-      </item-list>
+    <div class="relative">
+      <div class="overlay" hidden="[[!_busy]]">
+        <paper-spinner class="absolute-spinner" active></paper-spinner>
+      </div>
+      <div class="scrollable">
+        <item-list id="pipelinesItemList" rows="[[pipelineListRows]]"
+                   columns="[[pipelineListColumns]]">
+        </item-list>
+      </div>
     </div>
 
     <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>

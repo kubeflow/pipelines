@@ -27,72 +27,75 @@
         Delete
       </paper-button>
     </div>
-    <paper-progress class="no-shrink" indeterminate disabled="[[!_busy]]"></paper-progress>
+    <paper-progress class="loading no-shrink" indeterminate disabled="[[!_busy]]"></paper-progress>
 
     <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
 
-    <div class="flex-column padded-top-left dimmable-container" busy$="[[_busy]]">
-      <div class="pipeline-name">
-        <span>[[pipeline.name]]</span>
-        <span class="faded pipeline-id">ID: [[pipeline.id]]</span>
-      </div>
+    <div class="relative">
+      <div class="overlay" hidden="[[!_busy]]"></div>
+      <div class="scrollable padded-top-left">
+        <div class="pipeline-name">
+          <span>[[pipeline.name]]</span>
+          <span class="faded pipeline-id">ID: [[pipeline.id]]</span>
+        </div>
 
-      <div class="no-shrink tabs-container">
-        <paper-tabs class="no-shrink" selected="{{selectedTab}}">
-          <paper-tab>Basic Config</paper-tab>
-          <paper-tab>Jobs</paper-tab>
-        </paper-tabs>
-      </div>
+        <div class="no-shrink tabs-container">
+          <paper-tabs class="no-shrink" selected="{{selectedTab}}">
+            <paper-tab>Basic Config</paper-tab>
+            <paper-tab>Jobs</paper-tab>
+          </paper-tabs>
+        </div>
 
-      <iron-pages class="flex-column overflow-auto" selected="{{selectedTab}}">
+        <iron-pages class="flex-column overflow-auto" selected="{{selectedTab}}">
 
-        <!-- iron-page tab 1 -->
-        <div>
+          <!-- iron-page tab 1 -->
+          <div>
 
-          <br/>
-          <div class="details-table">
-            <div>
-              <span class="key">Pipeline Package ID</span>
-              <span class="value">[[pipeline.packageId]]</span>
-            </div>
-            <div>
-              <span class="key">Description</span>
-              <span class="value">[[pipeline.description]]</span>
-            </div>
-            <div>
-              <span class="key">Created at</span>
-              <span class="value">[[_formatDateString(pipeline.createdAt)]]</span>
-            </div>
-
-            <template is="dom-if" if="[[pipeline.schedule]]">
+            <br/>
+            <div class="details-table">
               <div>
-                <span class="key">Schedule</span>
-                <span class="value">[[pipeline.schedule]]</span>
+                <span class="key">Pipeline Package ID</span>
+                <span class="value">[[pipeline.packageId]]</span>
+              </div>
+              <div>
+                <span class="key">Description</span>
+                <span class="value">[[pipeline.description]]</span>
+              </div>
+              <div>
+                <span class="key">Created at</span>
+                <span class="value">[[_formatDateString(pipeline.createdAt)]]</span>
+              </div>
+
+              <template is="dom-if" if="[[pipeline.schedule]]">
+                <div>
+                  <span class="key">Schedule</span>
+                  <span class="value">[[pipeline.schedule]]</span>
+                </div>
+              </template>
+
+            </div>
+
+            <br/>
+            <br/>
+
+            <template is="dom-if" if="[[pipeline.parameters.length]]">
+              <div class="param-header">Input Parameters</div>
+              <div class="details-table">
+                <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+                  <div>
+                    <span class="key">[[param.name]]</span>
+                    <span class="value">[[param.value]]</span>
+                  </div>
+                </template>
               </div>
             </template>
 
           </div>
 
-          <br/>
-          <br/>
-
-          <template is="dom-if" if="[[pipeline.parameters.length]]">
-            <div class="param-header">Input Parameters</div>
-            <div class="details-table">
-              <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
-                <div>
-                  <span class="key">[[param.name]]</span>
-                  <span class="value">[[param.value]]</span>
-                </div>
-              </template>
-            </div>
-          </template>
-
-        </div>
-
-        <!-- iron-page tab 2 -->
-        <job-list id="jobs" class="flex-column"></job-list>
-      </iron-pages>
+          <!-- iron-page tab 2 -->
+          <job-list id="jobs" class="flex-column"></job-list>
+        </iron-pages>
+      </div>
     </div>
 
   </template>

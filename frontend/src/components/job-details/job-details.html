@@ -9,88 +9,96 @@
       <div class="toolbar-title">Job Details</div>
     </div>
 
+    <paper-progress class="loading no-shrink" indeterminate disabled="[[!_loadingJob]]"></paper-progress>
+
     <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
 
-    <paper-spinner class="absolute-spinner" active hidden$="[[!_loadingJob]]"></paper-spinner>
-
-    <div class="padded-top-left dimmable-container" busy$="[[_loadingJob]]">
-      <div class="flex padded-right">
-        <div class="job-name">[[jobDetail.metadata.name]]</div>
-        <div class="right">
-          <div class="flex">
-            <iron-icon class="status-icon" icon$=[[_getStatusIcon(jobDetail.status.phase)]]></iron-icon>
-            <!-- TODO: Get or compute the job progress here -->
-            <paper-progress id="progress" value="100" style$="--paper-progress-active-color: var([[_getProgressColor(jobDetail.status.phase)]])">
-            </paper-progress>
+    <div class="relative">
+      <div class="overlay" hidden="[[!_loadingJob]]"></div>
+      <div class="flex-column flex-grow padded-top-left">
+        <div class="flex padded-right">
+          <div class="job-name">[[jobDetail.metadata.name]]</div>
+          <div class="right">
+            <div class="flex">
+              <iron-icon class="status-icon" icon$=[[_getStatusIcon(jobDetail.status.phase)]]></iron-icon>
+              <!-- TODO: Get or compute the job progress here -->
+              <paper-progress id="progress" class="job-progress" value="100"
+                              style$="--paper-progress-active-color: var([[_getProgressColor(jobDetail.status.phase)]])">
+              </paper-progress>
+            </div>
+            <div>
+              <span class="status">[[jobDetail.status.phase]]</span>
+            </div>
           </div>
+        </div>
+
+        <div class="tabs-container">
+          <paper-tabs class="no-shrink" selected="{{selectedTab}}">
+            <paper-tab id="info-tab">Basic Info</paper-tab>
+            <paper-tab id="output-tab">Output</paper-tab>
+            <paper-tab id="graph-tab">Graph</paper-tab>
+          </paper-tabs>
+        </div>
+
+        <iron-pages class="scrollable" selected="{{selectedTab}}">
+
+          <!-- iron-page tab 1 -->
           <div>
-            <span class="status">[[jobDetail.status.phase]]</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="tabs-container">
-        <paper-tabs class="no-shrink" selected="{{selectedTab}}">
-          <paper-tab id="info-tab">Basic Info</paper-tab>
-          <paper-tab id="output-tab">Output</paper-tab>
-          <paper-tab id="graph-tab">Graph</paper-tab>
-        </paper-tabs>
-      </div>
-
-      <iron-pages class="flex-column flex-grow overflow-auto" selected="{{selectedTab}}">
-
-        <!-- iron-page tab 1 -->
-        <div>
-          <br/>
-          <div class="details-table">
-            <div>
-              <span class="key">Status</span>
-              <span class="value">[[jobDetail.status.phase]]</span>
-            </div>
-            <div>
-              <span class="key">Created at</span>
-              <span class="value">[[_formatDateString(jobDetail.metadata.creationTimestamp)]]</span>
-            </div>
-            <div>
-              <span class="key">Started at</span>
-              <span class="value">[[_formatDateString(jobDetail.status.startedAt)]]</span>
-            </div>
-            <div>
-              <span class="key">Finished at</span>
-              <span class="value">[[_formatDateString(jobDetail.status.finishedAt)]]</span>
-            </div>
-            <div>
-              <span class="key">Duration</span>
-              <span class="value">[[_getRuntime(jobDetail.status.startedAt, jobDetail.status.finishedAt, jobDetail.status.phase)]]</span>
-            </div>
-          </div>
-
-          <br/>
-          <br/>
-
-          <div class="param-header">Job Parameters</div>
-          <div class="details-table">
-            <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+            <br/>
+            <div class="details-table">
               <div>
-                <span class="key">[[param.name]]</span>
-                <span class="value">[[param.value]]</span>
+                <span class="key">Status</span>
+                <span class="value">[[jobDetail.status.phase]]</span>
               </div>
-            </template>
+              <div>
+                <span class="key">Created at</span>
+                <span class="value">[[_formatDateString(jobDetail.metadata.creationTimestamp)]]</span>
+              </div>
+              <div>
+                <span class="key">Started at</span>
+                <span class="value">[[_formatDateString(jobDetail.status.startedAt)]]</span>
+              </div>
+              <div>
+                <span class="key">Finished at</span>
+                <span class="value">[[_formatDateString(jobDetail.status.finishedAt)]]</span>
+              </div>
+              <div>
+                <span class="key">Duration</span>
+                <span class="value">[[_getRuntime(jobDetail.status.startedAt, jobDetail.status.finishedAt, jobDetail.status.phase)]]</span>
+              </div>
+            </div>
+
+            <br/>
+            <br/>
+
+            <div class="param-header">Job Parameters</div>
+            <div class="details-table">
+              <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+                <div>
+                  <span class="key">[[param.name]]</span>
+                  <span class="value">[[param.value]]</span>
+                </div>
+              </template>
+            </div>
+
           </div>
 
-        </div>
+          <!-- iron-page tab 2 -->
+          <div class="relative">
+            <div class="overlay" hidden="[[!_loadingOutputs]]">
+              <paper-spinner class="absolute-spinner" active></paper-spinner>
+            </div>
+            <div class="plot-container">
+              <template is="dom-repeat" items="[[outputPlots]]" as="plotMetadata">
+                <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
+              </template>
+            </div>
+          </div>
 
-        <!-- iron-page tab 2 -->
-        <div class="plot-container" loading$="[[_loadingOutputs]]">
-          <paper-spinner class="absolute-spinner" active hidden$="[[!_loadingOutputs]]"></paper-spinner>
-          <template is="dom-repeat" items="[[outputPlots]]" as="plotMetadata">
-            <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
-          </template>
-        </div>
-
-        <!-- iron-page tab 3 -->
-        <job-graph id="jobGraph"></job-graph>
-      </iron-pages>
+          <!-- iron-page tab 3 -->
+          <job-graph id="jobGraph"></job-graph>
+        </iron-pages>
+      </div>
     </div>
 
   </template>

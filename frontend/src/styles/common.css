@@ -44,6 +44,12 @@ iron-icon[icon="error-outline"] {
   color: var(--danger-color);
 }
 
+paper-progress.loading {
+  --paper-progress-active-color: var(--theme-primary-color);
+  height: 1px;
+  width: 100%;
+}
+
 paper-spinner {
   height: 50px;
   width: 50px;
@@ -151,6 +157,16 @@ paper-tab:not(:first-child) {
   overflow: auto;
 }
 
+.overlay {
+  background-color: #00000015;
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 99;
+}
+
 .padded {
   padding: var(--spacing-base);
 }
@@ -186,8 +202,20 @@ paper-tab:not(:first-child) {
 .param-header {
   font-size: var(--font-size-strong);
   font-weight: bold;
-  margin: auto 0;
   padding-right: var(--spacing-minus-1);
+}
+
+.relative {
+  display: flex;
+  flex-grow: 1;
+  position: relative;
+}
+
+.scrollable {
+  display: flex;
+  flex-flow: column;
+  flex-grow: 1;
+  overflow: auto;
 }
 
 .strong {

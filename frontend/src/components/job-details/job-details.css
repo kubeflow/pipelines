@@ -6,7 +6,7 @@
   flex-flow: column;
 }
 
-paper-progress {
+paper-progress.job-progress {
   --paper-progress-active-color: var(--theme-primary-color);
   --paper-progress-height: 10px;
 }
@@ -19,12 +19,6 @@ paper-progress {
   border: solid 1px #ddd;
   flex-grow: 1;
   overflow: auto;
-}
-
-.dimmable-container {
-  display: flex;
-  flex-flow: column;
-  flex-grow: 1;
 }
 
 .job-name {
@@ -50,4 +44,8 @@ paper-progress {
   border-bottom: solid 1px var(--divider-color);
   flex: var(--height-small) 0 0;
   position: relative;
+}
+
+.toolbar {
+  border-bottom: none;
 }

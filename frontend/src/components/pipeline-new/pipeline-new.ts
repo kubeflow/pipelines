@@ -51,6 +51,9 @@ export class PipelineNew extends PageElement {
   @property({ type: Array })
   protected _parameters: Parameter[] = [];
 
+  @property({ type: Boolean })
+  protected _busy = false;
+
   @property({
     computed: '_updateDeployButtonState(_name, _scheduleIsValid)',
     type: Boolean
@@ -60,7 +63,6 @@ export class PipelineNew extends PageElement {
   @property({ type: Boolean })
   protected _scheduleIsValid = true;
 
-  protected _busy = false;
   protected _overwriteData?: NewPipelineData;
 
   public async load(_: string, queryParams: NewPipelineQueryParams,
@@ -178,11 +180,15 @@ export class PipelineNew extends PageElement {
     newPipeline.packageId = this._packageId;
     newPipeline.parameters = this._parameters;
     newPipeline.schedule = (this.$.schedule as PipelineSchedule).scheduleAsUTCCrontab();
+    this._busy = true;
     try {
       await Apis.newPipeline(newPipeline);
       this.dispatchEvent(new RouteEvent('/pipelines'));
+      Utils.showNotification(`Successfully deployed Pipeline!`);
     } catch (err) {
-      Utils.showDialog('There was an error deploying the pipeline.');
+      Utils.showDialog('There was an error deploying the pipeline.', err);
+    } finally {
+      this._busy = false;
     }
   }
 }

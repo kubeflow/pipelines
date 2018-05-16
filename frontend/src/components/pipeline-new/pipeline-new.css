@@ -14,12 +14,3 @@ paper-icon-button, paper-icon-button {
   min-width: 32px;
   padding: 0 var(--spacing-minus-4);
 }
-
-.overlay {
-  background-color: #ffffff78;
-  bottom: 0;
-  left: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-}
