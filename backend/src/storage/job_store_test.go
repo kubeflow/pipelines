@@ -56,7 +56,7 @@ func TestCreateJob(t *testing.T) {
 		Name:             wf1.Name,
 		ScheduledAtInSec: defaultScheduledAtInSec,
 		Status:           model.JobExecutionPending,
-		UpdatedAtInSec:   1,
+		UpdatedAtInSec:   defaultCreatedAtInSec,
 		PipelineID:       1,
 	}
 	wfExpected := createWorkflow(wf1.Name)
@@ -78,25 +78,14 @@ func TestCreateJob_CreateWorkflowFailed(t *testing.T) {
 	store := &JobStore{db: fakeClients.DB(), wfClient: &FakeBadWorkflowClient{}, time: fakeClients.time}
 
 	wf1 := createWorkflow("wf1")
-	jobExpected := model.Job{
-		CreatedAtInSec:   defaultCreatedAtInSec,
-		UpdatedAtInSec:   defaultCreatedAtInSec,
-		Name:             wf1.Name,
-		Status:           model.JobCreationPending,
-		ScheduledAtInSec: defaultScheduledAtInSec,
-		PipelineID:       1,
-	}
-	wfExpected := createWorkflow(wf1.Name)
-	jobDetailExpect := model.JobDetail{
-		Workflow: wfExpected,
-		Job:      &jobExpected}
 
 	jobDetail, err := store.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
-	assert.Nil(t, err)
-	assert.Equal(t, jobDetailExpect, *jobDetail, "Unexpected Job parsed.")
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
+	assert.Nil(t, jobDetail)
 
 	job, err := getJobMetadata(fakeClients.DB(), 1, wf1.Name)
-	assert.Equal(t, jobExpected, *job)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Job wf1 not found.")
+	assert.Nil(t, job)
 }
 
 func TestCreateJob_CreateMetadataError(t *testing.T) {
@@ -150,7 +139,7 @@ func TestListJobs(t *testing.T) {
 	jobsExpected := []model.Job{
 		{
 			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   1,
+			UpdatedAtInSec:   defaultCreatedAtInSec,
 			Name:             jobDetail.Job.Name,
 			Status:           model.JobExecutionPending,
 			ScheduledAtInSec: defaultScheduledAtInSec,
@@ -184,7 +173,7 @@ func TestGetJob(t *testing.T) {
 		Workflow: wf1,
 		Job: &model.Job{
 			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   1,
+			UpdatedAtInSec:   defaultCreatedAtInSec,
 			Status:           model.JobExecutionPending,
 			Name:             createdJobDetail.Job.Name,
 			ScheduledAtInSec: defaultScheduledAtInSec,

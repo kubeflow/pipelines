@@ -20,9 +20,7 @@ import (
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
-	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	k8sclient "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -51,11 +49,23 @@ func (s *JobStore) ListJobs(pipelineId uint32) ([]model.Job, error) {
 // CreateJob create Workflow by calling CRD, and store the metadata to DB
 func (s *JobStore) CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduledAtInSec int64,
 	createdAtInSec int64) (*model.JobDetail, error) {
+
+	// TODO: handle the case where the workflow is created but updating the DB fails. 	
+
+	// Try to schedule the job once
+	newWf, err := s.wfClient.Create(wf)
+	if err != nil {
+		return nil, util.NewInternalServerError(err,
+			"Failed to create an Argo workflow for name (%s), generateName (%s).", wf.Name,
+				wf.GenerateName)
+	}
+
+	// Store the result in the DB
 	job := &model.Job{
 		CreatedAtInSec:   createdAtInSec,
 		UpdatedAtInSec:   createdAtInSec,
-		Name:             wf.Name,
-		Status:           model.JobCreationPending,
+		Name:             newWf.Name,
+		Status:            model.JobExecutionPending,
 		PipelineID:       pipelineId,
 		ScheduledAtInSec: scheduledAtInSec,
 	}
@@ -63,33 +73,7 @@ func (s *JobStore) CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduled
 		return nil, util.NewInternalServerError(r.Error, "Failed to store job metadata: %v",
 			r.Error.Error())
 	}
-	result := &model.JobDetail{Workflow: wf, Job: job}
-
-	// Try schedule the job once
-	newWf, err := s.wfClient.Create(wf)
-	if err != nil {
-		// Not retry nor fail the request if failed to schedule the Argo workflow.
-		// There will be a scheduler that checks jobs that are in pending creation state for long time
-		// and schedule them.
-		// TODO: https://github.com/googleprivate/ml/issues/304
-		glog.Errorf("%+v", errors.Wrapf(err, "Failed to create an Argo workflow for job %s.", wf.Name))
-		return result, nil
-	}
-
-	result.Workflow = newWf
-	job.Status = model.JobExecutionPending
-
-	job, err = s.updateJobStatus(job)
-	if err != nil {
-		// Logs an error but not fail the request.
-		// The scheduler will check if the Argo workflow is created first,
-		// and only update the DB status if already created.
-		// TODO: https://github.com/googleprivate/ml/issues/304
-		glog.Errorf("%+v", errors.Wrapf(err, "Failed to update job status to EXECUTION_PENDING for job %s.", wf.Name))
-		return result, nil
-	}
-
-	result.Job = job
+	result := &model.JobDetail{Workflow: newWf, Job: job}
 	return result, nil
 }
 

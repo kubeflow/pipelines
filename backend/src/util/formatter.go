@@ -30,20 +30,34 @@ func NewWorkflowFormatter(uuid UUIDGeneratorInterface, scheduledAtInSec int64,
 }
 
 func (p *WorkflowFormatter) Format(workflow *v1alpha1.Workflow) error {
-	p.fuseWorkflowNames(workflow)
-	err := p.appendUUIDToWorkflowName(workflow)
+	workflowName := getWorkflowName(workflow)
+	formattedWorkflowName, err := p.formatString(workflowName)
 	if err != nil {
 		return err
 	}
-	err = p.formatWorkflowName(workflow)
-	if err != nil {
-		return err
-	}
+	workflow.GenerateName = formattedWorkflowName
+	workflow.Name = ""
+
 	err = p.formatWorkflowParameters(workflow)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func getWorkflowName(workflow *v1alpha1.Workflow) string {
+
+	const(
+		defaultWorkflowName = "workflow-"
+	)
+
+	if workflow.GenerateName != "" {
+		return workflow.GenerateName
+	}
+	if workflow.Name != "" {
+		return workflow.Name + "-"
+	}
+	return defaultWorkflowName
 }
 
 func (p *WorkflowFormatter) formatWorkflowParameters(workflow *v1alpha1.Workflow) error {
@@ -62,45 +76,6 @@ func (p *WorkflowFormatter) formatWorkflowParameters(workflow *v1alpha1.Workflow
 	}
 
 	workflow.Spec.Arguments.Parameters = newParams
-	return nil
-}
-
-func (p *WorkflowFormatter) fuseWorkflowNames(workflow *v1alpha1.Workflow) {
-
-	if workflow.Name != "" {
-		workflow.GenerateName = ""
-		return
-	}
-
-	if workflow.GenerateName != "" {
-		workflow.Name = workflow.GenerateName
-		workflow.GenerateName = ""
-		return
-	}
-}
-
-func (p *WorkflowFormatter) appendUUIDToWorkflowName(workflow *v1alpha1.Workflow) error {
-	uuid, err := p.uuid.NewRandom()
-	if err != nil {
-		return err
-	}
-
-	if workflow.Name != "" {
-		workflow.Name = workflow.Name + uuid.String()
-		workflow.GenerateName = ""
-		return nil
-	}
-
-	workflow.Name = uuid.String()
-	return nil
-}
-
-func (p *WorkflowFormatter) formatWorkflowName(workflow *v1alpha1.Workflow) error {
-	newName, err := p.formatString(workflow.Name)
-	if err != nil {
-		return err
-	}
-	workflow.Name = newName
 	return nil
 }
 

@@ -107,7 +107,7 @@ func TestCreatePipeline_FormatWorkflow(t *testing.T) {
 	defer store.Close()
 	// Prepare store
 	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name-"},
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-name-"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
@@ -143,7 +143,7 @@ func TestCreatePipeline_FormatWorkflow(t *testing.T) {
 	assert.Equal(t, 1, store.WorkflowClientFake().GetWorkflowCount(), "Unexpected number of workflows.")
 
 	expectedWorkflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name-123e4567-e89b-12d3-a456-426655440000"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name-0"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
@@ -152,7 +152,7 @@ func TestCreatePipeline_FormatWorkflow(t *testing.T) {
 				},
 			}}}
 
-	jobDetail, err := store.JobStore().GetJob(1, "workflow-name-123e4567-e89b-12d3-a456-426655440000")
+	jobDetail, err := store.JobStore().GetJob(1, "workflow-name-0")
 	assert.Equal(t, expectedWorkflow, jobDetail.Workflow)
 }
 
@@ -249,7 +249,7 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	expectedJob1 := &model.Job{
 		Name:             jobDetail1.Workflow.Name,
 		CreatedAtInSec:   2,
-		UpdatedAtInSec:   3,
+		UpdatedAtInSec:   2,
 		Status:           model.JobExecutionPending,
 		ScheduledAtInSec: 5,
 		PipelineID:       1,
@@ -271,8 +271,8 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	assert.Nil(t, err)
 	expectedJob2 := &model.Job{
 		Name:             jobDetail2.Workflow.Name,
-		CreatedAtInSec:   4,
-		UpdatedAtInSec:   5,
+		CreatedAtInSec:   3,
+		UpdatedAtInSec:   3,
 		Status:           model.JobExecutionPending,
 		ScheduledAtInSec: 6,
 		PipelineID:       1,
@@ -317,8 +317,8 @@ func TestListJob(t *testing.T) {
 	jobs, err := manager.ListJobs(pipeline.ID)
 	jobsExpected := []model.Job{{
 		CreatedAtInSec:   4,
-		UpdatedAtInSec:   5,
-		Name:             "123e4567-e89b-12d3-a456-426655440000",
+		UpdatedAtInSec:   4,
+		Name:             "workflow-0",
 		Status:           model.JobExecutionPending,
 		ScheduledAtInSec: 3,
 		PipelineID:       1,
@@ -349,17 +349,17 @@ func TestGetJob(t *testing.T) {
 	pipeline, err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err, "There should not be an error: %v", err)
 
-	job, err := manager.GetJob(pipeline.ID, "123e4567-e89b-12d3-a456-426655440000")
+	job, err := manager.GetJob(pipeline.ID, "workflow-0")
 	jobExpected := &model.Job{
 		CreatedAtInSec:   4,
-		UpdatedAtInSec:   5,
-		Name:             "123e4567-e89b-12d3-a456-426655440000",
+		UpdatedAtInSec:   4,
+		Name:             "workflow-0",
 		Status:           model.JobExecutionPending,
 		ScheduledAtInSec: 3,
 		PipelineID:       1,
 	}
 	assert.Equal(t, jobExpected, job.Job)
-	assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", job.Workflow.Name)
+	assert.Equal(t, "workflow-0", job.Workflow.Name)
 }
 
 func TestGetJob_PipelineNotFoundError(t *testing.T) {

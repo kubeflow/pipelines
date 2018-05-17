@@ -142,7 +142,7 @@ func TestFormatNothingToDoExceptAddUUID(t *testing.T) {
 		getDefaultCreatedAtSec())
 
 	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name-"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
@@ -152,7 +152,7 @@ func TestFormatNothingToDoExceptAddUUID(t *testing.T) {
 			}}}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name-" + defaultUUID},
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-name-"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
@@ -173,7 +173,7 @@ func TestFormatEverytingToChange(t *testing.T) {
 		getDefaultCreatedAtSec())
 
 	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-[[schedule]]-name-"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-[[schedule]]-name"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
@@ -183,7 +183,7 @@ func TestFormatEverytingToChange(t *testing.T) {
 			}}}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-20170706050403-name-" + defaultUUID},
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-name-"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
@@ -204,10 +204,10 @@ func TestFormatOnlyWorkflowName(t *testing.T) {
 		getDefaultCreatedAtSec())
 
 	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-[[schedule]]-name-"}}
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-[[schedule]]-name"}}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-20170706050403-name-" + defaultUUID}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-name-"}}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -224,7 +224,7 @@ func TestFormatOnlyWorkflowGeneratedName(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-[[schedule]]-name-"}}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-20170706050403-name-" + defaultUUID}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-name-"}}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -240,7 +240,7 @@ func TestFormatNoWorkflowNames(t *testing.T) {
 	workflow := &v1alpha1.Workflow{}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: defaultUUID}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-"}}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -255,11 +255,11 @@ func TestFormat2WorkflowNames(t *testing.T) {
 
 	workflow := &v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:         "workflow-[[schedule]]-name-",
+			Name:         "workflow-[[schedule]]-name",
 			GenerateName: "workflow-[[schedule]]-generated-name-"}}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-20170706050403-name-" + defaultUUID}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-20170706050403-generated-name-"}}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -282,7 +282,7 @@ func TestFormatOnlyWorkflowParameters(t *testing.T) {
 			}}}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: defaultUUID},
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
@@ -305,7 +305,7 @@ func TestFormatEmptyWorkflow(t *testing.T) {
 	workflow := &v1alpha1.Workflow{}
 
 	expected := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: defaultUUID}}
+		ObjectMeta: v1.ObjectMeta{GenerateName: "workflow-"}}
 
 	err := formatter.Format(workflow)
 	assert.Nil(t, err)
@@ -323,7 +323,7 @@ func TestFormatError(t *testing.T) {
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
 				Parameters: []v1alpha1.Parameter{
-					{Name: "param1", Value: StringPointer("value1-[[schedule]]")},
+					{Name: "param1", Value: StringPointer("value1-[[schedule]]-[[uuid]]")},
 					{Name: "param2", Value: StringPointer("value2-[[now]]-suffix")},
 				},
 			}}}

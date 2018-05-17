@@ -15,6 +15,8 @@
 package storage
 
 import (
+	"strconv"
+
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -25,15 +27,22 @@ import (
 
 type FakeWorkflowClient struct {
 	workflows map[string]*v1alpha1.Workflow
+	lastGeneratedId int
 }
 
 func NewWorkflowClientFake() *FakeWorkflowClient {
 	return &FakeWorkflowClient{
 		workflows: make(map[string]*v1alpha1.Workflow),
+		lastGeneratedId: -1,
 	}
 }
 
 func (c *FakeWorkflowClient) Create(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+	if workflow.GenerateName != "" {
+		c.lastGeneratedId += 1
+		workflow.Name = workflow.GenerateName + strconv.Itoa(c.lastGeneratedId)
+		workflow.GenerateName = ""
+	}
 	c.workflows[workflow.Name] = workflow
 	return workflow, nil
 }
