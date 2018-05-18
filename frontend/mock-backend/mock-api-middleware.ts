@@ -16,16 +16,23 @@ const apisPrefix = '/apis/v1alpha1';
 
 let tensorboardPod = '';
 
+let apiServerReady = false;
+
+// Simulate API server not ready for 5 seconds
+setTimeout(() => {
+  apiServerReady = true;
+}, 5000);
+
 export default (app) => {
 
   app.set('json spaces', 2);
 
   app.get(apisPrefix + '/healthz', (req, res) => {
-    res.json({
-      buildDate: 'now',
-      commitHash: 'no_commit_hash',
-      version: 'local build',
-    });
+    if (apiServerReady) {
+      res.send();
+    } else {
+      res.status(404).send();
+    }
   });
 
   app.get(apisPrefix + '/pipelines', (req, res) => {

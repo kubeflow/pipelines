@@ -3,6 +3,7 @@ import Storage = require('@google-cloud/storage');
 import express = require('express');
 import fs = require('fs');
 import proxy = require('http-proxy-middleware');
+import fetch from 'node-fetch';
 import path = require('path');
 import process = require('process');
 import tmp = require('tmp');
@@ -34,12 +35,18 @@ app.use(express.static(staticDir));
 
 const apisPrefix = '/apis/v1alpha1';
 
+const healthzStats = {
+  apiServerReady: false,
+  buildDate,
+  commitHash,
+  version,
+};
+
 app.get(apisPrefix + '/healthz', (req, res) => {
-  res.json({
-    buildDate,
-    commitHash,
-    version,
-  });
+  fetch(apiServerAddress + '/healthz', { timeout: 1000 })
+    .then(() => healthzStats.apiServerReady = true)
+    .catch(() => healthzStats.apiServerReady = false)
+    .then(() => res.json(healthzStats));
 });
 
 app.get(apisPrefix + '/artifacts/list/*', async (req, res) => {
