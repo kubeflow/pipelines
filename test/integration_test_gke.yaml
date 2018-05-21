@@ -166,7 +166,7 @@ spec:
       args: [
         "ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts; \
          git clone -b {{inputs.parameters.branch}} git@github.com:googleprivate/ml.git /go/src/ml; \
-         cd /go/src/ml/test/apiserver; \
+         cd /go/src/ml/backend/test; \
          go get -t ./...; \
          go test ./... -namespace {{workflow.name}}"
       ]

@@ -49,7 +49,7 @@ spec:
     container:
       image: golang
       command: [sh, -c]
-      args: ["cd /go/src/ml/test/apiserver; go get -t ./...; go test ./... -namespace {{workflow.name}}"]
+      args: ["cd /go/src/ml/backend/test; go get -t ./...; go test ./... -namespace {{workflow.name}}"]
       volumeMounts:
       - mountPath: /go/src/ml
         name: repo-dir
