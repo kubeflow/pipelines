@@ -115,10 +115,7 @@ export default (app) => {
       res.status(404).send('Cannot find a job with name: ' + jname);
       return;
     }
-    // This simply allows us to have multiple mocked graphs.
-    const mockJobFileName = pid === 1 ?
-      'mock-coinflip-job-runtime.json' : 'mock-xgboost-job-runtime.json';
-    res.json(JSON.parse(fs.readFileSync(`./mock-backend/${mockJobFileName}`, 'utf-8')));
+    res.json(job.jobDetail);
   });
 
   app.get(apisPrefix + '/packages', (req, res) => {
