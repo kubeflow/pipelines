@@ -63,13 +63,17 @@
               </div>
               <div>
                 <span class="key">Created at</span>
-                <span class="value">[[_formatDateString(pipeline.createdAt)]]</span>
+                <span class="value">[[_formatDateInSeconds(pipeline.createdAt)]]</span>
               </div>
 
               <template is="dom-if" if="[[pipeline.schedule]]">
                 <div>
                   <span class="key">Schedule</span>
                   <span class="value">[[pipeline.schedule]]</span>
+                </div>
+                <div>
+                  <span class="key">Enabled</span>
+                  <span class="value">[[_enabledDisplayString(pipeline.schedule, pipeline.enabled)]]</span>
                 </div>
               </template>
 

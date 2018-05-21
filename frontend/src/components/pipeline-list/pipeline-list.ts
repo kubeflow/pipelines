@@ -47,6 +47,7 @@ export class PipelineList extends PageElement {
     { name: 'Package ID', type: ColumnTypeName.NUMBER },
     { name: 'Created at', type: ColumnTypeName.DATE },
     { name: 'Schedule', type: ColumnTypeName.STRING },
+    { name: 'Enabled', type: ColumnTypeName.STRING },
   ];
 
   private _keystrokeDebouncer: Polymer.Debouncer;
@@ -153,8 +154,9 @@ export class PipelineList extends PageElement {
           pipeline.name,
           pipeline.description,
           pipeline.packageId,
-          new Date(pipeline.createdAt * 1000),
+          Utils.formatDateInSeconds(pipeline.createdAt),
           pipeline.schedule,
+          Utils.enabledDisplayString(pipeline.schedule, pipeline.enabled)
         ],
         selected: false,
       });

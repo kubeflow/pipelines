@@ -29,8 +29,19 @@ export function listenOnce(element: Node, eventName: string, cb: Function): void
   element.addEventListener(eventName, listener);
 }
 
+export function enabledDisplayString(schedule: string, enabled: boolean): string {
+  if (schedule) {
+    return enabled ? 'Yes' : 'No';
+  }
+  return '-';
+}
+
 export function formatDateString(date: string): string {
   return date ? new Date(date).toLocaleString() : '-';
+}
+
+export function formatDateInSeconds(dateInSeconds: number): string {
+  return dateInSeconds > 0 ? new Date(dateInSeconds * 1000).toLocaleString() : '-';
 }
 
 export function dateDiffToString(diff: number): string {

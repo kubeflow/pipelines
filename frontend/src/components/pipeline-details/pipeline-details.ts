@@ -126,8 +126,12 @@ export class PipelineDetails extends PageElement {
     }
   }
 
-  protected _formatDateString(date: string): string {
-    return Utils.formatDateString(date);
+  protected _enabledDisplayString(schedule: string, enabled: boolean): string {
+    return Utils.enabledDisplayString(schedule, enabled);
+  }
+
+  protected _formatDateInSeconds(dateInSeconds: number): string {
+    return Utils.formatDateInSeconds(dateInSeconds);
   }
 
   // Pipeline can only be enabled/disabled if there's a schedule

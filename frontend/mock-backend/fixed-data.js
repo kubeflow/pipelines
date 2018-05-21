@@ -85,11 +85,11 @@ fixedData = {
   pipelines: [
     {
       id: 1,
-      createdAt: 1526334129,
+      createdAt: 1526335129,
       name: 'No Jobs',
-      description: 'Try 10 for x',
+      description: 'This pipeline has no jobs',
       packageId: 1,
-      schedule: '30 * * * *',
+      schedule: '30 1 * * * ?',
       enabled: true,
       enabledAt: 1483257600,
       parameters: [
@@ -110,12 +110,12 @@ fixedData = {
     },
     {
       id: 2,
-      createdAt: 1526334129,
+      createdAt: 1526339129,
       name: 'Cannot be deleted - 1',
-      description: 'Try 10 for x',
+      description: 'This pipeline cannot be deleted',
       packageId: 1,
-      schedule: '30 * * * *',
-      enabled: true,
+      schedule: '0 0 * * * ?',
+      enabled: false,
       enabledAt: 1483257600,
       parameters: [
         {
@@ -137,9 +137,9 @@ fixedData = {
       id: 3,
       createdAt: 1526334129,
       name: 'Cannot be deleted - 2',
-      description: 'Try 10 for x',
+      description: 'This pipeline cannot be deleted',
       packageId: 1,
-      schedule: '30 * * * *',
+      schedule: '0 0 0 * * ?',
       enabled: true,
       enabledAt: 1483257600,
       parameters: [
@@ -166,7 +166,7 @@ function generateNPipelines() {
   for (i = fixedData.pipelines.length; i < NUM_DUMMY_PIPELINES + fixedData.pipelines.length; i++) {
     pipelines.push( {
       id: i,
-      createdAt: 1526334129,
+      createdAt: 1526349129,
       description: 'Some description',
       name: 'Pipeline#' + i,
       packageId: (i % 6) + 1,
