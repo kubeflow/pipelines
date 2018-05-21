@@ -1,9 +1,11 @@
 import 'app-route/app-location.html';
 import 'app-route/app-route.html';
 import 'iron-pages/iron-pages.html';
+import 'paper-progress/paper-progress.html';
 import 'paper-styles/paper-styles.html';
 import 'polymer/polymer.html';
 
+import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
@@ -30,6 +32,9 @@ export class AppShell extends Polymer.Element {
   @property({ type: Object })
   public route: object | null = null;
 
+  @property({ type: Boolean })
+  protected _serverNotReady = false;
+
   private _debouncer: Polymer.Debouncer;
 
   static get observers(): string[] {
@@ -41,7 +46,15 @@ export class AppShell extends Polymer.Element {
     this.addEventListener(ROUTE_EVENT, this._routeEventListener.bind(this));
   }
 
-  protected _routePathChanged(newPath: string): void {
+  protected async _routePathChanged(newPath: string): Promise<void> {
+
+    // TODO: Add exponential backoff
+    while (!await Apis.isApiServerReady()) {
+      this._serverNotReady = true;
+      await Utils.wait(500);
+    }
+    this._serverNotReady = false;
+
     // Workaround for https://github.com/PolymerElements/app-route/issues/173
     // to handle navigation events only once.
     this._debouncer = Polymer.Debouncer.debounce(

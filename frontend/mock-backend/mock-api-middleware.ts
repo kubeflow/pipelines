@@ -21,7 +21,7 @@ let apiServerReady = false;
 // Simulate API server not ready for 5 seconds
 setTimeout(() => {
   apiServerReady = true;
-}, 5000);
+}, 15000);
 
 export default (app) => {
 
@@ -36,6 +36,11 @@ export default (app) => {
   });
 
   app.get(apisPrefix + '/pipelines', (req, res) => {
+    if (!apiServerReady) {
+      res.status(404).send();
+      return;
+    }
+
     res.header('Content-Type', 'application/json');
     if (req.query && req.query.filter) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'

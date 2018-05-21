@@ -5,6 +5,12 @@
     <!--Router-->
     <app-location route="{{route}}"></app-location>
 
+    <template is="dom-if" if="[[_serverNotReady]]">
+      <page-error error="Could not reach the backend server. Retrying..">
+      </page-error>
+      <paper-progress indeterminate class="loading"></paper-progress>
+    </template>
+
     <iron-pages id="pages" selected="{{page}}" attr-for-selected="path">
       <pipeline-details path="pipelines/details"></pipeline-details>
       <pipeline-list path="pipelines"></pipeline-list>

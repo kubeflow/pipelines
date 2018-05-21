@@ -16,6 +16,18 @@ async function _fetch(
 }
 
 /**
+ * Checks if the API server is ready for traffic.
+ */
+export async function isApiServerReady(): Promise<boolean> {
+  try {
+    await _fetch('/healthz');
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
  * Gets a list of the pipeline packages defined on the backend.
  */
 export async function getPackages(): Promise<PipelinePackage[]> {
