@@ -59,10 +59,14 @@ func NewResourceNotFoundError(resourceType string, resourceName string) *UserErr
 		codes.NotFound)
 }
 
-func NewInvalidInputError(err error, externalMessage string, internalMessage string) *UserError {
+func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {
+	message := fmt.Sprintf(messageFormat, a...)
+	return newUserError(errors.Errorf("Invalid input error: %v", message), message, codes.InvalidArgument)
+}
+
+func NewInvalidInputErrorWithDetails(err error, externalMessage string) *UserError {
 	return newUserError(
-		errors.Wrapf(err, fmt.Sprintf("InvalidInputError: %v: %v", externalMessage,
-			internalMessage)),
+		errors.Wrapf(err, fmt.Sprintf("InvalidInputError: %v", externalMessage)),
 		externalMessage,
 		codes.InvalidArgument)
 }

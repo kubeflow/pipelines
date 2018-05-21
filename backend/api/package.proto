@@ -40,6 +40,7 @@ message GetPackageRequest {
 message ListPackagesRequest {
   string page_token = 1;
   int32 page_size = 2;
+  string sort_by = 3;
 }
 
 message ListPackagesResponse {

@@ -45,8 +45,8 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) ListPackages() ([]model.Package, error) {
-	return r.packageStore.ListPackages()
+func (r *ResourceManager) ListPackages(pageToken string, pageSize int, sortByFieldName string) (pkgs []model.Package, nextPageToken string, err error) {
+	return r.packageStore.ListPackages(pageToken, pageSize, sortByFieldName)
 }
 
 func (r *ResourceManager) GetPackage(packageId uint32) (*model.Package, error) {
@@ -127,8 +127,8 @@ func (r *ResourceManager) GetPackageTemplate(packageId uint32) ([]byte, error) {
 	return template, nil
 }
 
-func (r *ResourceManager) ListPipelines() ([]model.Pipeline, error) {
-	return r.pipelineStore.ListPipelines()
+func (r *ResourceManager) ListPipelines(pageToken string, pageSize int, sortByFieldName string) (pipelines []model.Pipeline, nextPageToken string, err error) {
+	return r.pipelineStore.ListPipelines(pageToken, pageSize, sortByFieldName)
 }
 
 func (r *ResourceManager) GetPipeline(id uint32) (*model.Pipeline, error) {
@@ -169,10 +169,8 @@ func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipel
 		// Validate the pipeline schedule.
 		_, err := cron.Parse(pipeline.Schedule)
 		if err != nil {
-			error := util.NewInvalidInputError(
-				err,
-				fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err),
-				err.Error())
+			error := util.NewInvalidInputErrorWithDetails(
+				err, fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err))
 			return nil, error
 		}
 	}
@@ -289,12 +287,12 @@ func (r *ResourceManager) GetJob(pipelineId uint32, jobName string) (*model.JobD
 	return r.jobStore.GetJob(pipelineId, jobName)
 }
 
-func (r *ResourceManager) ListJobs(pipelineId uint32) ([]model.Job, error) {
-	_, err := r.pipelineStore.GetPipeline(pipelineId)
+func (r *ResourceManager) ListJobs(pipelineId uint32, pageToken string, pageSize int, sortByFieldName string) (jobs []model.Job, nextPageToken string, err error) {
+	_, err = r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "List jobs failed")
+		return nil, "", util.Wrap(err, "List jobs failed")
 	}
-	return r.jobStore.ListJobs(pipelineId)
+	return r.jobStore.ListJobs(pipelineId, pageToken, pageSize, sortByFieldName)
 }
 
 func (r *ResourceManager) GetPipelineAndLatestJobIterator() (*storage.PipelineAndLatestJobIterator,

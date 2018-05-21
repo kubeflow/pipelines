@@ -27,7 +27,7 @@ func createPkg(name string) *model.Package {
 	return &model.Package{Name: name, Parameters: []model.Parameter{{Name: "param1"}}, Status: model.PackageReady}
 }
 
-func TestListPackages(t *testing.T) {
+func TestListPackages_FilterOutNotReady(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PackageStore().CreatePackage(createPkg("pkg1"))
@@ -47,18 +47,81 @@ func TestListPackages(t *testing.T) {
 		Status:         model.PackageReady}
 	pkgsExpected := []model.Package{expectedPkg1, expectedPkg2}
 
-	pkgs, err := store.PackageStore().ListPackages()
+	pkgs, nextPageToken, err := store.PackageStore().ListPackages("" /*pageToken*/, 10 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
 	assert.Nil(t, err)
-	assert.Equal(t, pkgsExpected, pkgs, "Got unexpected packages.")
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, pkgsExpected, pkgs)
+}
+
+func TestListPackages_Pagination(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	store.PackageStore().CreatePackage(createPkg("pkg2"))
+	store.PackageStore().CreatePackage(createPkg("pkg2"))
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	expectedPkg1 := model.Package{
+		ID:             1,
+		CreatedAtInSec: 1,
+		Name:           "pkg1",
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Status:         model.PackageReady}
+	expectedPkg4 := model.Package{
+		ID:             4,
+		CreatedAtInSec: 4,
+		Name:           "pkg1",
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 4, OwnerType: "packages"}},
+		Status:         model.PackageReady}
+	pkgsExpected := []model.Package{expectedPkg1, expectedPkg4}
+	pkgs, nextPageToken, err := store.PackageStore().ListPackages("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, pkgsExpected, pkgs)
+
+	expectedPkg2 := model.Package{
+		ID:             2,
+		CreatedAtInSec: 2,
+		Name:           "pkg2",
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 2, OwnerType: "packages"}},
+		Status:         model.PackageReady}
+	expectedPkg3 := model.Package{
+		ID:             3,
+		CreatedAtInSec: 3,
+		Name:           "pkg2",
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 3, OwnerType: "packages"}},
+		Status:         model.PackageReady}
+	pkgsExpected2 := []model.Package{expectedPkg2, expectedPkg3}
+
+	pkgs, nextPageToken, err = store.PackageStore().ListPackages(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	assert.Nil(t, err)
+	assert.Empty(t, nextPageToken)
+	assert.Equal(t, pkgsExpected2, pkgs)
+}
+
+func TestListPackages_Pagination_LessThanPageSize(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PackageStore().CreatePackage(createPkg("pkg1"))
+	expectedPkg1 := model.Package{
+		ID:             1,
+		CreatedAtInSec: 1,
+		Name:           "pkg1",
+		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Status:         model.PackageReady}
+	pkgsExpected := []model.Package{expectedPkg1}
+
+	pkgs, nextPageToken, err := store.PackageStore().ListPackages("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, pkgsExpected, pkgs)
 }
 
 func TestListPackagesError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.DB().Close()
-	_, err := store.PackageStore().ListPackages()
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
-		"Expected to list packages to return error")
+	_, _, err := store.PackageStore().ListPackages("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestGetPackage(t *testing.T) {

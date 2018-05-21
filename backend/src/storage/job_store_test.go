@@ -128,15 +128,17 @@ func TestCreateJob_UpdateMetadataFailed(t *testing.T) {
 	assert.Equal(t, jobDetailExpect, *jobDetail)
 }
 
-func TestListJobs(t *testing.T) {
+func TestListJobs_Pagination(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	store.JobStore().CreateJob(2, createWorkflow("wf2"),
+	jobDetail2, err := store.JobStore().CreateJob(1, createWorkflow("wf2"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
+	store.JobStore().CreateJob(2, createWorkflow("wf3"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
-	jobsExpected := []model.Job{
+	expectedFirstPageJobs := []model.Job{
 		{
 			CreatedAtInSec:   defaultCreatedAtInSec,
 			UpdatedAtInSec:   defaultCreatedAtInSec,
@@ -145,19 +147,61 @@ func TestListJobs(t *testing.T) {
 			ScheduledAtInSec: defaultScheduledAtInSec,
 			PipelineID:       1,
 		}}
-	jobs, err := store.JobStore().ListJobs(1)
+	expectedSecondPageJobs := []model.Job{
+		{
+			CreatedAtInSec:   defaultCreatedAtInSec,
+			UpdatedAtInSec:   2,
+			Name:             jobDetail2.Job.Name,
+			Status:           model.JobExecutionPending,
+			ScheduledAtInSec: defaultScheduledAtInSec,
+			PipelineID:       1,
+		}}
+	jobs, nextPageToken, err := store.JobStore().ListJobs(1, "", 1, model.GetJobTablePrimaryKeyColumn())
 	assert.Nil(t, err)
-	assert.Equal(t, jobsExpected, jobs, "Unexpected Job listed.")
+	assert.Equal(t, expectedFirstPageJobs, jobs, "Unexpected Job listed.")
+	assert.NotEmpty(t, nextPageToken)
 
-	jobs, err = store.JobStore().ListJobs(3)
-	assert.Empty(t, jobs)
+	jobs, nextPageToken, err = store.JobStore().ListJobs(1, nextPageToken, 1, model.GetJobTablePrimaryKeyColumn())
+	assert.Nil(t, err)
+	assert.Equal(t, expectedSecondPageJobs, jobs, "Unexpected Job listed.")
+	assert.Empty(t, nextPageToken)
+}
+
+func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
+	jobDetail2, err := store.JobStore().CreateJob(1, createWorkflow("wf2"),
+		defaultScheduledAtInSec, defaultCreatedAtInSec)
+	expectedJobs := []model.Job{
+		{
+			CreatedAtInSec:   defaultCreatedAtInSec,
+			UpdatedAtInSec:   1,
+			Name:             jobDetail.Job.Name,
+			Status:           model.JobExecutionPending,
+			ScheduledAtInSec: defaultScheduledAtInSec,
+			PipelineID:       1,
+		},
+		{
+			CreatedAtInSec:   defaultCreatedAtInSec,
+			UpdatedAtInSec:   2,
+			Name:             jobDetail2.Job.Name,
+			Status:           model.JobExecutionPending,
+			ScheduledAtInSec: defaultScheduledAtInSec,
+			PipelineID:       1,
+		}}
+	jobs, nextPageToken, err := store.JobStore().ListJobs(1, "", 10, model.GetJobTablePrimaryKeyColumn())
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJobs, jobs, "Unexpected Job listed.")
+	assert.Empty(t, nextPageToken)
 }
 
 func TestListJobsError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.DB().Close()
-	_, err := store.JobStore().ListJobs(1)
+	_, _, err := store.JobStore().ListJobs(1, "", 10, model.GetJobTablePrimaryKeyColumn())
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }

@@ -14,6 +14,8 @@
 
 package model
 
+import "fmt"
+
 // PipelineStatus a label for the status of the Pipeline.
 // This is intend to make pipeline creation and deletion atomic.
 type PipelineStatus string
@@ -25,15 +27,23 @@ const (
 )
 
 type Pipeline struct {
-	ID             uint32 `gorm:"primary_key"`
-	CreatedAtInSec int64  `gorm:"not null"`
-	UpdatedAtInSec int64  `gorm:"not null"`
-	Name           string `gorm:"not null"`
-	Description    string
-	PackageId      uint32         `gorm:"not null"`
-	Schedule       string         `gorm:"not null"`
-	Enabled        bool           `gorm:"not null"`
-	EnabledAtInSec int64          `gorm:"not null"`
+	ID             uint32         `gorm:"column:ID; primary_key"`
+	CreatedAtInSec int64          `gorm:"column:CreatedAtInSec; not null"`
+	UpdatedAtInSec int64          `gorm:"column:UpdatedAtInSec; not null"`
+	Name           string         `gorm:"column:Name; not null"`
+	Description    string         `gorm:"column:Description"`
+	PackageId      uint32         `gorm:"column:PackageId; not null"`
+	Schedule       string         `gorm:"column:Schedule; not null"`
+	Enabled        bool           `gorm:"column:Enabled; not null"`
+	EnabledAtInSec int64          `gorm:"column:EnabledAtInSec; not null"`
 	Parameters     []Parameter    `gorm:"polymorphic:Owner;"`
-	Status         PipelineStatus `gorm:"not null"`
+	Status         PipelineStatus `gorm:"column:Status; not null"`
+}
+
+func (p Pipeline) GetValueOfPrimaryKey() string {
+	return fmt.Sprint(p.ID)
+}
+
+func GetPipelineTablePrimaryKeyColumn() string {
+	return "ID"
 }

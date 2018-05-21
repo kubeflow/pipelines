@@ -26,7 +26,7 @@ import (
 
 type JobStoreInterface interface {
 	GetJob(pipelineId uint32, jobName string) (*model.JobDetail, error)
-	ListJobs(pipelineId uint32) ([]model.Job, error)
+	ListJobs(pipelineId uint32, pageToken string, pageSize int, sortByFieldName string) ([]model.Job, string, error)
 	CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduledAtInSec int64, createdAtInSec int64) (
 		*model.JobDetail, error)
 }
@@ -38,12 +38,32 @@ type JobStore struct {
 }
 
 // ListJobs list the job metadata for a pipeline from DB
-func (s *JobStore) ListJobs(pipelineId uint32) ([]model.Job, error) {
+func (s *JobStore) ListJobs(pipelineId uint32, pageToken string, pageSize int, sortByFieldName string) ([]model.Job, string, error) {
+	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetJobTablePrimaryKeyColumn())
+	if err != nil {
+		return nil, "", err
+	}
+	queryJobTable := func(request *PaginationContext) ([]model.ListableDataModel, error) {
+		return s.queryJobTable(pipelineId, request)
+	}
+	models, pageToken, err := listModel(paginationContext, queryJobTable)
+	if err != nil {
+		return nil, "", util.Wrap(err, "List jobs failed.")
+	}
+	return s.toJobs(models), pageToken, err
+}
+
+func (s *JobStore) queryJobTable(pipelineId uint32, context *PaginationContext) ([]model.ListableDataModel, error) {
 	var jobs []model.Job
-	if r := s.db.Where("pipeline_id = ?", pipelineId).Find(&jobs); r.Error != nil {
+	query := s.db.Where("PipelineId = ?", pipelineId)
+	paginationQuery, err := toPaginationQuery(query, context)
+	if err != nil {
+		return nil, util.Wrap(err, "Error creating pagination query when listing jobs.")
+	}
+	if r := paginationQuery.Limit(context.pageSize).Find(&jobs); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list jobs: %v", r.Error.Error())
 	}
-	return jobs, nil
+	return s.toListableModels(jobs), nil
 }
 
 // CreateJob create Workflow by calling CRD, and store the metadata to DB
@@ -100,16 +120,32 @@ func (s *JobStore) GetJob(pipelineId uint32, jobName string) (*model.JobDetail, 
 func (s *JobStore) updateJobStatus(job *model.Job) (*model.Job, error) {
 	newJob := *job
 	newJob.UpdatedAtInSec = s.time.Now().Unix()
-	r := s.db.Exec(`UPDATE jobs SET status = ?, updated_at_in_sec = ? WHERE name = ?`, newJob.Status, newJob.UpdatedAtInSec, newJob.Name)
+	r := s.db.Exec(`UPDATE jobs SET Status = ?, UpdatedAtInSec = ? WHERE Name = ?`, newJob.Status, newJob.UpdatedAtInSec, newJob.Name)
 	if r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to update the job metadata: %s", r.Error.Error())
 	}
 	return &newJob, nil
 }
 
+func (s *JobStore) toListableModels(jobs []model.Job) []model.ListableDataModel {
+	models := make([]model.ListableDataModel, len(jobs))
+	for i := range models {
+		models[i] = jobs[i]
+	}
+	return models
+}
+
+func (s *JobStore) toJobs(models []model.ListableDataModel) []model.Job {
+	jobs := make([]model.Job, len(models))
+	for i := range models {
+		jobs[i] = models[i].(model.Job)
+	}
+	return jobs
+}
+
 func getJobMetadata(db *gorm.DB, pipelineId uint32, jobName string) (*model.Job, error) {
 	job := &model.Job{}
-	result := db.Raw("SELECT * FROM jobs where pipeline_id = ? and name = ?", pipelineId, jobName).Scan(job)
+	result := db.Raw("SELECT * FROM jobs where PipelineId = ? and Name = ?", pipelineId, jobName).Scan(job)
 	if result.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Job", jobName)
 	}

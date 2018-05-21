@@ -21,8 +21,8 @@ const (
 
 type FakeBadPackageStore struct{}
 
-func (s *FakeBadPackageStore) ListPackages() ([]model.Package, error) {
-	return nil, util.NewInternalServerError(errors.New("Error"), "bad package store")
+func (s *FakeBadPackageStore) ListPackages(pageToken string, pageSize int, sortByFieldName string) ([]model.Package, string, error) {
+	return nil, "", util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
 
 func (s *FakeBadPackageStore) GetPackage(packageId uint32) (*model.Package, error) {
@@ -86,8 +86,9 @@ func TestUploadPackage(t *testing.T) {
 			Name:           "hello-world",
 			Parameters:     []model.Parameter{},
 			Status:         model.PackageReady}}
-	pkg, err := store.PackageStore().ListPackages()
+	pkg, str, err := store.PackageStore().ListPackages("" /*pageToken*/, 2 /*pageSize*/, "id" /*sortByFieldName*/)
 	assert.Nil(t, err)
+	assert.Equal(t, str, "")
 	assert.Equal(t, pkg, pkgsExpect)
 }
 

@@ -29,7 +29,7 @@ const (
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines() ([]model.Pipeline, error)
+	ListPipelines(pageToken string, pageSize int, sortByFieldName string) ([]model.Pipeline, string, error)
 	GetPipeline(id uint32) (*model.Pipeline, error)
 	CreatePipeline(*model.Pipeline) (*model.Pipeline, error)
 	DeletePipeline(id uint32) error
@@ -43,21 +43,39 @@ type PipelineStore struct {
 	time util.TimeInterface
 }
 
-func (s *PipelineStore) ListPipelines() ([]model.Pipeline, error) {
+func (s *PipelineStore) ListPipelines(pageToken string, pageSize int, sortByFieldName string) ([]model.Pipeline, string, error) {
+	context, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPipelineTablePrimaryKeyColumn())
+	if err != nil {
+		return nil, "", err
+	}
+	models, pageToken, err := listModel(context, s.queryPipelineTable)
+	if err != nil {
+		return nil, "", util.Wrap(err, "List pipelines failed.")
+	}
+	return s.toPipelines(models), pageToken, err
+}
+
+func (s *PipelineStore) queryPipelineTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var pipelines []model.Pipeline
 	// List the pipelines as well as their parameters.
 	// Preload parameter table first to optimize DB transaction.
-	if r := s.db.Preload("Parameters").Where("status = ?", model.PipelineReady).Find(&pipelines); r.Error != nil {
+	query := s.db.Preload("Parameters").Where("Status = ?", model.PipelineReady)
+	paginationQuery, err := toPaginationQuery(query, context)
+	if err != nil {
+		return nil, util.Wrap(err, "Error creating pagination query when listing pipelines.")
+	}
+
+	if r := paginationQuery.Limit(context.pageSize).Find(&pipelines); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list pipelines: %v",
 			r.Error.Error())
 	}
-	return pipelines, nil
+	return s.toListableModels(pipelines), nil
 }
 
 func (s *PipelineStore) GetPipeline(id uint32) (*model.Pipeline, error) {
 	var pipeline model.Pipeline
 	// Get the pipeline as well as its parameter.
-	r := s.db.Preload("Parameters").Where("status = ?", model.PipelineReady).First(&pipeline, id)
+	r := s.db.Preload("Parameters").Where("Status = ?", model.PipelineReady).First(&pipeline, id)
 	if r.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}
@@ -68,7 +86,7 @@ func (s *PipelineStore) GetPipeline(id uint32) (*model.Pipeline, error) {
 }
 
 func (s *PipelineStore) DeletePipeline(id uint32) error {
-	r := s.db.Exec(`DELETE FROM pipelines WHERE id=?`, id)
+	r := s.db.Exec(`DELETE FROM pipelines WHERE ID=?`, id)
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Failed to delete pipeline: %v", r.Error.Error())
 	}
@@ -126,11 +144,11 @@ func (s *PipelineStore) EnablePipeline(id uint32, enabled bool) error {
 	now := s.time.Now().Unix()
 
 	tx = tx.Exec(`UPDATE pipelines SET 
-			enabled = ?, 
-			enabled_at_in_sec = ?, 
-			updated_at_in_sec = ?  
+			Enabled = ?, 
+			EnabledAtInSec = ?, 
+			UpdatedAtInSec = ?  
 		WHERE 
-			id = ?`, enabled, now, now, id)
+			ID = ?`, enabled, now, now, id)
 
 	if tx.Error != nil {
 		tx.Rollback()
@@ -141,11 +159,27 @@ func (s *PipelineStore) EnablePipeline(id uint32, enabled bool) error {
 }
 
 func (s *PipelineStore) UpdatePipelineStatus(id uint32, status model.PipelineStatus) error {
-	r := s.db.Exec(`UPDATE pipelines SET status=? WHERE id=?`, status, id)
+	r := s.db.Exec(`UPDATE pipelines SET Status=? WHERE Id=?`, status, id)
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Failed to update the pipeline metadata: %s", r.Error.Error())
 	}
 	return nil
+}
+
+func (s *PipelineStore) toListableModels(pipelines []model.Pipeline) []model.ListableDataModel {
+	models := make([]model.ListableDataModel, len(pipelines))
+	for i := range models {
+		models[i] = pipelines[i]
+	}
+	return models
+}
+
+func (s *PipelineStore) toPipelines(models []model.ListableDataModel) []model.Pipeline {
+	pipelines := make([]model.Pipeline, len(models))
+	for i := range models {
+		pipelines[i] = models[i].(model.Pipeline)
+	}
+	return pipelines
 }
 
 // factory function for pipeline store
@@ -190,26 +224,26 @@ func (s *PipelineStore) GetPipelineAndLatestJobIterator() (*PipelineAndLatestJob
 func newPipelineAndLatestJobIterator(db *gorm.DB) (*PipelineAndLatestJobIterator, error) {
 	rows, err := db.Raw(`SELECT 
 		pipelines.ID AS pipeline_id, 
-		pipelines.name AS pipeline_name, 
-		pipelines.schedule AS pipeline_schedule, 
-		jobs.name AS job_name, 
-		MAX(jobs.scheduled_at_in_sec) AS job_scheduled_at_in_sec,
-		pipelines.enabled AS pipeline_enabled,
-		pipelines.enabled_at_in_sec AS pipeline_enabled_at_in_sec
+		pipelines.Name AS pipeline_name, 
+		pipelines.Schedule AS pipeline_schedule, 
+		jobs.Name AS job_name, 
+		MAX(jobs.ScheduledAtInSec) AS job_scheduled_at_in_sec,
+		pipelines.Enabled AS pipeline_enabled,
+		pipelines.EnabledAtInSec AS pipeline_enabled_at_in_sec
 		FROM pipelines
 		LEFT JOIN jobs
-		ON (pipelines.ID=jobs.pipeline_id)
+		ON (pipelines.ID=jobs.PipelineId)
 		WHERE
-			pipelines.schedule != "" AND
-			pipelines.enabled = 1 AND
-			pipelines.status = ?
+			pipelines.Schedule != "" AND
+			pipelines.Enabled = 1 AND
+			pipelines.Status = ?
 		GROUP BY
 			pipelines.ID,
-			pipelines.name,
-			pipelines.schedule,
-			pipelines.enabled,
-			pipelines.enabled_at_in_sec
-		ORDER BY jobs.scheduled_at_in_sec ASC`, model.PipelineReady).Rows()
+			pipelines.Name,
+			pipelines.Schedule,
+			pipelines.Enabled,
+			pipelines.EnabledAtInSec
+		ORDER BY jobs.ScheduledAtInSec ASC`, model.PipelineReady).Rows()
 
 	if err != nil {
 		return nil, err

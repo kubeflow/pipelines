@@ -196,9 +196,9 @@ func (s *OneTimePipelineTestSuite) checkJobSucceed(clientSet *kubernetes.Clients
 }
 
 func getJobStatus(response *api.JobDetail) *v1alpha1.NodePhase {
-	if response.Workflow != nil {
+	if response.Workflow != "" {
 		var workflow v1alpha1.Workflow
-		yaml.Unmarshal(response.Workflow, &workflow)
+		yaml.Unmarshal([]byte(response.Workflow), &workflow)
 		return &workflow.Status.Phase
 	}
 	return nil
@@ -267,9 +267,9 @@ func checkGetJobResponse(t *testing.T, response *api.JobDetail, err error, reque
 	verifyJob(t, response.Job, requestStartTime)
 
 	// The Argo workflow might not be created. Only verify if it's created.
-	if response.Workflow != nil {
+	if response.Workflow != "" {
 		var workflow v1alpha1.Workflow
-		err = yaml.Unmarshal(response.Workflow, &workflow)
+		err = yaml.Unmarshal([]byte(response.Workflow), &workflow)
 		assert.Nil(t, err)
 		// Do some very basic verification to make sure argo workflow is returned
 		assert.Equal(t, response.Job.Name, workflow.Name)

@@ -23,7 +23,7 @@ import (
 )
 
 type PackageStoreInterface interface {
-	ListPackages() ([]model.Package, error)
+	ListPackages(pageToken string, pageSize int, sortByFieldName string) ([]model.Package, string, error)
 	GetPackage(packageId uint32) (*model.Package, error)
 	DeletePackage(packageId uint32) error
 	CreatePackage(*model.Package) (*model.Package, error)
@@ -35,18 +35,34 @@ type PackageStore struct {
 	time util.TimeInterface
 }
 
-func (s *PackageStore) ListPackages() ([]model.Package, error) {
+func (s *PackageStore) ListPackages(pageToken string, pageSize int, sortByFieldName string) ([]model.Package, string, error) {
+	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPackageTablePrimaryKeyColumn())
+	if err != nil {
+		return nil, "", err
+	}
+	models, pageToken, err := listModel(paginationContext, s.queryPackageTable)
+	if err != nil {
+		return nil, "", util.Wrap(err, "List package failed.")
+	}
+	return s.toPackages(models), pageToken, err
+}
+
+func (s *PackageStore) queryPackageTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var packages []model.Package
-	// List all packages.
-	if r := s.db.Preload("Parameters").Where("status = ?", model.PackageReady).Find(&packages); r.Error != nil {
+	query := s.db.Preload("Parameters").Where("Status = ? ", model.PackageReady)
+	paginationQuery, err := toPaginationQuery(query, context)
+	if err != nil {
+		return nil, util.Wrap(err, "Error creating pagination query when listing packages.")
+	}
+	if r := paginationQuery.Limit(context.pageSize).Find(&packages); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list packages: %v", r.Error.Error())
 	}
-	return packages, nil
+	return s.toListablePackages(packages), nil
 }
 
 func (s *PackageStore) GetPackage(id uint32) (*model.Package, error) {
 	var pkg model.Package
-	r := s.db.Preload("Parameters").Where("status = ?", model.PackageReady).First(&pkg, id)
+	r := s.db.Preload("Parameters").Where("Status = ?", model.PackageReady).First(&pkg, id)
 	if r.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
 	}
@@ -58,7 +74,7 @@ func (s *PackageStore) GetPackage(id uint32) (*model.Package, error) {
 }
 
 func (s *PackageStore) DeletePackage(id uint32) error {
-	r := s.db.Exec(`DELETE FROM packages WHERE id=?`, id)
+	r := s.db.Exec(`DELETE FROM packages WHERE ID=?`, id)
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Failed to delete package: %v", r.Error.Error())
 	}
@@ -77,11 +93,27 @@ func (s *PackageStore) CreatePackage(p *model.Package) (*model.Package, error) {
 }
 
 func (s *PackageStore) UpdatePackageStatus(id uint32, status model.PackageStatus) error {
-	r := s.db.Exec(`UPDATE packages SET status=? WHERE id=?`, status, id)
+	r := s.db.Exec(`UPDATE packages SET Status=? WHERE ID=?`, status, id)
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Failed to update the package metadata: %s", r.Error.Error())
 	}
 	return nil
+}
+
+func (s *PackageStore) toListablePackages(pkgs []model.Package) []model.ListableDataModel {
+	models := make([]model.ListableDataModel, len(pkgs))
+	for i := range models {
+		models[i] = pkgs[i]
+	}
+	return models
+}
+
+func (s *PackageStore) toPackages(models []model.ListableDataModel) []model.Package {
+	pkgs := make([]model.Package, len(models))
+	for i := range models {
+		pkgs[i] = models[i].(model.Package)
+	}
+	return pkgs
 }
 
 // factory function for package store

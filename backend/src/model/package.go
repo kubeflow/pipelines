@@ -14,6 +14,10 @@
 
 package model
 
+import (
+	"fmt"
+)
+
 // PackageStatus a label for the status of the Package.
 // This is intend to make package creation and deletion atomic.
 type PackageStatus string
@@ -25,10 +29,18 @@ const (
 )
 
 type Package struct {
-	ID             uint32 `gorm:"primary_key"`
-	CreatedAtInSec int64  `gorm:"not null"`
-	Name           string `gorm:"not null"`
-	Description    string
-	Parameters     []Parameter   `gorm:"polymorphic:Owner;"`
-	Status         PackageStatus `gorm:"not null"`
+	ID             uint32        `gorm:"column:ID; primary_key"`
+	CreatedAtInSec int64         `gorm:"column:CreatedAtInSec; not null"`
+	Name           string        `gorm:"column:Name; not null"`
+	Description    string        `gorm:"column:Description"`
+	Parameters     []Parameter   `gorm:"polymorphic:Owner"`
+	Status         PackageStatus `gorm:"column:Status; not null"`
+}
+
+func (p Package) GetValueOfPrimaryKey() string {
+	return fmt.Sprint(p.ID)
+}
+
+func GetPackageTablePrimaryKeyColumn() string {
+	return "ID"
 }

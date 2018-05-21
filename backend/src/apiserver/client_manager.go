@@ -131,7 +131,7 @@ func initDBClient() *gorm.DB {
 
 	// Create a foreign key so deleting a pipeline will delete all jobs associated with it.
 	response = db.Model(&model.Job{}).
-		AddForeignKey("pipeline_id", "pipelines(id)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+		AddForeignKey("PipelineID", "pipelines(ID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for pipelineId in job table.")
 	}

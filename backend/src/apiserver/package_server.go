@@ -4,9 +4,16 @@ import (
 	"context"
 	"ml/backend/api"
 	"ml/backend/src/resource"
+	"ml/backend/src/util"
 
 	"github.com/golang/protobuf/ptypes/empty"
 )
+
+var packageModelFieldsBySortableAPIFields = map[string]string{
+	"id":         "ID",
+	"name":       "Name",
+	"created_at": "CreatedAtInSec",
+}
 
 type PackageServer struct {
 	resourceManager *resource.ResourceManager
@@ -21,11 +28,15 @@ func (s *PackageServer) GetPackage(ctx context.Context, request *api.GetPackageR
 }
 
 func (s *PackageServer) ListPackages(ctx context.Context, request *api.ListPackagesRequest) (*api.ListPackagesResponse, error) {
-	packages, err := s.resourceManager.ListPackages()
+	sortByModelField, ok := packageModelFieldsBySortableAPIFields[request.SortBy]
+	if request.SortBy != "" && !ok {
+		return nil, util.NewInvalidInputError("Received invalid sort by field %v.", request.SortBy)
+	}
+	packages, nextPageToken, err := s.resourceManager.ListPackages(request.PageToken, int(request.PageSize), sortByModelField)
 	if err != nil {
 		return nil, err
 	}
-	return &api.ListPackagesResponse{Packages: ToApiPackages(packages)}, nil
+	return &api.ListPackagesResponse{Packages: ToApiPackages(packages), NextPageToken: nextPageToken}, nil
 }
 
 func (s *PackageServer) DeletePackage(ctx context.Context, request *api.DeletePackageRequest) (*empty.Empty, error) {

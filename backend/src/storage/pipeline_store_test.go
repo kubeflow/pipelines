@@ -42,7 +42,7 @@ func pipelineExpected1() model.Pipeline {
 		Status:         model.PipelineReady}
 }
 
-func TestListPipelines(t *testing.T) {
+func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
@@ -62,16 +62,81 @@ func TestListPipelines(t *testing.T) {
 			Status:         model.PipelineReady,
 		}}
 
-	pipelines, err := store.PipelineStore().ListPipelines()
+	pipelines, newToken, err := store.PipelineStore().ListPipelines("" /*pageToken*/, 10 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
 	assert.Nil(t, err)
+	assert.Equal(t, "", newToken)
 	assert.Equal(t, pipelinesExpected, pipelines, "Got unexpected pipelines")
 }
 
+func TestListPipelines_Pagination(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline2", 2))
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline2", 2))
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
+	pipelinesExpected := []model.Pipeline{
+		pipelineExpected1(),
+		{
+			ID:             4,
+			CreatedAtInSec: 4,
+			UpdatedAtInSec: 4,
+			Name:           "pipeline1",
+			PackageId:      1,
+			Enabled:        true,
+			EnabledAtInSec: 4,
+			Parameters:     []model.Parameter{},
+			Status:         model.PipelineReady,
+		}}
+	pipelines, nextPageToken, err := store.PipelineStore().ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, pipelinesExpected, pipelines)
+	pipelinesExpected = []model.Pipeline{
+		{
+			ID:             2,
+			CreatedAtInSec: 2,
+			UpdatedAtInSec: 2,
+			Name:           "pipeline2",
+			PackageId:      2,
+			Enabled:        true,
+			EnabledAtInSec: 2,
+			Parameters:     []model.Parameter{},
+			Status:         model.PipelineReady,
+		},
+		{
+			ID:             3,
+			CreatedAtInSec: 3,
+			UpdatedAtInSec: 3,
+			Name:           "pipeline2",
+			PackageId:      2,
+			Enabled:        true,
+			EnabledAtInSec: 3,
+			Parameters:     []model.Parameter{},
+			Status:         model.PipelineReady,
+		}}
+	pipelines, newToken, err := store.PipelineStore().ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	assert.Nil(t, err)
+	assert.Equal(t, "", newToken)
+	assert.Equal(t, pipelinesExpected, pipelines)
+}
+
+func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.PipelineStore().CreatePipeline(createPipeline("pipeline1", 1))
+	pipelineExpected := []model.Pipeline{pipelineExpected1()}
+
+	pipelines, nextPageToken, err := store.PipelineStore().ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
+	assert.Nil(t, err)
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, pipelineExpected, pipelines)
+}
 func TestListPipelinesError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	store.DB().Close()
-	_, err := store.PipelineStore().ListPipelines()
+	_, _, err := store.PipelineStore().ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
 
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to list pipeline to return error")

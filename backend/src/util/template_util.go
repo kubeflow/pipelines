@@ -25,7 +25,7 @@ func GetParameters(template []byte) ([]model.Parameter, error) {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, NewInvalidInputError(err, "Failed to parse the parameter.", err.Error())
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to parse the parameter.")
 	}
 	return model.ToParameters(wf.Spec.Arguments.Parameters), nil
 }

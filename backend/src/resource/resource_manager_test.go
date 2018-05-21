@@ -261,7 +261,7 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	_, err = store.JobStore().GetJob(pipeline.ID, jobDetail1.Workflow.Name)
 	assert.Nil(t, err)
 
-	jobs, err := store.JobStore().ListJobs(pipeline.ID)
+	jobs, _, err := store.JobStore().ListJobs(pipeline.ID, "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 1)
 
@@ -284,7 +284,7 @@ func TestCreateJobFromPipelineID(t *testing.T) {
 	_, err = store.JobStore().GetJob(pipeline.ID, jobDetail2.Workflow.Name)
 	assert.Nil(t, err)
 
-	jobs, err = store.JobStore().ListJobs(pipeline.ID)
+	jobs, _, err = store.JobStore().ListJobs(pipeline.ID, "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 2)
 }
@@ -313,8 +313,7 @@ func TestListJob(t *testing.T) {
 		PackageId: 1}
 	pipeline, err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err, "There should not be an error: %v", err)
-
-	jobs, err := manager.ListJobs(pipeline.ID)
+	jobs, newToken, err := manager.ListJobs(pipeline.ID, "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/)
 	jobsExpected := []model.Job{{
 		CreatedAtInSec:   4,
 		UpdatedAtInSec:   4,
@@ -324,6 +323,8 @@ func TestListJob(t *testing.T) {
 		PipelineID:       1,
 	}}
 
+	assert.Nil(t, err)
+	assert.Equal(t, "", newToken)
 	assert.Equal(t, jobsExpected, jobs)
 }
 
@@ -332,7 +333,7 @@ func TestListJob_PipelineNotFoundError(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	_, err := manager.ListJobs(1)
+	_, _, err := manager.ListJobs(1, "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/)
 	assert.Contains(t, err.Error(), "Pipeline 1 not found")
 }
 

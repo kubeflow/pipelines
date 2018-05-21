@@ -4,9 +4,17 @@ import (
 	"context"
 	"ml/backend/api"
 	"ml/backend/src/resource"
+	"ml/backend/src/util"
 
 	"github.com/golang/protobuf/ptypes/empty"
 )
+
+var pipelineModelFieldsBySortableAPIFields = map[string]string{
+	"id":         "ID",
+	"name":       "Name",
+	"created_at": "CreatedAtInSec",
+	"package_id": "PackageId",
+}
 
 type PipelineServer struct {
 	resourceManager *resource.ResourceManager
@@ -29,11 +37,15 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
-	pipelines, err := s.resourceManager.ListPipelines()
+	sortByModelField, ok := pipelineModelFieldsBySortableAPIFields[request.SortBy]
+	if request.SortBy != "" && !ok {
+		return nil, util.NewInvalidInputError("Received invalid sort by field %v.", request.SortBy)
+	}
+	pipelines, nextPageToken, err := s.resourceManager.ListPipelines(request.PageToken, int(request.PageSize), sortByModelField)
 	if err != nil {
 		return nil, err
 	}
-	return &api.ListPipelinesResponse{Pipelines: ToApiPipelines(pipelines)}, nil
+	return &api.ListPipelinesResponse{Pipelines: ToApiPipelines(pipelines), NextPageToken: nextPageToken}, nil
 }
 
 func (s *PipelineServer) EnablePipeline(ctx context.Context, request *api.EnablePipelineRequest) (*empty.Empty, error) {

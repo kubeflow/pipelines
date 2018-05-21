@@ -14,7 +14,9 @@
 
 package model
 
-import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+import (
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+)
 
 // JobStatus is a label for the status of the job
 type JobStatus string
@@ -26,16 +28,24 @@ const (
 
 // Job metadata of a job.
 type Job struct {
-	Name             string    `gorm:"not null;primary_key"`
-	CreatedAtInSec   int64     `gorm:"not null"`
-	UpdatedAtInSec   int64     `gorm:"not null"`
-	Status           JobStatus `gorm:"not null"`
-	ScheduledAtInSec int64     `gorm:"not null"`
-	PipelineID       uint32    `gorm:"not null"` /* Foreign key */
+	Name             string    `gorm:"column:Name; not null; primary_key"`
+	CreatedAtInSec   int64     `gorm:"column:CreatedAtInSec; not null"`
+	UpdatedAtInSec   int64     `gorm:"column:UpdatedAtInSec; not null"`
+	Status           JobStatus `gorm:"column:Status; not null"`
+	ScheduledAtInSec int64     `gorm:"column:ScheduledAtInSec; not null"`
+	PipelineID       uint32    `gorm:"column:PipelineID; not null"`
 }
 
 // JobDetail a wrapper around both Argo workflow and Job metadata
 type JobDetail struct {
 	Workflow *v1alpha1.Workflow
 	Job      *Job
+}
+
+func (j Job) GetValueOfPrimaryKey() string {
+	return j.Name
+}
+
+func GetJobTablePrimaryKeyColumn() string {
+	return "Name"
 }

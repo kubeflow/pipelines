@@ -17,10 +17,10 @@ package model
 import "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
 type Parameter struct {
-	Name      string `gorm:"not null;primary_key"`
-	Value     *string
-	OwnerID   uint   `gorm:"primary_key;auto_increment:false"` /* Foreign key */
-	OwnerType string `gorm:"primary_key"`
+	Name      string  `gorm:"column:Name; not null;primary_key"`
+	Value     *string `gorm:"column:Value"`
+	OwnerID   uint    `gorm:"column:OwnerID; primary_key; auto_increment:false"` /* Foreign key */
+	OwnerType string  `gorm:"column:OwnerType; primary_key"`
 }
 
 func ToParameters(argoParameters []v1alpha1.Parameter) []Parameter {

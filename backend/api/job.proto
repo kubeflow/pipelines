@@ -28,6 +28,7 @@ message ListJobsRequest {
   uint32 pipeline_id = 1;
   string page_token = 2;
   int32 page_size = 3;
+  string sort_by = 4;
 }
 
 message ListJobsResponse {
