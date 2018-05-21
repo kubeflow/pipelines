@@ -78,7 +78,7 @@ export default (app) => {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
       // This may need to be updated when the backend implements filtering.
       jobs = jobs.filter((j) => j.metadata.name.toLocaleLowerCase().match(
-            decodeURIComponent(req.query.filter).toLocaleLowerCase()));
+          decodeURIComponent(req.query.filter).toLocaleLowerCase()));
     }
     res.json(jobs.map((j) => j.metadata));
   });
@@ -168,6 +168,10 @@ export default (app) => {
     setTimeout(() => {
       res.send('ok');
     }, 1000);
+  });
+
+  app.get('/_componentTests*', (req, res) => {
+    res.sendFile(_path.resolve('test', 'components', 'index.html'));
   });
 
   app.all(apisPrefix + '*', (req, res) => {

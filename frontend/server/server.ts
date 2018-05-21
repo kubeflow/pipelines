@@ -21,11 +21,18 @@ Usage: node server.js <static-dir> [port].
   process.exit(1);
 }
 
-const staticDir = path.resolve(process.argv[2]);
 const currentDir = path.resolve(__dirname);
-const version = fs.readFileSync(path.join(currentDir, 'VERSION'), 'utf-8').trim();
-const buildDate = fs.readFileSync(path.join(currentDir, 'BUILD_DATE'), 'utf-8').trim();
-const commitHash = fs.readFileSync(path.join(currentDir, 'COMMIT_HASH'), 'utf-8').trim();
+const versionPath = path.join(currentDir, 'VERSION');
+const buildDatePath = path.join(currentDir, 'BUILD_DATE');
+const commitHashPath = path.join(currentDir, 'COMMIT_HASH');
+
+const staticDir = path.resolve(process.argv[2]);
+const version =
+    fs.existsSync(versionPath) ? fs.readFileSync(versionPath, 'utf-8').trim() : '';
+const buildDate =
+    fs.existsSync(buildDatePath) ? fs.readFileSync(buildDatePath, 'utf-8').trim() : '';
+const commitHash =
+    fs.existsSync(commitHashPath) ? fs.readFileSync(commitHashPath, 'utf-8').trim() : '';
 const port = process.argv[3] || 3000;
 const apiServerHost = process.env.ML_PIPELINE_SERVICE_HOST || 'localhost';
 const apiServerPort = process.env.ML_PIPELINE_SERVICE_PORT || '3001';

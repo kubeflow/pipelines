@@ -22,6 +22,7 @@
   },
   "scripts": {
     "start": "cd .. && npm start",
+    "component-tests": "wdio components/wdio.conf.js",
     "ui-tests": "wdio ui/wdio.conf.js",
     "unit-tests": "jasmine-ts unit/*.ts",
     "test": "npm run unit-tests & HEADLESS_UI_TESTS=1 npm run ui-tests",
