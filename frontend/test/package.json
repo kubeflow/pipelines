@@ -14,6 +14,7 @@
     "wdio-dot-reporter": "0.0.9",
     "wdio-jasmine-framework": "^0.3.2",
     "wdio-selenium-standalone-service": "0.0.10",
+    "wdio-spec-reporter": "^0.1.4",
     "wdio-visual-regression-service": "^0.8.0",
     "wdio-webcomponents": "^1.1.0",
     "webdrivercss": "github:visualregressiontesting/webdrivercss",

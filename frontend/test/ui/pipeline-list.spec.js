@@ -14,7 +14,6 @@ describe('list pipelines', () => {
     const selector = 'app-shell pipeline-list';
 
     browser.waitForVisible(selector);
-    browser.click(selector);
     assertDiffs(browser.checkDocument());
   });
 
@@ -40,10 +39,12 @@ describe('list pipelines', () => {
   });
 
   it('populates cloned pipeline', () => {
+    // Find a pipeline with package ID of 1 so it can be cloned. The first pipeline works.
+    // TODO: Explore making this more reliable
     const selector = 'app-shell pipeline-list item-list paper-item';
     browser.click(selector);
 
-    const cloneBtnSelector = 'app-shell pipeline-list paper-button:nth-of-type(3)';
+    const cloneBtnSelector = 'app-shell pipeline-list paper-button#cloneBtn';
     browser.click(cloneBtnSelector);
 
     assertDiffs(browser.checkDocument());

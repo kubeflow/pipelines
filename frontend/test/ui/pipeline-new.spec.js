@@ -43,8 +43,6 @@ describe('create new pipeline', () => {
   });
 
   it('populates pipeline details', () => {
-    const selector = 'app-shell pipeline-new paper-item';
-
     // Skip the upload package button
     browser.keys('Tab');
 
@@ -62,6 +60,13 @@ describe('create new pipeline', () => {
 
     browser.keys('Tab');
     browser.keys('test output value');
+
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('enables deploy button', () => {
+    const selector = 'app-shell pipeline-new .scrollable-padded';
+    browser.keys('PageDown');
 
     assertDiffs(browser.checkDocument());
   });

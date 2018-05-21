@@ -11,7 +11,9 @@ describe('view pipeline details', () => {
   });
 
   it('opens pipeline details on double click', () => {
-    const selector = 'app-shell pipeline-list item-list paper-item';
+    // Find a pipeline with jobs that can also be cloned. The 6th pipeline is one.
+    // TODO: Explore making this more reliable
+    const selector = 'app-shell pipeline-list item-list paper-item:nth-of-type(6)';
 
     browser.waitForVisible(selector);
     browser.doubleClick(selector);

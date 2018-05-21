@@ -7,7 +7,7 @@ function assertDiffs(results) {
 describe('view job details', () => {
 
   beforeAll(() => {
-    browser.url('/pipelines/details/1');
+    browser.url('/pipelines/details/10');
   });
 
   it('navigates to job list', () => {
@@ -39,7 +39,8 @@ describe('view job details', () => {
   });
 
   it('highlights a step upon hover', () => {
-    const selector = 'app-shell job-details job-graph .pipeline-node:nth-of-type(4)';
+    // Select a step that will show in the viewport without scrolling.
+    const selector = 'app-shell job-details job-graph .pipeline-node:nth-of-type(5)';
 
     browser.waitForVisible(selector);
     browser.moveToObject(selector, 0, 0);

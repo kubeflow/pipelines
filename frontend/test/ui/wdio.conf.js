@@ -8,12 +8,11 @@ function getScreenshotName(basePath) {
   return function (context) {
     const testName = context.test.title.replace(/ /g, '-');
     const suiteName = path.parse(context.test.file).name;
-    const browserName = context.browser.name;
     const browserViewport = context.meta.viewport;
     const browserWidth = browserViewport.width;
     const browserHeight = browserViewport.height;
 
-    return path.join(basePath, `${suiteName}/${testName}_${browserName}_${browserWidth}x${browserHeight}.png`);
+    return path.join(basePath, `${suiteName}/${testName}_${browserWidth}x${browserHeight}.png`);
   };
 }
 
@@ -39,7 +38,7 @@ exports.config = {
   plugins: {
     'wdio-webcomponents': {},
   },
-  reporters: ['dot'],
+  reporters: ['spec'],
   screenshotPath: './ui/errorShots/',
   services: ['selenium-standalone', 'visual-regression'],
   specs: [
