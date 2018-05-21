@@ -14,11 +14,12 @@
 
 FROM gcr.io/tensorflow/tensorflow:1.5.0
 
-RUN pip install pyyaml==3.12 six==1.11.0
-
-# TODO: Due to a pickling bug that causes image preprocessing failure we have to use HEAD.
-# Install tft 0.6 when it is released.
-RUN pip install https://storage.googleapis.com/ml-pipeline-playground/tensorflow-transform-0.6.0.dev0.tar.gz
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q build-essential && \
+    pip install pyyaml==3.12 six==1.11.0 \
+        tensorflow-transform==0.6.0 \
+        tensorflow-model-analysis==0.6.0 && \
+    apt-get --purge autoremove -y build-essential
 
 ADD build /ml
 WORKDIR /ml

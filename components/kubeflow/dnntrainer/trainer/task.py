@@ -18,6 +18,7 @@ import json
 import os
 import tensorflow as tf
 import tensorflow_transform as tft
+import tensorflow_model_analysis as tfma
 
 from tensorflow.python.lib.io import file_io
 from tensorflow_transform.beam.tft_beam_io import transform_fn_io
@@ -84,15 +85,15 @@ def is_classification(transformed_data_dir, target):
   transformed_feature_spec = transformed_metadata.schema.as_feature_spec()
   if target not in transformed_feature_spec:
     raise ValueError('Cannot find target "%s" in transformed data.' % target)
-    
+
   feature = transformed_feature_spec[target]
   if (not isinstance(feature, tf.FixedLenFeature) or feature.shape != [] or
       feature.dtype not in [tf.int64, tf.float32]):
     raise ValueError('target "%s" is of invalid type.' % target)
-    
+
   if feature.dtype == tf.int64:
     return True
-  
+
   return False
 
 
@@ -198,7 +199,7 @@ def build_feature_columns(schema, transformed_data_dir, target):
       weighted_column = tf.feature_column.weighted_categorical_column(indices_column, name + '_weights')
       indicator_column = tf.feature_column.indicator_column(weighted_column)
       feature_columns.append(indicator_column)
-      
+
   return feature_columns
 
 
@@ -235,6 +236,36 @@ def get_estimator(schema, transformed_data_dir, target_name, output_dir, hidden_
   return estimator
 
 
+def eval_input_receiver_fn(tf_transform_dir, schema, target):
+  """Build everything needed for the tf-model-analysis to run the model.
+  Args:
+    tf_transform_dir: directory in which the tf-transform model was written
+      during the preprocessing step.
+    schema: the raw data schema.
+    target: name of the target column.
+  Returns:
+    EvalInputReceiver function, which contains:
+      - Tensorflow graph which parses raw untranformed features, applies the
+        tf-transform preprocessing operators.
+      - Set of raw, untransformed features.
+      - Label against which predictions will be compared.
+  """
+  raw_metadata = make_tft_input_metadata(schema)
+  raw_feature_spec = raw_metadata.schema.as_feature_spec()
+  serialized_tf_example = tf.placeholder(
+      dtype=tf.string, shape=[None], name='input_example_tensor')
+  features = tf.parse_example(serialized_tf_example, raw_feature_spec)
+  _, transformed_features = (
+      saved_transform_io.partially_apply_saved_transform(
+          os.path.join(tf_transform_dir, transform_fn_io.TRANSFORM_FN_DIR),
+          features))
+  receiver_tensors = {'examples': serialized_tf_example}
+  return tfma.export.EvalInputReceiver(
+      features=transformed_features,
+      receiver_tensors=receiver_tensors,
+      labels=transformed_features[target])
+
+
 def main():
   args = parse_arguments()
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -265,6 +296,14 @@ def main():
   train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, max_steps=args.steps)
   eval_spec = tf.estimator.EvalSpec(input_fn=eval_input_fn, exporters=[exporter])
   tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+
+  eval_model_dir = os.path.join(args.job_dir, 'tfma_eval_model_dir')
+  tfma.export.export_eval_savedmodel(
+      estimator=estimator,
+      export_dir_base=eval_model_dir,
+      eval_input_receiver_fn=(
+          lambda: eval_input_receiver_fn(
+              args.transformed_data_dir, schema, args.target)))
 
 
 if __name__ == '__main__':
