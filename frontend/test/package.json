@@ -8,6 +8,7 @@
     "@types/sinon": "^4.3.0",
     "jasmine": "^2.9.0",
     "jasmine-ts": "^0.2.1",
+    "sinon": "^2.0.0-pre",
     "start-server-and-test": "^1.0.1",
     "ts-node": "^5.0.1",
     "typescript": "^2.7.2",
