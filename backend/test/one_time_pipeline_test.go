@@ -104,19 +104,21 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline() {
 	listPkgResponse, err = s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{})
 	checkListPackagesResponse(t, listPkgResponse, err, requestStartTime)
 
+	packageId := listPkgResponse.Packages[0].Id
+
 	/* ---------- Verify get package works ---------- */
-	getPkgResponse, err := s.packageClient.GetPackage(ctx, &api.GetPackageRequest{Id: 1})
+	getPkgResponse, err := s.packageClient.GetPackage(ctx, &api.GetPackageRequest{Id: packageId})
 	checkGetPackageResponse(t, getPkgResponse, err, requestStartTime)
 
 	/* ---------- Verify get template works ---------- */
-	getTmpResponse, err := s.packageClient.GetTemplate(ctx, &api.GetTemplateRequest{Id: 1})
+	getTmpResponse, err := s.packageClient.GetTemplate(ctx, &api.GetTemplateRequest{Id: packageId})
 	checkGetTemplateResponse(t, getTmpResponse, err)
 
 	/* ---------- Instantiate pipeline using the package ---------- */
 	requestStartTime = time.Now().Unix()
 	pipeline := &api.Pipeline{
 		Name:        "hello-world",
-		PackageId:   1,
+		PackageId:   packageId,
 		Description: "this is my first pipeline",
 		Parameters: []*api.Parameter{
 			{Name: "param1", Value: "goodbye"},
@@ -124,33 +126,34 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline() {
 		},
 	}
 	newPipeline, err := s.pipelineClient.CreatePipeline(ctx, &api.CreatePipelineRequest{Pipeline: pipeline})
-	checkInstantiatePipelineResponse(t, newPipeline, err, requestStartTime)
+	checkInstantiatePipelineResponse(t, newPipeline, err, requestStartTime, packageId)
+	pipelineId := newPipeline.Id
 
 	/* ---------- Verify list pipelines works ---------- */
 	listPipResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
-	checkListPipelinesResponse(t, listPipResponse, err, requestStartTime)
+	checkListPipelinesResponse(t, listPipResponse, err, requestStartTime, packageId)
 
 	/* ---------- Verify get pipeline works ---------- */
-	getPipResponse, err := s.pipelineClient.GetPipeline(ctx, &api.GetPipelineRequest{Id: 1})
-	checkGetPipelineResponse(t, getPipResponse, err, requestStartTime)
+	getPipResponse, err := s.pipelineClient.GetPipeline(ctx, &api.GetPipelineRequest{Id: pipelineId})
+	checkGetPipelineResponse(t, getPipResponse, err, requestStartTime, packageId)
 
 	/* ---------- Verify list job works ---------- */
-	listJobsResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PipelineId: 1})
+	listJobsResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PipelineId: pipelineId})
 	checkListJobsResponse(t, listJobsResponse, err, requestStartTime)
 	jobName := listJobsResponse.Jobs[0].Name
 
 	/* ---------- Verify job complete successfully ---------- */
-	err = s.checkJobSucceed(clientSet, s.namespace, "1", jobName)
+	err = s.checkJobSucceed(clientSet, s.namespace, pipelineId, jobName)
 	if err != nil {
 		assert.Fail(t, "The job doesn't complete. Error: "+err.Error())
 	}
 
 	/* ---------- Verify get job works ---------- */
-	getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: 1, JobName: jobName})
+	getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobName: jobName})
 	checkGetJobResponse(t, getJobResponse, err, requestStartTime)
 
 	/* ---------- Verify delete pipeline works ---------- */
-	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: 1})
+	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: pipelineId})
 	assert.Nil(t, err)
 
 	/* ---------- Verify no pipeline exist ---------- */
@@ -158,11 +161,11 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline() {
 	checkNoPipelineExists(t, listPipResponse, err)
 
 	/* ---------- Verify can't retrieve the job ---------- */
-	_, err = s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: 1, JobName: jobName})
+	_, err = s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobName: jobName})
 	assert.NotNil(t, err)
 
 	/* ---------- Verify delete package works ---------- */
-	_, err = s.packageClient.DeletePackage(ctx, &api.DeletePackageRequest{Id: 1})
+	_, err = s.packageClient.DeletePackage(ctx, &api.DeletePackageRequest{Id: packageId})
 	assert.Nil(t, err)
 
 	/* ---------- Verify no package exist ---------- */
@@ -170,11 +173,11 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline() {
 	checkNoPackageExists(t, listPkgResponse, err)
 }
 
-func (s *OneTimePipelineTestSuite) checkJobSucceed(clientSet *kubernetes.Clientset, namespace string, pipelineId string, jobName string) error {
+func (s *OneTimePipelineTestSuite) checkJobSucceed(clientSet *kubernetes.Clientset, namespace string, pipelineId uint32, jobName string) error {
 	var waitForJobSucceed = func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: 1, JobName: jobName})
+		getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobName: jobName})
 		if err != nil {
 			return errors.New("Can't get job.")
 		}
@@ -239,20 +242,20 @@ func checkGetTemplateResponse(t *testing.T, response *api.GetTemplateResponse, e
 	assert.Equal(t, string(expected), response.Template)
 }
 
-func checkInstantiatePipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64) {
+func checkInstantiatePipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64, expectPkgId uint32) {
 	assert.Nil(t, err)
-	verifyPipeline(t, response, requestStartTime)
+	verifyPipeline(t, response, requestStartTime, expectPkgId)
 }
 
-func checkListPipelinesResponse(t *testing.T, response *api.ListPipelinesResponse, err error, requestStartTime int64) {
+func checkListPipelinesResponse(t *testing.T, response *api.ListPipelinesResponse, err error, requestStartTime int64, expectPkgId uint32) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(response.Pipelines))
-	verifyPipeline(t, response.Pipelines[0], requestStartTime)
+	verifyPipeline(t, response.Pipelines[0], requestStartTime, expectPkgId)
 }
 
-func checkGetPipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64) {
+func checkGetPipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64, expectPkgId uint32) {
 	assert.Nil(t, err)
-	verifyPipeline(t, response, requestStartTime)
+	verifyPipeline(t, response, requestStartTime, expectPkgId)
 }
 
 func checkListJobsResponse(t *testing.T, response *api.ListJobsResponse, err error, requestStartTime int64) {
@@ -268,11 +271,8 @@ func checkGetJobResponse(t *testing.T, response *api.JobDetail, err error, reque
 
 	// The Argo workflow might not be created. Only verify if it's created.
 	if response.Workflow != "" {
-		var workflow v1alpha1.Workflow
-		err = yaml.Unmarshal([]byte(response.Workflow), &workflow)
-		assert.Nil(t, err)
 		// Do some very basic verification to make sure argo workflow is returned
-		assert.Equal(t, response.Job.Name, workflow.Name)
+		assert.Contains(t, response.Workflow, response.Job.Name)
 	}
 }
 
@@ -282,7 +282,7 @@ func verifyPackage(t *testing.T, pkg *api.Package, requestStartTime int64) {
 	assert.NotNil(t, pkg.CreatedAt)
 	assert.True(t, pkg.CreatedAt.GetSeconds() >= requestStartTime)
 	expected := api.Package{
-		Id:        1,
+		Id:        pkg.Id,
 		CreatedAt: &timestamp.Timestamp{Seconds: pkg.CreatedAt.Seconds},
 		Name:      "arguments-parameters.yaml",
 		Parameters: []*api.Parameter{
@@ -293,7 +293,7 @@ func verifyPackage(t *testing.T, pkg *api.Package, requestStartTime int64) {
 	assert.Equal(t, expected, *pkg)
 }
 
-func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64) {
+func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64, expectedPkgId uint32) {
 	assert.NotNil(t, *pipeline)
 	assert.NotNil(t, pipeline.CreatedAt)
 	assert.NotNil(t, pipeline.EnabledAt)
@@ -302,11 +302,11 @@ func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64
 	assert.True(t, pipeline.EnabledAt.Seconds >= requestStartTime)
 
 	expected := api.Pipeline{
-		Id:          1,
+		Id:          pipeline.Id,
 		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAt.Seconds},
 		Name:        "hello-world",
 		Description: "this is my first pipeline",
-		PackageId:   1,
+		PackageId:   expectedPkgId,
 		Enabled:     true,
 		EnabledAt:   &timestamp.Timestamp{Seconds: pipeline.EnabledAt.Seconds},
 		Parameters: []*api.Parameter{
