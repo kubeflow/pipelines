@@ -15,6 +15,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/spf13/viper"
@@ -40,9 +42,16 @@ func initConfig() {
 	})
 }
 
-func getConfig(configName string) string {
+func getStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)
 	}
 	return viper.GetString(configName)
+}
+
+func getDurationConfig(configName string) time.Duration {
+	if !viper.IsSet(configName) {
+		glog.Fatalf("Please specify flag %s", configName)
+	}
+	return viper.GetDuration(configName)
 }

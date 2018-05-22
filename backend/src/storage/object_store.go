@@ -96,6 +96,7 @@ func (m *MinioObjectStore) GetFromYamlFile(o interface{}, folder string, fileNam
 func buildPath(folder, file string) string {
 	return folder + "/" + file
 }
+
 func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string) *MinioObjectStore {
 	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName}
 }

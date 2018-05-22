@@ -6,10 +6,10 @@ import (
 	"io/ioutil"
 	"ml/backend/api"
 	"ml/backend/src/resource"
+	"ml/backend/src/util"
 	"net/http"
 
 	"github.com/golang/glog"
-	"github.com/pkg/errors"
 )
 
 type PackageUploadServer struct {
@@ -20,7 +20,7 @@ func (s *PackageUploadServer) UploadPackage(w http.ResponseWriter, r *http.Reque
 	glog.Infof("Upload package called")
 	file, header, err := r.FormFile("uploadfile")
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.Wrap(err, "Failed to read package form file"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read package form file"))
 		return
 	}
 	defer file.Close()
@@ -28,17 +28,21 @@ func (s *PackageUploadServer) UploadPackage(w http.ResponseWriter, r *http.Reque
 	// Read file to byte array
 	pkgFile, err := ioutil.ReadAll(file)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.Wrap(err, "Error read package bytes"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read package bytes"))
 		return
 	}
 
 	newPkg, err := s.resourceManager.CreatePackage(header.Filename, pkgFile)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.Wrap(err, "Error creating package"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating package"))
 		return
 	}
 
 	pkgJson, err := json.Marshal(ToApiPackage(newPkg))
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating package"))
+		return
+	}
 	w.Write(pkgJson)
 }
 

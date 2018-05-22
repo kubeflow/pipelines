@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"ml/backend/api"
 	"ml/backend/src/model"
+	"ml/backend/src/util"
 
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
 )
 
@@ -28,15 +28,15 @@ func ToApiJobs(jobs []model.Job) []*api.Job {
 	return apiJobs
 }
 
-func ToApiJobDetail(jobDetail *model.JobDetail) *api.JobDetail {
+func ToApiJobDetail(jobDetail *model.JobDetail) (*api.JobDetail, error) {
 	workflow, err := json.Marshal(jobDetail.Workflow)
 	if err != nil {
-		glog.Errorf("Failed to marshal job details back to client.")
+		return nil, util.NewInternalServerError(err, "Failed to marshal job details back to client.")
 	}
 	return &api.JobDetail{
 		Job:      ToApiJob(jobDetail.Job),
 		Workflow: string(workflow),
-	}
+	}, nil
 }
 
 func ToApiPackage(pkg *model.Package) *api.Package {

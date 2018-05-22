@@ -21,7 +21,9 @@ import (
 	"ml/backend/src/model"
 	"ml/backend/src/storage"
 	"ml/backend/src/util"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -29,12 +31,13 @@ import (
 )
 
 const (
-	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost = "MYSQL_SERVICE_HOST"
-	mysqlServicePort = "MYSQL_SERVICE_PORT"
-	podNamespace     = "POD_NAMESPACE"
-	dbName           = "mlpipeline"
+	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
+	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+	podNamespace          = "POD_NAMESPACE"
+	dbName                = "mlpipeline"
+	initConnectionTimeout = "InitConnectionTimeout"
 )
 
 // Container for all service clients
@@ -75,7 +78,7 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 func (c *ClientManager) init() {
 	glog.Infof("Initializing client manager")
 
-	db := initDBClient()
+	db := initDBClient(getDurationConfig(initConnectionTimeout))
 
 	// time
 	c.time = util.NewRealTime()
@@ -92,11 +95,12 @@ func (c *ClientManager) init() {
 	c.pipelineStore = storage.NewPipelineStore(db, c.time)
 
 	// Initialize job store
-	wfClient := client.CreateWorkflowClientOrFatal(getConfig(podNamespace))
+	wfClient := client.CreateWorkflowClientOrFatal(
+		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 	c.jobStore = storage.NewJobStore(db, wfClient, c.time)
 
 	// Initialize package manager.
-	c.objectStore = initMinioClient()
+	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
 
 	glog.Infof("Client manager initialized successfully")
 }
@@ -105,14 +109,13 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func initDBClient() *gorm.DB {
-	driverName := getConfig("DBConfig.DriverName")
+func initDBClient(initConnectionTimeout time.Duration) *gorm.DB {
+	driverName := getStringConfig("DBConfig.DriverName")
 	var arg string
-	var db *gorm.DB
 
 	switch driverName {
 	case "mysql":
-		arg = initMysql(driverName)
+		arg = initMysql(driverName, initConnectionTimeout)
 	default:
 		glog.Fatalf("Driver %v is not supported", driverName)
 	}
@@ -140,13 +143,26 @@ func initDBClient() *gorm.DB {
 
 // Initialize the connection string for connecting to Mysql database
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
-func initMysql(driverName string) string {
+func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
 		"root",
-		getConfig(mysqlServiceHost),
-		getConfig(mysqlServicePort),
+		getStringConfig(mysqlServiceHost),
+		getStringConfig(mysqlServicePort),
 		"")
-	db, err := sql.Open(driverName, mysqlConfig.FormatDSN())
+
+	var db *sql.DB
+	var err error
+	var operation = func() error {
+		db, err = sql.Open(driverName, mysqlConfig.FormatDSN())
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = initConnectionTimeout
+	err = backoff.Retry(operation, b)
+
 	defer db.Close()
 	util.TerminateIfError(err)
 
@@ -157,16 +173,16 @@ func initMysql(driverName string) string {
 	return mysqlConfig.FormatDSN()
 }
 
-func initMinioClient() storage.ObjectStoreInterface {
+func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := getConfig(minioServiceHost)
-	minioServicePort := getConfig(minioServicePort)
-	accessKey := getConfig("ObjectStoreConfig.AccessKey")
-	secretKey := getConfig("ObjectStoreConfig.SecretAccessKey")
-	bucketName := getConfig("ObjectStoreConfig.BucketName")
+	minioServiceHost := getStringConfig(minioServiceHost)
+	minioServicePort := getStringConfig(minioServicePort)
+	accessKey := getStringConfig("ObjectStoreConfig.AccessKey")
+	secretKey := getStringConfig("ObjectStoreConfig.SecretAccessKey")
+	bucketName := getStringConfig("ObjectStoreConfig.BucketName")
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
-		secretKey)
+		secretKey, initConnectionTimeout)
 	createMinioBucket(minioClient, bucketName)
 
 	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName)
