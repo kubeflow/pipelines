@@ -65,6 +65,8 @@ export class PipelineNew extends PageElement {
 
   protected _overwriteData?: NewPipelineData;
 
+  private _schedule: PipelineSchedule;
+
   public async load(_: string, queryParams: NewPipelineQueryParams,
       pipelineData?: NewPipelineData): Promise<void> {
     this._busy = true;
@@ -85,9 +87,9 @@ export class PipelineNew extends PageElement {
     // Reset schedule component on each page load.
     Utils.deleteAllChildren(this.$.schedule as HTMLElement);
 
-    const newSchedule = new PipelineSchedule();
-    this.$.schedule.appendChild(newSchedule);
-    newSchedule.addEventListener(
+    this._schedule = new PipelineSchedule();
+    this.$.schedule.appendChild(this._schedule);
+    this._schedule.addEventListener(
         'schedule-is-valid-changed', this._scheduleValidationUpdated.bind(this));
 
     try {
@@ -128,8 +130,7 @@ export class PipelineNew extends PageElement {
   }
 
   protected _scheduleValidationUpdated(): void {
-    const pipelineSchedule = this.$.schedule as PipelineSchedule;
-    this._scheduleIsValid = pipelineSchedule.scheduleIsValid;
+    this._scheduleIsValid = this._schedule.scheduleIsValid;
   }
 
   // Sets Disabled attribute. true === enabled, false === disabled
@@ -183,7 +184,7 @@ export class PipelineNew extends PageElement {
     newPipeline.createdAt = Math.floor(Date.now() / 1000);
     newPipeline.packageId = this._packageId;
     newPipeline.parameters = this._parameters;
-    newPipeline.schedule = (this.$.schedule as PipelineSchedule).scheduleAsUTCCrontab();
+    newPipeline.schedule = this._schedule.scheduleAsUTCCrontab();
     this._busy = true;
     try {
       await Apis.newPipeline(newPipeline);
