@@ -48,19 +48,20 @@ export class AppShell extends Polymer.Element {
 
   protected async _routePathChanged(newPath: string): Promise<void> {
 
-    // TODO: Add exponential backoff
-    while (!await Apis.isApiServerReady()) {
-      this._serverNotReady = true;
-      await Utils.wait(500);
-    }
-    this._serverNotReady = false;
-
     // Workaround for https://github.com/PolymerElements/app-route/issues/173
     // to handle navigation events only once.
     this._debouncer = Polymer.Debouncer.debounce(
         this._debouncer,
         Polymer.Async.timeOut.after(100),
-        () => {
+        async () => {
+
+          // TODO: Add exponential backoff
+          while (!await Apis.isApiServerReady()) {
+            this._serverNotReady = true;
+            await Utils.wait(2000);
+          }
+          this._serverNotReady = false;
+
           if (newPath !== undefined) {
             const parts = newPath.substr(1).split('/');
             if (parts.length) {

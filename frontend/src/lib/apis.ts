@@ -20,8 +20,8 @@ async function _fetch(
  */
 export async function isApiServerReady(): Promise<boolean> {
   try {
-    await _fetch('/healthz');
-    return true;
+    const healthStats = JSON.parse(await _fetch('/healthz'));
+    return healthStats.apiServerReady;
   } catch (_) {
     return false;
   }
