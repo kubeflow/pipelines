@@ -126,8 +126,7 @@ func initDBClient(initConnectionTimeout time.Duration) *gorm.DB {
 	util.TerminateIfError(err)
 
 	// Create table
-	response := db.AutoMigrate(&model.Package{}, &model.Pipeline{},
-		&model.Parameter{}, &model.Job{})
+	response := db.AutoMigrate(&model.Package{}, &model.Pipeline{}, &model.Job{})
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}

@@ -15,25 +15,32 @@
 package util
 
 import (
-	"ml/backend/src/model"
+	"encoding/json"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 )
 
-func GetParameters(template []byte) ([]model.Parameter, error) {
+func GetParameters(template []byte) (string, error) {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
-		return nil, NewInvalidInputErrorWithDetails(err, "Failed to parse the parameter.")
+		return "", NewInvalidInputErrorWithDetails(err, "Failed to parse the parameter.")
 	}
-	return model.ToParameters(wf.Spec.Arguments.Parameters), nil
+	if wf.Spec.Arguments.Parameters == nil {
+		return "[]", nil
+	}
+	paramBytes, err := json.Marshal(wf.Spec.Arguments.Parameters)
+	if err != nil {
+		return "", NewInvalidInputErrorWithDetails(err, "Failed to parse the parameter.")
+	}
+	return string(paramBytes), nil
 }
 
 // Inject the parameter to the workflow template.
 // If the value of a parameter exists in both template and the parameters to be injected,
 // the latter one will take the precedence and override the template one.
-func InjectParameters(template []byte, parameters []model.Parameter) (*v1alpha1.Workflow, error) {
+func InjectParameters(template []byte, paramsString string) (*v1alpha1.Workflow, error) {
 	var wf v1alpha1.Workflow
 	err := yaml.Unmarshal(template, &wf)
 	if err != nil {
@@ -44,12 +51,13 @@ func InjectParameters(template []byte, parameters []model.Parameter) (*v1alpha1.
 	passedParams := make(map[string]bool)
 
 	// Create argo.Parameter object for the parameters values passed in.
-	for _, param := range parameters {
-		param := v1alpha1.Parameter{
-			Name:  param.Name,
-			Value: param.Value,
+	if paramsString != "" {
+		err = json.Unmarshal([]byte(paramsString), &newParams)
+		if err != nil {
+			return nil, NewBadRequestError(err, "The parameter has invalid format.", err.Error())
 		}
-		newParams = append(newParams, param)
+	}
+	for _, param := range newParams {
 		passedParams[param.Name] = true
 	}
 

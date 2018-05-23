@@ -49,7 +49,7 @@ func (s *PackageStore) ListPackages(pageToken string, pageSize int, sortByFieldN
 
 func (s *PackageStore) queryPackageTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var packages []model.Package
-	query := s.db.Preload("Parameters").Where("Status = ? ", model.PackageReady)
+	query := s.db.Where("Status = ? ", model.PackageReady)
 	paginationQuery, err := toPaginationQuery(query, context)
 	if err != nil {
 		return nil, util.Wrap(err, "Error creating pagination query when listing packages.")
@@ -62,7 +62,7 @@ func (s *PackageStore) queryPackageTable(context *PaginationContext) ([]model.Li
 
 func (s *PackageStore) GetPackage(id uint32) (*model.Package, error) {
 	var pkg model.Package
-	r := s.db.Preload("Parameters").Where("Status = ?", model.PackageReady).First(&pkg, id)
+	r := s.db.Where("Status = ?", model.PackageReady).First(&pkg, id)
 	if r.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
 	}

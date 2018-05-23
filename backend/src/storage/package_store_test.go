@@ -24,7 +24,7 @@ import (
 )
 
 func createPkg(name string) *model.Package {
-	return &model.Package{Name: name, Parameters: []model.Parameter{{Name: "param1"}}, Status: model.PackageReady}
+	return &model.Package{Name: name, Parameters: `[{"Name": "param1"}]`, Status: model.PackageReady}
 }
 
 func TestListPackages_FilterOutNotReady(t *testing.T) {
@@ -37,13 +37,13 @@ func TestListPackages_FilterOutNotReady(t *testing.T) {
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 	expectedPkg2 := model.Package{
 		ID:             2,
 		CreatedAtInSec: 2,
 		Name:           "pkg2",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 2, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 	pkgsExpected := []model.Package{expectedPkg1, expectedPkg2}
 
@@ -64,13 +64,13 @@ func TestListPackages_Pagination(t *testing.T) {
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 	expectedPkg4 := model.Package{
 		ID:             4,
 		CreatedAtInSec: 4,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 4, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 	pkgsExpected := []model.Package{expectedPkg1, expectedPkg4}
 	pkgs, nextPageToken, err := store.PackageStore().ListPackages("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
@@ -82,13 +82,13 @@ func TestListPackages_Pagination(t *testing.T) {
 		ID:             2,
 		CreatedAtInSec: 2,
 		Name:           "pkg2",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 2, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 	expectedPkg3 := model.Package{
 		ID:             3,
 		CreatedAtInSec: 3,
 		Name:           "pkg2",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 3, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 	pkgsExpected2 := []model.Package{expectedPkg2, expectedPkg3}
 
@@ -106,7 +106,7 @@ func TestListPackages_Pagination_LessThanPageSize(t *testing.T) {
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 	pkgsExpected := []model.Package{expectedPkg1}
 
@@ -132,7 +132,7 @@ func TestGetPackage(t *testing.T) {
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady,
 	}
 
@@ -176,7 +176,7 @@ func TestCreatePackage(t *testing.T) {
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 
 	pkg := createPkg("pkg1")
@@ -223,7 +223,7 @@ func TestUpdatePackageStatus(t *testing.T) {
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
-		Parameters:     []model.Parameter{{Name: "param1", OwnerID: 1, OwnerType: "packages"}},
+		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageDeleting,
 	}
 	err = store.PackageStore().UpdatePackageStatus(pkg.ID, model.PackageDeleting)

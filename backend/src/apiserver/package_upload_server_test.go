@@ -98,7 +98,7 @@ func TestUploadPackage(t *testing.T) {
 			ID:             1,
 			CreatedAtInSec: 1,
 			Name:           "hello-world",
-			Parameters:     []model.Parameter{},
+			Parameters:     "[]",
 			Status:         model.PackageReady}}
 	pkg, str, err := store.PackageStore().ListPackages("" /*pageToken*/, 2 /*pageSize*/, "id" /*sortByFieldName*/)
 	assert.Nil(t, err)

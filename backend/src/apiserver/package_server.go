@@ -38,7 +38,7 @@ func (s *PackageServer) GetPackage(ctx context.Context, request *api.GetPackageR
 	if err != nil {
 		return nil, err
 	}
-	return ToApiPackage(pkg), nil
+	return ToApiPackage(pkg)
 }
 
 func (s *PackageServer) ListPackages(ctx context.Context, request *api.ListPackagesRequest) (*api.ListPackagesResponse, error) {
@@ -50,7 +50,11 @@ func (s *PackageServer) ListPackages(ctx context.Context, request *api.ListPacka
 	if err != nil {
 		return nil, err
 	}
-	return &api.ListPackagesResponse{Packages: ToApiPackages(packages), NextPageToken: nextPageToken}, nil
+	apiPackages, err := ToApiPackages(packages)
+	if err != nil {
+		return nil, err
+	}
+	return &api.ListPackagesResponse{Packages: apiPackages, NextPageToken: nextPageToken}, nil
 }
 
 func (s *PackageServer) DeletePackage(ctx context.Context, request *api.DeletePackageRequest) (*empty.Empty, error) {

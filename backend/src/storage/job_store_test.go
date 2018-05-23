@@ -150,7 +150,7 @@ func TestListJobs_Pagination(t *testing.T) {
 	expectedSecondPageJobs := []model.Job{
 		{
 			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   2,
+			UpdatedAtInSec:   defaultCreatedAtInSec,
 			Name:             jobDetail2.Job.Name,
 			Status:           model.JobExecutionPending,
 			ScheduledAtInSec: defaultScheduledAtInSec,
@@ -177,7 +177,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 	expectedJobs := []model.Job{
 		{
 			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   1,
+			UpdatedAtInSec:   defaultCreatedAtInSec,
 			Name:             jobDetail.Job.Name,
 			Status:           model.JobExecutionPending,
 			ScheduledAtInSec: defaultScheduledAtInSec,
@@ -185,7 +185,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 		},
 		{
 			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   2,
+			UpdatedAtInSec:   defaultCreatedAtInSec,
 			Name:             jobDetail2.Job.Name,
 			Status:           model.JobExecutionPending,
 			ScheduledAtInSec: defaultScheduledAtInSec,

@@ -20,6 +20,7 @@ import (
 	"ml/backend/src/model"
 	"ml/backend/src/util"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 )
 
@@ -53,25 +54,37 @@ func ToApiJobDetail(jobDetail *model.JobDetail) (*api.JobDetail, error) {
 	}, nil
 }
 
-func ToApiPackage(pkg *model.Package) *api.Package {
+func ToApiPackage(pkg *model.Package) (*api.Package, error) {
+	params, err := toApiParameters(pkg.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Error convert package DB model to API model.")
+	}
 	return &api.Package{
 		Id:          pkg.ID,
 		CreatedAt:   &timestamp.Timestamp{Seconds: pkg.CreatedAtInSec},
 		Name:        pkg.Name,
 		Description: pkg.Description,
-		Parameters:  toApiParameters(pkg.Parameters),
-	}
+		Parameters:  params,
+	}, nil
 }
 
-func ToApiPackages(pkgs []model.Package) []*api.Package {
+func ToApiPackages(pkgs []model.Package) ([]*api.Package, error) {
 	apiPkgs := make([]*api.Package, 0)
 	for _, pkg := range pkgs {
-		apiPkgs = append(apiPkgs, ToApiPackage(&pkg))
+		apiPkg, err := ToApiPackage(&pkg)
+		if err != nil {
+			return nil, util.Wrap(err, "Error convert packages DB model to API model.")
+		}
+		apiPkgs = append(apiPkgs, apiPkg)
 	}
-	return apiPkgs
+	return apiPkgs, nil
 }
 
-func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
+func ToApiPipeline(pipeline *model.Pipeline) (*api.Pipeline, error) {
+	params, err := toApiParameters(pipeline.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Error convert pipeline DB model to API model.")
+	}
 	return &api.Pipeline{
 		Id:          pipeline.ID,
 		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
@@ -81,19 +94,27 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 		Schedule:    pipeline.Schedule,
 		Enabled:     pipeline.Enabled,
 		EnabledAt:   &timestamp.Timestamp{Seconds: pipeline.EnabledAtInSec},
-		Parameters:  toApiParameters(pipeline.Parameters),
-	}
+		Parameters:  params,
+	}, nil
 }
 
-func ToApiPipelines(pipelines []model.Pipeline) []*api.Pipeline {
+func ToApiPipelines(pipelines []model.Pipeline) ([]*api.Pipeline, error) {
 	apiPipelines := make([]*api.Pipeline, 0)
 	for _, pipeline := range pipelines {
-		apiPipelines = append(apiPipelines, ToApiPipeline(&pipeline))
+		apiPipeline, err := ToApiPipeline(&pipeline)
+		if err != nil {
+			return nil, util.Wrap(err, "Error convert pipelines DB model to API model.")
+		}
+		apiPipelines = append(apiPipelines, apiPipeline)
 	}
-	return apiPipelines
+	return apiPipelines, nil
 }
 
-func ToModelPipeline(pipeline *api.Pipeline) *model.Pipeline {
+func ToModelPipeline(pipeline *api.Pipeline) (*model.Pipeline, error) {
+	params, err := toModelParameters(pipeline.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Error convert pipeline API model to DB model.")
+	}
 	return &model.Pipeline{
 		ID:          pipeline.Id,
 		Name:        pipeline.Name,
@@ -101,12 +122,17 @@ func ToModelPipeline(pipeline *api.Pipeline) *model.Pipeline {
 		PackageId:   pipeline.PackageId,
 		Schedule:    pipeline.Schedule,
 		Enabled:     pipeline.Enabled,
-		Parameters:  toModelParameters(pipeline.Parameters),
-	}
+		Parameters:  params,
+	}, nil
 }
 
-func toApiParameters(params []model.Parameter) []*api.Parameter {
+func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	apiParams := make([]*api.Parameter, 0)
+	var params []v1alpha1.Parameter
+	err := json.Unmarshal([]byte(paramsString), &params)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored.")
+	}
 	for _, param := range params {
 		var value string
 		if param.Value != nil {
@@ -118,17 +144,21 @@ func toApiParameters(params []model.Parameter) []*api.Parameter {
 		}
 		apiParams = append(apiParams, &apiParam)
 	}
-	return apiParams
+	return apiParams, nil
 }
 
-func toModelParameters(params []*api.Parameter) []model.Parameter {
-	modelParams := make([]model.Parameter, 0)
-	for _, param := range params {
-		modelParam := model.Parameter{
-			Name:  param.Name,
-			Value: &param.Value,
+func toModelParameters(apiParams []*api.Parameter) (string, error) {
+	params := make([]v1alpha1.Parameter, 0)
+	for _, apiParam := range apiParams {
+		param := v1alpha1.Parameter{
+			Name:  apiParam.Name,
+			Value: &apiParam.Value,
 		}
-		modelParams = append(modelParams, modelParam)
+		params = append(params, param)
 	}
-	return modelParams
+	paramsBytes, err := json.Marshal(params)
+	if err != nil {
+		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
+	}
+	return string(paramsBytes), nil
 }

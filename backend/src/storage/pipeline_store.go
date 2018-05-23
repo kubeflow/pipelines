@@ -58,8 +58,7 @@ func (s *PipelineStore) ListPipelines(pageToken string, pageSize int, sortByFiel
 func (s *PipelineStore) queryPipelineTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var pipelines []model.Pipeline
 	// List the pipelines as well as their parameters.
-	// Preload parameter table first to optimize DB transaction.
-	query := s.db.Preload("Parameters").Where("Status = ?", model.PipelineReady)
+	query := s.db.Where("Status = ?", model.PipelineReady)
 	paginationQuery, err := toPaginationQuery(query, context)
 	if err != nil {
 		return nil, util.Wrap(err, "Error creating pagination query when listing pipelines.")
@@ -75,7 +74,7 @@ func (s *PipelineStore) queryPipelineTable(context *PaginationContext) ([]model.
 func (s *PipelineStore) GetPipeline(id uint32) (*model.Pipeline, error) {
 	var pipeline model.Pipeline
 	// Get the pipeline as well as its parameter.
-	r := s.db.Preload("Parameters").Where("Status = ?", model.PipelineReady).First(&pipeline, id)
+	r := s.db.Where("Status = ?", model.PipelineReady).First(&pipeline, id)
 	if r.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}

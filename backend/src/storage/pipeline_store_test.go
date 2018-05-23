@@ -26,7 +26,7 @@ import (
 )
 
 func createPipeline(name string, packageId uint32) *model.Pipeline {
-	return &model.Pipeline{Name: name, PackageId: packageId, Parameters: []model.Parameter{}, Status: model.PipelineReady}
+	return &model.Pipeline{Name: name, PackageId: packageId, Status: model.PipelineReady}
 }
 
 func pipelineExpected1() model.Pipeline {
@@ -38,7 +38,6 @@ func pipelineExpected1() model.Pipeline {
 		PackageId:      1,
 		Enabled:        true,
 		EnabledAtInSec: 1,
-		Parameters:     []model.Parameter{},
 		Status:         model.PipelineReady}
 }
 
@@ -58,7 +57,6 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 			PackageId:      2,
 			Enabled:        true,
 			EnabledAtInSec: 2,
-			Parameters:     []model.Parameter{},
 			Status:         model.PipelineReady,
 		}}
 
@@ -85,7 +83,6 @@ func TestListPipelines_Pagination(t *testing.T) {
 			PackageId:      1,
 			Enabled:        true,
 			EnabledAtInSec: 4,
-			Parameters:     []model.Parameter{},
 			Status:         model.PipelineReady,
 		}}
 	pipelines, nextPageToken, err := store.PipelineStore().ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
@@ -101,7 +98,6 @@ func TestListPipelines_Pagination(t *testing.T) {
 			PackageId:      2,
 			Enabled:        true,
 			EnabledAtInSec: 2,
-			Parameters:     []model.Parameter{},
 			Status:         model.PipelineReady,
 		},
 		{
@@ -112,7 +108,6 @@ func TestListPipelines_Pagination(t *testing.T) {
 			PackageId:      2,
 			Enabled:        true,
 			EnabledAtInSec: 3,
-			Parameters:     []model.Parameter{},
 			Status:         model.PipelineReady,
 		}}
 	pipelines, newToken, err := store.PipelineStore().ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
@@ -306,7 +301,7 @@ func TestEnablePipelineDatabaseError(t *testing.T) {
 func TestUpdatePipelineStatus(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	pipeline, err := store.PipelineStore().CreatePipeline(&model.Pipeline{Name: "pipeline1", PackageId: 1, Parameters: []model.Parameter{}, Status: model.PipelineCreating})
+	pipeline, err := store.PipelineStore().CreatePipeline(&model.Pipeline{Name: "pipeline1", PackageId: 1, Status: model.PipelineCreating})
 	assert.Nil(t, err)
 	err = store.PipelineStore().UpdatePipelineStatus(pipeline.ID, model.PipelineReady)
 

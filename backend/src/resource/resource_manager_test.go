@@ -75,11 +75,9 @@ func TestCreatePipeline_NoSchedule(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 
 	pipeline := &model.Pipeline{
-		Name:      "MY_PIPELINE",
-		PackageId: 1,
-		Parameters: []model.Parameter{
-			{Name: "param1", Value: util.StringPointer("replacedvalue1")},
-		}}
+		Name:       "MY_PIPELINE",
+		PackageId:  1,
+		Parameters: `[{"Name": "param1", "Value": "replacedvalue1"}]`}
 	pipeline, err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
 
@@ -92,10 +90,8 @@ func TestCreatePipeline_NoSchedule(t *testing.T) {
 		Schedule:       "",
 		Enabled:        true,
 		EnabledAtInSec: 2,
-		Parameters: []model.Parameter{
-			{Name: "param1", Value: util.StringPointer("replacedvalue1"), OwnerID: 1, OwnerType: "pipelines"},
-		},
-		Status: model.PipelineReady}
+		Parameters:     `[{"Name": "param1", "Value": "replacedvalue1"}]`,
+		Status:         model.PipelineReady}
 
 	assert.Equalf(t, expected, *pipeline, "Unexpected pipeline structure. Expect %v. Got %v.",
 		expected, *pipeline)
@@ -509,8 +505,8 @@ func TestCreatePackage(t *testing.T) {
 		ID:             1,
 		CreatedAtInSec: 1,
 		Name:           "package1",
+		Parameters:     "[]",
 		Status:         model.PackageReady,
-		Parameters:     []model.Parameter{},
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, pkgExpected, pkg)

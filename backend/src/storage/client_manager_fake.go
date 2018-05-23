@@ -57,9 +57,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	}
 
 	// Create tables
-	db.AutoMigrate(&model.Package{}, &model.Pipeline{},
-		&model.Parameter{}, &model.Job{})
-
+	db.AutoMigrate(&model.Package{}, &model.Pipeline{}, &model.Job{})
 	workflowClient := NewWorkflowClientFake()
 
 	return &FakeClientManager{

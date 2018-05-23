@@ -24,6 +24,7 @@ import (
 	"net/http"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 )
 
 type PackageUploadServer struct {
@@ -51,8 +52,12 @@ func (s *PackageUploadServer) UploadPackage(w http.ResponseWriter, r *http.Reque
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating package"))
 		return
 	}
-
-	pkgJson, err := json.Marshal(ToApiPackage(newPkg))
+	apiPkg, err := ToApiPackage(newPkg)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.Wrap(err, "Error creating package"))
+		return
+	}
+	pkgJson, err := json.Marshal(apiPkg)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating package"))
 		return

@@ -35,11 +35,15 @@ type PipelineServer struct {
 }
 
 func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.CreatePipelineRequest) (*api.Pipeline, error) {
-	newPipeline, err := s.resourceManager.CreatePipeline(ToModelPipeline(request.Pipeline))
+	pipelines, err := ToModelPipeline(request.Pipeline)
 	if err != nil {
 		return nil, err
 	}
-	return ToApiPipeline(newPipeline), nil
+	newPipeline, err := s.resourceManager.CreatePipeline(pipelines)
+	if err != nil {
+		return nil, err
+	}
+	return ToApiPipeline(newPipeline)
 }
 
 func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {
@@ -47,7 +51,7 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 	if err != nil {
 		return nil, err
 	}
-	return ToApiPipeline(pipeline), nil
+	return ToApiPipeline(pipeline)
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
@@ -59,7 +63,11 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 	if err != nil {
 		return nil, err
 	}
-	return &api.ListPipelinesResponse{Pipelines: ToApiPipelines(pipelines), NextPageToken: nextPageToken}, nil
+	apiPipelines, err := ToApiPipelines(pipelines)
+	if err != nil {
+		return nil, err
+	}
+	return &api.ListPipelinesResponse{Pipelines: apiPipelines, NextPageToken: nextPageToken}, nil
 }
 
 func (s *PipelineServer) EnablePipeline(ctx context.Context, request *api.EnablePipelineRequest) (*empty.Empty, error) {
