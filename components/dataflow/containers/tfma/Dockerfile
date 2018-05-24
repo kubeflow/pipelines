@@ -1,4 +1,3 @@
-#!/bin/bash -e
 # Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM ml-pipeline-dataflow-base
 
-mkdir -p ./build
-rsync -arvp "../../tft"/ ./build/
-rsync -arvp "../../tfma"/ ./build/
-rsync -arvp "../../predict"/ ./build/
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q build-essential && \
+    pip install tensorflow-model-analysis==0.6.0 && \
+    apt-get --purge autoremove -y build-essential
 
-docker build -t ml-pipeline-dataflow-base .
-rm -rf ./build
+WORKDIR /ml
 
+ENTRYPOINT ["python", "/ml/model_analysis.py"]

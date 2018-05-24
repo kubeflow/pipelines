@@ -34,6 +34,7 @@ argo submit kubeflow-training-regression.yaml \
      -p train=gs://ml-pipeline-playground/taxi/train.csv \
      -p eval=gs://ml-pipeline-playground/taxi/eval.csv \
      -p target=fare \
+     -p analyze-slice-column=company \
      -p hidden-layer-size="1500" \
      -p steps=3000 \
      -p learning-rate=0.1 \
