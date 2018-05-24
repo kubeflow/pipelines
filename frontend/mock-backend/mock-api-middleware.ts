@@ -21,7 +21,7 @@ let apiServerReady = false;
 // Simulate API server not ready for 5 seconds
 setTimeout(() => {
   apiServerReady = true;
-}, 15000);
+}, 5000);
 
 export default (app) => {
 
@@ -29,7 +29,7 @@ export default (app) => {
 
   app.get(apisPrefix + '/healthz', (req, res) => {
     if (apiServerReady) {
-      res.send();
+      res.send({ apiServerReady });
     } else {
       res.status(404).send();
     }
