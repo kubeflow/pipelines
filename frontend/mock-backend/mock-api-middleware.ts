@@ -1,3 +1,4 @@
+import * as express from 'express';
 import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
@@ -26,6 +27,7 @@ setTimeout(() => {
 export default (app) => {
 
   app.set('json spaces', 2);
+  app.use(express.json());
 
   app.get(apisPrefix + '/healthz', (req, res) => {
     if (apiServerReady) {
@@ -50,6 +52,18 @@ export default (app) => {
     } else {
       res.json(fixedData.pipelines);
     }
+  });
+
+  app.post(apisPrefix + '/pipelines', (req, res) => {
+    const pipeline = req.body;
+    pipeline.id = fixedData.pipelines.length;
+    pipeline.createdAt = Math.floor(Date.now() / 1000);
+    pipeline.jobs = [];
+    pipeline.enabled = !!pipeline.schedule;
+    fixedData.pipelines.push(pipeline);
+    setTimeout(() => {
+      res.send(fixedData.pipelines[0]);
+    }, 1000);
   });
 
   app.all(apisPrefix + '/pipelines/:pid', (req, res) => {

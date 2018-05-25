@@ -143,10 +143,10 @@ export class ItemListElement extends Polymer.Element {
   _showFilterBox = false;
 
   @property({ computed: '_computeIsAllSelected(selectedIndices)', type: Boolean })
-  _isAllSelected: boolean;
+  _isAllSelected = false;
 
   @property({ computed: '_computeHideCheckboxes(disableSelection, noMultiselect)', type: Boolean })
-  _hideCheckboxes: boolean;
+  _hideCheckboxes = false;
 
   private _currentSort = {
     asc: true,   // ascending or descending

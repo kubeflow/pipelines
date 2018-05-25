@@ -126,7 +126,7 @@ const data = {
           value: 'gs://path-to-my-project',
         }
       ],
-      jobs,
+      jobs: [],
     },
     {
       id: 2,
