@@ -23,22 +23,22 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-type ScheduleV1alpha1Interface interface {
+type ScheduledworkflowV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	SchedulesGetter
+	ScheduledWorkflowsGetter
 }
 
-// ScheduleV1alpha1Client is used to interact with features provided by the schedule.kubeflow.org group.
-type ScheduleV1alpha1Client struct {
+// ScheduledworkflowV1alpha1Client is used to interact with features provided by the scheduledworkflow.kubeflow.org group.
+type ScheduledworkflowV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *ScheduleV1alpha1Client) Schedules(namespace string) ScheduleInterface {
-	return newSchedules(c, namespace)
+func (c *ScheduledworkflowV1alpha1Client) ScheduledWorkflows(namespace string) ScheduledWorkflowInterface {
+	return newScheduledWorkflows(c, namespace)
 }
 
-// NewForConfig creates a new ScheduleV1alpha1Client for the given config.
-func NewForConfig(c *rest.Config) (*ScheduleV1alpha1Client, error) {
+// NewForConfig creates a new ScheduledworkflowV1alpha1Client for the given config.
+func NewForConfig(c *rest.Config) (*ScheduledworkflowV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -47,12 +47,12 @@ func NewForConfig(c *rest.Config) (*ScheduleV1alpha1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ScheduleV1alpha1Client{client}, nil
+	return &ScheduledworkflowV1alpha1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new ScheduleV1alpha1Client for the given config and
+// NewForConfigOrDie creates a new ScheduledworkflowV1alpha1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *ScheduleV1alpha1Client {
+func NewForConfigOrDie(c *rest.Config) *ScheduledworkflowV1alpha1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -60,9 +60,9 @@ func NewForConfigOrDie(c *rest.Config) *ScheduleV1alpha1Client {
 	return client
 }
 
-// New creates a new ScheduleV1alpha1Client for the given RESTClient.
-func New(c rest.Interface) *ScheduleV1alpha1Client {
-	return &ScheduleV1alpha1Client{c}
+// New creates a new ScheduledworkflowV1alpha1Client for the given RESTClient.
+func New(c rest.Interface) *ScheduledworkflowV1alpha1Client {
+	return &ScheduledworkflowV1alpha1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -80,7 +80,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *ScheduleV1alpha1Client) RESTClient() rest.Interface {
+func (c *ScheduledworkflowV1alpha1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

@@ -18,49 +18,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-// SchedulePhase summarizes the state of the schedule.
-type SchedulePhase string
-
-// Schedule phases
-const (
-	ScheduleEnabled   SchedulePhase = "Enabled"
-	ScheduleDisabled  SchedulePhase = "Disabled"
-	ScheduleRunning   SchedulePhase = "Running"
-	ScheduleSucceeded SchedulePhase = "Succeeded"
-	ScheduleError     SchedulePhase = "Error"
+	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Schedule is a specification for a Schedule resource
-type Schedule struct {
+// ScheduledWorkflow is a specification for a ScheduledWorkflow resource
+type ScheduledWorkflow struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ScheduleSpec   `json:"spec"`
-	Status ScheduleStatus `json:"status"`
+	Spec   ScheduledWorkflowSpec   `json:"spec"`
+	Status ScheduledWorkflowStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ScheduleList is a list of Schedule resources
-type ScheduleList struct {
+// ScheduledWorkflowList is a list of ScheduledWorkflow resources
+type ScheduledWorkflowList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []Schedule `json:"items"`
+	Items []ScheduledWorkflow `json:"items"`
 }
 
-// ScheduleSpec is the spec for a Schedule resource
-type ScheduleSpec struct {
-
-	// A human readable description of the schedule.
-	Description string `json:"description,omitempty"`
-
+// ScheduledWorkflowSpec is the spec for a ScheduledWorkflow resource
+type ScheduledWorkflowSpec struct {
 	// If the schedule is disabled, it does not create any new workflow.
 	Enabled bool `json:"enabled,omitempty"`
 
@@ -94,7 +79,7 @@ type WorkflowResource struct {
 	// The parameter values may include special strings that the controller will substitute:
 	// [[ScheduledTime]] is substituted by the scheduled time of the workflow (default format)
 	// [[CurrentTime]] is substituted by the current time (default format)
-	// [[Index]] is substituted by the index of the workflow (e.g. 3 mins that it was the 3rd workflow created)
+	// [[Index]] is substituted by the index of the workflow (e.g. 3 means that it was the 3rd workflow created)
 	// [[ScheduledTime.15-04-05]] is substituted by the sheduled time (custom format specified as a Go time format: https://golang.org/pkg/time/#Parse)
 	// [[CurrentTime.15-04-05]] is substituted by the current time (custom format specified as a Go time format: https://golang.org/pkg/time/#Parse)
 
@@ -131,7 +116,7 @@ type CronSchedule struct {
 	StartTime *metav1.Time `json:"startTime,omitempty"`
 
 	// Time at which scheduling ends.
-	// If not end time is specified, the EndTime is the end of time.
+	// If no end time is specified, the EndTime is the end of time.
 	// +optional
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 
@@ -148,7 +133,7 @@ type PeriodicSchedule struct {
 	StartTime *metav1.Time `json:"startTime,omitempty"`
 
 	// Time at which scheduling ends.
-	// If not end time is specified, the EndTime is the end of time.
+	// If no end time is specified, the EndTime is the end of time.
 	// +optional
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 
@@ -158,22 +143,48 @@ type PeriodicSchedule struct {
 	IntervalSecond int64 `json:"intervalSecond,omitempty"`
 }
 
-// ScheduleStatus is the status for a Schedule resource.
-type ScheduleStatus struct {
-	// Time at which this schedule was last updated.
-	UpdatedAt metav1.Time `json:"updatedAt,omitempty"`
+// ScheduledWorkflowStatus is the status for a ScheduledWorkflow resource.
+type ScheduledWorkflowStatus struct {
 
-	// Status is a simple, high-level summary of the state of the schedule.
-	Status SchedulePhase `json:"status,omitempty"`
-
-	// Message provides additional information about the state of the schedule (if needed).
-	Message string `json:"message,omitempty"`
+	// The latest available observations of an object's current state.
+	// +optional
+	Conditions []ScheduledWorkflowCondition `json:"conditions,omitempty"`
 
 	// TriggerStatus provides status info depending on the type of triggering.
 	Trigger TriggerStatus `json:"trigger,omitempty"`
 
 	// Status of workflow resources.
 	WorkflowHistory *WorkflowHistory `json:"workflowHistory,omitempty"`
+}
+
+type ScheduledWorkflowConditionType string
+
+// These are valid conditions of a ScheduledWorkflow.
+const (
+	ScheduledWorkflowEnabled   ScheduledWorkflowConditionType = "Enabled"
+	ScheduledWorkflowDisabled  ScheduledWorkflowConditionType = "Disabled"
+	ScheduledWorkflowRunning   ScheduledWorkflowConditionType = "Running"
+	ScheduledWorkflowSucceeded ScheduledWorkflowConditionType = "Succeeded"
+	ScheduledWorkflowError     ScheduledWorkflowConditionType = "Error"
+)
+
+type ScheduledWorkflowCondition struct {
+	// Type of job condition, Complete or Failed.
+	Type ScheduledWorkflowConditionType `json:"type,omitempty"`
+	// Status of the condition, one of True, False, Unknown.
+	Status api.ConditionStatus `json:"status,omitempty"`
+	// Last time the condition was checked.
+	// +optional
+	LastProbeTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
+	// Last time the condition transit from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	// (brief) reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Human readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
 type TriggerStatus struct {
@@ -185,7 +196,6 @@ type TriggerStatus struct {
 
 	// Index of the last workflow created.
 	LastIndex *int64 `json:lastWorkflowIndex,omitempty`
-
 }
 
 type WorkflowHistory struct {

@@ -17,7 +17,7 @@
 package versioned
 
 import (
-	schedulev1alpha1 "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/typed/schedule/v1alpha1"
+	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -25,27 +25,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	ScheduleV1alpha1() schedulev1alpha1.ScheduleV1alpha1Interface
+	ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Schedule() schedulev1alpha1.ScheduleV1alpha1Interface
+	Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	scheduleV1alpha1 *schedulev1alpha1.ScheduleV1alpha1Client
+	scheduledworkflowV1alpha1 *scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Client
 }
 
-// ScheduleV1alpha1 retrieves the ScheduleV1alpha1Client
-func (c *Clientset) ScheduleV1alpha1() schedulev1alpha1.ScheduleV1alpha1Interface {
-	return c.scheduleV1alpha1
+// ScheduledworkflowV1alpha1 retrieves the ScheduledworkflowV1alpha1Client
+func (c *Clientset) ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
+	return c.scheduledworkflowV1alpha1
 }
 
-// Deprecated: Schedule retrieves the default version of ScheduleClient.
+// Deprecated: Scheduledworkflow retrieves the default version of ScheduledworkflowClient.
 // Please explicitly pick a version.
-func (c *Clientset) Schedule() schedulev1alpha1.ScheduleV1alpha1Interface {
-	return c.scheduleV1alpha1
+func (c *Clientset) Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
+	return c.scheduledworkflowV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -64,7 +64,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.scheduleV1alpha1, err = schedulev1alpha1.NewForConfig(&configShallowCopy)
+	cs.scheduledworkflowV1alpha1, err = scheduledworkflowv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.scheduleV1alpha1 = schedulev1alpha1.NewForConfigOrDie(c)
+	cs.scheduledworkflowV1alpha1 = scheduledworkflowv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -89,7 +89,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.scheduleV1alpha1 = schedulev1alpha1.New(c)
+	cs.scheduledworkflowV1alpha1 = scheduledworkflowv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

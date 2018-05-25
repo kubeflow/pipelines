@@ -19,69 +19,69 @@ package v1alpha1
 import (
 	time "time"
 
-	schedule_v1alpha1 "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	scheduledworkflow_v1alpha1 "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	versioned "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/kubeflow/pipelines/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/kubeflow/pipelines/pkg/client/listers/schedule/v1alpha1"
+	v1alpha1 "github.com/kubeflow/pipelines/pkg/client/listers/scheduledworkflow/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// ScheduleInformer provides access to a shared informer and lister for
-// Schedules.
-type ScheduleInformer interface {
+// ScheduledWorkflowInformer provides access to a shared informer and lister for
+// ScheduledWorkflows.
+type ScheduledWorkflowInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.ScheduleLister
+	Lister() v1alpha1.ScheduledWorkflowLister
 }
 
-type scheduleInformer struct {
+type scheduledWorkflowInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewScheduleInformer constructs a new informer for ScheduledWorkflow type.
+// NewScheduledWorkflowInformer constructs a new informer for ScheduledWorkflow type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewScheduleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredScheduleInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewScheduledWorkflowInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredScheduledWorkflowInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredScheduleInformer constructs a new informer for ScheduledWorkflow type.
+// NewFilteredScheduledWorkflowInformer constructs a new informer for ScheduledWorkflow type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredScheduleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredScheduledWorkflowInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ScheduleV1alpha1().Schedules(namespace).List(options)
+				return client.ScheduledworkflowV1alpha1().ScheduledWorkflows(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ScheduleV1alpha1().Schedules(namespace).Watch(options)
+				return client.ScheduledworkflowV1alpha1().ScheduledWorkflows(namespace).Watch(options)
 			},
 		},
-		&schedule_v1alpha1.ScheduledWorkflow{},
+		&scheduledworkflow_v1alpha1.ScheduledWorkflow{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *scheduleInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredScheduleInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *scheduledWorkflowInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredScheduledWorkflowInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *scheduleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&schedule_v1alpha1.ScheduledWorkflow{}, f.defaultInformer)
+func (f *scheduledWorkflowInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&scheduledworkflow_v1alpha1.ScheduledWorkflow{}, f.defaultInformer)
 }
 
-func (f *scheduleInformer) Lister() v1alpha1.ScheduleLister {
-	return v1alpha1.NewScheduleLister(f.Informer().GetIndexer())
+func (f *scheduledWorkflowInformer) Lister() v1alpha1.ScheduledWorkflowLister {
+	return v1alpha1.NewScheduledWorkflowLister(f.Informer().GetIndexer())
 }

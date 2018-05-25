@@ -18,8 +18,8 @@ package fake
 
 import (
 	clientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
-	schedulev1alpha1 "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/typed/schedule/v1alpha1"
-	fakeschedulev1alpha1 "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/typed/schedule/v1alpha1/fake"
+	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
+	fakescheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -69,12 +69,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// ScheduleV1alpha1 retrieves the ScheduleV1alpha1Client
-func (c *Clientset) ScheduleV1alpha1() schedulev1alpha1.ScheduleV1alpha1Interface {
-	return &fakeschedulev1alpha1.FakeScheduleV1alpha1{Fake: &c.Fake}
+// ScheduledworkflowV1alpha1 retrieves the ScheduledworkflowV1alpha1Client
+func (c *Clientset) ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
+	return &fakescheduledworkflowv1alpha1.FakeScheduledworkflowV1alpha1{Fake: &c.Fake}
 }
 
-// Schedule retrieves the ScheduleV1alpha1Client
-func (c *Clientset) Schedule() schedulev1alpha1.ScheduleV1alpha1Interface {
-	return &fakeschedulev1alpha1.FakeScheduleV1alpha1{Fake: &c.Fake}
+// Scheduledworkflow retrieves the ScheduledworkflowV1alpha1Client
+func (c *Clientset) Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
+	return &fakescheduledworkflowv1alpha1.FakeScheduledworkflowV1alpha1{Fake: &c.Fake}
 }

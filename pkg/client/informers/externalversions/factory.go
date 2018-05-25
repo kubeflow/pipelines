@@ -23,7 +23,7 @@ import (
 
 	versioned "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/kubeflow/pipelines/pkg/client/informers/externalversions/internalinterfaces"
-	schedule "github.com/kubeflow/pipelines/pkg/client/informers/externalversions/schedule"
+	scheduledworkflow "github.com/kubeflow/pipelines/pkg/client/informers/externalversions/scheduledworkflow"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -170,9 +170,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Schedule() schedule.Interface
+	Scheduledworkflow() scheduledworkflow.Interface
 }
 
-func (f *sharedInformerFactory) Schedule() schedule.Interface {
-	return schedule.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Scheduledworkflow() scheduledworkflow.Interface {
+	return scheduledworkflow.New(f, f.namespace, f.tweakListOptions)
 }
