@@ -20,6 +20,8 @@
       </paper-button>
     </div>
 
+    <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
+
     <div class="relative">
       <div class="overlay" hidden="[[!_busy]]">
         <paper-spinner class="absolute-spinner" active></paper-spinner>
@@ -30,8 +32,6 @@
         </item-list>
       </div>
     </div>
-
-    <page-error id="pageErrorElement" error="[[_pageError]]"></page-error>
 
   </template>
 </dom-module>
