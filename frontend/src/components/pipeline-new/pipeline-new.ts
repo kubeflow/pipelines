@@ -11,7 +11,7 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-import { customElement, property } from 'polymer-decorators/src/decorators';
+import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { Parameter } from '../../model/parameter';
@@ -55,7 +55,7 @@ export class PipelineNew extends PageElement {
   protected _busy = false;
 
   @property({
-    computed: '_updateDeployButtonState(_name, _scheduleIsValid)',
+    computed: '_updateDeployButtonState(_packageIndex, _name, _scheduleIsValid)',
     type: Boolean
   })
   protected _inputIsValid = true;
@@ -70,27 +70,13 @@ export class PipelineNew extends PageElement {
   public async load(_: string, queryParams: NewPipelineQueryParams,
       pipelineData?: NewPipelineData): Promise<void> {
     this._busy = true;
+
+    // Clear previous state.
+    this._reset();
+
     this._overwriteData = pipelineData;
-    const packageList = this.$.packagesListbox as PaperListboxElement;
-
-    // Clear package selection on each component load
-    packageList.select(-1);
-    this._parameters = [];
-    this._packageId = -1;
-
-    // Initialize input to valid to avoid error messages on page load.
-    (this.$.name as PaperInputElement).invalid = false;
-
     this._packageId =
         this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1;
-
-    // Reset schedule component on each page load.
-    Utils.deleteAllChildren(this.$.schedule as HTMLElement);
-
-    this._schedule = new PipelineSchedule();
-    this.$.schedule.appendChild(this._schedule);
-    this._schedule.addEventListener(
-        'schedule-is-valid-changed', this._scheduleValidationUpdated.bind(this));
 
     try {
       this.packages = await Apis.getPackages();
@@ -99,27 +85,22 @@ export class PipelineNew extends PageElement {
         // Try to match incoming Pipeline's package to known package.
         this.packages.forEach((p, i) => {
           if (p.id === +this._packageId) {
-            // This will cause the observer below to fire before continuing to
-            // overwrite the data below.
+            // This will cause the observer below to fire before continuing to overwrite the data
+            // below.
             this._packageIndex = i;
           }
         });
       }
       if (this._overwriteData) {
         this._packageId = this._overwriteData.packageId;
-        // Augment the list of parameters with the overwrite data parameters. To
-        // achieve this, first deep clone the parameters array, then for each
-        // parameter, check if there one with the same name in the overwrite
-        // data, Object.assign them.
-        this._parameters = this._parameters || [];
-        const augmentedParams = this._parameters.map((p) => ({ ...p }));
+        // Augment the list of parameters with the overwrite data parameters. To achieve this, check
+        // if there one with the same name in the overwrite data, Object.assign them.
         this._overwriteData.parameters.forEach((p) => {
-          const param = augmentedParams.filter((_p) => _p.name === p.name);
-          if (param.length === 1) {
-            param[0] = Object.assign(param[0], p);
+          let param = this._parameters.find((_p) => _p.name === p.name);
+          if (param) {
+            param = Object.assign(param, p);
           }
         });
-        this._parameters = augmentedParams;
       }
     } catch (err) {
       this.showPageError('There was an error while loading packages.');
@@ -127,6 +108,9 @@ export class PipelineNew extends PageElement {
     } finally {
       this._busy = false;
     }
+
+    // Reset focus to Pipeline name. Called last to avoid focusing being taken by property changes.
+    (this.$.name as PaperInputElement).focus();
   }
 
   protected _scheduleValidationUpdated(): void {
@@ -134,17 +118,16 @@ export class PipelineNew extends PageElement {
   }
 
   // Sets Disabled attribute. true === enabled, false === disabled
-  protected _updateDeployButtonState(pipelineName: string, scheduleIsValid: boolean): boolean {
-    return !!pipelineName && scheduleIsValid;
+  protected _updateDeployButtonState(
+      packageIndex: number, pipelineName: string, scheduleIsValid: boolean): boolean {
+    return packageIndex >= 0 && !!pipelineName && scheduleIsValid;
   }
 
-  protected _packageSelectionChanged(ev: CustomEvent): void {
-    // paper-listbox has a known issue where changing the selected item results in two events being
-    // fired, one of which has no data.
-    // See: https://github.com/PolymerElements/iron-selector/issues/170
-    if (ev.detail.value) {
-      this._packageId = ev.detail.value.packageId;
-      this._parameters = ev.detail.value.parameters;
+  @observe('_packageIndex')
+  protected _packageSelectionChanged(newIndex: number): void {
+    if (newIndex >= 0) {
+      this._packageId = this.packages[newIndex].id;
+      this._parameters = this.packages[newIndex].parameters || [];
     }
   }
 
@@ -195,5 +178,28 @@ export class PipelineNew extends PageElement {
     } finally {
       this._busy = false;
     }
+  }
+
+  private _reset(): void {
+    this._name = '';
+    this._description = '';
+    this._pageError = '';
+
+    // Clear package selection on each component load
+    const packageList = this.$.packagesListbox as PaperListboxElement;
+    packageList.select(-1);
+    this._parameters = [];
+    this._packageId = -1;
+
+    // Initialize input to valid to avoid error messages on page load.
+    (this.$.name as PaperInputElement).invalid = false;
+
+    // Reset schedule component.
+    Utils.deleteAllChildren(this.$.schedule as HTMLElement);
+
+    this._schedule = new PipelineSchedule();
+    this.$.schedule.appendChild(this._schedule);
+    this._schedule.addEventListener(
+        'schedule-is-valid-changed', this._scheduleValidationUpdated.bind(this));
   }
 }

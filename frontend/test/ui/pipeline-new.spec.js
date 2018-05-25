@@ -71,5 +71,26 @@ describe('create new pipeline', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('resets the page when the user navigates away', () => {
+    // Select a package
+    const backSelector = 'app-shell pipeline-new paper-icon-button';
+    browser.waitForVisible(backSelector);
+    browser.click(backSelector);
+
+    const newPipelineSelector = 'app-shell pipeline-list paper-button#newBtn'
+    browser.waitForVisible(newPipelineSelector);
+    browser.click(newPipelineSelector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
+  // TODO: Add test for cloning a pipeline with no params after a selecting a package with params.
+
+  // TODO: Add test for test pipeline deployment failure by making a package that always fails when
+  // used in pipeline deployment.
+
+  // TODO: Add test for error reset. Try to deploy package that always fails, take a screenshot of
+  // the error, navigate away then back, and make sure the error is gone.
+
   // TODO: mock POST for deploying the pipeline is not supported yet.
 });

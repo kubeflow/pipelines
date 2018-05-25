@@ -53,8 +53,8 @@
     </style>
 
     <div class="flex">
-      <paper-dropdown-menu class="input-field-large" label="Type">
-        <paper-listbox slot="dropdown-content" class="dropdown-content"
+      <paper-dropdown-menu id="scheduleTypeDropdown" class="input-field-large" label="Type">
+        <paper-listbox id="scheduleTypeListbox" slot="dropdown-content" class="dropdown-content"
                        selected="{{_scheduleTypeIndex}}">
           <template is="dom-repeat" items="[[_SCHEDULES]]" as="schedule">
             <paper-item>[[schedule]]</paper-item>

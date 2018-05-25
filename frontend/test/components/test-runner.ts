@@ -22,6 +22,7 @@ const mochaOptions: MochaSetupOptions = {
 mocha.setup(mochaOptions);
 
 import './item-list-test';
+import './pipeline-new-test';
 
 mocha.run(() => {
   // This div can be waited on by the browser automation script to identify the

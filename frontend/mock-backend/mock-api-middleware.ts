@@ -4,7 +4,7 @@ import proxyMiddleware from '../server/proxy-middleware';
 
 const prefix = __dirname + '/pipeline-data';
 
-const fixedData = require('./fixed-data');
+const fixedData = require('./fixed-data').data;
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocDataPath = './eval-output/roc.csv';

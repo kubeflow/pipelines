@@ -1,15 +1,10 @@
-const fs = require('fs');
+const coinflipJob = require('./mock-coinflip-job-runtime.json');
+const xgboostJob = require('./mock-xgboost-job-runtime.json');
 
 // The number of simple, dummy Pipelines that will be appended to the list.
 const NUM_DUMMY_PIPELINES = 15;
 
-const coinflipJob =
-    JSON.parse(fs.readFileSync(`./mock-backend/mock-coinflip-job-runtime.json`, 'utf-8'));
-
-const xgboostJob =
-    JSON.parse(fs.readFileSync(`./mock-backend/mock-xgboost-job-runtime.json`, 'utf-8'));
-
-jobs = [
+const jobs = [
   {
     metadata: {
       id: 1,
@@ -39,71 +34,96 @@ jobs = [
   },
 ];
 
-fixedData = {
-  packages: [
+const examplePackage = {
+  id: 1,
+  createdAt: 1526334129,
+  name: 'Unstructured text',
+  description: 'An awesome unstructured text pipeline package.',
+  parameters: [
     {
-      id: 0,
-      createdAt: 1526334129,
-      name: 'Unstructured text',
-      description: 'An awesome unstructured text pipeline package.',
-      parameters: [
-        {
-          name: 'x',
-          description: 'The x parameter description.'
-        },
-        {
-          name: 'y',
-          description: 'The y parameter description. This can be very long!'
-        },
-        {
-          name: 'output',
-          description: 'The base output path',
-        }
-      ]
+      name: 'x',
+      description: 'The x parameter description.'
     },
     {
-      id: 1,
-      createdAt: 1526334129,
-      name: 'Image classification',
-      description: 'An awesome image classification pipeline package.',
-      parameters: [
-        {
-          name: 'x',
-          description: 'The x parameter'
-        },
-        {
-          name: 'y',
-          description: 'The y parameter'
-        },
-        {
-          name: 'output',
-          description: 'The base output path',
-        }
-      ]
+      name: 'y',
+      description: 'The y parameter description. This can be very long!'
+    },
+    {
+      name: 'output',
+      description: 'The base output path',
     }
-  ],
+  ]
+};
+
+const examplePackage2 = {
+  id: 2,
+  createdAt: 1526334129,
+  name: 'Image classification',
+  description: 'An awesome image classification pipeline package.',
+  parameters: [
+    {
+      name: 'project',
+      description: 'The name of the GCP project'
+    },
+    {
+      name: 'workers',
+      description: 'The number of workers'
+    },
+    {
+      name: 'rounds',
+      description: 'The number of rounds'
+    },
+    {
+      name: 'output',
+      description: 'The base output path',
+    }
+  ]
+};
+
+const noParamsPackage = {
+  id: 3,
+  createdAt: 1526354129,
+  name: 'No parameters',
+  description: 'This package has no parameters',
+  parameters: []
+};
+
+const undefinedParamsPackage = {
+  id: 4,
+  createdAt: 1526356129,
+  name: 'Undefined parameters',
+  description: 'This package has undefined parameters',
+  parameters: undefined
+}
+
+const data = {
+  packages: [ examplePackage, examplePackage2, noParamsPackage, undefinedParamsPackage ],
   pipelines: [
     {
       id: 1,
       createdAt: 1526335129,
       name: 'No Jobs',
       description: 'This pipeline has no jobs',
-      packageId: 1,
+      packageId: 2,
       schedule: '30 1 * * * ?',
       enabled: true,
       enabledAt: 1483257600,
       parameters: [
         {
-          name: 'x',
-          value: 10
+          name: 'project',
+          value: 'my-cloud-project'
         },
         {
-          name: 'y',
-          value: 20
+          name: 'workers',
+          value: 6
+        },
+        {
+          name: 'rounds',
+          value: 25
         },
         {
           name: 'output',
-          value: 'some-output-path',
+          value: 'gs://path-to-my-project',
         }
       ],
       jobs,
@@ -138,22 +158,26 @@ fixedData = {
       createdAt: 1526334129,
       name: 'Cannot be deleted - 2',
       description: 'This pipeline cannot be deleted',
-      packageId: 1,
+      packageId: 2,
       schedule: '0 0 0 * * ?',
       enabled: true,
       enabledAt: 1483257600,
       parameters: [
         {
-          name: 'x',
-          value: 10
+          name: 'project',
+          value: 'my-other-cloud-project'
         },
         {
-          name: 'y',
-          value: 20
+          name: 'workers',
+          value: 12
+        },
+        {
+          name: 'rounds',
+          value: 50
         },
         {
           name: 'output',
-          value: 'some-output-path',
+          value: 'gs://path-to-my-other-project',
         }
       ],
       jobs: [],
@@ -163,7 +187,7 @@ fixedData = {
 
 function generateNPipelines() {
   pipelines = [];
-  for (i = fixedData.pipelines.length; i < NUM_DUMMY_PIPELINES + fixedData.pipelines.length; i++) {
+  for (i = data.pipelines.length; i < NUM_DUMMY_PIPELINES + data.pipelines.length; i++) {
     pipelines.push( {
       id: i,
       createdAt: 1526349129,
@@ -175,12 +199,20 @@ function generateNPipelines() {
       enabledAt: -1,
       parameters: [
         {
-          name: 'x',
-          value: 10
+          name: 'project',
+          value: 'my-cloud-project'
+        },
+        {
+          name: 'workers',
+          value: 6
+        },
+        {
+          name: 'rounds',
+          value: 25
         },
         {
           name: 'output',
-          value: 'some-output-path',
+          value: 'gs://path-to-my-project',
         }
       ],
       jobs,
@@ -189,7 +221,15 @@ function generateNPipelines() {
   return pipelines;
 }
 
-fixedData.pipelines.push(...generateNPipelines());
+data.pipelines.push(...generateNPipelines());
 
-module.exports = fixedData;
+module.exports = {
+  data,
+  namedPackages: {
+    examplePackage,
+    examplePackage2,
+    noParamsPackage,
+    undefinedParamsPackage
+  }
+};
 
