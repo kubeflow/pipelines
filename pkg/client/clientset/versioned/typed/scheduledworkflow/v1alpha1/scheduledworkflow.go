@@ -25,14 +25,14 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// SchedulesGetter has a method to return a ScheduleInterface.
+// ScheduledWorkflowsGetter has a method to return a ScheduledWorkflowInterface.
 // A group's client should implement this interface.
-type SchedulesGetter interface {
-	Schedules(namespace string) ScheduleInterface
+type ScheduledWorkflowsGetter interface {
+	ScheduledWorkflows(namespace string) ScheduledWorkflowInterface
 }
 
-// ScheduleInterface has methods to work with ScheduledWorkflow resources.
-type ScheduleInterface interface {
+// ScheduledWorkflowInterface has methods to work with ScheduledWorkflow resources.
+type ScheduledWorkflowInterface interface {
 	Create(*v1alpha1.ScheduledWorkflow) (*v1alpha1.ScheduledWorkflow, error)
 	Update(*v1alpha1.ScheduledWorkflow) (*v1alpha1.ScheduledWorkflow, error)
 	Delete(name string, options *v1.DeleteOptions) error
@@ -41,29 +41,29 @@ type ScheduleInterface interface {
 	List(opts v1.ListOptions) (*v1alpha1.ScheduledWorkflowList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ScheduledWorkflow, err error)
-	ScheduleExpansion
+	ScheduledWorkflowExpansion
 }
 
-// schedules implements ScheduleInterface
-type schedules struct {
+// scheduledWorkflows implements ScheduledWorkflowInterface
+type scheduledWorkflows struct {
 	client rest.Interface
 	ns     string
 }
 
-// newSchedules returns a Schedules
-func newSchedules(c *ScheduleV1alpha1Client, namespace string) *schedules {
-	return &schedules{
+// newScheduledWorkflows returns a ScheduledWorkflows
+func newScheduledWorkflows(c *ScheduledworkflowV1alpha1Client, namespace string) *scheduledWorkflows {
+	return &scheduledWorkflows{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the schedule, and returns the corresponding schedule object, and an error if there is any.
-func (c *schedules) Get(name string, options v1.GetOptions) (result *v1alpha1.ScheduledWorkflow, err error) {
+// Get takes name of the scheduledWorkflow, and returns the corresponding scheduledWorkflow object, and an error if there is any.
+func (c *scheduledWorkflows) Get(name string, options v1.GetOptions) (result *v1alpha1.ScheduledWorkflow, err error) {
 	result = &v1alpha1.ScheduledWorkflow{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("schedules").
+		Resource("scheduledworkflows").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
@@ -71,58 +71,58 @@ func (c *schedules) Get(name string, options v1.GetOptions) (result *v1alpha1.Sc
 	return
 }
 
-// List takes label and field selectors, and returns the list of Schedules that match those selectors.
-func (c *schedules) List(opts v1.ListOptions) (result *v1alpha1.ScheduledWorkflowList, err error) {
+// List takes label and field selectors, and returns the list of ScheduledWorkflows that match those selectors.
+func (c *scheduledWorkflows) List(opts v1.ListOptions) (result *v1alpha1.ScheduledWorkflowList, err error) {
 	result = &v1alpha1.ScheduledWorkflowList{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("schedules").
+		Resource("scheduledworkflows").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested schedules.
-func (c *schedules) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested scheduledWorkflows.
+func (c *scheduledWorkflows) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
-		Resource("schedules").
+		Resource("scheduledworkflows").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
-// Create takes the representation of a schedule and creates it.  Returns the server's representation of the schedule, and an error, if there is any.
-func (c *schedules) Create(schedule *v1alpha1.ScheduledWorkflow) (result *v1alpha1.ScheduledWorkflow, err error) {
+// Create takes the representation of a scheduledWorkflow and creates it.  Returns the server's representation of the scheduledWorkflow, and an error, if there is any.
+func (c *scheduledWorkflows) Create(scheduledWorkflow *v1alpha1.ScheduledWorkflow) (result *v1alpha1.ScheduledWorkflow, err error) {
 	result = &v1alpha1.ScheduledWorkflow{}
 	err = c.client.Post().
 		Namespace(c.ns).
-		Resource("schedules").
-		Body(schedule).
+		Resource("scheduledworkflows").
+		Body(scheduledWorkflow).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a schedule and updates it. Returns the server's representation of the schedule, and an error, if there is any.
-func (c *schedules) Update(schedule *v1alpha1.ScheduledWorkflow) (result *v1alpha1.ScheduledWorkflow, err error) {
+// Update takes the representation of a scheduledWorkflow and updates it. Returns the server's representation of the scheduledWorkflow, and an error, if there is any.
+func (c *scheduledWorkflows) Update(scheduledWorkflow *v1alpha1.ScheduledWorkflow) (result *v1alpha1.ScheduledWorkflow, err error) {
 	result = &v1alpha1.ScheduledWorkflow{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("schedules").
-		Name(schedule.Name).
-		Body(schedule).
+		Resource("scheduledworkflows").
+		Name(scheduledWorkflow.Name).
+		Body(scheduledWorkflow).
 		Do().
 		Into(result)
 	return
 }
 
-// Delete takes name of the schedule and deletes it. Returns an error if one occurs.
-func (c *schedules) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the scheduledWorkflow and deletes it. Returns an error if one occurs.
+func (c *scheduledWorkflows) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("schedules").
+		Resource("scheduledworkflows").
 		Name(name).
 		Body(options).
 		Do().
@@ -130,22 +130,22 @@ func (c *schedules) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *schedules) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *scheduledWorkflows) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("schedules").
+		Resource("scheduledworkflows").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
-// Patch applies the patch and returns the patched schedule.
-func (c *schedules) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ScheduledWorkflow, err error) {
+// Patch applies the patch and returns the patched scheduledWorkflow.
+func (c *scheduledWorkflows) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ScheduledWorkflow, err error) {
 	result = &v1alpha1.ScheduledWorkflow{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
-		Resource("schedules").
+		Resource("scheduledworkflows").
 		SubResource(subresources...).
 		Name(name).
 		Body(data).

@@ -17,7 +17,7 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	v1alpha1 "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -26,7 +26,7 @@ import (
 // ScheduleLister helps list Schedules.
 type ScheduleLister interface {
 	// List lists all Schedules in the indexer.
-	List(selector labels.Selector) (ret []*v1alpha1.Schedule, err error)
+	List(selector labels.Selector) (ret []*v1alpha1.ScheduledWorkflow, err error)
 	// Schedules returns an object that can list and get Schedules.
 	Schedules(namespace string) ScheduleNamespaceLister
 	ScheduleListerExpansion
@@ -43,9 +43,9 @@ func NewScheduleLister(indexer cache.Indexer) ScheduleLister {
 }
 
 // List lists all Schedules in the indexer.
-func (s *scheduleLister) List(selector labels.Selector) (ret []*v1alpha1.Schedule, err error) {
+func (s *scheduleLister) List(selector labels.Selector) (ret []*v1alpha1.ScheduledWorkflow, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.Schedule))
+		ret = append(ret, m.(*v1alpha1.ScheduledWorkflow))
 	})
 	return ret, err
 }
@@ -58,9 +58,9 @@ func (s *scheduleLister) Schedules(namespace string) ScheduleNamespaceLister {
 // ScheduleNamespaceLister helps list and get Schedules.
 type ScheduleNamespaceLister interface {
 	// List lists all Schedules in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.Schedule, err error)
-	// Get retrieves the Schedule from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.Schedule, error)
+	List(selector labels.Selector) (ret []*v1alpha1.ScheduledWorkflow, err error)
+	// Get retrieves the ScheduledWorkflow from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.ScheduledWorkflow, error)
 	ScheduleNamespaceListerExpansion
 }
 
@@ -72,15 +72,15 @@ type scheduleNamespaceLister struct {
 }
 
 // List lists all Schedules in the indexer for a given namespace.
-func (s scheduleNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.Schedule, err error) {
+func (s scheduleNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.ScheduledWorkflow, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.Schedule))
+		ret = append(ret, m.(*v1alpha1.ScheduledWorkflow))
 	})
 	return ret, err
 }
 
-// Get retrieves the Schedule from the indexer for a given namespace and name.
-func (s scheduleNamespaceLister) Get(name string) (*v1alpha1.Schedule, error) {
+// Get retrieves the ScheduledWorkflow from the indexer for a given namespace and name.
+func (s scheduleNamespaceLister) Get(name string) (*v1alpha1.ScheduledWorkflow, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
@@ -88,5 +88,5 @@ func (s scheduleNamespaceLister) Get(name string) (*v1alpha1.Schedule, error) {
 	if !exists {
 		return nil, errors.NewNotFound(v1alpha1.Resource("schedule"), name)
 	}
-	return obj.(*v1alpha1.Schedule), nil
+	return obj.(*v1alpha1.ScheduledWorkflow), nil
 }

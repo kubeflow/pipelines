@@ -17,7 +17,7 @@
 package fake
 
 import (
-	schedulev1alpha1 "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -48,5 +48,5 @@ func init() {
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
-	schedulev1alpha1.AddToScheme(scheme)
+	scheduledworkflowv1alpha1.AddToScheme(scheme)
 }

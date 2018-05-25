@@ -17,7 +17,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	v1alpha1 "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,23 +34,23 @@ type FakeSchedules struct {
 
 var schedulesResource = schema.GroupVersionResource{Group: "schedule.kubeflow.org", Version: "v1alpha1", Resource: "schedules"}
 
-var schedulesKind = schema.GroupVersionKind{Group: "schedule.kubeflow.org", Version: "v1alpha1", Kind: "Schedule"}
+var schedulesKind = schema.GroupVersionKind{Group: "schedule.kubeflow.org", Version: "v1alpha1", Kind: "ScheduledWorkflow"}
 
 // Get takes name of the schedule, and returns the corresponding schedule object, and an error if there is any.
-func (c *FakeSchedules) Get(name string, options v1.GetOptions) (result *v1alpha1.Schedule, err error) {
+func (c *FakeSchedules) Get(name string, options v1.GetOptions) (result *v1alpha1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(schedulesResource, c.ns, name), &v1alpha1.Schedule{})
+		Invokes(testing.NewGetAction(schedulesResource, c.ns, name), &v1alpha1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.Schedule), err
+	return obj.(*v1alpha1.ScheduledWorkflow), err
 }
 
 // List takes label and field selectors, and returns the list of Schedules that match those selectors.
-func (c *FakeSchedules) List(opts v1.ListOptions) (result *v1alpha1.ScheduleList, err error) {
+func (c *FakeSchedules) List(opts v1.ListOptions) (result *v1alpha1.ScheduledWorkflowList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(schedulesResource, schedulesKind, c.ns, opts), &v1alpha1.ScheduleList{})
+		Invokes(testing.NewListAction(schedulesResource, schedulesKind, c.ns, opts), &v1alpha1.ScheduledWorkflowList{})
 
 	if obj == nil {
 		return nil, err
@@ -60,8 +60,8 @@ func (c *FakeSchedules) List(opts v1.ListOptions) (result *v1alpha1.ScheduleList
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.ScheduleList{ListMeta: obj.(*v1alpha1.ScheduleList).ListMeta}
-	for _, item := range obj.(*v1alpha1.ScheduleList).Items {
+	list := &v1alpha1.ScheduledWorkflowList{ListMeta: obj.(*v1alpha1.ScheduledWorkflowList).ListMeta}
+	for _, item := range obj.(*v1alpha1.ScheduledWorkflowList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -77,31 +77,31 @@ func (c *FakeSchedules) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a schedule and creates it.  Returns the server's representation of the schedule, and an error, if there is any.
-func (c *FakeSchedules) Create(schedule *v1alpha1.Schedule) (result *v1alpha1.Schedule, err error) {
+func (c *FakeSchedules) Create(schedule *v1alpha1.ScheduledWorkflow) (result *v1alpha1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(schedulesResource, c.ns, schedule), &v1alpha1.Schedule{})
+		Invokes(testing.NewCreateAction(schedulesResource, c.ns, schedule), &v1alpha1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.Schedule), err
+	return obj.(*v1alpha1.ScheduledWorkflow), err
 }
 
 // Update takes the representation of a schedule and updates it. Returns the server's representation of the schedule, and an error, if there is any.
-func (c *FakeSchedules) Update(schedule *v1alpha1.Schedule) (result *v1alpha1.Schedule, err error) {
+func (c *FakeSchedules) Update(schedule *v1alpha1.ScheduledWorkflow) (result *v1alpha1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(schedulesResource, c.ns, schedule), &v1alpha1.Schedule{})
+		Invokes(testing.NewUpdateAction(schedulesResource, c.ns, schedule), &v1alpha1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.Schedule), err
+	return obj.(*v1alpha1.ScheduledWorkflow), err
 }
 
 // Delete takes name of the schedule and deletes it. Returns an error if one occurs.
 func (c *FakeSchedules) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(schedulesResource, c.ns, name), &v1alpha1.Schedule{})
+		Invokes(testing.NewDeleteAction(schedulesResource, c.ns, name), &v1alpha1.ScheduledWorkflow{})
 
 	return err
 }
@@ -110,17 +110,17 @@ func (c *FakeSchedules) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeSchedules) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(schedulesResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &v1alpha1.ScheduleList{})
+	_, err := c.Fake.Invokes(action, &v1alpha1.ScheduledWorkflowList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched schedule.
-func (c *FakeSchedules) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Schedule, err error) {
+func (c *FakeSchedules) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(schedulesResource, c.ns, name, data, subresources...), &v1alpha1.Schedule{})
+		Invokes(testing.NewPatchSubresourceAction(schedulesResource, c.ns, name, data, subresources...), &v1alpha1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.Schedule), err
+	return obj.(*v1alpha1.ScheduledWorkflow), err
 }
