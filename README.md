@@ -1,2 +1,2 @@
 # pipelines
-Some extensions to Argo. Hopefully this will be upstreamed into Argo
+Custom Resource Definitions and tools for ML pipeline orchestration. 
