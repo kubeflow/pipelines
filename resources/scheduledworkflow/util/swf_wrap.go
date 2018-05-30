@@ -24,7 +24,7 @@ import (
 	"sort"
 	"strconv"
 	"time"
-	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -36,37 +36,38 @@ const (
 	maxMaxHistory         = int64(100)
 )
 
-type ScheduleWrap struct {
+// ScheduledWorkflowWrap is a wrapper to help manipulate ScheduledWorkflow objects.
+type ScheduledWorkflowWrap struct {
 	schedule *swfapi.ScheduledWorkflow
 }
 
-func NewScheduleWrap(schedule *swfapi.ScheduledWorkflow) *ScheduleWrap {
-	return &ScheduleWrap{
+func NewScheduledWorkflowWrap(schedule *swfapi.ScheduledWorkflow) *ScheduledWorkflowWrap {
+	return &ScheduledWorkflowWrap{
 		schedule: schedule,
 	}
 }
 
-func (s *ScheduleWrap) Schedule() *swfapi.ScheduledWorkflow {
+func (s *ScheduledWorkflowWrap) ScheduledWorkflow() *swfapi.ScheduledWorkflow {
 	return s.schedule
 }
 
-func (s *ScheduleWrap) creationEpoch() int64 {
+func (s *ScheduledWorkflowWrap) creationEpoch() int64 {
 	return s.schedule.CreationTimestamp.Unix()
 }
 
-func (s *ScheduleWrap) Name() string {
+func (s *ScheduledWorkflowWrap) Name() string {
 	return s.schedule.Name
 }
 
-func (s *ScheduleWrap) Namespace() string {
+func (s *ScheduledWorkflowWrap) Namespace() string {
 	return s.schedule.Namespace
 }
 
-func (s *ScheduleWrap) enabled() bool {
+func (s *ScheduledWorkflowWrap) enabled() bool {
 	return s.schedule.Spec.Enabled
 }
 
-func (s *ScheduleWrap) maxConcurrency() int64 {
+func (s *ScheduledWorkflowWrap) maxConcurrency() int64 {
 	if s.schedule.Spec.MaxConcurrency == nil {
 		return defaultMaxConcurrency
 	}
@@ -82,7 +83,7 @@ func (s *ScheduleWrap) maxConcurrency() int64 {
 	return *s.schedule.Spec.MaxConcurrency
 }
 
-func (s *ScheduleWrap) maxHistory() int64 {
+func (s *ScheduledWorkflowWrap) maxHistory() int64 {
 	if s.schedule.Spec.MaxHistory == nil {
 		return defaultMaxHistory
 	}
@@ -98,11 +99,11 @@ func (s *ScheduleWrap) maxHistory() int64 {
 	return *s.schedule.Spec.MaxHistory
 }
 
-func (s *ScheduleWrap) hasRunAtLeastOnce() bool {
+func (s *ScheduledWorkflowWrap) hasRunAtLeastOnce() bool {
 	return s.schedule.Status.Trigger.LastTriggeredTime != nil
 }
 
-func (s *ScheduleWrap) lastIndex() int64 {
+func (s *ScheduledWorkflowWrap) lastIndex() int64 {
 	if s.schedule.Status.Trigger.LastIndex == nil {
 		return 0
 	} else {
@@ -110,11 +111,11 @@ func (s *ScheduleWrap) lastIndex() int64 {
 	}
 }
 
-func (s *ScheduleWrap) nextIndex() int64 {
+func (s *ScheduledWorkflowWrap) nextIndex() int64 {
 	return s.lastIndex() + 1
 }
 
-func (s *ScheduleWrap) MinIndex() int64 {
+func (s *ScheduledWorkflowWrap) MinIndex() int64 {
 	result := s.lastIndex() - s.maxHistory()
 	if result < 0 {
 		return 0
@@ -122,24 +123,24 @@ func (s *ScheduleWrap) MinIndex() int64 {
 	return result
 }
 
-func (s *ScheduleWrap) isOneOffRun() bool {
+func (s *ScheduledWorkflowWrap) isOneOffRun() bool {
 	return s.schedule.Spec.Trigger.CronSchedule == nil &&
 		s.schedule.Spec.Trigger.PeriodicSchedule == nil
 }
 
-func (s *ScheduleWrap) nextResourceID() string {
+func (s *ScheduledWorkflowWrap) nextResourceID() string {
 	return s.schedule.Name + "-" + strconv.FormatInt(s.nextIndex(), 10)
 }
 
 // Creates a deterministic resource name for the next resource.
-func (s *ScheduleWrap) NextResourceName() string {
+func (s *ScheduledWorkflowWrap) NextResourceName() string {
 	nextResourceID := s.nextResourceID()
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(nextResourceID))
 	return fmt.Sprintf("%s-%v", nextResourceID, h.Sum32())
 }
 
-func (s *ScheduleWrap) getWorkflowParametersAsMap() map[string]string {
+func (s *ScheduledWorkflowWrap) getWorkflowParametersAsMap() map[string]string {
 	resultAsArray := s.schedule.Spec.Workflow.Parameters
 	resultAsMap := make(map[string]string)
 	for _, param := range resultAsArray {
@@ -148,7 +149,7 @@ func (s *ScheduleWrap) getWorkflowParametersAsMap() map[string]string {
 	return resultAsMap
 }
 
-func (s *ScheduleWrap) getFormattedWorkflowParametersAsMap(
+func (s *ScheduledWorkflowWrap) getFormattedWorkflowParametersAsMap(
 	formatter *ParameterFormatter) map[string]string {
 
 	result := make(map[string]string)
@@ -162,7 +163,7 @@ func (s *ScheduleWrap) getFormattedWorkflowParametersAsMap(
 // NewWorkflow creates a workflow for this schedule. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Schedule resource that 'owns' it.
-func (s *ScheduleWrap) NewWorkflow(
+func (s *ScheduledWorkflowWrap) NewWorkflow(
 	nextScheduledEpoch int64, nowEpoch int64) *WorkflowWrap {
 
 	const (
@@ -197,7 +198,7 @@ func (s *ScheduleWrap) NewWorkflow(
 	return result
 }
 
-func (s *ScheduleWrap) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64) (
+func (s *ScheduledWorkflowWrap) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64) (
 	nextScheduleEpoch int64, shouldRunNow bool) {
 
 	// Get the next scheduled time.
@@ -221,7 +222,7 @@ func (s *ScheduleWrap) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch
 	return nextScheduledEpoch, true
 }
 
-func (s *ScheduleWrap) getNextScheduledEpoch() int64 {
+func (s *ScheduledWorkflowWrap) getNextScheduledEpoch() int64 {
 	// Periodic schedule
 	if s.schedule.Spec.Trigger.PeriodicSchedule != nil {
 		return NewPeriodicScheduleWrap(s.schedule.Spec.Trigger.PeriodicSchedule).
@@ -241,7 +242,7 @@ func (s *ScheduleWrap) getNextScheduledEpoch() int64 {
 	return s.getNextScheduledEpochForOneTimeRun()
 }
 
-func (s *ScheduleWrap) getNextScheduledEpochForOneTimeRun() int64 {
+func (s *ScheduledWorkflowWrap) getNextScheduledEpochForOneTimeRun() int64 {
 	if s.schedule.Status.Trigger.LastTriggeredTime != nil {
 		return math.MaxInt64
 	}
@@ -249,14 +250,14 @@ func (s *ScheduleWrap) getNextScheduledEpochForOneTimeRun() int64 {
 	return s.creationEpoch()
 }
 
-func (s *ScheduleWrap) SetLabel(key string, value string) {
+func (s *ScheduledWorkflowWrap) SetLabel(key string, value string) {
 	if s.schedule.Labels == nil {
 		s.schedule.Labels = make(map[string]string)
 	}
 	s.schedule.Labels[key] = value
 }
 
-func (s *ScheduleWrap) UpdateStatus(updatedEpoch int64, workflow *WorkflowWrap,
+func (s *ScheduledWorkflowWrap) UpdateStatus(updatedEpoch int64, workflow *WorkflowWrap,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus) {
 
@@ -273,7 +274,7 @@ func (s *ScheduleWrap) UpdateStatus(updatedEpoch int64, workflow *WorkflowWrap,
 		Message: message,
 	}
 
-	conditions := make([]swfapi.ScheduledWorkflowCondition, 1)
+	conditions := make([]swfapi.ScheduledWorkflowCondition, 0)
 	conditions = append(conditions, condition)
 
 	s.schedule.Status.Conditions = conditions
@@ -307,12 +308,12 @@ func (s *ScheduleWrap) UpdateStatus(updatedEpoch int64, workflow *WorkflowWrap,
 	}
 }
 
-func (s *ScheduleWrap) updateLastTriggeredTime(epoch int64) {
+func (s *ScheduledWorkflowWrap) updateLastTriggeredTime(epoch int64) {
 	s.schedule.Status.Trigger.LastTriggeredTime = Metav1TimePointer(
 		metav1.NewTime(time.Unix(epoch, 0).UTC()))
 }
 
-func (s *ScheduleWrap) updateNextTriggeredTime(epoch int64) {
+func (s *ScheduledWorkflowWrap) updateNextTriggeredTime(epoch int64) {
 	if epoch != math.MaxInt64 {
 		s.schedule.Status.Trigger.NextTriggeredTime = Metav1TimePointer(
 			metav1.NewTime(time.Unix(epoch, 0).UTC()))
@@ -321,7 +322,7 @@ func (s *ScheduleWrap) updateNextTriggeredTime(epoch int64) {
 	}
 }
 
-func (s *ScheduleWrap) getStatusAndMessage(activeCount int) (
+func (s *ScheduledWorkflowWrap) getStatusAndMessage(activeCount int) (
 	conditionType swfapi.ScheduledWorkflowConditionType,
 	status core.ConditionStatus, message string) {
 	// Schedule messages

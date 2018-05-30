@@ -15,18 +15,19 @@
 package util
 
 import (
-	"github.com/golang/glog"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	log "github.com/sirupsen/logrus"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"math"
 )
 
+// PeriodicScheduleWrap is a wrapper to help manipulate PeriodicSchedule objects.
 type PeriodicScheduleWrap struct {
-	periodicSchedule *scheduleapi.PeriodicSchedule
+	periodicSchedule *swfapi.PeriodicSchedule
 }
 
-func NewPeriodicScheduleWrap(periodicSchedule *scheduleapi.PeriodicSchedule) *PeriodicScheduleWrap {
+func NewPeriodicScheduleWrap(periodicSchedule *swfapi.PeriodicSchedule) *PeriodicScheduleWrap {
 	if periodicSchedule == nil {
-		glog.Fatalf("The periodicSchedule should never be nil")
+		log.Fatalf("The periodicSchedule should never be nil")
 	}
 
 	return &PeriodicScheduleWrap{

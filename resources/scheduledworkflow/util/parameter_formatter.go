@@ -31,6 +31,9 @@ const (
 	suffix                  = "]]"
 )
 
+// ParameterFormatter is an object that substitutes specific strings
+// in workflow parameters by information about the workflow execution (time at
+// which the workflow was started, time at which the workflow was scheduled, etc.)
 type ParameterFormatter struct {
 	scheduledEpoch int64
 	nowEpoch       int64
@@ -47,7 +50,7 @@ func NewParameterFormatter(scheduledEpoch int64, nowEpoch int64,
 }
 
 func (p *ParameterFormatter) Format(s string) string {
-	re := regexp.MustCompile("\\[\\[(.*?)\\]\\]")
+	re := regexp.MustCompile(`\[\[(.*?)\]\]`)
 	matches := re.FindAllString(s, -1)
 	if matches == nil {
 		return s

@@ -28,6 +28,7 @@ import (
 	"time"
 )
 
+// WorkflowClient is a client to call the Workflow API.
 type WorkflowClient struct {
 	clientSet workflowclientset.Interface
 	informer  v1alpha1.WorkflowInformer
@@ -59,15 +60,15 @@ func (p *WorkflowClient) Get(namespace string, name string) (
 	return util.NewWorkflowWrap(workflow), false, nil
 }
 
-func (p *WorkflowClient) List(pipelineName string, completed bool, minIndex int64) (
+func (p *WorkflowClient) List(swfName string, completed bool, minIndex int64) (
 	status []swfapi.WorkflowStatus, err error) {
 
-	labelSelector := getLabelSelectorToGetWorkflows(pipelineName, completed, minIndex)
+	labelSelector := getLabelSelectorToGetWorkflows(swfName, completed, minIndex)
 
 	workflows, err := p.informer.Lister().List(*labelSelector)
 	if err != nil {
 		return nil, wraperror.Wrapf(err,
-			"Could not retrieve workflows for pipeline (%v): %v", pipelineName, err)
+			"Could not retrieve workflows for scheduled workflow (%v): %v", swfName, err)
 	}
 
 	result := toWorkflowStatuses(workflows)
@@ -133,12 +134,12 @@ func (p *WorkflowClient) Create(namespace string, workflow *util.WorkflowWrap) (
 	return util.NewWorkflowWrap(result), nil
 }
 
-func getLabelSelectorToGetWorkflows(pipelineName string, completed bool, minIndex int64) *labels.Selector {
+func getLabelSelectorToGetWorkflows(swfName string, completed bool, minIndex int64) *labels.Selector {
 	labelSelector := labels.NewSelector()
 	// The Argo workflow should be active or completed
 	labelSelector = labelSelector.Add(*util.GetRequirementForCompletedWorkflowOrFatal(completed))
-	// The Argo workflow should be labelled with this pipeline name.
-	labelSelector = labelSelector.Add(*util.GetRequirementForScheduleNameOrFatal(pipelineName))
+	// The Argo workflow should be labelled with this scheduled workflow name.
+	labelSelector = labelSelector.Add(*util.GetRequirementForScheduleNameOrFatal(swfName))
 	// The Argo workflow should have an index greater than...
 	labelSelector = labelSelector.Add(*util.GetRequirementForMinIndexOrFatal(minIndex))
 	return &labelSelector
