@@ -20,11 +20,11 @@ import (
 	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"hash/fnv"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/apis/core"
 	"math"
 	"sort"
 	"strconv"
 	"time"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -261,17 +261,17 @@ func (s *ScheduledWorkflowWrap) UpdateStatus(updatedEpoch int64, workflow *Workf
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus) {
 
-	updatedTime := 	metav1.NewTime(time.Unix(updatedEpoch, 0).UTC())
+	updatedTime := metav1.NewTime(time.Unix(updatedEpoch, 0).UTC())
 
 	conditionType, status, message := s.getStatusAndMessage(len(active))
 
 	condition := swfapi.ScheduledWorkflowCondition{
-		Type: conditionType,
-		Status: status,
-		LastProbeTime: updatedTime,
+		Type:               conditionType,
+		Status:             status,
+		LastProbeTime:      updatedTime,
 		LastTransitionTime: updatedTime,
-		Reason: string(conditionType),
-		Message: message,
+		Reason:             string(conditionType),
+		Message:            message,
 	}
 
 	conditions := make([]swfapi.ScheduledWorkflowCondition, 0)

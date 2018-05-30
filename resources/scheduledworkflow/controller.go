@@ -19,7 +19,7 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
-	log "github.com/sirupsen/logrus"
+	swfregister "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	swfclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
 	swfScheme "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/scheme"
@@ -27,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/resources/scheduledworkflow/client"
 	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	wraperror "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -39,11 +40,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"time"
-	swfregister "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
 )
 
 const (
-	Workflow = "Workflow"
+	Workflow          = "Workflow"
 	ScheduledWorkflow = "ScheduledWorkflow"
 )
 
@@ -245,7 +245,7 @@ func (c *Controller) handleWorkflow(obj interface{}) {
 		}
 
 		log.WithFields(log.Fields{
-			Workflow: object.GetName(),
+			Workflow:          object.GetName(),
 			ScheduledWorkflow: ownerRef.Name,
 		}).Infof("Processing object (%s): owner is a ScheduledWorkflow (%s).", object.GetName(),
 			ownerRef.Name)
@@ -463,7 +463,7 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflowWrap,
 	}
 	log.WithFields(log.Fields{
 		ScheduledWorkflow: swf.Name(),
-		Workflow: workflow.Workflow().Name,
+		Workflow:          workflow.Workflow().Name,
 	}).Infof("Submitting workflow for ScheduledWorkflow (%v): workflow (%v) successfully submitted (scheduled at: %v)",
 		swf.Name(), workflow.Workflow().Name, util.FormatTimeForLogging(nextScheduledEpoch))
 	return workflow, nextScheduledEpoch, nil
