@@ -5,6 +5,7 @@ import {
   ItemListElement,
   ItemListRow
 } from '../../src/components/item-list/item-list';
+import { EventName, NewListPageEvent } from '../../src/model/events';
 
 let fixture: ItemListElement;
 const TEST_TAG = 'item-list';
@@ -312,6 +313,157 @@ describe('item-list', () => {
     firstRow.click();
 
     assert(!isSelected(0), 'first item should not be selected when selection is disabled');
+  });
+
+  describe('pagination', () => {
+    const pageResponses = [
+      {
+        nextPageToken: 'page-2',
+        rows: [
+          new ItemListRow({ columns: ['item a', new Date('11/11/2017, 8:56:42 AM')] }),
+          new ItemListRow({ columns: ['item b', new Date('11/11/2017, 8:57:42 AM')] }),
+        ]
+      },
+      {
+        nextPageToken: 'page-3',
+        rows: [
+          new ItemListRow({ columns: ['item c', new Date('11/11/2017, 8:58:42 AM')] }),
+          new ItemListRow({ columns: ['item d', new Date('11/11/2017, 8:59:42 AM')] }),
+        ]
+      },
+      {
+        nextPageToken: '',
+        rows: [
+          new ItemListRow({ columns: ['item e', new Date('11/11/2017, 9:00:42 AM')] }),
+        ]
+      }
+    ];
+
+    const loadNewPage = (ev: NewListPageEvent) => {
+      fixture.updateNextPageToken(pageResponses[ev.detail.pageNumber].nextPageToken);
+      const list = fixture.$.list as Polymer.DomRepeat;
+      fixture.rows = pageResponses[ev.detail.pageNumber].rows;
+      list.render();
+    };
+
+    beforeEach(async () => {
+      resetFixture();
+      fixture.addEventListener(EventName.NEW_LIST_PAGE, loadNewPage.bind(this));
+      fixture.columns = [{
+        name: 'col1',
+        type: ColumnTypeName.STRING,
+      }, {
+        name: 'col2',
+        type: ColumnTypeName.DATE,
+      }];
+      loadNewPage(new NewListPageEvent(EventName.NEW_LIST_PAGE, { detail: { pageNumber: 0 } }));
+    });
+
+    it('disables previous page button on first page', () => {
+      const previousPageButton = fixture.$.previousPage as HTMLElement;
+      assert.strictEqual(
+          (previousPageButton as PaperButtonElement).disabled,
+          true,
+          'Previous page button should be disabled');
+
+    });
+
+    it('enables next page button on first page', () => {
+      const nextPageButton = fixture.$.nextPage as HTMLElement;
+      assert.strictEqual(
+          (nextPageButton as PaperButtonElement).disabled,
+          false,
+          'Next page button should not be disabled');
+    });
+
+    it('can navigate to next page', () => {
+      // Verify first page before navigating to second.
+      assert.strictEqual(fixture.rows.length, 2, 'First page should have only 2 elements');
+      assert(
+          fixture.rows[0].columns[0] === 'item a' &&
+          fixture.rows[1].columns[0] === 'item b',
+          'First page should have correct rows');
+
+      const nextPageButton = fixture.$.nextPage as HTMLElement;
+      nextPageButton.click();
+
+      assert.strictEqual(fixture.rows.length, 2, 'Second page should have only 2 elements');
+      assert(
+          fixture.rows[0].columns[0] === 'item c' &&
+          fixture.rows[1].columns[0] === 'item d',
+          'Second page should have correct rows');
+    });
+
+    it('can navigate to previous page after navigating to next page', () => {
+      // Verify first page before navigating to second.
+      assert.strictEqual(fixture.rows.length, 2, 'First page should have only 2 elements');
+      assert(
+          fixture.rows[0].columns[0] === 'item a' &&
+          fixture.rows[1].columns[0] === 'item b',
+          'First page should have correct rows');
+
+      const previousPageButton = fixture.$.previousPage as HTMLElement;
+      const nextPageButton = fixture.$.nextPage as HTMLElement;
+      nextPageButton.click();
+
+        // Verify second page before navigating to first.
+      assert.strictEqual(
+          (previousPageButton as PaperButtonElement).disabled,
+          false,
+          'Previous page button should be disabled after navigating to second page');
+      assert.strictEqual(
+          (nextPageButton as PaperButtonElement).disabled,
+          false,
+          'Next page button should be enabled after navigating to second page');
+      assert.strictEqual(fixture.rows.length, 2, 'Second page should have only 2 elements');
+      assert(
+          fixture.rows[0].columns[0] === 'item c' &&
+          fixture.rows[1].columns[0] === 'item d',
+          'Second page should have correct rows');
+
+      previousPageButton.click();
+
+      assert.strictEqual(
+          (previousPageButton as PaperButtonElement).disabled,
+          true,
+          'Previous page button should be disabled after returning to first page');
+      assert.strictEqual(
+          (nextPageButton as PaperButtonElement).disabled,
+          false,
+          'Next page button should be enabled after returning to first page');
+      assert.strictEqual(fixture.rows.length, 2, 'First page should have only 2 elements');
+      assert(
+          fixture.rows[0].columns[0] === 'item a' &&
+          fixture.rows[1].columns[0] === 'item b',
+          'First page should have correct rows');
+    });
+
+    it('disables next page button after reaching final page', () => {
+      // The test sets up 3 pages
+      const nextPageButton = fixture.$.nextPage as HTMLElement;
+      nextPageButton.click();
+      assert.strictEqual(
+          (nextPageButton as PaperButtonElement).disabled,
+          false,
+          'Next page button should not be disabled');
+
+      nextPageButton.click();
+
+      assert.strictEqual((nextPageButton as PaperButtonElement).disabled,
+          true,
+          'Next page button should be disabled');
+    });
+
+    it('starts with next page button disabled if nextPageToken is empty', () => {
+      // Simulating only one page of results by initially loading the final page.
+      loadNewPage(new NewListPageEvent(
+         EventName.NEW_LIST_PAGE, { detail: { pageNumber: pageResponses.length - 1 } }));
+
+      const nextPageButton = fixture.$.nextPage as HTMLElement;
+      assert.strictEqual((nextPageButton as PaperButtonElement).disabled,
+          true,
+          'Next page button should be disabled if nextPageToken is empty');
+    });
   });
 
   describe('local filtering', () => {

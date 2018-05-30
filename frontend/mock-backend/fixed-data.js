@@ -2,7 +2,8 @@ const coinflipJob = require('./mock-coinflip-job-runtime.json');
 const xgboostJob = require('./mock-xgboost-job-runtime.json');
 
 // The number of simple, dummy Pipelines that will be appended to the list.
-const NUM_DUMMY_PIPELINES = 15;
+const NUM_DUMMY_JOBS = 20;
+const NUM_DUMMY_PIPELINES = 20;
 
 const jobs = [
   {
@@ -33,6 +34,8 @@ const jobs = [
     jobDetail: xgboostJob,
   },
 ];
+
+jobs.push(...generateNJobs());
 
 const examplePackage = {
   id: 1,
@@ -180,10 +183,26 @@ const data = {
           value: 'gs://path-to-my-other-project',
         }
       ],
-      jobs: [],
+      jobs,
     },
   ],
 };
+
+function generateNJobs() {
+  dummyJobs = [];
+  for (i = jobs.length; i < NUM_DUMMY_JOBS + jobs.length; i++) {
+    dummyJobs.push( {
+      metadata: {
+        id: i,
+        createdAt: 1526359129,
+        name: 'coinflip-recursive-asdlx' + i,
+        scheduledAt: 1526359129,
+      },
+      jobDetail: coinflipJob,
+    });
+  }
+  return dummyJobs;
+}
 
 function generateNPipelines() {
   pipelines = [];
@@ -215,7 +234,7 @@ function generateNPipelines() {
           value: 'gs://path-to-my-project',
         }
       ],
-      jobs,
+      jobs: [],
     });
   }
   return pipelines;

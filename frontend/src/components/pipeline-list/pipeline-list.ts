@@ -8,11 +8,13 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import {
-  FILTER_CHANGED_EVENT,
+  EventName,
   FilterChangedEvent,
   ItemClickEvent,
+  NewListPageEvent,
   RouteEvent
 } from '../../model/events';
+import { ListPipelinesRequest } from '../../model/list_pipelines_request';
 import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';
 import {
@@ -37,7 +39,10 @@ export class PipelineList extends PageElement {
   protected oneItemIsSelected = false;
 
   @property({ type: Boolean })
-  protected atLeastOneItemIsSelected = false;
+  protected _atLeastOneItemIsSelected = false;
+
+  @property({ type: Number })
+  protected _pageSize = 20;
 
   protected pipelineListRows: ItemListRow[] = [];
 
@@ -55,13 +60,16 @@ export class PipelineList extends PageElement {
   ready(): void {
     super.ready();
     const itemList = this.$.pipelinesItemList as ItemListElement;
-    itemList.addEventListener(FILTER_CHANGED_EVENT, this._filterChanged.bind(this));
+    itemList.addEventListener(EventName.FILTER_CHANGED, this._filterChanged.bind(this));
+    itemList.addEventListener(EventName.NEW_LIST_PAGE, this._loadNewListPage.bind(this));
     itemList.addEventListener('selected-indices-changed', this._selectedItemsChanged.bind(this));
     itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
   }
 
   public load(_: string): void {
-    this._loadPipelines();
+    const itemList = this.$.pipelinesItemList as ItemListElement;
+    itemList.reset();
+    this._loadPipelines(new ListPipelinesRequest(this._pageSize));
   }
 
   protected _navigate(ev: ItemClickEvent): void {
@@ -100,7 +108,8 @@ export class PipelineList extends PageElement {
     const successfulDeletes = itemList.selectedIndices.length - unsuccessfulDeletes;
     if (successfulDeletes > 0) {
       Utils.showNotification(`Successfully deleted ${successfulDeletes} Pipelines!`);
-      this._loadPipelines();
+      itemList.reset();
+      this._loadPipelines(new ListPipelinesRequest(this._pageSize));
     }
 
     if (unsuccessfulDeletes > 0) {
@@ -114,14 +123,23 @@ export class PipelineList extends PageElement {
     this.dispatchEvent(new RouteEvent('/pipelines/new'));
   }
 
+  private _loadNewListPage(ev: NewListPageEvent): void {
+    const request = new ListPipelinesRequest(this._pageSize);
+    request.filterBy = ev.detail.filterBy;
+    request.pageToken = ev.detail.pageToken;
+    request.sortBy = ev.detail.sortBy;
+
+    this._loadPipelines(request);
+  }
+
   private _selectedItemsChanged(): void {
     const itemList = this.$.pipelinesItemList as ItemListElement;
     if (itemList.selectedIndices) {
       this.oneItemIsSelected = itemList.selectedIndices.length === 1;
-      this.atLeastOneItemIsSelected = itemList.selectedIndices.length > 0;
+      this._atLeastOneItemIsSelected = itemList.selectedIndices.length > 0;
     } else {
       this.oneItemIsSelected = false;
-      this.atLeastOneItemIsSelected = false;
+      this._atLeastOneItemIsSelected = false;
     }
   }
 
@@ -134,15 +152,23 @@ export class PipelineList extends PageElement {
     this._keystrokeDebouncer = Polymer.Debouncer.debounce(
         this._keystrokeDebouncer,
         Polymer.Async.timeOut.after(300),
-        async () => { this._loadPipelines(ev.detail.filterString); }
+        async () => {
+          const request = new ListPipelinesRequest(this._pageSize);
+          request.filterBy = ev.detail.filterString;
+          this._loadPipelines(request);
+        }
     );
     // Allows tests to use Polymer.flush to ensure debounce has completed.
     Polymer.enqueueDebouncer(this._keystrokeDebouncer);
   }
 
-  private async _loadPipelines(filterString?: string): Promise<void> {
+  private async _loadPipelines(request: ListPipelinesRequest): Promise<void> {
     try {
-      this.pipelines = await Apis.getPipelines(filterString);
+      const getPipelinesResponse = await Apis.getPipelines(request);
+      this.pipelines = getPipelinesResponse.pipelines;
+
+      const itemList = this.$.pipelinesItemList as ItemListElement;
+      itemList.updateNextPageToken(getPipelinesResponse.nextPageToken);
     } catch (err) {
       this.showPageError('There was an error while loading the pipeline list.');
       Utils.log.error('Error loading pipelines:', err);

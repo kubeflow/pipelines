@@ -11,9 +11,9 @@ describe('view pipeline details', () => {
   });
 
   it('opens pipeline details on double click', () => {
-    // Find a pipeline with jobs that can also be cloned. The 7th pipeline is one.
+    // Find a pipeline with jobs that can also be cloned. The 1st pipeline is one.
     // TODO: Explore making this more reliable
-    const selector = 'app-shell pipeline-list item-list paper-item:nth-of-type(7)';
+    const selector = 'app-shell pipeline-list item-list paper-item:nth-of-type(1)';
 
     browser.waitForVisible(selector);
     browser.doubleClick(selector);
@@ -24,6 +24,20 @@ describe('view pipeline details', () => {
     const selector = 'app-shell pipeline-details paper-tab:last-child';
 
     browser.click(selector);
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('loads next page on "next" button press', () => {
+    const nextButtonselector = 'app-shell pipeline-details job-list item-list paper-button#nextPage';
+
+    browser.click(nextButtonselector);
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('loads previous page on "previous" button press after pressing "next"', () => {
+    const previousButtonselector = 'app-shell pipeline-details job-list item-list paper-button#previousPage';
+    browser.click(previousButtonselector);
+
     assertDiffs(browser.checkDocument());
   });
 

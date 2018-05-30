@@ -3,6 +3,9 @@ import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
 
+import { ListJobsResponse } from '../src/model/list_jobs_response';
+import { ListPipelinesResponse } from '../src/model/list_pipelines_response';
+
 const prefix = __dirname + '/pipeline-data';
 
 const fixedData = require('./fixed-data').data;
@@ -44,14 +47,31 @@ export default (app) => {
     }
 
     res.header('Content-Type', 'application/json');
-    if (req.query && req.query.filter) {
+    // Note: the way that we use the nextPageToken here may not reflect the way the backend works.
+    const response: ListPipelinesResponse = {
+      nextPageToken: '',
+      pipelines: [],
+    };
+    let pipelines = [];
+    if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
       // This may need to be updated when the backend implements filtering.
-      res.json(fixedData.pipelines.filter((p) => p.name.toLocaleLowerCase().match(
-          decodeURIComponent(req.query.filter).toLocaleLowerCase())));
+      pipelines = fixedData.pipelines.filter((p) => p.name.toLocaleLowerCase().match(
+          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()));
+
     } else {
-      res.json(fixedData.pipelines);
+      pipelines = fixedData.pipelines;
     }
+
+    const start = (req.query.pageToken ? +req.query.pageToken : 0);
+    const end = start + (+req.query.pageSize) + 1;
+    response.pipelines = pipelines.slice(start, end);
+
+    if (end < pipelines.length) {
+      response.nextPageToken = end + '';
+    }
+
+    res.json(response);
   });
 
   app.post(apisPrefix + '/pipelines', (req, res) => {
@@ -92,14 +112,30 @@ export default (app) => {
   app.get(apisPrefix + '/pipelines/:pid/jobs', (req, res) => {
     res.header('Content-Type', 'application/json');
     const pid = Number.parseInt(req.params.pid);
-    let jobs = fixedData.pipelines.filter((p) => p.id === pid)[0].jobs;
-    if (req.query && req.query.filter) {
+    // Note: the way that we use the nextPageToken here may not reflect the way the backend works.
+    const response: ListJobsResponse = {
+      jobs: [],
+      nextPageToken: '',
+    };
+    let jobs = [];
+    if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
       // This may need to be updated when the backend implements filtering.
       jobs = jobs.filter((j) => j.metadata.name.toLocaleLowerCase().match(
-          decodeURIComponent(req.query.filter).toLocaleLowerCase()));
+          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()));
+    } else {
+      jobs = fixedData.pipelines.find((p) => p.id === pid).jobs;
     }
-    res.json(jobs.map((j) => j.metadata));
+
+    const start = (req.query.pageToken ? +req.query.pageToken : 0);
+    const end = start + (+req.query.pageSize) + 1;
+    response.jobs = jobs.slice(start, end).map((j) => j.metadata);
+
+    if (end < jobs.length) {
+      response.nextPageToken = end + '';
+    }
+
+    res.json(response);
   });
 
   app.post(apisPrefix + '/pipelines/:pid/enable', (req, res) => {

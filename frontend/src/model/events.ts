@@ -1,17 +1,30 @@
+export enum EventName {
+  FILTER_CHANGED = 'filterChanged',
+  NEW_LIST_PAGE = 'newListPage',
+  ROUTE = 'route',
+}
+
 export class ItemClickEvent extends CustomEvent {
   public detail: {
     index: number,
   };
 }
 
-export const FILTER_CHANGED_EVENT = 'filterChanged';
 export class FilterChangedEvent extends CustomEvent {
   public detail: {
     filterString: string,
   };
 }
 
-export const ROUTE_EVENT = 'route';
+export class NewListPageEvent extends CustomEvent {
+  public detail: {
+    filterBy: string,
+    pageNumber: number,
+    pageToken: string,
+    sortBy: string,
+  };
+}
+
 export class RouteEvent extends CustomEvent {
   public detail: {
     path: string,
@@ -27,6 +40,6 @@ export class RouteEvent extends CustomEvent {
       writable: false,
     });
 
-    super(ROUTE_EVENT, eventInit);
+    super(EventName.ROUTE, eventInit);
   }
 }

@@ -38,6 +38,38 @@ describe('list pipelines', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('loads next page on "next" button press', () => {
+    const selector = 'app-shell pipeline-list item-list paper-button#nextPage';
+
+    browser.click(selector);
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('loads previous page on "previous" button press after pressing "next"', () => {
+    const previousButtonselector = 'app-shell pipeline-list item-list paper-button#previousPage';
+    browser.click(previousButtonselector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('resets the pipelne list after clicking into a pipeline', () => {
+    // Navigate to second page
+    const nextButtonselector = 'app-shell pipeline-list item-list paper-button#nextPage';
+    browser.click(nextButtonselector);
+
+    // Go to a Pipeline's details page
+    const pipelineSelector = 'app-shell pipeline-list item-list paper-item';
+    browser.doubleClick(pipelineSelector);
+
+    // Return to Pipeline list page
+    const backButtonSelector = 'app-shell pipeline-details .toolbar-arrow-back';
+    browser.waitForVisible(backButtonSelector);
+    browser.click(backButtonSelector);
+
+    // List should be reset to first page of results
+    assertDiffs(browser.checkDocument());
+  });
+
   it('populates cloned pipeline', () => {
     // Find a pipeline with package ID of 1 so it can be cloned. The first pipeline works.
     // TODO: Explore making this more reliable
@@ -49,5 +81,4 @@ describe('list pipelines', () => {
 
     assertDiffs(browser.checkDocument());
   });
-
 });

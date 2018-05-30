@@ -68,5 +68,16 @@ the License.
       </template>
     </div>
 
+    <hr class="no-margin">
+
+    <div class="centered flex padded-spacing-minus-3">
+      <paper-button id="previousPage" class="toolbar-button" on-click="_previousPage" disabled="[[!_currentPage]]">
+          <iron-icon icon="chevron-left"></iron-icon>
+      </paper-button>
+      <paper-button id="nextPage" class="toolbar-button" on-click="_nextPage" disabled="[[_disableNextPageButton]]">
+        <iron-icon icon="chevron-right"></iron-icon>
+      </paper-button>
+    </div>
+
   </template>
 </dom-module>

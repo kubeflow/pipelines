@@ -7,7 +7,7 @@ function assertDiffs(results) {
 describe('view job details', () => {
 
   beforeAll(() => {
-    browser.url('/pipelines/details/10');
+    browser.url('/pipelines/details/2');
   });
 
   it('navigates to job list', () => {

@@ -20,7 +20,12 @@ import 'paper-icon-button/paper-icon-button.html';
 import 'paper-item/paper-item.html';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
-import { FILTER_CHANGED_EVENT, FilterChangedEvent, ItemClickEvent } from '../../model/events';
+import {
+  EventName,
+  FilterChangedEvent,
+  ItemClickEvent,
+  NewListPageEvent
+} from '../../model/events';
 
 import './item-list.html';
 
@@ -133,7 +138,11 @@ export class ItemListElement extends Polymer.Element {
   /**
    * If true, the ItemListElement component will handle filtering of its data.
    * If false, the ItemListElement will do no filtering, however, its parent
-   * component can still listen for FILTER_CHANGED_EVENTs and handle them as
+<<<<<<< HEAD
+   * component can still listen for EventName.FilterChanged events and handle them as
+=======
+   * component can still listen for EventName.FILTER_CHANGED events and handle them as
+>>>>>>> 73d0a3e... Small fixes
    * desired.
    */
   @property({ type: Boolean })
@@ -148,11 +157,44 @@ export class ItemListElement extends Polymer.Element {
   @property({ computed: '_computeHideCheckboxes(disableSelection, noMultiselect)', type: Boolean })
   _hideCheckboxes = false;
 
+  @property({
+    computed: '_computeDisableNextPageButton(_currentPage, _maxPageNumber)',
+    type: Boolean
+  })
+  protected _disableNextPageButton = false;
+
+  @property({ type: Number })
+  protected _currentPage = 0;
+
+  @property({ type: Number })
+  protected _maxPageNumber = Number.MAX_SAFE_INTEGER;
+
   private _currentSort = {
     asc: true,   // ascending or descending
     column: -1,  // index of current sort column
   };
   private _lastSelectedIndex = -1;
+
+  private _pageTokens = [''];
+
+  private _sortByColumn = '';
+
+  public reset(): void {
+    this._pageTokens = [''];
+    this._maxPageNumber = Number.MAX_SAFE_INTEGER;
+    this._currentPage = 0;
+  }
+
+  public updateNextPageToken(nextPageToken: string): void {
+    if (nextPageToken) {
+      // If we're using the greatest yet known page, then the pageToken will be new.
+      if (this._currentPage + 1 === this._pageTokens.length) {
+        this._pageTokens.push(nextPageToken);
+      }
+    } else {
+      this._maxPageNumber = this._currentPage;
+    }
+  }
 
   ready(): void {
     super.ready();
@@ -296,6 +338,13 @@ export class ItemListElement extends Polymer.Element {
    */
   _computeHideCheckboxes(disableSelection: boolean, noMultiselect: boolean): boolean {
     return disableSelection || noMultiselect;
+  }
+
+  /**
+   * Returns whether or not the nextPageButton should be disabled.
+   */
+  _computeDisableNextPageButton(currentPage: number, maxPageNumber: number): boolean {
+    return currentPage === maxPageNumber;
   }
 
   /**
@@ -453,13 +502,40 @@ export class ItemListElement extends Polymer.Element {
 
   @observe('filterString')
   _filterStringChanged(): void {
+    this.reset();
     this.dispatchEvent(new FilterChangedEvent(
-      FILTER_CHANGED_EVENT,
+      EventName.FILTER_CHANGED,
       { detail: { filterString: this.filterString }}));
   }
 
   _isFirstColumn(i: number): boolean {
     return i === 0;
+  }
+
+  protected _previousPage(): void {
+    this._currentPage--;
+    this._loadNewPage();
+  }
+
+  protected _nextPage(): void {
+    if (this._currentPage < this._maxPageNumber) {
+      this._currentPage++;
+    }
+    this._loadNewPage();
+  }
+
+  // TODO: Add support for sortBy which should also call reset()
+  private _loadNewPage(): void {
+    this.dispatchEvent(new NewListPageEvent(
+      EventName.NEW_LIST_PAGE, {
+        detail: {
+          filterBy: this.filterString,
+          pageNumber: this._currentPage,
+          pageToken: this._pageTokens[this._currentPage],
+          sortBy: this._sortByColumn,
+        }
+      })
+    );
   }
 
   private _displayIndexToRealIndex(index: number): number {

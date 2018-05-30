@@ -149,6 +149,10 @@ paper-tab:not(:first-child) {
   display: inline;
 }
 
+.no-margin {
+  margin: 0;
+}
+
 .no-shrink {
   flex-shrink: 0;
 }
