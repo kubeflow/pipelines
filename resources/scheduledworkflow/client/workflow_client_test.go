@@ -17,8 +17,8 @@ package client
 import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowcommon "github.com/argoproj/argo/workflow/common"
-	pipelineapi "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
-	"github.com/kubeflow/pipelines/resources/schedule/util"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -50,7 +50,7 @@ func TestToWorkflowStatuses(t *testing.T) {
 
 	result := toWorkflowStatuses([]*workflowapi.Workflow{workflow})
 
-	expected := &pipelineapi.WorkflowStatus{
+	expected := &swfapi.WorkflowStatus{
 		Name:        "WORKFLOW_NAME",
 		Namespace:   "NAMESPACE",
 		SelfLink:    "SELF_LINK",
@@ -64,7 +64,7 @@ func TestToWorkflowStatuses(t *testing.T) {
 		Index:       55,
 	}
 
-	assert.Equal(t, []pipelineapi.WorkflowStatus{*expected}, result)
+	assert.Equal(t, []swfapi.WorkflowStatus{*expected}, result)
 }
 
 func TestToWorkflowStatuses_NullOrEmpty(t *testing.T) {
@@ -72,7 +72,7 @@ func TestToWorkflowStatuses_NullOrEmpty(t *testing.T) {
 
 	result := toWorkflowStatuses([]*workflowapi.Workflow{workflow})
 
-	expected := &pipelineapi.WorkflowStatus{
+	expected := &swfapi.WorkflowStatus{
 		Name:        "",
 		Namespace:   "",
 		SelfLink:    "",
@@ -86,7 +86,7 @@ func TestToWorkflowStatuses_NullOrEmpty(t *testing.T) {
 		Index:       0,
 	}
 
-	assert.Equal(t, []pipelineapi.WorkflowStatus{*expected}, result)
+	assert.Equal(t, []swfapi.WorkflowStatus{*expected}, result)
 }
 
 func TestRetrieveScheduledTime(t *testing.T) {

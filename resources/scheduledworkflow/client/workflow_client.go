@@ -18,8 +18,8 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	"github.com/argoproj/argo/pkg/client/informers/externalversions/workflow/v1alpha1"
-	pipelineapi "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
-	"github.com/kubeflow/pipelines/resources/schedule/util"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	wraperror "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -33,7 +33,8 @@ type WorkflowClient struct {
 	informer  v1alpha1.WorkflowInformer
 }
 
-func NewWorkflowClient(clientSet workflowclientset.Interface, informer v1alpha1.WorkflowInformer) *WorkflowClient {
+func NewWorkflowClient(clientSet workflowclientset.Interface,
+	informer v1alpha1.WorkflowInformer) *WorkflowClient {
 	return &WorkflowClient{
 		clientSet: clientSet,
 		informer:  informer,
@@ -59,7 +60,7 @@ func (p *WorkflowClient) Get(namespace string, name string) (
 }
 
 func (p *WorkflowClient) List(pipelineName string, completed bool, minIndex int64) (
-	status []pipelineapi.WorkflowStatus, err error) {
+	status []swfapi.WorkflowStatus, err error) {
 
 	labelSelector := getLabelSelectorToGetWorkflows(pipelineName, completed, minIndex)
 
@@ -74,16 +75,16 @@ func (p *WorkflowClient) List(pipelineName string, completed bool, minIndex int6
 	return result, nil
 }
 
-func toWorkflowStatuses(workflows []*workflowapi.Workflow) []pipelineapi.WorkflowStatus {
-	result := make([]pipelineapi.WorkflowStatus, 0)
+func toWorkflowStatuses(workflows []*workflowapi.Workflow) []swfapi.WorkflowStatus {
+	result := make([]swfapi.WorkflowStatus, 0)
 	for _, workflow := range workflows {
 		result = append(result, *toWorkflowStatus(workflow))
 	}
 	return result
 }
 
-func toWorkflowStatus(workflow *workflowapi.Workflow) *pipelineapi.WorkflowStatus {
-	return &pipelineapi.WorkflowStatus{
+func toWorkflowStatus(workflow *workflowapi.Workflow) *swfapi.WorkflowStatus {
+	return &swfapi.WorkflowStatus{
 		Name:        workflow.Name,
 		Namespace:   workflow.Namespace,
 		SelfLink:    workflow.SelfLink,
