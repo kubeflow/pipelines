@@ -15,15 +15,15 @@
 package util
 
 import (
-	pipelineconstants "ml/pkg/apis/schedule"
+	constants "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
 )
 
 const (
-	ControllerAgentName               = "schedule-controller"
-	LabelKeyWorkflowName              = pipelineconstants.FullName + "/scheduleName"
-	LabelKeyWorkflowScheduledEpoch    = pipelineconstants.FullName + "/scheduledEpoch"
-	LabelKeyWorkflowIndex             = pipelineconstants.FullName + "/workflowIndex"
-	LabelKeyWorkflowIsOwnedBySchedule = pipelineconstants.FullName + "/isOwnedBySchedule"
-	LabelKeyScheduleEnabled           = pipelineconstants.FullName + "/enabled"
-	LabelKeyScheduleStatus            = pipelineconstants.FullName + "/status"
+	ControllerAgentName               = "scheduled-workflow-controller"
+	LabelKeyWorkflowName              = constants.FullName + "/scheduledWorkflowName"
+	LabelKeyWorkflowScheduledEpoch    = constants.FullName + "/scheduledWorkflowEpoch"
+	LabelKeyWorkflowIndex             = constants.FullName + "/workflowIndex"
+	LabelKeyWorkflowIsOwnedBySchedule = constants.FullName + "/isOwnedByScheduledWorkflow"
+	LabelKeyScheduledWorkflowEnabled  = constants.FullName + "/enabled"
+	LabelKeyScheduledWorkflowStatus   = constants.FullName + "/status"
 )

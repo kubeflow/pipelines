@@ -22,7 +22,7 @@ import (
 	scheduleclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
 	scheduleinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
 	"github.com/kubeflow/pipelines/pkg/signals"
-	"github.com/kubeflow/pipelines/resources/schedule/util"
+	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"

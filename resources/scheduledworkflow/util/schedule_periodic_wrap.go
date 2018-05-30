@@ -16,7 +16,7 @@ package util
 
 import (
 	"github.com/golang/glog"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"math"
 )
 

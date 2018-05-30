@@ -16,7 +16,7 @@ package client
 
 import (
 	"fmt"
-	pipelineapi "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -26,8 +26,8 @@ import (
 const (
 	successSynced                = "Synced"
 	failedSynced                 = "Failed"
-	messageResourceSuccessSynced = "Schedule synced successfull"
-	messageResourceFailedSynced  = "Ppeline synced failed"
+	messageResourceSuccessSynced = "Scheduled workflow synced successfull"
+	messageResourceFailedSynced  = "Schedulde workflow synced failed"
 )
 
 type KubeClient struct {
@@ -44,12 +44,12 @@ func NewKubeClient(kubeClientSet kubernetes.Interface, recorder record.EventReco
 	}
 }
 
-func (k *KubeClient) RecordSyncSuccess(pipeline *pipelineapi.Schedule, message string) {
+func (k *KubeClient) RecordSyncSuccess(pipeline *swfapi.ScheduledWorkflow, message string) {
 	k.recorder.Event(pipeline, corev1.EventTypeNormal, successSynced,
 		fmt.Sprintf("%v: %v", messageResourceSuccessSynced, message))
 }
 
-func (k *KubeClient) RecordSyncFailure(pipeline *pipelineapi.Schedule, message string) {
+func (k *KubeClient) RecordSyncFailure(pipeline *swfapi.ScheduledWorkflow, message string) {
 	k.recorder.Event(pipeline, corev1.EventTypeWarning, failedSynced,
 		fmt.Sprintf("%v: %v", messageResourceFailedSynced, message))
 }

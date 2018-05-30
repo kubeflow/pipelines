@@ -16,8 +16,8 @@ package util
 
 import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	scheduleregister "github.com/kubeflow/pipelines/pkg/apis/schedule"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	scheduleregister "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
+	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -68,7 +68,7 @@ func (w *WorkflowWrap) SetCanonicalLabels(scheduleName string,
 	w.workflow.Labels[LabelKeyWorkflowIsOwnedBySchedule] = "true"
 }
 
-func (w *WorkflowWrap) SetOwnerReferences(schedule *scheduleapi.Schedule) {
+func (w *WorkflowWrap) SetOwnerReferences(schedule *scheduleapi.ScheduledWorkflow) {
 	w.workflow.OwnerReferences = []metav1.OwnerReference{
 		*metav1.NewControllerRef(schedule, schema.GroupVersionKind{
 			Group:   scheduleapi.SchemeGroupVersion.Group,

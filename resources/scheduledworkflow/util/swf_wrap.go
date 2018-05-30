@@ -17,13 +17,14 @@ package util
 import (
 	"fmt"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"hash/fnv"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"math"
 	"sort"
 	"strconv"
 	"time"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -36,16 +37,16 @@ const (
 )
 
 type ScheduleWrap struct {
-	schedule *scheduleapi.Schedule
+	schedule *swfapi.ScheduledWorkflow
 }
 
-func NewScheduleWrap(schedule *scheduleapi.Schedule) *ScheduleWrap {
+func NewScheduleWrap(schedule *swfapi.ScheduledWorkflow) *ScheduleWrap {
 	return &ScheduleWrap{
 		schedule: schedule,
 	}
 }
 
-func (s *ScheduleWrap) Schedule() *scheduleapi.Schedule {
+func (s *ScheduleWrap) Schedule() *swfapi.ScheduledWorkflow {
 	return s.schedule
 }
 
@@ -256,13 +257,28 @@ func (s *ScheduleWrap) SetLabel(key string, value string) {
 }
 
 func (s *ScheduleWrap) UpdateStatus(updatedEpoch int64, workflow *WorkflowWrap,
-	scheduledEpoch int64, active []scheduleapi.WorkflowStatus,
-	completed []scheduleapi.WorkflowStatus) {
-	s.schedule.Status.UpdatedAt = metav1.NewTime(time.Unix(updatedEpoch, 0).UTC())
-	phase, message := s.getStatusAndMessage(len(active))
-	s.schedule.Status.Status = phase
-	s.schedule.Status.Message = message
+	scheduledEpoch int64, active []swfapi.WorkflowStatus,
+	completed []swfapi.WorkflowStatus) {
 
+	updatedTime := 	metav1.NewTime(time.Unix(updatedEpoch, 0).UTC())
+
+	conditionType, status, message := s.getStatusAndMessage(len(active))
+
+	condition := swfapi.ScheduledWorkflowCondition{
+		Type: conditionType,
+		Status: status,
+		LastProbeTime: updatedTime,
+		LastTransitionTime: updatedTime,
+		Reason: string(conditionType),
+		Message: message,
+	}
+
+	conditions := make([]swfapi.ScheduledWorkflowCondition, 1)
+	conditions = append(conditions, condition)
+
+	s.schedule.Status.Conditions = conditions
+
+	// Sort and set inactive workflows.
 	sort.Slice(active, func(i, j int) bool {
 		return active[i].ScheduledAt.Unix() > active[j].ScheduledAt.Unix()
 	})
@@ -271,14 +287,14 @@ func (s *ScheduleWrap) UpdateStatus(updatedEpoch int64, workflow *WorkflowWrap,
 		return completed[i].ScheduledAt.Unix() > completed[j].ScheduledAt.Unix()
 	})
 
-	s.schedule.Status.WorkflowHistory = &scheduleapi.WorkflowHistory{
+	s.schedule.Status.WorkflowHistory = &swfapi.WorkflowHistory{
 		Active:    active,
 		Completed: completed,
 	}
 
-	s.SetLabel(LabelKeyScheduleEnabled, strconv.FormatBool(
+	s.SetLabel(LabelKeyScheduledWorkflowEnabled, strconv.FormatBool(
 		s.enabled()))
-	s.SetLabel(LabelKeyScheduleStatus, string(phase))
+	s.SetLabel(LabelKeyScheduledWorkflowStatus, string(conditionType))
 
 	if workflow != nil {
 		s.updateLastTriggeredTime(scheduledEpoch)
@@ -305,7 +321,9 @@ func (s *ScheduleWrap) updateNextTriggeredTime(epoch int64) {
 	}
 }
 
-func (s *ScheduleWrap) getStatusAndMessage(activeCount int) (scheduleapi.SchedulePhase, string) {
+func (s *ScheduleWrap) getStatusAndMessage(activeCount int) (
+	conditionType swfapi.ScheduledWorkflowConditionType,
+	status core.ConditionStatus, message string) {
 	// Schedule messages
 	const (
 		ScheduleEnabledMessage   = "The schedule is enabled."
@@ -316,15 +334,15 @@ func (s *ScheduleWrap) getStatusAndMessage(activeCount int) (scheduleapi.Schedul
 
 	if s.isOneOffRun() {
 		if s.hasRunAtLeastOnce() && activeCount == 0 {
-			return scheduleapi.ScheduleSucceeded, ScheduleSucceededMessage
+			return swfapi.ScheduledWorkflowSucceeded, core.ConditionTrue, ScheduleSucceededMessage
 		} else {
-			return scheduleapi.ScheduleRunning, ScheduleRunningMessage
+			return swfapi.ScheduledWorkflowRunning, core.ConditionTrue, ScheduleRunningMessage
 		}
 	} else {
 		if s.enabled() {
-			return scheduleapi.ScheduleEnabled, ScheduleEnabledMessage
+			return swfapi.ScheduledWorkflowEnabled, core.ConditionTrue, ScheduleEnabledMessage
 		} else {
-			return scheduleapi.ScheduleDisabled, ScheduleDisabledMessage
+			return swfapi.ScheduledWorkflowDisabled, core.ConditionTrue, ScheduleDisabledMessage
 		}
 	}
 }

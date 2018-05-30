@@ -16,7 +16,7 @@ package util
 
 import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
@@ -117,7 +117,7 @@ func TestWorkflowWrap_SetOwnerReferences(t *testing.T) {
 		},
 	})
 
-	workflow.SetOwnerReferences(&scheduleapi.Schedule{
+	workflow.SetOwnerReferences(&scheduleapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "SCHEDULE_NAME",
 		},

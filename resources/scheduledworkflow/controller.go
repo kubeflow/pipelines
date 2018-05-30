@@ -20,12 +20,12 @@ import (
 	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
 	"github.com/golang/glog"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/schedule/v1alpha1"
+	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	scheduleclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
 	scheduleScheme "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/scheme"
 	scheduleinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
-	"github.com/kubeflow/pipelines/resources/schedule/client"
-	util "github.com/kubeflow/pipelines/resources/schedule/util"
+	"github.com/kubeflow/pipelines/resources/scheduledworkflow/client"
+	util "github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	wraperror "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +51,7 @@ var (
 // Controller is the controller implementation for Schedule resources
 type Controller struct {
 	kubeClient     *client.KubeClient
-	scheduleClient *client.ScheduleClient
+	scheduleClient *client.ScheduledWorkflowClient
 	workflowClient *client.WorkflowClient
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
@@ -75,7 +75,7 @@ func NewController(
 	time util.TimeInterface) *Controller {
 
 	// obtain references to shared informers
-	scheduleInformer := scheduleInformerFactory.Schedule().V1alpha1().Schedules()
+	scheduleInformer := scheduleInformerFactory.Scheduledworkflow().V1alpha1().ScheduledWorkflows()
 	workflowInformer := workflowInformerFactory.Argoproj().V1alpha1().Workflows()
 
 	// Add controller types to the default Kubernetes Scheme so Events can be
@@ -91,7 +91,7 @@ func NewController(
 
 	controller := &Controller{
 		kubeClient:     client.NewKubeClient(kubeClientSet, recorder),
-		scheduleClient: client.NewScheduleClient(scheduleClientSet, scheduleInformer),
+		scheduleClient: client.NewScheduledWorkflowClient(scheduleClientSet, scheduleInformer),
 		workflowClient: client.NewWorkflowClient(workflowClientSet, workflowInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), "Schedules"),
