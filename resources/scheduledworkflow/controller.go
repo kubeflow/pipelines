@@ -19,13 +19,13 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
-	"github.com/golang/glog"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
-	scheduleclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
-	scheduleScheme "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/scheme"
-	scheduleinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
+	log "github.com/sirupsen/logrus"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	swfclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
+	swfScheme "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/scheme"
+	swfinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
 	"github.com/kubeflow/pipelines/resources/scheduledworkflow/client"
-	util "github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
+	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	wraperror "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +39,12 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"time"
+	swfregister "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
+)
+
+const (
+	Workflow = "Workflow"
+	ScheduledWorkflow = "ScheduledWorkflow"
 )
 
 var (
@@ -48,10 +54,10 @@ var (
 	MaxJobBackOff = 360 * time.Second
 )
 
-// Controller is the controller implementation for Schedule resources
+// Controller is the controller implementation for ScheduledWorkflow resources
 type Controller struct {
 	kubeClient     *client.KubeClient
-	scheduleClient *client.ScheduledWorkflowClient
+	swfClient      *client.ScheduledWorkflowClient
 	workflowClient *client.WorkflowClient
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
@@ -68,54 +74,55 @@ type Controller struct {
 // NewController returns a new sample controller
 func NewController(
 	kubeClientSet kubernetes.Interface,
-	scheduleClientSet scheduleclientset.Interface,
+	swfClientSet swfclientset.Interface,
 	workflowClientSet workflowclientset.Interface,
-	scheduleInformerFactory scheduleinformers.SharedInformerFactory,
+	swfInformerFactory swfinformers.SharedInformerFactory,
 	workflowInformerFactory workflowinformers.SharedInformerFactory,
 	time util.TimeInterface) *Controller {
 
 	// obtain references to shared informers
-	scheduleInformer := scheduleInformerFactory.Scheduledworkflow().V1alpha1().ScheduledWorkflows()
+	swfInformer := swfInformerFactory.Scheduledworkflow().V1alpha1().ScheduledWorkflows()
 	workflowInformer := workflowInformerFactory.Argoproj().V1alpha1().Workflows()
 
 	// Add controller types to the default Kubernetes Scheme so Events can be
 	// logged for controller types.
-	scheduleScheme.AddToScheme(scheme.Scheme)
+	swfScheme.AddToScheme(scheme.Scheme)
 
 	// Create event broadcaster
-	glog.Info("Creating event broadcaster")
+	log.Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(log.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeClientSet.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: util.ControllerAgentName})
 
 	controller := &Controller{
 		kubeClient:     client.NewKubeClient(kubeClientSet, recorder),
-		scheduleClient: client.NewScheduledWorkflowClient(scheduleClientSet, scheduleInformer),
+		swfClient:      client.NewScheduledWorkflowClient(swfClientSet, swfInformer),
 		workflowClient: client.NewWorkflowClient(workflowClientSet, workflowInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
-			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), "Schedules"),
+			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
 		time: time,
 	}
 
-	glog.Info("Setting up event handlers")
+	log.Info("Setting up event handlers")
 
-	// Set up an event handler for when Schedule resources change
-	controller.scheduleClient.AddEventHandler(&cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.enqueueSchedule,
+	// Set up an event handler for when the Scheduled Workflow changes
+	controller.swfClient.AddEventHandler(&cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.enqueueScheduledWorkflow,
 		UpdateFunc: func(old, new interface{}) {
-			controller.enqueueSchedule(new)
+			controller.enqueueScheduledWorkflow(new)
 		},
+		DeleteFunc: controller.enqueueScheduledWorkflowForDelete,
 	})
 
 	// Set up an event handler for when WorkflowHistory resources change. This
 	// handler will lookup the owner of the given WorkflowHistory, and if it is
-	// owned by a Schedule resource will enqueue that Schedule resource for
+	// owned by a ScheduledWorkflow, it will enqueue that ScheduledWorkflow for
 	// processing. This way, we don't need to implement custom logic for
 	// handling WorkflowHistory resources. More info on this pattern:
 	// https://github.com/kubernetes/community/blob/8cafef897a22026d42f5e5bb3f104febe7e29830/contributors/devel/controllers.md
 	controller.workflowClient.AddEventHandler(&cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.handleObject,
+		AddFunc: controller.handleWorkflow,
 		UpdateFunc: func(old, new interface{}) {
 			newWorkflow := new.(*workflowapi.Workflow)
 			oldWorkflow := old.(*workflowapi.Workflow)
@@ -124,9 +131,9 @@ func NewController(
 				// Two different versions of the same WorkflowHistory will always have different RVs.
 				return
 			}
-			controller.handleObject(new)
+			controller.handleWorkflow(new)
 		},
-		DeleteFunc: controller.handleObject,
+		DeleteFunc: controller.handleWorkflow,
 	})
 
 	return controller
@@ -141,27 +148,27 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting Schedule controller")
+	log.Info("Starting ScheduledWorkflow controller")
 
 	// Wait for the caches to be synced before starting workers
-	glog.Info("Waiting for informer caches to sync")
+	log.Info("Waiting for informer caches to sync")
 
 	if ok := cache.WaitForCacheSync(stopCh,
 		c.workflowClient.HasSynced(),
-		c.scheduleClient.HasSynced()); !ok {
+		c.swfClient.HasSynced()); !ok {
 		return fmt.Errorf("Failed to wait for caches to sync")
 	}
 
-	// Launch multiple workers to process Schedule resources
-	glog.Info("Starting workers")
+	// Launch multiple workers to process ScheduledWorkflows
+	log.Info("Starting workers")
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
-	glog.Info("Started workers")
+	log.Info("Started workers")
 
-	glog.Info("Wait for shut down")
+	log.Info("Wait for shut down")
 	<-stopCh
-	glog.Info("Shutting down workers")
+	log.Info("Shutting down workers")
 
 	return nil
 }
@@ -174,10 +181,10 @@ func (c *Controller) runWorker() {
 	}
 }
 
-// enqueueSchedule takes a Schedule resource and converts it into a namespace/name
+// enqueueScheduledWorkflow takes a ScheduledWorkflow and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than Schedule.
-func (c *Controller) enqueueSchedule(obj interface{}) {
+// passed resources of any type other than ScheduledWorkflow.
+func (c *Controller) enqueueScheduledWorkflow(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -187,12 +194,19 @@ func (c *Controller) enqueueSchedule(obj interface{}) {
 	c.workqueue.AddRateLimited(key)
 }
 
-// handleObject will take any resource implementing metav1.Object and attempt
-// to find the Schedule resource that 'owns' it. It does this by looking at the
+func (c *Controller) enqueueScheduledWorkflowForDelete(obj interface{}) {
+	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+	if err == nil {
+		c.workqueue.Add(key)
+	}
+}
+
+// handleWorkflow will take any resource implementing metav1.Object and attempt
+// to find the ScheduledWorkflow that 'owns' it. It does this by looking at the
 // objects metadata.ownerReferences field for an appropriate OwnerReference.
-// It then enqueues that Schedule resource to be processed. If the object does not
+// It then enqueues that ScheduledWorkflow to be processed. If the object does not
 // have an appropriate OwnerReference, it will simply be skipped.
-func (c *Controller) handleObject(obj interface{}) {
+func (c *Controller) handleWorkflow(obj interface{}) {
 	var object metav1.Object
 	var ok bool
 	if object, ok = obj.(metav1.Object); !ok {
@@ -206,28 +220,41 @@ func (c *Controller) handleObject(obj interface{}) {
 			runtime.HandleError(fmt.Errorf("Error decoding object tombstone, invalid type."))
 			return
 		}
-		glog.Infof("Recovered deleted object '%s' from tombstone.", object.GetName())
+		log.WithFields(log.Fields{
+			Workflow: object.GetName(),
+		}).Infof("Recovered deleted object '%s' from tombstone.", object.GetName())
 	}
 
 	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
-		// If this object is not owned by a Schedule, we should not do anything more
+		// If this object is not owned by a ScheduledWorkflow, we should not do anything more
 		// with it.
-		if ownerRef.Kind != "Schedule" {
-			glog.Infof("Processing object (%s): owner is not a Schedule.", object.GetName())
+		if ownerRef.Kind != swfregister.Kind {
+			log.WithFields(log.Fields{
+				Workflow: object.GetName(),
+			}).Infof("Processing object (%s): owner is not a Scheduled Workflow.", object.GetName())
 			return
 		}
 
-		schedule, err := c.scheduleClient.Get(object.GetNamespace(), ownerRef.Name)
+		swf, err := c.swfClient.Get(object.GetNamespace(), ownerRef.Name)
 		if err != nil {
-			glog.Infof("Processing object (%s): ignoring orphaned object of schedule (%s).", object.GetName(), ownerRef.Name)
+			log.WithFields(log.Fields{
+				Workflow: object.GetName(),
+			}).Infof("Processing object (%s): ignoring orphaned object of scheduled Workflow (%s).",
+				object.GetName(), ownerRef.Name)
 			return
 		}
 
-		glog.Infof("Processing object (%s): owner is a schedule (%s).", object.GetName(), ownerRef.Name)
-		c.enqueueSchedule(schedule.Schedule())
+		log.WithFields(log.Fields{
+			Workflow: object.GetName(),
+			ScheduledWorkflow: ownerRef.Name,
+		}).Infof("Processing object (%s): owner is a ScheduledWorkflow (%s).", object.GetName(),
+			ownerRef.Name)
+		c.enqueueScheduledWorkflow(swf.ScheduledWorkflow())
 		return
 	}
-	glog.Infof("Processing object (%s): object has no owner.", object.GetName())
+	log.WithFields(log.Fields{
+		Workflow: object.GetName(),
+	}).Infof("Processing object (%s): object has no owner.", object.GetName())
 	return
 }
 
@@ -291,14 +318,14 @@ func (c *Controller) processNextWorkItem() bool {
 		//   The item is reprocessed using the exponential backoff strategy.
 
 		// Run the syncHandler, passing it the namespace/name string of the
-		// Schedule resource to be synced.
-		syncAgain, retryOnError, schedule, err := c.syncHandler(key)
+		// ScheduledWorkflow to be synced.
+		syncAgain, retryOnError, swf, err := c.syncHandler(key)
 		if err != nil && retryOnError {
 			// Transient failure. We will retry.
 			c.workqueue.AddRateLimited(obj) // Exponential backoff.
 			runtime.HandleError(fmt.Errorf("Transient failure: %+v", err))
-			if schedule != nil {
-				c.kubeClient.RecordSyncFailure(schedule.Schedule(),
+			if swf != nil {
+				c.kubeClient.RecordSyncFailure(swf.ScheduledWorkflow(),
 					fmt.Sprintf("Transient failure: %v", err.Error()))
 			}
 			return true
@@ -307,8 +334,8 @@ func (c *Controller) processNextWorkItem() bool {
 			// Will resync after the SharedInformerFactory defaultResync delay.
 			c.workqueue.Forget(obj)
 			runtime.HandleError(fmt.Errorf("Permanent failure: %+v", err))
-			if schedule != nil {
-				c.kubeClient.RecordSyncFailure(schedule.Schedule(),
+			if swf != nil {
+				c.kubeClient.RecordSyncFailure(swf.ScheduledWorkflow(),
 					fmt.Sprintf("Permanent failure: %v", err.Error()))
 			}
 			return true
@@ -316,16 +343,16 @@ func (c *Controller) processNextWorkItem() bool {
 			// Success.
 			// Will resync after the SharedInformerFactory defaultResync delay.
 			c.workqueue.Forget(obj)
-			if schedule != nil {
-				c.kubeClient.RecordSyncSuccess(schedule.Schedule(), "All done")
+			if swf != nil {
+				c.kubeClient.RecordSyncSuccess(swf.ScheduledWorkflow(), "All done")
 			}
 			return true
 		} else {
 			// Success and sync again soon.
 			c.workqueue.Forget(obj)
 			c.workqueue.AddAfter(obj, 10*time.Second) // Need status changes to propagate.
-			if schedule != nil {
-				c.kubeClient.RecordSyncSuccess(schedule.Schedule(), "Partially done, syncing again soon")
+			if swf != nil {
+				c.kubeClient.RecordSyncSuccess(swf.ScheduledWorkflow(), "Partially done, syncing again soon")
 			}
 			return true
 		}
@@ -333,10 +360,10 @@ func (c *Controller) processNextWorkItem() bool {
 }
 
 // syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the Schedule resource
+// converge the two. It then updates the Status block of the ScheduledWorkflow
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) (
-	syncAgain bool, retryOnError bool, schedule *util.ScheduleWrap, err error) {
+	syncAgain bool, retryOnError bool, swf *util.ScheduledWorkflowWrap, err error) {
 
 	// Convert the namespace/name string into a distinct namespace and name
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
@@ -346,13 +373,13 @@ func (c *Controller) syncHandler(key string) (
 			wraperror.Wrapf(err, "Invalid resource key (%s): %v", key, err)
 	}
 
-	// Get the Schedule resource with this namespace/name
-	schedule, err = c.scheduleClient.Get(namespace, name)
+	// Get the ScheduledWorkflow with this namespace/name
+	swf, err = c.swfClient.Get(namespace, name)
 	if err != nil {
 		// Permanent failure.
-		// The Schedule resource may no longer exist, we stop processing and do not retry.
+		// The ScheduledWorkflow may no longer exist, we stop processing and do not retry.
 		return false, false, nil,
-			wraperror.Wrapf(err, "Schedule (%s) in work queue no longer exists: %v", key, err)
+			wraperror.Wrapf(err, "ScheduledWorkflow (%s) in work queue no longer exists: %v", key, err)
 	}
 
 	// Get the current time
@@ -360,92 +387,103 @@ func (c *Controller) syncHandler(key string) (
 	// number for the current time.
 	nowEpoch := c.time.Now().Unix()
 
-	// Get active workflows for this schedule.
-	active, err := c.workflowClient.List(schedule.Name(),
+	// Get active workflows for this ScheduledWorkflow.
+	active, err := c.workflowClient.List(swf.Name(),
 		false, /* active workflow */
 		0 /* retrieve all workflows */)
 	if err != nil {
-		return false, true, schedule,
-			wraperror.Wrapf(err, "Syncing schedule (%v): transient failure, can't fetch active workflows: %v", name, err)
+		return false, true, swf,
+			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch active workflows: %v", name, err)
 	}
 
-	// Get completed workflows for this schedule.
-	completed, err := c.workflowClient.List(schedule.Name(),
+	// Get completed workflows for this ScheduledWorkflow.
+	completed, err := c.workflowClient.List(swf.Name(),
 		true, /* completed workflows */
-		schedule.MinIndex())
+		swf.MinIndex())
 	if err != nil {
-		return false, true, schedule,
-			wraperror.Wrapf(err, "Syncing schedule (%v): transient failure, can't fetch completed workflows: %v", name, err)
+		return false, true, swf,
+			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
 	}
 
-	workflow, nextScheduledEpoch, err := c.submitNextWorkflowIfNeeded(schedule, len(active), nowEpoch)
+	workflow, nextScheduledEpoch, err := c.submitNextWorkflowIfNeeded(swf, len(active), nowEpoch)
 	if err != nil {
-		return false, true, schedule,
-			wraperror.Wrapf(err, "Syncing schedule (%v): transient failure, can't fetch completed workflows: %v", name, err)
+		return false, true, swf,
+			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
 	}
 
-	err = c.updateScheduleStatus(schedule, workflow, active, completed, nextScheduledEpoch, nowEpoch)
+	err = c.updateStatus(swf, workflow, active, completed, nextScheduledEpoch, nowEpoch)
 	if err != nil {
-		return false, true, schedule,
-			wraperror.Wrapf(err, "Syncing schedule (%v): transient failure, can't update schedule status: %v", name, err)
+		return false, true, swf,
+			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't update swf status: %v", name, err)
 	}
 
 	if workflow != nil {
 		// Success. Since we created a new workflow, sync again soon since there might be one more
 		// resource to create.
-		glog.Infof("Syncing schedule (%v): success, requeuing for further processing.", name)
-		return true, false, schedule, nil
+		log.WithFields(log.Fields{
+			ScheduledWorkflow: name,
+		}).Infof("Syncing ScheduledWorkflow (%v): success, requeuing for further processing.", name)
+		return true, false, swf, nil
 	}
 
 	// Success. We did not create any new resource. We can sync again when something changes.
-	glog.Infof("Syncing schedule (%v): success, processing complete.", name)
-	return false, false, schedule, nil
+	log.WithFields(log.Fields{
+		ScheduledWorkflow: name,
+	}).Infof("Syncing ScheduledWorkflow (%v): success, processing complete.", name)
+	return false, false, swf, nil
 }
 
 // Submits the next workflow if a workflow is due to execute. Returns the submitted workflow,
 // an error (if any), and a boolean indicating (in case of an error) whether handling the
-// schedule should be attempted again at a later time.
-func (c *Controller) submitNextWorkflowIfNeeded(schedule *util.ScheduleWrap,
+// ScheduledWorkflow should be attempted again at a later time.
+func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflowWrap,
 	activeWorkflowCount int, nowEpoch int64) (
 	workflow *util.WorkflowWrap, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
-	nextScheduledEpoch, shouldRunNow := schedule.GetNextScheduledEpoch(
+	nextScheduledEpoch, shouldRunNow := swf.GetNextScheduledEpoch(
 		int64(activeWorkflowCount), nowEpoch)
 
 	if !shouldRunNow {
-		glog.Infof("Submitting workflow for schedule (%v): nothing to submit (next scheduled at: %v)",
-			schedule.Name(), util.FormatTimeForLogging(nextScheduledEpoch))
+		log.WithFields(log.Fields{
+			ScheduledWorkflow: swf.Name(),
+		}).Infof("Submitting workflow for ScheduledWorkflow (%v): nothing to submit (next scheduled at: %v)",
+			swf.Name(), util.FormatTimeForLogging(nextScheduledEpoch))
 		return nil, nextScheduledEpoch, nil
 	}
 
-	workflow, err = c.submitNewWorkflowIfNotAlreadySubmitted(schedule, nextScheduledEpoch, nowEpoch)
+	workflow, err = c.submitNewWorkflowIfNotAlreadySubmitted(swf, nextScheduledEpoch, nowEpoch)
 	if err != nil {
-		glog.Errorf("Submitting workflow for schedule (%v): transient error while submitting workflow: %v",
-			schedule.Name(), nextScheduledEpoch, err)
+		log.WithFields(log.Fields{
+			ScheduledWorkflow: swf.Name(),
+		}).Errorf("Submitting workflow for ScheduledWorkflow (%v): transient error while submitting workflow: %v",
+			swf.Name(), err)
 		// There was an error submitting a new workflow.
 		// We should attempt to handle the schedule again at a later time.
 		return nil, nextScheduledEpoch, err
 	}
-	glog.Infof("Submitting workflow for schedule (%v): workflow (%v) successfully submitted (scheduled at: %v)",
-		schedule.Name(), workflow.Workflow().Name, util.FormatTimeForLogging(nextScheduledEpoch))
+	log.WithFields(log.Fields{
+		ScheduledWorkflow: swf.Name(),
+		Workflow: workflow.Workflow().Name,
+	}).Infof("Submitting workflow for ScheduledWorkflow (%v): workflow (%v) successfully submitted (scheduled at: %v)",
+		swf.Name(), workflow.Workflow().Name, util.FormatTimeForLogging(nextScheduledEpoch))
 	return workflow, nextScheduledEpoch, nil
 }
 
 func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
-	schedule *util.ScheduleWrap, nextScheduledEpoch int64, nowEpoch int64) (
+	swf *util.ScheduledWorkflowWrap, nextScheduledEpoch int64, nowEpoch int64) (
 	*util.WorkflowWrap, error) {
 
-	workflowName := schedule.NextResourceName()
+	workflowName := swf.NextResourceName()
 
 	// Try to fetch this workflow
 	// If it already exists, it means that it was already created in a previous iteration
 	// of this controller but that the controller failed to save this data.
-	foundWorkflow, isNotFoundError, err := c.workflowClient.Get(schedule.Namespace(),
+	foundWorkflow, isNotFoundError, err := c.workflowClient.Get(swf.Namespace(),
 		workflowName)
 	if err == nil {
 		// The workflow was already created by a previous iteration of this controller.
 		// Nothing to do except returning the information needed by the controller to update
-		// the schedule status.
+		// the ScheduledWorkflow status.
 		return foundWorkflow, nil
 	}
 
@@ -455,8 +493,8 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	}
 
 	// If the workflow is not found, we need to create it.
-	newWorkflow := schedule.NewWorkflow(nextScheduledEpoch, nowEpoch)
-	createdWorkflow, err := c.workflowClient.Create(schedule.Namespace(), newWorkflow)
+	newWorkflow := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
+	createdWorkflow, err := c.workflowClient.Create(swf.Namespace(), newWorkflow)
 
 	if err != nil {
 		return nil, err
@@ -464,22 +502,22 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	return createdWorkflow, nil
 }
 
-func (c *Controller) updateScheduleStatus(
-	schedule *util.ScheduleWrap,
+func (c *Controller) updateStatus(
+	swf *util.ScheduledWorkflowWrap,
 	workflow *util.WorkflowWrap,
-	active []scheduleapi.WorkflowStatus,
-	completed []scheduleapi.WorkflowStatus,
+	active []swfapi.WorkflowStatus,
+	completed []swfapi.WorkflowStatus,
 	nextScheduledEpoch int64,
 	nowEpoch int64) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
-	scheduleCopy := util.NewScheduleWrap(schedule.Schedule().DeepCopy())
-	scheduleCopy.UpdateStatus(nowEpoch, workflow, nextScheduledEpoch, active, completed)
+	swfCopy := util.NewScheduledWorkflowWrap(swf.ScheduledWorkflow().DeepCopy())
+	swfCopy.UpdateStatus(nowEpoch, workflow, nextScheduledEpoch, active, completed)
 
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
-	// update the Status block of the Schedule resource. UpdateStatus will not
+	// update the Status block of the ScheduledWorkflow. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
 	// nothing other than resource status has been updated.
-	return c.scheduleClient.Update(schedule.Namespace(), scheduleCopy)
+	return c.swfClient.Update(swf.Namespace(), swfCopy)
 }

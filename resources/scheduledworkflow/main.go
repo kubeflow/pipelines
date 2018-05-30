@@ -18,9 +18,9 @@ import (
 	"flag"
 	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
-	"github.com/golang/glog"
-	scheduleclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
-	scheduleinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
+	log "github.com/sirupsen/logrus"
+	swfclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
+	swfinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
 	"github.com/kubeflow/pipelines/pkg/signals"
 	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	"k8s.io/client-go/kubernetes"
@@ -42,25 +42,25 @@ func main() {
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
-		glog.Fatalf("Error building kubeconfig: %s", err.Error())
+		log.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
+		log.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
-	scheduleClient, err := scheduleclientset.NewForConfig(cfg)
+	scheduleClient, err := swfclientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building schedule clientset: %s", err.Error())
+		log.Fatalf("Error building schedule clientset: %s", err.Error())
 	}
 
 	workflowClient, err := workflowclientSet.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building workflow clientset: %s", err.Error())
+		log.Fatalf("Error building workflow clientset: %s", err.Error())
 	}
 
-	scheduleInformerFactory := scheduleinformers.NewSharedInformerFactory(scheduleClient, time.Second*30)
+	scheduleInformerFactory := swfinformers.NewSharedInformerFactory(scheduleClient, time.Second*30)
 	workflowInformerFactory := workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
 
 	controller := NewController(
@@ -75,7 +75,7 @@ func main() {
 	go workflowInformerFactory.Start(stopCh)
 
 	if err = controller.Run(2, stopCh); err != nil {
-		glog.Fatalf("Error running controller: %s", err.Error())
+		log.Fatalf("Error running controller: %s", err.Error())
 	}
 }
 

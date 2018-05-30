@@ -30,6 +30,7 @@ const (
 	messageResourceFailedSynced  = "Schedulde workflow synced failed"
 )
 
+// KubeClient is a client to call the core Kubernetes APIs.
 type KubeClient struct {
 	// The Kubernetes API client.
 	kubeClientSet kubernetes.Interface
@@ -44,12 +45,12 @@ func NewKubeClient(kubeClientSet kubernetes.Interface, recorder record.EventReco
 	}
 }
 
-func (k *KubeClient) RecordSyncSuccess(pipeline *swfapi.ScheduledWorkflow, message string) {
-	k.recorder.Event(pipeline, corev1.EventTypeNormal, successSynced,
+func (k *KubeClient) RecordSyncSuccess(swf *swfapi.ScheduledWorkflow, message string) {
+	k.recorder.Event(swf, corev1.EventTypeNormal, successSynced,
 		fmt.Sprintf("%v: %v", messageResourceSuccessSynced, message))
 }
 
-func (k *KubeClient) RecordSyncFailure(pipeline *swfapi.ScheduledWorkflow, message string) {
-	k.recorder.Event(pipeline, corev1.EventTypeWarning, failedSynced,
+func (k *KubeClient) RecordSyncFailure(swf *swfapi.ScheduledWorkflow, message string) {
+	k.recorder.Event(swf, corev1.EventTypeWarning, failedSynced,
 		fmt.Sprintf("%v: %v", messageResourceFailedSynced, message))
 }

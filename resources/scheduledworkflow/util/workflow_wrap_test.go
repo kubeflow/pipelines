@@ -16,7 +16,7 @@ package util
 
 import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
@@ -77,7 +77,7 @@ func TestWorkflowWrap_OverrideParameters(t *testing.T) {
 					{Name: "PARAM2", Value: StringPointer("VALUE2")},
 					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
 					{Name: "PARAM4", Value: StringPointer("NEW_VALUE4")},
-					{Name: "PARAM5", Value: nil},
+					{Name: "PARAM5", Value: StringPointer("")},
 				},
 			},
 		},
@@ -94,16 +94,16 @@ func TestWorkflowWrap_SetCanonicalLabels(t *testing.T) {
 
 	const index = 50
 	const nextScheduledEpoch = 100
-	workflow.SetCanonicalLabels("PIPELINE_NAME", nextScheduledEpoch, index)
+	workflow.SetCanonicalLabels("SCHEDULED_WORKFLOW_NAME", nextScheduledEpoch, index)
 
 	expected := &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 			Labels: map[string]string{
-				"schedules.kubeflow.org/isOwnedBySchedule": "true",
-				"schedules.kubeflow.org/scheduleName":      "PIPELINE_NAME",
-				"schedules.kubeflow.org/scheduledEpoch":    "100",
-				"schedules.kubeflow.org/workflowIndex":     "50"},
+				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
+				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULED_WORKFLOW_NAME",
+				"scheduledworkflows.kubeflow.org/scheduledWorkflowEpoch":     "100",
+				"scheduledworkflows.kubeflow.org/workflowIndex":              "50"},
 		},
 	}
 
@@ -117,7 +117,7 @@ func TestWorkflowWrap_SetOwnerReferences(t *testing.T) {
 		},
 	})
 
-	workflow.SetOwnerReferences(&scheduleapi.ScheduledWorkflow{
+	workflow.SetOwnerReferences(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "SCHEDULE_NAME",
 		},
@@ -128,7 +128,7 @@ func TestWorkflowWrap_SetOwnerReferences(t *testing.T) {
 			Name: "WORKFLOW_NAME",
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion:         "kubeflow.org/v1alpha1",
-				Kind:               "Schedule",
+				Kind:               "ScheduledWorkflow",
 				Name:               "SCHEDULE_NAME",
 				Controller:         BooleanPointer(true),
 				BlockOwnerDeletion: BooleanPointer(true),

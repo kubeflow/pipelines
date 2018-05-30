@@ -16,8 +16,8 @@ package util
 
 import (
 	"fmt"
-	workflowcommon "github.com/argoproj/argo/workflow/common"
-	"github.com/golang/glog"
+	"github.com/argoproj/argo/workflow/common"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"strconv"
@@ -28,10 +28,10 @@ func GetRequirementForCompletedWorkflowOrFatal(completed bool) *labels.Requireme
 	if completed == true {
 		operator = selection.Equals
 	}
-	req, err := labels.NewRequirement(workflowcommon.LabelKeyCompleted, operator,
+	req, err := labels.NewRequirement(common.LabelKeyCompleted, operator,
 		[]string{"true"})
 	if err != nil {
-		glog.Fatalf("Error while creating requirement: %s", err)
+		log.Fatalf("Error while creating requirement: %s", err)
 	}
 	return req
 }
@@ -39,7 +39,7 @@ func GetRequirementForCompletedWorkflowOrFatal(completed bool) *labels.Requireme
 func GetRequirementForScheduleNameOrFatal(scheduleName string) *labels.Requirement {
 	req, err := labels.NewRequirement(LabelKeyWorkflowName, selection.Equals, []string{scheduleName})
 	if err != nil {
-		glog.Fatalf("Error while creating requirement: %s", err)
+		log.Fatalf("Error while creating requirement: %s", err)
 	}
 	return req
 }
@@ -48,7 +48,7 @@ func GetRequirementForMinIndexOrFatal(minIndex int64) *labels.Requirement {
 	req, err := labels.NewRequirement(LabelKeyWorkflowIndex, selection.GreaterThan,
 		[]string{FormatInt64ForLabel(minIndex)})
 	if err != nil {
-		glog.Fatalf("Error while creating requirement: %s", err)
+		log.Fatalf("Error while creating requirement: %s", err)
 	}
 	return req
 }

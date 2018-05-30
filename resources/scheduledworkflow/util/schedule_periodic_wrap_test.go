@@ -15,7 +15,7 @@
 package util
 
 import (
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"math"
@@ -25,7 +25,7 @@ import (
 
 func TestPeriodicScheduleWrap_getNextScheduledEpoch_StartDate_EndDate(t *testing.T) {
 	// First job.
-	schedule := NewPeriodicScheduleWrap(&scheduleapi.PeriodicSchedule{
+	schedule := NewPeriodicScheduleWrap(&swfapi.PeriodicSchedule{
 		StartTime:      Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
 		EndTime:        Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		IntervalSecond: minute,
@@ -47,7 +47,7 @@ func TestPeriodicScheduleWrap_getNextScheduledEpoch_StartDate_EndDate(t *testing
 }
 
 func TestPeriodicScheduleWrap_getNextScheduledEpoch_PeriodOnly(t *testing.T) {
-	schedule := NewPeriodicScheduleWrap(&scheduleapi.PeriodicSchedule{
+	schedule := NewPeriodicScheduleWrap(&swfapi.PeriodicSchedule{
 		IntervalSecond: minute,
 	})
 	lastJobEpoch := int64(10 * hour)
@@ -56,7 +56,7 @@ func TestPeriodicScheduleWrap_getNextScheduledEpoch_PeriodOnly(t *testing.T) {
 }
 
 func TestPeriodicScheduleWrap_getNextScheduledEpoch_NoPeriod(t *testing.T) {
-	schedule := NewPeriodicScheduleWrap(&scheduleapi.PeriodicSchedule{
+	schedule := NewPeriodicScheduleWrap(&swfapi.PeriodicSchedule{
 		StartTime:      Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
 		EndTime:        Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		IntervalSecond: 0,
@@ -68,7 +68,7 @@ func TestPeriodicScheduleWrap_getNextScheduledEpoch_NoPeriod(t *testing.T) {
 
 func TestPeriodicScheduleWrap_GetNextScheduledEpoch(t *testing.T) {
 	// There was a previous job.
-	schedule := NewPeriodicScheduleWrap(&scheduleapi.PeriodicSchedule{
+	schedule := NewPeriodicScheduleWrap(&swfapi.PeriodicSchedule{
 		StartTime:      Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
 		EndTime:        Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		IntervalSecond: 60,
@@ -84,7 +84,7 @@ func TestPeriodicScheduleWrap_GetNextScheduledEpoch(t *testing.T) {
 
 	// There is no previous job, no schedule start date, falling back on the
 	// creation date of the workflow.
-	schedule = NewPeriodicScheduleWrap(&scheduleapi.PeriodicSchedule{
+	schedule = NewPeriodicScheduleWrap(&swfapi.PeriodicSchedule{
 		EndTime:        Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		IntervalSecond: 60,
 	})

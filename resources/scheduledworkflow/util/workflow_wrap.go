@@ -16,12 +16,13 @@ package util
 
 import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	scheduleregister "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	swfregister "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// WorkflowWrap is a wrapper to help manipulate workflow objects.
 type WorkflowWrap struct {
 	workflow *workflowapi.Workflow
 }
@@ -68,12 +69,12 @@ func (w *WorkflowWrap) SetCanonicalLabels(scheduleName string,
 	w.workflow.Labels[LabelKeyWorkflowIsOwnedBySchedule] = "true"
 }
 
-func (w *WorkflowWrap) SetOwnerReferences(schedule *scheduleapi.ScheduledWorkflow) {
+func (w *WorkflowWrap) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
 	w.workflow.OwnerReferences = []metav1.OwnerReference{
 		*metav1.NewControllerRef(schedule, schema.GroupVersionKind{
-			Group:   scheduleapi.SchemeGroupVersion.Group,
-			Version: scheduleapi.SchemeGroupVersion.Version,
-			Kind:    scheduleregister.Kind,
+			Group:   swfapi.SchemeGroupVersion.Group,
+			Version: swfapi.SchemeGroupVersion.Version,
+			Kind:    swfregister.Kind,
 		}),
 	}
 }

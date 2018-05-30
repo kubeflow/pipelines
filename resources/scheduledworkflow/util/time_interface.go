@@ -15,15 +15,17 @@
 package util
 
 import (
-	"github.com/golang/glog"
+	log "github.com/sirupsen/logrus"
 	"math"
 	"time"
 )
 
+// TimeInterface is an interface for objects generating the current time.
 type TimeInterface interface {
 	Now() time.Time
 }
 
+// RealTime is an implementation of TimeInterface that generates the current time.
 type RealTime struct {
 }
 
@@ -35,6 +37,7 @@ func (r *RealTime) Now() time.Time {
 	return time.Now().UTC()
 }
 
+// FakeTime is a fake implementation of TimeInterface for testing.
 type FakeTime struct {
 	now time.Time
 }
@@ -59,7 +62,7 @@ func (f *FakeTime) Now() time.Time {
 func ParseTimeOrFatal(value string) time.Time {
 	result, err := time.Parse(time.RFC3339, value)
 	if err != nil {
-		glog.Fatalf("Could not parse time: %+v", err)
+		log.Fatalf("Could not parse time: %+v", err)
 	}
 	return result.UTC()
 }

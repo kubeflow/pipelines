@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// ScheduledWorkflowClient is a client to call the ScheduledWorkflow API.
 type ScheduledWorkflowClient struct {
 	clientSet swfclientset.Interface
 	informer  v1alpha1.ScheduledWorkflowInformer
@@ -43,18 +44,18 @@ func (p *ScheduledWorkflowClient) HasSynced() func() bool {
 	return p.informer.Informer().HasSynced
 }
 
-func (p *ScheduledWorkflowClient) Get(namespace string, name string) (*util.ScheduleWrap, error) {
+func (p *ScheduledWorkflowClient) Get(namespace string, name string) (*util.ScheduledWorkflowWrap, error) {
 	schedule, err := p.informer.Lister().ScheduledWorkflows(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return util.NewScheduleWrap(schedule), nil
+	return util.NewScheduledWorkflowWrap(schedule), nil
 }
 
 func (p *ScheduledWorkflowClient) Update(namespace string,
-		schedule *util.ScheduleWrap) error {
+		schedule *util.ScheduledWorkflowWrap) error {
 	_, err := p.clientSet.ScheduledworkflowV1alpha1().ScheduledWorkflows(namespace).
-		Update(schedule.Schedule())
+		Update(schedule.ScheduledWorkflow())
 	return err
 }

@@ -15,21 +15,22 @@
 package util
 
 import (
-	"github.com/golang/glog"
-	scheduleapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	log "github.com/sirupsen/logrus"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	wraperror "github.com/pkg/errors"
 	"github.com/robfig/cron"
 	"math"
 	"time"
 )
 
+// CronScheduleWrap is a wrapper to help manipulate CronSchedule objects.
 type CronScheduleWrap struct {
-	cronSchedule *scheduleapi.CronSchedule
+	cronSchedule *swfapi.CronSchedule
 }
 
-func NewCronScheduleWrap(cronSchedule *scheduleapi.CronSchedule) *CronScheduleWrap {
+func NewCronScheduleWrap(cronSchedule *swfapi.CronSchedule) *CronScheduleWrap {
 	if cronSchedule == nil {
-		glog.Fatalf("The cronSchedule should never be nil")
+		log.Fatalf("The cronSchedule should never be nil")
 	}
 
 	return &CronScheduleWrap{
@@ -52,7 +53,7 @@ func (s *CronScheduleWrap) getNextScheduledEpoch(lastJobEpoch int64) int64 {
 	schedule, err := cron.Parse(s.cronSchedule.Cron)
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
-		glog.Errorf("%+v", wraperror.Errorf(
+		log.Errorf("%+v", wraperror.Errorf(
 			"Found invalid schedule (%v): %v", s.cronSchedule.Cron, err))
 		return math.MaxInt64
 	}
