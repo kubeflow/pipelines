@@ -17,15 +17,16 @@
 package v1alpha1
 
 import (
+	time "time"
+
+	pipeline_v1alpha1 "github.com/googleprivate/ml/pkg/apis/pipeline/v1alpha1"
+	versioned "github.com/googleprivate/ml/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/googleprivate/ml/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/googleprivate/ml/pkg/client/listers/pipeline/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
-	pipeline_v1alpha1 "ml/pkg/apis/pipeline/v1alpha1"
-	versioned "ml/pkg/client/clientset/versioned"
-	internalinterfaces "ml/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "ml/pkg/client/listers/pipeline/v1alpha1"
-	time "time"
 )
 
 // PipelineInformer provides access to a shared informer and lister for

@@ -15,8 +15,9 @@
 package storage
 
 import (
-	"ml/backend/src/util"
 	"strconv"
+
+	"github.com/googleprivate/ml/backend/src/util"
 )
 
 const (

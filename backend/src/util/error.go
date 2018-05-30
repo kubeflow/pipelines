@@ -16,9 +16,9 @@ package util
 
 import (
 	"fmt"
-	"ml/backend/api"
 
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/api"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

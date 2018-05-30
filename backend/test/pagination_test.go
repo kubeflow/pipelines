@@ -1,14 +1,13 @@
-package main
+package test
 
 import (
 	"context"
 	"fmt"
-	"ml/backend/api"
 	"testing"
-
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"

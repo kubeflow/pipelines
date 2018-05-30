@@ -19,9 +19,9 @@ import (
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
-	clientset "ml/pkg/client/clientset/versioned"
-	pipelinev1alpha1 "ml/pkg/client/clientset/versioned/typed/pipeline/v1alpha1"
-	fakepipelinev1alpha1 "ml/pkg/client/clientset/versioned/typed/pipeline/v1alpha1/fake"
+	clientset "github.com/googleprivate/ml/pkg/client/clientset/versioned"
+	pipelinev1alpha1 "github.com/googleprivate/ml/pkg/client/clientset/versioned/typed/pipeline/v1alpha1"
+	fakepipelinev1alpha1 "github.com/googleprivate/ml/pkg/client/clientset/versioned/typed/pipeline/v1alpha1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.

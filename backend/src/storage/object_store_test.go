@@ -17,9 +17,9 @@ package storage
 import (
 	"bytes"
 	"io"
-	"ml/backend/src/util"
 	"testing"
 
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/minio/minio-go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"

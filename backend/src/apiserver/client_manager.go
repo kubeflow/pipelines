@@ -17,14 +17,14 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"ml/backend/src/client"
-	"ml/backend/src/model"
-	"ml/backend/src/storage"
-	"ml/backend/src/util"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/src/client"
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/storage"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	minio "github.com/minio/minio-go"

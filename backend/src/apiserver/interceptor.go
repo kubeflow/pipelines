@@ -16,9 +16,9 @@ package main
 
 import (
 	"context"
-	"ml/backend/src/util"
 
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/src/util"
 	"google.golang.org/grpc"
 )
 

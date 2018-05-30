@@ -27,7 +27,7 @@ spec:
     container:
       image: docker:17.10
       command: [sh, -c]
-      args: ["until docker ps; do sleep 3; done; docker build -t ml-pipeline-api-server-integration-test /go/src/ml/backend/src"]
+      args: ["until docker ps; do sleep 3; done; docker build -t ml-pipeline-api-server-integration-test /go/src/github.com/googleprivate/ml/backend/src"]
       volumeMounts:
       - mountPath: /var/run/docker.sock
         name: docker-sock-volume
@@ -49,7 +49,7 @@ spec:
     container:
       image: golang
       command: [sh, -c]
-      args: ["cd /go/src/ml/backend/test; go get -t ./...; go test ./... -namespace {{workflow.name}}"]
+      args: ["cd /go/src/github.com/googleprivate/ml/backend/test; go get -t ./...; go test ./... -namespace {{workflow.name}}"]
       volumeMounts:
       - mountPath: /go/src/ml
         name: repo-dir

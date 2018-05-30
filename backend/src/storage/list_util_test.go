@@ -17,10 +17,10 @@ package storage
 import (
 	"encoding/base64"
 	"encoding/json"
-	"ml/backend/src/model"
-	"ml/backend/src/util"
 	"testing"
 
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 )

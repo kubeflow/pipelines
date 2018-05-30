@@ -17,9 +17,9 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"ml/backend/src/model"
-	"ml/backend/src/util"
 
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )

@@ -15,11 +15,10 @@
 package v1alpha1
 
 import (
+	pipelinecontroller "github.com/googleprivate/ml/pkg/apis/pipeline"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	pipelinecontroller "ml/pkg/apis/pipeline"
 )
 
 // SchemeGroupVersion is group version used to register these objects

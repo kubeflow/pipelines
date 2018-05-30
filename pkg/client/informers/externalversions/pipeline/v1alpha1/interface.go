@@ -17,7 +17,7 @@
 package v1alpha1
 
 import (
-	internalinterfaces "ml/pkg/client/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/googleprivate/ml/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

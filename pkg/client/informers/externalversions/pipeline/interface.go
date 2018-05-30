@@ -17,8 +17,8 @@
 package pipeline
 
 import (
-	internalinterfaces "ml/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "ml/pkg/client/informers/externalversions/pipeline/v1alpha1"
+	internalinterfaces "github.com/googleprivate/ml/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/googleprivate/ml/pkg/client/informers/externalversions/pipeline/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

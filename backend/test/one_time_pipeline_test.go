@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package test
 
 import (
 	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"ml/backend/api"
-	"ml/backend/src/util"
 	"testing"
 	"time"
 
@@ -29,6 +27,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/googleprivate/ml/backend/api"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"

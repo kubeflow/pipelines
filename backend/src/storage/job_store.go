@@ -15,11 +15,10 @@
 package storage
 
 import (
-	"ml/backend/src/model"
-	"ml/backend/src/util"
-
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
 	k8sclient "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -70,14 +69,14 @@ func (s *JobStore) queryJobTable(pipelineId uint32, context *PaginationContext) 
 func (s *JobStore) CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduledAtInSec int64,
 	createdAtInSec int64) (*model.JobDetail, error) {
 
-	// TODO: handle the case where the workflow is created but updating the DB fails. 	
+	// TODO: handle the case where the workflow is created but updating the DB fails.
 
 	// Try to schedule the job once
 	newWf, err := s.wfClient.Create(wf)
 	if err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to create an Argo workflow for name (%s), generateName (%s).", wf.Name,
-				wf.GenerateName)
+			wf.GenerateName)
 	}
 
 	// Store the result in the DB
@@ -85,7 +84,7 @@ func (s *JobStore) CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduled
 		CreatedAtInSec:   createdAtInSec,
 		UpdatedAtInSec:   createdAtInSec,
 		Name:             newWf.Name,
-		Status:            model.JobExecutionPending,
+		Status:           model.JobExecutionPending,
 		PipelineID:       pipelineId,
 		ScheduledAtInSec: scheduledAtInSec,
 	}

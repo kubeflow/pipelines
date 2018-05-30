@@ -14,11 +14,11 @@
 package fake
 
 import (
+	pipelinev1alpha1 "github.com/googleprivate/ml/pkg/apis/pipeline/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	pipelinev1alpha1 "ml/pkg/apis/pipeline/v1alpha1"
 )
 
 var scheme = runtime.NewScheme()

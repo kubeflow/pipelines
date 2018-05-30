@@ -15,11 +15,11 @@
 package storage
 
 import (
-	"ml/backend/src/model"
-	"ml/backend/src/util"
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

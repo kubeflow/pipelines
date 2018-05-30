@@ -17,14 +17,14 @@ package main
 import (
 	"bytes"
 	"mime/multipart"
-	"ml/backend/src/model"
-	"ml/backend/src/resource"
-	"ml/backend/src/storage"
-	"ml/backend/src/util"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/resource"
+	"github.com/googleprivate/ml/backend/src/storage"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )

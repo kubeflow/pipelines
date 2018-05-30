@@ -16,10 +16,10 @@ package storage
 
 import (
 	"fmt"
-	"ml/backend/src/model"
-	"ml/backend/src/util"
 
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 )

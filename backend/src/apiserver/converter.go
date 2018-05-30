@@ -16,12 +16,12 @@ package main
 
 import (
 	"encoding/json"
-	"ml/backend/api"
-	"ml/backend/src/model"
-	"ml/backend/src/util"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/googleprivate/ml/backend/api"
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/util"
 )
 
 func ToApiJob(job *model.Job) *api.Job {

@@ -14,10 +14,10 @@
 package v1alpha1
 
 import (
+	v1alpha1 "github.com/googleprivate/ml/pkg/apis/pipeline/v1alpha1"
+	"github.com/googleprivate/ml/pkg/client/clientset/versioned/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
-	v1alpha1 "ml/pkg/apis/pipeline/v1alpha1"
-	"ml/pkg/client/clientset/versioned/scheme"
 )
 
 type PipelineV1alpha1Interface interface {

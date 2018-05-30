@@ -18,12 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"ml/backend/api"
-	"ml/backend/src/resource"
-	"ml/backend/src/util"
 	"net/http"
 
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/api"
+	"github.com/googleprivate/ml/backend/src/resource"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/pkg/errors"
 )
 

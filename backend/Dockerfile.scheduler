@@ -1,9 +1,9 @@
 FROM golang
 
-WORKDIR /go/src/ml/backend
+WORKDIR /go/src/github.com/googleprivate/ml/backend
 COPY . .
 
-WORKDIR /go/src/ml/backend/src
+WORKDIR /go/src/github.com/googleprivate/ml/backend/src
 RUN go get ./...
 RUN go build -o /bin/scheduler ./controller/schedule/*.go
 

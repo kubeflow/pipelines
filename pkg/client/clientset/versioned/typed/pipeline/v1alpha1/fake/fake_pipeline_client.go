@@ -14,9 +14,9 @@
 package fake
 
 import (
+	v1alpha1 "github.com/googleprivate/ml/pkg/client/clientset/versioned/typed/pipeline/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
-	v1alpha1 "ml/pkg/client/clientset/versioned/typed/pipeline/v1alpha1"
 )
 
 type FakePipelineV1alpha1 struct {

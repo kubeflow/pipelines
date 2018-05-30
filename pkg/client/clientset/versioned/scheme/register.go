@@ -18,7 +18,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	pipelinev1alpha1 "ml/pkg/apis/pipeline/v1alpha1"
+	pipelinev1alpha1 "github.com/googleprivate/ml/pkg/apis/pipeline/v1alpha1"
 )
 
 var Scheme = runtime.NewScheme()

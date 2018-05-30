@@ -16,11 +16,11 @@ package main
 
 import (
 	"context"
-	"ml/backend/api"
-	"ml/backend/src/resource"
-	"ml/backend/src/util"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/googleprivate/ml/backend/api"
+	"github.com/googleprivate/ml/backend/src/resource"
+	"github.com/googleprivate/ml/backend/src/util"
 )
 
 var packageModelFieldsBySortableAPIFields = map[string]string{

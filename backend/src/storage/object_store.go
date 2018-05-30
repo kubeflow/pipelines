@@ -16,9 +16,9 @@ package storage
 
 import (
 	"bytes"
-	"ml/backend/src/util"
 
 	"github.com/ghodss/yaml"
+	"github.com/googleprivate/ml/backend/src/util"
 	minio "github.com/minio/minio-go"
 )
 

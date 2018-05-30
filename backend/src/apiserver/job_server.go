@@ -16,9 +16,10 @@ package main
 
 import (
 	"context"
-	"ml/backend/api"
-	"ml/backend/src/resource"
-	"ml/backend/src/util"
+
+	"github.com/googleprivate/ml/backend/api"
+	"github.com/googleprivate/ml/backend/src/resource"
+	"github.com/googleprivate/ml/backend/src/util"
 )
 
 var jobModelFieldsBySortableAPIFields = map[string]string{

@@ -15,10 +15,9 @@
 package main
 
 import (
-	"ml/backend/src/client"
-	"ml/backend/src/storage"
-	"ml/backend/src/util"
-
+	"github.com/googleprivate/ml/backend/src/client"
+	"github.com/googleprivate/ml/backend/src/storage"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"

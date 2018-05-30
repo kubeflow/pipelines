@@ -17,15 +17,16 @@
 package externalversions
 
 import (
-	runtime "k8s.io/apimachinery/pkg/runtime"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
-	cache "k8s.io/client-go/tools/cache"
-	versioned "ml/pkg/client/clientset/versioned"
-	internalinterfaces "ml/pkg/client/informers/externalversions/internalinterfaces"
-	pipeline "ml/pkg/client/informers/externalversions/pipeline"
 	reflect "reflect"
 	sync "sync"
 	time "time"
+
+	versioned "github.com/googleprivate/ml/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/googleprivate/ml/pkg/client/informers/externalversions/internalinterfaces"
+	pipeline "github.com/googleprivate/ml/pkg/client/informers/externalversions/pipeline"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 type sharedInformerFactory struct {

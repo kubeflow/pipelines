@@ -1,7 +1,0 @@
-apiVersion: kubeflow.org/v1alpha1
-kind: Pipeline
-metadata:
-  name: example-pipeline
-spec:
-  deploymentName: example-pipeline
-  replicas: 1

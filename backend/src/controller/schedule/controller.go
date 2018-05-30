@@ -17,11 +17,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"ml/backend/src/resource"
-	"ml/backend/src/storage"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/src/resource"
+	"github.com/googleprivate/ml/backend/src/storage"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 )

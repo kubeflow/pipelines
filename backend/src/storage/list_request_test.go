@@ -15,9 +15,9 @@
 package storage
 
 import (
-	"ml/backend/src/util"
 	"testing"
 
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 )

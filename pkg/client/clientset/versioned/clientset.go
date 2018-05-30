@@ -18,7 +18,7 @@ import (
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
-	pipelinev1alpha1 "ml/pkg/client/clientset/versioned/typed/pipeline/v1alpha1"
+	pipelinev1alpha1 "github.com/googleprivate/ml/pkg/client/clientset/versioned/typed/pipeline/v1alpha1"
 )
 
 type Interface interface {

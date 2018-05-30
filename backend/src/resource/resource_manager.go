@@ -16,12 +16,12 @@ package resource
 
 import (
 	"fmt"
-	"ml/backend/src/model"
-	"ml/backend/src/storage"
-	"ml/backend/src/util"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/src/model"
+	"github.com/googleprivate/ml/backend/src/storage"
+	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 )
