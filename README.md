@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/googleprivate/ml.svg?token=JjfzFsYGxZwkHvXFCpwt&branch=master)](https://travis-ci.com/googleprivate/ml)
+
 # ML Pipeline User Guideline
 
 This document guides you through the steps to install Machine Learning Pipelines and run your first pipeline sample. 
