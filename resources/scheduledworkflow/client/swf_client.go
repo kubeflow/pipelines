@@ -29,7 +29,7 @@ type ScheduledWorkflowClient struct {
 }
 
 func NewScheduledWorkflowClient(clientSet swfclientset.Interface,
-		informer v1alpha1.ScheduledWorkflowInformer) *ScheduledWorkflowClient {
+	informer v1alpha1.ScheduledWorkflowInformer) *ScheduledWorkflowClient {
 	return &ScheduledWorkflowClient{
 		clientSet: clientSet,
 		informer:  informer,
@@ -54,7 +54,7 @@ func (p *ScheduledWorkflowClient) Get(namespace string, name string) (*util.Sche
 }
 
 func (p *ScheduledWorkflowClient) Update(namespace string,
-		schedule *util.ScheduledWorkflowWrap) error {
+	schedule *util.ScheduledWorkflowWrap) error {
 	_, err := p.clientSet.ScheduledworkflowV1alpha1().ScheduledWorkflows(namespace).
 		Update(schedule.ScheduledWorkflow())
 	return err

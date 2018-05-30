@@ -15,8 +15,8 @@
 package util
 
 import (
-	log "github.com/sirupsen/logrus"
 	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	log "github.com/sirupsen/logrus"
 	"math"
 )
 

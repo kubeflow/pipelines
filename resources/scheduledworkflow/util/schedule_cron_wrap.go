@@ -15,10 +15,10 @@
 package util
 
 import (
-	log "github.com/sirupsen/logrus"
 	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	wraperror "github.com/pkg/errors"
 	"github.com/robfig/cron"
+	log "github.com/sirupsen/logrus"
 	"math"
 	"time"
 )
