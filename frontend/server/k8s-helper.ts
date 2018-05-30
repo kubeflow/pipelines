@@ -88,3 +88,9 @@ export function waitForTensorboard(logdir: string, timeout: number) {
   })
 }
 
+export async function getPodLogs(podName: string) {
+  return k8sV1Client.readNamespacedPodLog(podName, namespace, 'main')
+    .then(response => response.body, error => {
+      throw new Error(error);
+    });
+}

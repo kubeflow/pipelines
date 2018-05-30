@@ -150,6 +150,25 @@ app.post(apisPrefix + '/apps/tensorboard', async (req, res) => {
 
 });
 
+app.get(apisPrefix + '/k8s/pod/logs', async (req, res) => {
+  if (!k8sHelper.isInCluster) {
+    res.status(500).send('Cannot talk to Kubernetes master');
+    return;
+  }
+
+  const podName = decodeURIComponent(req.query.podname);
+  if (!podName) {
+    res.status(404).send('podname argument is required');
+    return;
+  }
+
+  try {
+    res.send(await k8sHelper.getPodLogs(podName));
+  } catch (err) {
+    res.status(500).send('Could not get main container logs: ' + err);
+  }
+});
+
 proxyMiddleware(app, apisPrefix);
 
 app.all(apisPrefix + '/*', proxy({

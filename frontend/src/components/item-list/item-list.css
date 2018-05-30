@@ -62,10 +62,6 @@ div {
   font-size: var(--font-size);
 }
 
-.centered {
-  justify-content: center;
-}
-
 .checkbox-col {
   flex: 0 0 80px;
   padding-left: var(--spacing-base);

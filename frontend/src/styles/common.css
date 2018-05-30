@@ -100,6 +100,12 @@ paper-tab:not(:first-child) {
   display: block;
 }
 
+.center-text {
+  justify-content: center;
+  margin: auto;
+  text-align: center;
+}
+
 .dimmable-container[busy] {
   opacity: 0.6;
 }
@@ -116,7 +122,7 @@ paper-tab:not(:first-child) {
 
 .details-table .key {
   font-weight: bold;
-  flex: 0 0 280px;
+  flex: 0 0 50%;
 }
 
 .ellipsis {

@@ -222,6 +222,28 @@ export default (app) => {
     }, 1000);
   });
 
+  app.get(apisPrefix + '/k8s/pod/logs', (req, res) => {
+    setTimeout(() => {
+      res.send(String.raw`
+      _____________
+    < hello world >
+      -------------
+           \
+            \
+             \
+                           ##        .
+                     ## ## ##       ==
+                  ## ## ## ##      ===
+              /""""""""""""""""___/ ===
+         ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
+              \______ o          __/
+               \    \        __/
+                 \____\______/
+
+       `);
+    }, 300);
+  });
+
   app.get('/_componentTests*', (req, res) => {
     res.sendFile(_path.resolve('test', 'components', 'index.html'));
   });

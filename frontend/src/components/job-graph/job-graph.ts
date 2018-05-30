@@ -1,13 +1,19 @@
 import 'iron-icons/av-icons.html';
 import 'iron-icons/iron-icons.html';
+import 'paper-icon-button/paper-icon-button.html';
+import 'paper-spinner/paper-spinner.html';
 
 import * as dagre from 'dagre';
+import * as Apis from '../../lib/apis';
+import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { nodePhaseToIcon } from '../../lib/utils';
 import { NodeStatus, Workflow as ArgoTemplate } from '../../model/argo_template';
 
 import './job-graph.html';
+
+import { PageError } from '../page-error/page-error';
 
 interface Line {
   x1: number;
@@ -34,6 +40,12 @@ interface DisplayNode extends dagre.Node {
   finishedAt: string;
 }
 
+class GraphNodeClickEvent<Model> extends MouseEvent {
+  public model: {
+    node: Model,
+  };
+}
+
 const NODE_WIDTH = 150;
 const NODE_HEIGHT = 50;
 const VIRTUAL_NODE_WIDTH = 30;
@@ -51,7 +63,14 @@ export class JobGraph extends Polymer.Element {
   @property({ type: Array })
   protected _workflowEdges: Edge[] = [];
 
+  @property({ type: Boolean })
+  protected _loadingLogs = false;
+
+  @property({ type: Object })
+  protected _selectedNode: NodeStatus | null = null;
+
   refresh(graph: ArgoTemplate): void {
+    this._exitNodeDetails();
     // Ensure that we're working with an empty array.
     this._workflowEdges = [];
 
@@ -137,6 +156,62 @@ export class JobGraph extends Polymer.Element {
 
   protected _getNodeCssClass(node: NodeStatus): string {
     return this._isVirtual(node) ? 'virtual-node' : 'pipeline-node';
+  }
+
+  protected _exitNodeDetails(): void {
+    this.$.nodeDetails.classList.remove('visible');
+    this._unselectAllNodes();
+  }
+
+  protected _formatDateInSeconds(date: string): string {
+    return Utils.formatDateInSeconds(Date.parse(date) / 1000);
+  }
+
+  protected async _nodeClicked(e: GraphNodeClickEvent<NodeStatus>): Promise<void> {
+    if (this._isVirtual(e.model.node)) {
+      // Ignore virtual nodes
+      return;
+    }
+
+    this.$.nodeDetails.classList.add('visible');
+    this._selectedNode = e.model.node;
+
+    const logsContainer = this.$.logsContainer as HTMLPreElement;
+    logsContainer.innerText = '';
+
+    const errorEl = this.$.logsError as PageError;
+    errorEl.style.display = 'none';
+    logsContainer.style.display = 'none';
+
+    // Apply 'selected' CSS class to just this node
+    this._unselectAllNodes();
+    const root = this.shadowRoot as ShadowRoot;
+    const selectedNode = root.querySelector('#node_' + this._selectedNode.id);
+    if (selectedNode) {
+      selectedNode.classList.add('selected');
+    } else {
+      // This should never happen
+      Utils.log.error('Cannot find clicked node with id ' + this._selectedNode.id);
+    }
+
+    try {
+      this._loadingLogs = true;
+      const logs = await Apis.getPodLogs(this._selectedNode.id);
+      logsContainer.style.display = 'block';
+      logsContainer.innerText = logs;
+    } catch (err) {
+      errorEl.style.display = 'block';
+      errorEl.showButton = false;
+      errorEl.error = 'Could not retrieve logs for pod: ' + this._selectedNode.id;
+      logsContainer.style.display = 'none';
+    } finally {
+      this._loadingLogs = false;
+    }
+  }
+
+  private _unselectAllNodes(): void {
+    const root = this.shadowRoot as ShadowRoot;
+    root.querySelectorAll('.pipeline-node').forEach((node) => node.classList.remove('selected'));
   }
 
   // Outbound nodes are roughly those nodes which are the final step of the

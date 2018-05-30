@@ -1,4 +1,4 @@
-import { Job, JobMetadata } from '../model/job';
+import { Job } from '../model/job';
 import { ListJobsRequest } from '../model/list_jobs_request';
 import { ListJobsResponse } from '../model/list_jobs_response';
 import { ListPipelinesRequest } from '../model/list_pipelines_request';
@@ -197,4 +197,11 @@ export async function startTensorboardApp(logdir: string): Promise<string> {
       '',
       { headers: { 'content-type': 'application/json', }, method: 'POST', }
   );
+}
+
+/**
+ * Get pod logs
+ */
+export async function getPodLogs(podName: string): Promise<string> {
+  return await _fetch(`/k8s/pod/logs?podname=${encodeURIComponent(podName)}`);
 }

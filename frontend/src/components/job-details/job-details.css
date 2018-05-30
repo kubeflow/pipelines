@@ -14,9 +14,9 @@ paper-progress.job-progress {
 .plot-container,
 #jobGraph {
   background-color: var(--background-base-color);
+  border: solid 1px #ddd;
   border-radius: 0 0 5px 5px;
   border-top: 0;
-  border: solid 1px #ddd;
   flex-grow: 1;
   overflow: auto;
 }

@@ -38,12 +38,28 @@ describe('view job details', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  it('highlights a step upon hover', () => {
+  it('opens node details upon click', () => {
     // Select a step that will show in the viewport without scrolling.
     const selector = 'app-shell job-details job-graph .pipeline-node:nth-of-type(5)';
 
     browser.waitForVisible(selector);
-    browser.moveToObject(selector, 0, 0);
+    browser.click(selector);
+
+    // Wait for the mock server to return the logs
+    browser.pause(400);
+
+    const logsSelector = 'app-shell job-details job-graph #logsContainer';
+    browser.waitForVisible(logsSelector);
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('closes node details', () => {
+    const selector = 'app-shell job-details job-graph .hide-node-details';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+
+    browser.pause(300);
     assertDiffs(browser.checkDocument());
   });
 });

@@ -4,32 +4,67 @@
 
     <!-- TODO: No-graph (yet) experience -->
 
-    <div class="pipeline-dag">
-      <template is="dom-repeat" items="[[_workflowNodes]]" as="node">
-        <div class$="[[_getNodeCssClass(node)]]"
-             style$="left: [[node.x]]px;
-                     top: [[node.y]]px;
-                     width: [[node.width]]px;
-                     min-height: [[node.height]]px;
-                     max-height: [[node.height]]px">
-          <template is="dom-if" if="[[!node.virtual]]">
-            <iron-icon icon$="[[node.icon]]"></iron-icon>
-            <div class="label">[[node.label]]</div>
-          </template>
-        </div>
-      </template>
+    <div class="flex-grow">
+      <div class="pipeline-dag flex-grow overflow-auto">
+        <template is="dom-repeat" items="[[_workflowNodes]]" as="node">
+          <div class$="[[_getNodeCssClass(node)]]" on-click="_nodeClicked"
+               id$="node_[[node.id]]" style$="left: [[node.x]]px;
+                                              top: [[node.y]]px;
+                                              width: [[node.width]]px;
+                                              min-height: [[node.height]]px;
+                                              max-height: [[node.height]]px">
+            <template is="dom-if" if="[[!node.virtual]]">
+              <div class="flex center-text">
+                <iron-icon icon$="[[node.icon]]" class="padded-spacing-minus-5"></iron-icon>
+                <div class="label">[[node.label]]</div>
+              </div>
+            </template>
+          </div>
+        </template>
 
-      <template is="dom-repeat" items="[[_workflowEdges]]" as="edge">
-        <div class="pipeline-edge">
-          <template is="dom-repeat" items="[[edge.lines]]" as="line">
-            <div class="line" style$="width: [[line.distance]]px;
-                                      left: [[line.left]]px;
-                                      top: [[line.yMid]]px;
-                                      transform: translate(85px, 35px)
-                                      rotate([[line.angle]]deg)"></div>
-          </template>
+        <template is="dom-repeat" items="[[_workflowEdges]]" as="edge">
+          <div class="pipeline-edge">
+            <template is="dom-repeat" items="[[edge.lines]]" as="line">
+              <div class="line" style$="width: [[line.distance]]px;
+                                        left: [[line.left]]px;
+                                        top: [[line.yMid]]px;
+                                        transform: translate(85px, 35px)
+                                        rotate([[line.angle]]deg)"></div>
+            </template>
+          </div>
+        </template>
+      </div>
+
+      <div id="nodeDetails" class="node-details overflow-auto flex-column">
+        <div class="flex">
+          <paper-icon-button class="hide-node-details" icon="clear" on-click="_exitNodeDetails">
+          </paper-icon-button>
+          <div class="strong center-text padded-spacing-minus-4">[[_selectedNode.id]]</div>
         </div>
-      </template>
+
+        <div class="details-table padded-spacing-minus-4">
+          <div>
+            <span class="key">Status:</span>
+            <span class="value">[[_selectedNode.phase]]</span>
+          </div>
+          <div>
+            <span class="key">Started:</span>
+            <span class="value">[[_formatDateInSeconds(_selectedNode.startedAt)]]</span>
+          </div>
+          <div>
+            <span class="key">Finished:</span>
+            <span class="value">[[_formatDateInSeconds(_selectedNode.finishedAt)]]</span>
+          </div>
+        </div>
+
+        <div class="strong padded-spacing-minus-3">Pod Logs</div>
+        <div class="relative">
+          <page-error id="logsError" class="flex-grow"></page-error>
+          <pre id="logsContainer"
+               class="overflow-auto logs-container padded-spacing-minus-4 flex-grow"></pre>
+          <paper-spinner class="absolute-spinner" active="[[_loadingLogs]]"></paper-spinner>
+        </div>
+      </div>
     </div>
   </template>
 </dom-module>
