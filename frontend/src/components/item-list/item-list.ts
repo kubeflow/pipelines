@@ -138,11 +138,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * If true, the ItemListElement component will handle filtering of its data.
    * If false, the ItemListElement will do no filtering, however, its parent
-<<<<<<< HEAD
-   * component can still listen for EventName.FilterChanged events and handle them as
-=======
    * component can still listen for EventName.FILTER_CHANGED events and handle them as
->>>>>>> 73d0a3e... Small fixes
    * desired.
    */
   @property({ type: Boolean })
