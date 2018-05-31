@@ -18,18 +18,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// StringPointer converts a string to a string pointer.
 func StringPointer(s string) *string {
 	return &s
 }
 
+// BooleanPointer converts a bool to a bool pointer.
 func BooleanPointer(b bool) *bool {
 	return &b
 }
 
+// Metav1TimePointer converts a metav1.Time to a pointer.
 func Metav1TimePointer(t metav1.Time) *metav1.Time {
 	return &t
 }
 
+// Int64Pointer converts an int64 to a pointer.
 func Int64Pointer(i int64) *int64 {
 	return &i
 }

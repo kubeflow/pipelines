@@ -22,8 +22,8 @@ import (
 	"testing"
 )
 
-func TestWorkflowWrap_OverrideName(t *testing.T) {
-	workflow := NewWorkflowWrap(&workflowapi.Workflow{
+func TestWorkflow_OverrideName(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 		},
@@ -37,11 +37,11 @@ func TestWorkflowWrap_OverrideName(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, workflow.Workflow())
+	assert.Equal(t, expected, workflow.Get())
 }
 
-func TestWorkflowWrap_OverrideParameters(t *testing.T) {
-	workflow := NewWorkflowWrap(&workflowapi.Workflow{
+func TestWorkflow_OverrideParameters(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 		},
@@ -82,11 +82,11 @@ func TestWorkflowWrap_OverrideParameters(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(t, expected, workflow.Workflow())
+	assert.Equal(t, expected, workflow.Get())
 }
 
-func TestWorkflowWrap_SetCanonicalLabels(t *testing.T) {
-	workflow := NewWorkflowWrap(&workflowapi.Workflow{
+func TestWorkflow_SetCanonicalLabels(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 		},
@@ -102,16 +102,16 @@ func TestWorkflowWrap_SetCanonicalLabels(t *testing.T) {
 			Labels: map[string]string{
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULED_WORKFLOW_NAME",
-				"scheduledworkflows.kubeflow.org/scheduledWorkflowEpoch":     "100",
+				"scheduledworkflows.kubeflow.org/workflowEpoch":              "100",
 				"scheduledworkflows.kubeflow.org/workflowIndex":              "50"},
 		},
 	}
 
-	assert.Equal(t, expected, workflow.Workflow())
+	assert.Equal(t, expected, workflow.Get())
 }
 
-func TestWorkflowWrap_SetOwnerReferences(t *testing.T) {
-	workflow := NewWorkflowWrap(&workflowapi.Workflow{
+func TestWorkflow_SetOwnerReferences(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 		},
@@ -136,5 +136,5 @@ func TestWorkflowWrap_SetOwnerReferences(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, workflow.Workflow())
+	assert.Equal(t, expected, workflow.Get())
 }

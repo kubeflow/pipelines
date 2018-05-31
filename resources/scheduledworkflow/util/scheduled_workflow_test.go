@@ -26,13 +26,13 @@ import (
 	"time"
 )
 
-func TestScheduledWorkflowWrap_maxConcurrency(t *testing.T) {
+func TestScheduledWorkflow_maxConcurrency(t *testing.T) {
 	// nil
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{})
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{})
 	assert.Equal(t, int64(1), schedule.maxConcurrency())
 
 	// lower than min
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			MaxConcurrency: Int64Pointer(0),
 		},
@@ -40,7 +40,7 @@ func TestScheduledWorkflowWrap_maxConcurrency(t *testing.T) {
 	assert.Equal(t, int64(1), schedule.maxConcurrency())
 
 	// higher than max
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			MaxConcurrency: Int64Pointer(2000000),
 		},
@@ -48,13 +48,13 @@ func TestScheduledWorkflowWrap_maxConcurrency(t *testing.T) {
 	assert.Equal(t, int64(10), schedule.maxConcurrency())
 }
 
-func TestScheduledWorkflowWrap_maxHistory(t *testing.T) {
+func TestScheduledWorkflow_maxHistory(t *testing.T) {
 	// nil
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{})
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{})
 	assert.Equal(t, int64(10), schedule.maxHistory())
 
 	// lower than min
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			MaxHistory: Int64Pointer(0),
 		},
@@ -62,7 +62,7 @@ func TestScheduledWorkflowWrap_maxHistory(t *testing.T) {
 	assert.Equal(t, int64(0), schedule.maxHistory())
 
 	// higher than max
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			MaxHistory: Int64Pointer(2000000),
 		},
@@ -70,9 +70,9 @@ func TestScheduledWorkflowWrap_maxHistory(t *testing.T) {
 	assert.Equal(t, int64(100), schedule.maxHistory())
 }
 
-func TestScheduledWorkflowWrap_hasRunAtLeastOnce(t *testing.T) {
+func TestScheduledWorkflow_hasRunAtLeastOnce(t *testing.T) {
 	// Never ran a workflow
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
 				LastTriggeredTime: nil,
@@ -82,7 +82,7 @@ func TestScheduledWorkflowWrap_hasRunAtLeastOnce(t *testing.T) {
 	assert.Equal(t, false, schedule.hasRunAtLeastOnce())
 
 	// Ran one workflow
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
 				LastTriggeredTime: Metav1TimePointer(metav1.NewTime(time.Unix(50, 0).UTC())),
@@ -92,13 +92,13 @@ func TestScheduledWorkflowWrap_hasRunAtLeastOnce(t *testing.T) {
 	assert.Equal(t, true, schedule.hasRunAtLeastOnce())
 }
 
-func TestScheduledWorkflowWrap_lastIndex(t *testing.T) {
+func TestScheduledWorkflow_lastIndex(t *testing.T) {
 	// Never ran a workflow
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{})
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{})
 	assert.Equal(t, int64(0), schedule.lastIndex())
 
 	// Ran one workflow
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
 				LastIndex: Int64Pointer(50),
@@ -108,13 +108,13 @@ func TestScheduledWorkflowWrap_lastIndex(t *testing.T) {
 	assert.Equal(t, int64(50), schedule.lastIndex())
 }
 
-func TestScheduledWorkflowWrap_nextIndex(t *testing.T) {
+func TestScheduledWorkflow_nextIndex(t *testing.T) {
 	// Never ran a workflow
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{})
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{})
 	assert.Equal(t, int64(1), schedule.nextIndex())
 
 	// Ran one workflow
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
 				LastIndex: Int64Pointer(50),
@@ -124,8 +124,8 @@ func TestScheduledWorkflowWrap_nextIndex(t *testing.T) {
 	assert.Equal(t, int64(51), schedule.nextIndex())
 }
 
-func TestScheduledWorkflowWrap_MinIndex(t *testing.T) {
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+func TestScheduledWorkflow_MinIndex(t *testing.T) {
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			MaxHistory: Int64Pointer(100),
 		},
@@ -137,7 +137,7 @@ func TestScheduledWorkflowWrap_MinIndex(t *testing.T) {
 	})
 	assert.Equal(t, int64(0), schedule.MinIndex())
 
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			MaxHistory: Int64Pointer(20),
 		},
@@ -150,13 +150,13 @@ func TestScheduledWorkflowWrap_MinIndex(t *testing.T) {
 	assert.Equal(t, int64(30), schedule.MinIndex())
 }
 
-func TestScheduledWorkflowWrap_isOneOffRun(t *testing.T) {
+func TestScheduledWorkflow_isOneOffRun(t *testing.T) {
 	// No schedule
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{})
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{})
 	assert.Equal(t, true, schedule.isOneOffRun())
 
 	// Cron schedule
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Trigger: swfapi.Trigger{
 				CronSchedule: &swfapi.CronSchedule{},
@@ -166,7 +166,7 @@ func TestScheduledWorkflowWrap_isOneOffRun(t *testing.T) {
 	assert.Equal(t, false, schedule.isOneOffRun())
 
 	// Periodic schedule
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Trigger: swfapi.Trigger{
 				PeriodicSchedule: &swfapi.PeriodicSchedule{},
@@ -176,9 +176,9 @@ func TestScheduledWorkflowWrap_isOneOffRun(t *testing.T) {
 	assert.Equal(t, false, schedule.isOneOffRun())
 }
 
-func TestScheduledWorkflowWrap_nextResourceID(t *testing.T) {
+func TestScheduledWorkflow_nextResourceID(t *testing.T) {
 	// No schedule
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 		},
@@ -191,9 +191,9 @@ func TestScheduledWorkflowWrap_nextResourceID(t *testing.T) {
 	assert.Equal(t, "WORKFLOW_NAME-51", schedule.nextResourceID())
 }
 
-func TestScheduledWorkflowWrap_NextResourceName(t *testing.T) {
+func TestScheduledWorkflow_NextResourceName(t *testing.T) {
 	// No schedule
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 		},
@@ -206,7 +206,7 @@ func TestScheduledWorkflowWrap_NextResourceName(t *testing.T) {
 	assert.Equal(t, "WORKFLOW_NAME-51-2626342551", schedule.NextResourceName())
 }
 
-func TestScheduledWorkflowWrap_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
+func TestScheduledWorkflow_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 
 	// Must run now
 	nowEpoch := int64(10 * hour)
@@ -215,7 +215,7 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 	lastTimeRun := metav1.NewTime(time.Unix(11*hour, 0).UTC())
 	never := int64(math.MaxInt64)
 
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -229,7 +229,7 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 
 	// Has already run
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -248,7 +248,7 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 	assert.Equal(t, never, nextScheduledEpoch)
 
 	// Should not run yet because it is not time
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -262,7 +262,7 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 
 	// Should not run because the schedule is disabled
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -276,7 +276,7 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 
 	// Should not run because there are active workflows
-	schedule = NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -290,14 +290,14 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_OneTimeRun(t *testing.T) {
 	assert.Equal(t, creationTimestamp.Unix(), nextScheduledEpoch)
 }
 
-func TestScheduledWorkflowWrap_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
+func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
 
 	// Must run now
 	nowEpoch := int64(10 * hour)
 	pastEpoch := int64(3 * hour)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -329,14 +329,14 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_CronSchedule(t *testing.T) 
 	assert.Equal(t, int64(9*hour+minute), nextScheduledEpoch)
 }
 
-func TestScheduledWorkflowWrap_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) {
+func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) {
 
 	// Must run now
 	nowEpoch := int64(10 * hour)
 	pastEpoch := int64(3 * hour)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -369,13 +369,13 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_PeriodicSchedule(t *testing
 
 }
 
-func TestScheduledWorkflowWrap_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *testing.T) {
+func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
 	updatedEpoch := int64(11 * hour)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -440,7 +440,7 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *
 		},
 	}
 
-	assert.Equal(t, expected, schedule.ScheduledWorkflow())
+	assert.Equal(t, expected, schedule.Get())
 }
 
 func createStatus(workflowName string, scheduledEpoch int64) *swfapi.WorkflowStatus {
@@ -450,13 +450,13 @@ func createStatus(workflowName string, scheduledEpoch int64) *swfapi.WorkflowSta
 	}
 }
 
-func TestScheduledWorkflowWrap_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *testing.T) {
+func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
 	updatedEpoch := int64(11 * hour)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 		},
@@ -476,7 +476,7 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t
 	status3 := createStatus("WORKFLOW3", 7)
 	status4 := createStatus("WORKFLOW4", 4)
 
-	workflow := NewWorkflowWrap(&workflowapi.Workflow{})
+	workflow := NewWorkflow(&workflowapi.Workflow{})
 
 	schedule.UpdateStatus(
 		updatedEpoch,
@@ -525,16 +525,16 @@ func TestScheduledWorkflowWrap_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t
 		},
 	}
 
-	assert.Equal(t, expected, schedule.ScheduledWorkflow())
+	assert.Equal(t, expected, schedule.Get())
 }
 
-func TestScheduledWorkflowWrap_NewWorkflow(t *testing.T) {
+func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 	// Must run now
 	scheduledEpoch := int64(10 * hour)
 	nowEpoch := int64(11 * hour)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
-	schedule := NewScheduledWorkflowWrap(&swfapi.ScheduledWorkflow{
+	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "SCHEDULE1",
 			CreationTimestamp: creationTimestamp,
@@ -577,7 +577,7 @@ func TestScheduledWorkflowWrap_NewWorkflow(t *testing.T) {
 			Labels: map[string]string{
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULE1",
-				"scheduledworkflows.kubeflow.org/scheduledWorkflowEpoch":     strconv.Itoa(int(scheduledEpoch)),
+				"scheduledworkflows.kubeflow.org/workflowEpoch":     strconv.Itoa(int(scheduledEpoch)),
 				"scheduledworkflows.kubeflow.org/workflowIndex":              "1"},
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion:         "kubeflow.org/v1alpha1",
@@ -598,5 +598,5 @@ func TestScheduledWorkflowWrap_NewWorkflow(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, result.Workflow())
+	assert.Equal(t, expected, result.Get())
 }

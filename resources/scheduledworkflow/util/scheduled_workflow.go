@@ -36,86 +36,82 @@ const (
 	maxMaxHistory         = int64(100)
 )
 
-// ScheduledWorkflowWrap is a wrapper to help manipulate ScheduledWorkflow objects.
-type ScheduledWorkflowWrap struct {
-	schedule *swfapi.ScheduledWorkflow
+// ScheduledWorkflow is a type to help manipulate ScheduledWorkflow objects.
+type ScheduledWorkflow struct {
+	*swfapi.ScheduledWorkflow
 }
 
-func NewScheduledWorkflowWrap(schedule *swfapi.ScheduledWorkflow) *ScheduledWorkflowWrap {
-	return &ScheduledWorkflowWrap{
-		schedule: schedule,
+// NewScheduledWorkflow creates an instance of ScheduledWorkflow.
+func NewScheduledWorkflow(swf *swfapi.ScheduledWorkflow) *ScheduledWorkflow {
+	return &ScheduledWorkflow{
+		swf,
 	}
 }
 
-func (s *ScheduledWorkflowWrap) ScheduledWorkflow() *swfapi.ScheduledWorkflow {
-	return s.schedule
+// Get converts this object to a swfapi.ScheduledWorkflow.
+func (s *ScheduledWorkflow) Get() *swfapi.ScheduledWorkflow {
+	return s.ScheduledWorkflow
 }
 
-func (s *ScheduledWorkflowWrap) creationEpoch() int64 {
-	return s.schedule.CreationTimestamp.Unix()
+func (s *ScheduledWorkflow) creationEpoch() int64 {
+	return s.CreationTimestamp.Unix()
 }
 
-func (s *ScheduledWorkflowWrap) Name() string {
-	return s.schedule.Name
+func (s *ScheduledWorkflow) enabled() bool {
+	return s.Spec.Enabled
 }
 
-func (s *ScheduledWorkflowWrap) Namespace() string {
-	return s.schedule.Namespace
-}
-
-func (s *ScheduledWorkflowWrap) enabled() bool {
-	return s.schedule.Spec.Enabled
-}
-
-func (s *ScheduledWorkflowWrap) maxConcurrency() int64 {
-	if s.schedule.Spec.MaxConcurrency == nil {
+func (s *ScheduledWorkflow) maxConcurrency() int64 {
+	if s.Spec.MaxConcurrency == nil {
 		return defaultMaxConcurrency
 	}
 
-	if *s.schedule.Spec.MaxConcurrency < minMaxConcurrency {
+	if *s.Spec.MaxConcurrency < minMaxConcurrency {
 		return minMaxConcurrency
 	}
 
-	if *s.schedule.Spec.MaxConcurrency > maxMaxConcurrency {
+	if *s.Spec.MaxConcurrency > maxMaxConcurrency {
 		return maxMaxConcurrency
 	}
 
-	return *s.schedule.Spec.MaxConcurrency
+	return *s.Spec.MaxConcurrency
 }
 
-func (s *ScheduledWorkflowWrap) maxHistory() int64 {
-	if s.schedule.Spec.MaxHistory == nil {
+func (s *ScheduledWorkflow) maxHistory() int64 {
+	if s.Spec.MaxHistory == nil {
 		return defaultMaxHistory
 	}
 
-	if *s.schedule.Spec.MaxHistory < minMaxHistory {
+	if *s.Spec.MaxHistory < minMaxHistory {
 		return minMaxHistory
 	}
 
-	if *s.schedule.Spec.MaxHistory > maxMaxHistory {
+	if *s.Spec.MaxHistory > maxMaxHistory {
 		return maxMaxHistory
 	}
 
-	return *s.schedule.Spec.MaxHistory
+	return *s.Spec.MaxHistory
 }
 
-func (s *ScheduledWorkflowWrap) hasRunAtLeastOnce() bool {
-	return s.schedule.Status.Trigger.LastTriggeredTime != nil
+func (s *ScheduledWorkflow) hasRunAtLeastOnce() bool {
+	return s.Status.Trigger.LastTriggeredTime != nil
 }
 
-func (s *ScheduledWorkflowWrap) lastIndex() int64 {
-	if s.schedule.Status.Trigger.LastIndex == nil {
+func (s *ScheduledWorkflow) lastIndex() int64 {
+	if s.Status.Trigger.LastIndex == nil {
 		return 0
 	} else {
-		return *s.schedule.Status.Trigger.LastIndex
+		return *s.Status.Trigger.LastIndex
 	}
 }
 
-func (s *ScheduledWorkflowWrap) nextIndex() int64 {
+func (s *ScheduledWorkflow) nextIndex() int64 {
 	return s.lastIndex() + 1
 }
 
-func (s *ScheduledWorkflowWrap) MinIndex() int64 {
+// MinIndex returns the minimum index of the workflow to retrieve as part of the workflow
+// history.
+func (s *ScheduledWorkflow) MinIndex() int64 {
 	result := s.lastIndex() - s.maxHistory()
 	if result < 0 {
 		return 0
@@ -123,25 +119,25 @@ func (s *ScheduledWorkflowWrap) MinIndex() int64 {
 	return result
 }
 
-func (s *ScheduledWorkflowWrap) isOneOffRun() bool {
-	return s.schedule.Spec.Trigger.CronSchedule == nil &&
-		s.schedule.Spec.Trigger.PeriodicSchedule == nil
+func (s *ScheduledWorkflow) isOneOffRun() bool {
+	return s.Spec.Trigger.CronSchedule == nil &&
+		s.Spec.Trigger.PeriodicSchedule == nil
 }
 
-func (s *ScheduledWorkflowWrap) nextResourceID() string {
-	return s.schedule.Name + "-" + strconv.FormatInt(s.nextIndex(), 10)
+func (s *ScheduledWorkflow) nextResourceID() string {
+	return s.Name + "-" + strconv.FormatInt(s.nextIndex(), 10)
 }
 
-// Creates a deterministic resource name for the next resource.
-func (s *ScheduledWorkflowWrap) NextResourceName() string {
+// NextResourceName creates a deterministic resource name for the next resource.
+func (s *ScheduledWorkflow) NextResourceName() string {
 	nextResourceID := s.nextResourceID()
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(nextResourceID))
 	return fmt.Sprintf("%s-%v", nextResourceID, h.Sum32())
 }
 
-func (s *ScheduledWorkflowWrap) getWorkflowParametersAsMap() map[string]string {
-	resultAsArray := s.schedule.Spec.Workflow.Parameters
+func (s *ScheduledWorkflow) getWorkflowParametersAsMap() map[string]string {
+	resultAsArray := s.Spec.Workflow.Parameters
 	resultAsMap := make(map[string]string)
 	for _, param := range resultAsArray {
 		resultAsMap[param.Name] = param.Value
@@ -149,7 +145,7 @@ func (s *ScheduledWorkflowWrap) getWorkflowParametersAsMap() map[string]string {
 	return resultAsMap
 }
 
-func (s *ScheduledWorkflowWrap) getFormattedWorkflowParametersAsMap(
+func (s *ScheduledWorkflow) getFormattedWorkflowParametersAsMap(
 	formatter *ParameterFormatter) map[string]string {
 
 	result := make(map[string]string)
@@ -163,8 +159,8 @@ func (s *ScheduledWorkflowWrap) getFormattedWorkflowParametersAsMap(
 // NewWorkflow creates a workflow for this schedule. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Schedule resource that 'owns' it.
-func (s *ScheduledWorkflowWrap) NewWorkflow(
-	nextScheduledEpoch int64, nowEpoch int64) *WorkflowWrap {
+func (s *ScheduledWorkflow) NewWorkflow(
+	nextScheduledEpoch int64, nowEpoch int64) *Workflow {
 
 	const (
 		workflowKind       = "Workflow"
@@ -173,11 +169,11 @@ func (s *ScheduledWorkflowWrap) NewWorkflow(
 
 	// Creating the workflow.
 	workflow := &workflowapi.Workflow{
-		Spec: *s.schedule.Spec.Workflow.Spec.DeepCopy(),
+		Spec: *s.Spec.Workflow.Spec.DeepCopy(),
 	}
 	workflow.Kind = workflowKind
 	workflow.APIVersion = workflowApiVersion
-	result := NewWorkflowWrap(workflow)
+	result := NewWorkflow(workflow)
 
 	// Set the name of the worfklow.
 	result.OverrideName(s.NextResourceName())
@@ -190,15 +186,17 @@ func (s *ScheduledWorkflowWrap) NewWorkflow(
 	result.OverrideParameters(formattedParams)
 
 	// Set the labels.
-	result.SetCanonicalLabels(s.schedule.Name, nextScheduledEpoch, s.nextIndex())
+	result.SetCanonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
 
 	// The the owner references.
-	result.SetOwnerReferences(s.schedule)
+	result.SetOwnerReferences(s.ScheduledWorkflow)
 
 	return result
 }
 
-func (s *ScheduledWorkflowWrap) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64) (
+// GetNextScheduledEpoch returns the next epoch at which a workflow should be scheduled,
+// and whether it should be run now.
+func (s *ScheduledWorkflow) GetNextScheduledEpoch(activeWorkflowCount int64, nowEpoch int64) (
 	nextScheduleEpoch int64, shouldRunNow bool) {
 
 	// Get the next scheduled time.
@@ -222,42 +220,43 @@ func (s *ScheduledWorkflowWrap) GetNextScheduledEpoch(activeWorkflowCount int64,
 	return nextScheduledEpoch, true
 }
 
-func (s *ScheduledWorkflowWrap) getNextScheduledEpoch() int64 {
+func (s *ScheduledWorkflow) getNextScheduledEpoch() int64 {
 	// Periodic schedule
-	if s.schedule.Spec.Trigger.PeriodicSchedule != nil {
-		return NewPeriodicScheduleWrap(s.schedule.Spec.Trigger.PeriodicSchedule).
+	if s.Spec.Trigger.PeriodicSchedule != nil {
+		return NewPeriodicSchedule(s.Spec.Trigger.PeriodicSchedule).
 			GetNextScheduledEpoch(
-				toInt64Pointer(s.schedule.Status.Trigger.LastTriggeredTime),
+				toInt64Pointer(s.Status.Trigger.LastTriggeredTime),
 				s.creationEpoch())
 	}
 
 	// Cron schedule
-	if s.schedule.Spec.Trigger.CronSchedule != nil {
-		return NewCronScheduleWrap(s.schedule.Spec.Trigger.CronSchedule).
+	if s.Spec.Trigger.CronSchedule != nil {
+		return NewCronSchedule(s.Spec.Trigger.CronSchedule).
 			GetNextScheduledEpoch(
-				toInt64Pointer(s.schedule.Status.Trigger.LastTriggeredTime),
+				toInt64Pointer(s.Status.Trigger.LastTriggeredTime),
 				s.creationEpoch())
 	}
 
 	return s.getNextScheduledEpochForOneTimeRun()
 }
 
-func (s *ScheduledWorkflowWrap) getNextScheduledEpochForOneTimeRun() int64 {
-	if s.schedule.Status.Trigger.LastTriggeredTime != nil {
+func (s *ScheduledWorkflow) getNextScheduledEpochForOneTimeRun() int64 {
+	if s.Status.Trigger.LastTriggeredTime != nil {
 		return math.MaxInt64
 	}
 
 	return s.creationEpoch()
 }
 
-func (s *ScheduledWorkflowWrap) SetLabel(key string, value string) {
-	if s.schedule.Labels == nil {
-		s.schedule.Labels = make(map[string]string)
+func (s *ScheduledWorkflow) setLabel(key string, value string) {
+	if s.Labels == nil {
+		s.Labels = make(map[string]string)
 	}
-	s.schedule.Labels[key] = value
+	s.Labels[key] = value
 }
 
-func (s *ScheduledWorkflowWrap) UpdateStatus(updatedEpoch int64, workflow *WorkflowWrap,
+// UpdateStatus updates the status of a workflow in the Kubernetes API server.
+func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *Workflow,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus) {
 
@@ -277,7 +276,7 @@ func (s *ScheduledWorkflowWrap) UpdateStatus(updatedEpoch int64, workflow *Workf
 	conditions := make([]swfapi.ScheduledWorkflowCondition, 0)
 	conditions = append(conditions, condition)
 
-	s.schedule.Status.Conditions = conditions
+	s.Status.Conditions = conditions
 
 	// Sort and set inactive workflows.
 	sort.Slice(active, func(i, j int) bool {
@@ -288,18 +287,18 @@ func (s *ScheduledWorkflowWrap) UpdateStatus(updatedEpoch int64, workflow *Workf
 		return completed[i].ScheduledAt.Unix() > completed[j].ScheduledAt.Unix()
 	})
 
-	s.schedule.Status.WorkflowHistory = &swfapi.WorkflowHistory{
+	s.Status.WorkflowHistory = &swfapi.WorkflowHistory{
 		Active:    active,
 		Completed: completed,
 	}
 
-	s.SetLabel(LabelKeyScheduledWorkflowEnabled, strconv.FormatBool(
+	s.setLabel(LabelKeyScheduledWorkflowEnabled, strconv.FormatBool(
 		s.enabled()))
-	s.SetLabel(LabelKeyScheduledWorkflowStatus, string(conditionType))
+	s.setLabel(LabelKeyScheduledWorkflowStatus, string(conditionType))
 
 	if workflow != nil {
 		s.updateLastTriggeredTime(scheduledEpoch)
-		s.schedule.Status.Trigger.LastIndex = Int64Pointer(s.nextIndex())
+		s.Status.Trigger.LastIndex = Int64Pointer(s.nextIndex())
 		s.updateNextTriggeredTime(s.getNextScheduledEpoch())
 	} else {
 		// LastTriggeredTime is unchanged.
@@ -308,21 +307,21 @@ func (s *ScheduledWorkflowWrap) UpdateStatus(updatedEpoch int64, workflow *Workf
 	}
 }
 
-func (s *ScheduledWorkflowWrap) updateLastTriggeredTime(epoch int64) {
-	s.schedule.Status.Trigger.LastTriggeredTime = Metav1TimePointer(
+func (s *ScheduledWorkflow) updateLastTriggeredTime(epoch int64) {
+	s.Status.Trigger.LastTriggeredTime = Metav1TimePointer(
 		metav1.NewTime(time.Unix(epoch, 0).UTC()))
 }
 
-func (s *ScheduledWorkflowWrap) updateNextTriggeredTime(epoch int64) {
+func (s *ScheduledWorkflow) updateNextTriggeredTime(epoch int64) {
 	if epoch != math.MaxInt64 {
-		s.schedule.Status.Trigger.NextTriggeredTime = Metav1TimePointer(
+		s.Status.Trigger.NextTriggeredTime = Metav1TimePointer(
 			metav1.NewTime(time.Unix(epoch, 0).UTC()))
 	} else {
-		s.schedule.Status.Trigger.NextTriggeredTime = nil
+		s.Status.Trigger.NextTriggeredTime = nil
 	}
 }
 
-func (s *ScheduledWorkflowWrap) getStatusAndMessage(activeCount int) (
+func (s *ScheduledWorkflow) getStatusAndMessage(activeCount int) (
 	conditionType swfapi.ScheduledWorkflowConditionType,
 	status core.ConditionStatus, message string) {
 	// Schedule messages
