@@ -12,7 +12,6 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
-import { ListJobsRequest } from '../../model/list_jobs_request';
 import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';
 import { JobList } from '../job-list/job-list';
