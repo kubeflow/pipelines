@@ -20,47 +20,50 @@ import (
 	"math"
 )
 
-// PeriodicScheduleWrap is a wrapper to help manipulate PeriodicSchedule objects.
-type PeriodicScheduleWrap struct {
-	periodicSchedule *swfapi.PeriodicSchedule
+// PeriodicSchedule is a type to help manipulate PeriodicSchedule objects.
+type PeriodicSchedule struct {
+	*swfapi.PeriodicSchedule
 }
 
-func NewPeriodicScheduleWrap(periodicSchedule *swfapi.PeriodicSchedule) *PeriodicScheduleWrap {
+// NewPeriodicSchedule creates a new PeriodicSchedule.
+func NewPeriodicSchedule(periodicSchedule *swfapi.PeriodicSchedule) *PeriodicSchedule {
 	if periodicSchedule == nil {
 		log.Fatalf("The periodicSchedule should never be nil")
 	}
 
-	return &PeriodicScheduleWrap{
-		periodicSchedule: periodicSchedule,
+	return &PeriodicSchedule{
+		periodicSchedule,
 	}
 }
 
-func (s *PeriodicScheduleWrap) GetNextScheduledEpoch(lastJobEpoch *int64,
+// GetNextScheduledEpoch returns the next epoch at which a workflow should be
+// scheduled.
+func (s *PeriodicSchedule) GetNextScheduledEpoch(lastJobEpoch *int64,
 	defaultStartEpoch int64) int64 {
 	effectiveLastJobEpoch := defaultStartEpoch
 	if lastJobEpoch != nil {
 		effectiveLastJobEpoch = *lastJobEpoch
-	} else if s.periodicSchedule.StartTime != nil {
-		effectiveLastJobEpoch = s.periodicSchedule.StartTime.Unix()
+	} else if s.StartTime != nil {
+		effectiveLastJobEpoch = s.StartTime.Unix()
 	}
 	return s.getNextScheduledEpoch(effectiveLastJobEpoch)
 }
 
-func (s *PeriodicScheduleWrap) getNextScheduledEpoch(lastJobEpoch int64) int64 {
+func (s *PeriodicSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
 	startEpoch := lastJobEpoch
-	if s.periodicSchedule.StartTime != nil && s.periodicSchedule.StartTime.Unix() > startEpoch {
-		startEpoch = s.periodicSchedule.StartTime.Unix()
+	if s.StartTime != nil && s.StartTime.Unix() > startEpoch {
+		startEpoch = s.StartTime.Unix()
 	}
 
-	interval := s.periodicSchedule.IntervalSecond
+	interval := s.IntervalSecond
 	if interval == 0 {
 		interval = 1
 	}
 
 	result := startEpoch + interval
 
-	if s.periodicSchedule.EndTime != nil &&
-		s.periodicSchedule.EndTime.Unix() < result {
+	if s.EndTime != nil &&
+		s.EndTime.Unix() < result {
 		return math.MaxInt64
 	}
 

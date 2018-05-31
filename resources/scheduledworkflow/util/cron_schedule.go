@@ -23,49 +23,52 @@ import (
 	"time"
 )
 
-// CronScheduleWrap is a wrapper to help manipulate CronSchedule objects.
-type CronScheduleWrap struct {
-	cronSchedule *swfapi.CronSchedule
+// CronSchedule is a type to help manipulate CronSchedule objects.
+type CronSchedule struct {
+	*swfapi.CronSchedule
 }
 
-func NewCronScheduleWrap(cronSchedule *swfapi.CronSchedule) *CronScheduleWrap {
+// NewCronSchedule creates a CronSchedule.
+func NewCronSchedule(cronSchedule *swfapi.CronSchedule) *CronSchedule {
 	if cronSchedule == nil {
 		log.Fatalf("The cronSchedule should never be nil")
 	}
 
-	return &CronScheduleWrap{
-		cronSchedule: cronSchedule,
+	return &CronSchedule{
+		cronSchedule,
 	}
 }
 
-func (s *CronScheduleWrap) GetNextScheduledEpoch(lastJobEpoch *int64,
+// GetNextScheduledEpoch returns the next epoch at which a workflow must be
+// scheduled.
+func (s *CronSchedule) GetNextScheduledEpoch(lastJobEpoch *int64,
 	defaultStartEpoch int64) int64 {
 	effectiveLastJobEpoch := defaultStartEpoch
 	if lastJobEpoch != nil {
 		effectiveLastJobEpoch = *lastJobEpoch
-	} else if s.cronSchedule.StartTime != nil {
-		effectiveLastJobEpoch = s.cronSchedule.StartTime.Unix()
+	} else if s.StartTime != nil {
+		effectiveLastJobEpoch = s.StartTime.Unix()
 	}
 	return s.getNextScheduledEpoch(effectiveLastJobEpoch)
 }
 
-func (s *CronScheduleWrap) getNextScheduledEpoch(lastJobEpoch int64) int64 {
-	schedule, err := cron.Parse(s.cronSchedule.Cron)
+func (s *CronSchedule) getNextScheduledEpoch(lastJobEpoch int64) int64 {
+	schedule, err := cron.Parse(s.Cron)
 	if err != nil {
 		// This should never happen, validation should have caught this at resource creation.
 		log.Errorf("%+v", wraperror.Errorf(
-			"Found invalid schedule (%v): %v", s.cronSchedule.Cron, err))
+			"Found invalid schedule (%v): %v", s.Cron, err))
 		return math.MaxInt64
 	}
 
 	startEpoch := lastJobEpoch
-	if s.cronSchedule.StartTime != nil && s.cronSchedule.StartTime.Unix() > startEpoch {
-		startEpoch = s.cronSchedule.StartTime.Unix()
+	if s.StartTime != nil && s.StartTime.Unix() > startEpoch {
+		startEpoch = s.StartTime.Unix()
 	}
 	result := schedule.Next(time.Unix(startEpoch, 0).UTC()).Unix()
 
-	if s.cronSchedule.EndTime != nil &&
-		s.cronSchedule.EndTime.Unix() < result {
+	if s.EndTime != nil &&
+		s.EndTime.Unix() < result {
 		return math.MaxInt64
 	}
 

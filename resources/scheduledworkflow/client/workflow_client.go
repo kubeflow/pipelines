@@ -34,6 +34,7 @@ type WorkflowClient struct {
 	informer  v1alpha1.WorkflowInformer
 }
 
+// NewWorkflowClient creates an instance of the WorkflowClient.
 func NewWorkflowClient(clientSet workflowclientset.Interface,
 	informer v1alpha1.WorkflowInformer) *WorkflowClient {
 	return &WorkflowClient{
@@ -42,24 +43,29 @@ func NewWorkflowClient(clientSet workflowclientset.Interface,
 	}
 }
 
+// AddEventHandler adds an event handler.
 func (p *WorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) {
 	p.informer.Informer().AddEventHandler(funcs)
 }
 
+// HasSynced returns true if the shared informer's store has synced.
 func (p *WorkflowClient) HasSynced() func() bool {
 	return p.informer.Informer().HasSynced
 }
 
+// Get returns a Workflow, given a namespace and name.
 func (p *WorkflowClient) Get(namespace string, name string) (
-	wf *util.WorkflowWrap, isNotFoundError bool, err error) {
+	wf *util.Workflow, isNotFoundError bool, err error) {
 	workflow, err := p.informer.Lister().Workflows(namespace).Get(name)
 	if err != nil {
 		return nil, util.IsNotFound(err), wraperror.Wrapf(err,
 			"Error retrieving workflow (%v) in namespace (%v): %v", name, namespace, err)
 	}
-	return util.NewWorkflowWrap(workflow), false, nil
+	return util.NewWorkflow(workflow), false, nil
 }
 
+// List returns a list of workflows given the name of their ScheduledWorkflow,
+// whether they are completed, and their minimum index (to avoid returning the whole list).
 func (p *WorkflowClient) List(swfName string, completed bool, minIndex int64) (
 	status []swfapi.WorkflowStatus, err error) {
 
@@ -101,7 +107,7 @@ func toWorkflowStatus(workflow *workflowapi.Workflow) *swfapi.WorkflowStatus {
 }
 
 func retrieveScheduledTime(workflow *workflowapi.Workflow) metav1.Time {
-	value, ok := workflow.Labels[util.LabelKeyWorkflowScheduledEpoch]
+	value, ok := workflow.Labels[util.LabelKeyWorkflowEpoch]
 	if !ok {
 		return workflow.CreationTimestamp
 	}
@@ -124,14 +130,15 @@ func retrieveIndex(workflow *workflowapi.Workflow) int64 {
 	return result
 }
 
-func (p *WorkflowClient) Create(namespace string, workflow *util.WorkflowWrap) (
-	*util.WorkflowWrap, error) {
-	result, err := p.clientSet.ArgoprojV1alpha1().Workflows(namespace).Create(workflow.Workflow())
+// Create creates a workflow given a namespace and its specification.
+func (p *WorkflowClient) Create(namespace string, workflow *util.Workflow) (
+	*util.Workflow, error) {
+	result, err := p.clientSet.ArgoprojV1alpha1().Workflows(namespace).Create(workflow.Get())
 	if err != nil {
 		return nil, wraperror.Wrapf(err, "Error creating workflow in namespace (%v): %v: %+v", namespace,
-			err, workflow.Workflow())
+			err, workflow.Get())
 	}
-	return util.NewWorkflowWrap(result), nil
+	return util.NewWorkflow(result), nil
 }
 
 func getLabelSelectorToGetWorkflows(swfName string, completed bool, minIndex int64) *labels.Selector {

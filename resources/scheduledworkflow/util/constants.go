@@ -19,11 +19,26 @@ import (
 )
 
 const (
-	ControllerAgentName               = "scheduled-workflow-controller"
-	LabelKeyWorkflowName              = constants.FullName + "/scheduledWorkflowName"
-	LabelKeyWorkflowScheduledEpoch    = constants.FullName + "/scheduledWorkflowEpoch"
-	LabelKeyWorkflowIndex             = constants.FullName + "/workflowIndex"
-	LabelKeyWorkflowIsOwnedBySchedule = constants.FullName + "/isOwnedByScheduledWorkflow"
+	// ControllerAgentName is the name of the controller.
+	ControllerAgentName                        = "scheduled-workflow-controller"
+
+	// LabelKeyWorkflowEpoch is a label on a Workflow.
+	// It captures the epoch at which the workflow was scheduled.
+	LabelKeyWorkflowEpoch                      = constants.FullName + "/workflowEpoch"
+	// LabelKeyWorkflowIndex is a label on a Workflow.
+	// It captures the index of creation the workflow by the ScheduledWorkflow.
+	LabelKeyWorkflowIndex                      = constants.FullName + "/workflowIndex"
+	// LabelKeyWorkflowIsOwnedByScheduledWorkflow is a label on a Workflow.
+	// It captures whether the workflow is owned by a ScheduledWorkflow.
+	LabelKeyWorkflowIsOwnedByScheduledWorkflow = constants.FullName + "/isOwnedByScheduledWorkflow"
+	// LabelKeyWorkflowScheduledWorkflowName is a label on a Workflow.
+	// It captures whether the name of the owning ScheduledWorkflow.
+	LabelKeyWorkflowScheduledWorkflowName = constants.FullName + "/scheduledWorkflowName"
+
+	// LabelKeyScheduledWorkflowEnabled is a label on a ScheduledWorkflow.
+	// It captures whether the ScheduledWorkflow is enabled.
 	LabelKeyScheduledWorkflowEnabled  = constants.FullName + "/enabled"
+	// LabelKeyScheduledWorkflowStatus is a label on a ScheduledWorkflow.
+	// It captures the status of the scheduled workflow.
 	LabelKeyScheduledWorkflowStatus   = constants.FullName + "/status"
 )

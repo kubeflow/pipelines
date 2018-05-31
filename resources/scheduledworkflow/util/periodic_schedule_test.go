@@ -23,18 +23,12 @@ import (
 	"time"
 )
 
-const (
-	second = 1
-	minute = 60 * second
-	hour   = 60 * minute
-)
-
-func TestCronScheduleWrap_getNextScheduledEpoch_Cron_StartDate_EndDate(t *testing.T) {
+func TestPeriodicSchedule_getNextScheduledEpoch_StartDate_EndDate(t *testing.T) {
 	// First job.
-	schedule := NewCronScheduleWrap(&swfapi.CronSchedule{
-		StartTime: Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
-		EndTime:   Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:      "0 * * * * * ",
+	schedule := NewPeriodicSchedule(&swfapi.PeriodicSchedule{
+		StartTime:      Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
+		EndTime:        Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		IntervalSecond: minute,
 	})
 	lastJobEpoch := int64(0)
 	assert.Equal(t, int64(10*hour+minute),
@@ -52,43 +46,32 @@ func TestCronScheduleWrap_getNextScheduledEpoch_Cron_StartDate_EndDate(t *testin
 
 }
 
-func TestCronScheduleWrap_getNextScheduledEpoch_CronOnly(t *testing.T) {
-	schedule := NewCronScheduleWrap(&swfapi.CronSchedule{
-		Cron: "0 * * * * * ",
+func TestPeriodicSchedule_getNextScheduledEpoch_PeriodOnly(t *testing.T) {
+	schedule := NewPeriodicSchedule(&swfapi.PeriodicSchedule{
+		IntervalSecond: minute,
 	})
 	lastJobEpoch := int64(10 * hour)
 	assert.Equal(t, int64(10*hour+minute),
 		schedule.getNextScheduledEpoch(lastJobEpoch))
 }
 
-func TestCronScheduleWrap_getNextScheduledEpoch_NoCron(t *testing.T) {
-	schedule := NewCronScheduleWrap(&swfapi.CronSchedule{
-		StartTime: Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
-		EndTime:   Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:      "",
+func TestPeriodicSchedule_getNextScheduledEpoch_NoPeriod(t *testing.T) {
+	schedule := NewPeriodicSchedule(&swfapi.PeriodicSchedule{
+		StartTime:      Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
+		EndTime:        Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		IntervalSecond: 0,
 	})
-	lastJobEpoch := int64(0)
-	assert.Equal(t, int64(math.MaxInt64),
+	lastJobEpoch := int64(10 * hour)
+	assert.Equal(t, int64(10*hour+second),
 		schedule.getNextScheduledEpoch(lastJobEpoch))
 }
 
-func TestCronScheduleWrap_getNextScheduledEpoch_InvalidCron(t *testing.T) {
-	schedule := NewCronScheduleWrap(&swfapi.CronSchedule{
-		StartTime: Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
-		EndTime:   Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:      "*$&%*(W&",
-	})
-	lastJobEpoch := int64(0)
-	assert.Equal(t, int64(math.MaxInt64),
-		schedule.getNextScheduledEpoch(lastJobEpoch))
-}
-
-func TestCronScheduleWrap_GetNextScheduledEpoch(t *testing.T) {
+func TestPeriodicSchedule_GetNextScheduledEpoch(t *testing.T) {
 	// There was a previous job.
-	schedule := NewCronScheduleWrap(&swfapi.CronSchedule{
-		StartTime: Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
-		EndTime:   Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:      "0 * * * * * ",
+	schedule := NewPeriodicSchedule(&swfapi.PeriodicSchedule{
+		StartTime:      Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
+		EndTime:        Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		IntervalSecond: 60,
 	})
 	lastJobEpoch := int64(10*hour + 20*minute)
 	defaultStartEpoch := int64(10*hour + 15*minute)
@@ -101,9 +84,9 @@ func TestCronScheduleWrap_GetNextScheduledEpoch(t *testing.T) {
 
 	// There is no previous job, no schedule start date, falling back on the
 	// creation date of the workflow.
-	schedule = NewCronScheduleWrap(&swfapi.CronSchedule{
-		EndTime: Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
-		Cron:    "0 * * * * * ",
+	schedule = NewPeriodicSchedule(&swfapi.PeriodicSchedule{
+		EndTime:        Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		IntervalSecond: 60,
 	})
 	assert.Equal(t, int64(10*hour+15*minute+minute),
 		schedule.GetNextScheduledEpoch(nil, defaultStartEpoch))

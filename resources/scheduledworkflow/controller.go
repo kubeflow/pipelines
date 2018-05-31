@@ -249,7 +249,7 @@ func (c *Controller) handleWorkflow(obj interface{}) {
 			ScheduledWorkflow: ownerRef.Name,
 		}).Infof("Processing object (%s): owner is a ScheduledWorkflow (%s).", object.GetName(),
 			ownerRef.Name)
-		c.enqueueScheduledWorkflow(swf.ScheduledWorkflow())
+		c.enqueueScheduledWorkflow(swf.Get())
 		return
 	}
 	log.WithFields(log.Fields{
@@ -325,7 +325,7 @@ func (c *Controller) processNextWorkItem() bool {
 			c.workqueue.AddRateLimited(obj) // Exponential backoff.
 			runtime.HandleError(fmt.Errorf("Transient failure: %+v", err))
 			if swf != nil {
-				c.kubeClient.RecordSyncFailure(swf.ScheduledWorkflow(),
+				c.kubeClient.RecordSyncFailure(swf.Get(),
 					fmt.Sprintf("Transient failure: %v", err.Error()))
 			}
 			return true
@@ -335,7 +335,7 @@ func (c *Controller) processNextWorkItem() bool {
 			c.workqueue.Forget(obj)
 			runtime.HandleError(fmt.Errorf("Permanent failure: %+v", err))
 			if swf != nil {
-				c.kubeClient.RecordSyncFailure(swf.ScheduledWorkflow(),
+				c.kubeClient.RecordSyncFailure(swf.Get(),
 					fmt.Sprintf("Permanent failure: %v", err.Error()))
 			}
 			return true
@@ -344,7 +344,7 @@ func (c *Controller) processNextWorkItem() bool {
 			// Will resync after the SharedInformerFactory defaultResync delay.
 			c.workqueue.Forget(obj)
 			if swf != nil {
-				c.kubeClient.RecordSyncSuccess(swf.ScheduledWorkflow(), "All done")
+				c.kubeClient.RecordSyncSuccess(swf.Get(), "All done")
 			}
 			return true
 		} else {
@@ -352,7 +352,7 @@ func (c *Controller) processNextWorkItem() bool {
 			c.workqueue.Forget(obj)
 			c.workqueue.AddAfter(obj, 10*time.Second) // Need status changes to propagate.
 			if swf != nil {
-				c.kubeClient.RecordSyncSuccess(swf.ScheduledWorkflow(), "Partially done, syncing again soon")
+				c.kubeClient.RecordSyncSuccess(swf.Get(), "Partially done, syncing again soon")
 			}
 			return true
 		}
@@ -363,7 +363,7 @@ func (c *Controller) processNextWorkItem() bool {
 // converge the two. It then updates the Status block of the ScheduledWorkflow
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) (
-	syncAgain bool, retryOnError bool, swf *util.ScheduledWorkflowWrap, err error) {
+	syncAgain bool, retryOnError bool, swf *util.ScheduledWorkflow, err error) {
 
 	// Convert the namespace/name string into a distinct namespace and name
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
@@ -388,7 +388,7 @@ func (c *Controller) syncHandler(key string) (
 	nowEpoch := c.time.Now().Unix()
 
 	// Get active workflows for this ScheduledWorkflow.
-	active, err := c.workflowClient.List(swf.Name(),
+	active, err := c.workflowClient.List(swf.Name,
 		false, /* active workflow */
 		0 /* retrieve all workflows */)
 	if err != nil {
@@ -397,7 +397,7 @@ func (c *Controller) syncHandler(key string) (
 	}
 
 	// Get completed workflows for this ScheduledWorkflow.
-	completed, err := c.workflowClient.List(swf.Name(),
+	completed, err := c.workflowClient.List(swf.Name,
 		true, /* completed workflows */
 		swf.MinIndex())
 	if err != nil {
@@ -436,49 +436,49 @@ func (c *Controller) syncHandler(key string) (
 // Submits the next workflow if a workflow is due to execute. Returns the submitted workflow,
 // an error (if any), and a boolean indicating (in case of an error) whether handling the
 // ScheduledWorkflow should be attempted again at a later time.
-func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflowWrap,
+func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 	activeWorkflowCount int, nowEpoch int64) (
-	workflow *util.WorkflowWrap, nextScheduledEpoch int64, err error) {
+	workflow *util.Workflow, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
 	nextScheduledEpoch, shouldRunNow := swf.GetNextScheduledEpoch(
 		int64(activeWorkflowCount), nowEpoch)
 
 	if !shouldRunNow {
 		log.WithFields(log.Fields{
-			ScheduledWorkflow: swf.Name(),
+			ScheduledWorkflow: swf.Name,
 		}).Infof("Submitting workflow for ScheduledWorkflow (%v): nothing to submit (next scheduled at: %v)",
-			swf.Name(), util.FormatTimeForLogging(nextScheduledEpoch))
+			swf.Name, util.FormatTimeForLogging(nextScheduledEpoch))
 		return nil, nextScheduledEpoch, nil
 	}
 
 	workflow, err = c.submitNewWorkflowIfNotAlreadySubmitted(swf, nextScheduledEpoch, nowEpoch)
 	if err != nil {
 		log.WithFields(log.Fields{
-			ScheduledWorkflow: swf.Name(),
+			ScheduledWorkflow: swf.Name,
 		}).Errorf("Submitting workflow for ScheduledWorkflow (%v): transient error while submitting workflow: %v",
-			swf.Name(), err)
+			swf.Name, err)
 		// There was an error submitting a new workflow.
 		// We should attempt to handle the schedule again at a later time.
 		return nil, nextScheduledEpoch, err
 	}
 	log.WithFields(log.Fields{
-		ScheduledWorkflow: swf.Name(),
-		Workflow:          workflow.Workflow().Name,
+		ScheduledWorkflow: swf.Name,
+		Workflow:          workflow.Get().Name,
 	}).Infof("Submitting workflow for ScheduledWorkflow (%v): workflow (%v) successfully submitted (scheduled at: %v)",
-		swf.Name(), workflow.Workflow().Name, util.FormatTimeForLogging(nextScheduledEpoch))
+		swf.Name, workflow.Get().Name, util.FormatTimeForLogging(nextScheduledEpoch))
 	return workflow, nextScheduledEpoch, nil
 }
 
 func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
-	swf *util.ScheduledWorkflowWrap, nextScheduledEpoch int64, nowEpoch int64) (
-	*util.WorkflowWrap, error) {
+	swf *util.ScheduledWorkflow, nextScheduledEpoch int64, nowEpoch int64) (
+	*util.Workflow, error) {
 
 	workflowName := swf.NextResourceName()
 
 	// Try to fetch this workflow
 	// If it already exists, it means that it was already created in a previous iteration
 	// of this controller but that the controller failed to save this data.
-	foundWorkflow, isNotFoundError, err := c.workflowClient.Get(swf.Namespace(),
+	foundWorkflow, isNotFoundError, err := c.workflowClient.Get(swf.Namespace,
 		workflowName)
 	if err == nil {
 		// The workflow was already created by a previous iteration of this controller.
@@ -494,7 +494,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 	// If the workflow is not found, we need to create it.
 	newWorkflow := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
-	createdWorkflow, err := c.workflowClient.Create(swf.Namespace(), newWorkflow)
+	createdWorkflow, err := c.workflowClient.Create(swf.Namespace, newWorkflow)
 
 	if err != nil {
 		return nil, err
@@ -503,8 +503,8 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 }
 
 func (c *Controller) updateStatus(
-	swf *util.ScheduledWorkflowWrap,
-	workflow *util.WorkflowWrap,
+	swf *util.ScheduledWorkflow,
+	workflow *util.Workflow,
 	active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus,
 	nextScheduledEpoch int64,
@@ -512,12 +512,12 @@ func (c *Controller) updateStatus(
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
-	swfCopy := util.NewScheduledWorkflowWrap(swf.ScheduledWorkflow().DeepCopy())
+	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
 	swfCopy.UpdateStatus(nowEpoch, workflow, nextScheduledEpoch, active, completed)
 
 	// Until #38113 is merged, we must use Update instead of UpdateStatus to
 	// update the Status block of the ScheduledWorkflow. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
 	// nothing other than resource status has been updated.
-	return c.swfClient.Update(swf.Namespace(), swfCopy)
+	return c.swfClient.Update(swf.Namespace, swfCopy)
 }

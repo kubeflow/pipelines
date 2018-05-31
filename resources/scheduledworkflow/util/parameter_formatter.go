@@ -40,6 +40,7 @@ type ParameterFormatter struct {
 	index          int64
 }
 
+// NewParameterFormatter returns a new ParameterFormatter.
 func NewParameterFormatter(scheduledEpoch int64, nowEpoch int64,
 	index int64) *ParameterFormatter {
 	return &ParameterFormatter{
@@ -49,6 +50,7 @@ func NewParameterFormatter(scheduledEpoch int64, nowEpoch int64,
 	}
 }
 
+// Format substitutes special strings in the provided string.
 func (p *ParameterFormatter) Format(s string) string {
 	re := regexp.MustCompile(`\[\[(.*?)\]\]`)
 	matches := re.FindAllString(s, -1)

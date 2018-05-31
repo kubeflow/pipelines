@@ -23,6 +23,8 @@ import (
 	"strconv"
 )
 
+// GetRequirementForCompletedWorkflowOrFatal returns a label requirement indicating
+// whether a workflow is completed.
 func GetRequirementForCompletedWorkflowOrFatal(completed bool) *labels.Requirement {
 	operator := selection.NotEquals
 	if completed == true {
@@ -36,27 +38,32 @@ func GetRequirementForCompletedWorkflowOrFatal(completed bool) *labels.Requireme
 	return req
 }
 
-func GetRequirementForScheduleNameOrFatal(scheduleName string) *labels.Requirement {
-	req, err := labels.NewRequirement(LabelKeyWorkflowName, selection.Equals, []string{scheduleName})
+// GetRequirementForScheduleNameOrFatal returns a label requirement for a specific
+// ScheduledWorkflow name.
+func GetRequirementForScheduleNameOrFatal(swf string) *labels.Requirement {
+	req, err := labels.NewRequirement(LabelKeyWorkflowScheduledWorkflowName, selection.Equals, []string{swf})
 	if err != nil {
 		log.Fatalf("Error while creating requirement: %s", err)
 	}
 	return req
 }
 
+// GetRequirementForScheduleNameOrFatal returns a label requirement for a minimum
+// index of creation of a workflow (to avoid querying the whole list).
 func GetRequirementForMinIndexOrFatal(minIndex int64) *labels.Requirement {
 	req, err := labels.NewRequirement(LabelKeyWorkflowIndex, selection.GreaterThan,
-		[]string{FormatInt64ForLabel(minIndex)})
+		[]string{formatInt64ForLabel(minIndex)})
 	if err != nil {
 		log.Fatalf("Error while creating requirement: %s", err)
 	}
 	return req
 }
 
-func FormatInt64ForLabel(epoch int64) string {
+func formatInt64ForLabel(epoch int64) string {
 	return fmt.Sprintf("%d", epoch)
 }
 
+// RetrieveInt64FromLabel converts a string label value into an epoch.
 func RetrieveInt64FromLabel(epoch string) (int64, error) {
 	return strconv.ParseInt(epoch, 10, 64)
 }

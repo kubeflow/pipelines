@@ -38,6 +38,7 @@ type KubeClient struct {
 	recorder record.EventRecorder
 }
 
+// NewKubeClient creates a new client to call the core Kubernetes APIs.
 func NewKubeClient(kubeClientSet kubernetes.Interface, recorder record.EventRecorder) *KubeClient {
 	return &KubeClient{
 		kubeClientSet: kubeClientSet,
@@ -45,11 +46,13 @@ func NewKubeClient(kubeClientSet kubernetes.Interface, recorder record.EventReco
 	}
 }
 
+// RecordSyncSuccess records the success of a sync.
 func (k *KubeClient) RecordSyncSuccess(swf *swfapi.ScheduledWorkflow, message string) {
 	k.recorder.Event(swf, corev1.EventTypeNormal, successSynced,
 		fmt.Sprintf("%v: %v", messageResourceSuccessSynced, message))
 }
 
+// RecordSyncFailure records the failure of a sync.
 func (k *KubeClient) RecordSyncFailure(swf *swfapi.ScheduledWorkflow, message string) {
 	k.recorder.Event(swf, corev1.EventTypeWarning, failedSynced,
 		fmt.Sprintf("%v: %v", messageResourceFailedSynced, message))

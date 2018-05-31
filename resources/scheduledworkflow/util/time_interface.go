@@ -15,7 +15,6 @@
 package util
 
 import (
-	log "github.com/sirupsen/logrus"
 	"math"
 	"time"
 )
@@ -29,10 +28,12 @@ type TimeInterface interface {
 type RealTime struct {
 }
 
+// NewRealTime creates an instance of RealTime.
 func NewRealTime() TimeInterface {
 	return &RealTime{}
 }
 
+// Now returns the current time.
 func (r *RealTime) Now() time.Time {
 	return time.Now().UTC()
 }
@@ -42,31 +43,27 @@ type FakeTime struct {
 	now time.Time
 }
 
+// NewFakeTime creates an instance of FakeTime that will return a fixed time.
 func NewFakeTime(now time.Time) TimeInterface {
 	return &FakeTime{
 		now: now.UTC(),
 	}
 }
 
+// NewFakeTimeForEpoch creates an instance of FakeTime that will return a fixed epoch.
 func NewFakeTimeForEpoch() TimeInterface {
 	return &FakeTime{
 		now: time.Unix(0, 0).UTC(),
 	}
 }
 
+// Now returns the current (fake) time.
 func (f *FakeTime) Now() time.Time {
 	f.now = time.Unix(f.now.Unix()+1, 0).UTC()
 	return f.now
 }
 
-func ParseTimeOrFatal(value string) time.Time {
-	result, err := time.Parse(time.RFC3339, value)
-	if err != nil {
-		log.Fatalf("Could not parse time: %+v", err)
-	}
-	return result.UTC()
-}
-
+// FormatTimeForLogging formats an epoch for logging purposes.
 func FormatTimeForLogging(epoch int64) string {
 	if epoch <= 0 {
 		return "INVALID TIME"

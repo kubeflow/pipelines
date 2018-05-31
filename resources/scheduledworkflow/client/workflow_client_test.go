@@ -36,8 +36,8 @@ func TestToWorkflowStatuses(t *testing.T) {
 			UID:               "UID",
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
-				util.LabelKeyWorkflowScheduledEpoch: "54",
-				util.LabelKeyWorkflowIndex:          "55",
+				util.LabelKeyWorkflowEpoch: "54",
+				util.LabelKeyWorkflowIndex: "55",
 			},
 		},
 		Status: workflowapi.WorkflowStatus{
@@ -96,7 +96,7 @@ func TestRetrieveScheduledTime(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
-				util.LabelKeyWorkflowScheduledEpoch: "54",
+				util.LabelKeyWorkflowEpoch: "54",
 			},
 		},
 	}
@@ -120,7 +120,7 @@ func TestRetrieveScheduledTime(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
-				util.LabelKeyWorkflowScheduledEpoch: "UNPARSABLE_@%^%@^#%",
+				util.LabelKeyWorkflowEpoch: "UNPARSABLE_@%^%@^#%",
 			},
 		},
 	}
@@ -179,7 +179,7 @@ func TestLabelSelectorToGetWorkflows(t *testing.T) {
 	assert.Nil(t, err)
 	expected = expected.Add(*req)
 
-	req, err = labels.NewRequirement(util.LabelKeyWorkflowName, selection.Equals,
+	req, err = labels.NewRequirement(util.LabelKeyWorkflowScheduledWorkflowName, selection.Equals,
 		[]string{"PIPELINE_NAME"})
 	assert.Nil(t, err)
 	expected = expected.Add(*req)
@@ -204,7 +204,7 @@ func TestLabelSelectorToGetWorkflows(t *testing.T) {
 	assert.Nil(t, err)
 	expected = expected.Add(*req)
 
-	req, err = labels.NewRequirement(util.LabelKeyWorkflowName, selection.Equals,
+	req, err = labels.NewRequirement(util.LabelKeyWorkflowScheduledWorkflowName, selection.Equals,
 		[]string{"PIPELINE_NAME"})
 	assert.Nil(t, err)
 	expected = expected.Add(*req)

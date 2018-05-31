@@ -28,6 +28,7 @@ type ScheduledWorkflowClient struct {
 	informer  v1alpha1.ScheduledWorkflowInformer
 }
 
+// NewScheduledWorkflowClient creates an instance of the client.
 func NewScheduledWorkflowClient(clientSet swfclientset.Interface,
 	informer v1alpha1.ScheduledWorkflowInformer) *ScheduledWorkflowClient {
 	return &ScheduledWorkflowClient{
@@ -36,26 +37,30 @@ func NewScheduledWorkflowClient(clientSet swfclientset.Interface,
 	}
 }
 
+// AddEventHandler adds an event handler.
 func (p *ScheduledWorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) {
 	p.informer.Informer().AddEventHandler(funcs)
 }
 
+// HasSynced returns true if the shared informer's store has synced.
 func (p *ScheduledWorkflowClient) HasSynced() func() bool {
 	return p.informer.Informer().HasSynced
 }
 
-func (p *ScheduledWorkflowClient) Get(namespace string, name string) (*util.ScheduledWorkflowWrap, error) {
+// Get returns a ScheduledWorkflow, given a namespace and a name.
+func (p *ScheduledWorkflowClient) Get(namespace string, name string) (*util.ScheduledWorkflow, error) {
 	schedule, err := p.informer.Lister().ScheduledWorkflows(namespace).Get(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return util.NewScheduledWorkflowWrap(schedule), nil
+	return util.NewScheduledWorkflow(schedule), nil
 }
 
+// Update Updates a ScheduledWorkflow in the Kubernetes API server.
 func (p *ScheduledWorkflowClient) Update(namespace string,
-	schedule *util.ScheduledWorkflowWrap) error {
+	schedule *util.ScheduledWorkflow) error {
 	_, err := p.clientSet.ScheduledworkflowV1alpha1().ScheduledWorkflows(namespace).
-		Update(schedule.ScheduledWorkflow())
+		Update(schedule.Get())
 	return err
 }

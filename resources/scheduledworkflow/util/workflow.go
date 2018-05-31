@@ -22,25 +22,33 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// WorkflowWrap is a wrapper to help manipulate workflow objects.
-type WorkflowWrap struct {
-	workflow *workflowapi.Workflow
+// Workflow is a type to help manipulate Workflow objects.
+type Workflow struct {
+	*workflowapi.Workflow
 }
 
-func NewWorkflowWrap(workflow *workflowapi.Workflow) *WorkflowWrap {
-	return &WorkflowWrap{
-		workflow: workflow,
+// NewWorkflow creates an Workflow.
+func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
+	return &Workflow{
+		workflow,
 	}
 }
 
-func (w *WorkflowWrap) OverrideName(name string) {
-	w.workflow.GenerateName = ""
-	w.workflow.Name = name
+// Get converts this object to a workflowapi.Workflow.
+func (w *Workflow) Get() *workflowapi.Workflow {
+	return w.Workflow
 }
 
-func (w *WorkflowWrap) OverrideParameters(desiredMap map[string]string) {
+// OverrideName sets the name of a Workflow.
+func (w *Workflow) OverrideName(name string) {
+	w.GenerateName = ""
+	w.Name = name
+}
+
+// OverrideParameters overrides some of the parameters of a Workflow.
+func (w *Workflow) OverrideParameters(desiredMap map[string]string) {
 	desiredSlice := make([]workflowapi.Parameter, 0)
-	for _, currentParam := range w.workflow.Spec.Arguments.Parameters {
+	for _, currentParam := range w.Spec.Arguments.Parameters {
 
 		var desiredValue *string = nil
 		if param, ok := desiredMap[currentParam.Name]; ok {
@@ -54,31 +62,29 @@ func (w *WorkflowWrap) OverrideParameters(desiredMap map[string]string) {
 		})
 	}
 
-	w.workflow.Spec.Arguments.Parameters = desiredSlice
+	w.Spec.Arguments.Parameters = desiredSlice
 }
 
-func (w *WorkflowWrap) SetCanonicalLabels(scheduleName string,
+// SetCanonicalLabels sets the labels needed by the ScheduledWorkflow on the Workflow.
+func (w *Workflow) SetCanonicalLabels(scheduleName string,
 	nextScheduledEpoch int64, index int64) {
-	if w.workflow.Labels == nil {
-		w.workflow.Labels = make(map[string]string)
+	if w.Labels == nil {
+		w.Labels = make(map[string]string)
 	}
-	w.workflow.Labels[LabelKeyWorkflowName] = scheduleName
-	w.workflow.Labels[LabelKeyWorkflowScheduledEpoch] = FormatInt64ForLabel(
+	w.Labels[LabelKeyWorkflowScheduledWorkflowName] = scheduleName
+	w.Labels[LabelKeyWorkflowEpoch] = formatInt64ForLabel(
 		nextScheduledEpoch)
-	w.workflow.Labels[LabelKeyWorkflowIndex] = FormatInt64ForLabel(index)
-	w.workflow.Labels[LabelKeyWorkflowIsOwnedBySchedule] = "true"
+	w.Labels[LabelKeyWorkflowIndex] = formatInt64ForLabel(index)
+	w.Labels[LabelKeyWorkflowIsOwnedByScheduledWorkflow] = "true"
 }
 
-func (w *WorkflowWrap) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
-	w.workflow.OwnerReferences = []metav1.OwnerReference{
+// SetOwnerReferences sets owner references on a Workflow.
+func (w *Workflow) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
+	w.OwnerReferences = []metav1.OwnerReference{
 		*metav1.NewControllerRef(schedule, schema.GroupVersionKind{
 			Group:   swfapi.SchemeGroupVersion.Group,
 			Version: swfapi.SchemeGroupVersion.Version,
 			Kind:    swfregister.Kind,
 		}),
 	}
-}
-
-func (w *WorkflowWrap) Workflow() *workflowapi.Workflow {
-	return w.workflow
 }

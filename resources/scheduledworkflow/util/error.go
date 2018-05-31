@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// IsNotFound returns whether an error indicates that a resource was "not found".
 func IsNotFound(err error) bool {
 	return reasonForError(err) == metav1.StatusReasonNotFound
 }
