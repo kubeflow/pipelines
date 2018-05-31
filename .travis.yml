@@ -1,8 +1,15 @@
 language: go
+services:
+- docker
 
 go:
   - "1.10"
 
 script:
-  - cd backend/src
+  # API server tests
+  - cd $TRAVIS_BUILD_DIR/backend/src
   - go test -v ./...
+
+  # Frontend docker image build
+  - cd $TRAVIS_BUILD_DIR/frontend
+  - npm run docker
