@@ -1,5 +1,9 @@
 FROM node:9.4.0 as build
 
+ARG COMMIT_HASH
+ARG VERSION
+ARG DATE
+
 WORKDIR ./src
 
 COPY . .
@@ -7,6 +11,11 @@ COPY . .
 RUN npm install && cd server && npm install
 RUN ./node_modules/bower/bin/bower i --allow-root
 RUN npm run build
+
+RUN mkdir -p ./server/dist && \
+    echo ${COMMIT_HASH} > ./server/dist/COMMIT_HASH && \
+    echo ${VERSION} > ./server/dist/VERSION && \
+    echo ${DATE} > ./server/dist/DATE
 
 FROM node:9.4.0-alpine
 
