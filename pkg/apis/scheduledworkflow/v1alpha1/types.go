@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
-	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +genclient
@@ -169,10 +169,10 @@ const (
 )
 
 type ScheduledWorkflowCondition struct {
-	// Type of job condition, Complete or Failed.
+	// Type of job condition.
 	Type ScheduledWorkflowConditionType `json:"type,omitempty"`
 	// Status of the condition, one of True, False, Unknown.
-	Status api.ConditionStatus `json:"status,omitempty"`
+	Status core.ConditionStatus `json:"status,omitempty"`
 	// Last time the condition was checked.
 	// +optional
 	LastProbeTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
