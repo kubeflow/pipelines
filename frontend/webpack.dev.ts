@@ -31,9 +31,4 @@ export default merge(common, {
       to: 'node_modules/mocha/[name].[ext]'
     }]),
   ],
-  resolve: {
-    alias: {
-      sinon: path.resolve('test/node_modules/sinon/pkg/sinon-2.0.0-pre'),
-    },
-  },
 });

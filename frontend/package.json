@@ -26,6 +26,7 @@
     "mocha": "^5.0.5",
     "polymer-webpack-loader": "^2.0.0",
     "reflect-metadata": "^0.1.10",
+    "sinon": "2.0.0-pre",
     "ts-loader": "^2.3.7",
     "ts-node": "^5.0.1",
     "tslint": "^5.9.1",
