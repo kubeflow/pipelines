@@ -3,10 +3,12 @@ import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
 
-import { JobMetadata, JobSortKeys } from '../src/model/job';
+import { JobMetadata } from '../src/model/job';
+import { JobSortKeys } from '../src/model/list_jobs_request';
 import { ListJobsResponse } from '../src/model/list_jobs_response';
+import { PipelineSortKeys } from '../src/model/list_pipelines_request';
 import { ListPipelinesResponse } from '../src/model/list_pipelines_response';
-import { Pipeline, PipelineSortKeys } from '../src/model/pipeline';
+import { Pipeline } from '../src/model/pipeline';
 
 const prefix = __dirname + '/pipeline-data';
 
@@ -135,8 +137,7 @@ export default (app) => {
         }
         break;
       case 'GET':
-        const p = fixedData.pipelines.filter((p) => p.id === pid);
-        res.json(p[0]);
+        res.json(fixedData.pipelines.find((p) => p.id === pid));
         break;
       default:
         res.status(405).send('Unsupported request type: ' + res.method);
