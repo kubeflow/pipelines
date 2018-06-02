@@ -96,6 +96,11 @@ div {
   text-transform: none;
 }
 
+.column-button[disabled] {
+  background: initial;
+  color: initial;
+}
+
 .column-button > iron-icon {
   width: var(--icon-dimension-small);
   padding-left: var(--spacing-minus-5);

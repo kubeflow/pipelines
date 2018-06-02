@@ -27,8 +27,9 @@ the License.
         </div>
         <template is="dom-repeat" items="{{columns}}" as="column">
           <div class="column">
-            <paper-button class="column-button" on-click="_columnButtonClicked">
-              {{column.name}}
+            <paper-button class="column-button" on-click="_columnButtonClicked"
+                          disabled="[[!column.sortKey]]">
+              [[column.name]]
               <iron-icon class="sort-icon"></iron-icon>
             </paper-button>
           </div>

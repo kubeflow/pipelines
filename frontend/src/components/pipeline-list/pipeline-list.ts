@@ -9,19 +9,19 @@ import * as Utils from '../../lib/utils';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import {
   EventName,
-  FilterChangedEvent,
   ItemClickEvent,
+  ListFormatChangeEvent,
   NewListPageEvent,
-  RouteEvent
+  RouteEvent,
 } from '../../model/events';
-import { ListPipelinesRequest } from '../../model/list_pipelines_request';
+import { ListPipelinesRequest, PipelineSortKeys } from '../../model/list_pipelines_request';
 import { PageElement } from '../../model/page_element';
 import { Pipeline } from '../../model/pipeline';
 import {
   ColumnTypeName,
   ItemListColumn,
   ItemListElement,
-  ItemListRow
+  ItemListRow,
 } from '../item-list/item-list';
 
 import './pipeline-list.html';
@@ -47,20 +47,20 @@ export class PipelineList extends PageElement {
   protected pipelineListRows: ItemListRow[] = [];
 
   protected pipelineListColumns: ItemListColumn[] = [
-    { name: 'Name', type: ColumnTypeName.STRING },
-    { name: 'Description', type: ColumnTypeName.STRING },
-    { name: 'Package ID', type: ColumnTypeName.NUMBER },
-    { name: 'Created at', type: ColumnTypeName.DATE },
-    { name: 'Schedule', type: ColumnTypeName.STRING },
-    { name: 'Enabled', type: ColumnTypeName.STRING },
+    new ItemListColumn('Name', ColumnTypeName.STRING, PipelineSortKeys.NAME),
+    new ItemListColumn('Description', ColumnTypeName.STRING),
+    new ItemListColumn('Package ID', ColumnTypeName.NUMBER, PipelineSortKeys.PACKAGE_ID),
+    new ItemListColumn('Created at', ColumnTypeName.DATE, PipelineSortKeys.CREATED_AT),
+    new ItemListColumn('Schedule', ColumnTypeName.STRING),
+    new ItemListColumn('Enabled', ColumnTypeName.STRING),
   ];
 
-  private _keystrokeDebouncer: Polymer.Debouncer;
+  private _debouncer: Polymer.Debouncer;
 
   ready(): void {
     super.ready();
     const itemList = this.$.pipelinesItemList as ItemListElement;
-    itemList.addEventListener(EventName.FILTER_CHANGED, this._filterChanged.bind(this));
+    itemList.addEventListener(EventName.LIST_FORMAT_CHANGE, this._listFormatChanged.bind(this));
     itemList.addEventListener(EventName.NEW_LIST_PAGE, this._loadNewListPage.bind(this));
     itemList.addEventListener('selected-indices-changed', this._selectedItemsChanged.bind(this));
     itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
@@ -146,20 +146,21 @@ export class PipelineList extends PageElement {
   // TODO: figure out what to set the browser cache time for these queries to so
   // that we make use of the cache but don't use it so much that we miss updates
   // to the actual backing database.
-  private _filterChanged(ev: FilterChangedEvent): void {
-    // This function will wait 300ms after last time it is called (last
-    // keystroke in filter box) before getPipelines() is called.
-    this._keystrokeDebouncer = Polymer.Debouncer.debounce(
-        this._keystrokeDebouncer,
+  private _listFormatChanged(ev: ListFormatChangeEvent): void {
+    // This function will wait 300ms after last time it is called before getPipelines() is called.
+    this._debouncer = Polymer.Debouncer.debounce(
+        this._debouncer,
         Polymer.Async.timeOut.after(300),
         async () => {
           const request = new ListPipelinesRequest(this._pageSize);
           request.filterBy = ev.detail.filterString;
+          request.orderAscending = ev.detail.orderAscending;
+          request.sortBy = ev.detail.sortColumn;
           this._loadPipelines(request);
         }
     );
     // Allows tests to use Polymer.flush to ensure debounce has completed.
-    Polymer.enqueueDebouncer(this._keystrokeDebouncer);
+    Polymer.enqueueDebouncer(this._debouncer);
   }
 
   private async _loadPipelines(request: ListPipelinesRequest): Promise<void> {

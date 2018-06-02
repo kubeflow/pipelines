@@ -3,8 +3,10 @@ import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
 
+import { JobMetadata, JobSortKeys } from '../src/model/job';
 import { ListJobsResponse } from '../src/model/list_jobs_response';
 import { ListPipelinesResponse } from '../src/model/list_pipelines_response';
+import { Pipeline, PipelineSortKeys } from '../src/model/pipeline';
 
 const prefix = __dirname + '/pipeline-data';
 
@@ -52,15 +54,47 @@ export default (app) => {
       nextPageToken: '',
       pipelines: [],
     };
-    let pipelines = [];
+
+    let pipelines: Pipeline[] = fixedData.pipelines;
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
       // This may need to be updated when the backend implements filtering.
       pipelines = fixedData.pipelines.filter((p) => p.name.toLocaleLowerCase().match(
           decodeURIComponent(req.query.filterBy).toLocaleLowerCase()));
 
-    } else {
-      pipelines = fixedData.pipelines;
+    }
+
+    if (req.query.sortBy) {
+      let sortByPropName = '';
+
+      switch (req.query.sortBy) {
+        case PipelineSortKeys.CREATED_AT:
+          sortByPropName = 'createdAt';
+          break;
+        case PipelineSortKeys.ID:
+          sortByPropName = 'id';
+          break;
+        case PipelineSortKeys.NAME:
+          sortByPropName = 'name';
+          break;
+        case PipelineSortKeys.PACKAGE_ID:
+          sortByPropName = 'packageId';
+          break;
+        default:
+          res.status(405).send(`Unsupported sort string: ${req.query.sortBy}`);
+          return;
+      }
+
+      pipelines.sort((a, b) => {
+        let result = 1;
+        if (a[sortByPropName] < b[sortByPropName]) {
+          result = -1;
+        }
+        if (a[sortByPropName] === b[sortByPropName]) {
+          result = 0;
+        }
+        return result * ((req.query.ascending === 'true') ? 1 : -1);
+      });
     }
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
@@ -117,19 +151,52 @@ export default (app) => {
       jobs: [],
       nextPageToken: '',
     };
-    let jobs = [];
+
+    let jobs: JobMetadata[] =
+        fixedData.pipelines.find((p) => p.id === pid).jobs.map((j) => j.metadata);
+
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
       // This may need to be updated when the backend implements filtering.
-      jobs = jobs.filter((j) => j.metadata.name.toLocaleLowerCase().match(
+      jobs = jobs.filter((j) => j.name.toLocaleLowerCase().match(
           decodeURIComponent(req.query.filterBy).toLocaleLowerCase()));
-    } else {
-      jobs = fixedData.pipelines.find((p) => p.id === pid).jobs;
+    }
+
+    // The backend sorts by createdAt by default.
+    req.query.sortBy = req.query.sortBy || JobSortKeys.CREATED_AT;
+
+    if (req.query.sortBy) {
+      let sortByPropName = '';
+
+      switch (req.query.sortBy) {
+        case JobSortKeys.NAME:
+          sortByPropName = 'name';
+          break;
+        case JobSortKeys.CREATED_AT:
+          // Intentionally falling through
+        case '':
+          sortByPropName = 'createdAt';
+          break;
+        default:
+          res.status(405).send(`Unsupported sort string: ${req.query.sortBy}`);
+          return;
+      }
+
+      jobs.sort((a, b) => {
+        let result = 1;
+        if (a[sortByPropName] < b[sortByPropName]) {
+          result = -1;
+        }
+        if (a[sortByPropName] === b[sortByPropName]) {
+          result = 0;
+        }
+        return result * ((req.query.ascending === 'true') ? 1 : -1);
+      });
     }
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
     const end = start + (+req.query.pageSize) + 1;
-    response.jobs = jobs.slice(start, end).map((j) => j.metadata);
+    response.jobs = jobs.slice(start, end);
 
     if (end < jobs.length) {
       response.nextPageToken = end + '';

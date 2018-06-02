@@ -22,9 +22,9 @@ import 'paper-item/paper-item.html';
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import {
   EventName,
-  FilterChangedEvent,
   ItemClickEvent,
-  NewListPageEvent
+  ListFormatChangeEvent,
+  NewListPageEvent,
 } from '../../model/events';
 
 import './item-list.html';
@@ -37,9 +37,16 @@ export enum ColumnTypeName {
   STRING,
 }
 
-export interface ItemListColumn {
-  name: string;
-  type: ColumnTypeName;
+export class ItemListColumn {
+  public name: string;
+  public sortKey: string;
+  public type: ColumnTypeName;
+
+  constructor(name: string, type: ColumnTypeName, sortKey = '') {
+    this.name = name;
+    this.type = type;
+    this.sortKey = sortKey;
+  }
 }
 
 /** Fields that can be passed to the ItemListRow constructor. */
@@ -137,12 +144,19 @@ export class ItemListElement extends Polymer.Element {
 
   /**
    * If true, the ItemListElement component will handle filtering of its data.
-   * If false, the ItemListElement will do no filtering, however, its parent
-   * component can still listen for EventName.FILTER_CHANGED events and handle them as
-   * desired.
+   * If false, the ItemListElement will do no filtering, however, its parent component can still
+   * listen for EventName.LIST_FORMAT_CHANGE events and handle them as desired.
    */
   @property({ type: Boolean })
   public filterLocally = false;
+
+  /**
+   * If true, the ItemListElement component will handle sorting of its data.
+   * If false, the ItemListElement will do no sorting, however, its parent component can still
+   * listen for EventName.LIST_FORMAT_CHANGE events and handle them as desired.
+   */
+  @property({ type: Boolean })
+  public sortLocally = false;
 
   @property({ type: Boolean })
   _showFilterBox = false;
@@ -204,8 +218,10 @@ export class ItemListElement extends Polymer.Element {
       headerContainer.style.boxShadow = shadow;
     });
 
-    // Initial sort
-    this._sortBy(0);
+    // Ensure items begin sorted when not relying on the backend to handling sorting.
+    if (this.sortLocally) {
+      this._sortBy(0);
+    }
   }
 
   resetFilter(): void {
@@ -240,31 +256,48 @@ export class ItemListElement extends Polymer.Element {
       };
     }
 
-    (this.$.list as Polymer.DomRepeat).sort = (a: ItemListRow, b: ItemListRow) => {
-      // Bail out of sort if no columns have been set yet.
-      if (!this.columns.length) {
-        return;
-      }
-      if (a.columns[column] === b.columns[column]) {
-        return 0;
-      }
-      let compResult = -1;
-      if (this.columns[column].type === ColumnTypeName.STRING) {
-        if ((a.columns[column] as string).toLowerCase() >
-            (b.columns[column] as string).toLowerCase()) {
-          compResult = 1;
+    if (this.sortLocally) {
+      (this.$.list as Polymer.DomRepeat).sort = (a: ItemListRow, b: ItemListRow) => {
+        // Bail out of sort if no columns have been set yet.
+        if (!this.columns.length) {
+          return;
         }
-      } else if (this.columns[column].type === ColumnTypeName.NUMBER) {
-        if ((a.columns[column] as number) > (b.columns[column] as number)) {
-          compResult = 1;
+        if (a.columns[column] === b.columns[column]) {
+          return 0;
         }
-      } else if (this.columns[column].type === ColumnTypeName.DATE) {
-        if ((a.columns[column] as Date) > (b.columns[column] as Date)) {
-          compResult = 1;
+        let compResult = -1;
+        if (this.columns[column].type === ColumnTypeName.STRING) {
+          if ((a.columns[column] as string).toLowerCase() >
+              (b.columns[column] as string).toLowerCase()) {
+            compResult = 1;
+          }
+        } else if (this.columns[column].type === ColumnTypeName.NUMBER) {
+          if ((a.columns[column] as number) > (b.columns[column] as number)) {
+            compResult = 1;
+          }
+        } else if (this.columns[column].type === ColumnTypeName.DATE) {
+          if ((a.columns[column] as Date) > (b.columns[column] as Date)) {
+            compResult = 1;
+          }
         }
-      }
-      return this._currentSort.asc ? compResult : compResult * -1;
-    };
+        return this._currentSort.asc ? compResult : compResult * -1;
+      };
+    } else {
+      // Allow backend to handle sorting
+      this._sortByColumn = this.columns[column].sortKey;
+      // Reset paging.
+      this.reset();
+      this.dispatchEvent(new ListFormatChangeEvent(
+        EventName.LIST_FORMAT_CHANGE,
+        {
+          detail: {
+            filterString: this.filterString,
+            orderAscending: this._currentSort.asc,
+            sortColumn: this._sortByColumn,
+          }
+        }
+      ));
+    }
     this._updateSortIcons();
   }
 
@@ -499,9 +532,16 @@ export class ItemListElement extends Polymer.Element {
   @observe('filterString')
   _filterStringChanged(): void {
     this.reset();
-    this.dispatchEvent(new FilterChangedEvent(
-      EventName.FILTER_CHANGED,
-      { detail: { filterString: this.filterString }}));
+    this.dispatchEvent(new ListFormatChangeEvent(
+      EventName.LIST_FORMAT_CHANGE,
+      {
+        detail: {
+          filterString: this.filterString,
+          orderAscending: this._currentSort.asc,
+          sortColumn: this._sortByColumn,
+        }
+      }
+    ));
   }
 
   _isFirstColumn(i: number): boolean {

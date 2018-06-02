@@ -75,6 +75,7 @@ export async function getPipelines(request: ListPipelinesRequest): Promise<ListP
   queryParams.push('pageToken=' + request.pageToken);
   queryParams.push('pageSize=' + request.pageSize);
   queryParams.push('sortBy=' + encodeURIComponent(request.sortBy));
+  queryParams.push('ascending=' + request.orderAscending);
   if (request.filterBy) {
     // TODO: this isn't actually supported by the backend yet (and won't be for a while.) (5/23)
     queryParams.push('filterBy=' + encodeURIComponent(request.filterBy));
@@ -153,6 +154,7 @@ export async function getJobs(request: ListJobsRequest): Promise<ListJobsRespons
   queryParams.push('pageSize=' + request.pageSize);
   queryParams.push('pipelineId=' + request.pipelineId);
   queryParams.push('sortBy=' + encodeURIComponent(request.sortBy));
+  queryParams.push('ascending=' + request.orderAscending);
   if (request.filterBy) {
     // TODO: this isn't actually supported by the backend yet (and won't be for a while.) (5/23)
     queryParams.push('filterBy=' + encodeURIComponent(request.filterBy));

@@ -1,5 +1,6 @@
+// TODO: consider moving these into the event classes as static fields.
 export enum EventName {
-  FILTER_CHANGED = 'filterChanged',
+  LIST_FORMAT_CHANGE = 'listFormatChange',
   NEW_LIST_PAGE = 'newListPage',
   ROUTE = 'route',
 }
@@ -10,9 +11,11 @@ export class ItemClickEvent extends CustomEvent {
   };
 }
 
-export class FilterChangedEvent extends CustomEvent {
+export class ListFormatChangeEvent extends CustomEvent {
   public detail: {
     filterString: string,
+    orderAscending: boolean,
+    sortColumn: string,
   };
 }
 

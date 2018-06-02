@@ -2,20 +2,26 @@ import * as assert from 'assert';
 
 import {
   ColumnTypeName,
+  ItemListColumn,
   ItemListElement,
-  ItemListRow
+  ItemListRow,
 } from '../../src/components/item-list/item-list';
 import { EventName, NewListPageEvent } from '../../src/model/events';
 
 let fixture: ItemListElement;
 const TEST_TAG = 'item-list';
 
-function resetFixture(): void {
+function resetFixture({ filterLocally = false, sortLocally = false }): void {
   const old = document.querySelector(TEST_TAG);
   if (old) {
     document.body.removeChild(old);
   }
-  document.body.appendChild(document.createElement(TEST_TAG));
+  const list = new ItemListElement();
+  // These are needed to ensure that this variable is set *before* ready() is called in
+  // ItemListElement.
+  list.filterLocally = filterLocally;
+  list.sortLocally = sortLocally;
+  document.body.appendChild(list as any);
   fixture = document.querySelector(TEST_TAG) as any;
 }
 
@@ -66,14 +72,11 @@ describe('item-list', () => {
    * Rows must be recreated on each test with the fixture, to avoid state leakage.
    */
   beforeEach(() => {
-    resetFixture();
-    fixture.columns = [{
-      name: 'col1',
-      type: ColumnTypeName.STRING,
-    }, {
-      name: 'col2',
-      type: ColumnTypeName.STRING,
-    }];
+    resetFixture({});
+    fixture.columns = [
+      new ItemListColumn('col1', ColumnTypeName.STRING),
+      new ItemListColumn('col2', ColumnTypeName.STRING),
+    ];
     const rows = [
       new ItemListRow({
         columns: ['first column 1', 'second column 1'],
@@ -347,15 +350,12 @@ describe('item-list', () => {
     };
 
     beforeEach(async () => {
-      resetFixture();
+      resetFixture({});
       fixture.addEventListener(EventName.NEW_LIST_PAGE, loadNewPage.bind(this));
-      fixture.columns = [{
-        name: 'col1',
-        type: ColumnTypeName.STRING,
-      }, {
-        name: 'col2',
-        type: ColumnTypeName.DATE,
-      }];
+      fixture.columns = [
+        new ItemListColumn('col1', ColumnTypeName.STRING),
+        new ItemListColumn('col2', ColumnTypeName.DATE),
+      ];
       loadNewPage(new NewListPageEvent(EventName.NEW_LIST_PAGE, { detail: { pageNumber: 0 } }));
     });
 
@@ -469,7 +469,28 @@ describe('item-list', () => {
   describe('local filtering', () => {
 
     beforeEach(() => {
-      fixture.filterLocally = true;
+      resetFixture({ filterLocally: true });
+      fixture.columns = [
+        new ItemListColumn('col1', ColumnTypeName.STRING),
+        new ItemListColumn('col2', ColumnTypeName.STRING),
+      ];
+      fixture.rows = [
+        new ItemListRow({
+          columns: ['first column 1', 'second column 1'],
+        }),
+        new ItemListRow({
+          columns: ['first column 2', 'second column 2'],
+        }),
+        new ItemListRow({
+          columns: ['first column 3', 'second column 3'],
+        }),
+        new ItemListRow({
+          columns: ['first column 4', 'second column 4'],
+        }),
+        new ItemListRow({
+          columns: ['first column 5', 'second column 5'],
+        }),
+      ];
     });
 
     it('hides the filter box by default', () => {
@@ -590,15 +611,11 @@ describe('item-list', () => {
     ];
 
     beforeEach(() => {
-      resetFixture();
-      fixture.filterLocally = false;
-      fixture.columns = [{
-        name: 'col1',
-        type: ColumnTypeName.STRING,
-      }, {
-        name: 'col2',
-        type: ColumnTypeName.STRING,
-      }];
+      resetFixture({ filterLocally: false });
+      fixture.columns = [
+        new ItemListColumn('col1', ColumnTypeName.STRING),
+        new ItemListColumn('col2', ColumnTypeName.STRING),
+      ];
       fixture.rows = [
         new ItemListRow({
           columns: ['first column 1', 'second column 1'],
@@ -628,7 +645,7 @@ describe('item-list', () => {
     });
   });
 
-  describe('sorting', () => {
+  describe('local sorting', () => {
     const rows = [
       new ItemListRow({ columns: ['item c*', new Date('11/11/2017, 8:58:42 AM')] }),
       new ItemListRow({ columns: ['item a*', new Date('11/11/2017, 8:59:42 AM')] }),
@@ -640,16 +657,13 @@ describe('item-list', () => {
     const col0ReverseOrder = col0SortedOrder.slice().reverse();
 
     beforeEach(async () => {
-      resetFixture();
+      resetFixture({ sortLocally: true });
       const list = fixture.$.list as Polymer.DomRepeat;
       fixture.rows = rows;
-      fixture.columns = [{
-        name: 'col1',
-        type: ColumnTypeName.STRING,
-      }, {
-        name: 'col2',
-        type: ColumnTypeName.DATE,
-      }];
+      fixture.columns = [
+        new ItemListColumn('col1', ColumnTypeName.STRING, 'col1SortKey'),
+        new ItemListColumn('col2', ColumnTypeName.DATE, 'col2SortKey'),
+      ];
       list.render();
     });
 
@@ -771,10 +785,7 @@ describe('item-list', () => {
 
     it('sorts numbers correctly', () => {
       const listContainer = fixture.$.listContainer as HTMLElement;
-      fixture.columns = [{
-        name: 'col1',
-        type: ColumnTypeName.NUMBER,
-      }];
+      fixture.columns = [ new ItemListColumn('col1', ColumnTypeName.NUMBER) ];
       fixture.rows = [
         new ItemListRow({ columns: [11] }),
         new ItemListRow({ columns: [1] }),
@@ -792,10 +803,7 @@ describe('item-list', () => {
 
     it('sorts correctly when there are equal values', () => {
       const listContainer = fixture.$.listContainer as HTMLElement;
-      fixture.columns = [{
-        name: 'col1',
-        type: ColumnTypeName.NUMBER,
-      }];
+      fixture.columns = [ new ItemListColumn('col1', ColumnTypeName.NUMBER) ];
       fixture.rows = [
         new ItemListRow({ columns: [2] }),
         new ItemListRow({ columns: [1] }),
@@ -815,10 +823,7 @@ describe('item-list', () => {
     });
 
     it('returns the correct selectedIndices result matching clicked items when sorted', () => {
-      fixture.columns = [{
-        name: 'col1',
-        type: ColumnTypeName.NUMBER,
-      }];
+      fixture.columns = [ new ItemListColumn('col1', ColumnTypeName.NUMBER) ];
       fixture.rows = [
         new ItemListRow({ columns: [1] }),
         new ItemListRow({ columns: [2] }),

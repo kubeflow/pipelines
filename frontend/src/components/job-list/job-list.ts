@@ -7,18 +7,18 @@ import { customElement, property } from 'polymer-decorators/src/decorators';
 import { NodePhase } from '../../model/argo_template';
 import {
   EventName,
-  FilterChangedEvent,
   ItemClickEvent,
+  ListFormatChangeEvent,
   NewListPageEvent,
-  RouteEvent
+  RouteEvent,
 } from '../../model/events';
 import { JobMetadata } from '../../model/job';
-import { ListJobsRequest } from '../../model/list_jobs_request';
+import { JobSortKeys, ListJobsRequest } from '../../model/list_jobs_request';
 import {
   ColumnTypeName,
   ItemListColumn,
   ItemListElement,
-  ItemListRow
+  ItemListRow,
 } from '../item-list/item-list';
 
 import './job-list.html';
@@ -35,19 +35,19 @@ export class JobList extends Polymer.Element {
   protected jobListRows: ItemListRow[] = [];
 
   protected jobListColumns: ItemListColumn[] = [
-    { name: 'Job Name', type: ColumnTypeName.STRING },
-    { name: 'Created at', type: ColumnTypeName.DATE },
-    { name: 'Scheduled at', type: ColumnTypeName.DATE },
+    new ItemListColumn('Job Name', ColumnTypeName.STRING, JobSortKeys.NAME),
+    new ItemListColumn('Created at', ColumnTypeName.DATE, JobSortKeys.CREATED_AT),
+    new ItemListColumn('Scheduled at', ColumnTypeName.DATE),
   ];
 
-  private _keystrokeDebouncer: Polymer.Debouncer;
+  private _debouncer: Polymer.Debouncer;
 
   private _pipelineId = -1;
 
   ready(): void {
     super.ready();
     const itemList = this.$.jobsItemList as ItemListElement;
-    itemList.addEventListener(EventName.FILTER_CHANGED, this._filterChanged.bind(this));
+    itemList.addEventListener(EventName.LIST_FORMAT_CHANGE, this._listFormatChanged.bind(this));
     itemList.addEventListener(EventName.NEW_LIST_PAGE, this._loadNewListPage.bind(this));
     itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
   }
@@ -110,19 +110,20 @@ export class JobList extends Polymer.Element {
     this._loadJobsInternal(request);
   }
 
-  private _filterChanged(ev: FilterChangedEvent): void {
-    // This function will wait 300ms after last time it is called (last
-    // keystroke in filter box) before getJobs() is called.
-    this._keystrokeDebouncer = Polymer.Debouncer.debounce(
-        this._keystrokeDebouncer,
+  private _listFormatChanged(ev: ListFormatChangeEvent): void {
+    // This function will wait 300ms after last time it is called before getJobs() is called.
+    this._debouncer = Polymer.Debouncer.debounce(
+        this._debouncer,
         Polymer.Async.timeOut.after(300),
         async () => {
           const request = new ListJobsRequest(this._pipelineId, this._pageSize);
           request.filterBy = ev.detail.filterString;
+          request.orderAscending = ev.detail.orderAscending;
+          request.sortBy = ev.detail.sortColumn;
           this._loadJobsInternal(request);
         }
     );
     // Allows tests to use Polymer.flush to ensure debounce has completed.
-    Polymer.enqueueDebouncer(this._keystrokeDebouncer);
+    Polymer.enqueueDebouncer(this._debouncer);
   }
 }
