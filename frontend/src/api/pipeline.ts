@@ -2,24 +2,23 @@ import { Parameter } from './parameter';
 
 export class Pipeline {
   public id: number;
-  // createdAt is SECONDS since epoch
-  public createdAt: number;
+  public created_at: string;
   public name: string;
   public description?: string;
-  public packageId: number;
+  public package_id: number;
   public schedule: string;
   public enabled: boolean;
-  public enabledAt: number;
-  public parameters: Parameter[];
+  public enabled_at: string;
+  public parameters?: Parameter[];
 
   constructor() {
-    this.createdAt = Math.floor(Date.now() / 1000);
+    this.created_at = new Date().toISOString();
     this.name = '';
     this.description = '';
-    this.packageId = -1;
+    this.package_id = -1;
     this.schedule = '';
     this.enabled = false;
-    this.enabledAt = -1;
+    this.enabled_at = new Date().toISOString();
     this.parameters = [];
   }
 }

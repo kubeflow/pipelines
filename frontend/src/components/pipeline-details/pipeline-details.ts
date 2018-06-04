@@ -11,9 +11,9 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
+import { Pipeline } from '../../api/pipeline';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
-import { Pipeline } from '../../model/pipeline';
 import { JobList } from '../job-list/job-list';
 
 import './pipeline-details.html';
@@ -47,6 +47,7 @@ export class PipelineDetails extends PageElement {
 
   public async load(path: string): Promise<void> {
     if (path !== '') {
+      this.selectedTab = 0;
       const id = Number.parseInt(path);
       if (isNaN(id)) {
         Utils.log.error(`Bad pipeline path: ${id}`);
@@ -72,7 +73,7 @@ export class PipelineDetails extends PageElement {
           new RouteEvent(
             '/pipelines/new',
             {
-              packageId: this.pipeline.packageId,
+              packageId: this.pipeline.package_id,
               parameters: this.pipeline.parameters
             }));
     }
@@ -130,8 +131,8 @@ export class PipelineDetails extends PageElement {
     return Utils.enabledDisplayString(schedule, enabled);
   }
 
-  protected _formatDateInSeconds(dateInSeconds: number): string {
-    return Utils.formatDateInSeconds(dateInSeconds);
+  protected _formatDateString(date: string): string {
+    return Utils.formatDateString(date);
   }
 
   // Pipeline can only be enabled/disabled if there's a schedule

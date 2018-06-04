@@ -40,10 +40,6 @@ export function formatDateString(date: string): string {
   return date ? new Date(date).toLocaleString() : '-';
 }
 
-export function formatDateInSeconds(dateInSeconds: number): string {
-  return dateInSeconds > 0 ? new Date(dateInSeconds * 1000).toLocaleString() : '-';
-}
-
 export function dateDiffToString(diff: number): string {
   const SECOND = 1000;
   const MINUTE = 60 * SECOND;

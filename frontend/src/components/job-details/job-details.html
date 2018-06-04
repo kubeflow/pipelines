@@ -17,17 +17,17 @@
       <div class="overlay" hidden="[[!_loadingJob]]"></div>
       <div class="flex-column flex-grow padded-top-left">
         <div class="flex padded-right">
-          <div class="job-name">[[jobDetail.metadata.name]]</div>
+          <div class="job-name">[[workflow.metadata.name]]</div>
           <div>
             <div class="flex">
-              <iron-icon class="status-icon" icon$=[[_getStatusIcon(jobDetail.status.phase)]]></iron-icon>
+              <iron-icon class="status-icon" icon$=[[_getStatusIcon(workflow.status.phase)]]></iron-icon>
               <!-- TODO: Get or compute the job progress here -->
               <paper-progress id="progress" class="job-progress" value="100"
-                              style$="--paper-progress-active-color: var([[_getProgressColor(jobDetail.status.phase)]])">
+                              style$="--paper-progress-active-color: var([[_getProgressColor(workflow.status.phase)]])">
               </paper-progress>
             </div>
             <div>
-              <span class="status">[[jobDetail.status.phase]]</span>
+              <span class="status">[[workflow.status.phase]]</span>
             </div>
           </div>
         </div>
@@ -48,38 +48,40 @@
             <div class="details-table">
               <div>
                 <span class="key">Status</span>
-                <span class="value">[[jobDetail.status.phase]]</span>
+                <span class="value">[[workflow.status.phase]]</span>
               </div>
               <div>
                 <span class="key">Created at</span>
-                <span class="value">[[_formatDateString(jobDetail.metadata.creationTimestamp)]]</span>
+                <span class="value">[[_formatDateString(workflow.metadata.creationTimestamp)]]</span>
               </div>
               <div>
                 <span class="key">Started at</span>
-                <span class="value">[[_formatDateString(jobDetail.status.startedAt)]]</span>
+                <span class="value">[[_formatDateString(workflow.status.startedAt)]]</span>
               </div>
               <div>
                 <span class="key">Finished at</span>
-                <span class="value">[[_formatDateString(jobDetail.status.finishedAt)]]</span>
+                <span class="value">[[_formatDateString(workflow.status.finishedAt)]]</span>
               </div>
               <div>
                 <span class="key">Duration</span>
-                <span class="value">[[_getRuntime(jobDetail.status.startedAt, jobDetail.status.finishedAt, jobDetail.status.phase)]]</span>
+                <span class="value">[[_getRuntime(workflow.status.startedAt, workflow.status.finishedAt, workflow.status.phase)]]</span>
               </div>
             </div>
 
             <br/>
             <br/>
 
-            <div class="param-header">Job Parameters</div>
-            <div class="details-table">
-              <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
-                <div>
-                  <span class="key">[[param.name]]</span>
-                  <span class="value">[[param.value]]</span>
-                </div>
-              </template>
-            </div>
+            <template is="dom-if" if="[[pipeline.parameters.length]]">
+              <div class="param-header">Job Parameters</div>
+              <div class="details-table">
+                <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+                  <div>
+                    <span class="key">[[param.name]]</span>
+                    <span class="value">[[param.value]]</span>
+                  </div>
+                </template>
+              </div>
+            </template>
 
           </div>
 

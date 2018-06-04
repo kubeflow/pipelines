@@ -90,7 +90,7 @@
           <template is="dom-if" if="[[_parameters.length]]">
             <div id="parametersTitle" class="param-header">Parameters</div>
             <template is="dom-repeat" items="{{_parameters}}" as="param">
-              <div class="param-description">[[param.description]]</div>
+              <div class="param-name">[[param.name]]</div>
               <paper-input class="input-field-large no-shrink" no-label-float
                            value="{{param.value}}">
               </paper-input>

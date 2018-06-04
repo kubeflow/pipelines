@@ -54,9 +54,6 @@ export default {
         test: /\.ts$/,
         enforce: 'pre',
         loader: 'tslint-loader',
-        options: {
-          configFile: 'tslint.json',
-        },
         exclude: /bower_components/,
       },
       {

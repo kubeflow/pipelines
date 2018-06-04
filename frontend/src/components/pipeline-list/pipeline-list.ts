@@ -7,6 +7,8 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
+import { ListPipelinesRequest, PipelineSortKeys } from '../../api/list_pipelines_request';
+import { Pipeline } from '../../api/pipeline';
 import {
   EventName,
   ItemClickEvent,
@@ -14,9 +16,7 @@ import {
   NewListPageEvent,
   RouteEvent,
 } from '../../model/events';
-import { ListPipelinesRequest, PipelineSortKeys } from '../../model/list_pipelines_request';
 import { PageElement } from '../../model/page_element';
-import { Pipeline } from '../../model/pipeline';
 import {
   ColumnTypeName,
   ItemListColumn,
@@ -85,7 +85,7 @@ export class PipelineList extends PageElement {
         new RouteEvent(
           '/pipelines/new',
           {
-            packageId: selectedPipeline.packageId,
+            packageId: selectedPipeline.package_id,
             parameters: selectedPipeline.parameters
           }));
   }
@@ -166,10 +166,10 @@ export class PipelineList extends PageElement {
   private async _loadPipelines(request: ListPipelinesRequest): Promise<void> {
     try {
       const getPipelinesResponse = await Apis.getPipelines(request);
-      this.pipelines = getPipelinesResponse.pipelines;
+      this.pipelines = getPipelinesResponse.pipelines || [];
 
       const itemList = this.$.pipelinesItemList as ItemListElement;
-      itemList.updateNextPageToken(getPipelinesResponse.nextPageToken);
+      itemList.updateNextPageToken(getPipelinesResponse.nextPageToken || '');
     } catch (err) {
       this.showPageError('There was an error while loading the pipeline list.');
       Utils.log.error('Error loading pipelines:', err);
@@ -180,8 +180,8 @@ export class PipelineList extends PageElement {
         columns: [
           pipeline.name,
           pipeline.description,
-          pipeline.packageId,
-          Utils.formatDateInSeconds(pipeline.createdAt),
+          pipeline.package_id,
+          Utils.formatDateString(pipeline.created_at),
           pipeline.schedule,
           Utils.enabledDisplayString(pipeline.schedule, pipeline.enabled)
         ],

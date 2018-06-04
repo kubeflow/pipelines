@@ -1,10 +1,12 @@
-import { Job } from '../model/job';
-import { ListJobsRequest } from '../model/list_jobs_request';
-import { ListJobsResponse } from '../model/list_jobs_response';
-import { ListPipelinesRequest } from '../model/list_pipelines_request';
-import { ListPipelinesResponse } from '../model/list_pipelines_response';
-import { Pipeline } from '../model/pipeline';
-import { PipelinePackage } from '../model/pipeline_package';
+import { Job } from '../api/job';
+import { ListJobsRequest } from '../api/list_jobs_request';
+import { ListJobsResponse } from '../api/list_jobs_response';
+import { ListPackagesRequest } from '../api/list_packages_request';
+import { ListPackagesResponse } from '../api/list_packages_response';
+import { ListPipelinesRequest } from '../api/list_pipelines_request';
+import { ListPipelinesResponse } from '../api/list_pipelines_response';
+import { Pipeline } from '../api/pipeline';
+import { PipelinePackage } from '../api/pipeline_package';
 
 const apisPrefix = '/apis/v1alpha1';
 
@@ -34,7 +36,7 @@ export async function isApiServerReady(): Promise<boolean> {
 /**
  * Gets a list of the pipeline packages defined on the backend.
  */
-export async function getPackages(): Promise<PipelinePackage[]> {
+export async function getPackages(request: ListPackagesRequest): Promise<ListPackagesResponse> {
   return JSON.parse(await _fetch('/packages'));
 }
 
@@ -71,16 +73,7 @@ export async function uploadPackage(packageData: any): Promise<PipelinePackage> 
  * Gets a list of the pipeline package pipelines defined on the backend.
  */
 export async function getPipelines(request: ListPipelinesRequest): Promise<ListPipelinesResponse> {
-  const queryParams: string[] = [];
-  queryParams.push('pageToken=' + request.pageToken);
-  queryParams.push('pageSize=' + request.pageSize);
-  queryParams.push('sortBy=' + encodeURIComponent(request.sortBy));
-  queryParams.push('ascending=' + request.orderAscending);
-  if (request.filterBy) {
-    // TODO: this isn't actually supported by the backend yet (and won't be for a while.) (5/23)
-    queryParams.push('filterBy=' + encodeURIComponent(request.filterBy));
-  }
-  return JSON.parse(await _fetch('/pipelines', queryParams.join('&')));
+  return JSON.parse(await _fetch('/pipelines', request.toQueryParams()));
 }
 
 /**
@@ -149,17 +142,7 @@ export async function disablePipeline(id: number): Promise<string> {
  * from the backend.
  */
 export async function getJobs(request: ListJobsRequest): Promise<ListJobsResponse> {
-  const queryParams: string[] = [];
-  queryParams.push('pageToken=' + request.pageToken);
-  queryParams.push('pageSize=' + request.pageSize);
-  queryParams.push('pipelineId=' + request.pipelineId);
-  queryParams.push('sortBy=' + encodeURIComponent(request.sortBy));
-  queryParams.push('ascending=' + request.orderAscending);
-  if (request.filterBy) {
-    // TODO: this isn't actually supported by the backend yet (and won't be for a while.) (5/23)
-    queryParams.push('filterBy=' + encodeURIComponent(request.filterBy));
-  }
-  return JSON.parse(await _fetch(`/pipelines/${request.pipelineId}/jobs`, queryParams.join('&')));
+  return JSON.parse(await _fetch(`/pipelines/${request.pipelineId}/jobs`, request.toQueryParams()));
 }
 
 /**

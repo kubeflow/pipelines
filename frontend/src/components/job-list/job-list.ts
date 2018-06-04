@@ -4,6 +4,8 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
+import { JobMetadata } from '../../api/job';
+import { JobSortKeys, ListJobsRequest } from '../../api/list_jobs_request';
 import { NodePhase } from '../../model/argo_template';
 import {
   EventName,
@@ -12,8 +14,6 @@ import {
   NewListPageEvent,
   RouteEvent,
 } from '../../model/events';
-import { JobMetadata } from '../../model/job';
-import { JobSortKeys, ListJobsRequest } from '../../model/list_jobs_request';
 import {
   ColumnTypeName,
   ItemListColumn,
@@ -80,10 +80,10 @@ export class JobList extends Polymer.Element {
   private async _loadJobsInternal(request: ListJobsRequest): Promise<void> {
     try {
       const getJobsResponse = await Apis.getJobs(request);
-      this.jobsMetadata = getJobsResponse.jobs;
+      this.jobsMetadata = getJobsResponse.jobs || [];
 
       const itemList = this.$.jobsItemList as ItemListElement;
-      itemList.updateNextPageToken(getJobsResponse.nextPageToken);
+      itemList.updateNextPageToken(getJobsResponse.nextPageToken || '');
     } catch (err) {
       // TODO: This error should be bubbled up to pipeline-details to be shown as a page error.
       Utils.showDialog('There was an error while loading the job list', err);
@@ -93,8 +93,8 @@ export class JobList extends Polymer.Element {
       const row = new ItemListRow({
         columns: [
           jobMetadata.name,
-          Utils.formatDateInSeconds(jobMetadata.createdAt),
-          Utils.formatDateInSeconds(jobMetadata.scheduledAt),
+          Utils.formatDateString(jobMetadata.created_at),
+          Utils.formatDateString(jobMetadata.scheduled_at),
         ],
         selected: false,
       });

@@ -1,18 +1,15 @@
-export class ListJobsRequest {
-  public filterBy: string;
-  public orderAscending: boolean;
-  public pageSize: number;
-  public pageToken: string;
+import { ListPipelinesRequest } from './list_pipelines_request';
+
+export class ListJobsRequest extends ListPipelinesRequest {
   public pipelineId: number;
-  public sortBy: string;
 
   constructor(pipelineId: number, pageSize: number) {
-    this.filterBy = '';
-    this.pageSize = pageSize;
-    this.pageToken = '';
+    super(pageSize);
     this.pipelineId = pipelineId;
-    this.sortBy = '';
-    this.orderAscending = true;
+  }
+
+  toQueryParams(): string {
+    return super.toQueryParams() + '&pipelineId=' + this.pipelineId.toString();
   }
 }
 

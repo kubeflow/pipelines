@@ -163,8 +163,8 @@ export class JobGraph extends Polymer.Element {
     this._unselectAllNodes();
   }
 
-  protected _formatDateInSeconds(date: string): string {
-    return Utils.formatDateInSeconds(Date.parse(date) / 1000);
+  protected _formatDateString(date: string): string {
+    return Utils.formatDateString(date);
   }
 
   protected async _nodeClicked(e: GraphNodeClickEvent<NodeStatus>): Promise<void> {

@@ -11,11 +11,11 @@ import * as Utils from '../../lib/utils';
 // @ts-ignore
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
+import { Pipeline } from '../../api/pipeline';
 import { parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase, Workflow } from '../../model/argo_template';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
-import { Pipeline } from '../../model/pipeline';
 import { JobGraph } from '../job-graph/job-graph';
 
 import '../data-plotter/data-plot';
@@ -29,7 +29,7 @@ export class JobDetails extends PageElement {
   public outputPlots: PlotMetadata[] = [];
 
   @property({ type: Object })
-  public jobDetail: Workflow;
+  public workflow: Workflow;
 
   @property({ type: Object })
   public pipeline: Pipeline;
@@ -61,9 +61,10 @@ export class JobDetails extends PageElement {
       let templateYaml = '';
       this._loadingJob = true;
       try {
-        this.jobDetail = (await Apis.getJob(this._pipelineId, this._jobId)).jobDetail;
+        const response = await Apis.getJob(this._pipelineId, this._jobId);
+        this.workflow = JSON.parse(response.workflow);
         this.pipeline = await Apis.getPipeline(this._pipelineId);
-        templateYaml = await Apis.getPackageTemplate(this.pipeline.packageId);
+        templateYaml = await Apis.getPackageTemplate(this.pipeline.package_id);
       } catch (err) {
         this.showPageError('There was an error while loading details for job: ' + this._jobId);
         Utils.log.error('Error loading job details:', err);
@@ -73,10 +74,10 @@ export class JobDetails extends PageElement {
 
       // Render the job graph
       try {
-        (this.$.jobGraph as JobGraph).refresh(this.jobDetail);
+        (this.$.jobGraph as JobGraph).refresh(this.workflow);
       } catch (err) {
         this.showPageError('There was an error while loading the job graph');
-        Utils.log.error('Could not draw job graph from object:', this.jobDetail);
+        Utils.log.error('Could not draw job graph from object:', this.workflow);
       }
 
       // If pipeline params include output, retrieve them so they can be rendered by the data-plot

@@ -12,11 +12,12 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
+import { ListPackagesRequest } from '../../api/list_packages_request';
+import { Parameter } from '../../api/parameter';
+import { Pipeline } from '../../api/pipeline';
+import { PipelinePackage } from '../../api/pipeline_package';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
-import { Parameter } from '../../model/parameter';
-import { Pipeline } from '../../model/pipeline';
-import { PipelinePackage } from '../../model/pipeline_package';
 import { PipelineSchedule } from '../pipeline-schedule/pipeline-schedule';
 
 import './pipeline-new.html';
@@ -26,8 +27,8 @@ interface NewPipelineQueryParams {
 }
 
 interface NewPipelineData {
-  packageId: number;
-  parameters: Parameter[];
+  packageId?: number;
+  parameters?: Parameter[];
 }
 
 @customElement('pipeline-new')
@@ -75,11 +76,17 @@ export class PipelineNew extends PageElement {
     this._reset();
 
     this._overwriteData = pipelineData;
-    this._packageId =
-        this._overwriteData ? this._overwriteData.packageId : queryParams.packageId || -1;
+    this._packageId = -1;
+    if (queryParams.packageId !== undefined) {
+      this._packageId = queryParams.packageId;
+    }
+    if (this._overwriteData && this._overwriteData.packageId) {
+      this._packageId = this._overwriteData.packageId;
+    }
 
     try {
-      this.packages = await Apis.getPackages();
+      const response = await Apis.getPackages(new ListPackagesRequest());
+      this.packages = response.packages || [];
 
       if (this._packageId > -1) {
         // Try to match incoming Pipeline's package to known package.
@@ -91,8 +98,7 @@ export class PipelineNew extends PageElement {
           }
         });
       }
-      if (this._overwriteData) {
-        this._packageId = this._overwriteData.packageId;
+      if (this._overwriteData && this._overwriteData.parameters) {
         // Augment the list of parameters with the overwrite data parameters. To achieve this, check
         // if there one with the same name in the overwrite data, Object.assign them.
         this._overwriteData.parameters.forEach((p) => {
@@ -103,8 +109,7 @@ export class PipelineNew extends PageElement {
         });
       }
     } catch (err) {
-      this.showPageError('There was an error while loading packages.');
-      Utils.log.error('Error loading packages:', err);
+      this.showPageError('There was an error while loading packages.', err);
     } finally {
       this._busy = false;
     }
@@ -150,10 +155,10 @@ export class PipelineNew extends PageElement {
       this.push('packages', pkg);
       (this.$.packagesListbox as PaperListboxElement).selected =
           (this.$.packagesListbox as PaperListboxElement).items!.length;
-      (this.$.altFileUpload as HTMLInputElement).value = '';
     } catch (err) {
-      Utils.showDialog('There was an error uploading the package.');
+      Utils.showDialog('There was an error uploading the package.', err);
     } finally {
+      (this.$.altFileUpload as HTMLInputElement).value = '';
       this._busy = false;
     }
   }
@@ -164,8 +169,8 @@ export class PipelineNew extends PageElement {
     newPipeline.description = this._description;
     // TODO: The frontend shouldn't really be sending this, but currently the
     // backend breaks if it receives an empty string, undefined, or null.
-    newPipeline.createdAt = Math.floor(Date.now() / 1000);
-    newPipeline.packageId = this._packageId;
+    newPipeline.created_at = new Date().toISOString();
+    newPipeline.package_id = this._packageId;
     newPipeline.parameters = this._parameters;
     newPipeline.schedule = this._schedule.scheduleAsUTCCrontab();
     this._busy = true;

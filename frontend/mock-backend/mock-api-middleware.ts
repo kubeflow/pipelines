@@ -3,12 +3,13 @@ import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
 
-import { JobMetadata } from '../src/model/job';
-import { JobSortKeys } from '../src/model/list_jobs_request';
-import { ListJobsResponse } from '../src/model/list_jobs_response';
-import { PipelineSortKeys } from '../src/model/list_pipelines_request';
-import { ListPipelinesResponse } from '../src/model/list_pipelines_response';
-import { Pipeline } from '../src/model/pipeline';
+import { JobMetadata } from '../src/api/job';
+import { JobSortKeys } from '../src/api/list_jobs_request';
+import { ListJobsResponse } from '../src/api/list_jobs_response';
+import { ListPackagesResponse } from '../src/api/list_packages_response';
+import { PipelineSortKeys } from '../src/api/list_pipelines_request';
+import { ListPipelinesResponse } from '../src/api/list_pipelines_response';
+import { Pipeline } from '../src/api/pipeline';
 
 const prefix = __dirname + '/pipeline-data';
 
@@ -30,6 +31,13 @@ let apiServerReady = false;
 setTimeout(() => {
   apiServerReady = true;
 }, 5000);
+
+function isValidSortKey(sortKeyEnumType: any, key: string): boolean {
+  const findResult = Object.keys(sortKeyEnumType).find(
+      (k) => sortKeyEnumType[k] === key
+  );
+  return !!findResult;
+}
 
 export default (app) => {
 
@@ -67,32 +75,16 @@ export default (app) => {
     }
 
     if (req.query.sortBy) {
-      let sortByPropName = '';
-
-      switch (req.query.sortBy) {
-        case PipelineSortKeys.CREATED_AT:
-          sortByPropName = 'createdAt';
-          break;
-        case PipelineSortKeys.ID:
-          sortByPropName = 'id';
-          break;
-        case PipelineSortKeys.NAME:
-          sortByPropName = 'name';
-          break;
-        case PipelineSortKeys.PACKAGE_ID:
-          sortByPropName = 'packageId';
-          break;
-        default:
-          res.status(405).send(`Unsupported sort string: ${req.query.sortBy}`);
-          return;
+      if (!isValidSortKey(PipelineSortKeys, req.query.sortBy)) {
+        res.status(405).send(`Unsupported sort string: ${req.query.sortBy}`);
+        return;
       }
-
       pipelines.sort((a, b) => {
         let result = 1;
-        if (a[sortByPropName] < b[sortByPropName]) {
+        if (a[req.query.sortBy] < b[req.query.sortBy]) {
           result = -1;
         }
-        if (a[sortByPropName] === b[sortByPropName]) {
+        if (a[req.query.sortBy] === b[req.query.sortBy]) {
           result = 0;
         }
         return result * ((req.query.ascending === 'true') ? 1 : -1);
@@ -113,7 +105,7 @@ export default (app) => {
   app.post(apisPrefix + '/pipelines', (req, res) => {
     const pipeline = req.body;
     pipeline.id = fixedData.pipelines.length;
-    pipeline.createdAt = Math.floor(Date.now() / 1000);
+    pipeline.created_at = Math.floor(Date.now() / 1000);
     pipeline.jobs = [];
     pipeline.enabled = !!pipeline.schedule;
     fixedData.pipelines.push(pipeline);
@@ -154,7 +146,7 @@ export default (app) => {
     };
 
     let jobs: JobMetadata[] =
-        fixedData.pipelines.find((p) => p.id === pid).jobs.map((j) => j.metadata);
+        fixedData.pipelines.find((p) => p.id === pid).jobs.map((j) => j.job);
 
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
@@ -163,32 +155,20 @@ export default (app) => {
           decodeURIComponent(req.query.filterBy).toLocaleLowerCase()));
     }
 
-    // The backend sorts by createdAt by default.
+    // The backend sorts by created_at by default.
     req.query.sortBy = req.query.sortBy || JobSortKeys.CREATED_AT;
 
     if (req.query.sortBy) {
-      let sortByPropName = '';
-
-      switch (req.query.sortBy) {
-        case JobSortKeys.NAME:
-          sortByPropName = 'name';
-          break;
-        case JobSortKeys.CREATED_AT:
-          // Intentionally falling through
-        case '':
-          sortByPropName = 'createdAt';
-          break;
-        default:
-          res.status(405).send(`Unsupported sort string: ${req.query.sortBy}`);
-          return;
+      if (!isValidSortKey(JobSortKeys, req.query.sortBy)) {
+        res.status(405).send(`Unsupported sort string: ${req.query.sortBy}`);
+        return;
       }
-
       jobs.sort((a, b) => {
         let result = 1;
-        if (a[sortByPropName] < b[sortByPropName]) {
+        if (a[req.query.sortBy] < b[req.query.sortBy]) {
           result = -1;
         }
-        if (a[sortByPropName] === b[sortByPropName]) {
+        if (a[req.query.sortBy] === b[req.query.sortBy]) {
           result = 0;
         }
         return result * ((req.query.ascending === 'true') ? 1 : -1);
@@ -228,17 +208,21 @@ export default (app) => {
     const pid = Number.parseInt(req.params.pid);
     const jname = req.params.jname;
     const pipeline = fixedData.pipelines.find((p) => p.id === pid);
-    const job = pipeline.jobs.find((j) => j.metadata.name === jname);
+    const job = pipeline.jobs.find((j) => j.job.name === jname);
     if (!job) {
       res.status(404).send('Cannot find a job with name: ' + jname);
       return;
     }
-    res.json(job.jobDetail);
+    res.json(job);
   });
 
   app.get(apisPrefix + '/packages', (req, res) => {
     res.header('Content-Type', 'application/json');
-    res.json(fixedData.packages);
+    const response: ListPackagesResponse = {
+      nextPageToken: '',
+      packages: fixedData.packages,
+    };
+    res.json(response);
   });
 
   app.get(apisPrefix + '/packages/:pid/templates', (req, res) => {
