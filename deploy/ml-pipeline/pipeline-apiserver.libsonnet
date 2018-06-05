@@ -137,6 +137,9 @@
                     {
                       containerPort: 8888,
                     },
+                    {
+                      containerPort: 8887,
+                    },
                 ],
                 env: [
                   {
