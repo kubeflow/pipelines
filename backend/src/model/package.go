@@ -33,7 +33,7 @@ type Package struct {
 	CreatedAtInSec int64         `gorm:"column:CreatedAtInSec; not null"`
 	Name           string        `gorm:"column:Name; not null"`
 	Description    string        `gorm:"column:Description"`
-	Parameters     string        `gorm:"column:Parameters"` /* Json format argo.v1alpha1.parameter */
+	Parameters     string        `gorm:"column:Parameters; size:10000"` /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */
 	Status         PackageStatus `gorm:"column:Status; not null"`
 }
 

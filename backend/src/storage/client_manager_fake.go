@@ -55,9 +55,8 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	if err != nil {
 		return nil, fmt.Errorf("Could not create the GORM database: %v", err)
 	}
-
 	// Create tables
-	db.AutoMigrate(&model.Package{}, &model.Pipeline{}, &model.Job{})
+	db.AutoMigrate(&model.Package{}, &model.Pipeline{}, &model.Job{}, &model.JobV2{}, &model.PipelineV2{})
 	workflowClient := NewWorkflowClientFake()
 
 	return &FakeClientManager{

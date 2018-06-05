@@ -36,7 +36,7 @@ type Pipeline struct {
 	Schedule       string         `gorm:"column:Schedule; not null"`
 	Enabled        bool           `gorm:"column:Enabled; not null"`
 	EnabledAtInSec int64          `gorm:"column:EnabledAtInSec; not null"`
-	Parameters     string         `gorm:"column:Parameters"` /* Json format argo.v1alpha1.parameter */
+	Parameters     string         `gorm:"column:Parameters; size:10000"` /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */
 	Status         PipelineStatus `gorm:"column:Status; not null"`
 }
 
