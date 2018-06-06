@@ -2,13 +2,11 @@
 
 This repository provides Custom Resource Definitions and tools for ML pipeline orchestration. 
 
-## ScheduledWorkflow CRD/controller
+## Scheduled Workflow CRD/controller
 
 ### How to run the ScheduledWorkflow controller from the command line? 
 
-The following assumes that: 
-
-- Your Kubernetes configuration file is located at '$HOME/.kube/config'.
+The following assumes that your Kubernetes configuration file is located at '$HOME/.kube/config'.
 
 To create the resource for the CRD, execute: 
 
