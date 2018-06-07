@@ -50,7 +50,7 @@ scheduledworkflow.kubeflow.org "every-minute-cron" created
 To see the current list of ScheduledWorkflows, execute: 
 
 ```
-kubectl get scheduledworkflows
+kubectl get swf
 ```
 
 Output:
@@ -63,7 +63,7 @@ every-minute-cron   1m
 To see the current status of the ScheduledWorklfow named 'every-minute-cron', execute: 
 
 ```
-kubectl describe scheduledworkflow every-minute-cron
+kubectl describe swf every-minute-cron
 ```
 
 Output:

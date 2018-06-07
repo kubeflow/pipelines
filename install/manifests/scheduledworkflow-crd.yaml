@@ -7,5 +7,9 @@ spec:
   version: v1alpha1
   scope: Namespaced
   names:
-    kind: ScheduledWorkflow
-    plural: scheduledworkflows
+    kind: "ScheduledWorkflow"
+    listKind: "ScheduledWorkflowList"
+    plural: "scheduledworkflows"
+    shortNames:
+      - "swf"
+    singular: "scheduledworkflow"
