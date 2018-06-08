@@ -1,15 +1,26 @@
 language: go
 services:
 - docker
-
+addons:
+  apt:
+    packages:
+      # This is required to avoid an Error: kill ESRCH failure on Travis at the
+      # end of the test run
+      - libnss3
+  chrome: stable
 go:
   - "1.10"
+node_js:
+  - "8.9"
 
 script:
   # API server tests
   - cd $TRAVIS_BUILD_DIR/backend/src
   - go test -v ./...
 
-  # Frontend docker image build
+  # Frontend component tests
   - cd $TRAVIS_BUILD_DIR/frontend
-  - npm run docker
+  - npm i
+  - cd test
+  - npm i
+  - npm run -s ci-component-tests

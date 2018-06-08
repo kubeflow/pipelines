@@ -9,7 +9,7 @@
     "jasmine": "^2.9.0",
     "jasmine-ts": "^0.2.1",
     "sinon": "^2.0.0-pre",
-    "start-server-and-test": "^1.0.1",
+    "start-server-and-test": "^1.4.1",
     "ts-node": "^5.0.1",
     "typescript": "^2.7.2",
     "wdio-dot-reporter": "0.0.9",
@@ -24,6 +24,7 @@
   "scripts": {
     "start": "cd .. && npm start",
     "component-tests": "wdio components/wdio.conf.js",
+    "ci-component-tests": "start-server-and-test start http-get://localhost:3000/apis/v1alpha1/healthz component-tests",
     "ui-tests": "wdio ui/wdio.conf.js",
     "unit-tests": "jasmine-ts unit/*.ts",
     "test": "npm run unit-tests & HEADLESS_UI_TESTS=1 npm run ui-tests",
