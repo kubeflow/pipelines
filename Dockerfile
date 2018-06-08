@@ -1,21 +1,16 @@
-FROM golang
+FROM golang:1.10.2-alpine3.7 AS builder
 
-WORKDIR /go/src/github.com/kubeflow/pipelines
+RUN apk add --no-cache git
+RUN go get github.com/golang/dep/cmd/dep
 
+WORKDIR /go/src/github.com/kubeflow/pipelines/
 COPY . .
 
-RUN go get ./resources/scheduledworkflow/...
+RUN dep ensure -vendor-only
+RUN go build -o /bin/controller \
+    github.com/kubeflow/pipelines/cmd/controller
 
-# We need to remove this glog package as it conflicts with the glog package in
-# /go/src/github.com/golang/glog.
-RUN rm -r /go/src/k8s.io/kubernetes/vendor/github.com/golang/glog
+FROM alpine:3.7
+COPY --from=builder /bin/controller /bin/controller
 
-RUN go build -o /bin/controller ./resources/scheduledworkflow/*.go
-
-FROM ubuntu
-
-WORKDIR /bin
-
-COPY --from=0 /bin/controller /bin/controller
-
-CMD /bin/controller -alsologtostderr=true
+ENTRYPOINT ["/bin/controller"]

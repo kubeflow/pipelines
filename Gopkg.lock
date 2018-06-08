@@ -179,6 +179,12 @@
   version = "v0.3.4"
 
 [[projects]]
+  name = "github.com/inconshreveable/mousetrap"
+  packages = ["."]
+  revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+  version = "v1.0"
+
+[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "ca39e5af3ece67bbcda3d0f4f56a8e24d9f2dad4"
@@ -247,6 +253,12 @@
   packages = ["."]
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
   version = "v1.0.5"
+
+[[projects]]
+  name = "github.com/spf13/cobra"
+  packages = ["."]
+  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -400,6 +412,15 @@
 
 [[projects]]
   branch = "release-1.9"
+  name = "k8s.io/apiextensions-apiserver"
+  packages = [
+    "pkg/apis/apiextensions",
+    "pkg/apis/apiextensions/v1beta1"
+  ]
+  revision = "57b18d0a31ddcb1b50670da5be8488cb1871eb61"
+
+[[projects]]
+  branch = "release-1.9"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -534,6 +555,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4cd7d782592a9a5abbf214589c767e7ccca736c733215bcd2d0efe222b5e29ce"
+  inputs-digest = "c8e4a385d4d0377383dc7f0afcd1a57e3f49511fe93f088c0d8799f743cb18d5"
   solver-name = "gps-cdcl"
   solver-version = 1
