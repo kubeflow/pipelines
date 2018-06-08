@@ -13,9 +13,6 @@
       $.parts(namespace).uiRole,
       $.parts(namespace).uiRoleBinding,
     ],
-
-    // CRD's are not namespace scoped; see
-    // https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/
     crd: {
       apiVersion: "apiextensions.k8s.io/v1beta1",
       kind: "CustomResourceDefinition",

@@ -54,6 +54,22 @@ $ docker build -t gcr.io/<your-gcp-project>/scheduler:latest -f backend/src/Dock
 $ gcloud docker -- push gcr.io/<your-gcp-project>/scheduler:latest
 ````
 
+To build the scheduled workflow controller image and upload it to GCR: 
+````
+# Run in the repository root directory 
+$ docker build -t gcr.io/<your-gcp-project>/scheduledworkflow:latest -f backend/Dockerfile.scheduledworkflow ./backend
+# Push to GCR
+$ gcloud docker -- push gcr.io/<your-gcp-project>/scheduledworkflow:latest
+````
+
+To build the persistence agent image and upload it to GCR: 
+````
+# Run in the repository root directory 
+$ docker build -t gcr.io/<your-gcp-project>/persistenceagent:latest -f backend/Dockerfile.persistenceagent ./backend
+# Push to GCR
+$ gcloud docker -- push gcr.io/<your-gcp-project>/persistenceagent:latest
+````
+
 ### Minikube
 Minikube can pick your local Docker image so you don't need to upload to remote repository.
 
