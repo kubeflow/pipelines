@@ -22,6 +22,7 @@ import (
 	swfinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
 	"github.com/kubeflow/pipelines/pkg/signals"
 	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
+	"github.com/kubeflow/pipelines/resources/scheduledworkflow"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -40,6 +41,7 @@ func main() {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
+	// if you give no masterURL and no kubeconfig path, kubeconfig are fetched by InClusterConfig
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
 		log.Fatalf("Error building kubeconfig: %s", err.Error())
@@ -63,7 +65,7 @@ func main() {
 	scheduleInformerFactory := swfinformers.NewSharedInformerFactory(scheduleClient, time.Second*30)
 	workflowInformerFactory := workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
 
-	controller := NewController(
+	controller := scheduledworkflow.NewController(
 		kubeClient,
 		scheduleClient,
 		workflowClient,

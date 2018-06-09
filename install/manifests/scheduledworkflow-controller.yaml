@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: scheduledworkflow-controller
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: scheduledworkflow-controller
+  template:
+    metadata:
+      labels:
+        app: scheduledworkflow-controller
+    spec:
+      containers:
+      - name: scheduledworkflow-controller
+        image: pipelines/scheduledworkflow-controller:latest
+        command:
+          - /bin/controller
+        imagePullPolicy: Never

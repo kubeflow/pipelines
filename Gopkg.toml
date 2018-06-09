@@ -33,3 +33,11 @@
 [[constraint]]
   name = "k8s.io/kubernetes"
   version = "1.10.3"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.3"
+
+[[constraint]]
+  name = "k8s.io/apiextensions-apiserver"
+  branch = "release-1.9"
