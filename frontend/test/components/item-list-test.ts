@@ -1,4 +1,4 @@
-import * as assert from 'assert';
+import * as assert from '../../node_modules/assert/assert';
 
 import {
   ColumnTypeName,

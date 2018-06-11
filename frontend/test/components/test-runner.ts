@@ -22,6 +22,7 @@ const mochaOptions: MochaSetupOptions = {
 mocha.setup(mochaOptions);
 
 import './item-list-test';
+import './pipeline-list-test';
 import './pipeline-new-test';
 
 mocha.run(() => {
