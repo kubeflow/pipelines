@@ -15,21 +15,22 @@
   background-color: #333;
   color: #fff;
   font-family: monospace;
+  white-space: normal;
 }
 
 .node-details {
   @apply --shadow-elevation-3dp;
   background-color: #fff;
   border-left: solid 1px var(--divider-color);
+  flex-basis: 0;
   min-width: 0;
-  transition: width 0.3s, min-width 0.3s;
+  transition: flex-basis 0.3s;
   width: 0;
   z-index: 1;
 }
 
 .node-details.visible {
-  min-width: 50%;
-  width: 50%;
+  flex-basis: 50%;
 }
 
 .pipeline-dag {
