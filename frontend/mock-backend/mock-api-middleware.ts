@@ -92,7 +92,7 @@ export default (app) => {
     }
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize) + 1;
+    const end = start + (+req.query.pageSize);
     response.pipelines = pipelines.slice(start, end);
 
     if (end < pipelines.length) {
@@ -105,8 +105,8 @@ export default (app) => {
   app.post(apisPrefix + '/pipelines', (req, res) => {
     const pipeline = req.body;
     pipeline.id = fixedData.pipelines.length;
-    pipeline.created_at = Math.floor(Date.now() / 1000);
-    pipeline.jobs = [];
+    pipeline.created_at = new Date().toISOString();
+    pipeline.jobs = [fixedData.jobs[0]];
     pipeline.enabled = !!pipeline.schedule;
     fixedData.pipelines.push(pipeline);
     setTimeout(() => {
@@ -176,7 +176,7 @@ export default (app) => {
     }
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize) + 1;
+    const end = start + (+req.query.pageSize);
     response.jobs = jobs.slice(start, end);
 
     if (end < jobs.length) {

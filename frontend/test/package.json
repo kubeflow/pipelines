@@ -15,13 +15,13 @@
     "wdio-dot-reporter": "0.0.9",
     "wdio-jasmine-framework": "^0.3.2",
     "wdio-selenium-standalone-service": "0.0.10",
-    "wdio-spec-reporter": "^0.1.4",
     "wdio-visual-regression-service": "^0.8.0",
     "wdio-webcomponents": "^1.1.0",
-    "webdrivercss": "github:visualregressiontesting/webdrivercss",
+    "webdrivercss": "^1.1.10",
     "webdriverio": "^4.12.0"
   },
   "scripts": {
+    "docker": "docker build -t ml-pipelines-frontend-tests .",
     "start": "cd .. && npm start",
     "component-tests": "wdio components/wdio.conf.js",
     "ci-component-tests": "start-server-and-test start http-get://localhost:3000/apis/v1alpha1/healthz component-tests",

@@ -38,7 +38,7 @@ exports.config = {
   plugins: {
     'wdio-webcomponents': {},
   },
-  reporters: ['spec'],
+  reporters: ['dot'],
   screenshotPath: './ui/errorShots/',
   services: ['selenium-standalone', 'visual-regression'],
   specs: [

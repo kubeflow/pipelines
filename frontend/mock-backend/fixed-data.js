@@ -90,6 +90,7 @@ const undefinedParamsPackage = {
 }
 
 const data = {
+  jobs,
   packages: [ examplePackage, examplePackage2, noParamsPackage, undefinedParamsPackage ],
   pipelines: [
     {

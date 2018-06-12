@@ -21,7 +21,7 @@
         <iron-icon icon="av:stop"></iron-icon>
         Disable
       </paper-button>
-      <paper-button class="toolbar-button" on-click="_deletePipeline">
+      <paper-button id="deleteBtn" class="toolbar-button" on-click="_deletePipeline">
         <iron-icon icon="delete">
         </iron-icon>
         Delete
@@ -58,12 +58,12 @@
                 <span class="value">[[pipeline.package_id]]</span>
               </div>
               <div>
-                <span class="key">Description</span>
-                <span class="value">[[pipeline.description]]</span>
+                <span class="description key">Description</span>
+                <span class="description value">[[pipeline.description]]</span>
               </div>
               <div>
-                <span class="key">Created at</span>
-                <span class="value">[[_formatDateString(pipeline.created_at)]]</span>
+                <span class="created-at key">Created at</span>
+                <span class="created-at value">[[_formatDateString(pipeline.created_at)]]</span>
               </div>
 
               <template is="dom-if" if="[[pipeline.schedule]]">
@@ -84,7 +84,7 @@
 
             <template is="dom-if" if="[[pipeline.parameters.length]]">
               <div class="param-header">Input Parameters</div>
-              <div class="details-table">
+              <div class="params-table details-table">
                 <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
                   <div>
                     <span class="key">[[param.name]]</span>
