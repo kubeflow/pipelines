@@ -17,6 +17,7 @@ FROM ml-pipeline-dataflow-base
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q build-essential && \
     pip install tensorflow-model-analysis==0.6.0 && \
+    pip install ipywidgets==7.2.1 && \
     apt-get --purge autoremove -y build-essential
 
 WORKDIR /ml

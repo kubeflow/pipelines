@@ -24,6 +24,7 @@ import json
 import os
 
 import apache_beam as beam
+from ipywidgets.embed import embed_data
 
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
@@ -34,6 +35,51 @@ from tensorflow_model_analysis.slicer import slicer
 
 from tensorflow_transform import coders as tft_coders
 from tensorflow_transform.tf_metadata import dataset_schema
+
+_OUTPUT_HTML_FILE = 'output_display.html'
+_STATIC_HTML_TEMPLATE = """
+<html>
+  <head>
+    <title>TFMA Slicing Metrics</title>
+
+    <!-- Load RequireJS, used by the IPywidgets for dependency management -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"
+            integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA="
+            crossorigin="anonymous">
+    </script>
+
+    <!-- Load IPywidgets bundle for embedding. -->
+    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.12.0/dist/embed-amd.js"
+            crossorigin="anonymous">
+    </script>
+
+    <!-- Load IPywidgets bundle for embedding. -->
+    <script>
+      require.config({{
+        paths: {{
+          "tfma_widget_js": "https://cdn.rawgit.com/tensorflow/model-analysis/v0.6.0/tensorflow_model_analysis/static/index"
+        }}
+      }});
+    </script>
+
+    <link rel="import" href="https://cdn.rawgit.com/tensorflow/model-analysis/v0.6.0/tensorflow_model_analysis/static/vulcanized_template.html">
+
+    <!-- The state of all the widget models on the page -->
+    <script type="application/vnd.jupyter.widget-state+json">
+      {manager_state}
+    </script>
+  </head>
+
+  <body>
+    <h1>TFMA Slicing Metrics</h1>
+    <div id="slicing-metrics-widget">
+      <script type="application/vnd.jupyter.widget-view+json">
+        {widget_views[0]}
+      </script>
+    </div>
+  </body>
+</html>
+"""
 
 
 def parse_arguments():
@@ -144,6 +190,18 @@ def run_analysis(output_dir, model_dir, eval_path, schema, project, mode, slice_
             output_path=output_dir))
 
 
+def generate_static_html_output(output_dir):
+  result = tfma.load_eval_result(output_path=output_dir)
+  slicing_metrics_view = tfma.view.render_slicing_metrics(result)
+  data = embed_data(views=[slicing_metrics_view])
+  manager_state = json.dumps(data['manager_state'])
+  widget_views = [json.dumps(view) for view in data['view_specs']]
+  rendered_template = _STATIC_HTML_TEMPLATE.format(
+      manager_state=manager_state, widget_views=widget_views)
+  static_html_path = os.path.join(output_dir, _OUTPUT_HTML_FILE)
+  file_io.write_string_to_file(static_html_path, rendered_template)
+
+
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
   args = parse_arguments()
@@ -152,6 +210,7 @@ def main():
   model_export_dir = os.path.join(eval_model_parent_dir, file_io.list_directory(eval_model_parent_dir)[0])
   run_analysis(args.output, model_export_dir, args.eval, schema,
                args.project, args.mode, args.slice_columns)
+  generate_static_html_output(args.output)
 
 
 if __name__== "__main__":
