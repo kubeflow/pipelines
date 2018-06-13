@@ -278,7 +278,9 @@ def main():
 
   preprocessing_fn = None
   if args.preprocessing_module:
-    with open('preprocessing.py', 'w+') as preprocessing_file:
+    module_dir = os.path.abspath(os.path.dirname(__file__))
+    preprocessing_module_path = os.path.join(module_dir, 'preprocessing.py')
+    with open(preprocessing_module_path, 'w+') as preprocessing_file:
       preprocessing_file.write(
           file_io.read_file_to_string(args.preprocessing_module))
     import preprocessing
