@@ -71,8 +71,9 @@ export class JobGraph extends Polymer.Element {
 
   refresh(graph: ArgoTemplate): void {
     this._exitNodeDetails();
-    // Ensure that we're working with an empty array.
+    // Ensure that we're working with empty arrays.
     this._workflowEdges = [];
+    this._workflowNodes = [];
 
     this.jobGraph = graph;
 

@@ -1,5 +1,6 @@
 const coinflipJob = require('./mock-coinflip-job-runtime.json');
 const xgboostJob = require('./mock-xgboost-job-runtime.json');
+const errorJob = require('./mock-error-runtime.json');
 
 // The number of simple, dummy Pipelines that will be appended to the list.
 const NUM_DUMMY_JOBS = 20;
@@ -13,6 +14,14 @@ const jobs = [
       scheduled_at: new Date(1523998703000).toISOString(),
     },
     workflow: JSON.stringify(coinflipJob),
+  },
+  {
+    job: {
+      created_at: new Date(1523998703000).toISOString(),
+      name: 'coinflip-error-nklng2',
+      scheduled_at: new Date(1523998703000).toISOString(),
+    },
+    workflow: JSON.stringify(errorJob),
   },
   {
     job: {
@@ -196,7 +205,7 @@ function generateNJobs() {
 
 function generateNPipelines() {
   pipelines = [];
-  for (i = data.pipelines.length; i < NUM_DUMMY_PIPELINES + data.pipelines.length; i++) {
+  for (i = data.pipelines.length + 1; i < NUM_DUMMY_PIPELINES + data.pipelines.length + 1; i++) {
     pipelines.push( {
       id: i,
       created_at: new Date(1526349129000).toISOString(),

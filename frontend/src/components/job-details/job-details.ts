@@ -49,10 +49,7 @@ export class JobDetails extends PageElement {
   private _jobId = '';
 
   public async load(_: string, queryParams: { jobId?: string, pipelineId: number }): Promise<void> {
-    // Reset the selected tab each time the user navigates to this page.
-    this.selectedTab = 0;
-    // Clear outputPlots to keep from re-adding the same outputs over and over.
-    this.set('outputPlots', []);
+    this._reset();
 
     if (queryParams.jobId !== undefined && queryParams.pipelineId > -1) {
       this._pipelineId = queryParams.pipelineId;
@@ -121,6 +118,15 @@ export class JobDetails extends PageElement {
       return baseOutputPathValue ? baseOutputPathValue.toString() : '';
     }
     return '';
+  }
+
+  private _reset(): void {
+    // Clear any preexisting page error.
+    this._pageError = '';
+    // Reset the selected tab each time the user navigates to this page.
+    this.selectedTab = 0;
+    // Clear outputPlots to keep from re-adding the same outputs over and over.
+    this.set('outputPlots', []);
   }
 
   private async _loadJobOutputs(baseOutputPath: string, templateYaml: string): Promise<void> {
