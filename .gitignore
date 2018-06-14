@@ -22,9 +22,6 @@ frontend/test/ui/errorShots
 frontend/test/ui/screenshots/diff
 frontend/test/ui/screenshots/screen
 
-# npm's package-lock.json
-package-lock.json
-
 # sqlite db
 *.db
 
