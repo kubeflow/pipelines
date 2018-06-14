@@ -2,6 +2,7 @@ export enum PlotType {
   CONFUSION_MATRIX = 'confusion_matrix',
   ROC = 'roc',
   TENSORBOARD = 'tensorboard',
+  WEB_APP = 'web-app',
 }
 
 export interface PlotMetadata {

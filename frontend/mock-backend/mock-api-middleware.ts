@@ -20,6 +20,7 @@ const rocDataPath = './eval-output/roc.csv';
 
 const confusionMatrixMetadataJsonPath = './model-output/metadata.json';
 const confusionMatrixPath = './model-output/confusion_matrix.csv';
+const staticHtmlPath = './model-output/hello-world.html';
 
 const apisPrefix = '/apis/v1alpha1';
 
@@ -254,6 +255,8 @@ export default (app) => {
       res.sendFile(_path.resolve(__dirname, rocDataPath));
     } else if (path.endsWith('confusion_matrix.csv')) {
       res.sendFile(_path.resolve(__dirname, confusionMatrixPath));
+    } else if (path.endsWith('hello-world.html')) {
+      res.sendFile(_path.resolve(__dirname, staticHtmlPath));
     } else if (path.endsWith('analysis/metadata.json')) {
       res.sendFile(_path.resolve(__dirname, confusionMatrixMetadataJsonPath));
     } else if (path.endsWith('model/metadata.json')) {

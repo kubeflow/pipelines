@@ -30,6 +30,11 @@ paper-spinner {
   stroke-dasharray: 5,5;
 }
 
+.iframe {
+  border: 1px solid #ddd;
+  width: 100%;
+}
+
 .line {
   fill: none;
   stroke: steelblue;

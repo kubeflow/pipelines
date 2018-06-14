@@ -40,6 +40,10 @@
           "name": "count"
         }
       ]
+    }, {
+      "storage": "gcs",
+      "source": "gs://some/path/hello-world.html",
+      "type": "web-app"
     }
   ]
 }

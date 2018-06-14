@@ -18,7 +18,10 @@
           </paper-button>
           <paper-spinner active$="[[_tensorboardBusy]]"></paper-spinner>
         </template>
-        </dom-if>
+      </template>
+      <template is="dom-if" if="[[_renderHtmlApp]]">
+        <iframe id="iframe" src="javascript:void(0);" class="iframe" sandbox="allow-scripts"></iframe>
+      </template>
     </div>
     </template>
 </dom-module>
