@@ -7,22 +7,16 @@ import {
   ItemListRow,
 } from '../../src/components/item-list/item-list';
 import { EventName, NewListPageEvent } from '../../src/model/events';
+import { resetFixture } from './test-utils';
 
 let fixture: ItemListElement;
-const TEST_TAG = 'item-list';
 
-function resetFixture({ filterLocally = false, sortLocally = false }): void {
-  const old = document.querySelector(TEST_TAG);
-  if (old) {
-    document.body.removeChild(old);
-  }
-  const list = new ItemListElement();
-  // These are needed to ensure that this variable is set *before* ready() is called in
-  // ItemListElement.
-  list.filterLocally = filterLocally;
-  list.sortLocally = sortLocally;
-  document.body.appendChild(list as any);
-  fixture = document.querySelector(TEST_TAG) as any;
+async function _resetFixture(filterLocally = false, sortLocally = false): Promise<void> {
+  return resetFixture('item-list', (f: ItemListElement) => {
+    f.filterLocally = filterLocally;
+    f.sortLocally = sortLocally;
+    fixture = f;
+  });
 }
 
 describe('item-list', () => {
@@ -72,7 +66,7 @@ describe('item-list', () => {
    * Rows must be recreated on each test with the fixture, to avoid state leakage.
    */
   beforeEach(() => {
-    resetFixture({});
+    _resetFixture();
     fixture.columns = [
       new ItemListColumn('col1', ColumnTypeName.STRING),
       new ItemListColumn('col2', ColumnTypeName.STRING),
@@ -350,7 +344,7 @@ describe('item-list', () => {
     };
 
     beforeEach(async () => {
-      resetFixture({});
+      _resetFixture();
       fixture.addEventListener(EventName.NEW_LIST_PAGE, loadNewPage.bind(this));
       fixture.columns = [
         new ItemListColumn('col1', ColumnTypeName.STRING),
@@ -469,7 +463,7 @@ describe('item-list', () => {
   describe('local filtering', () => {
 
     beforeEach(() => {
-      resetFixture({ filterLocally: true });
+      _resetFixture(true);
       fixture.columns = [
         new ItemListColumn('col1', ColumnTypeName.STRING),
         new ItemListColumn('col2', ColumnTypeName.STRING),
@@ -611,7 +605,7 @@ describe('item-list', () => {
     ];
 
     beforeEach(() => {
-      resetFixture({ filterLocally: false });
+      _resetFixture();
       fixture.columns = [
         new ItemListColumn('col1', ColumnTypeName.STRING),
         new ItemListColumn('col2', ColumnTypeName.STRING),
@@ -657,7 +651,7 @@ describe('item-list', () => {
     const col0ReverseOrder = col0SortedOrder.slice().reverse();
 
     beforeEach(async () => {
-      resetFixture({ sortLocally: true });
+      _resetFixture(false, true);
       const list = fixture.$.list as Polymer.DomRepeat;
       fixture.rows = rows;
       fixture.columns = [

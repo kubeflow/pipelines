@@ -45,6 +45,22 @@ export class PipelineDetails extends PageElement {
   })
   protected _allowPipelineDisable = false;
 
+  public get cloneButton(): PaperButtonElement {
+    return this.$.cloneBtn as PaperButtonElement;
+  }
+
+  public get deleteButton(): PaperButtonElement {
+    return this.$.deleteBtn as PaperButtonElement;
+  }
+
+  public get enableButton(): PaperButtonElement {
+    return this.$.enableBtn as PaperButtonElement;
+  }
+
+  public get disableButton(): PaperButtonElement {
+    return this.$.disableBtn as PaperButtonElement;
+  }
+
   public async load(path: string): Promise<void> {
     if (path !== '') {
       this.selectedTab = 0;

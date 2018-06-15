@@ -7,16 +7,17 @@
         <paper-icon-button icon="arrow-back"></paper-icon-button>
       </a>
       <div class="toolbar-title">Pipeline Details</div>
-      <paper-button class="toolbar-button" on-click="_clonePipeline" disabled="[[disableClonePipelineButton]]">
+      <paper-button id="cloneBtn" class="toolbar-button" on-click="_clonePipeline"
+                    disabled="[[disableClonePipelineButton]]">
         <iron-icon icon="content-copy"></iron-icon>
         Clone
       </paper-button>
-      <paper-button class="toolbar-button" on-click="_enablePipeline"
+      <paper-button id="enableBtn" class="toolbar-button" on-click="_enablePipeline"
                     disabled="[[!_allowPipelineEnable]]" title="Enable pipeline schedule">
         <iron-icon icon="av:play-circle-filled"></iron-icon>
         Enable
       </paper-button>
-      <paper-button class="toolbar-button" on-click="_disablePipeline"
+      <paper-button id="disableBtn" class="toolbar-button" on-click="_disablePipeline"
                     disabled="[[!_allowPipelineDisable]]" title="Disable pipeline schedule">
         <iron-icon icon="av:stop"></iron-icon>
         Disable
@@ -55,7 +56,7 @@
             <div class="details-table">
               <div>
                 <span class="key">Pipeline Package ID</span>
-                <span class="value">[[pipeline.package_id]]</span>
+                <span class="package-id value">[[pipeline.package_id]]</span>
               </div>
               <div>
                 <span class="description key">Description</span>
@@ -69,11 +70,11 @@
               <template is="dom-if" if="[[pipeline.schedule]]">
                 <div>
                   <span class="key">Schedule</span>
-                  <span class="value">[[pipeline.schedule]]</span>
+                  <span class="schedule value">[[pipeline.schedule]]</span>
                 </div>
                 <div>
                   <span class="key">Enabled</span>
-                  <span class="value">[[_enabledDisplayString(pipeline.schedule, pipeline.enabled)]]</span>
+                  <span class="enabled value">[[_enabledDisplayString(pipeline.schedule, pipeline.enabled)]]</span>
                 </div>
               </template>
 

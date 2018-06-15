@@ -44,6 +44,22 @@ export class PipelineList extends PageElement {
   @property({ type: Number })
   protected _pageSize = 20;
 
+  public get newButton(): PaperButtonElement {
+    return this.$.newBtn as PaperButtonElement;
+  }
+
+  public get cloneButton(): PaperButtonElement {
+    return this.$.cloneBtn as PaperButtonElement;
+  }
+
+  public get deleteButton(): PaperButtonElement {
+    return this.$.deleteBtn as PaperButtonElement;
+  }
+
+  public get itemList(): ItemListElement {
+    return this.$.pipelinesItemList as ItemListElement;
+  }
+
   protected pipelineListRows: ItemListRow[] = [];
 
   protected pipelineListColumns: ItemListColumn[] = [

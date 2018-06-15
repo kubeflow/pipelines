@@ -68,6 +68,22 @@ export class PipelineNew extends PageElement {
 
   private _schedule: PipelineSchedule;
 
+  public get listBox(): PaperListboxElement {
+    return this.$.packagesListbox as PaperListboxElement;
+  }
+
+  public get nameInput(): PaperInputElement {
+    return this.$.name as PaperInputElement;
+  }
+
+  public get descriptionInput(): PaperInputElement {
+    return this.$.description as PaperInputElement;
+  }
+
+  public get deployButton(): PaperButtonElement {
+    return this.$.deployButton as PaperButtonElement;
+  }
+
   public async load(_: string, queryParams: NewPipelineQueryParams,
       pipelineData?: NewPipelineData): Promise<void> {
     this._busy = true;

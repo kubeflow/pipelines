@@ -1,5 +1,5 @@
-import * as assert from 'assert';
 import * as sinon from 'sinon';
+import * as assert from '../../node_modules/assert/assert';
 import * as APIs from '../../src/lib/apis';
 
 import { Parameter } from '../../src/api/parameter';
@@ -7,6 +7,7 @@ import { Pipeline } from '../../src/api/pipeline';
 import { PipelinePackage } from '../../src/api/pipeline_package';
 import { PipelineNew } from '../../src/components/pipeline-new/pipeline-new';
 import { PipelineSchedule } from '../../src/components/pipeline-schedule/pipeline-schedule';
+import { resetFixture } from './test-utils';
 
 import * as fixedData from '../../mock-backend/fixed-data';
 
@@ -18,28 +19,11 @@ let fixture: PipelineNew;
 let getPackagesStub: sinon.SinonStub;
 let newPipelineSpy: sinon.SinonSpy;
 
-// Aliases for commonly used elements
-let packagesListbox: PaperListboxElement;
-let nameInput: PaperInputElement;
-let descriptionInput: PaperInputElement;
-let deployButton: PaperButtonElement;
-
-// TODO: Refactor the common parts of the resetFixture functions into a util file.
-async function resetFixture(): Promise<void> {
-  const old = document.querySelector(TEST_TAG);
-  if (old) {
-    document.body.removeChild(old);
-  }
-  document.body.appendChild(document.createElement(TEST_TAG));
-  fixture = document.querySelector(TEST_TAG) as PipelineNew;
-  await fixture.load('', {});
-
-  Polymer.flush();
-
-  packagesListbox = fixture.$.packagesListbox as PaperListboxElement;
-  nameInput = fixture.$.name as PaperInputElement;
-  descriptionInput = fixture.$.description as PaperInputElement;
-  deployButton = fixture.$.deployButton as PaperButtonElement;
+async function _resetFixture(): Promise<void> {
+  return resetFixture('pipeline-new', null, (f: PipelineNew) => {
+    fixture = f;
+    f.load('', {});
+  });
 }
 
 describe('pipeline-new', () => {
@@ -52,24 +36,25 @@ describe('pipeline-new', () => {
 
   /** Unset all fields and dropdowns */
   beforeEach(async () => {
-    await resetFixture();
+    await _resetFixture();
   });
 
   it('starts out with deploy button disabled', () => {
-    assert(deployButton.disabled, 'Deploy button should initially be disabled.');
+    assert(fixture.deployButton.disabled, 'Deploy button should initially be disabled.');
   });
 
   it('starts out with no Pipeline package selected', () => {
-    assert.strictEqual(packagesListbox.selected, -1,
+    assert.strictEqual(fixture.listBox.selected, -1,
         'No Pipeline package should initially be selected.');
   });
 
   it('starts out with Pipeline name field empty', () => {
-    assert.strictEqual(nameInput.value, '', 'Pipeline name field should initially be empty.');
+    assert.strictEqual(fixture.nameInput.value, '',
+        'Pipeline name field should initially be empty.');
   });
 
   it('starts out with Pipeline description field empty', () => {
-    assert.strictEqual(descriptionInput.value, '',
+    assert.strictEqual(fixture.descriptionInput.value, '',
         'Pipeline description field should initially be empty.');
   });
 
@@ -82,15 +67,15 @@ describe('pipeline-new', () => {
 
   it('package selector should contain all packages', () => {
     assert.deepStrictEqual(
-        packagesListbox.items.map((item) => item.packageId),
+        fixture.listBox.items.map((item) => item.packageId),
         fixture.packages.map((pkg) => pkg.id));
   });
 
   it('displays parameter fields after package is selected', async () => {
     getPackagesStub.returns({ packages: [packages.examplePackage] });
-    await resetFixture();
+    await _resetFixture();
 
-    packagesListbox.select(0);
+    fixture.listBox.select(0);
     Polymer.flush();
 
     assert(fixture.$.pipelineParameters.querySelector('#parametersTitle'),
@@ -106,15 +91,15 @@ describe('pipeline-new', () => {
 
   it('updates the displayed parameters when package selection changes', async () => {
     getPackagesStub.returns({ packages: [packages.examplePackage, packages.examplePackage2] });
-    await resetFixture();
+    await _resetFixture();
 
-    packagesListbox.select(0);
+    fixture.listBox.select(0);
     Polymer.flush();
     const oldParamNames = JSON.stringify(
         Array.from(fixture.$.pipelineParameters.querySelectorAll('div.param-name'))
             .map((name) => (name as HTMLElement).innerText));
 
-    packagesListbox.select(1);
+    fixture.listBox.select(1);
     Polymer.flush();
     const newParamNames = JSON.stringify(
         Array.from(fixture.$.pipelineParameters.querySelectorAll('div.param-name'))
@@ -125,14 +110,14 @@ describe('pipeline-new', () => {
 
   it('clears the displayed parameters when package with no params is selected', async () => {
     getPackagesStub.returns({ packages: [packages.examplePackage, packages.noParamsPackage] });
-    await resetFixture();
+    await _resetFixture();
 
-    packagesListbox.select(0);
+    fixture.listBox.select(0);
     Polymer.flush();
     assert(fixture.$.pipelineParameters.querySelectorAll('div.param-name').length > 0,
         'This selected package should have at least 1 parameter.');
 
-    packagesListbox.select(1);
+    fixture.listBox.select(1);
     Polymer.flush();
     assert(_paramsNotVisible());
   });
@@ -140,57 +125,60 @@ describe('pipeline-new', () => {
   it('clears the displayed parameters when package with undefined params is selected', async () => {
     getPackagesStub.returns(
         { packages: [packages.examplePackage, packages.undefinedParamsPackage] });
-    await resetFixture();
+    await _resetFixture();
 
-    packagesListbox.select(0);
+    fixture.listBox.select(0);
     Polymer.flush();
     assert(fixture.$.pipelineParameters.querySelectorAll('div.param-name').length > 0,
         'This selected package should have at least 1 parameter.');
 
-    packagesListbox.select(1);
+    fixture.listBox.select(1);
     Polymer.flush();
     assert(_paramsNotVisible());
   });
 
   it('enables deploy button if package selected and Pipeline name is not empty', () => {
-    packagesListbox.select(0);
+    fixture.listBox.select(0);
     Polymer.flush();
-    nameInput.value = 'Some Pipeline Name';
+    fixture.nameInput.value = 'Some Pipeline Name';
 
-    assert(!deployButton.disabled,
+    assert(!fixture.deployButton.disabled,
         'Deploy button should be enabled if package selected and Pipeline name is not empty.');
   });
 
   it('disables deploy button if no package is selected', () => {
     // Ensure that deploy button is enabled before testing lack of selected package.
-    packagesListbox.select(0);
+    fixture.listBox.select(0);
     Polymer.flush();
-    nameInput.value = 'Some Pipeline Name';
-    assert(!deployButton.disabled, 'Deploy button should be enabled before real test.');
+    fixture.nameInput.value = 'Some Pipeline Name';
+    assert(!fixture.deployButton.disabled, 'Deploy button should be enabled before real test.');
 
-    packagesListbox.select(-1);
+    fixture.listBox.select(-1);
     Polymer.flush();
 
-    assert(deployButton.disabled, 'Deploy button should be disabled if no package selected.');
+    assert(fixture.deployButton.disabled,
+        'Deploy button should be disabled if no package selected.');
   });
 
   it('disables deploy button if Pipeline name is empty', () => {
     // Ensure that deploy button is enabled before testing lack of name.
-    packagesListbox.select(0);
+    fixture.listBox.select(0);
     Polymer.flush();
-    nameInput.value = 'Some Pipeline Name';
-    assert(!deployButton.disabled, 'Deploy button should be enabled before method under test.');
+    fixture.nameInput.value = 'Some Pipeline Name';
+    assert(!fixture.deployButton.disabled,
+        'Deploy button should be enabled before method under test.');
 
-    nameInput.value = '';
+    fixture.nameInput.value = '';
 
-    assert(deployButton.disabled, 'Deploy button should be disabled if Pipeline name is empty.');
+    assert(fixture.deployButton.disabled,
+        'Deploy button should be disabled if Pipeline name is empty.');
   });
 
   it('constructs and passes the correct Pipeline on deploy', () => {
-    packagesListbox.select(0);
+    fixture.listBox.select(0);
     Polymer.flush();
-    nameInput.value = 'Some Pipeline Name';
-    descriptionInput.value = 'The Pipeline description';
+    fixture.nameInput.value = 'Some Pipeline Name';
+    fixture.descriptionInput.value = 'The Pipeline description';
     const parameterInputs = fixture.$.pipelineParameters.querySelectorAll('paper-input');
     parameterInputs.forEach((input, index) => (input as PaperInputElement).value = index + '');
     const schedule = fixture.$.schedule.querySelector('pipeline-schedule') as PipelineSchedule;
@@ -198,15 +186,15 @@ describe('pipeline-new', () => {
     (schedule.$.scheduleTypeListbox as PaperListboxElement).select(1);
     Polymer.flush();
 
-    deployButton.click();
+    fixture.deployButton.click();
 
     assert(newPipelineSpy.calledOnce, 'Apis.newPipeline() should only be called once.');
     const actualPipeline = newPipelineSpy.firstCall.args[0];
-    assert.strictEqual(actualPipeline.name, nameInput.value);
-    assert.strictEqual(actualPipeline.description, descriptionInput.value);
+    assert.strictEqual(actualPipeline.name, fixture.nameInput.value);
+    assert.strictEqual(actualPipeline.description, fixture.descriptionInput.value);
     // TODO: mock time and test format.
     assert(actualPipeline.created_at, 'Deployed Pipeline should have created_at property set.');
-    assert.strictEqual(actualPipeline.package_id, (packagesListbox.selectedItem as any).packageId);
+    assert.strictEqual(actualPipeline.package_id, (fixture.listBox.selectedItem as any).packageId);
     assert.strictEqual(actualPipeline.parameters.length, parameterInputs.length);
     for (let i = 0; i < parameterInputs.length; i++) {
       assert.strictEqual(
@@ -225,7 +213,7 @@ describe('pipeline-new', () => {
       Polymer.flush();
 
       assert.strictEqual(
-          (packagesListbox.selectedItem as any).packageId,
+          (fixture.listBox.selectedItem as any).packageId,
           packages.noParamsPackage.id,
           'Pipeline package should initially be selected.');
       assert(_paramsNotVisible());
@@ -237,7 +225,8 @@ describe('pipeline-new', () => {
       await fixture.load('', {}, { packageId: packages.noParamsPackage.id, parameters: [] });
       Polymer.flush();
 
-      assert.strictEqual(nameInput.value, '', 'Pipeline name field should initially be empty.');
+      assert.strictEqual(fixture.nameInput.value, '',
+          'Pipeline name field should initially be empty.');
     });
 
     it('starts out with Pipeline parameters matching cloned Pipeline', async () => {
