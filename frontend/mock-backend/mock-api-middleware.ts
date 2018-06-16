@@ -105,7 +105,7 @@ export default (app) => {
 
   app.post(apisPrefix + '/pipelines', (req, res) => {
     const pipeline = req.body;
-    pipeline.id = fixedData.pipelines.length;
+    pipeline.id = fixedData.pipelines.length + 1;
     pipeline.created_at = new Date().toISOString();
     pipeline.jobs = [fixedData.jobs[0]];
     pipeline.enabled = !!pipeline.schedule;

@@ -17,7 +17,6 @@ const TEST_TAG = 'pipeline-new';
 
 let fixture: PipelineNew;
 let getPackagesStub: sinon.SinonStub;
-let newPipelineSpy: sinon.SinonSpy;
 
 async function _resetFixture(): Promise<void> {
   return resetFixture('pipeline-new', null, (f: PipelineNew) => {
@@ -31,7 +30,6 @@ describe('pipeline-new', () => {
   before(() => {
     getPackagesStub = sinon.stub(APIs, 'getPackages');
     getPackagesStub.returns({ packages: fixedData.data.packages });
-    newPipelineSpy = sinon.spy(APIs, 'newPipeline');
   });
 
   /** Unset all fields and dropdowns */
@@ -175,6 +173,9 @@ describe('pipeline-new', () => {
   });
 
   it('constructs and passes the correct Pipeline on deploy', () => {
+    const deployPipelineStub = sinon.stub(APIs, 'newPipeline');
+    deployPipelineStub.returns({});
+
     fixture.listBox.select(0);
     Polymer.flush();
     fixture.nameInput.value = 'Some Pipeline Name';
@@ -188,10 +189,11 @@ describe('pipeline-new', () => {
 
     fixture.deployButton.click();
 
-    assert(newPipelineSpy.calledOnce, 'Apis.newPipeline() should only be called once.');
-    const actualPipeline = newPipelineSpy.firstCall.args[0];
+    assert(deployPipelineStub.calledOnce, 'Apis.newPipeline() should only be called once.');
+    const actualPipeline = deployPipelineStub.firstCall.args[0];
     assert.strictEqual(actualPipeline.name, fixture.nameInput.value);
     assert.strictEqual(actualPipeline.description, fixture.descriptionInput.value);
+
     // TODO: mock time and test format.
     assert(actualPipeline.created_at, 'Deployed Pipeline should have created_at property set.');
     assert.strictEqual(actualPipeline.package_id, (fixture.listBox.selectedItem as any).packageId);
@@ -202,6 +204,8 @@ describe('pipeline-new', () => {
     }
     // "0 0 * * * ?" is the default schedule. It means "run every hour".
     assert.strictEqual(actualPipeline.schedule, '0 0 * * * ?');
+
+    deployPipelineStub.restore();
   });
 
   describe('cloning', () => {
@@ -262,7 +266,6 @@ describe('pipeline-new', () => {
   after(() => {
     document.body.removeChild(fixture);
     getPackagesStub.restore();
-    newPipelineSpy.restore();
   });
 });
 

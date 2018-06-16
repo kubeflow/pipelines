@@ -39,17 +39,29 @@ exports.config = {
     'wdio-webcomponents': {},
   },
   reporters: ['dot'],
-  screenshotPath: './ui/errorShots/',
+  screenshotPath: './ui/visual-regression/errorShots/',
   services: ['selenium-standalone', 'visual-regression'],
   specs: [
-    singleSuite || './ui/*.spec.js',
+    singleSuite || './ui/visual-regression/*.spec.js',
   ],
+  suites: {
+    // These suites are separated to avoid race conditions between the e2e tests (which can modify
+    // backend state) and the visual regression tests. Because of this, only the visual regression
+    // tests will be run if `wdio ui/wdio.conf.js` is called. To run e2e tests, use:
+    // `wdio ui/wdio.conf.js --suite mockEndToEnd`
+    mockEndToEnd: [
+      './ui/end-to-end/*.spec.js',
+    ],
+    visualRegression: [
+      './ui/visual-regression/*.spec.js',
+    ],
+  },
   sync: true,
   visualRegression: {
     compare: new VisualRegressionCompare.LocalCompare({
-      referenceName: getScreenshotName(path.join(process.cwd(), 'ui/screenshots/reference')),
-      screenshotName: getScreenshotName(path.join(process.cwd(), 'ui/screenshots/screen')),
-      diffName: getScreenshotName(path.join(process.cwd(), 'ui/screenshots/diff')),
+      referenceName: getScreenshotName(path.join(process.cwd(), 'ui/visual-regression/screenshots/reference')),
+      screenshotName: getScreenshotName(path.join(process.cwd(), 'ui/visual-regression/screenshots/screen')),
+      diffName: getScreenshotName(path.join(process.cwd(), 'ui/visual-regression/screenshots/diff')),
       misMatchTolerance: 0.01,
     }),
     viewports: [{ width: 1024, height: 768 }],

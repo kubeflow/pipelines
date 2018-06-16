@@ -27,9 +27,10 @@
     "start": "cd .. && npm start",
     "component-tests": "wait-on http-get://localhost:3000/apis/v1alpha1/healthz && wdio components/wdio.conf.js",
     "ci-component-tests": "npm-run-all -p -r start component-tests",
-    "ui-tests": "wdio ui/wdio.conf.js",
+    "visual-regression-tests": "wdio ui/wdio.conf.js --suite visualRegression",
+    "end-to-end-tests": "wdio ui/wdio.conf.js --suite mockEndToEnd",
     "unit-tests": "jasmine-ts unit/*.ts",
-    "test": "npm run unit-tests & HEADLESS_UI_TESTS=1 npm run ui-tests",
-    "ci": "start-server-and-test start-server http://localhost:3000 ui-tests"
+    "test": "npm run unit-tests & HEADLESS_UI_TESTS=1 npm run visual-regression-tests && HEADLESS_UI_TESTS=1 npm run end-to-end-tests",
+    "ci": "start-server-and-test start-server http://localhost:3000 test"
   }
 }

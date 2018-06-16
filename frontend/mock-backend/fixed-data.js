@@ -190,7 +190,7 @@ const data = {
 
 function generateNJobs() {
   dummyJobs = [];
-  for (i = jobs.length; i < NUM_DUMMY_JOBS + jobs.length; i++) {
+  for (i = jobs.length + 1; i < NUM_DUMMY_JOBS + jobs.length + 1; i++) {
     dummyJobs.push( {
       job: {
         created_at: new Date(1526359129000).toISOString(),

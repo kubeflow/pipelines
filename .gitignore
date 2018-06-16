@@ -17,10 +17,9 @@ dist
 frontend/server/*.js
 
 # UI test outputs
-frontend/test/ui/broken
-frontend/test/ui/errorShots
-frontend/test/ui/screenshots/diff
-frontend/test/ui/screenshots/screen
+frontend/test/ui/visual-regression/errorShots
+frontend/test/ui/visual-regression/screenshots/diff
+frontend/test/ui/visual-regression/screenshots/screen
 
 # sqlite db
 *.db
