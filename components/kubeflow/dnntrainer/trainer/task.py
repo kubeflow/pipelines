@@ -30,6 +30,9 @@ from tensorflow_transform.tf_metadata import metadata_io
 
 
 IMAGE_EMBEDDING_SIZE = 2048
+CLASSIFICATION_TARGET_TYPES = [tf.bool, tf.int32, tf.int64]
+REGRESSION_TARGET_TYPES = [tf.float32, tf.float64]
+TARGET_TYPES = CLASSIFICATION_TARGET_TYPES + REGRESSION_TARGET_TYPES
 
 
 def parse_arguments():
@@ -79,7 +82,12 @@ def parse_arguments():
 
 
 def is_classification(transformed_data_dir, target):
-  """Whether the scenario is classification (vs regression)."""
+  """Whether the scenario is classification (vs regression).
+
+  Returns:
+    The number of classes if the target represents a classification
+    problem, or None if it does not.
+  """
   transformed_metadata = metadata_io.read_metadata(
       os.path.join(transformed_data_dir, transform_fn_io.TRANSFORMED_METADATA_DIR))
   transformed_feature_spec = transformed_metadata.schema.as_feature_spec()
@@ -88,13 +96,15 @@ def is_classification(transformed_data_dir, target):
 
   feature = transformed_feature_spec[target]
   if (not isinstance(feature, tf.FixedLenFeature) or feature.shape != [] or
-      feature.dtype not in [tf.int64, tf.float32]):
+      feature.dtype not in TARGET_TYPES):
     raise ValueError('target "%s" is of invalid type.' % target)
 
-  if feature.dtype == tf.int64:
-    return True
+  if feature.dtype in CLASSIFICATION_TARGET_TYPES:
+    if feature.dtype == tf.bool:
+      return 2
+    return get_vocab_size(transformed_data_dir, target)
 
-  return False
+  return None
 
 
 def make_tft_input_metadata(schema):
@@ -217,12 +227,12 @@ def get_estimator(schema, transformed_data_dir, target_name, output_dir, hidden_
 
   # Set how often to run checkpointing in terms of steps.
   config = tf.contrib.learn.RunConfig(save_checkpoints_steps=1000)
-  if is_classification(transformed_data_dir, target_name):
-    target_vocab_size = get_vocab_size(transformed_data_dir, target_name)
+  n_classes = is_classification(transformed_data_dir, target_name)
+  if n_classes:
     estimator = tf.estimator.DNNClassifier(
         feature_columns=feature_columns,
         hidden_units=hidden_units,
-        n_classes=target_vocab_size,
+        n_classes=n_classes,
         config=config,
         model_dir=output_dir)
   else:
