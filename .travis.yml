@@ -18,9 +18,10 @@ script:
   - cd $TRAVIS_BUILD_DIR/backend/src
   - go test -v ./...
 
-  # Frontend component tests
+  # Frontend tests
   - cd $TRAVIS_BUILD_DIR/frontend
   - npm i
   - cd test
   - npm i
+  - npm run -s unit-tests
   - npm run -s ci-component-tests

@@ -9,6 +9,6 @@
   },
   "include": [
     "../src",
-    "../bower_components/**/*.d.ts",
+    "../bower_components/**/*.d.ts"
   ]
 }

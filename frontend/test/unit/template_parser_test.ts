@@ -21,7 +21,7 @@ describe('template parser', () => {
   it('throws an error if spec has no entrypoint', () => {
     const mockTemplate = 'bad yaml';
     assert.throws(() => TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''),
-      /Spec does not contain an entrypoint/);
+        /Spec does not contain an entrypoint/);
   });
 
   it('throws an error if spec has no templates', () => {
@@ -31,7 +31,7 @@ describe('template parser', () => {
         entrypoint: ${entrypoint}
     `;
     assert.throws(() => TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''),
-      /Spec does not contain any templates/);
+        /Spec does not contain any templates/);
   });
 
   it('throws an error if spec has no template for the entrypoint', () => {
@@ -43,7 +43,7 @@ describe('template parser', () => {
         - name: template1
     `;
     assert.throws(() => TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''),
-      new RegExp('Could not find template for entrypoint: ' + entrypoint));
+        new RegExp('Could not find template for entrypoint: ' + entrypoint));
   });
 
   it('returns an empty array if entrypoint has no steps', () => {
