@@ -1,6 +1,8 @@
 const coinflipJob = require('./mock-coinflip-job-runtime.json');
 const xgboostJob = require('./mock-xgboost-job-runtime.json');
 const errorJob = require('./mock-error-runtime.json');
+const helloWorldJob = require('./hello-world-runtime.json');
+const helloWorldWithStepsJob = require('./hello-world-with-steps-runtime.json');
 
 // The number of simple, dummy Pipelines that will be appended to the list.
 const NUM_DUMMY_JOBS = 20;
@@ -22,6 +24,22 @@ const jobs = [
       scheduled_at: new Date(1523998703000).toISOString(),
     },
     workflow: JSON.stringify(errorJob),
+  },
+  {
+    job: {
+      created_at: new Date(1523998743000).toISOString(),
+      name: 'hello-world-7sm94',
+      scheduled_at: new Date(1523998743000).toISOString(),
+    },
+    workflow: JSON.stringify(helloWorldJob),
+  },
+  {
+    job: {
+      created_at: new Date(1523998783000).toISOString(),
+      name: 'hello-world-with-steps-kajnkv4',
+      scheduled_at: new Date(1523998783000).toISOString(),
+    },
+    workflow: JSON.stringify(helloWorldWithStepsJob),
   },
   {
     job: {

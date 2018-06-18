@@ -95,8 +95,12 @@ export class JobGraph extends Polymer.Element {
         g.setEdge(nodeId, onExitHandlerNodeId));
     }
 
-    // Remove the root node that Argo creates to manage the workflow.
-    delete workflowNodes[workflowName];
+    // If there are multiple steps, then remove the root node that Argo creates to manage the
+    // workflow to simplify the graph, otherwise leave it as otherwise there will be nothing to
+    // display.
+    if (Object.values(workflowNodes).length > 1) {
+      delete workflowNodes[workflowName];
+    }
 
     // Create dagre graph nodes from workflow nodes.
     Object.values(workflowNodes)
