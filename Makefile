@@ -1,10 +1,6 @@
-.PHONY: build-cli
-build-cli:
-	go build ./cmd/pipelines
-
 .PHONY: build-controller
 build-controller:
-	go build ./cmd/controller
+	go build -o ./bin/controller ./resources/scheduledworkflow
 
 .PHONY: build-controller-image
 build-controller-image:

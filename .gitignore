@@ -6,3 +6,6 @@ vendor/
 
 # Merge files
 *.orig
+
+# Bin
+bin/
