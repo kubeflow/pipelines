@@ -25,6 +25,18 @@
         },
         name: "ml-pipeline-ui",
         namespace: namespace,
+        annotations: {
+          "getambassador.io/config":
+            std.join("\n", [
+              "---",
+              "apiVersion: ambassador/v0",
+              "kind:  Mapping",
+              "name: pipelineui-mapping",
+              "prefix: /pipeline",
+              "rewrite: /pipeline",
+              "service: ml-pipeline-ui." + namespace,
+            ]),
+        },  //annotations
       },
       spec: {
         ports: [
