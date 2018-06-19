@@ -46,8 +46,9 @@ func createWorkflow(name string) *v1alpha1.Workflow {
 }
 
 func TestCreateJob(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
 
 	wf1 := createWorkflow("wf1")
 
@@ -63,37 +64,38 @@ func TestCreateJob(t *testing.T) {
 	jobDetailExpect := model.JobDetail{
 		Workflow: wfExpected,
 		Job:      &jobExpected}
-	jobDetail, err := store.JobStore().CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
+	jobDetail, err := jobStore.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	assert.Nil(t, err)
 	assert.Equal(t, jobDetailExpect, *jobDetail, "Unexpected Job parsed.")
 
-	job, err := getJobMetadata(store.DB(), 1, wf1.Name)
+	job, err := getJobMetadata(db, 1, wf1.Name)
 	assert.Equal(t, jobExpected, *job)
 }
 
 func TestCreateJob_CreateWorkflowFailed(t *testing.T) {
-	fakeClients := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer fakeClients.Close()
-	store := &JobStore{db: fakeClients.DB(), wfClient: &FakeBadWorkflowClient{}, time: fakeClients.time}
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, &FakeBadWorkflowClient{}, util.NewFakeTimeForEpoch())
 
 	wf1 := createWorkflow("wf1")
 
-	jobDetail, err := store.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
+	jobDetail, err := jobStore.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
 	assert.Nil(t, jobDetail)
 
-	job, err := getJobMetadata(fakeClients.DB(), 1, wf1.Name)
+	job, err := getJobMetadata(db, 1, wf1.Name)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Job wf1 not found.")
 	assert.Nil(t, job)
 }
 
 func TestCreateJob_CreateMetadataError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	store.DB().Close()
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
+	db.Close()
 
-	_, err := store.JobStore().CreateJob(1, &v1alpha1.Workflow{},
+	_, err := jobStore.CreateJob(1, &v1alpha1.Workflow{},
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
@@ -129,13 +131,15 @@ func TestCreateJob_UpdateMetadataFailed(t *testing.T) {
 }
 
 func TestListJobs_Pagination(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
+
+	jobDetail, err := jobStore.CreateJob(1, createWorkflow("wf1"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	jobDetail2, err := store.JobStore().CreateJob(1, createWorkflow("wf2"),
+	jobDetail2, err := jobStore.CreateJob(1, createWorkflow("wf2"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	store.JobStore().CreateJob(2, createWorkflow("wf3"),
+	jobStore.CreateJob(2, createWorkflow("wf3"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
 	expectedFirstPageJobs := []model.Job{
@@ -156,23 +160,24 @@ func TestListJobs_Pagination(t *testing.T) {
 			ScheduledAtInSec: defaultScheduledAtInSec,
 			PipelineID:       1,
 		}}
-	jobs, nextPageToken, err := store.JobStore().ListJobs(1, "", 1, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err := jobStore.ListJobs(1, "", 1, model.GetJobTablePrimaryKeyColumn())
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageJobs, jobs, "Unexpected Job listed.")
 	assert.NotEmpty(t, nextPageToken)
 
-	jobs, nextPageToken, err = store.JobStore().ListJobs(1, nextPageToken, 1, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err = jobStore.ListJobs(1, nextPageToken, 1, model.GetJobTablePrimaryKeyColumn())
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageJobs, jobs, "Unexpected Job listed.")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	jobDetail, err := store.JobStore().CreateJob(1, createWorkflow("wf1"),
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
+	jobDetail, err := jobStore.CreateJob(1, createWorkflow("wf1"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	jobDetail2, err := store.JobStore().CreateJob(1, createWorkflow("wf2"),
+	jobDetail2, err := jobStore.CreateJob(1, createWorkflow("wf2"),
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	expectedJobs := []model.Job{
 		{
@@ -191,26 +196,28 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			ScheduledAtInSec: defaultScheduledAtInSec,
 			PipelineID:       1,
 		}}
-	jobs, nextPageToken, err := store.JobStore().ListJobs(1, "", 10, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err := jobStore.ListJobs(1, "", 10, model.GetJobTablePrimaryKeyColumn())
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJobs, jobs, "Unexpected Job listed.")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListJobsError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	store.DB().Close()
-	_, _, err := store.JobStore().ListJobs(1, "", 10, model.GetJobTablePrimaryKeyColumn())
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
+	db.Close()
+	_, _, err := jobStore.ListJobs(1, "", 10, model.GetJobTablePrimaryKeyColumn())
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }
 
 func TestGetJob(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
 	wf1 := createWorkflow("wf1")
-	createdJobDetail, err := store.JobStore().CreateJob(1, wf1,
+	createdJobDetail, err := jobStore.CreateJob(1, wf1,
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 	assert.Nil(t, err)
 	jobDetailExpect := model.JobDetail{
@@ -224,41 +231,44 @@ func TestGetJob(t *testing.T) {
 			PipelineID:       1,
 		}}
 
-	jobDetail, err := store.JobStore().GetJob(1, wf1.Name)
+	jobDetail, err := jobStore.GetJob(1, wf1.Name)
 	assert.Nil(t, err)
 	assert.Equal(t, jobDetailExpect, *jobDetail)
 }
 
 func TestGetJob_NotFoundError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
 
-	_, err := store.JobStore().GetJob(1, "wf1")
+	_, err := jobStore.GetJob(1, "wf1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected not to find the job")
 }
 
 func TestGetJob_InternalError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
 	wf1 := createWorkflow("wf1")
-	store.JobStore().CreateJob(1, wf1,
+	jobStore.CreateJob(1, wf1,
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	store.DB().Close()
+	db.Close()
 
-	_, err := store.JobStore().GetJob(1, wf1.Name)
+	_, err := jobStore.GetJob(1, wf1.Name)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get job to return internal error")
 }
 
 func TestGetJob_GetWorkflowError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
 	wf1 := createWorkflow("wf1")
-	store.JobStore().CreateJob(1, wf1,
+	jobStore.CreateJob(1, wf1,
 		defaultScheduledAtInSec, defaultCreatedAtInSec)
 
-	jobStore := NewJobStore(store.DB(), &FakeBadWorkflowClient{}, util.NewFakeTimeForEpoch())
+	jobStore = NewJobStore(db, &FakeBadWorkflowClient{}, util.NewFakeTimeForEpoch())
 	_, err := jobStore.GetJob(1, wf1.Name)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")

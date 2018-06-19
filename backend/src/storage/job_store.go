@@ -15,6 +15,9 @@
 package storage
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/model"
@@ -54,12 +57,11 @@ func (s *JobStore) ListJobs(pipelineId uint32, pageToken string, pageSize int, s
 
 func (s *JobStore) queryJobTable(pipelineId uint32, context *PaginationContext) ([]model.ListableDataModel, error) {
 	var jobs []model.Job
-	query := s.db.Where("PipelineId = ?", pipelineId)
-	paginationQuery, err := toPaginationQuery(query, context)
-	if err != nil {
-		return nil, util.Wrap(err, "Error creating pagination query when listing jobs.")
-	}
-	if r := paginationQuery.Limit(context.pageSize).Find(&jobs); r.Error != nil {
+	var query bytes.Buffer
+	query.WriteString(fmt.Sprintf("SELECT * FROM jobs WHERE PipelineID = %v", pipelineId))
+	toPaginationQuery("AND", &query, context)
+	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
+	if r := s.db.Raw(query.String()).Scan(&jobs); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list jobs: %v", r.Error.Error())
 	}
 	return s.toListableModels(jobs), nil
@@ -155,7 +157,7 @@ func getJobMetadata(db *gorm.DB, pipelineId uint32, jobName string) (*model.Job,
 	return job, nil
 }
 
-// factory function for package store
+// factory function for job store
 func NewJobStore(db *gorm.DB, wfClient workflowclient.WorkflowInterface,
 	time util.TimeInterface) *JobStore {
 	return &JobStore{db: db, wfClient: wfClient, time: time}

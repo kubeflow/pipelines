@@ -27,7 +27,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type CreatePipelineRequest struct {
-	Pipeline             *Pipeline `protobuf:"bytes,1,opt,name=pipeline" json:"pipeline,omitempty"`
+	Pipeline             *Pipeline `protobuf:"bytes,1,opt,name=pipeline,proto3" json:"pipeline,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -65,7 +65,7 @@ func (m *CreatePipelineRequest) GetPipeline() *Pipeline {
 }
 
 type GetPipelineRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -103,9 +103,9 @@ func (m *GetPipelineRequest) GetId() uint32 {
 }
 
 type ListPipelinesRequest struct {
-	PageToken            string   `protobuf:"bytes,1,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
-	PageSize             int32    `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
-	SortBy               string   `protobuf:"bytes,3,opt,name=sort_by,json=sortBy" json:"sort_by,omitempty"`
+	PageToken            string   `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize             int32    `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	SortBy               string   `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -157,8 +157,8 @@ func (m *ListPipelinesRequest) GetSortBy() string {
 }
 
 type ListPipelinesResponse struct {
-	Pipelines            []*Pipeline `protobuf:"bytes,1,rep,name=pipelines" json:"pipelines,omitempty"`
-	NextPageToken        string      `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	Pipelines            []*Pipeline `protobuf:"bytes,1,rep,name=pipelines,proto3" json:"pipelines,omitempty"`
+	NextPageToken        string      `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
 	XXX_unrecognized     []byte      `json:"-"`
 	XXX_sizecache        int32       `json:"-"`
@@ -203,7 +203,7 @@ func (m *ListPipelinesResponse) GetNextPageToken() string {
 }
 
 type DeletePipelineRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -241,7 +241,7 @@ func (m *DeletePipelineRequest) GetId() uint32 {
 }
 
 type EnablePipelineRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -279,7 +279,7 @@ func (m *EnablePipelineRequest) GetId() uint32 {
 }
 
 type DisablePipelineRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -317,15 +317,15 @@ func (m *DisablePipelineRequest) GetId() uint32 {
 }
 
 type Pipeline struct {
-	Id                   uint32               `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	Name                 string               `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	Description          string               `protobuf:"bytes,4,opt,name=description" json:"description,omitempty"`
-	PackageId            uint32               `protobuf:"varint,5,opt,name=package_id,json=packageId" json:"package_id,omitempty"`
-	Schedule             string               `protobuf:"bytes,6,opt,name=schedule" json:"schedule,omitempty"`
-	Enabled              bool                 `protobuf:"varint,7,opt,name=enabled" json:"enabled,omitempty"`
-	EnabledAt            *timestamp.Timestamp `protobuf:"bytes,8,opt,name=enabled_at,json=enabledAt" json:"enabled_at,omitempty"`
-	Parameters           []*Parameter         `protobuf:"bytes,9,rep,name=parameters" json:"parameters,omitempty"`
+	Id                   uint32               `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Name                 string               `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Description          string               `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	PackageId            uint32               `protobuf:"varint,5,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
+	Schedule             string               `protobuf:"bytes,6,opt,name=schedule,proto3" json:"schedule,omitempty"`
+	Enabled              bool                 `protobuf:"varint,7,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	EnabledAt            *timestamp.Timestamp `protobuf:"bytes,8,opt,name=enabled_at,json=enabledAt,proto3" json:"enabled_at,omitempty"`
+	Parameters           []*Parameter         `protobuf:"bytes,9,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -437,8 +437,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for PipelineService service
-
+// PipelineServiceClient is the client API for PipelineService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type PipelineServiceClient interface {
 	CreatePipeline(ctx context.Context, in *CreatePipelineRequest, opts ...grpc.CallOption) (*Pipeline, error)
 	GetPipeline(ctx context.Context, in *GetPipelineRequest, opts ...grpc.CallOption) (*Pipeline, error)
@@ -458,7 +459,7 @@ func NewPipelineServiceClient(cc *grpc.ClientConn) PipelineServiceClient {
 
 func (c *pipelineServiceClient) CreatePipeline(ctx context.Context, in *CreatePipelineRequest, opts ...grpc.CallOption) (*Pipeline, error) {
 	out := new(Pipeline)
-	err := grpc.Invoke(ctx, "/api.PipelineService/CreatePipeline", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PipelineService/CreatePipeline", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -467,7 +468,7 @@ func (c *pipelineServiceClient) CreatePipeline(ctx context.Context, in *CreatePi
 
 func (c *pipelineServiceClient) GetPipeline(ctx context.Context, in *GetPipelineRequest, opts ...grpc.CallOption) (*Pipeline, error) {
 	out := new(Pipeline)
-	err := grpc.Invoke(ctx, "/api.PipelineService/GetPipeline", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PipelineService/GetPipeline", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -476,7 +477,7 @@ func (c *pipelineServiceClient) GetPipeline(ctx context.Context, in *GetPipeline
 
 func (c *pipelineServiceClient) ListPipelines(ctx context.Context, in *ListPipelinesRequest, opts ...grpc.CallOption) (*ListPipelinesResponse, error) {
 	out := new(ListPipelinesResponse)
-	err := grpc.Invoke(ctx, "/api.PipelineService/ListPipelines", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PipelineService/ListPipelines", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +486,7 @@ func (c *pipelineServiceClient) ListPipelines(ctx context.Context, in *ListPipel
 
 func (c *pipelineServiceClient) EnablePipeline(ctx context.Context, in *EnablePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
-	err := grpc.Invoke(ctx, "/api.PipelineService/EnablePipeline", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PipelineService/EnablePipeline", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -494,7 +495,7 @@ func (c *pipelineServiceClient) EnablePipeline(ctx context.Context, in *EnablePi
 
 func (c *pipelineServiceClient) DisablePipeline(ctx context.Context, in *DisablePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
-	err := grpc.Invoke(ctx, "/api.PipelineService/DisablePipeline", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PipelineService/DisablePipeline", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -503,15 +504,14 @@ func (c *pipelineServiceClient) DisablePipeline(ctx context.Context, in *Disable
 
 func (c *pipelineServiceClient) DeletePipeline(ctx context.Context, in *DeletePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
-	err := grpc.Invoke(ctx, "/api.PipelineService/DeletePipeline", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PipelineService/DeletePipeline", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for PipelineService service
-
+// PipelineServiceServer is the server API for PipelineService service.
 type PipelineServiceServer interface {
 	CreatePipeline(context.Context, *CreatePipelineRequest) (*Pipeline, error)
 	GetPipeline(context.Context, *GetPipelineRequest) (*Pipeline, error)

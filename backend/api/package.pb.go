@@ -27,7 +27,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type GetPackageRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -65,9 +65,9 @@ func (m *GetPackageRequest) GetId() uint32 {
 }
 
 type ListPackagesRequest struct {
-	PageToken            string   `protobuf:"bytes,1,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
-	PageSize             int32    `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
-	SortBy               string   `protobuf:"bytes,3,opt,name=sort_by,json=sortBy" json:"sort_by,omitempty"`
+	PageToken            string   `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize             int32    `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	SortBy               string   `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -119,8 +119,8 @@ func (m *ListPackagesRequest) GetSortBy() string {
 }
 
 type ListPackagesResponse struct {
-	Packages             []*Package `protobuf:"bytes,1,rep,name=packages" json:"packages,omitempty"`
-	NextPageToken        string     `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	Packages             []*Package `protobuf:"bytes,1,rep,name=packages,proto3" json:"packages,omitempty"`
+	NextPageToken        string     `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -165,7 +165,7 @@ func (m *ListPackagesResponse) GetNextPageToken() string {
 }
 
 type DeletePackageRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -203,7 +203,7 @@ func (m *DeletePackageRequest) GetId() uint32 {
 }
 
 type GetTemplateRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -241,7 +241,7 @@ func (m *GetTemplateRequest) GetId() uint32 {
 }
 
 type GetTemplateResponse struct {
-	Template             string   `protobuf:"bytes,1,opt,name=template" json:"template,omitempty"`
+	Template             string   `protobuf:"bytes,1,opt,name=template,proto3" json:"template,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -279,11 +279,11 @@ func (m *GetTemplateResponse) GetTemplate() string {
 }
 
 type Package struct {
-	Id                   uint32               `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	Name                 string               `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	Description          string               `protobuf:"bytes,4,opt,name=description" json:"description,omitempty"`
-	Parameters           []*Parameter         `protobuf:"bytes,5,rep,name=parameters" json:"parameters,omitempty"`
+	Id                   uint32               `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Name                 string               `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Description          string               `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Parameters           []*Parameter         `protobuf:"bytes,5,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -366,8 +366,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for PackageService service
-
+// PackageServiceClient is the client API for PackageService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type PackageServiceClient interface {
 	GetPackage(ctx context.Context, in *GetPackageRequest, opts ...grpc.CallOption) (*Package, error)
 	ListPackages(ctx context.Context, in *ListPackagesRequest, opts ...grpc.CallOption) (*ListPackagesResponse, error)
@@ -385,7 +386,7 @@ func NewPackageServiceClient(cc *grpc.ClientConn) PackageServiceClient {
 
 func (c *packageServiceClient) GetPackage(ctx context.Context, in *GetPackageRequest, opts ...grpc.CallOption) (*Package, error) {
 	out := new(Package)
-	err := grpc.Invoke(ctx, "/api.PackageService/GetPackage", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PackageService/GetPackage", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +395,7 @@ func (c *packageServiceClient) GetPackage(ctx context.Context, in *GetPackageReq
 
 func (c *packageServiceClient) ListPackages(ctx context.Context, in *ListPackagesRequest, opts ...grpc.CallOption) (*ListPackagesResponse, error) {
 	out := new(ListPackagesResponse)
-	err := grpc.Invoke(ctx, "/api.PackageService/ListPackages", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PackageService/ListPackages", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +404,7 @@ func (c *packageServiceClient) ListPackages(ctx context.Context, in *ListPackage
 
 func (c *packageServiceClient) DeletePackage(ctx context.Context, in *DeletePackageRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
-	err := grpc.Invoke(ctx, "/api.PackageService/DeletePackage", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PackageService/DeletePackage", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -412,15 +413,14 @@ func (c *packageServiceClient) DeletePackage(ctx context.Context, in *DeletePack
 
 func (c *packageServiceClient) GetTemplate(ctx context.Context, in *GetTemplateRequest, opts ...grpc.CallOption) (*GetTemplateResponse, error) {
 	out := new(GetTemplateResponse)
-	err := grpc.Invoke(ctx, "/api.PackageService/GetTemplate", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.PackageService/GetTemplate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for PackageService service
-
+// PackageServiceServer is the server API for PackageService service.
 type PackageServiceServer interface {
 	GetPackage(context.Context, *GetPackageRequest) (*Package, error)
 	ListPackages(context.Context, *ListPackagesRequest) (*ListPackagesResponse, error)

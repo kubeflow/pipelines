@@ -70,7 +70,7 @@ func initResourceManager(
 }
 
 func TestUploadPackage(t *testing.T) {
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	fm := storage.NewFakeObjectStore()
 
@@ -107,7 +107,7 @@ func TestUploadPackage(t *testing.T) {
 }
 
 func TestUploadPackage_GetFormFileError(t *testing.T) {
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	server := PackageUploadServer{resourceManager: initResourceManager(store.PackageStore(), nil, nil, storage.NewFakeObjectStore())}
 	var b bytes.Buffer

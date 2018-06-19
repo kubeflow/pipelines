@@ -20,9 +20,10 @@ import (
 	"fmt"
 	"reflect"
 
+	"bytes"
+
 	"github.com/googleprivate/ml/backend/src/model"
 	"github.com/googleprivate/ml/backend/src/util"
-	"github.com/jinzhu/gorm"
 )
 
 // A deserialized token. Assuming the list request is sorted by name, a typical token should be
@@ -95,11 +96,12 @@ func deserializePageToken(pageToken string) (*Token, error) {
 // {sortByFieldName "name", keyFieldName:"id", token: {SortByFieldValue: "foo", KeyFieldValue: "2"}}
 // This function construct query as something like
 // select * from table where (name, id)>=("foo","2") order by name, id
-func toPaginationQuery(db *gorm.DB, context *PaginationContext) (*gorm.DB, error) {
+func toPaginationQuery(op string, query *bytes.Buffer, context *PaginationContext) {
 	if token := context.token; token != nil {
-		db = db.Where(
-			fmt.Sprintf("(%v,%v)>=(?,?)", context.sortByFieldName, context.keyFieldName),
-			token.SortByFieldValue, token.KeyFieldValue)
+		query.WriteString(
+			fmt.Sprintf(" %v (%v,%v)>=('%v','%v') ", op,
+				context.sortByFieldName, context.keyFieldName,
+				token.SortByFieldValue, token.KeyFieldValue))
 	}
-	return db.Order(context.sortByFieldName).Order(context.keyFieldName), nil
+	query.WriteString(fmt.Sprintf(" ORDER BY %v, %v ", context.sortByFieldName, context.keyFieldName))
 }

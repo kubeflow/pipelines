@@ -162,3 +162,137 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 	}
 	return string(paramsBytes), nil
 }
+
+func toApiJobV2(job *model.JobV2) *api.JobV2 {
+	return &api.JobV2{
+		Id:          job.UUID,
+		Name:        job.Name,
+		Namespace:   job.Namespace,
+		CreatedAt:   &timestamp.Timestamp{Seconds: job.CreatedAtInSec},
+		ScheduledAt: &timestamp.Timestamp{Seconds: job.ScheduledAtInSec},
+		Status:      job.Condition,
+	}
+}
+
+func ToApiJobsV2(jobs []model.JobV2) []*api.JobV2 {
+	apiJobs := make([]*api.JobV2, 0)
+	for _, job := range jobs {
+		apiJobs = append(apiJobs, toApiJobV2(&job))
+	}
+	return apiJobs
+}
+
+func ToApiJobDetailV2(job *model.JobDetailV2) *api.JobDetailV2 {
+	return &api.JobDetailV2{
+		Job:      toApiJobV2(&job.JobV2),
+		Workflow: job.Workflow,
+	}
+}
+
+func ToApiPipelineV2(pipeline *model.PipelineV2) (*api.PipelineV2, error) {
+	params, err := toApiParameters(pipeline.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Error convert pipeline DB model to API model.")
+	}
+	return &api.PipelineV2{
+		Id:             pipeline.UUID,
+		Name:           pipeline.Name,
+		Description:    pipeline.Description,
+		PackageId:      pipeline.PackageId,
+		Enabled:        pipeline.Enabled,
+		CreatedAt:      &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: pipeline.UpdatedAtInSec},
+		Status:         pipeline.Condition,
+		MaxConcurrency: pipeline.MaxConcurrency,
+		Trigger:        toApiTrigger(pipeline.Trigger),
+		Parameters:     params,
+	}, nil
+}
+
+func ToApiPipelinesV2(pipelines []model.PipelineV2) ([]*api.PipelineV2, error) {
+	apiPipelines := make([]*api.PipelineV2, 0)
+	for _, pipeline := range pipelines {
+		apiPipeline, err := ToApiPipelineV2(&pipeline)
+		if err != nil {
+			return nil, util.Wrap(err, "Error convert pipelines DB model to API model.")
+		}
+		apiPipelines = append(apiPipelines, apiPipeline)
+	}
+	return apiPipelines, nil
+}
+
+func ToModelPipelineV2(pipeline *api.PipelineV2) (*model.PipelineV2, error) {
+	params, err := toModelParameters(pipeline.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Error convert pipeline API model to DB model.")
+	}
+	return &model.PipelineV2{
+		UUID:           pipeline.Id,
+		Name:           pipeline.Name,
+		Description:    pipeline.Description,
+		PackageId:      pipeline.PackageId,
+		Enabled:        pipeline.Enabled,
+		Trigger:        toModelTrigger(pipeline.Trigger),
+		MaxConcurrency: pipeline.MaxConcurrency,
+		Parameters:     params,
+	}, nil
+}
+
+func toModelTrigger(trigger *api.Trigger) model.Trigger {
+	modelTrigger := model.Trigger{}
+	if trigger.GetCronSchedule() != nil {
+		cronSchedule := trigger.GetCronSchedule()
+		modelTrigger.CronSchedule = model.CronSchedule{Cron: &cronSchedule.Cron}
+		if cronSchedule.StartTime != nil {
+			modelTrigger.CronScheduleStartTimeInSec = &cronSchedule.StartTime.Seconds
+		}
+		if cronSchedule.EndTime != nil {
+			modelTrigger.CronScheduleEndTimeInSec = &cronSchedule.EndTime.Seconds
+		}
+	}
+
+	if trigger.GetPeriodicSchedule() != nil {
+		periodicSchedule := trigger.GetPeriodicSchedule()
+		modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
+			IntervalSecond: &periodicSchedule.IntervalSecond}
+		if trigger.GetPeriodicSchedule().StartTime != nil {
+			modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
+		}
+		if trigger.GetPeriodicSchedule().EndTime != nil {
+			modelTrigger.PeriodicScheduleEndTimeInSec = &periodicSchedule.EndTime.Seconds
+		}
+	}
+	return modelTrigger
+}
+
+func toApiTrigger(trigger model.Trigger) *api.Trigger {
+	apiTrigger := api.Trigger{}
+	if trigger.Cron != nil {
+		var cronSchedule api.CronSchedule
+		cronSchedule.Cron = *trigger.Cron
+		if trigger.CronScheduleStartTimeInSec != nil {
+			cronSchedule.StartTime = &timestamp.Timestamp{
+				Seconds: *trigger.CronScheduleStartTimeInSec}
+		}
+		if trigger.CronScheduleEndTimeInSec != nil {
+			cronSchedule.EndTime = &timestamp.Timestamp{
+				Seconds: *trigger.CronScheduleEndTimeInSec}
+		}
+		apiTrigger = api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
+	} else {
+		var periodicSchedule api.PeriodicSchedule
+		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
+		if trigger.PeriodicScheduleStartTimeInSec != nil {
+			periodicSchedule.StartTime = &timestamp.Timestamp{
+				Seconds: *trigger.PeriodicScheduleStartTimeInSec}
+		}
+		if trigger.PeriodicScheduleEndTimeInSec != nil {
+			periodicSchedule.EndTime = &timestamp.Timestamp{
+				Seconds: *trigger.PeriodicScheduleEndTimeInSec}
+		}
+		apiTrigger = api.Trigger{
+			Trigger: &api.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
+	}
+	return &apiTrigger
+}

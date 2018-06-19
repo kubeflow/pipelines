@@ -190,7 +190,7 @@ func TestMustRunWrongSchedule(t *testing.T) {
 
 func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
 
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))
@@ -213,7 +213,7 @@ func TestRunForSingleRowJobDoesNotRun(t *testing.T) {
 
 func TestRunForSingleRowJobRuns(t *testing.T) {
 
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTime(
 		time.Unix(timeFarInTheFutureSec, 0)))
 	defer store.Close()
 	manager := resource.NewResourceManager(store)
@@ -241,7 +241,7 @@ func TestRunForSingleRowJobRuns(t *testing.T) {
 
 func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(time.Unix(0, 0)))
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTime(time.Unix(0, 0)))
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))
@@ -271,7 +271,7 @@ func TestRunForSingleRowInvalidPipelineParameters(t *testing.T) {
 
 func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(time.Unix(0, 0)))
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTime(time.Unix(0, 0)))
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))
@@ -293,7 +293,7 @@ func TestRunForSingleRowNoPreviousJobAndDoesNotRun(t *testing.T) {
 }
 
 func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTime(
 		time.Unix(timeFarInTheFutureSec, 0)))
 	defer store.Close()
 	manager := resource.NewResourceManager(store)
@@ -329,7 +329,7 @@ func TestRunForSingleRowNoPreviousJobAndRuns(t *testing.T) {
 
 func TestRunForSingleRowPreviousJobAndDoesNotRun(t *testing.T) {
 
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTime(
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTime(
 		util.ParseTimeOrFatal("1970-10-01T01:00:00+00:00")))
 	defer store.Close()
 
@@ -354,7 +354,7 @@ func TestRunForSingleRowPreviousJobAndDoesNotRun(t *testing.T) {
 
 func TestRunForQueryNothingToDo(t *testing.T) {
 
-	store := storage.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 
 	controller := NewController(resource.NewResourceManager(store))

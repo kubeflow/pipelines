@@ -19,8 +19,8 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type Error struct {
-	ErrorMessage         string   `protobuf:"bytes,1,opt,name=error_message,json=errorMessage" json:"error_message,omitempty"`
-	ErrorDetails         string   `protobuf:"bytes,2,opt,name=error_details,json=errorDetails" json:"error_details,omitempty"`
+	ErrorMessage         string   `protobuf:"bytes,1,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ErrorDetails         string   `protobuf:"bytes,2,opt,name=error_details,json=errorDetails,proto3" json:"error_details,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`

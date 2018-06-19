@@ -15,43 +15,62 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
+	"time"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"strconv"
+
+	"bytes"
+
+	workflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/src/model"
 	"github.com/googleprivate/ml/backend/src/storage"
 	"github.com/googleprivate/ml/backend/src/util"
+	scheduledworkflow "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	scheduledworkflowclient "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type ClientManagerInterface interface {
 	PackageStore() storage.PackageStoreInterface
 	PipelineStore() storage.PipelineStoreInterface
+	PipelineStoreV2() storage.PipelineStoreV2Interface
 	JobStore() storage.JobStoreInterface
+	JobStoreV2() storage.JobStoreV2Interface
 	ObjectStore() storage.ObjectStoreInterface
+	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
 
 type ResourceManager struct {
-	packageStore  storage.PackageStoreInterface
-	pipelineStore storage.PipelineStoreInterface
-	jobStore      storage.JobStoreInterface
-	objectStore   storage.ObjectStoreInterface
-	time          util.TimeInterface
-	uuid          util.UUIDGeneratorInterface
+	packageStore      storage.PackageStoreInterface
+	pipelineStore     storage.PipelineStoreInterface
+	jobStore          storage.JobStoreInterface
+	pipelineStoreV2   storage.PipelineStoreV2Interface
+	jobStoreV2        storage.JobStoreV2Interface
+	objectStore       storage.ObjectStoreInterface
+	scheduledWorkflow scheduledworkflowclient.ScheduledWorkflowInterface
+	time              util.TimeInterface
+	uuid              util.UUIDGeneratorInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		packageStore:  clientManager.PackageStore(),
-		pipelineStore: clientManager.PipelineStore(),
-		jobStore:      clientManager.JobStore(),
-		objectStore:   clientManager.ObjectStore(),
-		time:          clientManager.Time(),
-		uuid:          clientManager.UUID(),
+		packageStore:      clientManager.PackageStore(),
+		pipelineStore:     clientManager.PipelineStore(),
+		jobStore:          clientManager.JobStore(),
+		pipelineStoreV2:   clientManager.PipelineStoreV2(),
+		jobStoreV2:        clientManager.JobStoreV2(),
+		objectStore:       clientManager.ObjectStore(),
+		scheduledWorkflow: clientManager.ScheduledWorkflow(),
+		time:              clientManager.Time(),
+		uuid:              clientManager.UUID(),
 	}
 }
 
@@ -255,7 +274,7 @@ func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint32, scheduledAt
 }
 
 func (r *ResourceManager) createJobFromPipeline(pipeline *model.Pipeline, scheduledAtInSec int64) (*model.JobDetail, error) {
-	var workflow v1alpha1.Workflow
+	var workflow workflow.Workflow
 	err := r.objectStore.GetFromYamlFile(&workflow, storage.PipelineFolder, fmt.Sprint(pipeline.ID))
 	if err != nil {
 		return nil, util.Wrapf(err, "Could not read pipeline with ID %v from object store", pipeline.ID)
@@ -307,6 +326,179 @@ func (r *ResourceManager) ListJobs(pipelineId uint32, pageToken string, pageSize
 		return nil, "", util.Wrap(err, "List jobs failed")
 	}
 	return r.jobStore.ListJobs(pipelineId, pageToken, pageSize, sortByFieldName)
+}
+
+func (r *ResourceManager) GetJobV2(pipelineId string, jobId string) (*model.JobDetailV2, error) {
+	_, err := r.pipelineStoreV2.GetPipeline(pipelineId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get job failed")
+	}
+	return r.jobStoreV2.GetJob(pipelineId, jobId)
+}
+
+func (r *ResourceManager) ListJobsV2(pipelineId string, pageToken string, pageSize int, sortByFieldName string) (jobs []model.JobV2, nextPageToken string, err error) {
+	_, err = r.pipelineStoreV2.GetPipeline(pipelineId)
+	if err != nil {
+		return nil, "", util.Wrap(err, "List jobs failed")
+	}
+	return r.jobStoreV2.ListJobs(pipelineId, pageToken, pageSize, sortByFieldName)
+}
+
+func (r *ResourceManager) ListPipelinesV2(pageToken string, pageSize int, sortByFieldName string) (pipelines []model.PipelineV2, nextPageToken string, err error) {
+	return r.pipelineStoreV2.ListPipelines(pageToken, pageSize, sortByFieldName)
+}
+
+func (r *ResourceManager) GetPipelineV2(id string) (*model.PipelineV2, error) {
+	return r.pipelineStoreV2.GetPipeline(id)
+}
+
+func (r *ResourceManager) CreatePipelineV2(pipeline *model.PipelineV2) (*model.PipelineV2, error) {
+	var workflow workflow.Workflow
+	err := r.objectStore.GetFromYamlFile(&workflow, storage.PackageFolder, fmt.Sprint(pipeline.PackageId))
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
+		ObjectMeta: v1.ObjectMeta{Name: pipeline.Name},
+		Spec: scheduledworkflow.ScheduledWorkflowSpec{
+			Enabled:        pipeline.Enabled,
+			MaxConcurrency: &pipeline.MaxConcurrency,
+			Trigger: scheduledworkflow.Trigger{
+				CronSchedule:     toCrdCronSchedule(pipeline.CronSchedule),
+				PeriodicSchedule: toCrdPeriodicSchedule(pipeline.PeriodicSchedule),
+			},
+			Workflow: &scheduledworkflow.WorkflowResource{
+				Parameters: toCrdParameter(pipeline.Parameters),
+				Spec:       workflow.Spec,
+			},
+		},
+	}
+
+	newScheduledWorkflow, err := r.scheduledWorkflow.Create(scheduledWorkflow)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
+	}
+	pipeline.UUID = string(newScheduledWorkflow.UID)
+	pipeline.Namespace = newScheduledWorkflow.Namespace
+	pipeline.Condition = getCondition(newScheduledWorkflow)
+	return r.pipelineStoreV2.CreatePipeline(pipeline)
+}
+
+func (r *ResourceManager) EnablePipelineV2(pipelineID string, enabled bool) error {
+	pipeline, err := r.checkPipelineExist(pipelineID)
+	if err != nil {
+		return util.Wrap(err, "Enable/Disable pipeline failed")
+	}
+	_, err = r.scheduledWorkflow.Patch(
+		pipeline.Name,
+		types.MergePatchType,
+		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enabled))))
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to enable/disable pipeline CRD. Enabled: %v, pipelineID: %v",
+			enabled, pipelineID)
+	}
+
+	err = r.pipelineStoreV2.EnablePipeline(pipelineID, enabled)
+	if err != nil {
+		return util.Wrapf(err, "Failed to enable/disable pipeline. Enabled: %v, pipelineID: %v",
+			enabled, pipelineID)
+	}
+
+	return nil
+}
+
+func (r *ResourceManager) DeletePipelineV2(pipelineID string) error {
+	pipeline, err := r.checkPipelineExist(pipelineID)
+	if err != nil {
+		return util.Wrap(err, "Delete pipeline failed")
+	}
+	err = r.scheduledWorkflow.Delete(pipeline.Name, &v1.DeleteOptions{})
+	if err != nil {
+		return util.NewInternalServerError(err, "Delete pipeline CRD failed.")
+	}
+	err = r.pipelineStoreV2.DeletePipeline(pipelineID)
+	if err != nil {
+		return util.Wrap(err, "Delete pipeline failed")
+	}
+	return nil
+}
+
+func getCondition(workflow *scheduledworkflow.ScheduledWorkflow) string {
+	if workflow.Status.Conditions == nil || len(workflow.Status.Conditions) == 0 {
+		return "NO_STATUS"
+	}
+	var buffer bytes.Buffer
+	for _, condition := range workflow.Status.Conditions {
+		buffer.WriteString(string(condition.Type) + ";")
+	}
+	return buffer.String()
+}
+
+// checkPipelineExist The Kubernetes API doesn't support CRUD by UID. This method
+// retrieve the pipeline metadata from the database, then retrieve the CRD
+// using the pipeline name, and compare the given pipeline id is same as the CRD.
+func (r *ResourceManager) checkPipelineExist(pipelineID string) (*model.PipelineV2, error) {
+	pipeline, err := r.pipelineStoreV2.GetPipeline(pipelineID)
+	if err != nil {
+		return nil, util.Wrap(err, "Check pipeline exist failed")
+	}
+	scheduledWorkflow, err := r.scheduledWorkflow.Get(pipeline.Name, v1.GetOptions{})
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Check pipeline exist failed")
+	}
+	if scheduledWorkflow == nil || string(scheduledWorkflow.UID) != pipelineID {
+		return nil, util.NewResourceNotFoundError("pipeline", pipeline.Name)
+	}
+	return pipeline, nil
+}
+
+func toCrdCronSchedule(cronSchedule model.CronSchedule) *scheduledworkflow.CronSchedule {
+	if cronSchedule.Cron == nil {
+		return nil
+	}
+	crdCronSchedule := scheduledworkflow.CronSchedule{}
+	crdCronSchedule.Cron = *cronSchedule.Cron
+	if cronSchedule.CronScheduleStartTimeInSec != nil {
+		startTime := v1.NewTime(time.Unix(*cronSchedule.CronScheduleStartTimeInSec, 0))
+		crdCronSchedule.StartTime = &startTime
+	}
+	if cronSchedule.CronScheduleEndTimeInSec != nil {
+		endTime := v1.NewTime(time.Unix(*cronSchedule.CronScheduleEndTimeInSec, 0))
+		crdCronSchedule.EndTime = &endTime
+	}
+	return &crdCronSchedule
+}
+
+func toCrdPeriodicSchedule(periodicSchedule model.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
+	if periodicSchedule.IntervalSecond == nil {
+		return nil
+	}
+	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
+	crdPeriodicSchedule.IntervalSecond = *periodicSchedule.IntervalSecond
+	if periodicSchedule.PeriodicScheduleStartTimeInSec != nil {
+		startTime := v1.NewTime(time.Unix(*periodicSchedule.PeriodicScheduleStartTimeInSec, 0))
+		crdPeriodicSchedule.StartTime = &startTime
+	}
+	if periodicSchedule.PeriodicScheduleEndTimeInSec != nil {
+		endTime := v1.NewTime(time.Unix(*periodicSchedule.PeriodicScheduleEndTimeInSec, 0))
+		crdPeriodicSchedule.EndTime = &endTime
+	}
+	return &crdPeriodicSchedule
+}
+
+func toCrdParameter(paramsString string) []scheduledworkflow.Parameter {
+	swParams := make([]scheduledworkflow.Parameter, 0)
+	var params []workflow.Parameter
+	json.Unmarshal([]byte(paramsString), &params)
+	for _, param := range params {
+		swParam := scheduledworkflow.Parameter{
+			Name:  param.Name,
+			Value: *param.Value,
+		}
+		swParams = append(swParams, swParam)
+	}
+	return swParams
 }
 
 func (r *ResourceManager) GetPipelineAndLatestJobIterator() (*storage.PipelineAndLatestJobIterator,

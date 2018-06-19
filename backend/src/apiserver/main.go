@@ -60,6 +60,8 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	api.RegisterPackageServiceServer(server, &PackageServer{resourceManager})
 	api.RegisterPipelineServiceServer(server, &PipelineServer{resourceManager})
 	api.RegisterJobServiceServer(server, &JobServer{resourceManager})
+	api.RegisterJobServiceV2Server(server, &JobServerV2{resourceManager})
+	api.RegisterPipelineServiceV2Server(server, &PipelineServerV2{resourceManager})
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -81,6 +83,8 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	registerHttpHandlerFromEndpoint(api.RegisterPackageServiceHandlerFromEndpoint, "PackageService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)
+	registerHttpHandlerFromEndpoint(api.RegisterPipelineServiceV2HandlerFromEndpoint, "PipelineServiceV2", ctx, mux)
+	registerHttpHandlerFromEndpoint(api.RegisterJobServiceV2HandlerFromEndpoint, "JobServiceV2", ctx, mux)
 
 	// Create a top level mux to include both package upload server and gRPC servers.
 	topMux := http.NewServeMux()
@@ -92,7 +96,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	topMux.HandleFunc("/apis/v1alpha1/packages/upload", packageUploadServer.UploadPackage)
 	topMux.HandleFunc("/apis/v1alpha1/healthz", func(w http.ResponseWriter, r *http.Request) {})
 
-	topMux.Handle("/apis/v1alpha1/", mux)
+	topMux.Handle("/apis/", mux)
 
 	http.ListenAndServe(*httpPortFlag, topMux)
 	glog.Info("Http Proxy started")

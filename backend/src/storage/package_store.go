@@ -17,6 +17,8 @@ package storage
 import (
 	"fmt"
 
+	"bytes"
+
 	"github.com/googleprivate/ml/backend/src/model"
 	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
@@ -49,12 +51,11 @@ func (s *PackageStore) ListPackages(pageToken string, pageSize int, sortByFieldN
 
 func (s *PackageStore) queryPackageTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var packages []model.Package
-	query := s.db.Where("Status = ? ", model.PackageReady)
-	paginationQuery, err := toPaginationQuery(query, context)
-	if err != nil {
-		return nil, util.Wrap(err, "Error creating pagination query when listing packages.")
-	}
-	if r := paginationQuery.Limit(context.pageSize).Find(&packages); r.Error != nil {
+	var query bytes.Buffer
+	query.WriteString(fmt.Sprintf("SELECT * FROM packages WHERE Status = '%v'", model.PackageReady))
+	toPaginationQuery("AND", &query, context)
+	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
+	if r := s.db.Raw(query.String()).Scan(&packages); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list packages: %v", r.Error.Error())
 	}
 	return s.toListablePackages(packages), nil

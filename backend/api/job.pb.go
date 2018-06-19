@@ -26,8 +26,8 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type GetJobRequest struct {
-	PipelineId           uint32   `protobuf:"varint,1,opt,name=pipeline_id,json=pipelineId" json:"pipeline_id,omitempty"`
-	JobName              string   `protobuf:"bytes,2,opt,name=job_name,json=jobName" json:"job_name,omitempty"`
+	PipelineId           uint32   `protobuf:"varint,1,opt,name=pipeline_id,json=pipelineId,proto3" json:"pipeline_id,omitempty"`
+	JobName              string   `protobuf:"bytes,2,opt,name=job_name,json=jobName,proto3" json:"job_name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -72,10 +72,10 @@ func (m *GetJobRequest) GetJobName() string {
 }
 
 type ListJobsRequest struct {
-	PipelineId           uint32   `protobuf:"varint,1,opt,name=pipeline_id,json=pipelineId" json:"pipeline_id,omitempty"`
-	PageToken            string   `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
-	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
-	SortBy               string   `protobuf:"bytes,4,opt,name=sort_by,json=sortBy" json:"sort_by,omitempty"`
+	PipelineId           uint32   `protobuf:"varint,1,opt,name=pipeline_id,json=pipelineId,proto3" json:"pipeline_id,omitempty"`
+	PageToken            string   `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize             int32    `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	SortBy               string   `protobuf:"bytes,4,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -134,8 +134,8 @@ func (m *ListJobsRequest) GetSortBy() string {
 }
 
 type ListJobsResponse struct {
-	Jobs                 []*Job   `protobuf:"bytes,1,rep,name=jobs" json:"jobs,omitempty"`
-	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	Jobs                 []*Job   `protobuf:"bytes,1,rep,name=jobs,proto3" json:"jobs,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -180,9 +180,9 @@ func (m *ListJobsResponse) GetNextPageToken() string {
 }
 
 type Job struct {
-	Name                 string               `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	ScheduledAt          *timestamp.Timestamp `protobuf:"bytes,3,opt,name=scheduled_at,json=scheduledAt" json:"scheduled_at,omitempty"`
+	Name                 string               `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ScheduledAt          *timestamp.Timestamp `protobuf:"bytes,3,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -234,8 +234,8 @@ func (m *Job) GetScheduledAt() *timestamp.Timestamp {
 }
 
 type JobDetail struct {
-	Job                  *Job     `protobuf:"bytes,1,opt,name=job" json:"job,omitempty"`
-	Workflow             string   `protobuf:"bytes,2,opt,name=workflow" json:"workflow,omitempty"`
+	Job                  *Job     `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	Workflow             string   `protobuf:"bytes,2,opt,name=workflow,proto3" json:"workflow,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -295,8 +295,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for JobService service
-
+// JobServiceClient is the client API for JobService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type JobServiceClient interface {
 	GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*JobDetail, error)
 	ListJobs(ctx context.Context, in *ListJobsRequest, opts ...grpc.CallOption) (*ListJobsResponse, error)
@@ -312,7 +313,7 @@ func NewJobServiceClient(cc *grpc.ClientConn) JobServiceClient {
 
 func (c *jobServiceClient) GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*JobDetail, error) {
 	out := new(JobDetail)
-	err := grpc.Invoke(ctx, "/api.JobService/GetJob", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.JobService/GetJob", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -321,15 +322,14 @@ func (c *jobServiceClient) GetJob(ctx context.Context, in *GetJobRequest, opts .
 
 func (c *jobServiceClient) ListJobs(ctx context.Context, in *ListJobsRequest, opts ...grpc.CallOption) (*ListJobsResponse, error) {
 	out := new(ListJobsResponse)
-	err := grpc.Invoke(ctx, "/api.JobService/ListJobs", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/api.JobService/ListJobs", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for JobService service
-
+// JobServiceServer is the server API for JobService service.
 type JobServiceServer interface {
 	GetJob(context.Context, *GetJobRequest) (*JobDetail, error)
 	ListJobs(context.Context, *ListJobsRequest) (*ListJobsResponse, error)

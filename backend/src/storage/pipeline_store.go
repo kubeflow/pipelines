@@ -18,6 +18,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"bytes"
+
 	"github.com/googleprivate/ml/backend/src/model"
 	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
@@ -57,14 +59,12 @@ func (s *PipelineStore) ListPipelines(pageToken string, pageSize int, sortByFiel
 
 func (s *PipelineStore) queryPipelineTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var pipelines []model.Pipeline
-	// List the pipelines as well as their parameters.
-	query := s.db.Where("Status = ?", model.PipelineReady)
-	paginationQuery, err := toPaginationQuery(query, context)
-	if err != nil {
-		return nil, util.Wrap(err, "Error creating pagination query when listing pipelines.")
-	}
+	var query bytes.Buffer
+	query.WriteString(fmt.Sprintf("SELECT * FROM pipelines WHERE Status = '%v'", model.PipelineReady))
+	toPaginationQuery("AND", &query, context)
+	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
 
-	if r := paginationQuery.Limit(context.pageSize).Find(&pipelines); r.Error != nil {
+	if r := s.db.Raw(query.String()).Scan(&pipelines); r.Error != nil {
 		return nil, util.NewInternalServerError(r.Error, "Failed to list pipelines: %v",
 			r.Error.Error())
 	}
