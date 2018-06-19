@@ -263,8 +263,7 @@ def run_transform(output_dir, schema, train_data_file, eval_data_file,
 
       transformed_eval_dataset = (
           (eval_dataset, transform_fn) | beam_impl.TransformDataset())
-      # Don't need transformed data schema, it's the same as before.
-      transformed_eval_data, _ = transformed_eval_dataset
+      transformed_eval_data, transformed_metadata = transformed_eval_dataset
 
       _ = transformed_eval_data | 'WriteEvalData' >> tfrecordio.WriteToTFRecord(
           os.path.join(output_dir, 'eval'),
