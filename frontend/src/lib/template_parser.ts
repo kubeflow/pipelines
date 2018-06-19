@@ -12,11 +12,17 @@ function replacePlaceholders(path: string, baseOutputPath: string, jobId: string
     .replace(/{{workflow.name}}/, jobId);
 }
 
+export interface OutputInfo {
+  index?: number;
+  path: string;
+  step: string;
+}
+
 export function parseTemplateOuputPaths(
     templateYaml: string,
     baseOutputPath: string,
     jobId: string
-  ): string[] {
+  ): OutputInfo[] {
   const argoTemplate = jsYaml.safeLoad(templateYaml) as ArgoTemplate;
 
   // TODO: Support templates with no entrypoint (only one template element)
@@ -42,18 +48,18 @@ export function parseTemplateOuputPaths(
     return [];
   }
 
-  const outputPaths: Array<{ step: string, path: string }> = steps.map((step) => {
+  return steps.map((step) => {
     if (Array.isArray(step)) {
       step = step[0];
     }
     const args = (step.arguments as ArgoTemplateStepArguments);
     const params = args.parameters as ArgoTemplateStepParameter[];
     const outputParam = params.filter((p) => p.name === 'output');
+    const path = outputParam && outputParam.length === 1 ?
+        replacePlaceholders(outputParam[0].value as string, baseOutputPath, jobId) : '';
     return {
-      path: outputParam && outputParam.length === 1 ? outputParam[0].value as string : '',
+      path,
       step: step.name as string,
     };
   }).filter((p) => !!p.path);
-
-  return outputPaths.map((p) => replacePlaceholders(p.path, baseOutputPath, jobId));
 }

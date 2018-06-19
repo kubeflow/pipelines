@@ -12,7 +12,7 @@ import * as Utils from '../../lib/utils';
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { Pipeline } from '../../api/pipeline';
-import { parseTemplateOuputPaths } from '../../lib/template_parser';
+import { OutputInfo, parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase, Workflow } from '../../model/argo_template';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
@@ -130,7 +130,7 @@ export class JobDetails extends PageElement {
   }
 
   private async _loadJobOutputs(baseOutputPath: string, templateYaml: string): Promise<void> {
-    let outputPaths = [];
+    let outputPaths: OutputInfo[] = [];
     try {
       outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);
     } catch (err) {
@@ -142,15 +142,32 @@ export class JobDetails extends PageElement {
 
     this._loadingOutputs = true;
     try {
-      await Promise.all(outputPaths.map(async (path) => {
-        const fileList = await Apis.listFiles(path);
+      // Build a map of the list of PlotMetadata to their corresponding output
+      // details. This map will help us keep outputs sorted by their index first
+      // (which is essentially the order of the steps), then by the output path
+      // to keep a reproducible order.
+      const outputsMap = new Map<PlotMetadata[], OutputInfo>();
+      await Promise.all(outputPaths.map(async (outputInfo, outputIndex) => {
+        outputInfo.index = outputIndex;
+        const fileList = await Apis.listFiles(outputInfo.path);
         const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
         if (metadataFile) {
           const metadataJson = await Apis.readFile(metadataFile);
           const metadata = JSON.parse(metadataJson) as OutputMetadata;
-          this.outputPlots = this.outputPlots.concat(metadata.outputs);
+          outputsMap.set(metadata.outputs, outputInfo);
         }
       }));
+
+      this.outputPlots = Array.from(outputsMap.keys()).sort((metadata1, metadata2) => {
+        const outputInfo1 = outputsMap.get(metadata1) as OutputInfo;
+        const outputInfo2 = outputsMap.get(metadata2) as OutputInfo;
+        const index1 = outputInfo1.index as number;
+        const index2 = outputInfo2.index as number;
+        if (index1 === index2) {
+          return outputInfo1.path < outputInfo2.path ? -1 : 1;
+        }
+        return index1 < index2 ? -1 : 1;
+      }).reduce((flattenedOutputs, currentOutputs) => flattenedOutputs.concat(currentOutputs));
     } catch (err) {
       this.showPageError('There was an error while loading details for this job');
       Utils.log.error('Error loading job details:', err);

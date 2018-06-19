@@ -9,13 +9,13 @@ describe('template parser', () => {
     const baseOutputPath = 'gs://test/output/path';
     const jobId = 'test-job-id';
 
-    const expectedPaths = [
-      `${baseOutputPath}/${jobId}/analysis`,
-      `${baseOutputPath}/${jobId}/transform`,
-      `${baseOutputPath}/${jobId}/model`
+    const expectedPaths: TemplateParser.OutputInfo[] = [
+      { path: `${baseOutputPath}/${jobId}/analysis`, step: 'analyze' },
+      { path: `${baseOutputPath}/${jobId}/transform`, step: 'transform' },
+      { path: `${baseOutputPath}/${jobId}/model`, step: 'train' },
     ];
     const paths = TemplateParser.parseTemplateOuputPaths(mockTemplate, baseOutputPath, jobId);
-    assert.deepEqual(paths, expectedPaths);
+    assert.deepStrictEqual(paths, expectedPaths);
   });
 
   it('throws an error if spec has no entrypoint', () => {
@@ -94,8 +94,8 @@ describe('template parser', () => {
                   value: output/path2
     `;
     const expectedPaths = [
-      'output/path1',
-      'output/path2',
+      { path: 'output/path1', step: 'step1' },
+      { path: 'output/path2', step: 'step2' },
     ];
     assert.deepEqual(TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''), expectedPaths);
   });
@@ -120,8 +120,8 @@ describe('template parser', () => {
                   value: output/path2
     `;
     const expectedPaths = [
-      'output/path1',
-      'output/path2',
+      { path: 'output/path1', step: 'step1' },
+      { path: 'output/path2', step: 'step2' },
     ];
     assert.deepEqual(TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''), expectedPaths);
   });
