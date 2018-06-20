@@ -36,6 +36,7 @@ from tensorflow_model_analysis.slicer import slicer
 from tensorflow_transform import coders as tft_coders
 from tensorflow_transform.tf_metadata import dataset_schema
 
+
 _OUTPUT_HTML_FILE = 'output_display.html'
 _STATIC_HTML_TEMPLATE = """
 <html>
@@ -72,13 +73,16 @@ _STATIC_HTML_TEMPLATE = """
 
   <body>
     <h1>TFMA Slicing Metrics</h1>
-    <div id="slicing-metrics-widget">
-      <script type="application/vnd.jupyter.widget-view+json">
-        {widget_views[0]}
-      </script>
-    </div>
+    {widget_views}
   </body>
 </html>
+"""
+_SINGLE_WIDGET_TEMPLATE = """
+    <div id="slicing-metrics-widget-{0}">
+      <script type="application/vnd.jupyter.widget-view+json">
+        {1}
+      </script>
+    </div>
 """
 
 
@@ -111,7 +115,7 @@ def parse_arguments():
                       help='The GCP project to run the dataflow job, if running in the `cloud` mode.')
   parser.add_argument('--slice-columns',
                       type=str,
-                      nargs='+',
+                      action='append',
                       required=True,
                       help='one or more columns on which to slice for analysis.')
 
@@ -190,14 +194,20 @@ def run_analysis(output_dir, model_dir, eval_path, schema, project, mode, slice_
             output_path=output_dir))
 
 
-def generate_static_html_output(output_dir):
+def generate_static_html_output(output_dir, slicing_columns):
   result = tfma.load_eval_result(output_path=output_dir)
-  slicing_metrics_view = tfma.view.render_slicing_metrics(result)
-  data = embed_data(views=[slicing_metrics_view])
+  slicing_metrics_views = [
+      tfma.view.render_slicing_metrics(result, slicing_column=slicing_column)
+      for slicing_column in slicing_columns
+  ]
+  data = embed_data(views=slicing_metrics_views)
   manager_state = json.dumps(data['manager_state'])
   widget_views = [json.dumps(view) for view in data['view_specs']]
+  views_html = ""
+  for idx, view in enumerate(widget_views):
+      views_html += _SINGLE_WIDGET_TEMPLATE.format(idx, view)
   rendered_template = _STATIC_HTML_TEMPLATE.format(
-      manager_state=manager_state, widget_views=widget_views)
+      manager_state=manager_state, widget_views=views_html)
   static_html_path = os.path.join(output_dir, _OUTPUT_HTML_FILE)
   file_io.write_string_to_file(static_html_path, rendered_template)
 
@@ -210,7 +220,7 @@ def main():
   model_export_dir = os.path.join(eval_model_parent_dir, file_io.list_directory(eval_model_parent_dir)[0])
   run_analysis(args.output, model_export_dir, args.eval, schema,
                args.project, args.mode, args.slice_columns)
-  generate_static_html_output(args.output)
+  generate_static_html_output(args.output, args.slice_columns)
 
 
 if __name__== "__main__":
