@@ -211,6 +211,16 @@ def generate_static_html_output(output_dir, slicing_columns):
   static_html_path = os.path.join(output_dir, _OUTPUT_HTML_FILE)
   file_io.write_string_to_file(static_html_path, rendered_template)
 
+  metadata = {
+    'outputs' : [{
+      'type': 'web-app',
+      'storage': 'gcs',
+      'source': static_html_path,
+    }]
+  }
+  with file_io.FileIO(os.path.join(output_dir, 'metadata.json'), 'w') as f:
+    json.dump(metadata, f)
+
 
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
