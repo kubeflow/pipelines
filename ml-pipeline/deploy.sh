@@ -18,7 +18,7 @@
 NAMESPACE=default
 
 # Ksonnet app name
-APP_DIR=ml-pipeline
+APP_DIR=ml-pipeline-app
 
 # Default ml pipeline api server image
 API_SERVER_IMAGE=gcr.io/ml-pipeline/api-server:0.0.7
@@ -98,7 +98,7 @@ while [ "$1" != "" ]; do
 done
 
 echo "Configure ksonnet ..."
-/deploy/bootstrapper.sh
+/ml-pipeline/bootstrapper.sh
 echo "Configure ksonnet completed successfully"
 
 echo "Initialize a ksonnet APP ..."
@@ -111,7 +111,7 @@ echo "Initialized ksonnet APP completed successfully"
 # an known issue: https://github.com/ksonnet/ksonnet/issues/232, we are working around by creating
 # a symbolic links in ./vendor and manually modifying app.yaml
 # when the repo is public we can do following:
-# ks registry add ml-pipeline github.com/googleprivate/ml/tree/master/deploy
+# ks registry add ml-pipeline github.com/googleprivate/ml/tree/master/ml-pipeline
 # ks pkg install ml-pipeline/ml-pipeline
 BASEDIR=$(cd $(dirname "$0") && pwd)
 ln -s ${BASEDIR} ${APP_DIR}/vendor/ml-pipeline

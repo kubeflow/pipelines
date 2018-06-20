@@ -23,12 +23,12 @@ RUN mv ./ks_0.9.2_linux_amd64/ks /usr/local/bin/
 ENV USER=default
 
 # Copy bootstrapper files
-COPY . /deploy/
-RUN chmod +x /deploy/bootstrapper.sh
-RUN chmod +x /deploy/deploy.sh
+COPY . /ml-pipeline/
+RUN chmod +x /ml-pipeline/bootstrapper.sh
+RUN chmod +x /ml-pipeline/deploy.sh
 
 # install uuidgen. Used for reporting usage
 RUN apt-get install uuid-runtime
 
-ENTRYPOINT ["/deploy/deploy.sh"]
+ENTRYPOINT ["/ml-pipeline/deploy.sh"]
 CMD []

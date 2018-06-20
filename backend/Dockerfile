@@ -5,6 +5,8 @@ COPY . .
 
 WORKDIR /go/src/github.com/googleprivate/ml/backend/src
 RUN go get ./...
+# TODO(IronPan): use go dep https://github.com/googleprivate/ml/issues/561
+RUN rm -r /go/src/k8s.io/kubernetes/vendor/github.com/golang/glog
 RUN go build -o /bin/apiserver apiserver/*.go
 
 

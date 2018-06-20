@@ -19,10 +19,10 @@ The docker container accepts various parameters to customize your deployment.
 
 See [bootstrapper.yaml](https://github.com/googleprivate/ml/blob/master/bootstrapper.yaml) for examples on how to pass in parameter.
 
-Alternatively, you can use [deploy.sh](https://github.com/googleprivate/ml/blob/master/deploy/deploy.sh) if you want to interact with Ksonnet directly.
+Alternatively, you can use [deploy.sh](https://github.com/googleprivate/ml/blob/master/ml-pipeline/deploy.sh) if you want to interact with Ksonnet directly.
 To deploy, run the script locally.
 ```
-$ deploy/deploy.sh
+$ ml-pipeline/deploy.sh
 ```
 And you will se a Ksonnet [APP](https://ksonnet.io/docs/concepts#application) folder generated in your current path. If you want to update or delete the K8s resource created by the deployment, run
 ```
@@ -82,7 +82,7 @@ $ docker build -t ml-pipeline-api-server backend/src
 If your change updates deployment image (e.g. add new service account, change image version etc.),
 remember to update the deployment image as well, and use that image to create deployment job.
 ```
-$ docker build -t gcr.io/<your-gcp-project>/bootstrapper deploy/
+$ docker build -t gcr.io/<your-gcp-project>/bootstrapper ml-pipeline/
 $ gcloud docker -- push gcr.io/<your-gcp-project>/bootstrapper
 ```
 
