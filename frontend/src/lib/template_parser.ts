@@ -1,4 +1,5 @@
 import * as jsYaml from 'js-yaml';
+import { PackageTemplate } from '../api/pipeline_package';
 import {
   Arguments as ArgoTemplateStepArguments,
   Parameter as ArgoTemplateStepParameter,
@@ -19,22 +20,32 @@ export interface OutputInfo {
 }
 
 export function parseTemplateOuputPaths(
-    templateYaml: string,
+    packageTemplate: PackageTemplate,
     baseOutputPath: string,
     jobId: string
   ): OutputInfo[] {
-  const argoTemplate = jsYaml.safeLoad(templateYaml) as ArgoTemplate;
+  if (!packageTemplate.template) {
+    throw new Error('Failed to load the package template');
+  }
+  const argoTemplate = jsYaml.safeLoad(packageTemplate.template) as ArgoTemplate;
 
   // TODO: Support templates with no entrypoint (only one template element)
-  if (!argoTemplate || !argoTemplate.spec || !argoTemplate.spec.entrypoint) {
+  if (!argoTemplate) {
+    throw new Error('Failed to load the workflow argo template');
+  }
+  if (!argoTemplate.spec) {
+    throw new Error('Workflow argo template does not contain a spec');
+  }
+  const spec = argoTemplate.spec;
+  if (!spec.entrypoint) {
     throw new Error('Spec does not contain an entrypoint');
   }
-  const entryPoint = argoTemplate.spec.entrypoint;
+  const entryPoint = spec.entrypoint;
 
-  if (!argoTemplate.spec.templates) {
+  if (!spec.templates) {
     throw new Error('Spec does not contain any templates');
   }
-  const entryTemplate = argoTemplate.spec.templates.filter((t) => t.name === entryPoint)[0];
+  const entryTemplate = spec.templates.filter((t) => t.name === entryPoint)[0];
 
   if (!entryTemplate) {
     throw new Error('Could not find template for entrypoint: ' + entryPoint);

@@ -12,6 +12,7 @@ import * as Utils from '../../lib/utils';
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { Pipeline } from '../../api/pipeline';
+import { PackageTemplate } from '../../api/pipeline_package';
 import { OutputInfo, parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase, Workflow } from '../../model/argo_template';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
@@ -34,6 +35,9 @@ export class JobDetails extends PageElement {
   @property({ type: Object })
   public pipeline: Pipeline;
 
+  @property({ type: Object })
+  public packageTemplate: PackageTemplate;
+
   @property({ type: Number })
   public selectedTab = 0;
 
@@ -55,13 +59,12 @@ export class JobDetails extends PageElement {
       this._pipelineId = queryParams.pipelineId;
       this._jobId = queryParams.jobId;
 
-      let templateYaml = '';
       this._loadingJob = true;
       try {
         const response = await Apis.getJob(this._pipelineId, this._jobId);
         this.workflow = JSON.parse(response.workflow);
         this.pipeline = await Apis.getPipeline(this._pipelineId);
-        templateYaml = await Apis.getPackageTemplate(this.pipeline.package_id);
+        this.packageTemplate = await Apis.getPackageTemplate(this.pipeline.package_id);
       } catch (err) {
         this.showPageError('There was an error while loading details for job: ' + this._jobId);
         Utils.log.error('Error loading job details:', err);
@@ -81,7 +84,7 @@ export class JobDetails extends PageElement {
       // component.
       const baseOutputPath = this._getBaseOutputPath();
       if (baseOutputPath) {
-        this._loadJobOutputs(baseOutputPath, templateYaml);
+        this._loadJobOutputs(baseOutputPath, this.packageTemplate);
       }
     }
   }
@@ -129,10 +132,10 @@ export class JobDetails extends PageElement {
     this.set('outputPlots', []);
   }
 
-  private async _loadJobOutputs(baseOutputPath: string, templateYaml: string): Promise<void> {
+  private async _loadJobOutputs(baseOutputPath: string, packageTemplate: PackageTemplate): Promise<void> {
     let outputPaths: OutputInfo[] = [];
     try {
-      outputPaths = parseTemplateOuputPaths(templateYaml, baseOutputPath, this._jobId);
+      outputPaths = parseTemplateOuputPaths(packageTemplate, baseOutputPath, this._jobId);
     } catch (err) {
       // TODO: Determine how to display additional error details to user.
       this.showPageError('There was an error while parsing this job\'s YAML template');

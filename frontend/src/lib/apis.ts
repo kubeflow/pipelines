@@ -6,7 +6,7 @@ import { ListPackagesResponse } from '../api/list_packages_response';
 import { ListPipelinesRequest } from '../api/list_pipelines_request';
 import { ListPipelinesResponse } from '../api/list_pipelines_response';
 import { Pipeline } from '../api/pipeline';
-import { PipelinePackage } from '../api/pipeline_package';
+import { PipelinePackage, PackageTemplate } from '../api/pipeline_package';
 
 const apisPrefix = '/apis/v1alpha1';
 
@@ -50,8 +50,8 @@ export async function getPackage(id: number): Promise<PipelinePackage> {
 /**
  * Gets the Argo template of a certain package given its id.
  */
-export async function getPackageTemplate(id: number): Promise<string> {
-  return await _fetch(`/packages/${id}/templates`);
+export async function getPackageTemplate(id: number): Promise<PackageTemplate> {
+  return JSON.parse(await _fetch(`/packages/${id}/templates`));
 }
 
 /**

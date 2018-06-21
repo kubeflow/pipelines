@@ -7,3 +7,7 @@ export interface PipelinePackage {
   description?: string;
   parameters: Parameter[];
 }
+
+export interface PackageTemplate {
+  template: string;
+}
