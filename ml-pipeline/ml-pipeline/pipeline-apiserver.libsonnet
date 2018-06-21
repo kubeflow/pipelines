@@ -68,6 +68,21 @@
             "patch",
           ],
         },
+        {
+          apiGroups: [
+            "kubeflow.org",
+          ],
+          resources: [
+            "scheduledworkflows",
+          ],
+          verbs: [
+            "create",
+            "get",
+            "list",
+            "update",
+            "patch",
+          ],
+        },
       ],
     },  // role
 
