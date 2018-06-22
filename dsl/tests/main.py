@@ -12,4 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .pipeline_param import PipelineParam
+
+import unittest
+
+import pipeline_param_tests
+
+
+
+if __name__ == '__main__':
+  suite = unittest.TestSuite()
+  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(pipeline_param_tests))
+  runner = unittest.TextTestRunner()
+  result = runner.run(suite)
