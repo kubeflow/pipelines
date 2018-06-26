@@ -21,19 +21,19 @@ NAMESPACE=default
 APP_DIR=ml-pipeline-app
 
 # Default ml pipeline api server image
-API_SERVER_IMAGE=gcr.io/ml-pipeline/api-server:0.0.7
+API_SERVER_IMAGE=gcr.io/ml-pipeline/api-server:0.0.9
 
 # Default ml pipeline scheduling controller image
-SCHEDULER_IMAGE=gcr.io/ml-pipeline/scheduler:0.0.7
+SCHEDULER_IMAGE=gcr.io/ml-pipeline/scheduler:0.0.9
 
 # Default ml pipeline scheduledworkflow CRD controller image
-SCHEDULED_WORKFLOW_IMAGE=gcr.io/ml-pipeline/scheduledworkflow:0.0.7
+SCHEDULED_WORKFLOW_IMAGE=gcr.io/ml-pipeline/scheduledworkflow:0.0.9
 
 # Default ml pipeline persistence agent image
-PERSISTENCE_AGENT_IMAGE=gcr.io/ml-pipeline/persistenceagent:0.0.7
+PERSISTENCE_AGENT_IMAGE=gcr.io/ml-pipeline/persistenceagent:0.0.9
 
 # Default ml pipeline ui image
-UI_IMAGE=gcr.io/ml-pipeline/frontend:0.0.7
+UI_IMAGE=gcr.io/ml-pipeline/frontend:0.0.9
 
 # Whether report usage or not. Default yes.
 REPORT_USAGE="true"
