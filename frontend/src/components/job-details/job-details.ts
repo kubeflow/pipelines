@@ -132,7 +132,8 @@ export class JobDetails extends PageElement {
     this.set('outputPlots', []);
   }
 
-  private async _loadJobOutputs(baseOutputPath: string, packageTemplate: PackageTemplate): Promise<void> {
+  private async _loadJobOutputs(
+      baseOutputPath: string, packageTemplate: PackageTemplate): Promise<void> {
     let outputPaths: OutputInfo[] = [];
     try {
       outputPaths = parseTemplateOuputPaths(packageTemplate, baseOutputPath, this._jobId);

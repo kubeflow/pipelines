@@ -6,7 +6,7 @@ import { ListPackagesResponse } from '../api/list_packages_response';
 import { ListPipelinesRequest } from '../api/list_pipelines_request';
 import { ListPipelinesResponse } from '../api/list_pipelines_response';
 import { Pipeline } from '../api/pipeline';
-import { PipelinePackage, PackageTemplate } from '../api/pipeline_package';
+import { PackageTemplate, PipelinePackage } from '../api/pipeline_package';
 
 const apisPrefix = '/apis/v1alpha1';
 
