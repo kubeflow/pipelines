@@ -20,20 +20,23 @@ NAMESPACE=default
 # Ksonnet app name
 APP_DIR=ml-pipeline-app
 
+# Version number of this release.
+RELEASE_VERSION="${RELEASE_VERSION:-0.0.9}"
+
 # Default ml pipeline api server image
-API_SERVER_IMAGE=gcr.io/ml-pipeline/api-server:0.0.9
+API_SERVER_IMAGE="gcr.io/ml-pipeline/api-server:${RELEASE_VERSION}"
 
 # Default ml pipeline scheduling controller image
-SCHEDULER_IMAGE=gcr.io/ml-pipeline/scheduler:0.0.9
+SCHEDULER_IMAGE="gcr.io/ml-pipeline/scheduler:${RELEASE_VERSION}"
 
 # Default ml pipeline scheduledworkflow CRD controller image
-SCHEDULED_WORKFLOW_IMAGE=gcr.io/ml-pipeline/scheduledworkflow:0.0.9
+SCHEDULED_WORKFLOW_IMAGE="gcr.io/ml-pipeline/scheduledworkflow:${RELEASE_VERSION}"
 
 # Default ml pipeline persistence agent image
-PERSISTENCE_AGENT_IMAGE=gcr.io/ml-pipeline/persistenceagent:0.0.9
+PERSISTENCE_AGENT_IMAGE="gcr.io/ml-pipeline/persistenceagent:${RELEASE_VERSION}"
 
 # Default ml pipeline ui image
-UI_IMAGE=gcr.io/ml-pipeline/frontend:0.0.9
+UI_IMAGE="gcr.io/ml-pipeline/frontend:${RELEASE_VERSION}"
 
 # Whether report usage or not. Default yes.
 REPORT_USAGE="true"
