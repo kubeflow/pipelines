@@ -35,3 +35,74 @@ export async function resetFixture(testTag: string,
   }
   Polymer.flush();
 }
+
+// Stubs map stores replacements for HTML tags. This is part of the stubTag and
+// restoreTag functions, which are loosely based on Polymer's replace addon
+// that is part of web-component-tester:
+// https://github.com/Polymer/web-component-tester/blob/master/browser/mocha/replace.ts
+const stubMap = new Map<string, string>();
+
+export function stubTag(oldTagName: string, tagName: string): any {
+  // Standardizes our replacements map
+  oldTagName = oldTagName.toLowerCase();
+  tagName = tagName.toLowerCase();
+
+  stubMap.set(oldTagName, tagName);
+
+  // If the function is already a stub, restore it to original
+  if ((document.importNode as any).isSinonProxy) {
+    return;
+  }
+
+  // Keep a reference to the original `document.importNode`
+  // implementation for later:
+  const originalImportNode = document.importNode;
+
+  // Use Sinon to stub `document.ImportNode`
+  sinon.stub(document, 'importNode', (origContent: any, deep: boolean) => {
+    const templateClone = document.createElement('template');
+    const content = templateClone.content;
+    const inertDoc = content.ownerDocument;
+
+    // imports node from inertDoc which holds inert nodes.
+    templateClone.content.appendChild(inertDoc.importNode(origContent, true));
+
+    // Traverses the tree. A recently-replaced node will be put next, so if a
+    // node is replaced, it will be checked if it needs to be replaced again.
+    const nodeIterator = document.createNodeIterator(content, NodeFilter.SHOW_ELEMENT);
+    let node = nodeIterator.nextNode() as Element;
+    while (node) {
+      let currentTagName = node.tagName.toLowerCase();
+
+      if (stubMap.has(currentTagName)) {
+        // Create a replacement
+        const replacement = document.createElement(stubMap.get(currentTagName));
+
+        // For all attributes in the original node, set that attribute on the replacement
+        for (const attr of Array.from(node.attributes)) {
+          replacement.setAttribute(attr.name, attr.value);
+        }
+
+        // Replace the original node with the replacement node:
+        node.parentNode.replaceChild(replacement, node);
+      }
+      node = nodeIterator.nextNode() as Element;
+    }
+
+    return originalImportNode.call(document, content, deep);
+  });
+}
+
+export function restoreTag(tagName: string): void {
+  // If there are no more replacements, restore the stubbed version of
+  // `document.importNode`
+  if (!stubMap.size) {
+    const documentImportNode = document.importNode as any;
+    if (documentImportNode.isSinonProxy) {
+      documentImportNode.restore();
+    }
+  }
+
+  // Remove the tag from the replacement map
+  stubMap.delete(tagName);
+}
