@@ -55,6 +55,9 @@ export default {
         enforce: 'pre',
         loader: 'tslint-loader',
         exclude: /bower_components/,
+        options: {
+          emitErrors: true,
+        },
       },
       {
         test: /\.ts$/,
