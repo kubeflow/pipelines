@@ -1,4 +1,4 @@
-paper-dropdown-menu, paper-input {
+paper-dropdown-menu, paper-input, paper-textarea {
   --paper-input-container-focus-color: var(--theme-primary-color);
   background-color: var(--background-contrast-color);
   border-radius: 5px;

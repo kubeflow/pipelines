@@ -8,21 +8,24 @@
       tries to validate CSS while loading, and ends up commenting out all
       mixins, since they're not officially in the CSS spec.
       */
-      paper-dropdown-menu, paper-input {
+      paper-dropdown-menu, paper-input, paper-textarea {
         --paper-input-container: {
           padding: 0;
         }
         --paper-input-container-label: {
-          padding-left: 6px;
+          box-sizing: border-box;
+          padding: 0 8px;
         }
         --paper-input-container-input: {
-          padding-left: 6px;
+          box-sizing: border-box;
+          font-size: 14px;
+          padding: 0 6px;
         }
         --paper-input-container-label-floating: {
-          padding-left: 8px;
+          padding: 0 8px;
         }
         --paper-input-error: {
-          padding-left: 6px;
+          padding: 0 6px;
         }
 
         /* Ensure the ripple fills the whole element */
@@ -31,6 +34,11 @@
           left: 0;
           right: 0;
           top: 0px;
+        }
+      }
+      paper-textarea {
+        --iron-autogrow-textarea: {
+          padding: 0 6px;
         }
       }
     </style>
@@ -76,12 +84,12 @@
         </div>
 
         <paper-input id="name" class="input-field-large" label="Pipeline Name"
-                     autofocus required maxlength="50" value="{{_name}}"
+                     autofocus required maxlength="50" spellcheck="false" value="{{_name}}"
                      auto-validate error-message="Pipeline must have a name">
         </paper-input>
-        <paper-input id="description" class="input-field-large" label="Description"
-                     value="{{_description}}">
-        </paper-input>
+        <paper-textarea id="description" class="input-field-large" label="Description"
+                        spellcheck="false" value="{{_description}}">
+        </paper-textarea>
 
         <hr>
 
@@ -92,7 +100,7 @@
             <template is="dom-repeat" items="{{_parameters}}" as="param">
               <div class="param-name">[[param.name]]</div>
               <paper-input class="input-field-large no-shrink" no-label-float
-                           value="{{param.value}}">
+                           spellcheck="false" value="{{param.value}}">
               </paper-input>
             </template>
             <hr>

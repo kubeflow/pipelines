@@ -2,6 +2,7 @@ import 'iron-icons/iron-icons.html';
 import 'neon-animation/web-animations.html';
 import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-input/paper-input.html';
+import 'paper-input/paper-textarea.html';
 import 'paper-item/paper-item-body.html';
 import 'paper-item/paper-item.html';
 import 'paper-listbox/paper-listbox.html';

@@ -72,7 +72,7 @@ export function stubTag(oldTagName: string, tagName: string): any {
     const nodeIterator = document.createNodeIterator(content, NodeFilter.SHOW_ELEMENT);
     let node = nodeIterator.nextNode() as Element;
     while (node) {
-      let currentTagName = node.tagName.toLowerCase();
+      const currentTagName = node.tagName.toLowerCase();
 
       if (stubMap.has(currentTagName)) {
         // Create a replacement
