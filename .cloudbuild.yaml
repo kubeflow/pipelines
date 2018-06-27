@@ -38,3 +38,5 @@ images:
 - 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA'
+
+timeout: '1800s'
