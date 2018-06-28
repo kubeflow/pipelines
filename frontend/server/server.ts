@@ -22,13 +22,10 @@ Usage: node server.js <static-dir> [port].
 }
 
 const currentDir = path.resolve(__dirname);
-const versionPath = path.join(currentDir, 'VERSION');
 const buildDatePath = path.join(currentDir, 'BUILD_DATE');
 const commitHashPath = path.join(currentDir, 'COMMIT_HASH');
 
 const staticDir = path.resolve(process.argv[2]);
-const version =
-    fs.existsSync(versionPath) ? fs.readFileSync(versionPath, 'utf-8').trim() : '';
 const buildDate =
     fs.existsSync(buildDatePath) ? fs.readFileSync(buildDatePath, 'utf-8').trim() : '';
 const commitHash =
@@ -46,7 +43,6 @@ const healthzStats = {
   apiServerReady: false,
   buildDate,
   commitHash,
-  version,
 };
 
 app.get(apisPrefix + '/healthz', (req, res) => {
