@@ -1,12 +1,9 @@
 const assert = require('assert');
 const URL = require('url').URL;
-const fixedData = require('../../../mock-backend/fixed-data').data;
 
 const pipelineName = 'helloworld-' + Date.now();
 const pipelineDescription = 'test pipeline description ' + pipelineName;
 const waitTimeout = 5000;
-const listSelector = 'app-shell pipeline-list item-list';
-const mockPipelinesLength = fixedData.pipelines.length;
 
 describe('deploy new pipeline', () => {
 
@@ -14,23 +11,11 @@ describe('deploy new pipeline', () => {
     browser.url('/');
   });
 
-  it('starts out with all mock pipelines', () => {
-    browser.waitForVisible(listSelector, waitTimeout);
-    const selector = 'app-shell pipeline-list item-list paper-item';
+  it('starts out with no pipelines', () => {
+    const selector = 'app-shell pipeline-list item-list #listContainer';
     browser.waitForVisible(selector, waitTimeout);
 
-    assert.equal($$(selector).length, 20, 'should start out with a full page of 20 pipelines');
-  });
-
-  it('shows the second and final page of pipelines', () => {
-    const selector = 'app-shell pipeline-list item-list #nextPage';
-    browser.waitForVisible(selector, waitTimeout);
-    browser.click(selector);
-
-    const listSelector = 'app-shell pipeline-list item-list paper-item';
-    browser.waitForVisible(selector, waitTimeout);
-    assert.equal($$(listSelector).length, mockPipelinesLength - 20,
-        'second page should show the remaining pipelines');
+    assert.equal(browser.getText(selector), '', 'initial pipeline list is not empty');
   });
 
   it('opens new pipeline page', () => {
@@ -69,13 +54,6 @@ describe('deploy new pipeline', () => {
     browser.keys('Tab');
     browser.keys(pipelineDescription);
 
-    browser.keys('Tab');
-    browser.keys('x param value');
-    browser.keys('Tab');
-    browser.keys('y param value');
-    browser.keys('Tab');
-    browser.keys('output param value');
-
     browser.click('app-shell pipeline-new #deployButton');
   });
 
@@ -86,20 +64,12 @@ describe('deploy new pipeline', () => {
   });
 
   it('finds the new pipeline ' + pipelineName + ' in the list of pipelines', () => {
-    // Navigate to second page, where the new pipeline should be
-    const nextPageSelector = 'app-shell pipeline-list item-list #nextPage';
-    browser.waitForVisible(nextPageSelector, waitTimeout);
-    browser.click(nextPageSelector);
-
-    browser.waitForVisible(listSelector, waitTimeout);
-
     const selector = 'app-shell pipeline-list item-list paper-item';
     browser.waitForVisible(selector, waitTimeout);
-    const index = mockPipelinesLength - 20 + 1;
-    assert.equal($$(selector).length, index, 'should have a new item added to pipeline list');
+    assert.equal($$(selector).length, 1, 'should only show one pipeline');
 
     // Navigate to details of the deployed pipeline
-    browser.doubleClick(selector + `:nth-of-type(${index})`);
+    browser.doubleClick(selector + `:nth-of-type(1)`);
   });
 
   it('displays pipeline name correctly', () => {
@@ -120,19 +90,8 @@ describe('deploy new pipeline', () => {
     const selector = 'app-shell pipeline-details .created-at.value';
     browser.waitForVisible(selector, waitTimeout);
     const createdDate = Date.parse(browser.getText(selector));
-    const now = new Date();
     assert(Date.now() - createdDate < 5 * 1000,
-        'pipeline created date should be within the last five seconds: ' + createdDate);
-  });
-
-  it('displays pipeline parameters correctly', () => {
-    const selector = 'app-shell pipeline-details .params-table';
-    browser.waitForVisible(selector, waitTimeout);
-
-    const paramsSelector = 'app-shell pipeline-details .params-table';
-    assert.deepEqual(browser.getText(paramsSelector),
-                     'x\nx param value\ny\ny param value\noutput\noutput param value',
-                     'parameter values are incorrect');
+        'pipeline created date should be within the last five seconds');
   });
 
   it('switches to run list tab', () => {
@@ -146,7 +105,7 @@ describe('deploy new pipeline', () => {
 
     assert(!Array.isArray(jobsText) && typeof jobsText === 'string',
         'only one job should show up');
-    assert(jobsText.startsWith(fixedData.jobs[0].job.name), 'job name is incorrect');
+    assert(jobsText.startsWith('hello-world'), 'job name should start with hello-world');
   });
 
   it('opens job details on double click', () => {
@@ -176,15 +135,11 @@ describe('deploy new pipeline', () => {
     }, waitTimeout);
   });
 
-  it(`shows only ${mockPipelinesLength - 20} pipelines on second page after deletion`, () => {
-    const selector = 'app-shell pipeline-list item-list #nextPage';
+  it('shows an empty list of pipelines after deletion', () => {
+    const selector = 'app-shell pipeline-list item-list #listContainer';
     browser.waitForVisible(selector, waitTimeout);
-    browser.click(selector);
 
-    const listSelector = 'app-shell pipeline-list item-list paper-item';
-    browser.waitForVisible(selector, waitTimeout);
-    assert.equal($$(listSelector).length, mockPipelinesLength - 20,
-        'second page should show the remaining pipelines');
+    assert.equal(browser.getText(selector), '', 'initial pipeline list is not empty');
   });
 
 });

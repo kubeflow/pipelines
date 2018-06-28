@@ -47,8 +47,8 @@ exports.config = {
   suites: {
     // These suites are separated to avoid race conditions between the e2e tests (which can modify
     // backend state) and the visual regression tests. Because of this, only the visual regression
-    // tests will be run if `wdio ui/wdio.conf.js` is called. To run e2e tests, use:
-    // `wdio ui/wdio.conf.js --suite mockEndToEnd`
+    // tests will be run if `wdio ui/wdio.conf.js` is called. To run mock e2e tests, use:
+    // `wdio ui/wdio.conf.js --suite mockEndToEnd`.
     mockEndToEnd: [
       './ui/end-to-end/*.spec.js',
     ],

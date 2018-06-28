@@ -1,7 +1,7 @@
 This directory contains tests for the ML Pipelines frontend project.
 
 You can run tests separately by doing `npm run unit-tests`,
-`npm run visual-regression-tests`, and `npm run end-to-end-tests`.
+`npm run visual-regression-tests`, and `npm run mock-e2e-tests`.
 You can run all tests using `npm test`.
 
 ## Unit Tests
@@ -38,4 +38,4 @@ Unlike the visual regression tests, these tests actually modify the backend stat
 (mocked) and do not focus on screenshots.
 
 These tests can be run via:
-`npm run end-to-end-tests`
+`npm run mock-e2e-tests`
