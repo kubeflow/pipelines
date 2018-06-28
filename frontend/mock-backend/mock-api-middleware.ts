@@ -228,7 +228,8 @@ export default (app) => {
 
   app.get(apisPrefix + '/packages/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
-    res.send(JSON.stringify({'template': fs.readFileSync('./mock-backend/mock-template.yaml')}));
+    res.send(
+        JSON.stringify({template: fs.readFileSync('./mock-backend/mock-template.yaml', 'utf-8')}));
   });
 
   app.post(apisPrefix + '/packages/upload', (req, res) => {
