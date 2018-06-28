@@ -29,6 +29,14 @@ steps:
   args: ['build', '--build-arg', 'RELEASE_VERSION=$COMMIT_SHA',
          '-t', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA', '/workspace/ml-pipeline']
   id:   'buildBootstrapper'
+- name: 'debian'
+  entrypoint: '/bin/bash'
+  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/ml-pipeline\/bootstrapper:$COMMIT_SHA/g" /workspace/bootstrapper.yaml']
+  id:   'prepareBootstrapperYAML'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/bootstrapper.yaml']
+  id:   'copyBootstrapperYAML'
+  waitFor: ['prepareBootstrapperYAML']
 
 images:
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
