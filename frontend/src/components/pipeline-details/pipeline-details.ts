@@ -45,8 +45,16 @@ export class PipelineDetails extends PageElement {
   })
   protected _allowPipelineDisable = false;
 
+  public get tabs(): PaperTabsElement {
+    return this.$.tabs as PaperTabsElement;
+  }
+
   public get cloneButton(): PaperButtonElement {
     return this.$.cloneBtn as PaperButtonElement;
+  }
+
+  public get refreshButton(): PaperButtonElement {
+    return this.$.refreshBtn as PaperButtonElement;
   }
 
   public get deleteButton(): PaperButtonElement {
@@ -70,16 +78,26 @@ export class PipelineDetails extends PageElement {
         return;
       }
 
-      try {
-        const pipeline = await Apis.getPipeline(id);
-        this.pipeline = pipeline;
+      this._loadPipeline(id);
+    }
+  }
 
-        (this.$.jobs as JobList).loadJobs(this.pipeline.id);
-        this.disableClonePipelineButton = false;
-      } catch (err) {
-        this.showPageError('There was an error while loading details for pipeline ' + id);
-        Utils.log.error('Error loading pipeline:', err);
-      }
+  protected _refresh(): void {
+    if (this.pipeline) {
+      this._loadPipeline(this.pipeline.id);
+    }
+  }
+
+  protected async _loadPipeline(id: number): Promise<void> {
+    try {
+      const pipeline = await Apis.getPipeline(id);
+      this.pipeline = pipeline;
+
+      (this.$.jobs as JobList).loadJobs(this.pipeline.id);
+      this.disableClonePipelineButton = false;
+    } catch (err) {
+      this.showPageError('There was an error while loading details for pipeline ' + id);
+      Utils.log.error('Error loading pipeline:', err);
     }
   }
 

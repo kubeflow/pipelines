@@ -48,6 +48,10 @@ export class PipelineList extends PageElement {
     return this.$.newBtn as PaperButtonElement;
   }
 
+  public get refreshButton(): PaperButtonElement {
+    return this.$.refreshBtn as PaperButtonElement;
+  }
+
   public get cloneButton(): PaperButtonElement {
     return this.$.cloneBtn as PaperButtonElement;
   }
@@ -91,6 +95,10 @@ export class PipelineList extends PageElement {
   protected _navigate(ev: ItemClickEvent): void {
     const pipelineId = this.pipelines[ev.detail.index].id;
     this.dispatchEvent(new RouteEvent(`/pipelines/details/${pipelineId}`));
+  }
+
+  protected _refresh(): void {
+    this.load('');
   }
 
   protected _clonePipeline(): void {

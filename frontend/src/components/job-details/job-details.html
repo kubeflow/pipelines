@@ -7,6 +7,10 @@
         <paper-icon-button icon="arrow-back"></paper-icon-button>
       </a>
       <div class="toolbar-title">Job Details</div>
+      <paper-button id="refreshButton" class="toolbar-button" on-click="_refresh">
+        <iron-icon icon="refresh"></iron-icon>
+        Refresh
+      </paper-button>
     </div>
 
     <paper-progress class="loading no-shrink" indeterminate disabled="[[!_loadingJob]]"></paper-progress>

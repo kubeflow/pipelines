@@ -8,6 +8,10 @@
         <iron-icon icon="add"></iron-icon>
         New Pipeline
       </paper-button>
+      <paper-button id="refreshBtn" class="toolbar-button" on-click="_refresh">
+        <iron-icon icon="refresh"></iron-icon>
+        Refresh
+      </paper-button>
       <paper-button id="cloneBtn" class="toolbar-button" on-click="_clonePipeline"
                     disabled="[[!oneItemIsSelected]]">
         <iron-icon icon="content-copy"></iron-icon>

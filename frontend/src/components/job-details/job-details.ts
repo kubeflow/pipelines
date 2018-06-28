@@ -52,6 +52,10 @@ export class JobDetails extends PageElement {
 
   private _jobId = '';
 
+  public get refreshButton(): PaperButtonElement {
+    return this.$.refreshButton as PaperButtonElement;
+  }
+
   public async load(_: string, queryParams: { jobId?: string, pipelineId: number }): Promise<void> {
     this._reset();
 
@@ -59,34 +63,42 @@ export class JobDetails extends PageElement {
       this._pipelineId = queryParams.pipelineId;
       this._jobId = queryParams.jobId;
 
-      this._loadingJob = true;
-      try {
-        const response = await Apis.getJob(this._pipelineId, this._jobId);
-        this.workflow = JSON.parse(response.workflow);
-        this.pipeline = await Apis.getPipeline(this._pipelineId);
-        this.packageTemplate = await Apis.getPackageTemplate(this.pipeline.package_id);
-      } catch (err) {
-        this.showPageError('There was an error while loading details for job: ' + this._jobId);
-        Utils.log.error('Error loading job details:', err);
-      } finally {
-        this._loadingJob = false;
-      }
-
-      // Render the job graph
-      try {
-        (this.$.jobGraph as JobGraph).refresh(this.workflow);
-      } catch (err) {
-        this.showPageError('There was an error while loading the job graph');
-        Utils.log.error('Could not draw job graph from object:', this.workflow);
-      }
-
-      // If pipeline params include output, retrieve them so they can be rendered by the data-plot
-      // component.
-      const baseOutputPath = this._getBaseOutputPath();
-      if (baseOutputPath) {
-        this._loadJobOutputs(baseOutputPath, this.packageTemplate);
-      }
+      this._loadJob();
     }
+  }
+
+  protected async _loadJob(): Promise<void> {
+    this._loadingJob = true;
+    try {
+      const response = await Apis.getJob(this._pipelineId, this._jobId);
+      this.workflow = JSON.parse(response.workflow);
+      this.pipeline = await Apis.getPipeline(this._pipelineId);
+      this.packageTemplate = await Apis.getPackageTemplate(this.pipeline.package_id);
+    } catch (err) {
+      this.showPageError('There was an error while loading details for job: ' + this._jobId);
+      Utils.log.error('Error loading job details:', err);
+    } finally {
+      this._loadingJob = false;
+    }
+
+    // Render the job graph
+    try {
+      (this.$.jobGraph as JobGraph).refresh(this.workflow);
+    } catch (err) {
+      this.showPageError('There was an error while loading the job graph');
+      Utils.log.error('Could not draw job graph from object:', this.workflow);
+    }
+
+    // If pipeline params include output, retrieve them so they can be rendered by the data-plot
+    // component.
+    const baseOutputPath = this._getBaseOutputPath();
+    if (baseOutputPath) {
+      this._loadJobOutputs(baseOutputPath, this.packageTemplate);
+    }
+  }
+
+  protected _refresh(): void {
+    this._loadJob();
   }
 
   protected _formatDateString(date: string): string {

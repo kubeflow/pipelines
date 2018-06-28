@@ -47,6 +47,21 @@ describe('pipeline-list', () => {
         fixedData.data.pipelines.map((pipeline) => pipeline.id));
   });
 
+  it('refreshes the list of pipeline', (done) => {
+    assert.deepStrictEqual(
+        fixture.pipelines.map((pipeline) => pipeline.id),
+        fixedData.data.pipelines.map((pipeline) => pipeline.id));
+
+    getPipelinesStub.returns({ nextPageToken: '', pipelines: [fixedData.data.pipelines[0]] });
+    fixture.refreshButton.click();
+
+    Polymer.Async.idlePeriod.run(() => {
+      assert.strictEqual(fixture.pipelines.length, 1);
+      assert.deepStrictEqual(fixture.pipelines[0], fixedData.data.pipelines[0]);
+      done();
+    });
+  });
+
   it('navigates to pipeline details page on double click', (done) => {
     fixture.itemList._selectItemByDisplayIndex(0);
     const index = fixture.itemList.selectedIndices[0];

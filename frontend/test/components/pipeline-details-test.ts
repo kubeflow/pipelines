@@ -124,13 +124,35 @@ describe('pipeline-details', () => {
     const jobList = fixture.shadowRoot.querySelector('job-list') as JobList;
     assert(!isVisible(jobList), 'should not show jobs div by default');
 
-    const tabs = fixture.shadowRoot.querySelector('paper-tabs') as PaperTabsElement;
-    tabs.select(1);
+    fixture.tabs.select(1);
     Polymer.flush();
 
     assert(isVisible(jobList), 'should not show jobs div by default');
     assert.deepStrictEqual(jobList.jobsMetadata, fixedData.data.jobs.map((j) => j.job),
         'jost list does not match test data');
+  });
+
+  it('refreshes the list of jobs', (done) => {
+    fixture.tabs.select(1);
+    const jobList = fixture.shadowRoot.querySelector('job-list') as JobList;
+
+    assert.deepStrictEqual(jobList.jobsMetadata, fixedData.data.jobs.map((j) => j.job),
+        'jost list does not match test data');
+
+    getJobsStub.returns({ nextPageToken: '', pipelines: [fixedData.data.pipelines[0]] });
+    fixture.refreshButton.click();
+
+    getJobsStub.returns({
+      jobs: [fixedData.data.jobs.map((j) => j.job)[0]],
+      nextPageToken: '',
+    });
+    fixture.refreshButton.click();
+
+    Polymer.Async.idlePeriod.run(() => {
+      assert.strictEqual(jobList.jobsMetadata.length, 1);
+      assert.deepStrictEqual(jobList.jobsMetadata[0], fixedData.data.jobs[0].job);
+      done();
+    });
   });
 
   it('clones the pipeline', (done) => {
