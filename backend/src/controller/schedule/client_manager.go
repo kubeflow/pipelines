@@ -122,15 +122,15 @@ func (s *ClientManager) Close() error {
 
 func (c *ClientManager) ScheduledWorkflow() v1alpha1.ScheduledWorkflowInterface {
 	// It's intended to not implement the method, since these code will soon be deprecated.
-	panic("Not implemented")
+	return nil
 }
 
 func (c *ClientManager) PipelineStoreV2() storage.PipelineStoreV2Interface {
 	// It's intended to not implement the method, since these code will soon be deprecated.
-	panic("Not implemented")
+	return nil
 }
 
 func (c *ClientManager) JobStoreV2() storage.JobStoreV2Interface {
 	// It's intended to not implement the method, since these code will soon be deprecated.
-	panic("Not implemented")
+	return nil
 }
