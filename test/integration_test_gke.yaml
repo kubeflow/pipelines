@@ -18,6 +18,8 @@ spec:
       value: frontend
     - name: scheduledworkflow-image-suffix
       value: scheduledworkflow
+    - name: scheduler-image-suffix
+      value: scheduler
   onExit: clean-up
   templates:
   - name: integration-test
@@ -28,6 +30,7 @@ spec:
       - name: api-image-suffix
       - name: frontend-image-suffix
       - name: scheduledworkflow-image-suffix
+      - name: scheduler-image-suffix
     steps:
     - - name: create-namespace
         template: create-namespace
@@ -83,6 +86,20 @@ spec:
             value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
           - name: docker-file
             value: Dockerfile.scheduledworkflow
+      - name: build-scheduler-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: branch
+            value: "{{inputs.parameters.branch}}"
+          - name: docker-path
+            value: backend
+          - name: image-suffix
+            value: "{{inputs.parameters.scheduler-image-suffix}}"
+          - name: docker-file
+            value: Dockerfile.scheduler
     - - name: deploy-ml-pipeline
         template: deploy-ml-pipeline
         arguments:
@@ -99,6 +116,8 @@ spec:
             value: "{{inputs.parameters.frontend-image-suffix}}"
           - name: scheduledworkflow-image-suffix
             value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
+          - name: scheduler-image-suffix
+            value: "{{inputs.parameters.scheduler-image-suffix}}"
     - - name: run-tests
         template: run-tests
         arguments:
@@ -167,6 +186,7 @@ spec:
       - name: api-image-suffix
       - name: frontend-image-suffix
       - name: scheduledworkflow-image-suffix
+      - name: scheduler-image-suffix
     container:
       image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.bootstrapper-image-suffix}}
       args: [
@@ -174,6 +194,7 @@ spec:
         "--api_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.api-image-suffix}}",
         "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.frontend-image-suffix}}",
         "--scheduled_workflow_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.scheduledworkflow-image-suffix}}",
+        "--scheduler_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.scheduler-image-suffix}}",
         "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
       ]
 
