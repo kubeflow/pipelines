@@ -18,18 +18,18 @@
 
     roleBinding:: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
-      kind: "RoleBinding",
+      kind: "ClusterRoleBinding",
       metadata: {
         labels: {
           app: "ml-pipeline-persistenceagent",
         },
         name: "ml-pipeline-persistenceagent",
-        namespace: namespace,
       },
       roleRef: {
         apiGroup: "rbac.authorization.k8s.io",
-        kind: "Role",
-        name: "ml-pipeline-persistenceagent",
+        kind: "ClusterRole",
+        // TODO: These permissions are too broad. This must be fixed.
+        name: "cluster-admin",
       },
       subjects: [
         {
@@ -42,7 +42,7 @@
 
     role: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
-      kind: "Role",
+      kind: "ClusterRole",
       metadata: {
         labels: {
           app: "ml-pipeline-persistenceagent",

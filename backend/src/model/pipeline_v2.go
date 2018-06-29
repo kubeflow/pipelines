@@ -9,7 +9,7 @@ type PipelineV2 struct {
 	Description    string `gorm:"column:Description"`
 	PackageId      uint32 `gorm:"column:PackageId; not null"`
 	Enabled        bool   `gorm:"column:Enabled; not null"`
-	Condition      string `gorm:"column:Condition; not null"`
+	Conditions     string `gorm:"column:Conditions; not null"`
 	MaxConcurrency int64  `gorm:"column:MaxConcurrency"`
 	Trigger        `gorm:"column:Trigger;"`
 	Parameters     string `gorm:"column:Parameters; size:10000"`   /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */

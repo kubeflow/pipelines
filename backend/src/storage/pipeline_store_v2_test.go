@@ -16,12 +16,16 @@ package storage
 
 import (
 	"testing"
+	"time"
 
 	"github.com/googleprivate/ml/backend/src/model"
 	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 func initializePipelineDB() *gorm.DB {
@@ -289,4 +293,241 @@ func TestEnablePipelineV2_DatabaseError(t *testing.T) {
 	err := pipelineStore.EnablePipeline("1", true)
 	println(err.Error())
 	assert.Contains(t, err.Error(), "Error when enabling pipeline 1 to true: sql: database is closed")
+}
+
+func TestUpdatePipeline_Success(t *testing.T) {
+	db := initializePipelineDB()
+	defer db.Close()
+	pipelineStore := NewPipelineStoreV2(db, util.NewFakeTimeForEpoch())
+
+	pipelineExpected := model.PipelineV2{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
+	}
+
+	pipeline, err := pipelineStore.GetPipeline("1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected, *pipeline)
+
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Enabled:        false,
+			MaxConcurrency: util.Int64Pointer(200),
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "PARAM1", Value: "NEW_VALUE1"},
+				},
+			},
+			Trigger: swfapi.Trigger{
+				CronSchedule: &swfapi.CronSchedule{
+					StartTime: util.MetaV1TimePointer(metav1.NewTime(time.Unix(10, 0).UTC())),
+					EndTime:   util.MetaV1TimePointer(metav1.NewTime(time.Unix(20, 0).UTC())),
+					Cron:      "MY_CRON",
+				},
+				PeriodicSchedule: &swfapi.PeriodicSchedule{
+					StartTime:      util.MetaV1TimePointer(metav1.NewTime(time.Unix(30, 0).UTC())),
+					EndTime:        util.MetaV1TimePointer(metav1.NewTime(time.Unix(40, 0).UTC())),
+					IntervalSecond: 50,
+				},
+			},
+		},
+		Status: swfapi.ScheduledWorkflowStatus{
+			Conditions: []swfapi.ScheduledWorkflowCondition{{
+				Type:               swfapi.ScheduledWorkflowEnabled,
+				Status:             core.ConditionTrue,
+				LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
+				LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
+				Reason:             string(swfapi.ScheduledWorkflowEnabled),
+				Message:            "The schedule is enabled.",
+			},
+			},
+		},
+	})
+
+	err = pipelineStore.UpdatePipeline(swf)
+	assert.Nil(t, err)
+
+	pipelineExpected = model.PipelineV2{
+		UUID:           "1",
+		Name:           "MY_NAME",
+		Namespace:      "MY_NAMESPACE",
+		PackageId:      1,
+		Enabled:        false,
+		Conditions:     "Enabled:",
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 1,
+		MaxConcurrency: 200,
+		Parameters:     "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(10),
+				CronScheduleEndTimeInSec:   util.Int64Pointer(20),
+				Cron: util.StringPointer("MY_CRON"),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(30),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(40),
+				IntervalSecond:                 util.Int64Pointer(50),
+			},
+		},
+	}
+
+	pipeline, err = pipelineStore.GetPipeline("1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected, *pipeline)
+}
+
+func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
+	db := initializePipelineDB()
+	defer db.Close()
+	pipelineStore := NewPipelineStoreV2(db, util.NewFakeTimeForEpoch())
+
+	pipelineExpected := model.PipelineV2{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
+	}
+
+	pipeline, err := pipelineStore.GetPipeline("1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected, *pipeline)
+
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+	})
+
+	err = pipelineStore.UpdatePipeline(swf)
+	assert.Nil(t, err)
+
+	pipelineExpected = model.PipelineV2{
+		UUID:           "1",
+		Name:           "MY_NAME",
+		Namespace:      "MY_NAMESPACE",
+		PackageId:      1,
+		Enabled:        false,
+		Conditions:     "NO_STATUS:",
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 1,
+		MaxConcurrency: 0,
+		Parameters:     "[]",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: nil,
+				CronScheduleEndTimeInSec:   nil,
+				Cron: util.StringPointer(""),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: nil,
+				PeriodicScheduleEndTimeInSec:   nil,
+				IntervalSecond:                 util.Int64Pointer(0),
+			},
+		},
+	}
+
+	pipeline, err = pipelineStore.GetPipeline("1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected, *pipeline)
+}
+
+func TestUpdatePipeline_MissingField(t *testing.T) {
+	db := initializePipelineDB()
+	defer db.Close()
+	pipelineStore := NewPipelineStoreV2(db, util.NewFakeTimeForEpoch())
+
+	// Name
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+	})
+
+	err := pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a name")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// Namespace
+	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_NAME",
+			UID:  "1",
+		},
+	})
+
+	err = pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a namespace")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// UID
+	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+		},
+	})
+
+	err = pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a UID")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+}
+
+func TestUpdatePipeline_RecordNotFound(t *testing.T) {
+	db := initializePipelineDB()
+	defer db.Close()
+	pipelineStore := NewPipelineStoreV2(db, util.NewFakeTimeForEpoch())
+
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "UNKNOWN_UID",
+		},
+	})
+
+	err := pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "There is no pipeline")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+}
+
+func TestUpdatePipeline_InternalError(t *testing.T) {
+	db := initializePipelineDB()
+	//defer db.Close()
+	pipelineStore := NewPipelineStoreV2(db, util.NewFakeTimeForEpoch())
+	db.Close()
+
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "UNKNOWN_UID",
+		},
+	})
+
+	err := pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
+	assert.Contains(t, err.(*util.UserError).Error(), "database is closed")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.Internal)
 }

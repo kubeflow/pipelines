@@ -102,11 +102,14 @@ message PipelineV2{
   string description = 3;
   uint32 package_id = 4;
   bool enabled = 5;
-  // The status is surfacing the CRD's condition. A CRD can potentially have
-  // multiple conditions, although in most cases, it should be in one state.
+  // The status is surfacing the resource condition. A resource can potentially
+  // have multiple conditions, although in most cases, it should be in one
+  // state.
   // https://github.com/eBay/Kubernetes/blob/master/docs/devel/api-conventions.md
-  // In multi-conditions case, the status is separated by semicolon.
-  // STATUS_1;STATUS_2
+  // In case of a single state, the status ends with a colon:
+  // STATUS_1:
+  // In case of multiple states, the statuses are separated by a colon.
+  // STATUS_1:STATUS_2:
   string status = 6;
   int64 max_concurrency = 7;
   repeated Parameter parameters = 8;

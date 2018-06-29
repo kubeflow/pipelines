@@ -37,7 +37,7 @@ func (m *CreatePipelineRequestV2) Reset()         { *m = CreatePipelineRequestV2
 func (m *CreatePipelineRequestV2) String() string { return proto.CompactTextString(m) }
 func (*CreatePipelineRequestV2) ProtoMessage()    {}
 func (*CreatePipelineRequestV2) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{0}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{0}
 }
 func (m *CreatePipelineRequestV2) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreatePipelineRequestV2.Unmarshal(m, b)
@@ -75,7 +75,7 @@ func (m *GetPipelineRequestV2) Reset()         { *m = GetPipelineRequestV2{} }
 func (m *GetPipelineRequestV2) String() string { return proto.CompactTextString(m) }
 func (*GetPipelineRequestV2) ProtoMessage()    {}
 func (*GetPipelineRequestV2) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{1}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{1}
 }
 func (m *GetPipelineRequestV2) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetPipelineRequestV2.Unmarshal(m, b)
@@ -115,7 +115,7 @@ func (m *ListPipelinesRequestV2) Reset()         { *m = ListPipelinesRequestV2{}
 func (m *ListPipelinesRequestV2) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesRequestV2) ProtoMessage()    {}
 func (*ListPipelinesRequestV2) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{2}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{2}
 }
 func (m *ListPipelinesRequestV2) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesRequestV2.Unmarshal(m, b)
@@ -168,7 +168,7 @@ func (m *ListPipelinesResponseV2) Reset()         { *m = ListPipelinesResponseV2
 func (m *ListPipelinesResponseV2) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesResponseV2) ProtoMessage()    {}
 func (*ListPipelinesResponseV2) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{3}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{3}
 }
 func (m *ListPipelinesResponseV2) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesResponseV2.Unmarshal(m, b)
@@ -213,7 +213,7 @@ func (m *DeletePipelineRequestV2) Reset()         { *m = DeletePipelineRequestV2
 func (m *DeletePipelineRequestV2) String() string { return proto.CompactTextString(m) }
 func (*DeletePipelineRequestV2) ProtoMessage()    {}
 func (*DeletePipelineRequestV2) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{4}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{4}
 }
 func (m *DeletePipelineRequestV2) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePipelineRequestV2.Unmarshal(m, b)
@@ -251,7 +251,7 @@ func (m *EnablePipelineRequestV2) Reset()         { *m = EnablePipelineRequestV2
 func (m *EnablePipelineRequestV2) String() string { return proto.CompactTextString(m) }
 func (*EnablePipelineRequestV2) ProtoMessage()    {}
 func (*EnablePipelineRequestV2) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{5}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{5}
 }
 func (m *EnablePipelineRequestV2) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EnablePipelineRequestV2.Unmarshal(m, b)
@@ -289,7 +289,7 @@ func (m *DisablePipelineRequestV2) Reset()         { *m = DisablePipelineRequest
 func (m *DisablePipelineRequestV2) String() string { return proto.CompactTextString(m) }
 func (*DisablePipelineRequestV2) ProtoMessage()    {}
 func (*DisablePipelineRequestV2) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{6}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{6}
 }
 func (m *DisablePipelineRequestV2) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DisablePipelineRequestV2.Unmarshal(m, b)
@@ -329,7 +329,7 @@ func (m *CronSchedule) Reset()         { *m = CronSchedule{} }
 func (m *CronSchedule) String() string { return proto.CompactTextString(m) }
 func (*CronSchedule) ProtoMessage()    {}
 func (*CronSchedule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{7}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{7}
 }
 func (m *CronSchedule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CronSchedule.Unmarshal(m, b)
@@ -383,7 +383,7 @@ func (m *PeriodicSchedule) Reset()         { *m = PeriodicSchedule{} }
 func (m *PeriodicSchedule) String() string { return proto.CompactTextString(m) }
 func (*PeriodicSchedule) ProtoMessage()    {}
 func (*PeriodicSchedule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{8}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{8}
 }
 func (m *PeriodicSchedule) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PeriodicSchedule.Unmarshal(m, b)
@@ -438,7 +438,7 @@ func (m *Trigger) Reset()         { *m = Trigger{} }
 func (m *Trigger) String() string { return proto.CompactTextString(m) }
 func (*Trigger) ProtoMessage()    {}
 func (*Trigger) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{9}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{9}
 }
 func (m *Trigger) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Trigger.Unmarshal(m, b)
@@ -568,11 +568,19 @@ func _Trigger_OneofSizer(msg proto.Message) (n int) {
 }
 
 type PipelineV2 struct {
-	Id                   string               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name                 string               `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description          string               `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	PackageId            uint32               `protobuf:"varint,4,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
-	Enabled              bool                 `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name        string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	PackageId   uint32 `protobuf:"varint,4,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
+	Enabled     bool   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// The status is surfacing the resource condition. A resource can potentially
+	// have multiple conditions, although in most cases, it should be in one
+	// state.
+	// https://github.com/eBay/Kubernetes/blob/master/docs/devel/api-conventions.md
+	// In case of a single state, the status ends with a semicolon:
+	// STATUS_1;
+	// In case of multiple states, the statuses are separated by a semicolon.
+	// STATUS_1;STATUS_2;
 	Status               string               `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
 	MaxConcurrency       int64                `protobuf:"varint,7,opt,name=max_concurrency,json=maxConcurrency,proto3" json:"max_concurrency,omitempty"`
 	Parameters           []*Parameter         `protobuf:"bytes,8,rep,name=parameters,proto3" json:"parameters,omitempty"`
@@ -588,7 +596,7 @@ func (m *PipelineV2) Reset()         { *m = PipelineV2{} }
 func (m *PipelineV2) String() string { return proto.CompactTextString(m) }
 func (*PipelineV2) ProtoMessage()    {}
 func (*PipelineV2) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_v1alpha2_1d559c98207072de, []int{10}
+	return fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5, []int{10}
 }
 func (m *PipelineV2) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PipelineV2.Unmarshal(m, b)
@@ -937,10 +945,10 @@ var _PipelineServiceV2_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("pipeline_v1alpha2.proto", fileDescriptor_pipeline_v1alpha2_1d559c98207072de)
+	proto.RegisterFile("pipeline_v1alpha2.proto", fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5)
 }
 
-var fileDescriptor_pipeline_v1alpha2_1d559c98207072de = []byte{
+var fileDescriptor_pipeline_v1alpha2_77ac7a3abe198be5 = []byte{
 	// 852 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x55, 0xd1, 0x72, 0x1b, 0x35,
 	0x14, 0xed, 0xda, 0x4d, 0x6c, 0xdf, 0x24, 0x76, 0xa3, 0x81, 0x78, 0x71, 0x92, 0xa9, 0x67, 0xa7,

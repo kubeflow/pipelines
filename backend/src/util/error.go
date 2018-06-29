@@ -22,7 +22,47 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
+	k8metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type CustomCode uint32
+
+const (
+	CUSTOM_CODE_TRANSIENT CustomCode = 0
+	CUSTOM_CODE_PERMANENT CustomCode = 1
+	CUSTOM_CODE_NOT_FOUND CustomCode = 2
+	CUSTOM_CODE_GENERIC   CustomCode = 3
+)
+
+type CustomError struct {
+	error error
+	code  CustomCode
+}
+
+func NewCustomError(err error, code CustomCode, format string, a ...interface{}) *CustomError {
+	message := fmt.Sprintf(format, a...)
+	return &CustomError{
+		error: errors.Wrapf(err, fmt.Sprintf("CustomError (code: %v): %v", code, message)),
+		code:  code,
+	}
+}
+
+func (e *CustomError) Error() string {
+	return e.error.Error()
+}
+
+func HasCustomCode(err error, code CustomCode) bool {
+	if err == nil {
+		return false
+	}
+	switch err.(type) {
+	case *CustomError:
+		return err.(*CustomError).code == code
+	default:
+		return false
+	}
+}
 
 type UserError struct {
 	// Error for internal debugging.
@@ -189,4 +229,20 @@ func TerminateIfError(err error) {
 	if err != nil {
 		glog.Fatalf("%v", err)
 	}
+}
+
+// IsNotFound returns whether an error indicates that a resource was "not found".
+func IsNotFound(err error) bool {
+	return reasonForError(err) == k8metav1.StatusReasonNotFound
+}
+
+// ReasonForError returns the HTTP status for a particular error.
+func reasonForError(err error) k8metav1.StatusReason {
+	switch t := err.(type) {
+	case k8errors.APIStatus:
+		return t.Status().Reason
+	case *k8errors.StatusError:
+		return t.Status().Reason
+	}
+	return k8metav1.StatusReasonUnknown
 }

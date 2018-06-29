@@ -19,18 +19,18 @@
 
     roleBinding:: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
-      kind: "RoleBinding",
+      kind: "ClusterRoleBinding",
       metadata: {
         labels: {
           app: "ml-pipeline-scheduledworkflow",
         },
         name: "ml-pipeline-scheduledworkflow",
-        namespace: namespace,
       },
       roleRef: {
         apiGroup: "rbac.authorization.k8s.io",
-        kind: "Role",
-        name: "ml-pipeline-scheduledworkflow",
+        kind: "ClusterRole",
+        // TODO: These permissions are too broad. This must be fixed.
+        name: "cluster-admin",
       },
       subjects: [
         {

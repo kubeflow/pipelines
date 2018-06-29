@@ -1,0 +1,89 @@
+package util
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/cenkalti/backoff"
+	"github.com/pkg/errors"
+	"google.golang.org/grpc"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+)
+
+func WaitForGrpcClientAvailable(
+	namespace string,
+	initializeTimeout time.Duration,
+	basePath string,
+	masterurl string,
+	kubeconfig string) error {
+
+	formattedBasePath := fmt.Sprintf(basePath, namespace, "healthz")
+
+	clientSet, err := GetKubernetesClient(masterurl, kubeconfig)
+	if err != nil {
+		return errors.Wrapf(err,
+			"Failed to get the clientSet when waiting for service (%v) to be ready in namespace (%v).",
+			formattedBasePath, namespace)
+	}
+
+	var operation = func() error {
+		response := clientSet.RESTClient().Get().
+			AbsPath(formattedBasePath).Do()
+		if response.Error() == nil {
+			return nil
+		}
+		var code int
+		response.StatusCode(&code)
+		// we wait only on 503 service unavailable. Stop retry otherwise.
+		if code != 503 {
+			return backoff.Permanent(errors.Wrapf(response.Error(),
+				"Could not reach service (%v) in namespace (%v), retrying....",
+				formattedBasePath, namespace))
+		}
+		return response.Error()
+	}
+
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = initializeTimeout
+	err = backoff.Retry(operation, b)
+	return errors.Wrapf(err,
+		"Waiting for service (%v) in namespace (%v) failed after all attempts.",
+		formattedBasePath, namespace)
+}
+
+func GetKubernetesClient(masterUrl string, kubeconfig string) (*kubernetes.Clientset, error) {
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags(masterUrl, kubeconfig)
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"Failed to get cluster config during K8s client initialization")
+	}
+	// create the clientset
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"Failed to create client set during K8s client initialization")
+	}
+
+	return clientSet, nil
+}
+
+func GetRpcConnection(namespace string, serviceName string, servicePort string,
+	masterurl string, kubeconfig string) (*grpc.ClientConn, error) {
+	clientSet, err := GetKubernetesClient(masterurl, kubeconfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to get K8s client set when getting RPC connection")
+	}
+	svc, err := clientSet.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to get ml-pipeline service")
+	}
+	rpcAddress := svc.Spec.ClusterIP + ":" + servicePort
+	conn, err := grpc.Dial(rpcAddress, grpc.WithInsecure())
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
+	}
+	return conn, nil
+}

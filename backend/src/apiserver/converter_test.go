@@ -19,7 +19,7 @@ func TestToApiJobDetailV2(t *testing.T) {
 			PipelineID:       "pipeline123",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Condition:        "running",
+			Conditions:       "running",
 		},
 		Workflow: "workflow123",
 	}
@@ -46,7 +46,7 @@ func TestToApiJobsV2(t *testing.T) {
 		PipelineID:       "pipeline1",
 		CreatedAtInSec:   1,
 		ScheduledAtInSec: 1,
-		Condition:        "running",
+		Conditions:       "running",
 	}
 	modelJob2 := model.JobV2{
 		UUID:             "job2",
@@ -55,7 +55,7 @@ func TestToApiJobsV2(t *testing.T) {
 		PipelineID:       "pipeline2",
 		CreatedAtInSec:   2,
 		ScheduledAtInSec: 2,
-		Condition:        "done",
+		Conditions:       "done",
 	}
 	apiJobs := ToApiJobsV2([]model.JobV2{modelJob1, modelJob2})
 	expectedApiJob := []*api.JobV2{

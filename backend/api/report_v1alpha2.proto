@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package api;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+service ReportService {
+  rpc ReportWorkflow(ReportWorkflowRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1alpha2/workflows"
+      body: "workflow"
+    };
+  }
+
+  rpc ReportScheduledWorkflow(ReportScheduledWorkflowRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1alpha2/scheduledworkflows"
+      body: "scheduled_workflow"
+    };
+  }
+}
+
+message ReportWorkflowRequest{
+  // Workflow is a workflow custom resource marshalled into a json string.
+  string workflow = 1;
+}
+
+message ReportScheduledWorkflowRequest{
+  // ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string.
+  string scheduled_workflow = 1;
+}

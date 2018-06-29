@@ -16,12 +16,16 @@ package storage
 
 import (
 	"testing"
+	"time"
 
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/model"
 	"github.com/googleprivate/ml/backend/src/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func initializeDB() *gorm.DB {
@@ -34,7 +38,7 @@ func initializeDB() *gorm.DB {
 			PipelineID:       "1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Condition:        "running",
+			Conditions:       "running",
 		},
 		Workflow: "workflow1",
 	}
@@ -46,7 +50,7 @@ func initializeDB() *gorm.DB {
 			PipelineID:       "1",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
-			Condition:        "done",
+			Conditions:       "done",
 		},
 		Workflow: "workflow1",
 	}
@@ -58,7 +62,7 @@ func initializeDB() *gorm.DB {
 			PipelineID:       "2",
 			CreatedAtInSec:   3,
 			ScheduledAtInSec: 3,
-			Condition:        "done",
+			Conditions:       "done",
 		},
 		Workflow: "workflow3",
 	}
@@ -81,7 +85,7 @@ func TestListJobsV2_Pagination(t *testing.T) {
 			PipelineID:       "1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Condition:        "running",
+			Conditions:       "running",
 		}}
 	expectedSecondPageJobs := []model.JobV2{
 		{
@@ -91,7 +95,7 @@ func TestListJobsV2_Pagination(t *testing.T) {
 			PipelineID:       "1",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
-			Condition:        "done",
+			Conditions:       "done",
 		}}
 	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 1, model.GetJobV2TablePrimaryKeyColumn())
 	assert.Nil(t, err)
@@ -117,7 +121,7 @@ func TestListJobsV2_Pagination_LessThanPageSize(t *testing.T) {
 			PipelineID:       "1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Condition:        "running",
+			Conditions:       "running",
 		},
 		{
 			UUID:             "2",
@@ -126,7 +130,7 @@ func TestListJobsV2_Pagination_LessThanPageSize(t *testing.T) {
 			PipelineID:       "1",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
-			Condition:        "done",
+			Conditions:       "done",
 		}}
 	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 10, model.GetJobV2TablePrimaryKeyColumn())
 	assert.Nil(t, err)
@@ -157,7 +161,7 @@ func TestGetJobV2(t *testing.T) {
 			PipelineID:       "1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Condition:        "running",
+			Conditions:       "running",
 		},
 		Workflow: "workflow1",
 	}
@@ -186,4 +190,264 @@ func TestGetJobV2_InternalError(t *testing.T) {
 	_, err := jobStore.GetJob("1", "1")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get job to return internal error")
+}
+
+func TestUpdateJob_UpdateSuccess(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStoreV2(db, util.NewFakeTimeForEpoch())
+
+	expectedJob := &model.JobDetailV2{
+		JobV2: model.JobV2{
+			UUID:             "1",
+			Name:             "job1",
+			Namespace:        "n1",
+			PipelineID:       "1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+		},
+		Workflow: "workflow1",
+	}
+
+	jobDetail, err := jobStore.GetJob("1", "1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, jobDetail)
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+			Labels: map[string]string{
+				"scheduledworkflows.kubeflow.org/workflowEpoch": "100",
+			},
+			CreationTimestamp: metav1.NewTime(time.Unix(11, 0).UTC()),
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.NodeRunning,
+		},
+	})
+
+	err = jobStore.UpdateJob(workflow)
+	assert.Nil(t, err)
+
+	expectedJob = &model.JobDetailV2{
+		JobV2: model.JobV2{
+			UUID:             "1",
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			PipelineID:       "1",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 100,
+			Conditions:       "Running:",
+		},
+		Workflow: workflow.ToStringForStore(),
+	}
+
+	jobDetail, err = jobStore.GetJob("1", "1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, jobDetail)
+}
+
+func TestUpdateJob_CreateSuccess(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStoreV2(db, util.NewFakeTimeForEpoch())
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "2",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("2"),
+			}},
+			Labels: map[string]string{
+				"scheduledworkflows.kubeflow.org/workflowEpoch": "100",
+			},
+			CreationTimestamp: metav1.NewTime(time.Unix(11, 0).UTC()),
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.NodeRunning,
+		},
+	})
+
+	err := jobStore.UpdateJob(workflow)
+	assert.Nil(t, err)
+
+	expectedJob := &model.JobDetailV2{
+		JobV2: model.JobV2{
+			UUID:             "2",
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			PipelineID:       "2",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 100,
+			Conditions:       "Running:",
+		},
+		Workflow: workflow.ToStringForStore(),
+	}
+
+	jobDetail, err := jobStore.GetJob("2", "2")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, jobDetail)
+}
+
+func TestUpdateJob_UpdateError(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStoreV2(db, util.NewFakeTimeForEpoch())
+	db.Close()
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+			Labels: map[string]string{
+				"scheduledworkflows.kubeflow.org/workflowEpoch": "100",
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.NodeRunning,
+		},
+	})
+
+	err := jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Error while updating job")
+}
+
+func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStoreV2(db, util.NewFakeTimeForEpoch())
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+			CreationTimestamp: metav1.NewTime(time.Unix(11, 0).UTC()),
+		},
+	})
+
+	err := jobStore.UpdateJob(workflow)
+	assert.Nil(t, err)
+
+	expectedJob := &model.JobDetailV2{
+		JobV2: model.JobV2{
+			UUID:             "1",
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			PipelineID:       "1",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 0,
+			Conditions:       ":",
+		},
+		Workflow: workflow.ToStringForStore(),
+	}
+
+	jobDetail, err := jobStore.GetJob("1", "1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, jobDetail)
+}
+
+func TestUpdateJob_MissingField(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStoreV2(db, util.NewFakeTimeForEpoch())
+
+	// Name
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+
+	err := jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a name")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// Namespace
+	workflow = util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_NAME",
+			UID:  "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+
+	err = jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a namespace")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// Owner
+	workflow = util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+	})
+
+	err = jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a valid owner")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// UID
+	workflow = util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+
+	err = jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a UID")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 }

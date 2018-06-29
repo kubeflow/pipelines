@@ -17,15 +17,18 @@ package resource
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/model"
 	"github.com/googleprivate/ml/backend/src/storage"
 	"github.com/googleprivate/ml/backend/src/util"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type FakeBadObjectStore struct{}
@@ -603,7 +606,7 @@ func TestListJobV2(t *testing.T) {
 			PipelineID:       "1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Condition:        "running",
+			Conditions:       "running",
 		},
 		Workflow: "workflow1",
 	}
@@ -617,7 +620,7 @@ func TestListJobV2(t *testing.T) {
 		PipelineID:       "1",
 		CreatedAtInSec:   1,
 		ScheduledAtInSec: 1,
-		Condition:        "running",
+		Conditions:       "running",
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
@@ -657,7 +660,7 @@ func TestGetJobV2(t *testing.T) {
 			PipelineID:       "1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Condition:        "running",
+			Conditions:       "running",
 		},
 		Workflow: "workflow1",
 	}
@@ -672,7 +675,7 @@ func TestGetJobV2(t *testing.T) {
 			PipelineID:       "1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Condition:        "running",
+			Conditions:       "running",
 		},
 		Workflow: "workflow1",
 	}
@@ -710,7 +713,7 @@ func TestCreatePipelineV2(t *testing.T) {
 		Enabled:        true,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
-		Condition:      "NO_STATUS",
+		Conditions:     "NO_STATUS:",
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedPipeline, newPipeline)
@@ -774,7 +777,7 @@ func TestEnablePipelineV2(t *testing.T) {
 		Enabled:        false,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 2,
-		Condition:      "NO_STATUS",
+		Conditions:     "NO_STATUS:",
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedPipeline, newPipeline)
@@ -897,4 +900,210 @@ func TestDeletePipelineV2_DbFailure(t *testing.T) {
 	err = manager.DeletePipelineV2(newPipeline.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestReportWorkflowResource_Success(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create package
+	workflowForPackage := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflowForPackage, storage.PackageFolder, "1")
+
+	// Create pipeline
+	pipeline := &model.PipelineV2{
+		Name:      "pp1",
+		PackageId: 1,
+		Enabled:   true,
+	}
+	newPipeline, err := manager.CreatePipelineV2(pipeline)
+	assert.Nil(t, err)
+
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "MY_JOB_ID",
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID(newPipeline.UUID),
+			}},
+			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
+		},
+	})
+	err = manager.ReportWorkflowResource(workflow.ToStringForStore())
+	assert.Nil(t, err)
+
+	jobDetail, err := manager.GetJobV2(newPipeline.UUID, "MY_JOB_ID")
+	assert.Nil(t, err)
+
+	expectedJobDetail := &model.JobDetailV2{
+		JobV2: model.JobV2{
+			UUID:             "MY_JOB_ID",
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			PipelineID:       "123",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 0,
+			Conditions:       ":",
+		},
+		Workflow: workflow.ToStringForStore(),
+	}
+
+	assert.Equal(t, expectedJobDetail, jobDetail)
+}
+
+func TestReportWorkflowResource_UnmarshalError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	err := manager.ReportWorkflowResource("WRONG_WORKFLOW")
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Could not unmarshal")
+}
+
+func TestReportWorkflowResource_Error(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create package
+	workflowForPackage := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflowForPackage, storage.PackageFolder, "1")
+
+	// Create pipeline
+	pipeline := &model.PipelineV2{
+		Name:      "pp1",
+		PackageId: 1,
+		Enabled:   true,
+	}
+	newPipeline, err := manager.CreatePipelineV2(pipeline)
+	assert.Nil(t, err)
+
+	store.Close()
+
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "MY_JOB_ID",
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID(newPipeline.UUID),
+			}},
+		},
+	})
+	err = manager.ReportWorkflowResource(workflow.ToStringForStore())
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
+}
+
+func TestReportScheduledWorkflowResource_Success(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create package
+	workflowForPackage := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflowForPackage, storage.PackageFolder, "1")
+
+	// Create pipeline
+	pipeline := &model.PipelineV2{
+		Name:      "pp1",
+		PackageId: 1,
+		Enabled:   true,
+	}
+	newPipeline, err := manager.CreatePipelineV2(pipeline)
+	assert.Nil(t, err)
+
+	// report scheduled workflow
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       types.UID(newPipeline.UUID),
+		},
+	})
+	err = manager.ReportScheduledWorkflowResource(swf.ToStringForStore())
+	assert.Nil(t, err)
+
+	jobDetail, err := manager.GetPipelineV2(newPipeline.UUID)
+	assert.Nil(t, err)
+
+	expectedPipeline := &model.PipelineV2{
+		Name:       "MY_NAME",
+		Namespace:  "MY_NAMESPACE",
+		PackageId:  1,
+		Enabled:    false,
+		UUID:       newPipeline.UUID,
+		Conditions: "NO_STATUS:",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				Cron: util.StringPointer(""),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				IntervalSecond: util.Int64Pointer(0),
+			},
+		},
+		Parameters:     "[]",
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 2,
+	}
+	assert.Equal(t, expectedPipeline, jobDetail)
+}
+
+func TestReportScheduledWorkflowResource_UnmarshalError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	err := manager.ReportScheduledWorkflowResource("WRONG_SCHEDULED_WORKFLOW")
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Could not unmarshal")
+}
+
+func TestReportScheduledWorkflowResource_Error(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create package
+	workflowForPackage := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflowForPackage, storage.PackageFolder, "1")
+
+	// Create pipeline
+	pipeline := &model.PipelineV2{
+		Name:      "pp1",
+		PackageId: 1,
+		Enabled:   true,
+	}
+	newPipeline, err := manager.CreatePipelineV2(pipeline)
+	assert.Nil(t, err)
+
+	store.Close()
+
+	// report scheduled workflow
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       types.UID(newPipeline.UUID),
+		},
+	})
+	err = manager.ReportScheduledWorkflowResource(swf.ToStringForStore())
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
+
 }

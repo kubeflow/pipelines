@@ -170,7 +170,7 @@ func toApiJobV2(job *model.JobV2) *api.JobV2 {
 		Namespace:   job.Namespace,
 		CreatedAt:   &timestamp.Timestamp{Seconds: job.CreatedAtInSec},
 		ScheduledAt: &timestamp.Timestamp{Seconds: job.ScheduledAtInSec},
-		Status:      job.Condition,
+		Status:      job.Conditions,
 	}
 }
 
@@ -202,7 +202,7 @@ func ToApiPipelineV2(pipeline *model.PipelineV2) (*api.PipelineV2, error) {
 		Enabled:        pipeline.Enabled,
 		CreatedAt:      &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: pipeline.UpdatedAtInSec},
-		Status:         pipeline.Condition,
+		Status:         pipeline.Conditions,
 		MaxConcurrency: pipeline.MaxConcurrency,
 		Trigger:        toApiTrigger(pipeline.Trigger),
 		Parameters:     params,

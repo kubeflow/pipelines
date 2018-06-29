@@ -1,9 +1,8 @@
 package storage
 
 import (
-	"fmt"
-
 	"bytes"
+	"fmt"
 
 	"github.com/googleprivate/ml/backend/src/model"
 	"github.com/googleprivate/ml/backend/src/util"
@@ -16,6 +15,7 @@ type PipelineStoreV2Interface interface {
 	CreatePipeline(*model.PipelineV2) (*model.PipelineV2, error)
 	DeletePipeline(id string) error
 	EnablePipeline(id string, enabled bool) error
+	UpdatePipeline(swf *util.ScheduledWorkflow) error
 }
 
 type PipelineStoreV2 struct {
@@ -78,7 +78,6 @@ func (s *PipelineStoreV2) CreatePipeline(p *model.PipelineV2) (*model.PipelineV2
 	newPipeline.UpdatedAtInSec = now
 
 	if r := s.db.Create(&newPipeline); r.Error != nil {
-		println(r.Error.Error())
 		return nil, util.NewInternalServerError(r.Error, "Failed to add pipeline to pipeline table: %v",
 			r.Error.Error())
 	}
@@ -91,6 +90,70 @@ func (s *PipelineStoreV2) EnablePipeline(id string, enabled bool) error {
 	if r.Error != nil {
 		return util.NewInternalServerError(r.Error, "Error when enabling pipeline %v to %v", id, enabled)
 	}
+	return nil
+}
+
+func (s *PipelineStoreV2) UpdatePipeline(swf *util.ScheduledWorkflow) error {
+	now := s.time.Now().Unix()
+
+	if swf.Name == "" {
+		return util.NewInvalidInputError("The resource must have a name: %+v", swf.ScheduledWorkflow)
+	}
+	if swf.Namespace == "" {
+		return util.NewInvalidInputError("The resource must have a namespace: %+v", swf.ScheduledWorkflow)
+	}
+
+	if swf.UID == "" {
+		return util.NewInvalidInputError("The resource must have a UID: %+v", swf.UID)
+	}
+
+	parameters, err := swf.ParametersAsString()
+	if err != nil {
+		return err
+	}
+
+	r := s.db.Exec(`UPDATE pipeline_detail_v2 SET 
+		Name = ?,
+		Namespace = ?,
+		Enabled = ?,
+		Conditions = ?,
+		MaxConcurrency = ?,
+		Parameters = ?,
+		UpdatedAtInSec = ?,
+		CronScheduleStartTimeInSec = ?,
+		CronScheduleEndTimeInSec = ?,
+		Schedule = ?,
+		PeriodicScheduleStartTimeInSec = ?,
+		PeriodicScheduleEndTimeInSec = ?,
+		IntervalSecond = ? 
+		WHERE UUID = ?`,
+		swf.Name,
+		swf.Namespace,
+		swf.Spec.Enabled,
+		swf.ConditionSummary(),
+		swf.Spec.MaxConcurrency,
+		parameters,
+		now,
+		swf.CronScheduleStartTimeInSecOrNull(),
+		swf.CronScheduleEndTimeInSecOrNull(),
+		swf.CronOrEmpty(),
+		swf.PeriodicScheduleStartTimeInSecOrNull(),
+		swf.PeriodicScheduleEndTimeInSecOrNull(),
+		swf.IntervalSecondOr0(),
+		string(swf.UID))
+
+	if r.Error != nil {
+		return util.NewInternalServerError(r.Error,
+			"Error while updating pipeline with scheduled workflow: %v: %+v",
+			r.Error, swf.ScheduledWorkflow)
+	}
+
+	if r.RowsAffected <= 0 {
+		return util.NewInvalidInputError(
+			"There is no pipeline corresponding to this scheduled workflow: %v/%v/%v",
+			swf.UID, swf.Namespace, swf.Name)
+	}
+
 	return nil
 }
 

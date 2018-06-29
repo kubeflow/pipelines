@@ -31,7 +31,7 @@
           pipeline_apiserver.all(namespace,api_image) +
           pipeline_scheduler.all(namespace,scheduler_image) +
           pipeline_scheduledworkflow.all(namespace,scheduledworkflow_image) +
-          //pipeline_persistenceagent.all(namespace,persistenceagent_image) +
+          pipeline_persistenceagent.all(namespace,persistenceagent_image) +
           pipeline_ui.all(namespace,ui_image) +
           $.parts(params).argo +
           $.parts(params).reporting,

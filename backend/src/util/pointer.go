@@ -17,6 +17,8 @@ package util
 import (
 	"fmt"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func StringPointer(s string) *string {
@@ -28,6 +30,10 @@ func BoolPointer(b bool) *bool {
 }
 
 func TimePointer(t time.Time) *time.Time {
+	return &t
+}
+
+func MetaV1TimePointer(t metav1.Time) *metav1.Time {
 	return &t
 }
 

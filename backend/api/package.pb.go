@@ -37,7 +37,7 @@ func (m *GetPackageRequest) Reset()         { *m = GetPackageRequest{} }
 func (m *GetPackageRequest) String() string { return proto.CompactTextString(m) }
 func (*GetPackageRequest) ProtoMessage()    {}
 func (*GetPackageRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_package_cce06a887bdfde92, []int{0}
+	return fileDescriptor_package_c30bc5311e6b63b7, []int{0}
 }
 func (m *GetPackageRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetPackageRequest.Unmarshal(m, b)
@@ -77,7 +77,7 @@ func (m *ListPackagesRequest) Reset()         { *m = ListPackagesRequest{} }
 func (m *ListPackagesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListPackagesRequest) ProtoMessage()    {}
 func (*ListPackagesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_package_cce06a887bdfde92, []int{1}
+	return fileDescriptor_package_c30bc5311e6b63b7, []int{1}
 }
 func (m *ListPackagesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPackagesRequest.Unmarshal(m, b)
@@ -130,7 +130,7 @@ func (m *ListPackagesResponse) Reset()         { *m = ListPackagesResponse{} }
 func (m *ListPackagesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListPackagesResponse) ProtoMessage()    {}
 func (*ListPackagesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_package_cce06a887bdfde92, []int{2}
+	return fileDescriptor_package_c30bc5311e6b63b7, []int{2}
 }
 func (m *ListPackagesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPackagesResponse.Unmarshal(m, b)
@@ -175,7 +175,7 @@ func (m *DeletePackageRequest) Reset()         { *m = DeletePackageRequest{} }
 func (m *DeletePackageRequest) String() string { return proto.CompactTextString(m) }
 func (*DeletePackageRequest) ProtoMessage()    {}
 func (*DeletePackageRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_package_cce06a887bdfde92, []int{3}
+	return fileDescriptor_package_c30bc5311e6b63b7, []int{3}
 }
 func (m *DeletePackageRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePackageRequest.Unmarshal(m, b)
@@ -213,7 +213,7 @@ func (m *GetTemplateRequest) Reset()         { *m = GetTemplateRequest{} }
 func (m *GetTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTemplateRequest) ProtoMessage()    {}
 func (*GetTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_package_cce06a887bdfde92, []int{4}
+	return fileDescriptor_package_c30bc5311e6b63b7, []int{4}
 }
 func (m *GetTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTemplateRequest.Unmarshal(m, b)
@@ -251,7 +251,7 @@ func (m *GetTemplateResponse) Reset()         { *m = GetTemplateResponse{} }
 func (m *GetTemplateResponse) String() string { return proto.CompactTextString(m) }
 func (*GetTemplateResponse) ProtoMessage()    {}
 func (*GetTemplateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_package_cce06a887bdfde92, []int{5}
+	return fileDescriptor_package_c30bc5311e6b63b7, []int{5}
 }
 func (m *GetTemplateResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTemplateResponse.Unmarshal(m, b)
@@ -293,7 +293,7 @@ func (m *Package) Reset()         { *m = Package{} }
 func (m *Package) String() string { return proto.CompactTextString(m) }
 func (*Package) ProtoMessage()    {}
 func (*Package) Descriptor() ([]byte, []int) {
-	return fileDescriptor_package_cce06a887bdfde92, []int{6}
+	return fileDescriptor_package_c30bc5311e6b63b7, []int{6}
 }
 func (m *Package) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Package.Unmarshal(m, b)
@@ -529,9 +529,9 @@ var _PackageService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "package.proto",
 }
 
-func init() { proto.RegisterFile("package.proto", fileDescriptor_package_cce06a887bdfde92) }
+func init() { proto.RegisterFile("package.proto", fileDescriptor_package_c30bc5311e6b63b7) }
 
-var fileDescriptor_package_cce06a887bdfde92 = []byte{
+var fileDescriptor_package_c30bc5311e6b63b7 = []byte{
 	// 535 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x53, 0xcd, 0x6e, 0xd3, 0x40,
 	0x10, 0x56, 0x92, 0xfe, 0x24, 0x93, 0x26, 0x15, 0xd3, 0xaa, 0x71, 0xdd, 0x42, 0x23, 0x53, 0x45,

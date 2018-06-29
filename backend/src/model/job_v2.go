@@ -7,7 +7,7 @@ type JobV2 struct {
 	PipelineID       string `gorm:"column:PipelineID; not null"`
 	CreatedAtInSec   int64  `gorm:"column:CreatedAtInSec; not null"`
 	ScheduledAtInSec int64  `gorm:"column:ScheduledAtInSec; not null"`
-	Condition        string `gorm:"column:Condition; not null"`
+	Conditions       string `gorm:"column:Conditions; not null"`
 }
 
 type JobDetailV2 struct {

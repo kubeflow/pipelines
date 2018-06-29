@@ -17,11 +17,8 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"strconv"
-
-	"bytes"
+	"time"
 
 	workflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
@@ -380,7 +377,7 @@ func (r *ResourceManager) CreatePipelineV2(pipeline *model.PipelineV2) (*model.P
 	}
 	pipeline.UUID = string(newScheduledWorkflow.UID)
 	pipeline.Namespace = newScheduledWorkflow.Namespace
-	pipeline.Condition = getCondition(newScheduledWorkflow)
+	pipeline.Conditions = util.NewScheduledWorkflow(newScheduledWorkflow).ConditionSummary()
 	return r.pipelineStoreV2.CreatePipeline(pipeline)
 }
 
@@ -422,17 +419,6 @@ func (r *ResourceManager) DeletePipelineV2(pipelineID string) error {
 		return util.Wrap(err, "Delete pipeline failed")
 	}
 	return nil
-}
-
-func getCondition(workflow *scheduledworkflow.ScheduledWorkflow) string {
-	if workflow.Status.Conditions == nil || len(workflow.Status.Conditions) == 0 {
-		return "NO_STATUS"
-	}
-	var buffer bytes.Buffer
-	for _, condition := range workflow.Status.Conditions {
-		buffer.WriteString(string(condition.Type) + ";")
-	}
-	return buffer.String()
 }
 
 // checkPipelineExist The Kubernetes API doesn't support CRUD by UID. This method
@@ -504,4 +490,31 @@ func toCrdParameter(paramsString string) []scheduledworkflow.Parameter {
 func (r *ResourceManager) GetPipelineAndLatestJobIterator() (*storage.PipelineAndLatestJobIterator,
 	error) {
 	return r.pipelineStore.GetPipelineAndLatestJobIterator()
+}
+
+func (r *ResourceManager) ReportWorkflowResource(resource string) error {
+	var workflow workflow.Workflow
+	err := json.Unmarshal([]byte(resource), &workflow)
+	if err != nil {
+		return util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, resource)
+	}
+	err = r.jobStoreV2.UpdateJob(util.NewWorkflow(&workflow))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ResourceManager) ReportScheduledWorkflowResource(resource string) error {
+	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
+	err := json.Unmarshal([]byte(resource), &scheduledWorkflow)
+	if err != nil {
+		return util.NewInvalidInputError("Could not unmarshal scheduled workflow: %v: %v",
+			err, resource)
+	}
+	err = r.pipelineStoreV2.UpdatePipeline(util.NewScheduledWorkflow(&scheduledWorkflow))
+	if err != nil {
+		return err
+	}
+	return nil
 }
