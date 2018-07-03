@@ -12,4 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .pipeline_param import PipelineParam
+
+from ._pipeline_param import PipelineParam
+from ._container_op import ContainerOp
+from ._ops_group import OpsGroup, ExitHandler
+from ._pipeline import Pipeline, pipeline
+

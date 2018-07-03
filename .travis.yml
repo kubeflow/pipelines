@@ -37,5 +37,6 @@ script:
 
   # DSL tests
   - cd $TRAVIS_BUILD_DIR/dsl
+  - sudo pip3 install typing
   - sudo pip3 install .
-  - python3 tests/pipeline_param_tests.py
+  - python3 tests/main.py
