@@ -11,6 +11,10 @@
         <iron-icon icon="refresh"></iron-icon>
         Refresh
       </paper-button>
+      <paper-button id="cloneButton" class="toolbar-button" on-click="_clone">
+        <iron-icon icon="content-copy"></iron-icon>
+        Clone
+      </paper-button>
     </div>
 
     <paper-progress class="loading no-shrink" indeterminate disabled="[[!_loadingJob]]"></paper-progress>

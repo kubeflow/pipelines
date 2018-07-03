@@ -15,6 +15,7 @@ import { Pipeline } from '../../api/pipeline';
 import { PackageTemplate } from '../../api/pipeline_package';
 import { OutputInfo, parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase, Workflow } from '../../model/argo_template';
+import { RouteEvent } from '../../model/events';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
 import { JobGraph } from '../job-graph/job-graph';
@@ -54,6 +55,10 @@ export class JobDetails extends PageElement {
 
   public get refreshButton(): PaperButtonElement {
     return this.$.refreshButton as PaperButtonElement;
+  }
+
+  public get cloneButton(): PaperButtonElement {
+    return this.$.cloneButton as PaperButtonElement;
   }
 
   public async load(_: string, queryParams: { jobId?: string, pipelineId: number }): Promise<void> {
@@ -99,6 +104,15 @@ export class JobDetails extends PageElement {
 
   protected _refresh(): void {
     this._loadJob();
+  }
+
+  protected _clone(): void {
+    this.dispatchEvent(
+        new RouteEvent('/pipelines/new',
+          {
+            packageId: this.pipeline.package_id,
+            parameters: this.pipeline.parameters,
+          }));
   }
 
   protected _formatDateString(date: string): string {
