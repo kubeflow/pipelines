@@ -41,7 +41,7 @@ To be able to use GKE, the Docker images need to be uploaded to a public Docker 
 To build the API server image and upload it to GCR: 
 ````
 # Run in the repository root directory 
-$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/src/Dockerfile ./backend/src
+$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile ./backend
 # Push to GCR
 $ gcloud docker -- push gcr.io/<your-gcp-project>/api-server:latest
 ````
@@ -49,7 +49,7 @@ $ gcloud docker -- push gcr.io/<your-gcp-project>/api-server:latest
 To build the scheduling controller image and upload it to GCR: 
 ````
 # Run in the repository root directory 
-$ docker build -t gcr.io/<your-gcp-project>/scheduler:latest -f backend/src/Dockerfile.scheduler ./backend/src
+$ docker build -t gcr.io/<your-gcp-project>/scheduler:latest -f backend/Dockerfile.scheduler ./backend
 # Push to GCR
 $ gcloud docker -- push gcr.io/<your-gcp-project>/scheduler:latest
 ````
