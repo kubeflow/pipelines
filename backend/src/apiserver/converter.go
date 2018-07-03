@@ -280,7 +280,9 @@ func toApiTrigger(trigger model.Trigger) *api.Trigger {
 		}
 		apiTrigger = api.Trigger{
 			Trigger: &api.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
-	} else {
+	}
+
+	if trigger.IntervalSecond != nil {
 		var periodicSchedule api.PeriodicSchedule
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {

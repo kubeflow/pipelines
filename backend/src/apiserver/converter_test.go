@@ -116,6 +116,34 @@ func TestToApiPipelineV2(t *testing.T) {
 	assert.Equal(t, expectedPipeline, apiPipeline)
 }
 
+func TestNonScheduledPipelineToApiPipelineV2(t *testing.T) {
+	modelPipeline := model.PipelineV2{
+		UUID:           "pipeline1",
+		Name:           "name1",
+		PackageId:      1,
+		Enabled:        true,
+		Trigger:        model.Trigger{},
+		MaxConcurrency: 1,
+		Parameters:     `[{"name":"param2","value":"world"}]`,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+	}
+	apiPipeline, err := ToApiPipelineV2(&modelPipeline)
+	assert.Nil(t, err)
+	expectedPipeline := &api.PipelineV2{
+		Id:             "pipeline1",
+		Name:           "name1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+		MaxConcurrency: 1,
+		Trigger:        &api.Trigger{},
+		Parameters:     []*api.Parameter{{Name: "param2", Value: "world"}},
+	}
+	assert.Equal(t, expectedPipeline, apiPipeline)
+}
+
 func TestToApiPipelinesV2(t *testing.T) {
 	modelPipeline1 := model.PipelineV2{
 		UUID:      "pipeline1",
