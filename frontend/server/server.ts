@@ -1,4 +1,3 @@
-import proxyMiddleware from './proxy-middleware';
 import Storage = require('@google-cloud/storage');
 import express = require('express');
 import fs = require('fs');
@@ -8,6 +7,7 @@ import path = require('path');
 import process = require('process');
 import tmp = require('tmp');
 import * as k8sHelper from './k8s-helper';
+import proxyMiddleware from './proxy-middleware';
 import * as Utils from './utils';
 
 const app = express() as express.Application;
@@ -100,7 +100,7 @@ app.get(apisPrefix + '/artifacts/get/*', async (req, res, next) => {
     } catch (err) {
       console.error('Error getting file:', err);
       res.status(500).send('Failed to download file: ' + err);
-    };
+    }
   } else {
     res.status(404).send('Unsupported path.');
   }

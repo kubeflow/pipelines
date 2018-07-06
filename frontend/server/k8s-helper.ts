@@ -1,5 +1,5 @@
-import * as fs from 'fs';
 import { Config } from '@kubernetes/client-node';
+import * as fs from 'fs';
 import * as Utils from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
@@ -33,21 +33,21 @@ export async function newTensorboardPod(logdir: string): Promise<string> {
       name: podName,
     },
     spec: {
-      selector: {
-        app: podName,
-      },
       containers: [{
         args: [
           'tensorboard',
           '--logdir',
           logdir,
         ],
-        name: 'tensorflow',
         image: 'tensorflow/tensorflow',
+        name: 'tensorflow',
         ports: [{
           containerPort: 6006,
         }],
       }],
+      selector: {
+        app: podName,
+      },
     },
   };
 
@@ -58,14 +58,13 @@ export async function newTensorboardPod(logdir: string): Promise<string> {
  * Finds a running Tensorboard pod with the given logdir as an argument and
  * returns its pod IP and port.
  */
-export async function getTensorboardAddress(logdir: string) {
+export async function getTensorboardAddress(logdir: string): Promise<string> {
   const pods = (await k8sV1Client.listNamespacedPod(namespace)).body.items;
   const args = ['tensorboard', '--logdir', logdir];
-  const pod = pods.find(p =>
+  const pod = pods.find((p) =>
     p.status.phase === 'Running' &&
     !p.metadata.deletionTimestamp && // Terminating/terminated pods have this set
-    p.spec.containers.find(
-      c => Utils.equalArrays(c.args, args)));
+    p.spec.containers.find((c) => Utils.equalArrays(c.args, args)));
   return pod && pod.status.podIP ? `http://${pod.status.podIP}:6006` : '';
 }
 
@@ -73,7 +72,7 @@ export async function getTensorboardAddress(logdir: string) {
  * Polls every second for a running Tensorboard pod with the given logdir, and
  * returns the address of one if found, or rejects if a timeout expires.
  */
-export function waitForTensorboard(logdir: string, timeout: number) {
+export function waitForTensorboard(logdir: string, timeout: number): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
     setInterval(async () => {
@@ -85,10 +84,10 @@ export function waitForTensorboard(logdir: string, timeout: number) {
         resolve(encodeURIComponent(tensorboardAddress));
       }
     }, 1000);
-  })
+  });
 }
 
-export async function getPodLogs(podName: string) {
+export function getPodLogs(podName: string): string {
   return k8sV1Client.readNamespacedPodLog(podName, namespace, 'main')
-    .then(response => response.body, error => error.body);
+    .then((response) => response.body, (error) => error.body);
 }

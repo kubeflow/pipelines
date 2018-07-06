@@ -54,9 +54,6 @@ const VIRTUAL_NODE_HEIGHT = 30;
 @customElement('job-graph')
 export class JobGraph extends Polymer.Element {
 
-  @property({ type: Object })
-  jobGraph: ArgoTemplate | null = null;
-
   @property({ type: Array })
   protected _workflowNodes: DisplayNode[] = [];
 
@@ -69,20 +66,22 @@ export class JobGraph extends Polymer.Element {
   @property({ type: Object })
   protected _selectedNode: NodeStatus | null = null;
 
-  refresh(graph: ArgoTemplate): void {
+  private _jobGraph: ArgoTemplate | null = null;
+
+  public refresh(graph: ArgoTemplate): void {
     this._exitNodeDetails();
     // Ensure that we're working with empty arrays.
     this._workflowEdges = [];
     this._workflowNodes = [];
 
-    this.jobGraph = graph;
+    this._jobGraph = graph;
 
     const g = new dagre.graphlib.Graph();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
 
-    const workflowNodes = this.jobGraph.status.nodes;
-    const workflowName = this.jobGraph.metadata.name || '';
+    const workflowNodes = this._jobGraph.status.nodes;
+    const workflowName = this._jobGraph.metadata.name || '';
 
     // Ensure that the exit handler nodes are appended to the graph.
     // Uses the root node, so this needs to happen before we remove the root
@@ -91,7 +90,7 @@ export class JobGraph extends Polymer.Element {
         Object.keys(workflowNodes).find((id) =>
             workflowNodes[id].name === `${workflowName}.onExit`);
     if (onExitHandlerNodeId) {
-      this._getOutboundNodes(this.jobGraph, workflowName).forEach((nodeId) =>
+      this._getOutboundNodes(this._jobGraph, workflowName).forEach((nodeId) =>
         g.setEdge(nodeId, onExitHandlerNodeId));
     }
 

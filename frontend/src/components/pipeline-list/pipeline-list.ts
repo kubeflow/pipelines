@@ -36,7 +36,7 @@ export class PipelineList extends PageElement {
   protected _busy = false;
 
   @property({ type: Boolean })
-  protected oneItemIsSelected = false;
+  protected _oneItemIsSelected = false;
 
   @property({ type: Boolean })
   protected _atLeastOneItemIsSelected = false;
@@ -77,7 +77,7 @@ export class PipelineList extends PageElement {
 
   private _debouncer: Polymer.Debouncer;
 
-  ready(): void {
+  public ready(): void {
     super.ready();
     const itemList = this.$.pipelinesItemList as ItemListElement;
     itemList.addEventListener(EventName.LIST_FORMAT_CHANGE, this._listFormatChanged.bind(this));
@@ -159,10 +159,10 @@ export class PipelineList extends PageElement {
   private _selectedItemsChanged(): void {
     const itemList = this.$.pipelinesItemList as ItemListElement;
     if (itemList.selectedIndices) {
-      this.oneItemIsSelected = itemList.selectedIndices.length === 1;
+      this._oneItemIsSelected = itemList.selectedIndices.length === 1;
       this._atLeastOneItemIsSelected = itemList.selectedIndices.length > 0;
     } else {
-      this.oneItemIsSelected = false;
+      this._oneItemIsSelected = false;
       this._atLeastOneItemIsSelected = false;
     }
   }

@@ -41,7 +41,7 @@ export class AppShell extends Polymer.Element {
     return ['_routePathChanged(route.path)'];
   }
 
-  ready(): void {
+  public ready(): void {
     super.ready();
     this.addEventListener(EventName.ROUTE, this._routeEventListener.bind(this));
   }

@@ -28,7 +28,7 @@ export class PipelineDetails extends PageElement {
   public selectedTab = 0;
 
   @property({ type: Boolean })
-  disableClonePipelineButton = true;
+  protected _disableClonePipelineButton = true;
 
   @property({ type: Boolean })
   protected _busy = false;
@@ -94,7 +94,7 @@ export class PipelineDetails extends PageElement {
       this.pipeline = pipeline;
 
       (this.$.jobs as JobList).loadJobs(this.pipeline.id);
-      this.disableClonePipelineButton = false;
+      this._disableClonePipelineButton = false;
     } catch (err) {
       this.showPageError('There was an error while loading details for pipeline ' + id);
       Utils.log.error('Error loading pipeline:', err);

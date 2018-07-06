@@ -1,3 +1,7 @@
 {
-  "no-console": false
+  "extends": "../../tslint.json",
+  "rules": {
+    "no-console": false,
+    "no-default-export": false
+  }
 }

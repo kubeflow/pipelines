@@ -44,7 +44,7 @@ export class JobList extends Polymer.Element {
 
   private _pipelineId = -1;
 
-  ready(): void {
+  public ready(): void {
     super.ready();
     const itemList = this.$.jobsItemList as ItemListElement;
     itemList.addEventListener(EventName.LIST_FORMAT_CHANGE, this._listFormatChanged.bind(this));

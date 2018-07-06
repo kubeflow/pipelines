@@ -86,8 +86,8 @@ export async function getPipeline(id: number): Promise<Pipeline> {
 /**
  * Sends a request to the backened to permanently delete a pipeline.
  */
-export async function deletePipeline(id: number): Promise<string> {
-  return await _fetch(`/pipelines/${id}`, '', {
+export function deletePipeline(id: number): Promise<string> {
+  return _fetch(`/pipelines/${id}`, '', {
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',
@@ -114,8 +114,8 @@ export async function newPipeline(pipeline: Pipeline): Promise<Pipeline> {
 /**
  * Sends an enable pipeline request to the backend.
  */
-export async function enablePipeline(id: number): Promise<string> {
-  return await _fetch(`/pipelines/${id}/enable`, '', {
+export function enablePipeline(id: number): Promise<string> {
+  return _fetch(`/pipelines/${id}/enable`, '', {
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',
@@ -127,8 +127,8 @@ export async function enablePipeline(id: number): Promise<string> {
 /**
  * Sends a disable pipeline request to the backend.
  */
-export async function disablePipeline(id: number): Promise<string> {
-  return await _fetch(`/pipelines/${id}/disable`, '', {
+export function disablePipeline(id: number): Promise<string> {
+  return _fetch(`/pipelines/${id}/disable`, '', {
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',
@@ -162,22 +162,22 @@ export async function listFiles(path: string): Promise<string[]> {
 /**
  * Reads file from storage using server.
  */
-export async function readFile(path: string): Promise<string> {
-  return await _fetch(`/artifacts/get/${encodeURIComponent(path)}`);
+export function readFile(path: string): Promise<string> {
+  return _fetch(`/artifacts/get/${encodeURIComponent(path)}`);
 }
 
 /**
  * Gets the address (IP + port) of a Tensorboard service given the logdir
  */
-export async function getTensorboardApp(logdir: string): Promise<string> {
-  return await _fetch(`/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
+export function getTensorboardApp(logdir: string): Promise<string> {
+  return _fetch(`/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
 }
 
 /**
  * Starts a deployment and service for Tensorboard given the logdir
  */
-export async function startTensorboardApp(logdir: string): Promise<string> {
-  return await _fetch(
+export function startTensorboardApp(logdir: string): Promise<string> {
+  return _fetch(
       `/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
       '',
       { headers: { 'content-type': 'application/json', }, method: 'POST', }
@@ -187,6 +187,6 @@ export async function startTensorboardApp(logdir: string): Promise<string> {
 /**
  * Get pod logs
  */
-export async function getPodLogs(podName: string): Promise<string> {
-  return await _fetch(`/k8s/pod/logs?podname=${encodeURIComponent(podName)}`);
+export function getPodLogs(podName: string): Promise<string> {
+  return _fetch(`/k8s/pod/logs?podname=${encodeURIComponent(podName)}`);
 }

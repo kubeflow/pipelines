@@ -1,36 +1,32 @@
 import * as proxy from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 
-export function _extractUrlFromReferer(proxyPrefix: string, referer: string = '') {
+export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {
   const index = referer.indexOf(proxyPrefix);
-  return index > -1 ?
-    referer.substr(index + proxyPrefix.length) :
-    '';
+  return index > -1 ? referer.substr(index + proxyPrefix.length) : '';
 }
 
-export function _trimProxyPrefix(proxyPrefix: string, path: string) {
+export function _trimProxyPrefix(proxyPrefix: string, path: string): string {
   return path.indexOf(proxyPrefix) === 0 ?
     path = path.substr(proxyPrefix.length) :
     path;
 }
 
-export function _routePathWithReferer(proxyPrefix: string, path: string, referer = '') {
+export function _routePathWithReferer(proxyPrefix: string, path: string, referer = ''): string {
   // If a referer header is included, extract the referer URL, otherwise
   // just trim out the /_proxy/ prefix. Use the origin of the resulting URL.
   const proxiedUrlInReferer = _extractUrlFromReferer(proxyPrefix, referer);
-  const decodedPath = decodeURIComponent(
-    proxiedUrlInReferer ||
-    _trimProxyPrefix(proxyPrefix, path));
+  const decodedPath =
+      decodeURIComponent(proxiedUrlInReferer || _trimProxyPrefix(proxyPrefix, path));
   return new URL(decodedPath).origin;
 }
 
-export function _rewritePath(proxyPrefix: string, path: string, query: string) {
+export function _rewritePath(proxyPrefix: string, path: string, query: string): string {
   // Trim the proxy prefix if exists. It won't exist for any requests made
   // to absolute paths by the proxied resource.
   const querystring = new URLSearchParams(query).toString();
   const decodedPath = decodeURIComponent(path);
-  return _trimProxyPrefix(proxyPrefix, decodedPath) +
-    (querystring && '?' + querystring);
+  return _trimProxyPrefix(proxyPrefix, decodedPath) + (querystring && '?' + querystring);
 }
 
 export default (app, apisPrefix) => {
@@ -44,7 +40,7 @@ export default (app, apisPrefix) => {
       const refererUrl = _extractUrlFromReferer(proxyPrefix, req.headers.referer);
       if (refererUrl && req.url.indexOf(proxyPrefix) !== 0) {
         const proxiedUrl = decodeURIComponent(
-          _extractUrlFromReferer(proxyPrefix, req.headers.referer));
+            _extractUrlFromReferer(proxyPrefix, req.headers.referer));
         const proxiedOrigin = new URL(proxiedUrl).origin;
         req.url = proxyPrefix + encodeURIComponent(proxiedOrigin + req.url);
       }
@@ -58,7 +54,7 @@ export default (app, apisPrefix) => {
     target: 'http://127.0.0.1',
 
     router: (req) => {
-      return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer)
+      return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer);
     },
 
     pathRewrite: (_, req) => {
@@ -66,4 +62,4 @@ export default (app, apisPrefix) => {
     },
   }));
 
-}
+};

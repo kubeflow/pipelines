@@ -9,10 +9,10 @@ import './page-error.html';
 @customElement('page-error')
 export class PageError extends Polymer.Element {
   @property({ type: String })
-  error = '';
+  public error = '';
 
   @property({ type: Boolean })
-  showButton = true;
+  public showButton = true;
 
   protected _refresh(): void {
     location.reload();

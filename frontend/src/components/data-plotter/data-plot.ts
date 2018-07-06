@@ -41,7 +41,7 @@ export class DataPlot extends Polymer.Element {
     return root.querySelector('#iframe') as HTMLIFrameElement;
   }
 
-  ready(): void {
+  public ready(): void {
     super.ready();
     if (this.plotMetadata) {
       switch (this.plotMetadata.type) {

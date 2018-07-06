@@ -8,7 +8,7 @@ export class ListJobsRequest extends ListPipelinesRequest {
     this.pipelineId = pipelineId;
   }
 
-  toQueryParams(): string {
+  public toQueryParams(): string {
     return super.toQueryParams() + '&pipelineId=' + this.pipelineId.toString();
   }
 }

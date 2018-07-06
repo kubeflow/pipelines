@@ -159,13 +159,13 @@ export class ItemListElement extends Polymer.Element {
   public sortLocally = false;
 
   @property({ type: Boolean })
-  _showFilterBox = false;
+  protected _showFilterBox = false;
 
   @property({ computed: '_computeIsAllSelected(selectedIndices)', type: Boolean })
-  _isAllSelected = false;
+  protected _isAllSelected = false;
 
   @property({ computed: '_computeHideCheckboxes(disableSelection, noMultiselect)', type: Boolean })
-  _hideCheckboxes = false;
+  protected _hideCheckboxes = false;
 
   @property({
     computed: '_computeDisableNextPageButton(_currentPage, _maxPageNumber)',
@@ -206,7 +206,7 @@ export class ItemListElement extends Polymer.Element {
     }
   }
 
-  ready(): void {
+  public ready(): void {
     super.ready();
 
     // Add box-shadow to header container on scroll
@@ -224,27 +224,10 @@ export class ItemListElement extends Polymer.Element {
     }
   }
 
-  resetFilter(): void {
-    this.filterString = '';
-  }
-
-  _formatColumnValue(value: ColumnType, i: number, columns: ItemListColumn[]): string {
-    if (columns[i] && value) {
-      if (columns[i].type === ColumnTypeName.DATE) {
-        return (value as Date).toLocaleString();
-      } else {
-        return value.toString();
-      }
-    } else {
-      return '-';
-    }
-  }
-
-  _columnButtonClicked(e: any): void {
-    this._sortBy(e.model.itemsIndex);
-  }
-
-  _sortBy(column: number): void {
+  /**
+   * Visible for testing.
+   */
+  public _sortBy(column: number): void {
     // If sort is requested on the current sort column, reverse the sort order.
     // Otherwise, set the current sort column to that.
     if (this._currentSort.column === column) {
@@ -301,8 +284,85 @@ export class ItemListElement extends Polymer.Element {
     this._updateSortIcons();
   }
 
+  /**
+   * Selects all displayed items in the list.
+   *
+   * Visible for tests.
+   */
+  public _selectAllDisplayedItems(): void {
+    const allElements = this.$.listContainer.querySelectorAll('paper-item') as NodeList;
+    allElements.forEach((_, i) => this._selectItemByDisplayIndex(i));
+  }
+
+  /**
+   * Selects an item in the list using its display index. Note the item must be
+   * visible in the rendered list.
+   *
+   * Visible for testing.
+   *
+   * @param index display index of item to select
+   * @param single true if we are not being called in a bulk operation
+   */
+  public _selectItemByDisplayIndex(index: number, single?: boolean): void {
+    const realIndex = this._displayIndexToRealIndex(index);
+    this._selectItemByRealIndex(realIndex, single);
+  }
+
+  /**
+   * Selects all items in the list.
+   *
+   * Visible for testing.
+   */
+  public _selectAll(): void {
+    for (let i = 0; i < this.rows.length; ++i) {
+      this._selectItemByRealIndex(i);
+    }
+  }
+
+  /**
+   * Selects an item in the list using its real index.
+   *
+   * Visible for testing.
+   */
+  public _selectItemByRealIndex(realIndex: number, single?: boolean): void {
+    if (this.rows[realIndex].selected && !single) {
+      return;   // Avoid lots of useless work when no change.
+    }
+    this.set('rows.' + realIndex + '.selected', true);
+  }
+
+  /**
+   * Unselects an item in the list using its display index. Note the item must be
+   * visible in the rendered list.
+   *
+   * Visible for testing.
+   *
+   * @param index display index of item to unselect
+   * @param single true if we are not being called in a bulk operation
+   */
+  public _unselectItemByDisplayIndex(index: number, single?: boolean): void {
+    const realIndex = this._displayIndexToRealIndex(index);
+    this._unselectItemByRealIndex(realIndex, single);
+  }
+
+  protected _formatColumnValue(value: ColumnType, i: number, columns: ItemListColumn[]): string {
+    if (columns[i] && value) {
+      if (columns[i].type === ColumnTypeName.DATE) {
+        return (value as Date).toLocaleString();
+      } else {
+        return value.toString();
+      }
+    } else {
+      return '-';
+    }
+  }
+
+  protected _columnButtonClicked(e: any): void {
+    this._sortBy(e.model.itemsIndex);
+  }
+
   @observe('rows', 'columns')
-  _updateSortIcons(): void {
+  protected _updateSortIcons(): void {
     // Make sure all elements have rendered.
     Polymer.flush();
     const iconEls = this.$.header.querySelectorAll('.sort-icon') as NodeListOf<HTMLElement>;
@@ -314,7 +374,7 @@ export class ItemListElement extends Polymer.Element {
     }
   }
 
-  _toggleFilter(): void {
+  protected _toggleFilter(): void {
     this._showFilterBox = !this._showFilterBox;
 
     // If the filter box is now visible, focus it.
@@ -326,7 +386,7 @@ export class ItemListElement extends Polymer.Element {
     }
   }
 
-  _computeFilter(filterString: string): Function | null {
+  protected _computeFilter(filterString: string): Function | null {
     if (!filterString || !this.filterLocally) {
       // set filter to null to disable filtering
       return null;
@@ -344,7 +404,7 @@ export class ItemListElement extends Polymer.Element {
    * Returns value for the computed property selectedIndices, which is the list
    * of indices of the currently selected items.
    */
-  _computeSelectedIndices(): number[] {
+  protected _computeSelectedIndices(): number[] {
     const selected: number[] = [];
     this.rows.forEach((row, i) => {
       if (row.selected) {
@@ -358,60 +418,28 @@ export class ItemListElement extends Polymer.Element {
    * Returns the value for the computed property isAllSelected, which is whether
    * all items in the list are selected.
    */
-  _computeIsAllSelected(): boolean {
+  protected _computeIsAllSelected(): boolean {
     return this.rows.length > 0 && this.rows.length === this.selectedIndices.length;
   }
 
   /**
    * Returns the value for the computed property hideCheckboxes.
    */
-  _computeHideCheckboxes(disableSelection: boolean, noMultiselect: boolean): boolean {
+  protected _computeHideCheckboxes(disableSelection: boolean, noMultiselect: boolean): boolean {
     return disableSelection || noMultiselect;
   }
 
   /**
    * Returns whether or not the nextPageButton should be disabled.
    */
-  _computeDisableNextPageButton(currentPage: number, maxPageNumber: number): boolean {
+  protected _computeDisableNextPageButton(currentPage: number, maxPageNumber: number): boolean {
     return currentPage === maxPageNumber;
-  }
-
-  /**
-   * Selects an item in the list using its display index. Note the item must be
-   * visible in the rendered list.
-   * @param index display index of item to select
-   * @param single true if we are not being called in a bulk operation
-   */
-  _selectItemByDisplayIndex(index: number, single?: boolean): void {
-    const realIndex = this._displayIndexToRealIndex(index);
-    this._selectItemByRealIndex(realIndex, single);
-  }
-
-  /**
-   * Unselects an item in the list using its display index. Note the item must be
-   * visible in the rendered list.
-   * @param index display index of item to unselect
-   * @param single true if we are not being called in a bulk operation
-   */
-  _unselectItemByDisplayIndex(index: number, single?: boolean): void {
-    const realIndex = this._displayIndexToRealIndex(index);
-    this._unselectItemByRealIndex(realIndex, single);
-  }
-
-  /**
-   * Selects an item in the list using its real index.
-   */
-  _selectItemByRealIndex(realIndex: number, single?: boolean): void {
-    if (this.rows[realIndex].selected && !single) {
-      return;   // Avoid lots of useless work when no change.
-    }
-    this.set('rows.' + realIndex + '.selected', true);
   }
 
   /**
    * Unselects an item in the list using its real index.
    */
-  _unselectItemByRealIndex(realIndex: number, single?: boolean): void {
+  protected _unselectItemByRealIndex(realIndex: number, single?: boolean): void {
     if (!this.rows[realIndex].selected && !single) {
       return;   // Avoid lots of useless work when no change.
     }
@@ -419,34 +447,17 @@ export class ItemListElement extends Polymer.Element {
   }
 
   /**
-   * Selects all displayed items in the list.
-   */
-  _selectAllDisplayedItems(): void {
-    const allElements = this.$.listContainer.querySelectorAll('paper-item') as NodeList;
-    allElements.forEach((_, i) => this._selectItemByDisplayIndex(i));
-  }
-
-  /**
    * Unselects all displayed items in the list.
    */
-  _unselectAllDisplayedItems(): void {
+  protected _unselectAllDisplayedItems(): void {
     const allElements = this.$.listContainer.querySelectorAll('paper-item') as NodeList;
     allElements.forEach((_, i) => this._unselectItemByDisplayIndex(i));
   }
 
   /**
-   * Selects all items in the list.
-   */
-  _selectAll(): void {
-    for (let i = 0; i < this.rows.length; ++i) {
-      this._selectItemByRealIndex(i);
-    }
-  }
-
-  /**
    * Unselects all items in the list.
    */
-  _unselectAll(): void {
+  protected _unselectAll(): void {
     for (let i = 0; i < this.rows.length; ++i) {
       this._unselectItemByRealIndex(i);
     }
@@ -455,7 +466,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * Called when the select/unselect all checkbox checked value is changed.
    */
-  _selectAllChanged(): void {
+  protected _selectAllChanged(): void {
     if ((this.$.selectAllCheckbox as HTMLInputElement).checked === true) {
       this._selectAllDisplayedItems();
     } else {
@@ -471,7 +482,7 @@ export class ItemListElement extends Polymer.Element {
    * original list that was submitted to the item-list element. These might be
    * different when filtering or sorting.
    */
-  _rowClicked(e: MouseEvent): void {
+  protected _rowClicked(e: MouseEvent): void {
     if (this.disableSelection) {
       return;
     }
@@ -522,7 +533,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * On row double click, fires an event with the clicked item's index.
    */
-  _rowDoubleClicked(e: MouseEvent): void {
+  protected _rowDoubleClicked(e: MouseEvent): void {
     const displayIndex =
       (this.$.list as Polymer.DomRepeat).indexForElement(e.target as HTMLElement) || 0;
     const realIndex = this._displayIndexToRealIndex(displayIndex);
@@ -530,7 +541,7 @@ export class ItemListElement extends Polymer.Element {
   }
 
   @observe('filterString')
-  _filterStringChanged(): void {
+  protected _filterStringChanged(): void {
     this.reset();
     this.dispatchEvent(new ListFormatChangeEvent(
       EventName.LIST_FORMAT_CHANGE,
@@ -544,7 +555,7 @@ export class ItemListElement extends Polymer.Element {
     ));
   }
 
-  _isFirstColumn(i: number): boolean {
+  protected _isFirstColumn(i: number): boolean {
     return i === 0;
   }
 

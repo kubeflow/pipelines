@@ -11,20 +11,20 @@ import './message-dialog.html';
 export class MessageDialog extends Polymer.Element {
 
   @property({ type: String })
-  message = '';
+  public message = '';
 
   @property({ type: String })
-  details = '';
+  public details = '';
 
-  open(): void {
+  public open(): void {
     (this.$.dialog as PaperDialogElement).open();
   }
 
-  close(): void {
+  public close(): void {
     (this.$.dialog as PaperDialogElement).close();
   }
 
-  toggleDetails(): void {
+  public toggleDetails(): void {
     (this.$.detailsCollapse as IronCollapseElement).toggle();
     (this.$.dialog as PaperDialogElement).classList.toggle('expanded');
     (this.$.dialog as PaperDialogElement).notifyResize();
