@@ -1,0 +1,28 @@
+@import '../../styles/common.css';
+
+.body {
+  padding: 0 var(--spacing-plus-1) var(--spacing-plus-1) var(--spacing-plus-1);
+}
+
+.dialog {
+  min-width: 300px;
+}
+
+.expanded.dialog .details-icon {
+  transform: rotate(180deg);
+}
+
+.footer {
+  margin: 0;
+  text-align: right;
+}
+
+.footer > .toolbar-button {
+  margin: 0 var(--spacing-minus-1) var(--spacing-minus-1) var(--spacing-minus-1);
+}
+
+.title {
+  font-size: var(--font-size-strong);
+  margin: 0;
+  padding: var(--spacing-plus-1);
+}

@@ -1,8 +1,8 @@
-import { MessageDialog } from '../components/message-dialog/message-dialog';
+import { DialogResult, PopupDialog } from '../components/popup-dialog/popup-dialog';
 import { NODE_PHASE, NodePhase } from '../model/argo_template';
 
 import 'paper-toast/paper-toast';
-import '../components/message-dialog/message-dialog';
+import '../components/popup-dialog/popup-dialog';
 
 export function deleteAllChildren(parent: HTMLElement): void {
   while (parent.firstChild) {
@@ -83,18 +83,21 @@ export function nodePhaseToColor(status: NodePhase): string {
   }
 }
 
-export function showDialog(message: string, details?: string): void {
-  const dialog = document.createElement('message-dialog') as MessageDialog;
+export function showDialog(
+    title: string,
+    body?: string,
+    button1?: string,
+    button2?: string): Promise<DialogResult> {
+  const dialog = document.createElement('popup-dialog') as PopupDialog;
   document.body.appendChild(dialog);
-  dialog.addEventListener('iron-overlay-closed', () => {
-    document.body.removeChild(dialog);
-  });
+  dialog.addEventListener('iron-overlay-closed', () => document.body.removeChild(dialog));
 
-  dialog.message = message;
-  if (details) {
-    dialog.details = details;
-  }
-  dialog.open();
+  dialog.title = title;
+  dialog.body = body !== undefined ? body : '';
+  dialog.button1 = button1 !== undefined ? button1 : '';
+  dialog.button2 = button2 !== undefined ? button2 : '';
+
+  return dialog.open();
 }
 
 export function showNotification(message: string): void {
