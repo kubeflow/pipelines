@@ -283,7 +283,16 @@ def main():
       preprocessing_file.write(
           file_io.read_file_to_string(args.preprocessing_module))
     import preprocessing
-    preprocessing_fn = preprocessing.preprocess
+
+    def wrapped_preprocessing_fn(inputs):
+      outputs = preprocessing.preprocess(inputs)
+      for key in outputs:
+        if outputs[key].dtype == tf.bool:
+          outputs[key] = tft.string_to_int(tf.as_string(outputs[key]),
+                                           vocab_filename='vocab_' + key)
+      return outputs
+
+    preprocessing_fn = wrapped_preprocessing_fn
 
   run_transform(args.output, schema, args.train, args.eval,
                 args.project, args.mode, preprocessing_fn=preprocessing_fn)
