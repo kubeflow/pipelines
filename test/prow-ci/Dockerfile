@@ -3,5 +3,6 @@
 
 FROM gcr.io/k8s-testimages/kubekins-e2e:latest-master
 
-RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/v2.1.1/argo-linux-amd64
+# Install Argo
+RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/v2.1.0-beta2/argo-linux-amd64
 RUN chmod +x /usr/local/bin/argo

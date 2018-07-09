@@ -14,15 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DOCKER_FILE=Dockerfile
-
 usage()
 {
     echo "usage: deploy.sh
-    [--commit_sha   commit SHA to pull code from]
-    [--docker_path  path to the Dockerfile]
-    [--docker_file  name of the Docker file. Dockerfile by default]
-    [--image_name   project of the GCR to upload image to]
+    [--commit_sha     commit SHA to pull code from]
+    [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
 }
 
@@ -31,14 +27,8 @@ while [ "$1" != "" ]; do
              --commit_sha )     shift
                                 COMMIT_SHA=$1
                                 ;;
-             --docker_path )    shift
-                                DOCKER_PATH=$1
-                                ;;
-             --docker_file )    shift
-                                DOCKER_FILE=$1
-                                ;;
-             --image_name )     shift
-                                IMAGE_NAME=$1
+             --namespace )      shift
+                                NAMESPACE=$1
                                 ;;
              -h | --help )      usage
                                 exit
@@ -49,21 +39,21 @@ while [ "$1" != "" ]; do
     shift
 done
 
-BASE_DIR=/ml
+BASE_DIR=/go/src/github.com/googleprivate/ml
 
 ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts
 
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
 git clone git@github.com:googleprivate/ml.git ${BASE_DIR}
-cd ${BASE_DIR}
+cd ${BASE_DIR}/backend/test
 git checkout ${COMMIT_SHA}
 
-echo "Waiting for dind to start..."
-until docker ps; do sleep 3; done;
+go get -t -v ./...
+# TODO(IronPan): use go dep https://github.com/googleprivate/ml/issues/561
+rm -r /go/src/k8s.io/kubernetes/vendor/github.com/golang/glog
 
-echo "Build image ${IMAGE_NAME} using ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE}..."
-docker build -t ${IMAGE_NAME} -f ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE} ${BASE_DIR}/${DOCKER_PATH}
+echo "Run test..."
+go test -v ./... -namespace ${NAMESPACE} 2>&1 | go-junit-report > api_integration_test_output.xml
 
-echo "Push image ${IMAGE_NAME} to gcr..."
-gcloud docker -- push ${IMAGE_NAME}
-
+echo "Copy test result to GCS gs://ml-pipeline-test/${COMMIT_SHA}"
+gsutil cp api_integration_test_output.xml gs://ml-pipeline-test/${COMMIT_SHA}/api_integration_test_output.xml

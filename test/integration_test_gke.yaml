@@ -6,7 +6,7 @@ spec:
   entrypoint: integration-test
   arguments:
     parameters:
-    - name: branch
+    - name: commit-sha
       value: master
     - name: cleanup
       value: true
@@ -25,7 +25,7 @@ spec:
   - name: integration-test
     inputs:
       parameters:
-      - name: branch
+      - name: commit-sha
       - name: bootstrapper-image-suffix
       - name: api-image-suffix
       - name: frontend-image-suffix
@@ -42,8 +42,8 @@ spec:
           parameters:
           - name: project
             value: "{{steps.get-project.outputs.result}}"
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: ml-pipeline
           - name: image-suffix
@@ -54,8 +54,8 @@ spec:
           parameters:
           - name: project
             value: "{{steps.get-project.outputs.result}}"
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: backend
           - name: image-suffix
@@ -66,8 +66,8 @@ spec:
           parameters:
           - name: project
             value: "{{steps.get-project.outputs.result}}"
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: frontend
           - name: image-suffix
@@ -78,8 +78,8 @@ spec:
           parameters:
           - name: project
             value: "{{steps.get-project.outputs.result}}"
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: backend
           - name: image-suffix
@@ -92,8 +92,8 @@ spec:
           parameters:
           - name: project
             value: "{{steps.get-project.outputs.result}}"
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: backend
           - name: image-suffix
@@ -106,8 +106,8 @@ spec:
           parameters:
           - name: project
             value: "{{steps.get-project.outputs.result}}"
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: bootstrapper-image-suffix
             value: "{{inputs.parameters.bootstrapper-image-suffix}}"
           - name: api-image-suffix
@@ -122,8 +122,8 @@ spec:
         template: run-tests
         arguments:
           parameters:
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
 
   - name: get-project
     script:
@@ -144,8 +144,8 @@ spec:
       parameters:
       # The project that image deployed to
       - name: project
-      # The github branch to pull code from
-      - name: branch
+      # The github commit-sha to pull code from
+      - name: commit-sha
       # The relative code path to the Dockerfile
       - name: docker-path
       # Name of the Docker file to use. "Dockerfile" by default
@@ -156,10 +156,10 @@ spec:
       image: gcr.io/ml-pipeline/image-builder
       imagePullPolicy: 'Always'
       args: [
-        "--branch", "{{inputs.parameters.branch}}",
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
         "--docker_file", "{{inputs.parameters.docker-file}}",
-        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.image-suffix}}",
+        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
       ]
       volumeMounts:
       - name: secret-volume
@@ -181,38 +181,33 @@ spec:
     inputs:
       parameters:
       - name: project
-      - name: branch
+      - name: commit-sha
       - name: bootstrapper-image-suffix
       - name: api-image-suffix
       - name: frontend-image-suffix
       - name: scheduledworkflow-image-suffix
       - name: scheduler-image-suffix
     container:
-      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.bootstrapper-image-suffix}}
+      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.bootstrapper-image-suffix}}
       args: [
         "--namespace", "{{workflow.name}}",
-        "--api_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.api-image-suffix}}",
-        "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.frontend-image-suffix}}",
-        "--scheduled_workflow_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.scheduledworkflow-image-suffix}}",
-        "--scheduler_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.scheduler-image-suffix}}",
+        "--api_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-image-suffix}}",
+        "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-image-suffix}}",
+        "--scheduled_workflow_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.scheduledworkflow-image-suffix}}",
+        "--scheduler_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.scheduler-image-suffix}}",
         "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
       ]
 
   - name: run-tests
     inputs:
       parameters:
-      - name: branch
+      - name: commit-sha
     container:
-      image: golang
-      command: [sh, -c]
-      # TODO(IronPan): use go dep https://github.com/googleprivate/ml/issues/561
+      image: gcr.io/ml-pipeline/backend-integration-test
+      imagePullPolicy: 'Always'
       args: [
-        "ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts; \
-         git clone -b {{inputs.parameters.branch}} git@github.com:googleprivate/ml.git /go/src/github.com/googleprivate/ml; \
-         cd /go/src/github.com/googleprivate/ml/backend/test; \
-         go get -t -v ./...; \
-         rm -r /go/src/k8s.io/kubernetes/vendor/github.com/golang/glog; \
-         go test -v ./... -namespace {{workflow.name}}"
+        "--namespace", "{{workflow.name}}",
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
       volumeMounts:
       - name: secret-volume
@@ -221,7 +216,7 @@ spec:
   - name: clean-up
     inputs:
       parameters:
-      - name: branch
+      - name: commit-sha
       - name: bootstrapper-image-suffix
       - name: api-image-suffix
       - name: frontend-image-suffix
@@ -235,8 +230,8 @@ spec:
         when: "{{inputs.parameters.cleanup}} == true"
         arguments:
           parameters:
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: image-suffix
             value: "{{inputs.parameters.api-image-suffix}}"
       - name: delete-frontend-images
@@ -244,8 +239,8 @@ spec:
         when: "{{inputs.parameters.cleanup}} == true"
         arguments:
           parameters:
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: image-suffix
             value: "{{inputs.parameters.frontend-image-suffix}}"
       - name: delete-bootstrapper-images
@@ -253,8 +248,8 @@ spec:
         when: "{{inputs.parameters.cleanup}} == true"
         arguments:
           parameters:
-          - name: branch
-            value: "{{inputs.parameters.branch}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
           - name: image-suffix
             value: "{{inputs.parameters.bootstrapper-image-suffix}}"
 
@@ -267,14 +262,14 @@ spec:
   - name: delete-images
     inputs:
       parameters:
-      - name: branch
+      - name: commit-sha
       - name: image-suffix
     container:
       image: google/cloud-sdk
       command: [sh, -c]
       args: [
         "gcloud container images delete \
-        gcr.io/$(gcloud config config-helper --format \"value(configuration.properties.core.project)\")/{{workflow.name}}/{{inputs.parameters.branch}}/{{inputs.parameters.image-suffix}} \
+        gcr.io/$(gcloud config config-helper --format \"value(configuration.properties.core.project)\")/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}} \
         --force-delete-tags --quiet"
       ]
 

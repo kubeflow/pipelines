@@ -1,4 +1,4 @@
-FROM golang
+FROM golang:1.8
 
 WORKDIR /go/src/github.com/googleprivate/ml/backend
 COPY . .

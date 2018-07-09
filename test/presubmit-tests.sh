@@ -14,14 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo start.....
+echo presubmit test starts...
 
 ls $(dirname $0)
 
 gcloud container clusters get-credentials spinner --zone us-west1-a --project ml-pipeline-test
+kubectl config set-context $(kubectl config current-context) --namespace=default
 
-argo list
-
-echo succeed
-
-# create a argo workflow
+echo submitting argo job...
+argo submit $(dirname $0)/integration_test_gke.yaml -p commit-sha="${PULL_PULL_SHA}"
+echo argo job submitted successfully
