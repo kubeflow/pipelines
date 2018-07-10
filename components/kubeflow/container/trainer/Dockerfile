@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/tensorflow/tensorflow:1.5.0
+FROM gcr.io/tensorflow/tensorflow:1.6.0
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q build-essential && \
