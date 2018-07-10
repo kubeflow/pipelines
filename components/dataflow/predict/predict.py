@@ -112,6 +112,12 @@ class PredictDoFn(beam.DoFn):
 
   def start_bundle(self):
     from tensorflow.contrib import predictor
+
+    # We need to import the tensorflow_transform library in order to
+    # register all of the ops that might be used by a saved model that
+    # incorporates TFT transformations.
+    import tensorflow_transform
+
     self._predict_fn = predictor.from_saved_model(self._model_export_dir)
 
   def process(self, element):
