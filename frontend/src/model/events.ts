@@ -1,48 +1,62 @@
-// TODO: consider moving these into the event classes as static fields.
-export enum EventName {
-  LIST_FORMAT_CHANGE = 'listFormatChange',
-  NEW_LIST_PAGE = 'newListPage',
-  ROUTE = 'route',
-}
+abstract class BaseCustomEvent extends CustomEvent {
+  public abstract detail: any;
 
-export class ItemClickEvent extends CustomEvent {
-  public detail: {
-    index: number,
-  };
-}
-
-export class ListFormatChangeEvent extends CustomEvent {
-  public detail: {
-    filterString: string,
-    orderAscending: boolean,
-    sortColumn: string,
-  };
-}
-
-export class NewListPageEvent extends CustomEvent {
-  public detail: {
-    filterBy: string,
-    pageNumber: number,
-    pageToken: string,
-    sortBy: string,
-  };
-}
-
-export class RouteEvent extends CustomEvent {
-  public detail: {
-    path: string,
-    data?: {},
-  };
-  constructor(path: string, data?: {}) {
+  constructor(eventType: string, detail: any) {
     const eventInit = {
       bubbles: true,
-      detail: { path, data }
+      detail
     };
     Object.defineProperty(eventInit, 'composed', {
       value: true,
       writable: false,
     });
 
-    super(EventName.ROUTE, eventInit);
+    super(eventType, eventInit);
+  }
+}
+
+export class ItemDblClickEvent extends BaseCustomEvent {
+  public detail: {
+    index: number,
+  };
+
+  constructor(index: number) {
+    super(ItemDblClickEvent.name, { index } );
+  }
+}
+
+export class ListFormatChangeEvent extends BaseCustomEvent {
+  public detail: {
+    filterString: string,
+    orderAscending: boolean,
+    sortColumn: string,
+  };
+
+  constructor(filterString: string, orderAscending: boolean, sortColumn: string) {
+    super(ListFormatChangeEvent.name, { filterString, orderAscending, sortColumn });
+  }
+}
+
+export class NewListPageEvent extends BaseCustomEvent {
+  public detail: {
+    filterBy: string,
+    pageNumber: number,
+    pageToken: string,
+    sortBy: string,
+  };
+
+  constructor(filterBy: string, pageNumber: number, pageToken: string, sortBy: string) {
+    super(NewListPageEvent.name, { filterBy, pageNumber, pageToken, sortBy });
+  }
+}
+
+export class RouteEvent extends BaseCustomEvent {
+  public detail: {
+    path: string,
+    data?: {},
+  };
+
+  constructor(path: string, data?: {}) {
+    super(RouteEvent.name, { path, data });
   }
 }

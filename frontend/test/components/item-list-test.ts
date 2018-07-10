@@ -6,7 +6,7 @@ import {
   ItemListElement,
   ItemListRow,
 } from '../../src/components/item-list/item-list';
-import { EventName, NewListPageEvent } from '../../src/model/events';
+import { NewListPageEvent } from '../../src/model/events';
 import { resetFixture } from './test-utils';
 
 let fixture: ItemListElement;
@@ -345,12 +345,12 @@ describe('item-list', () => {
 
     beforeEach(async () => {
       _resetFixture();
-      fixture.addEventListener(EventName.NEW_LIST_PAGE, loadNewPage.bind(this));
+      fixture.addEventListener(NewListPageEvent.name, loadNewPage.bind(this));
       fixture.columns = [
         new ItemListColumn('col1', ColumnTypeName.STRING),
         new ItemListColumn('col2', ColumnTypeName.DATE),
       ];
-      loadNewPage(new NewListPageEvent(EventName.NEW_LIST_PAGE, { detail: { pageNumber: 0 } }));
+      loadNewPage(new NewListPageEvent('', 0, '', ''));
     });
 
     it('disables previous page button on first page', () => {
@@ -450,8 +450,7 @@ describe('item-list', () => {
 
     it('starts with next page button disabled if nextPageToken is empty', () => {
       // Simulating only one page of results by initially loading the final page.
-      loadNewPage(new NewListPageEvent(
-         EventName.NEW_LIST_PAGE, { detail: { pageNumber: pageResponses.length - 1 } }));
+      loadNewPage(new NewListPageEvent('', pageResponses.length - 1, '' , ''));
 
       const nextPageButton = fixture.$.nextPage as HTMLElement;
       assert.strictEqual((nextPageButton as PaperButtonElement).disabled,

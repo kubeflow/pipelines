@@ -9,7 +9,7 @@ import { Pipeline } from '../../src/api/pipeline';
 import { JobList } from '../../src/components/job-list/job-list';
 import { PageError } from '../../src/components/page-error/page-error';
 import { PipelineDetails } from '../../src/components/pipeline-details/pipeline-details';
-import { EventName, RouteEvent } from '../../src/model/events';
+import { RouteEvent } from '../../src/model/events';
 import { dialogStub, isVisible, notificationStub, resetFixture } from './test-utils';
 
 let fixture: PipelineDetails;
@@ -162,10 +162,10 @@ describe('pipeline-details', () => {
         packageId: testPipeline.package_id,
         parameters: testPipeline.parameters,
       }, 'parameters should be passed when cloning the pipeline');
-      document.removeEventListener(EventName.ROUTE, listener);
+      document.removeEventListener(RouteEvent.name, listener);
       done();
     };
-    document.addEventListener(EventName.ROUTE, listener);
+    document.addEventListener(RouteEvent.name, listener);
     fixture.cloneButton.click();
   });
 

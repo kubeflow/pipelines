@@ -5,7 +5,7 @@ import * as Apis from '../../src/lib/apis';
 import { ListPipelinesResponse } from '../../src/api/list_pipelines_response';
 import { PageError } from '../../src/components/page-error/page-error';
 import { PipelineList } from '../../src/components/pipeline-list/pipeline-list';
-import { EventName, RouteEvent } from '../../src/model/events';
+import { RouteEvent } from '../../src/model/events';
 import { dialogStub, notificationStub, resetFixture } from './test-utils';
 
 import * as fixedData from '../../mock-backend/fixed-data';
@@ -70,10 +70,10 @@ describe('pipeline-list', () => {
       assert.strictEqual(e.detail.path, '/pipelines/details/' + id);
       assert.deepStrictEqual(e.detail.data, undefined,
           'no parameters should be passed when opening the pipeline details');
-      document.removeEventListener(EventName.ROUTE, listener);
+      document.removeEventListener(RouteEvent.name, listener);
       done();
     };
-    document.addEventListener(EventName.ROUTE, listener);
+    document.addEventListener(RouteEvent.name, listener);
 
     const firstItem = fixture.itemList.shadowRoot.querySelector('paper-item') as PaperItemElement;
     firstItem.dispatchEvent(new MouseEvent('dblclick'));
@@ -88,10 +88,10 @@ describe('pipeline-list', () => {
         packageId: fixedData.data.pipelines[0].package_id,
         parameters: fixedData.data.pipelines[0].parameters,
       }, 'parameters should be passed when cloning the pipeline');
-      document.removeEventListener(EventName.ROUTE, listener);
+      document.removeEventListener(RouteEvent.name, listener);
       done();
     };
-    document.addEventListener(EventName.ROUTE, listener);
+    document.addEventListener(RouteEvent.name, listener);
     fixture.cloneButton.click();
   });
 
@@ -100,10 +100,10 @@ describe('pipeline-list', () => {
       assert.strictEqual(e.detail.path, '/pipelines/new');
       assert.deepStrictEqual(e.detail.data, undefined,
           'no parameters should be passed when creating a new pipeline');
-      document.removeEventListener(EventName.ROUTE, listener);
+      document.removeEventListener(RouteEvent.name, listener);
       done();
     };
-    document.addEventListener(EventName.ROUTE, listener);
+    document.addEventListener(RouteEvent.name, listener);
     fixture.newButton.click();
   });
 

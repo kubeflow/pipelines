@@ -8,8 +8,7 @@ import { JobMetadata } from '../../api/job';
 import { JobSortKeys, ListJobsRequest } from '../../api/list_jobs_request';
 import { NodePhase } from '../../model/argo_template';
 import {
-  EventName,
-  ItemClickEvent,
+  ItemDblClickEvent,
   ListFormatChangeEvent,
   NewListPageEvent,
   RouteEvent,
@@ -47,9 +46,9 @@ export class JobList extends Polymer.Element {
   public ready(): void {
     super.ready();
     const itemList = this.$.jobsItemList as ItemListElement;
-    itemList.addEventListener(EventName.LIST_FORMAT_CHANGE, this._listFormatChanged.bind(this));
-    itemList.addEventListener(EventName.NEW_LIST_PAGE, this._loadNewListPage.bind(this));
-    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
+    itemList.addEventListener(ListFormatChangeEvent.name, this._listFormatChanged.bind(this));
+    itemList.addEventListener(NewListPageEvent.name, this._loadNewListPage.bind(this));
+    itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
   }
 
   public loadJobs(pipelineId: number): void {
@@ -58,7 +57,7 @@ export class JobList extends Polymer.Element {
     this._loadJobsInternal(new ListJobsRequest(pipelineId, this._pageSize));
   }
 
-  protected _navigate(ev: ItemClickEvent): void {
+  protected _navigate(ev: ItemDblClickEvent): void {
     const jobId = this.jobsMetadata[ev.detail.index].name;
     this.dispatchEvent(
         new RouteEvent(`/pipelineJob?pipelineId=${this._pipelineId}&jobId=${jobId}`));

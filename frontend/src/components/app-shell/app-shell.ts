@@ -9,7 +9,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
-import { EventName, RouteEvent } from '../../model/events';
+import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 
 import '../job-details/job-details';
@@ -43,7 +43,7 @@ export class AppShell extends Polymer.Element {
 
   public ready(): void {
     super.ready();
-    this.addEventListener(EventName.ROUTE, this._routeEventListener.bind(this));
+    this.addEventListener(RouteEvent.name, this._routeEventListener.bind(this));
   }
 
   protected async _routePathChanged(newPath: string): Promise<void> {

@@ -21,8 +21,7 @@ import 'paper-item/paper-item.html';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import {
-  EventName,
-  ItemClickEvent,
+  ItemDblClickEvent,
   ListFormatChangeEvent,
   NewListPageEvent,
 } from '../../model/events';
@@ -92,7 +91,7 @@ export class ItemListRow {
  * it and unselects all other items. Clicking the checkbox next to an item
  * allows for multi-selection. Shift and ctrl keys can also be used to select
  * multiple items.
- * Double clicking an item fires an 'ItemClickEvent' event with this item's index.
+ * Double clicking an item fires an 'ItemDblClickEvent' event with this item's index.
  * Selecting an item by single clicking it changes the selectedIndices
  * property. This also notifies the host, which can listen to the
  * selected-indices-changed event.
@@ -145,7 +144,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * If true, the ItemListElement component will handle filtering of its data.
    * If false, the ItemListElement will do no filtering, however, its parent component can still
-   * listen for EventName.LIST_FORMAT_CHANGE events and handle them as desired.
+   * listen for ListFormatChangeEvent events and handle them as desired.
    */
   @property({ type: Boolean })
   public filterLocally = false;
@@ -153,7 +152,7 @@ export class ItemListElement extends Polymer.Element {
   /**
    * If true, the ItemListElement component will handle sorting of its data.
    * If false, the ItemListElement will do no sorting, however, its parent component can still
-   * listen for EventName.LIST_FORMAT_CHANGE events and handle them as desired.
+   * listen for ListFormatChangeEvent events and handle them as desired.
    */
   @property({ type: Boolean })
   public sortLocally = false;
@@ -270,16 +269,8 @@ export class ItemListElement extends Polymer.Element {
       this._sortByColumn = this.columns[column].sortKey;
       // Reset paging.
       this.reset();
-      this.dispatchEvent(new ListFormatChangeEvent(
-        EventName.LIST_FORMAT_CHANGE,
-        {
-          detail: {
-            filterString: this.filterString,
-            orderAscending: this._currentSort.asc,
-            sortColumn: this._sortByColumn,
-          }
-        }
-      ));
+      this.dispatchEvent(
+          new ListFormatChangeEvent(this.filterString, this._currentSort.asc, this._sortByColumn));
     }
     this._updateSortIcons();
   }
@@ -537,22 +528,15 @@ export class ItemListElement extends Polymer.Element {
     const displayIndex =
       (this.$.list as Polymer.DomRepeat).indexForElement(e.target as HTMLElement) || 0;
     const realIndex = this._displayIndexToRealIndex(displayIndex);
-    this.dispatchEvent(new ItemClickEvent('itemDoubleClick', { detail: {index: realIndex} }));
+    this.dispatchEvent(new ItemDblClickEvent(realIndex));
   }
 
   @observe('filterString')
   protected _filterStringChanged(): void {
     this.reset();
-    this.dispatchEvent(new ListFormatChangeEvent(
-      EventName.LIST_FORMAT_CHANGE,
-      {
-        detail: {
-          filterString: this.filterString,
-          orderAscending: this._currentSort.asc,
-          sortColumn: this._sortByColumn,
-        }
-      }
-    ));
+    this.dispatchEvent(
+        new ListFormatChangeEvent(this.filterString, this._currentSort.asc, this._sortByColumn)
+    );
   }
 
   protected _isFirstColumn(i: number): boolean {
@@ -573,16 +557,12 @@ export class ItemListElement extends Polymer.Element {
 
   // TODO: Add support for sortBy which should also call reset()
   private _loadNewPage(): void {
-    this.dispatchEvent(new NewListPageEvent(
-      EventName.NEW_LIST_PAGE, {
-        detail: {
-          filterBy: this.filterString,
-          pageNumber: this._currentPage,
-          pageToken: this._pageTokens[this._currentPage],
-          sortBy: this._sortByColumn,
-        }
-      })
-    );
+    this.dispatchEvent(
+        new NewListPageEvent(
+            this.filterString,
+            this._currentPage,
+            this._pageTokens[this._currentPage],
+            this._sortByColumn));
   }
 
   private _displayIndexToRealIndex(index: number): number {

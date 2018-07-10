@@ -10,8 +10,7 @@ import { customElement, property } from 'polymer-decorators/src/decorators';
 import { ListPipelinesRequest, PipelineSortKeys } from '../../api/list_pipelines_request';
 import { Pipeline } from '../../api/pipeline';
 import {
-  EventName,
-  ItemClickEvent,
+  ItemDblClickEvent,
   ListFormatChangeEvent,
   NewListPageEvent,
   RouteEvent,
@@ -80,10 +79,10 @@ export class PipelineList extends PageElement {
   public ready(): void {
     super.ready();
     const itemList = this.$.pipelinesItemList as ItemListElement;
-    itemList.addEventListener(EventName.LIST_FORMAT_CHANGE, this._listFormatChanged.bind(this));
-    itemList.addEventListener(EventName.NEW_LIST_PAGE, this._loadNewListPage.bind(this));
+    itemList.addEventListener(ListFormatChangeEvent.name, this._listFormatChanged.bind(this));
+    itemList.addEventListener(NewListPageEvent.name, this._loadNewListPage.bind(this));
     itemList.addEventListener('selected-indices-changed', this._selectedItemsChanged.bind(this));
-    itemList.addEventListener('itemDoubleClick', this._navigate.bind(this));
+    itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
   }
 
   public load(_: string): void {
@@ -92,7 +91,7 @@ export class PipelineList extends PageElement {
     this._loadPipelines(new ListPipelinesRequest(this._pageSize));
   }
 
-  protected _navigate(ev: ItemClickEvent): void {
+  protected _navigate(ev: ItemDblClickEvent): void {
     const pipelineId = this.pipelines[ev.detail.index].id;
     this.dispatchEvent(new RouteEvent(`/pipelines/details/${pipelineId}`));
   }
