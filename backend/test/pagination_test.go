@@ -42,7 +42,7 @@ func (s *PaginationTestSuit) TearDownTest() {
 	s.conn.Close()
 }
 
-func (s *PaginationTestSuit) TestPagination() {
+func (s *PaginationTestSuit) TestPagination_E2E() {
 	t := s.T()
 	clientSet, err := getKubernetesClient()
 	if err != nil {

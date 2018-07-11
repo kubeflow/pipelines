@@ -1,5 +1,6 @@
-IMG = gcr.io/ml-pipeline/backend-integration-test
+IMG = gcr.io/ml-pipeline/api-integration-test
 
+# Unique tag including date, commit SHA and a random number
 TAG := $(shell date +v%Y%m%d)-$(shell git describe --tags --always --dirty)-$(shell git diff | shasum -a256 | cut -c -6)
 
 all: build

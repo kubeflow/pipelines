@@ -118,8 +118,14 @@ spec:
             value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
           - name: scheduler-image-suffix
             value: "{{inputs.parameters.scheduler-image-suffix}}"
-    - - name: run-tests
-        template: run-tests
+    - - name: run-api-integration-tests
+        template: run-api-integration-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+      - name: run-backend-unit-tests
+        template: run-backend-unit-tests
         arguments:
           parameters:
           - name: commit-sha
@@ -153,7 +159,7 @@ spec:
         value: Dockerfile
       - name: image-suffix
     container:
-      image: gcr.io/ml-pipeline/image-builder
+      image: gcr.io/ml-pipeline/image-builder:v20180709-be45e85-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
@@ -198,15 +204,29 @@ spec:
         "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
       ]
 
-  - name: run-tests
+  - name: run-api-integration-tests
     inputs:
       parameters:
       - name: commit-sha
     container:
-      image: gcr.io/ml-pipeline/backend-integration-test
+      image: gcr.io/ml-pipeline/api-integration-test:v20180710-4ab3cd3-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--namespace", "{{workflow.name}}",
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh"
+
+  - name: run-backend-unit-tests
+    inputs:
+      parameters:
+      - name: commit-sha
+    container:
+      image: gcr.io/ml-pipeline/backend-unit-test:v20180710-4ab3cd3-e3b0c4
+      imagePullPolicy: 'Always'
+      args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
       volumeMounts:

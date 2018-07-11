@@ -73,7 +73,7 @@ func (s *OneTimePipelineTestSuite) TearDownTest() {
 // - Upload a package
 // - Create a pipeline with parameter
 // - Verify an one-time job is automatically scheduled.
-func (s *OneTimePipelineTestSuite) TestOneTimePipeline() {
+func (s *OneTimePipelineTestSuite) TestOneTimePipeline_E2E() {
 	t := s.T()
 	clientSet, err := getKubernetesClient()
 	if err != nil {

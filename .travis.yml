@@ -17,12 +17,6 @@ node_js:
   - "8.9"
 
 script:
-  # API server tests
-  - cd $TRAVIS_BUILD_DIR/backend/src
-  # TODO(IronPan): use go dep https://github.com/googleprivate/ml/issues/561
-  - rm -r $GOPATH/src/k8s.io/kubernetes/vendor/github.com/golang/glog
-  - go test -v ./...
-
   # Frontend tests
   - cd $TRAVIS_BUILD_DIR/frontend
   - npm i
