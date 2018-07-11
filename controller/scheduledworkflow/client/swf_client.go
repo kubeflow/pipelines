@@ -15,9 +15,9 @@
 package client
 
 import (
-	swfclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
-	"github.com/kubeflow/pipelines/pkg/client/informers/externalversions/scheduledworkflow/v1alpha1"
-	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
+	"github.com/googleprivate/ml/crd/controller/scheduledworkflow/util"
+	swfclientset "github.com/googleprivate/ml/crd/pkg/client/clientset/versioned"
+	"github.com/googleprivate/ml/crd/pkg/client/informers/externalversions/scheduledworkflow/v1alpha1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 )

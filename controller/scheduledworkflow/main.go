@@ -16,17 +16,18 @@ package main
 
 import (
 	"flag"
+	"time"
+
 	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
-	swfclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
-	swfinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
-	"github.com/kubeflow/pipelines/pkg/signals"
-	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
+	"github.com/googleprivate/ml/crd/controller/scheduledworkflow/util"
+	swfclientset "github.com/googleprivate/ml/crd/pkg/client/clientset/versioned"
+	swfinformers "github.com/googleprivate/ml/crd/pkg/client/informers/externalversions"
+	"github.com/googleprivate/ml/crd/pkg/signals"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
-	"time"
 )
 
 var (

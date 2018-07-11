@@ -16,16 +16,18 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
-	swfregister "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
-	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
-	swfclientset "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
-	swfScheme "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/scheme"
-	swfinformers "github.com/kubeflow/pipelines/pkg/client/informers/externalversions"
-	"github.com/kubeflow/pipelines/resources/scheduledworkflow/client"
-	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
+	"github.com/googleprivate/ml/crd/controller/scheduledworkflow/client"
+	"github.com/googleprivate/ml/crd/controller/scheduledworkflow/util"
+	swfregister "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow"
+	swfapi "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfclientset "github.com/googleprivate/ml/crd/pkg/client/clientset/versioned"
+	swfScheme "github.com/googleprivate/ml/crd/pkg/client/clientset/versioned/scheme"
+	swfinformers "github.com/googleprivate/ml/crd/pkg/client/informers/externalversions"
 	wraperror "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +41,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"time"
 )
 
 const (
