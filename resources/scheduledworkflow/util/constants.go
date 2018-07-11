@@ -15,19 +15,19 @@
 package util
 
 import (
-	constants "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow"
+	constants "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
 )
 
 const (
 	// ControllerAgentName is the name of the controller.
-	ControllerAgentName = "scheduled-workflow-controller"
+	ControllerAgentName                        = "scheduled-workflow-controller"
 
 	// LabelKeyWorkflowEpoch is a label on a Workflow.
 	// It captures the epoch at which the workflow was scheduled.
-	LabelKeyWorkflowEpoch = constants.FullName + "/workflowEpoch"
+	LabelKeyWorkflowEpoch                      = constants.FullName + "/workflowEpoch"
 	// LabelKeyWorkflowIndex is a label on a Workflow.
 	// It captures the index of creation the workflow by the ScheduledWorkflow.
-	LabelKeyWorkflowIndex = constants.FullName + "/workflowIndex"
+	LabelKeyWorkflowIndex                      = constants.FullName + "/workflowIndex"
 	// LabelKeyWorkflowIsOwnedByScheduledWorkflow is a label on a Workflow.
 	// It captures whether the workflow is owned by a ScheduledWorkflow.
 	LabelKeyWorkflowIsOwnedByScheduledWorkflow = constants.FullName + "/isOwnedByScheduledWorkflow"
@@ -37,8 +37,8 @@ const (
 
 	// LabelKeyScheduledWorkflowEnabled is a label on a ScheduledWorkflow.
 	// It captures whether the ScheduledWorkflow is enabled.
-	LabelKeyScheduledWorkflowEnabled = constants.FullName + "/enabled"
+	LabelKeyScheduledWorkflowEnabled  = constants.FullName + "/enabled"
 	// LabelKeyScheduledWorkflowStatus is a label on a ScheduledWorkflow.
 	// It captures the status of the scheduled workflow.
-	LabelKeyScheduledWorkflowStatus = constants.FullName + "/status"
+	LabelKeyScheduledWorkflowStatus   = constants.FullName + "/status"
 )

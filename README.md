@@ -1,20 +1,8 @@
+# Pipelines
+
+This repository provides Custom Resource Definitions and tools for ML pipeline orchestration. 
+
 ## Scheduled Workflow CRD/controller
-
-### How to generate the API client code from the API specification? 
-
-Get the dependencies:
-
-```
-go get -u ./...
-go get -u k8s.io/client-go/...
-go get -u k8s.io/code-generator/...
-```
-
-Generate the API client code from the API specification:
-
-```
-./hack/update-codegen.sh
-```
 
 ### How to run the ScheduledWorkflow controller from the command line? 
 
@@ -36,7 +24,7 @@ To run the controller locally, execute:
 configuration file
 
 ```
-go run ./controller/scheduledworkflow/*.go -kubeconfig=$HOME/.kube/config -alsologtostderr=true
+go run ./resources/scheduledworkflow/*.go -kubeconfig=$HOME/.kube/config -alsologtostderr=true
 ```
 
 Output:
@@ -50,7 +38,7 @@ Wait for shut down
 To run a sample workflow on a schedule, execute: 
 
 ```
-kubectl create -f ./samples/scheduledworkflow/every-minute-cron.yaml
+kubectl create -f ./example/every-minute-cron.yaml
 ```
 
 Output: 
