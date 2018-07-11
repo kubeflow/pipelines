@@ -15,12 +15,13 @@
 package util
 
 import (
-	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
-	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"math"
 	"testing"
 	"time"
+
+	swfapi "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestPeriodicSchedule_getNextScheduledEpoch_StartDate_EndDate(t *testing.T) {

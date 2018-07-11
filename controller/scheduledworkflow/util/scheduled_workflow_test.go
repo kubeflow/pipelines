@@ -15,15 +15,16 @@
 package util
 
 import (
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
-	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 	"math"
 	"strconv"
 	"testing"
 	"time"
+
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	swfapi "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestScheduledWorkflow_maxConcurrency(t *testing.T) {
@@ -577,7 +578,7 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 			Labels: map[string]string{
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULE1",
-				"scheduledworkflows.kubeflow.org/workflowEpoch":     strconv.Itoa(int(scheduledEpoch)),
+				"scheduledworkflows.kubeflow.org/workflowEpoch":              strconv.Itoa(int(scheduledEpoch)),
 				"scheduledworkflows.kubeflow.org/workflowIndex":              "1"},
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion:         "kubeflow.org/v1alpha1",
@@ -650,7 +651,7 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 			Labels: map[string]string{
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULE1",
-				"scheduledworkflows.kubeflow.org/workflowEpoch":     strconv.Itoa(int(scheduledEpoch)),
+				"scheduledworkflows.kubeflow.org/workflowEpoch":              strconv.Itoa(int(scheduledEpoch)),
 				"scheduledworkflows.kubeflow.org/workflowIndex":              "1"},
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion:         "kubeflow.org/v1alpha1",

@@ -16,8 +16,8 @@ package util
 
 import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	swfregister "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow"
-	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	swfregister "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow"
+	swfapi "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
