@@ -1,0 +1,224 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: kubeflow-training-
+spec:
+  entrypoint: kubeflow-training
+  arguments:
+    parameters:
+      - name: output
+      - name: train
+        value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv
+      - name: eval
+        value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv
+      - name: project
+      - name: schema
+        value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json
+      - name: preprocess-mode
+        value: local
+      - name: preprocessing-module
+        value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py
+      - name: target
+        value: tips
+      - name: learning-rate
+        value: 0.1
+      - name: hidden-layer-size
+        value: 1500
+      - name: steps
+        value: 3000
+      - name: workers
+        value: 0
+      - name: pss
+        value: 0
+      - name: predict-mode
+        value: local
+      - name: analyze-mode
+        value: local
+      - name: analyze-slice-column
+        value: trip_start_hour
+  templates:
+  - name: kubeflow-training
+    inputs:
+      parameters:
+      - name: output
+      - name: train
+      - name: eval
+      - name: project
+      - name: schema
+      - name: preprocess-mode
+      - name: preprocessing-module
+      - name: target
+      - name: learning-rate
+      - name: hidden-layer-size
+      - name: steps
+      - name: workers
+      - name: pss
+      - name: predict-mode
+      - name: analyze-mode
+      - name: analyze-slice-column
+    steps:
+    - - name: preprocess
+        template: preprocess
+        arguments:
+          parameters:
+          - name: output
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/transformed"
+          - name: train
+            value: "{{inputs.parameters.train}}"
+          - name: eval
+            value: "{{inputs.parameters.eval}}"
+          - name: schema
+            value: "{{inputs.parameters.schema}}"
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: preprocess-mode
+            value: "{{inputs.parameters.preprocess-mode}}"
+          - name: preprocessing-module
+            value: "{{inputs.parameters.preprocessing-module}}"
+    - - name: train
+        template: train
+        arguments:
+          parameters:
+          - name: output
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/train"
+          - name: transformed
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/transformed"
+          - name: schema
+            value: "{{inputs.parameters.schema}}"
+          - name: target
+            value: "{{inputs.parameters.target}}"
+          - name: learning-rate
+            value: "{{inputs.parameters.learning-rate}}"
+          - name: hidden-layer-size
+            value: "{{inputs.parameters.hidden-layer-size}}"
+          - name: steps
+            value: "{{inputs.parameters.steps}}"
+          - name: workers
+            value: "{{inputs.parameters.workers}}"
+          - name: pss
+            value: "{{inputs.parameters.pss}}"
+    - - name: analyze
+        template: analyze
+        when: "{{inputs.parameters.analyze-slice-column}} != \"\""
+        arguments:
+          parameters:
+          - name: output
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/analysis"
+          - name: model
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/train"
+          - name: eval
+            value: "{{inputs.parameters.eval}}"
+          - name: schema
+            value: "{{inputs.parameters.schema}}"
+          - name: project
+            value: "{{inputs.parameters.project}}"
+          - name: analyze-mode
+            value: "{{inputs.parameters.analyze-mode}}"
+          - name: slice-columns
+            value: "{{inputs.parameters.analyze-slice-column}}"
+    - - name: predict
+        template: predict
+        arguments:
+          parameters:
+          - name: output
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/predict"
+          - name: data
+            value: "{{inputs.parameters.eval}}"
+          - name: schema
+            value: "{{inputs.parameters.schema}}"
+          - name: target
+            value: "{{inputs.parameters.target}}"
+          - name: model
+            value: "{{inputs.parameters.output}}/{{workflow.name}}/train"
+          - name: predict-mode
+            value: "{{inputs.parameters.predict-mode}}"
+          - name: project
+            value: "{{inputs.parameters.project}}"
+  - name: preprocess
+    inputs:
+      parameters:
+      - name: output
+      - name: train
+      - name: eval
+      - name: schema
+      - name: project
+      - name: preprocess-mode
+      - name: preprocessing-module
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft
+      args: [
+          "--train", "{{inputs.parameters.train}}",
+          "--eval", "{{inputs.parameters.eval}}",
+          "--schema", "{{inputs.parameters.schema}}",
+          "--output", "{{inputs.parameters.output}}",
+          "--project", "{{inputs.parameters.project}}",
+          "--mode", "{{inputs.parameters.preprocess-mode}}",
+          "--preprocessing_module", "{{inputs.parameters.preprocessing-module}}",
+      ]
+  - name: train
+    inputs:
+      parameters:
+      - name: output
+      - name: transformed
+      - name: schema
+      - name: target
+      - name: learning-rate
+      - name: hidden-layer-size
+      - name: steps
+      - name: workers
+      - name: pss
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
+      args: [
+          "--job-dir", "{{inputs.parameters.output}}",
+          "--transformed-data-dir", "{{inputs.parameters.transformed}}",
+          "--schema", "{{inputs.parameters.schema}}",
+          "--learning-rate", "{{inputs.parameters.learning-rate}}",
+          "--hidden-layer-size", "{{inputs.parameters.hidden-layer-size}}",
+          "--steps", "{{inputs.parameters.steps}}",
+          "--target", "{{inputs.parameters.target}}",
+          "--workers", "{{inputs.parameters.workers}}",
+          "--pss", "{{inputs.parameters.pss}}",
+      ]
+  - name: analyze
+    inputs:
+      parameters:
+      - name: output
+      - name: model
+      - name: eval
+      - name: schema
+      - name: project
+      - name: analyze-mode
+      - name: slice-columns
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma
+      args: [
+          "--model", "{{inputs.parameters.model}}",
+          "--eval", "{{inputs.parameters.eval}}",
+          "--schema", "{{inputs.parameters.schema}}",
+          "--output", "{{inputs.parameters.output}}",
+          "--project", "{{inputs.parameters.project}}",
+          "--mode", "{{inputs.parameters.analyze-mode}}",
+          "--slice-columns", "{{inputs.parameters.slice-columns}}",
+      ]
+  - name: predict
+    inputs:
+      parameters:
+      - name: output
+      - name: data
+      - name: schema
+      - name: target
+      - name: model
+      - name: predict-mode
+      - name: project
+    container:
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict
+      args: [
+          "--output", "{{inputs.parameters.output}}",
+          "--data", "{{inputs.parameters.data}}",
+          "--schema", "{{inputs.parameters.schema}}",
+          "--target", "{{inputs.parameters.target}}",
+          "--model", "{{inputs.parameters.model}}",
+          "--mode", "{{inputs.parameters.predict-mode}}",
+          "--project", "{{inputs.parameters.project}}",
+      ]
