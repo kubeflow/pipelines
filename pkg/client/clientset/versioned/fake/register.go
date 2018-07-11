@@ -1,10 +1,10 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// https://www.apache.org/licenses/LICENSE-2.0
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,19 +17,20 @@
 package fake
 
 import (
-	scheduledworkflowv1alpha1 "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 var parameterCodec = runtime.NewParameterCodec(scheme)
-var localSchemeBuilder = runtime.SchemeBuilder{
-	scheduledworkflowv1alpha1.AddToScheme,
+
+func init() {
+	v1.AddToGroupVersion(scheme, schema.GroupVersion{Version: "v1"})
+	AddToScheme(scheme)
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition
@@ -42,13 +43,10 @@ var localSchemeBuilder = runtime.SchemeBuilder{
 //   )
 //
 //   kclientset, _ := kubernetes.NewForConfig(c)
-//   _ = aggregatorclientsetscheme.AddToScheme(clientsetscheme.Scheme)
+//   aggregatorclientsetscheme.AddToScheme(clientsetscheme.Scheme)
 //
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
-var AddToScheme = localSchemeBuilder.AddToScheme
-
-func init() {
-	v1.AddToGroupVersion(scheme, schema.GroupVersion{Version: "v1"})
-	utilruntime.Must(AddToScheme(scheme))
+func AddToScheme(scheme *runtime.Scheme) {
+	scheduledworkflowv1alpha1.AddToScheme(scheme)
 }

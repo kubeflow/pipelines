@@ -15,18 +15,17 @@
 package client
 
 import (
-	"time"
-
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	"github.com/argoproj/argo/pkg/client/informers/externalversions/workflow/v1alpha1"
-	"github.com/googleprivate/ml/crd/controller/scheduledworkflow/util"
-	swfapi "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	wraperror "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
+	"time"
 )
 
 // WorkflowClient is a client to call the Workflow API.

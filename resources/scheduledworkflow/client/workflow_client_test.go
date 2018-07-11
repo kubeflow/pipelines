@@ -15,17 +15,16 @@
 package client
 
 import (
-	"testing"
-	"time"
-
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowcommon "github.com/argoproj/argo/workflow/common"
-	"github.com/googleprivate/ml/crd/controller/scheduledworkflow/util"
-	swfapi "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	"github.com/kubeflow/pipelines/resources/scheduledworkflow/util"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"testing"
+	"time"
 )
 
 func TestToWorkflowStatuses(t *testing.T) {

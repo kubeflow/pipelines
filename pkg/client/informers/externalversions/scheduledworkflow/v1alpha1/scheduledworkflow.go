@@ -1,10 +1,10 @@
-// Copyright 2018 Google LLC
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// https://www.apache.org/licenses/LICENSE-2.0
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,10 +19,10 @@ package v1alpha1
 import (
 	time "time"
 
-	scheduledworkflowv1alpha1 "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
-	versioned "github.com/googleprivate/ml/crd/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/googleprivate/ml/crd/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/googleprivate/ml/crd/pkg/client/listers/scheduledworkflow/v1alpha1"
+	scheduledworkflow_v1alpha1 "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
+	versioned "github.com/kubeflow/pipelines/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/kubeflow/pipelines/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/kubeflow/pipelines/pkg/client/listers/scheduledworkflow/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -68,7 +68,7 @@ func NewFilteredScheduledWorkflowInformer(client versioned.Interface, namespace 
 				return client.ScheduledworkflowV1alpha1().ScheduledWorkflows(namespace).Watch(options)
 			},
 		},
-		&scheduledworkflowv1alpha1.ScheduledWorkflow{},
+		&scheduledworkflow_v1alpha1.ScheduledWorkflow{},
 		resyncPeriod,
 		indexers,
 	)
@@ -79,7 +79,7 @@ func (f *scheduledWorkflowInformer) defaultInformer(client versioned.Interface, 
 }
 
 func (f *scheduledWorkflowInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&scheduledworkflowv1alpha1.ScheduledWorkflow{}, f.defaultInformer)
+	return f.factory.InformerFor(&scheduledworkflow_v1alpha1.ScheduledWorkflow{}, f.defaultInformer)
 }
 
 func (f *scheduledWorkflowInformer) Lister() v1alpha1.ScheduledWorkflowLister {
