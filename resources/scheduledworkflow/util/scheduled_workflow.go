@@ -16,16 +16,15 @@ package util
 
 import (
 	"fmt"
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/pkg/apis/scheduledworkflow/v1alpha1"
 	"hash/fnv"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/apis/core"
 	"math"
 	"sort"
 	"strconv"
 	"time"
-
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	swfapi "github.com/googleprivate/ml/crd/pkg/apis/scheduledworkflow/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (

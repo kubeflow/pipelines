@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Copyright 2018 Google LLC
+# Copyright 2017 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# https://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,10 +23,10 @@ set -o pipefail
 
 SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
 echo "SCRIPT_ROOT is $SCRIPT_ROOT"
-CODEGEN_PKG=${SCRIPT_ROOT}/../../../../k8s.io/code-generator
+CODEGEN_PKG=${SCRIPT_ROOT}/../../../k8s.io/code-generator
 echo "CODEGEN_PKG is $CODEGEN_PKG"
 
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
-  github.com/googleprivate/ml/crd/pkg/client github.com/googleprivate/ml/crd/pkg/apis \
+  github.com/kubeflow/pipelines/pkg/client github.com/kubeflow/pipelines/pkg/apis \
   scheduledworkflow:v1alpha1 \
   --go-header-file ${SCRIPT_ROOT}/hack/custom-boilerplate.go.txt

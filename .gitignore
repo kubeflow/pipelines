@@ -1,0 +1,11 @@
+# IDE
+.idea/
+
+# Vendor
+vendor/
+
+# Merge files
+*.orig
+
+# Bin
+bin/
