@@ -124,12 +124,6 @@ spec:
           parameters:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
-      - name: run-backend-unit-tests
-        template: run-backend-unit-tests
-        arguments:
-          parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
 
   - name: get-project
     script:
@@ -209,7 +203,7 @@ spec:
       parameters:
       - name: commit-sha
     container:
-      image: gcr.io/ml-pipeline/api-integration-test:v20180710-4ab3cd3-e3b0c4
+      image: gcr.io/ml-pipeline/api-integration-test:v20180711-c096fbb-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--namespace", "{{workflow.name}}",

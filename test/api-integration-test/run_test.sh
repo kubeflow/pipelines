@@ -67,6 +67,6 @@ printf '%s\n' "$TEST_RESULT"
 printf '%s\n' "$TEST_RESULT" | go-junit-report > ${JUNIT_TEST_RESULT}
 
 echo "Copy test result to GCS ${TEST_RESULT_BASE_DIR}/${COMMIT_SHA}"
-gsutil cp ${JUNIT_TEST_RESULT} ${TEST_RESULT_BASE_DIR}/${COMMIT_SHA}/${JUNIT_TEST_RESULT}
+gsutil cp ${JUNIT_TEST_RESULT} ${TEST_RESULT_BASE_DIR}/${COMMIT_SHA}/api_integration_test/${JUNIT_TEST_RESULT}
 
 exit $TEST_EXIT_CODE

@@ -12,11 +12,7 @@ At a high level, a typical test workflow will
 - delete the images
 
 All these steps will be taken place in the same Kubernetes cluster. 
-We support running tests on both GKE and Minikube, targeting on slightly different development scenario:
-- You can use GKE to test against the code in a Github Branch. The image will be temporarily stored in the GCR repository in the same project.
-- Minikube can test your local code and doesn't require a GCR to host the intermediate image. 
-It also mounts your local docker socket so the build cache is persisted. The docker images is faster. 
-This is a better option if you use Minikube as your development environment.
+You can use GKE to test against the code in a Github Branch. The image will be temporarily stored in the GCR repository in the same project.
 
 Currently we support running the tests manually. In the future, continuous integration using Kubernetes [Prow](https://github.com/kubernetes/test-infra/tree/master/prow) will also be supported. [Issue](https://github.com/googleprivate/ml/issues/302)
 
@@ -55,26 +51,6 @@ The workflow will create a temporary namespace with the same name as the Argo wo
 However you can keep them by providing additional parameter. 
 ```
 argo submit integration_test_gke.yaml -p branch="my-branch" -p cleanup="false"
-```
-
-## Run tests using Minikube
-You could run the tests against your local code.
-
-### Setup
-
-To run the test locally on Minikube 
-- Install Argo (same step as in GKE)
-- Create an admin role in the minikube cluster, and bind to default service account, so that integration test can create additional roles as part of the deployment step.
-  ```
-  kubectl create -f test/cluster_admin.yaml
-  ```
-- Modify the bottom of the integration_test_minikube.yaml file to replace **repo-dir** with your local github repo root dir.
-TODO(yangpa): Argo will support parameterization on Volume in v2.1 [Bug](https://github.com/argoproj/argo/issues/822). We should switch to use parameter when available.
-
-### Run tests
-Simply submit the test workflow
-```
-argo submit integration_test_minikube.yaml
 ```
 
 ## Troubleshooting

@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: unit-test-
+spec:
+  entrypoint: unit-test
+  arguments:
+    parameters:
+    - name: commit-sha
+      value: master
+  templates:
+  - name: unit-test
+    inputs:
+      parameters:
+      - name: commit-sha
+    steps:
+    - - name: run-backend-unit-tests
+        template: run-backend-unit-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+
+  - name: run-backend-unit-tests
+    inputs:
+      parameters:
+      - name: commit-sha
+    container:
+      image: gcr.io/ml-pipeline/backend-unit-test:v20180711-c096fbb-e3b0c4
+      imagePullPolicy: 'Always'
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh"
+
+  volumes:
+  - name: secret-volume
+    secret:
+      defaultMode: 256
+      secretName: ssh-key-secret

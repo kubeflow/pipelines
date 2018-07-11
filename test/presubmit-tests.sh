@@ -14,8 +14,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+usage()
+{
+    echo "usage: deploy.sh
+    [--workflow_file        the file name of the argo workflow to run]
+    [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://ml-pipeline-test/[PULL_SHA]]
+    [-h help]"
+}
+
+while [ "$1" != "" ]; do
+    case $1 in
+             --workflow_file )        shift
+                                      WORKFLOW_FILE=$1
+                                      ;;
+             --test_result_folder )   shift
+                                      TEST_RESULT_FOLDER=$1
+                                      ;;
+             -h | --help )            usage
+                                      exit
+                                      ;;
+             * )                      usage
+                                      exit 1
+    esac
+    shift
+done
+
 TEST_CLUSTER=spinner
-TEST_WORKFLOW=integration_test_gke.yaml
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=60
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
@@ -27,7 +52,7 @@ gcloud container clusters get-credentials ${TEST_CLUSTER} --zone us-west1-a --pr
 kubectl config set-context $(kubectl config current-context) --namespace=default
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit $(dirname $0)/${TEST_WORKFLOW} -p commit-sha="${PULL_PULL_SHA}" | awk '/Name:/{print $NF}'`
+ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} -p commit-sha="${PULL_PULL_SHA}" | awk '/Name:/{print $NF}'`
 echo argo workflow submitted successfully
 
 echo check status of argo workflow $ARGO_WORKFLOW....
@@ -47,8 +72,8 @@ fi
 echo Argo workflow finished....
 
 echo Copy test result...
-mkdir -p $WORKSPACE/_artifacts
-gsutil mv -r gs://ml-pipeline-test/${PULL_PULL_SHA}/* ${ARTIFACT_DIR}
+mkdir -p $ARTIFACT_DIR
+gsutil mv -r gs://ml-pipeline-test/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}/* ${ARTIFACT_DIR}
 
 ARGO_WORKFLOW_DETAILS=`argo get ${ARGO_WORKFLOW}`
 ARGO_WORKFLOW_LOGS=`argo logs -w ${ARGO_WORKFLOW}`
