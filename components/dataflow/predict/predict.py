@@ -165,14 +165,15 @@ def run_predict(output_dir, data_path, schema, target_name, model_export_dir,
   """
 
   target_type = next(x for x in schema if x['name']==target_name)['type']
-  is_classification = (target_type == 'CATEGORY')
+  labels_file = os.path.join(model_export_dir, 'assets', 'vocab_' + target_name)
+  is_classification = file_io.file_exists(labels_file)
+
   output_file_prefix = os.path.join(output_dir, 'prediction_results')
   output_schema_file = os.path.join(output_dir, 'schema.json')
   names = [x['name'] for x in schema]
 
   output_schema = filter(lambda x: x['name'] != target_name, schema)
   if is_classification:
-    labels_file = os.path.join(model_export_dir, 'assets', 'vocab_' + target_name)
     with file_io.FileIO(labels_file, mode='r') as f:
       labels = [x.strip() for x in f.readlines()]
 
@@ -204,20 +205,20 @@ def run_predict(output_dir, data_path, schema, target_name, model_export_dir,
     | 'move target to last' >> beam.ParDo(TargetToLastDoFn(names, target_name))
     | 'batch' >> beam.ParDo(EmitAsBatchDoFn(batch_size))
     | 'predict' >> beam.ParDo(PredictDoFn(model_export_dir)))
-  
+
     if is_classification:
       processed_results = (raw_results
-        | 'unbatch' >> beam.FlatMap(lambda x: zip(x['source'], x['scores'])) 
+        | 'unbatch' >> beam.FlatMap(lambda x: zip(x['source'], x['scores']))
         | 'get predicted' >> beam.Map(lambda x: x[0] + [labels[x[1].argmax()]] + list(x[1])))
     else:
       processed_results = (raw_results
-        | 'unbatch' >> beam.FlatMap(lambda x: zip(x['source'], x['outputs'])) 
+        | 'unbatch' >> beam.FlatMap(lambda x: zip(x['source'], x['outputs']))
         | 'get predicted' >> beam.Map(lambda x: x[0] + list(x[1])))
-    
+
     results_save = (processed_results
       | 'write csv lines' >> beam.ParDo(ListToCsvDoFn())
       | 'write file' >> beam.io.WriteToText(output_file_prefix))
-  
+
     (results_save
       | 'fixed one' >> beam.transforms.combiners.Sample.FixedSizeGlobally(1)
       | 'set schema' >> beam.Map(lambda path: json.dumps(output_schema))
