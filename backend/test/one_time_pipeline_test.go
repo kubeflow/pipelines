@@ -28,7 +28,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/googleprivate/ml/backend/api"
-	"github.com/googleprivate/ml/backend/src/util"
+	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"

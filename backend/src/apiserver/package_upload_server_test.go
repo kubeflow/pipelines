@@ -21,10 +21,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/googleprivate/ml/backend/src/model"
-	"github.com/googleprivate/ml/backend/src/resource"
-	"github.com/googleprivate/ml/backend/src/storage"
-	"github.com/googleprivate/ml/backend/src/util"
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
+	"github.com/googleprivate/ml/backend/src/apiserver/resource"
+	"github.com/googleprivate/ml/backend/src/apiserver/storage"
+	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )

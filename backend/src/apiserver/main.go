@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/api"
-	"github.com/googleprivate/ml/backend/src/resource"
+	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

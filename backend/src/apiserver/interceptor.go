@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/golang/glog"
-	"github.com/googleprivate/ml/backend/src/util"
+	"github.com/googleprivate/ml/backend/src/common/util"
 	"google.golang.org/grpc"
 )
 

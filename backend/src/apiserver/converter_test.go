@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/googleprivate/ml/backend/api"
-	"github.com/googleprivate/ml/backend/src/model"
-	"github.com/googleprivate/ml/backend/src/util"
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
+	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 )
 

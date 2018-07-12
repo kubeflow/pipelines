@@ -22,8 +22,8 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/api"
-	"github.com/googleprivate/ml/backend/src/resource"
-	"github.com/googleprivate/ml/backend/src/util"
+	"github.com/googleprivate/ml/backend/src/apiserver/resource"
+	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/pkg/errors"
 )
 

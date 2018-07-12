@@ -1,21 +1,20 @@
 FROM golang:1.10
 
-WORKDIR /go/src/github.com/kubeflow/pipelines
+WORKDIR /go/src/github.com/googleprivate/ml/backend
+COPY . .
 
-RUN git clone https://github.com/kubeflow/pipelines.git ./
-
-RUN go get ./resources/scheduledworkflow/...
-
-# We need to remove this glog package as it conflicts with the glog package in
-# /go/src/github.com/golang/glog.
+WORKDIR /go/src/github.com/googleprivate/ml/backend/src
+RUN go get ./...
+# TODO(IronPan): use go dep https://github.com/googleprivate/ml/issues/561
 RUN rm -r /go/src/k8s.io/kubernetes/vendor/github.com/golang/glog
+RUN go build -o /bin/controller ./crd/controller/scheduledworkflow/*.go
 
-RUN go build -o /bin/controller ./resources/scheduledworkflow/*.go
 
 FROM ubuntu
-
 WORKDIR /bin
 
 COPY --from=0 /bin/controller /bin/controller
+RUN chmod +x /bin/controller
 
 CMD /bin/controller -alsologtostderr=true
+

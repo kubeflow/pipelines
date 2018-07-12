@@ -20,8 +20,8 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/googleprivate/ml/backend/api"
-	"github.com/googleprivate/ml/backend/src/model"
-	"github.com/googleprivate/ml/backend/src/util"
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
+	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
 func ToApiJob(job *model.Job) *api.Job {

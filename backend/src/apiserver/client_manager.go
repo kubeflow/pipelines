@@ -21,13 +21,13 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/googleprivate/ml/backend/src/client"
-	"github.com/googleprivate/ml/backend/src/model"
-	"github.com/googleprivate/ml/backend/src/storage"
-	"github.com/googleprivate/ml/backend/src/util"
+	"github.com/googleprivate/ml/backend/src/apiserver/client"
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
+	"github.com/googleprivate/ml/backend/src/apiserver/storage"
+	"github.com/googleprivate/ml/backend/src/common/util"
+	scheduledworkflowclient "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	scheduledworkflowclient "github.com/kubeflow/pipelines/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	minio "github.com/minio/minio-go"
 )
 

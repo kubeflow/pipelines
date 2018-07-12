@@ -19,8 +19,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/googleprivate/ml/backend/api"
-	"github.com/googleprivate/ml/backend/src/resource"
-	"github.com/googleprivate/ml/backend/src/util"
+	"github.com/googleprivate/ml/backend/src/apiserver/resource"
+	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
 var pipelineModelFieldsBySortableAPIFields = map[string]string{
