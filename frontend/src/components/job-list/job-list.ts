@@ -41,7 +41,7 @@ export class JobList extends Polymer.Element {
 
   private _debouncer: Polymer.Debouncer;
 
-  private _pipelineId = -1;
+  private _pipelineId = '';
 
   public ready(): void {
     super.ready();
@@ -51,14 +51,14 @@ export class JobList extends Polymer.Element {
     itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
   }
 
-  public loadJobs(pipelineId: number): void {
+  public loadJobs(pipelineId: string): void {
     this._pipelineId = pipelineId;
     (this.$.jobsItemList as ItemListElement).reset();
     this._loadJobsInternal(new ListJobsRequest(pipelineId, this._pageSize));
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
-    const jobId = this.jobsMetadata[ev.detail.index].name;
+    const jobId = this.jobsMetadata[ev.detail.index].id;
     this.dispatchEvent(
         new RouteEvent(`/pipelineJob?pipelineId=${this._pipelineId}&jobId=${jobId}`));
   }
@@ -82,7 +82,7 @@ export class JobList extends Polymer.Element {
       this.jobsMetadata = getJobsResponse.jobs || [];
 
       const itemList = this.$.jobsItemList as ItemListElement;
-      itemList.updateNextPageToken(getJobsResponse.nextPageToken || '');
+      itemList.updateNextPageToken(getJobsResponse.next_page_token || '');
     } catch (err) {
       // TODO: This error should be bubbled up to pipeline-details to be shown as a page error.
       Utils.showDialog('There was an error while loading the job list', err);

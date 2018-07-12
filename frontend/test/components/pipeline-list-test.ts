@@ -3,6 +3,7 @@ import * as assert from '../../node_modules/assert/assert';
 import * as Apis from '../../src/lib/apis';
 
 import { ListPipelinesResponse } from '../../src/api/list_pipelines_response';
+import { Pipeline } from '../../src/api/pipeline';
 import { PageError } from '../../src/components/page-error/page-error';
 import { PipelineList } from '../../src/components/pipeline-list/pipeline-list';
 import { RouteEvent } from '../../src/model/events';
@@ -18,10 +19,10 @@ let fixture: PipelineList;
 let deletePipelinesStub: sinon.SinonStub;
 let getPipelinesStub: sinon.SinonStub;
 
-const allPipelinesResponse: ListPipelinesResponse = {
-  nextPageToken: '',
-  pipelines: fixedData.data.pipelines,
-};
+const allPipelinesResponse = new ListPipelinesResponse();
+allPipelinesResponse.next_page_token = '';
+allPipelinesResponse.pipelines =
+    fixedData.data.pipelines.map((p: any) => Pipeline.buildFromObject(p));
 
 async function _resetFixture(): Promise<void> {
   return resetFixture('pipeline-list', null, (f: PipelineList) => {

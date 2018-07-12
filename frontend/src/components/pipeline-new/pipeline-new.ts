@@ -184,12 +184,13 @@ export class PipelineNew extends PageElement {
     const newPipeline = new Pipeline();
     newPipeline.name = this._name;
     newPipeline.description = this._description;
-    // TODO: The frontend shouldn't really be sending this, but currently the
-    // backend breaks if it receives an empty string, undefined, or null.
-    newPipeline.created_at = new Date().toISOString();
+    newPipeline.enabled = true;
     newPipeline.package_id = this._packageId;
     newPipeline.parameters = this._parameters;
-    newPipeline.schedule = this._schedule.scheduleAsUTCCrontab();
+    const trigger = this._schedule.toTrigger();
+    if (trigger) {
+      newPipeline.trigger = trigger;
+    }
     this._busy = true;
     try {
       await Apis.newPipeline(newPipeline);

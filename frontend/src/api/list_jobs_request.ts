@@ -1,9 +1,9 @@
 import { ListPipelinesRequest } from './list_pipelines_request';
 
 export class ListJobsRequest extends ListPipelinesRequest {
-  public pipelineId: number;
+  public pipelineId: string;
 
-  constructor(pipelineId: number, pageSize: number) {
+  constructor(pipelineId: string, pageSize: number) {
     super(pageSize);
     this.pipelineId = pipelineId;
   }

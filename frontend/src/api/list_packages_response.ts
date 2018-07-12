@@ -1,6 +1,6 @@
 import { PipelinePackage } from './pipeline_package';
 
 export interface ListPackagesResponse {
-  nextPageToken?: string;
+  next_page_token?: string;
   packages?: PipelinePackage[];
 }

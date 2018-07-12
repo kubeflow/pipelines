@@ -11,7 +11,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
-import { Pipeline } from '../../api/pipeline';
+import { Pipeline, Trigger } from '../../api/pipeline';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { JobList } from '../job-list/job-list';
@@ -34,13 +34,13 @@ export class PipelineDetails extends PageElement {
   protected _busy = false;
 
   @property({
-    computed: '_computeAllowPipelineEnable(pipeline.enabled, pipeline.schedule)',
+    computed: '_computeAllowPipelineEnable(pipeline.enabled, pipeline.trigger)',
     type: Boolean
   })
   protected _allowPipelineEnable = false;
 
   @property({
-    computed: '_computeAllowPipelineDisable(pipeline.enabled, pipeline.schedule)',
+    computed: '_computeAllowPipelineDisable(pipeline.enabled, pipeline.trigger)',
     type: Boolean
   })
   protected _allowPipelineDisable = false;
@@ -69,14 +69,9 @@ export class PipelineDetails extends PageElement {
     return this.$.disableBtn as PaperButtonElement;
   }
 
-  public async load(path: string): Promise<void> {
-    if (path !== '') {
+  public async load(id: string): Promise<void> {
+    if (!!id) {
       this.selectedTab = 0;
-      const id = Number.parseInt(path);
-      if (isNaN(id)) {
-        Utils.log.error(`Bad pipeline path: ${id}`);
-        return;
-      }
 
       this._loadPipeline(id);
     }
@@ -88,7 +83,7 @@ export class PipelineDetails extends PageElement {
     }
   }
 
-  protected async _loadPipeline(id: number): Promise<void> {
+  protected async _loadPipeline(id: string): Promise<void> {
     try {
       const pipeline = await Apis.getPipeline(id);
       this.pipeline = pipeline;
@@ -161,21 +156,28 @@ export class PipelineDetails extends PageElement {
     }
   }
 
-  protected _enabledDisplayString(schedule: string, enabled: boolean): string {
-    return Utils.enabledDisplayString(schedule, enabled);
+  protected _enabledDisplayString(trigger: Trigger, enabled: boolean): string {
+    return Utils.enabledDisplayString(trigger, enabled);
+  }
+
+  protected _scheduleDisplayString(): string {
+    if (this.pipeline && this.pipeline.trigger) {
+      return this.pipeline.trigger.toString();
+    }
+    return '-';
   }
 
   protected _formatDateString(date: string): string {
     return Utils.formatDateString(date);
   }
 
-  // Pipeline can only be enabled/disabled if there's a schedule
-  protected _computeAllowPipelineEnable(enabled: boolean, schedule: string): boolean {
-    return !!schedule && !enabled;
+  // Pipeline can only be enabled/disabled if there's a schedule/trigger
+  protected _computeAllowPipelineEnable(enabled: boolean, trigger: Trigger|null): boolean {
+    return !!trigger && !enabled;
   }
 
-  // Pipeline can only be enabled/disabled if there's a schedule
-  protected _computeAllowPipelineDisable(enabled: boolean, schedule: string): boolean {
-    return !!schedule && enabled;
+  // Pipeline can only be enabled/disabled if there's a schedule/trigger
+  protected _computeAllowPipelineDisable(enabled: boolean, trigger: Trigger|null): boolean {
+    return !!trigger && enabled;
   }
 }

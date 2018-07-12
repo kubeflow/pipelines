@@ -40,7 +40,7 @@ const mockTemplate = `
 async function _resetFixture(): Promise<void> {
   return testUtils.resetFixture('job-details', null, (f: JobDetails) => {
     fixture = f;
-    return f.load('', { jobId: 'test-job', pipelineId: 1000 });
+    return f.load('', { jobId: 'test-job', pipelineId: '1000' });
   });
 }
 
@@ -51,12 +51,14 @@ const testPipeline: Pipeline = {
   created_at: new Date().toISOString(),
   description: 'test pipeline description',
   enabled: false,
-  enabled_at: '',
-  id: 1000,
+  id: '1000',
+  max_concurrency: 10,
   name: 'test pipeline name',
   package_id: 2000,
   parameters: [],
-  schedule: '',
+  status: '',
+  trigger: null,
+  updated_at: new Date().toISOString(),
 };
 
 describe('job-details', () => {

@@ -48,10 +48,11 @@ export class JobDetails extends PageElement {
   @property({ type: Boolean })
   protected _loadingOutputs = false;
 
-  @property({ type: Number })
-  protected _pipelineId = -1;
+  @property({ type: String })
+  protected _pipelineId = '';
 
   private _jobId = '';
+  private _jobName = '';
 
   public get refreshButton(): PaperButtonElement {
     return this.$.refreshButton as PaperButtonElement;
@@ -77,10 +78,10 @@ export class JobDetails extends PageElement {
     return this.$.jobGraph as JobGraph;
   }
 
-  public async load(_: string, queryParams: { jobId?: string, pipelineId: number }): Promise<void> {
+  public async load(_: string, queryParams: { jobId?: string, pipelineId: string }): Promise<void> {
     this._reset();
 
-    if (queryParams.jobId !== undefined && queryParams.pipelineId > -1) {
+    if (queryParams.jobId !== undefined && !!queryParams.pipelineId) {
       this._pipelineId = queryParams.pipelineId;
       this._jobId = queryParams.jobId;
 
@@ -171,7 +172,7 @@ export class JobDetails extends PageElement {
       baseOutputPath: string, packageTemplate: PackageTemplate): Promise<void> {
     let outputPaths: OutputInfo[] = [];
     try {
-      outputPaths = parseTemplateOuputPaths(packageTemplate, baseOutputPath, this._jobId);
+      outputPaths = parseTemplateOuputPaths(packageTemplate, baseOutputPath, this._jobName);
     } catch (err) {
       this.showPageError('There was an error while parsing this job\'s YAML template', err);
       return;

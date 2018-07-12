@@ -12,6 +12,7 @@ import 'polymer/polymer.html';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
+import { CronSchedule, Trigger } from '../../api/pipeline';
 
 import './pipeline-schedule.html';
 
@@ -130,17 +131,31 @@ export class PipelineSchedule extends Polymer.Element {
     }
   }
 
-  // Backend expects the crontab in UTC.
-  public scheduleAsUTCCrontab(): string {
+  public toTrigger(): Trigger|null {
     if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
-      return '';
+      return null;
     }
-    // TODO: verify specific time is working as intended.
+
+    // TODO: Add support for periodic schedule.
+
     const startDateTime = this._getStartDateTime();
-    return this._generateCrontab(
-        startDateTime.getUTCDate(),
-        startDateTime.getUTCHours(),
-        startDateTime.getUTCMinutes());
+    // Backend expects the crontab in UTC.
+    const cronSchedule = new CronSchedule(
+        this._generateCrontab(
+            startDateTime.getUTCDate(),
+            startDateTime.getUTCHours(),
+            startDateTime.getUTCMinutes()));
+    const startTime = this._startTime();
+    const endTime = this._endTime();
+    if (startTime) {
+      cronSchedule.start_time = startTime;
+    }
+    if (endTime) {
+      cronSchedule.end_time = endTime;
+    }
+    const trigger = new Trigger();
+    trigger.cron_schedule = cronSchedule;
+    return trigger;
   }
 
   // TODO: Maybe use a polymer validator (property?) here?
@@ -233,6 +248,20 @@ export class PipelineSchedule extends Polymer.Element {
     return this._SCHEDULES[scheduleTypeIndex] === RECURRING;
   }
 
+  private _startTime(): string {
+    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
+      return '';
+    }
+    return this._getStartDateTime().toISOString();
+  }
+
+  private _endTime(): string {
+    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY || !this._hasEndDate) {
+      return '';
+    }
+    return this._getEndDateTime().toISOString();
+  }
+
   // We don't simply take a Date object here because the crontab we send to the
   // backend needs to be UTC, and Date objects are automatically local.
   private _generateCrontab(targetDateDay: number, targetDateHours: number,
@@ -294,6 +323,10 @@ export class PipelineSchedule extends Polymer.Element {
     return this._toDate(this._startDate, this._startTimeIndex, this._isStartPM);
   }
 
+  private _getEndDateTime(): Date {
+    return this._toDate(this._endDate, this._endTimeIndex, this._isEndPM);
+  }
+
   private _toDate(date: string, timeSelectorIndex: number, isPm: boolean): Date {
     const dateAsArray = date.split('/').map((s) => Number(s));
     // If/when start/end have different backing time arrays, this will need to
@@ -336,7 +369,7 @@ export class PipelineSchedule extends Polymer.Element {
       return false;
     }
 
-    const selectedEndDate = this._toDate(this._endDate, this._endTimeIndex, this._isEndPM);
+    const selectedEndDate = this._getEndDateTime();
 
     // If end time is in the past, it is invalid regardless of the start time.
     if (selectedEndDate < new Date()) {

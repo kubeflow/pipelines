@@ -28,7 +28,6 @@ export function parseTemplateOuputPaths(
     throw new Error('Failed to load the package template');
   }
   const argoTemplate = jsYaml.safeLoad(packageTemplate.template) as ArgoTemplate;
-
   // TODO: Support templates with no entrypoint (only one template element)
   if (!argoTemplate) {
     throw new Error('Failed to load the workflow argo template');

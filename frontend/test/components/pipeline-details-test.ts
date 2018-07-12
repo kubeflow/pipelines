@@ -5,7 +5,7 @@ import * as Apis from '../../src/lib/apis';
 import * as Utils from '../../src/lib/utils';
 
 import { ListJobsResponse } from '../../src/api/list_jobs_response';
-import { Pipeline } from '../../src/api/pipeline';
+import { CronSchedule, Pipeline, Trigger } from '../../src/api/pipeline';
 import { JobList } from '../../src/components/job-list/job-list';
 import { PageError } from '../../src/components/page-error/page-error';
 import { PipelineDetails } from '../../src/components/pipeline-details/pipeline-details';
@@ -22,21 +22,28 @@ let disablePipelinesStub: sinon.SinonStub;
 async function _resetFixture(): Promise<void> {
   return resetFixture('pipeline-details', null, (f: PipelineDetails) => {
     fixture = f;
-    return f.load('1000');
+    f.load('test-pipeline-id');
   });
 }
 
-const testPipeline: Pipeline = {
-  created_at: new Date().toISOString(),
-  description: 'test pipeline description',
-  enabled: false,
-  enabled_at: '',
-  id: 1000,
-  name: 'test pipeline name',
-  package_id: 2000,
-  parameters: [],
-  schedule: '',
-};
+const testCronTrigger = new Trigger();
+testCronTrigger.cron_schedule = new CronSchedule('0 * * * ? *');
+testCronTrigger.cron_schedule.end_time =
+    new Date(Math.round(Date.now() / 1000) + 5 * 24 * 60 * 60).toISOString();
+testCronTrigger.cron_schedule.start_time = new Date().toISOString();
+
+const testPipeline = new Pipeline();
+testPipeline.created_at = '';
+testPipeline.description = 'test pipeline description';
+testPipeline.enabled = false;
+testPipeline.id = 'test-pipeline-id';
+testPipeline.max_concurrency = 10;
+testPipeline.name = 'test pipeline name';
+testPipeline.package_id = 2000;
+testPipeline.parameters = [];
+testPipeline.status = '';
+testPipeline.trigger = null;
+testPipeline.updated_at = '';
 
 describe('pipeline-details', () => {
 
@@ -46,7 +53,7 @@ describe('pipeline-details', () => {
 
     const getJobsResponse: ListJobsResponse = {
       jobs: fixedData.data.jobs.map((j) => j.job),
-      nextPageToken: '',
+      next_page_token: '',
     };
     getJobsStub = sinon.stub(Apis, 'getJobs');
     getJobsStub.returns(getJobsResponse);
@@ -69,7 +76,9 @@ describe('pipeline-details', () => {
 
     const createdAtDiv = fixture.shadowRoot.querySelector('.created-at.value') as HTMLDivElement;
     assert(isVisible(createdAtDiv), 'cannot find createdAt div');
-    assert.strictEqual(createdAtDiv.innerText, Utils.formatDateString(testPipeline.created_at),
+    assert.strictEqual(
+        createdAtDiv.innerText,
+        Utils.formatDateString(testPipeline.created_at),
         'displayed createdAt does not match test data');
 
     const scheduleDiv = fixture.shadowRoot.querySelector('.schedule.value') as HTMLDivElement;
@@ -84,21 +93,20 @@ describe('pipeline-details', () => {
   });
 
   it('shows schedule and enabled info if a schedule is specified', async () => {
-    testPipeline.schedule = 'some cron tab here';
+    testPipeline.trigger = testCronTrigger;
     testPipeline.enabled = true;
     await _resetFixture();
 
     const scheduleDiv = fixture.shadowRoot.querySelector('.schedule.value') as HTMLDivElement;
     assert(isVisible(scheduleDiv), 'should find schedule div');
-    assert.strictEqual(scheduleDiv.innerText, testPipeline.schedule,
+    assert.strictEqual(scheduleDiv.innerText, testPipeline.trigger.cron_schedule.cron,
         'displayed schedule does not match test data');
 
     const enabledDiv = fixture.shadowRoot.querySelector('.enabled.value') as HTMLDivElement;
     assert(isVisible(enabledDiv), 'should find enabled div');
     assert.strictEqual(enabledDiv.innerText,
-        Utils.enabledDisplayString(testPipeline.schedule, testPipeline.enabled),
+        Utils.enabledDisplayString(testPipeline.trigger, testPipeline.enabled),
         'displayed enabled does not match test data');
-    testPipeline.schedule = '';
   });
 
   it('shows parameters table if there are parameters', async () => {
@@ -185,12 +193,12 @@ describe('pipeline-details', () => {
   });
 
   it('should set status of enable/disable buttons according to pipeline schedule', async () => {
-    testPipeline.schedule = '';
+    testPipeline.trigger = null;
     await _resetFixture();
     assert(fixture.enableButton.disabled, 'both enable and disable buttons should be disabled');
     assert(fixture.disableButton.disabled, 'both enable and disable buttons should be disabled');
 
-    testPipeline.schedule = 'some crontab';
+    testPipeline.trigger = testCronTrigger;
     testPipeline.enabled = true;
     await _resetFixture();
     assert(fixture.enableButton.disabled, 'enable button should be disabled');

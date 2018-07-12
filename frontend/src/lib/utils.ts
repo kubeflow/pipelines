@@ -2,6 +2,7 @@ import { DialogResult, PopupDialog } from '../components/popup-dialog/popup-dial
 import { NODE_PHASE, NodePhase } from '../model/argo_template';
 
 import 'paper-toast/paper-toast';
+import { Trigger } from '../api/pipeline';
 import '../components/popup-dialog/popup-dialog';
 
 export function deleteAllChildren(parent: HTMLElement): void {
@@ -29,8 +30,8 @@ export function listenOnce(element: Node, eventName: string, cb: Function): void
   element.addEventListener(eventName, listener);
 }
 
-export function enabledDisplayString(schedule: string, enabled: boolean): string {
-  if (schedule) {
+export function enabledDisplayString(trigger: Trigger|undefined, enabled: boolean): string {
+  if (trigger) {
     return enabled ? 'Yes' : 'No';
   }
   return '-';

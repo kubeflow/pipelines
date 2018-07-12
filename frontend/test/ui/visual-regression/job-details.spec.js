@@ -1,3 +1,5 @@
+
+const fixedData = require('../../../mock-backend/fixed-data').data;
 const assert = require('assert');
 
 function assertDiffs(results) {
@@ -7,12 +9,12 @@ function assertDiffs(results) {
 describe('view job details', () => {
 
   beforeAll(() => {
-    browser.url('/pipelines/details/2');
+    // This pipeline has jobs.
+    browser.url(`/pipelines/details/${fixedData.pipelines[1].id}`);
   });
 
   it('navigates to job list', () => {
     const selector = 'app-shell pipeline-details paper-tab:last-child';
-
     browser.waitForVisible(selector);
     browser.click(selector);
 
@@ -100,7 +102,8 @@ describe('view job details', () => {
   describe('error handling', () => {
 
     beforeAll(() => {
-      browser.url('/pipelines/details/2');
+      // This pipeline has jobs.
+      browser.url(`/pipelines/details/${fixedData.pipelines[1].id}`);
 
       // Navigate to Job list
       const selector = 'app-shell pipeline-details paper-tab:last-child';
@@ -111,7 +114,7 @@ describe('view job details', () => {
     it('displays error message', () => {
       // Select a job that will show an error message.
       const failedJobSelector =
-          'app-shell pipeline-details job-list item-list paper-item:nth-of-type(4)';
+          'app-shell pipeline-details job-list item-list paper-item:nth-of-type(2)';
 
       browser.waitForVisible(failedJobSelector);
       browser.doubleClick(failedJobSelector);
@@ -142,7 +145,7 @@ describe('view job details', () => {
 
       // Select a job that will show an error message.
       const failedJobSelector =
-          'app-shell pipeline-details job-list item-list paper-item:nth-of-type(4)';
+          'app-shell pipeline-details job-list item-list paper-item:nth-of-type(2)';
       browser.waitForVisible(failedJobSelector);
       browser.doubleClick(failedJobSelector);
 

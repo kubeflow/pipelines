@@ -195,7 +195,6 @@ describe('pipeline-new', () => {
     assert.strictEqual(actualPipeline.description, fixture.descriptionInput.value);
 
     // TODO: mock time and test format.
-    assert(actualPipeline.created_at, 'Deployed Pipeline should have created_at property set.');
     assert.strictEqual(actualPipeline.package_id, (fixture.listBox.selectedItem as any).packageId);
     assert.strictEqual(actualPipeline.parameters.length, parameterInputs.length);
     for (let i = 0; i < parameterInputs.length; i++) {
@@ -203,7 +202,7 @@ describe('pipeline-new', () => {
           actualPipeline.parameters[i].value, (parameterInputs[i] as PaperInputElement).value);
     }
     // "0 0 * * * ?" is the default schedule. It means "run every hour".
-    assert.strictEqual(actualPipeline.schedule, '0 0 * * * ?');
+    assert.strictEqual(actualPipeline.trigger.cron_schedule.cron, '0 0 * * * ?');
 
     deployPipelineStub.restore();
   });

@@ -28,23 +28,25 @@ describe('view pipeline details', () => {
   });
 
   it('loads next page on "next" button press', () => {
-    const nextButtonselector = 'app-shell pipeline-details job-list item-list paper-button#nextPage';
+    const nextButtonselector =
+        'app-shell pipeline-details job-list item-list paper-button#nextPage';
 
     browser.click(nextButtonselector);
     assertDiffs(browser.checkDocument());
   });
 
   it('loads previous page on "previous" button press after pressing "next"', () => {
-    const previousButtonselector = 'app-shell pipeline-details job-list item-list paper-button#previousPage';
+    const previousButtonselector =
+        'app-shell pipeline-details job-list item-list paper-button#previousPage';
     browser.click(previousButtonselector);
 
     assertDiffs(browser.checkDocument());
   });
 
   it('populates new pipeline on clone', () => {
-    const selector = 'app-shell pipeline-details paper-button';
+    const cloneBtnSelector = 'app-shell pipeline-details paper-button#cloneBtn';
 
-    browser.click(selector);
+    browser.click(cloneBtnSelector);
     assertDiffs(browser.checkDocument());
   });
 });

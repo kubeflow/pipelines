@@ -22,7 +22,8 @@ const confusionMatrixMetadataJsonPath = './model-output/metadata.json';
 const confusionMatrixPath = './model-output/confusion_matrix.csv';
 const staticHtmlPath = './model-output/hello-world.html';
 
-const apisPrefix = '/apis/v1alpha1';
+const v1alpha1Prefix = '/apis/v1alpha1';
+const v1alpha2Prefix = '/apis/v1alpha2';
 
 let tensorboardPod = '';
 
@@ -45,7 +46,7 @@ export default (app) => {
   app.set('json spaces', 2);
   app.use(express.json());
 
-  app.get(apisPrefix + '/healthz', (req, res) => {
+  app.get(v1alpha1Prefix + '/healthz', (req, res) => {
     if (apiServerReady) {
       res.send({ apiServerReady });
     } else {
@@ -53,16 +54,16 @@ export default (app) => {
     }
   });
 
-  app.get(apisPrefix + '/pipelines', (req, res) => {
+  app.get(v1alpha2Prefix + '/pipelines', (req, res) => {
     if (!apiServerReady) {
       res.status(404).send();
       return;
     }
 
     res.header('Content-Type', 'application/json');
-    // Note: the way that we use the nextPageToken here may not reflect the way the backend works.
+    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
     const response: ListPipelinesResponse = {
-      nextPageToken: '',
+      next_page_token: '',
       pipelines: [],
     };
 
@@ -97,30 +98,30 @@ export default (app) => {
     response.pipelines = pipelines.slice(start, end);
 
     if (end < pipelines.length) {
-      response.nextPageToken = end + '';
+      response.next_page_token = end + '';
     }
 
     res.json(response);
   });
 
-  app.post(apisPrefix + '/pipelines', (req, res) => {
+  app.post(v1alpha2Prefix + '/pipelines', (req, res) => {
     const pipeline = req.body;
-    pipeline.id = fixedData.pipelines.length + 1;
+    pipeline.id = (fixedData.pipelines.length + 1) + '';
     pipeline.created_at = new Date().toISOString();
+    pipeline.updated_at = new Date().toISOString();
     pipeline.jobs = [fixedData.jobs[0]];
-    pipeline.enabled = !!pipeline.schedule;
+    pipeline.enabled = !!pipeline.trigger;
     fixedData.pipelines.push(pipeline);
     setTimeout(() => {
       res.send(fixedData.pipelines[0]);
     }, 1000);
   });
 
-  app.all(apisPrefix + '/pipelines/:pid', (req, res) => {
+  app.all(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const pid = Number.parseInt(req.params.pid);
     switch (req.method) {
       case 'DELETE':
-        const i = fixedData.pipelines.findIndex((p) => p.id === pid);
+        const i = fixedData.pipelines.findIndex((p) => p.id === req.params.pid);
         if (fixedData.pipelines[i].name.startsWith('Cannot be deleted')) {
           res.status(502).send(`Deletion failed for Pipeline: '${fixedData.pipelines[i].name}'`);
         } else {
@@ -130,24 +131,23 @@ export default (app) => {
         }
         break;
       case 'GET':
-        res.json(fixedData.pipelines.find((p) => p.id === pid));
+        res.json(fixedData.pipelines.find((p) => p.id === req.params.pid));
         break;
       default:
         res.status(405).send('Unsupported request type: ' + res.method);
     }
   });
 
-  app.get(apisPrefix + '/pipelines/:pid/jobs', (req, res) => {
+  app.get(v1alpha2Prefix + '/pipelines/:pid/jobs', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const pid = Number.parseInt(req.params.pid);
-    // Note: the way that we use the nextPageToken here may not reflect the way the backend works.
+    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
     const response: ListJobsResponse = {
       jobs: [],
-      nextPageToken: '',
+      next_page_token: '',
     };
 
     let jobs: JobMetadata[] =
-        fixedData.pipelines.find((p) => p.id === pid).jobs.map((j) => j.job);
+        fixedData.pipelines.find((p) => p.id === req.params.pid).jobs.map((j) => j.job);
 
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
@@ -181,63 +181,60 @@ export default (app) => {
     response.jobs = jobs.slice(start, end);
 
     if (end < jobs.length) {
-      response.nextPageToken = end + '';
+      response.next_page_token = end + '';
     }
 
     res.json(response);
   });
 
-  app.post(apisPrefix + '/pipelines/:pid/enable', (req, res) => {
+  app.post(v1alpha2Prefix + '/pipelines/:pid/enable', (req, res) => {
     setTimeout(() => {
-      const pid = Number.parseInt(req.params.pid);
-      const pipeline = fixedData.pipelines.find((p) => p.id === pid);
+      const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
       pipeline.enabled = true;
       res.send('ok');
     }, 1000);
   });
 
-  app.post(apisPrefix + '/pipelines/:pid/disable', (req, res) => {
+  app.post(v1alpha2Prefix + '/pipelines/:pid/disable', (req, res) => {
     setTimeout(() => {
-      const pid = Number.parseInt(req.params.pid);
-      const pipeline = fixedData.pipelines.find((p) => p.id === pid);
+      const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
       pipeline.enabled = false;
       res.send('ok');
     }, 1000);
   });
 
-  app.get(apisPrefix + '/pipelines/:pid/jobs/:jname', (req, res) => {
-    const pid = Number.parseInt(req.params.pid);
-    const jname = req.params.jname;
-    const pipeline = fixedData.pipelines.find((p) => p.id === pid);
-    const job = pipeline.jobs.find((j) => j.job.name === jname);
+  app.get(v1alpha2Prefix + '/pipelines/:pid/jobs/:jid', (req, res) => {
+    const jid = req.params.jid;
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
+    const job = pipeline.jobs.find((j) => j.job.id === jid);
     if (!job) {
-      res.status(404).send('Cannot find a job with name: ' + jname);
+      res.status(404).send('Cannot find a job with id: ' + jid);
       return;
     }
     res.json(job);
   });
 
-  app.get(apisPrefix + '/packages', (req, res) => {
+  app.get(v1alpha1Prefix + '/packages', (req, res) => {
     res.header('Content-Type', 'application/json');
     const response: ListPackagesResponse = {
-      nextPageToken: '',
+      next_page_token: '',
       packages: fixedData.packages,
     };
     res.json(response);
   });
 
-  app.get(apisPrefix + '/packages/:pid/templates', (req, res) => {
+  app.get(v1alpha1Prefix + '/packages/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     res.send(JSON.stringify(
       { template: fs.readFileSync('./mock-backend/mock-template.yaml', 'utf-8') }));
   });
 
-  app.post(apisPrefix + '/packages/upload', (req, res) => {
+  app.post(v1alpha1Prefix + '/packages/upload', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.packages[0]);
   });
 
-  app.get(apisPrefix + '/artifacts/list/:path', (req, res) => {
+  app.get('/artifacts/list/:path', (req, res) => {
 
     const path = decodeURIComponent(req.params.path);
 
@@ -249,7 +246,7 @@ export default (app) => {
     ]);
   });
 
-  app.get(apisPrefix + '/artifacts/get/:path', (req, res) => {
+  app.get('/artifacts/get/:path', (req, res) => {
     res.header('Content-Type', 'application/json');
     const path = decodeURIComponent(req.params.path);
     if (path.endsWith('roc.csv')) {
@@ -267,18 +264,18 @@ export default (app) => {
     }
   });
 
-  app.get(apisPrefix + '/apps/tensorboard', (req, res) => {
+  app.get('/apps/tensorboard', (req, res) => {
     res.send(tensorboardPod);
   });
 
-  app.post(apisPrefix + '/apps/tensorboard', (req, res) => {
+  app.post('/apps/tensorboard', (req, res) => {
     tensorboardPod = 'http://tensorboardserver:port';
     setTimeout(() => {
       res.send('ok');
     }, 1000);
   });
 
-  app.get(apisPrefix + '/k8s/pod/logs', (req, res) => {
+  app.get('/k8s/pod/logs', (req, res) => {
     setTimeout(() => {
       res.send(String.raw`
       _____________
@@ -304,10 +301,15 @@ export default (app) => {
     res.sendFile(_path.resolve('test', 'components', 'index.html'));
   });
 
-  app.all(apisPrefix + '*', (req, res) => {
+  app.all(v1alpha1Prefix + '*', (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
 
-  proxyMiddleware(app, apisPrefix);
+  app.all(v1alpha2Prefix + '*', (req, res) => {
+    res.status(404).send('Bad request endpoint.');
+  });
+
+  proxyMiddleware(app, v1alpha1Prefix);
+  proxyMiddleware(app, v1alpha2Prefix);
 
 };

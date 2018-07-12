@@ -37,7 +37,8 @@ const apiServerAddress = `http://${apiServerHost}:${apiServerPort}`;
 
 app.use(express.static(staticDir));
 
-const apisPrefix = '/apis/v1alpha1';
+const v1alpha1Prefix = '/apis/v1alpha1';
+const v1alpha2Prefix = '/apis/v1alpha2';
 
 const healthzStats = {
   apiServerReady: false,
@@ -45,14 +46,14 @@ const healthzStats = {
   commitHash,
 };
 
-app.get(apisPrefix + '/healthz', (req, res) => {
+app.get(v1alpha1Prefix + '/healthz', (req, res) => {
   fetch(apiServerAddress + '/healthz', { timeout: 1000 })
     .then(() => healthzStats.apiServerReady = true)
     .catch(() => healthzStats.apiServerReady = false)
     .then(() => res.json(healthzStats));
 });
 
-app.get(apisPrefix + '/artifacts/list/*', async (req, res) => {
+app.get('/artifacts/list/*', async (req, res) => {
   const decodedPath = decodeURIComponent(req.params[0]);
 
   if (decodedPath.match('^gs://')) {
@@ -73,7 +74,7 @@ app.get(apisPrefix + '/artifacts/list/*', async (req, res) => {
   }
 });
 
-app.get(apisPrefix + '/artifacts/get/*', async (req, res, next) => {
+app.get('/artifacts/get/*', async (req, res, next) => {
   const decodedPath = decodeURIComponent(req.params[0]);
 
   if (decodedPath.match('^gs://')) {
@@ -107,7 +108,7 @@ app.get(apisPrefix + '/artifacts/get/*', async (req, res, next) => {
 
 });
 
-app.get(apisPrefix + '/apps/tensorboard', async (req, res) => {
+app.get('/apps/tensorboard', async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -125,7 +126,7 @@ app.get(apisPrefix + '/apps/tensorboard', async (req, res) => {
   }
 });
 
-app.post(apisPrefix + '/apps/tensorboard', async (req, res) => {
+app.post('/apps/tensorboard', async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -146,7 +147,7 @@ app.post(apisPrefix + '/apps/tensorboard', async (req, res) => {
 
 });
 
-app.get(apisPrefix + '/k8s/pod/logs', async (req, res) => {
+app.get('/k8s/pod/logs', async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -165,9 +166,18 @@ app.get(apisPrefix + '/k8s/pod/logs', async (req, res) => {
   }
 });
 
-proxyMiddleware(app, apisPrefix);
+proxyMiddleware(app, v1alpha1Prefix);
+proxyMiddleware(app, v1alpha2Prefix);
 
-app.all(apisPrefix + '/*', proxy({
+app.all(v1alpha1Prefix + '/*', proxy({
+  changeOrigin: true,
+  onProxyReq: (proxyReq, req, res) => {
+    console.log('Proxied request: ', proxyReq.path);
+  },
+  target: apiServerAddress,
+}));
+
+app.all(v1alpha2Prefix + '/*', proxy({
   changeOrigin: true,
   onProxyReq: (proxyReq, req, res) => {
     console.log('Proxied request: ', proxyReq.path);

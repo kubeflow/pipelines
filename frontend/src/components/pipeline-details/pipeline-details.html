@@ -71,14 +71,14 @@
                 <span class="created-at value">[[_formatDateString(pipeline.created_at)]]</span>
               </div>
 
-              <template is="dom-if" if="[[pipeline.schedule]]">
+              <template is="dom-if" if="[[pipeline.trigger]]">
                 <div>
                   <span class="key">Schedule</span>
-                  <span class="schedule value">[[pipeline.schedule]]</span>
+                  <span class="schedule value">[[_scheduleDisplayString()]]</span>
                 </div>
                 <div>
                   <span class="key">Enabled</span>
-                  <span class="enabled value">[[_enabledDisplayString(pipeline.schedule, pipeline.enabled)]]</span>
+                  <span class="enabled value">[[_enabledDisplayString(pipeline.trigger, pipeline.enabled)]]</span>
                 </div>
               </template>
 

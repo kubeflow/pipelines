@@ -120,7 +120,6 @@ describe('deploy new pipeline', () => {
     const selector = 'app-shell pipeline-details .created-at.value';
     browser.waitForVisible(selector, waitTimeout);
     const createdDate = Date.parse(browser.getText(selector));
-    const now = new Date();
     assert(Date.now() - createdDate < 5 * 1000,
         'pipeline created date should be within the last five seconds: ' + createdDate);
   });

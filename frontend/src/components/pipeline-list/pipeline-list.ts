@@ -192,21 +192,27 @@ export class PipelineList extends PageElement {
       this.pipelines = getPipelinesResponse.pipelines || [];
 
       const itemList = this.$.pipelinesItemList as ItemListElement;
-      itemList.updateNextPageToken(getPipelinesResponse.nextPageToken || '');
+      itemList.updateNextPageToken(getPipelinesResponse.next_page_token || '');
     } catch (err) {
       this.showPageError('There was an error while loading the pipeline list.');
       Utils.log.error('Error loading pipelines:', err);
     }
 
     this.pipelineListRows = this.pipelines.map((pipeline) => {
+      // TODO: we should just call pipeline.trigger.toString() here, but the lack of types in
+      // the mocked data prevents us from being able to use functions at the moment.
+      let schedule = '-';
+      if (pipeline && pipeline.trigger) {
+        schedule = pipeline.trigger.toString();
+      }
       const row = new ItemListRow({
         columns: [
           pipeline.name,
           pipeline.description,
           pipeline.package_id,
           Utils.formatDateString(pipeline.created_at),
-          pipeline.schedule,
-          Utils.enabledDisplayString(pipeline.schedule, pipeline.enabled)
+          schedule,
+          Utils.enabledDisplayString(pipeline.trigger, pipeline.enabled)
         ],
         selected: false,
       });
