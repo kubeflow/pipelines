@@ -77,6 +77,9 @@ export class DataPlot extends Polymer.Element {
   }
 
   private async _plotConfusionMatrix(metadata: PlotMetadata): Promise<void> {
+    if (!metadata.source || !metadata.labels || !metadata.schema) {
+      throw new Error('Malformed metadata, a field is missing.');
+    }
     const data = csvParseRows(await Apis.readFile(metadata.source));
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};

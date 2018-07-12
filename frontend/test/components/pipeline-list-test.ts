@@ -26,7 +26,7 @@ const allPipelinesResponse: ListPipelinesResponse = {
 async function _resetFixture(): Promise<void> {
   return resetFixture('pipeline-list', null, (f: PipelineList) => {
     fixture = f;
-    f.load('');
+    return f.load('');
   });
 }
 

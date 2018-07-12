@@ -22,7 +22,7 @@ let disablePipelinesStub: sinon.SinonStub;
 async function _resetFixture(): Promise<void> {
   return resetFixture('pipeline-details', null, (f: PipelineDetails) => {
     fixture = f;
-    f.load('1000');
+    return f.load('1000');
   });
 }
 
@@ -127,7 +127,7 @@ describe('pipeline-details', () => {
     fixture.tabs.select(1);
     Polymer.flush();
 
-    assert(isVisible(jobList), 'should not show jobs div by default');
+    assert(isVisible(jobList), 'should now show jobs div');
     assert.deepStrictEqual(jobList.jobsMetadata, fixedData.data.jobs.map((j) => j.job),
         'jost list does not match test data');
   });

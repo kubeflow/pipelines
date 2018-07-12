@@ -40,6 +40,16 @@ export function formatDateString(date: string): string {
   return date ? new Date(date).toLocaleString() : '-';
 }
 
+export function getRunTime(start: string, end: string, status: NodePhase): string {
+  if (!status) {
+    return '-';
+  }
+  const parsedStart = start ? new Date(start).getTime() : 0;
+  const parsedEnd = end ? new Date(end).getTime() : Date.now();
+
+  return (parsedStart && parsedEnd) ? dateDiffToString(parsedEnd - parsedStart) : '-';
+}
+
 export function dateDiffToString(diff: number): string {
   const SECOND = 1000;
   const MINUTE = 60 * SECOND;

@@ -7,7 +7,7 @@ const assert = require('assert');
 describe('component tests', () => {
   it('starts component tests', () => {
     browser.url('/_componentTests');
-    browser.waitForText('#testFailures', 25000);
+    browser.waitForText('#testFailures', 60000);
 
     const failures = browser.getText('#testFailures');
     const failuresText =

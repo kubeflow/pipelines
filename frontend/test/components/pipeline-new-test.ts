@@ -21,7 +21,7 @@ let getPackagesStub: sinon.SinonStub;
 async function _resetFixture(): Promise<void> {
   return resetFixture('pipeline-new', null, (f: PipelineNew) => {
     fixture = f;
-    f.load('', {});
+    return f.load('', {});
   });
 }
 

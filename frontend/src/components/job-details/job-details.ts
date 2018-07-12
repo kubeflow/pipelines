@@ -61,6 +61,22 @@ export class JobDetails extends PageElement {
     return this.$.cloneButton as PaperButtonElement;
   }
 
+  public get tabs(): PaperTabsElement {
+    return this.$.tabs as PaperTabsElement;
+  }
+
+  public get outputList(): HTMLDivElement {
+    return this.$.outputList as HTMLDivElement;
+  }
+
+  public get plotContainer(): HTMLDivElement {
+    return this.$.plotContainer as HTMLDivElement;
+  }
+
+  public get jobGraph(): JobGraph {
+    return this.$.jobGraph as JobGraph;
+  }
+
   public async load(_: string, queryParams: { jobId?: string, pipelineId: number }): Promise<void> {
     this._reset();
 
@@ -68,7 +84,7 @@ export class JobDetails extends PageElement {
       this._pipelineId = queryParams.pipelineId;
       this._jobId = queryParams.jobId;
 
-      this._loadJob();
+      return this._loadJob();
     }
   }
 
@@ -98,7 +114,7 @@ export class JobDetails extends PageElement {
     // component.
     const baseOutputPath = this._getBaseOutputPath();
     if (baseOutputPath) {
-      this._loadJobOutputs(baseOutputPath, this.packageTemplate);
+      await this._loadJobOutputs(baseOutputPath, this.packageTemplate);
     }
   }
 
@@ -124,14 +140,7 @@ export class JobDetails extends PageElement {
   }
 
   protected _getRuntime(start: string, end: string, status: NodePhase): string {
-    if (!status) {
-      return '-';
-    }
-    const parsedStart = start ? new Date(start).getTime() : 0;
-    const parsedEnd = end ? new Date(end).getTime() : Date.now();
-
-    return (parsedStart && parsedEnd) ?
-      Utils.dateDiffToString(parsedEnd - parsedStart) : '-';
+    return Utils.getRunTime(start, end, status);
   }
 
   protected _getProgressColor(status: NodePhase): string {
@@ -164,9 +173,7 @@ export class JobDetails extends PageElement {
     try {
       outputPaths = parseTemplateOuputPaths(packageTemplate, baseOutputPath, this._jobId);
     } catch (err) {
-      // TODO: Determine how to display additional error details to user.
-      this.showPageError('There was an error while parsing this job\'s YAML template');
-      Utils.log.error('Error parsing job YAML:', err);
+      this.showPageError('There was an error while parsing this job\'s YAML template', err);
       return;
     }
 
@@ -197,7 +204,7 @@ export class JobDetails extends PageElement {
           return outputInfo1.path < outputInfo2.path ? -1 : 1;
         }
         return index1 < index2 ? -1 : 1;
-      }).reduce((flattenedOutputs, currentOutputs) => flattenedOutputs.concat(currentOutputs));
+      }).reduce((flattenedOutputs, currentOutputs) => flattenedOutputs.concat(currentOutputs), []);
     } catch (err) {
       this.showPageError('There was an error while loading details for this job');
       Utils.log.error('Error loading job details:', err);

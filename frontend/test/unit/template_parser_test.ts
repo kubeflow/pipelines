@@ -13,7 +13,8 @@ function mockApiResponseForTemplate(mockTemplate: string): PackageTemplate {
 
 describe('template parser', () => {
   it('parses output paths from correct mock template', () => {
-    const mockTemplate = mockApiResponseForTemplate(fs.readFileSync('../mock-backend/mock-template.yaml', 'utf-8'));
+    const mockTemplate = mockApiResponseForTemplate(
+        fs.readFileSync('../mock-backend/mock-template.yaml', 'utf-8'));
     const baseOutputPath = 'gs://test/output/path';
     const jobId = 'test-job-id';
 

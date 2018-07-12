@@ -6,13 +6,13 @@ export enum PlotType {
 }
 
 export interface PlotMetadata {
-  format: 'csv';
-  labels: string[];
-  predicted_col: string;
-  schema: Array<{ type: string, name: string }>;
+  format?: 'csv';
+  labels?: string[];
+  predicted_col?: string;
+  schema?: Array<{ type: string, name: string }>;
   source: string;
-  storage: 'gcs';
-  target_col: string;
+  storage?: 'gcs';
+  target_col?: string;
   type: PlotType;
 }
 

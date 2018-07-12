@@ -10,7 +10,7 @@ exports.config = {
   }],
   framework: 'jasmine',
   jasmineNodeOpts: {
-    defaultTimeoutInterval: 25000,
+    defaultTimeoutInterval: 60000,
   },
   logLevel: 'silent',
   services: ['selenium-standalone'],
