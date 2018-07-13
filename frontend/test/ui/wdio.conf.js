@@ -1,7 +1,7 @@
 const path = require('path');
 const VisualRegressionCompare = require('wdio-visual-regression-service/compare');
 
-const headless = !!process.env.HEADLESS_UI_TESTS;
+const headless = process.env.HEADLESS_UI_TESTS == '1' || process.env.HEADLESS_UI_TESTS == 'true';
 const singleSuite = process.env.SINGLE_SUITE;
 
 function getScreenshotName(basePath) {

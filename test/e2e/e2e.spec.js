@@ -127,6 +127,9 @@ describe('deploy new pipeline', () => {
     const selector = 'app-shell pipeline-details #deleteBtn';
     browser.waitForVisible(selector);
     browser.click(selector);
+
+    browser.pause(500);
+    browser.click('popup-dialog paper-button');
   });
 
   it('redirects back to pipeline list page', () => {

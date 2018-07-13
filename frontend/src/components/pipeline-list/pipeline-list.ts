@@ -9,6 +9,7 @@ import * as Utils from '../../lib/utils';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { ListPipelinesRequest, PipelineSortKeys } from '../../api/list_pipelines_request';
 import { Pipeline } from '../../api/pipeline';
+import { DialogResult } from '../../components/popup-dialog/popup-dialog';
 import {
   ItemDblClickEvent,
   ListFormatChangeEvent,
@@ -78,16 +79,15 @@ export class PipelineList extends PageElement {
 
   public ready(): void {
     super.ready();
-    const itemList = this.$.pipelinesItemList as ItemListElement;
-    itemList.addEventListener(ListFormatChangeEvent.name, this._listFormatChanged.bind(this));
-    itemList.addEventListener(NewListPageEvent.name, this._loadNewListPage.bind(this));
-    itemList.addEventListener('selected-indices-changed', this._selectedItemsChanged.bind(this));
-    itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
+    this.itemList.addEventListener(ListFormatChangeEvent.name, this._listFormatChanged.bind(this));
+    this.itemList.addEventListener(NewListPageEvent.name, this._loadNewListPage.bind(this));
+    this.itemList.addEventListener('selected-indices-changed',
+        this._selectedItemsChanged.bind(this));
+    this.itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
   }
 
   public load(_: string): void {
-    const itemList = this.$.pipelinesItemList as ItemListElement;
-    itemList.reset();
+    this.itemList.reset();
     this._loadPipelines(new ListPipelinesRequest(this._pageSize));
   }
 
@@ -101,9 +101,8 @@ export class PipelineList extends PageElement {
   }
 
   protected _clonePipeline(): void {
-    const itemList = this.$.pipelinesItemList as ItemListElement;
     // Clone Pipeline button is only enabled if there is one selected item.
-    const selectedPipeline = this.pipelines[itemList.selectedIndices[0]];
+    const selectedPipeline = this.pipelines[this.itemList.selectedIndices[0]];
     this.dispatchEvent(
         new RouteEvent(
           '/pipelines/new',
@@ -114,12 +113,25 @@ export class PipelineList extends PageElement {
   }
 
   protected async _deletePipeline(): Promise<void> {
-    const itemList = this.$.pipelinesItemList as ItemListElement;
+    const deletedItemsLen = this.itemList.selectedIndices.length;
+    const pluralS = deletedItemsLen > 1 ? 's' : '';
+    const dialogResult = await Utils.showDialog(
+        `Delete ${deletedItemsLen} pipeline${pluralS}?`,
+        `You are about to delete ${deletedItemsLen} pipeline${pluralS}.
+         Are you sure you want to proceed?`,
+        `Delete ${deletedItemsLen} pipeline${pluralS}`,
+        'Cancel');
+
+    // BUTTON1 is Delete
+    if (dialogResult !== DialogResult.BUTTON1) {
+      return;
+    }
+
     this._busy = true;
     let unsuccessfulDeletes = 0;
     let errorMessage = '';
 
-    await Promise.all(itemList.selectedIndices.map(async (i) => {
+    await Promise.all(this.itemList.selectedIndices.map(async (i) => {
       try {
         await Apis.deletePipeline(this.pipelines[i].id);
       } catch (err) {
@@ -128,10 +140,10 @@ export class PipelineList extends PageElement {
       }
     }));
 
-    const successfulDeletes = itemList.selectedIndices.length - unsuccessfulDeletes;
+    const successfulDeletes = this.itemList.selectedIndices.length - unsuccessfulDeletes;
     if (successfulDeletes > 0) {
       Utils.showNotification(`Successfully deleted ${successfulDeletes} Pipelines!`);
-      itemList.reset();
+      this.itemList.reset();
       this._loadPipelines(new ListPipelinesRequest(this._pageSize));
     }
 
@@ -156,10 +168,9 @@ export class PipelineList extends PageElement {
   }
 
   private _selectedItemsChanged(): void {
-    const itemList = this.$.pipelinesItemList as ItemListElement;
-    if (itemList.selectedIndices) {
-      this._oneItemIsSelected = itemList.selectedIndices.length === 1;
-      this._atLeastOneItemIsSelected = itemList.selectedIndices.length > 0;
+    if (this.itemList.selectedIndices) {
+      this._oneItemIsSelected = this.itemList.selectedIndices.length === 1;
+      this._atLeastOneItemIsSelected = this.itemList.selectedIndices.length > 0;
     } else {
       this._oneItemIsSelected = false;
       this._atLeastOneItemIsSelected = false;
@@ -191,8 +202,7 @@ export class PipelineList extends PageElement {
       const getPipelinesResponse = await Apis.getPipelines(request);
       this.pipelines = getPipelinesResponse.pipelines || [];
 
-      const itemList = this.$.pipelinesItemList as ItemListElement;
-      itemList.updateNextPageToken(getPipelinesResponse.next_page_token || '');
+      this.itemList.updateNextPageToken(getPipelinesResponse.next_page_token || '');
     } catch (err) {
       this.showPageError('There was an error while loading the pipeline list.');
       Utils.log.error('Error loading pipelines:', err);

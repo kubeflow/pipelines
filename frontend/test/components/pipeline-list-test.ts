@@ -11,7 +11,7 @@ import { dialogStub, notificationStub, resetFixture } from './test-utils';
 
 import * as fixedData from '../../mock-backend/fixed-data';
 import { ItemListElement } from '../../src/components/item-list/item-list';
-import { deletePipeline } from '../../src/lib/apis';
+import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
 
 const packages = fixedData.namedPackages;
 
@@ -110,12 +110,15 @@ describe('pipeline-list', () => {
 
   it('deletes selected pipeline, shows success notification', (done) => {
     deletePipelinesStub = sinon.stub(Apis, 'deletePipeline');
+    dialogStub.reset();
+    dialogStub.returns(DialogResult.BUTTON1);
     deletePipelinesStub.returns('ok');
 
     fixture.itemList._selectItemByRealIndex(0);
     fixture.deleteButton.click();
 
     Polymer.Async.idlePeriod.run(() => {
+      assert(dialogStub.calledOnce, 'dialog should show only once to confirm deletion');
       assert(deletePipelinesStub.calledWith(fixedData.data.pipelines[0].id),
           'delete pipeline API should be called with the selected pipelin id');
       assert(notificationStub.calledWith('Successfully deleted 1 Pipelines!'),
@@ -151,7 +154,7 @@ describe('pipeline-list', () => {
                 'Failed to delete 1 Pipelines',
                 'Deleting Pipeline: "' + fixedData.data.pipelines[0].name +
                     '" failed with error: "bad stuff happened while deleting"'
-            ), 'error dialog show should with delete failure message');
+            ), 'error dialog should show with delete failure message');
             deletePipelinesStub.restore();
             getPipelinesStub.restore();
           });

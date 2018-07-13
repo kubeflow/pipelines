@@ -9,6 +9,7 @@ import { CronSchedule, Pipeline, Trigger } from '../../src/api/pipeline';
 import { JobList } from '../../src/components/job-list/job-list';
 import { PageError } from '../../src/components/page-error/page-error';
 import { PipelineDetails } from '../../src/components/pipeline-details/pipeline-details';
+import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
 import { RouteEvent } from '../../src/model/events';
 import { dialogStub, isVisible, notificationStub, resetFixture } from './test-utils';
 
@@ -181,10 +182,13 @@ describe('pipeline-details', () => {
     deletePipelineStub = sinon.stub(Apis, 'deletePipeline');
     deletePipelineStub.returns('ok');
 
+    dialogStub.returns(DialogResult.BUTTON1);
     fixture.deleteButton.click();
 
     Polymer.Async.idlePeriod.run(() => {
-      assert(deletePipelineStub.calledWith(testPipeline.id));
+      assert(dialogStub.calledOnce, 'dialog should be called once for deletion confirmation');
+      assert(deletePipelineStub.calledWith(testPipeline.id),
+          'delete pipeline should be called with the test pipeline metadata');
       assert(notificationStub.calledWith(`Successfully deleted Pipeline: "${testPipeline.name}"`),
           'success notification should be created with pipeline name');
       deletePipelineStub.restore();
@@ -259,12 +263,18 @@ describe('pipeline-details', () => {
       deletePipelineStub = sinon.stub(Apis, 'deletePipeline');
       deletePipelineStub.throws('bad stuff happened while deleting');
 
+      dialogStub.reset();
+      dialogStub.returns(DialogResult.DISMISS);
+      dialogStub.onFirstCall().returns(DialogResult.BUTTON1);
+
       _resetFixture()
         .then(() => {
           fixture.deleteButton.click();
 
           Polymer.Async.idlePeriod.run(() => {
-            assert(dialogStub.calledWith('Failed to delete Pipeline'),
+            assert(dialogStub.calledTwice,
+                'dialog should be called twice: once to confirm deletion, another for error');
+            assert(dialogStub.secondCall.calledWith('Failed to delete Pipeline'),
                 'error dialog should show with delete failure message');
             deletePipelineStub.restore();
             done();
@@ -275,6 +285,7 @@ describe('pipeline-details', () => {
     it('shows error dialog when failing to disable pipeline', (done) => {
       disablePipelinesStub = sinon.stub(Apis, 'disablePipeline');
       disablePipelinesStub.throws('bad stuff happened while disabling');
+      dialogStub.returns(DialogResult.DISMISS);
       _resetFixture()
         .then(() => {
           fixture.disableButton.click();
@@ -292,6 +303,7 @@ describe('pipeline-details', () => {
     it('shows error dialog when failing to enable pipeline', (done) => {
       enablePipelinesStub = sinon.stub(Apis, 'enablePipeline');
       enablePipelinesStub.throws('bad stuff happened while enabling');
+      dialogStub.returns(DialogResult.DISMISS);
       _resetFixture()
         .then(() => {
           fixture.enableButton.click();

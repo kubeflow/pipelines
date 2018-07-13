@@ -12,6 +12,7 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { Pipeline, Trigger } from '../../api/pipeline';
+import { DialogResult } from '../../components/popup-dialog/popup-dialog';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { JobList } from '../job-list/job-list';
@@ -140,6 +141,17 @@ export class PipelineDetails extends PageElement {
 
   protected async _deletePipeline(): Promise<void> {
     if (this.pipeline) {
+      const dialogResult = await Utils.showDialog(
+          'Delete pipeline?',
+          'You are about to delete this pipeline. Are you sure you want to proceed?',
+          'Delete pipeline',
+          'Cancel');
+
+      // BUTTON1 is Delete
+      if (dialogResult !== DialogResult.BUTTON1) {
+        return;
+      }
+
       this._busy = true;
       try {
         await Apis.deletePipeline(this.pipeline.id);
