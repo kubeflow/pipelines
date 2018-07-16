@@ -79,11 +79,11 @@
         <div class="flex">
           <span class="font-large padded-spacing-minus-1">Repeat</span>
 
-          <paper-dropdown-menu class="input-field error-overflow"
+          <paper-dropdown-menu id="intervalDropdown" class="input-field error-overflow"
                                invalid="[[!_weekdaySelectionIsValid]]"
                                no-label-float
                                error-message="Please select at least one weekday">
-            <paper-listbox slot="dropdown-content" class="dropdown-content"
+            <paper-listbox id="intervalListbox" slot="dropdown-content" class="dropdown-content"
                            selected="{{_runIntervalIndex}}">
               <template is="dom-repeat" items="[[_runIntervals]]" as="interval">
                 <paper-item>[[interval]]</paper-item>

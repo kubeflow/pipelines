@@ -56,6 +56,10 @@ export class DateTimePicker extends Polymer.Element {
     this._minutes = (soon.getMinutes() < 10 ? '0' : '') + soon.getMinutes();
   }
 
+  public get useDateTimeCheckbox(): PaperCheckboxElement {
+    return this.$.useDateTimeCheckbox as PaperCheckboxElement;
+  }
+
   public dateTimeAsIsoString(): string {
     return this.datetime ? this.datetime.toISOString() : '';
   }

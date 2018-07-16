@@ -26,6 +26,7 @@ import './job-details-tests';
 import './pipeline-details-test';
 import './pipeline-list-test';
 import './pipeline-new-test';
+import './pipeline-schedule-test';
 
 mocha.run(() => {
   // This div can be waited on by the browser automation script to identify the

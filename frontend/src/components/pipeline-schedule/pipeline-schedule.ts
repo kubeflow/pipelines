@@ -34,6 +34,16 @@ export class PipelineSchedule extends Polymer.Element {
   @property({ notify: true, type: Boolean })
   public scheduleIsValid = true;
 
+  // Visible for testing
+  @property({ type: Array })
+  public _runIntervals = [
+    Intervals.MINUTE,
+    Intervals.HOURLY,
+    Intervals.DAILY,
+    Intervals.WEEKLY,
+    Intervals.MONTHLY,
+  ];
+
   @property({ type: Array })
   protected readonly _SCHEDULES = [
     IMMEDIATELY,
@@ -43,17 +53,9 @@ export class PipelineSchedule extends Polymer.Element {
   @property({ type: Number })
   protected _scheduleTypeIndex = 0;
 
+  // Set default interval to 'hourly'
   @property({ type: Number })
   protected _runIntervalIndex = 1;
-
-  @property({ type: Array })
-  protected _runIntervals = [
-    Intervals.MINUTE,
-    Intervals.HOURLY,
-    Intervals.DAILY,
-    Intervals.WEEKLY,
-    Intervals.MONTHLY,
-  ];
 
   @property({ type: String })
   protected _crontab = '';
@@ -94,6 +96,34 @@ export class PipelineSchedule extends Polymer.Element {
   protected _endDate: Date|null = null;
 
   // TODO: write getters for the date-time pickers.
+
+  public get scheduleTypeDropdown(): PaperDropdownMenuElement {
+    return this.$.scheduleTypeDropdown as PaperDropdownMenuElement;
+  }
+
+  public get scheduleTypeListbox(): PaperListboxElement {
+    return this.$.scheduleTypeListbox as PaperListboxElement;
+  }
+
+  public get startDateTimePicker(): DateTimePicker|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#startDateTimePicker') : null;
+  }
+
+  public get endDateTimePicker(): DateTimePicker|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#endDateTimePicker') : null;
+  }
+
+  public get intervalDropdown(): PaperDropdownMenuElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#intervalDropdown') : null;
+  }
+
+  public get intervalListbox(): PaperListboxElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#intervalListbox') : null;
+  }
+
+  public get allWeekdaysCheckbox(): PaperCheckboxElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#allWeekdaysCheckbox') : null;
+  }
 
   public toTrigger(): Trigger|null {
     if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
@@ -182,7 +212,8 @@ export class PipelineSchedule extends Polymer.Element {
       this._selectAllWeekdaysCheckboxChanged();
     }
   }
-  // Show schedule inputs for recurring runs.
+
+  // Show Cron schedule UI
   protected _showCronScheduleInputs(scheduleTypeIndex: number): boolean {
     return this._SCHEDULES[scheduleTypeIndex] === CRON;
   }
