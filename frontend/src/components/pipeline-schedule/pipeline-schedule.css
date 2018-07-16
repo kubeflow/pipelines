@@ -2,19 +2,6 @@
 @import '../../styles/inputs.css';
 @import '../../styles/vars.css';
 
-app-datepicker-dialog {
-  --app-datepicker-button-color: var(--theme-primary-color);
-  --app-datepicker-calendar-color: #000;
-  --app-datepicker-date-hover-background-color: var(--item-focus-color);
-  --app-datepicker-date-hover-color: var(--primary-text-color);
-  --app-datepicker-iron-selected: var(--primary-text-inverse-color);
-  --app-datepicker-selected-day-bg: var(--theme-primary-color);
-  --app-datepicker-selected-year-color: var(--theme-primary-color);
-  --app-datepicker-selection-bg: var(--theme-primary-color);
-  --app-datepicker-selection-color: var(--primary-text-inverse-color);
-  --app-datepicker-today-color: #000;
-}
-
 paper-button.toggle {
   @apply --shadow-elevation-3dp;
   background-color: var(--background-contrast-color);
@@ -36,11 +23,10 @@ paper-button.toggle[disabled] {
   color: var(--disabled-color);
 }
 
-paper-toggle-button.am-pm {
-  --paper-toggle-button-checked-bar-color: var(--theme-primary-color);
-  --paper-toggle-button-checked-button-color: var(--theme-primary-color);
-  --paper-toggle-button-checked-ink-color: var(--theme-primary-color);
-  --paper-toggle-button-unchecked-bar-color: var(--paper-teal-500);
-  --paper-toggle-button-unchecked-button-color: var(--paper-teal-500);
-  --paper-toggle-button-unchecked-ink-color: var(--paper-teal-500);
+.error-msg-container {
+  min-height: 20px;
+}
+
+.error-msg {
+  color: var(--error-text-color);
 }

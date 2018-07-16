@@ -1,0 +1,56 @@
+<dom-module id="date-time-picker">
+    <template>
+      <link rel="stylesheet" href="./date-time-picker.css">
+
+      <style>
+        .error-overflow {
+          --paper-input-error: {
+            overflow: visible;
+        }
+      }
+      </style>
+
+      <div class="container flex font-large input-container-small-margin">
+        <span>
+          <paper-checkbox class="date-checkbox" checked="{{hasDate}}">
+            Has [[name]] date
+          </paper-checkbox>
+        </span>
+        <!-- Optional date and time selectors -->
+        <template is="dom-if" if="[[hasDate]]">
+          <!-- Date picker -->
+          <paper-input class="input-field-small error-overflow" label="YYYY/MM/DD"
+                      value="{{_date}}" on-click="_launchDatePicker"
+                      invalid="[[!valid]]"
+                      error-message="[[_errorMessage]]">
+          </paper-input>
+
+          <span>at</span>
+
+          <!-- Time input fields -->
+          <paper-input id="hours" class="input-field-tiny error-overflow align-right"
+                       value="{{_hours}}" maxlength="2" allowed-pattern="\d" invalid="[[!valid]]"
+                       on-focus="_highlightField">
+          </paper-input>
+          <span id="colon">:</span>
+          <paper-input id="minutes" class="input-field-tiny" value="{{_minutes}}"
+                       maxlength="2" allowed-pattern="\d" invalid="[[!valid]]"
+                       on-focus="_highlightField">
+          </paper-input>
+
+          <span class="flex">
+            <span class="padded-right-spacing-minus-4">AM</span>
+            <paper-toggle-button class="am-pm" checked="{{_isPm}}">
+            </paper-toggle-button>
+            <span class="padded-spacing-minus-5">PM</span>
+          </span>
+        </template>
+      </div>
+
+    <app-datepicker-dialog with-backdrop id="datepicker" disable-days="[]" min-date="[[_minDate]]"
+                           date="{{_date}}" auto-update-date="true"
+                           on-date-changed="_jumpToFirstTimeField">
+    </app-datepicker-dialog>
+
+  </template>
+</dom-module>

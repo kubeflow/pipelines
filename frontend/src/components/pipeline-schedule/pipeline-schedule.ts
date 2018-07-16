@@ -13,14 +13,12 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { CronSchedule, Trigger } from '../../api/pipeline';
+import { DateTimePicker } from '../date-time-picker/date-time-picker';
 
 import './pipeline-schedule.html';
 
 const IMMEDIATELY = 'Run right away';
-const RECURRING = 'Recurring';
-const SPECIFIC_TIME = 'Run at a specific time';
-
-const DATE_FORMAT_PATTERN = /^[1-2]\d{3}\/\d?\d\/\d?\d$/;
+const CRON = 'Cron';
 
 enum Intervals {
   MINUTE = 'every minute',
@@ -39,7 +37,7 @@ export class PipelineSchedule extends Polymer.Element {
   @property({ type: Array })
   protected readonly _SCHEDULES = [
     IMMEDIATELY,
-    RECURRING,
+    CRON,
   ];
 
   @property({ type: Number })
@@ -58,46 +56,10 @@ export class PipelineSchedule extends Polymer.Element {
   ];
 
   @property({ type: String })
-  protected _minStartDate = new Date().toLocaleDateString();
-
-  @property({ type: String })
-  protected _startDate = '';
-
-  @property({ type: Boolean })
-  protected _hasEndDate = false;
-
-  @property({ type: String })
-  protected _endDate = '';
-
-  @property({ type: Array })
-  protected _times: string[] = [];
-
-  @property({ type: Number })
-  protected _startTimeIndex = 0;
-
-  @property({ type: Boolean })
-  protected _isStartPM = true;
-
-  @property({ type: Number })
-  protected _endTimeIndex = 0;
-
-  @property({ type: Boolean })
-  protected _isEndPM = true;
-
-  @property({ type: Boolean })
-  protected _startTimeIsValid = true;
-
-  @property({ type: String })
-  protected _startTimeErrorMessage = '';
-
-  @property({ type: Boolean })
-  protected _endTimeIsValid = true;
-
-  @property({ type: String })
-  protected _endTimeErrorMessage = '';
-
-  @property({ type: String })
   protected _crontab = '';
+
+  @property({ type: String })
+  protected _errorMsg = '';
 
   @property({ computed: '_checkIfAllActive(_weekdays.*)', type: Boolean })
   protected _allDaysOfWeekActive = true;
@@ -119,32 +81,26 @@ export class PipelineSchedule extends Polymer.Element {
   @property({ type: Boolean })
   protected _weekdaySelectionIsValid = true;
 
-  constructor() {
-    super();
-    // TODO: disable or don't include invalid times.
-    // Create an array with 12 hours + half hours for scheduling time.
-    this._times.push('12:00');
-    this._times.push('12:30');
-    for (let i = 1; i < 12; i++) {
-      this._times.push((i + '').padStart(2, '0') + ':00');
-      this._times.push((i + '').padStart(2, '0') + ':30');
-    }
-  }
+  @property({ type: Boolean })
+  protected _startIsValid = true;
+
+  @property({ type: Boolean })
+  protected _endIsValid = true;
+
+  @property({ type: Object })
+  protected _startDate: Date|null = null;
+
+  @property({ type: Object })
+  protected _endDate: Date|null = null;
+
+  // TODO: write getters for the date-time pickers.
 
   public toTrigger(): Trigger|null {
     if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
       return null;
     }
 
-    // TODO: Add support for periodic schedule.
-
-    const startDateTime = this._getStartDateTime();
-    // Backend expects the crontab in UTC.
-    const cronSchedule = new CronSchedule(
-        this._generateCrontab(
-            startDateTime.getUTCDate(),
-            startDateTime.getUTCHours(),
-            startDateTime.getUTCMinutes()));
+    const cronSchedule = new CronSchedule(this._crontab);
     const startTime = this._startTime();
     const endTime = this._endTime();
     if (startTime) {
@@ -159,17 +115,27 @@ export class PipelineSchedule extends Polymer.Element {
   }
 
   // TODO: Maybe use a polymer validator (property?) here?
-  @observe('_scheduleTypeIndex, _startDate, _endDate, _hasEndDate,\
-    _startTimeIndex, _endTimeIndex, _isStartPM, _isEndPM, _runIntervalIndex,\
-    _weekdays.*')
+  // Our requirements necessitate that we know whether each date-time is valid, invalid, or hidden
+  // as distinct states.
+  @observe('_scheduleTypeIndex, _runIntervalIndex, _startIsValid, _startDate, _endDate,\
+      _endIsValid, _weekdays.*')
   protected _validateSchedule(): void {
+    this._errorMsg = '';
     // Start and end time can't be invalid if we're running the job immediately.
     if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
       this.scheduleIsValid = true;
     } else {
-      // Update these properties to update validation UI.
-      this._startTimeIsValid = this._isStartTimeValid();
-      this._endTimeIsValid = this._isEndTimeValid();
+      let startAndEndAreValid = this._startIsValid && this._endIsValid;
+      if (startAndEndAreValid) {
+        // If start and end are considered valid, then this only needs to be false if both start and
+        // end are also defined, and end is less than start.
+        if (this._startDate && this._endDate) {
+          startAndEndAreValid = this._startDate <= this._endDate;
+          if (!startAndEndAreValid) {
+            this._errorMsg = 'End date must be later than start date!';
+          }
+        }
+      }
 
       // Weekday selection is valid if interval is not weekly or any weekday is
       // selected.
@@ -177,21 +143,11 @@ export class PipelineSchedule extends Polymer.Element {
           this._runIntervals[this._runIntervalIndex] !== Intervals.WEEKLY ||
           this._weekdays.map((w) => w.active).reduce((prev, cur) => prev || cur);
 
-      this.scheduleIsValid = this._startTimeIsValid && this._endTimeIsValid &&
-          this._weekdaySelectionIsValid;
+      this.scheduleIsValid = startAndEndAreValid && this._weekdaySelectionIsValid;
 
       if (this.scheduleIsValid) {
         this._updateDisplayCrontab();
       }
-    }
-  }
-
-  // Ensure that end date is always >= start date.
-  @observe('_startDate')
-  protected _startDateChanged(newStartDate: string): void {
-    if (newStartDate > this._endDate) {
-      this._endDate = newStartDate;
-      (this.$.endDatepicker as any).inputDate = this._endDate;
     }
   }
 
@@ -206,11 +162,13 @@ export class PipelineSchedule extends Polymer.Element {
     // If this function is called on-checked-changed, the property in this
     // class won't have actually been updated yet, so we have to get it this
     // way.
-    const allWeekdaysCheckbox = root.querySelector('#allWeekdaysCheckbox');
-    if (allWeekdaysCheckbox) {
-      const allWeekdaysCheckboxChecked = (allWeekdaysCheckbox as PaperCheckboxElement).checked;
-      this._weekdays.forEach(
-          (_, i) => this.set('_weekdays.' + i + '.active', allWeekdaysCheckboxChecked));
+    if (root) {
+      const allWeekdaysCheckbox = root.querySelector('#allWeekdaysCheckbox');
+      if (allWeekdaysCheckbox) {
+        const allWeekdaysCheckboxChecked = (allWeekdaysCheckbox as PaperCheckboxElement).checked;
+        this._weekdays.forEach(
+            (_, i) => this.set('_weekdays.' + i + '.active', allWeekdaysCheckboxChecked));
+      }
     }
   }
 
@@ -224,48 +182,36 @@ export class PipelineSchedule extends Polymer.Element {
       this._selectAllWeekdaysCheckboxChanged();
     }
   }
-
-  // Launch datepicker dialog for starting date.
-  protected _pickStartDate(): void {
-    const datepicker = this.$.startDatepicker as any;
-    datepicker.open();
-  }
-
-  // Launch datepicker dialog for ending date.
-  protected _pickEndDate(): void {
-    const datepicker = this.$.endDatepicker as any;
-    datepicker.open();
-  }
-
-  // Show schedule inputs for a single run that will execute at a future time.
-  protected _showSpecificTimeScheduleInputs(scheduleTypeIndex: number): boolean {
-    return this._SCHEDULES[scheduleTypeIndex] === SPECIFIC_TIME ||
-      this._showRecurringScheduleInputs(scheduleTypeIndex);
-  }
-
   // Show schedule inputs for recurring runs.
-  protected _showRecurringScheduleInputs(scheduleTypeIndex: number): boolean {
-    return this._SCHEDULES[scheduleTypeIndex] === RECURRING;
+  protected _showCronScheduleInputs(scheduleTypeIndex: number): boolean {
+    return this._SCHEDULES[scheduleTypeIndex] === CRON;
   }
 
   private _startTime(): string {
-    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
+    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY || !this._startDate) {
       return '';
     }
-    return this._getStartDateTime().toISOString();
+    return (this.$.startDatepicker as DateTimePicker).dateTimeAsIsoString();
   }
 
   private _endTime(): string {
-    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY || !this._hasEndDate) {
+    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY || !this._endDate) {
       return '';
     }
-    return this._getEndDateTime().toISOString();
+    return (this.$.endDatepicker as DateTimePicker).dateTimeAsIsoString();
   }
 
-  // We don't simply take a Date object here because the crontab we send to the
-  // backend needs to be UTC, and Date objects are automatically local.
-  private _generateCrontab(targetDateDay: number, targetDateHours: number,
-      targetDateMinutes: number): string {
+  // The crontab we send to the backend needs to be UTC.
+  private _generateCrontab(): string {
+    let targetDayOfMonth = '0';
+    let targetHours = '0';
+    let targetMinutes = '0';
+    if (this._startDate && this._startIsValid) {
+      targetDayOfMonth = '' + this._startDate.getDate();
+      targetHours = '' + this._startDate.getHours();
+      targetMinutes = '' + this._startDate.getMinutes();
+    }
+
     // The default values here correspond to 'run at second 0 of every minute'
     const second = '0';
     let minute = '*';
@@ -277,15 +223,15 @@ export class PipelineSchedule extends Polymer.Element {
       case Intervals.MINUTE:
         break;
       case Intervals.HOURLY:
-        minute = '' + targetDateMinutes;
+        minute = targetMinutes || minute;
         break;
       case Intervals.DAILY:
-        minute = '' + targetDateMinutes;
-        hour = '' + targetDateHours;
+        minute = targetMinutes || minute;
+        hour = targetHours || hour;
         break;
       case Intervals.WEEKLY:
-        minute = '' + targetDateMinutes;
-        hour = '' + targetDateHours;
+        minute = targetMinutes || minute;
+        hour = targetHours || hour;
         dayOfMonth = '?';
         if (this._checkIfAllActive()) {
           dayOfWeek = '*';
@@ -300,9 +246,9 @@ export class PipelineSchedule extends Polymer.Element {
         }
         break;
       case Intervals.MONTHLY:
-        minute = '' + targetDateMinutes;
-        hour = '' + targetDateHours;
-        dayOfMonth = '' + targetDateDay;
+        minute = targetMinutes || minute;
+        hour = targetHours || hour;
+        dayOfMonth = targetDayOfMonth || dayOfMonth;
         break;
       default:
         Utils.log.error('Invalid interval index:', this._runIntervalIndex);
@@ -312,77 +258,6 @@ export class PipelineSchedule extends Polymer.Element {
 
   @observe('_weekdays.*')
   private _updateDisplayCrontab(): void {
-    const startDateTime = this._getStartDateTime();
-    this._crontab = this._generateCrontab(
-        startDateTime.getDate(),
-        startDateTime.getHours(),
-        startDateTime.getMinutes());
-  }
-
-  private _getStartDateTime(): Date {
-    return this._toDate(this._startDate, this._startTimeIndex, this._isStartPM);
-  }
-
-  private _getEndDateTime(): Date {
-    return this._toDate(this._endDate, this._endTimeIndex, this._isEndPM);
-  }
-
-  private _toDate(date: string, timeSelectorIndex: number, isPm: boolean): Date {
-    const dateAsArray = date.split('/').map((s) => Number(s));
-    // If/when start/end have different backing time arrays, this will need to
-    // be updated.
-    const timeAsArray = this._times[timeSelectorIndex].split(':').map((s) => Number(s));
-    return new Date(
-        dateAsArray[0],
-        dateAsArray[1] - 1,
-        dateAsArray[2],
-        (timeAsArray[0] % 12) + (isPm ? 12 : 0),
-        timeAsArray[1]);
-  }
-
-  private _isStartTimeValid(): boolean {
-    // Check that start date is of form YYYY/MM/DD and is a valid date.
-    if (!(this._startDate.match(DATE_FORMAT_PATTERN)) || isNaN(Date.parse(this._startDate))) {
-      this._startTimeErrorMessage = 'Must be valid date of the form YYYY/MM/DD';
-      return false;
-    }
-
-    // Check that start time is not in the past.
-    if (this._getStartDateTime() < new Date()) {
-      this._startTimeErrorMessage = 'Start date/time cannot be in the past';
-      return false;
-    }
-
-    return true;
-  }
-
-  private _isEndTimeValid(): boolean {
-    // End time can't be invalid if we're running the job immediately or at a
-    // specific time or if there's no end time.
-    if (this._SCHEDULES[this._scheduleTypeIndex] === SPECIFIC_TIME || !this._hasEndDate) {
-      return true;
-    }
-
-    // Check that start date is of form YYYY/MM/DD and is a valid date.
-    if (!(this._endDate.match(DATE_FORMAT_PATTERN)) || isNaN(Date.parse(this._endDate))) {
-      this._endTimeErrorMessage = 'Must be valid date of the form YYYY/MM/DD';
-      return false;
-    }
-
-    const selectedEndDate = this._getEndDateTime();
-
-    // If end time is in the past, it is invalid regardless of the start time.
-    if (selectedEndDate < new Date()) {
-      this._endTimeErrorMessage = 'End date/time cannot be in the past';
-      return false;
-    }
-
-    // End date/time is invalid if it is earlier than start date/time.
-    const selectedStartDate = this._getStartDateTime();
-    if (selectedEndDate < selectedStartDate) {
-      this._endTimeErrorMessage = 'End date/time must be later than start date/time';
-      return false;
-    }
-    return true;
+    this._crontab = this._generateCrontab();
   }
 }

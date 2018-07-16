@@ -1,3 +1,5 @@
+@import './vars.css';
+
 paper-dropdown-menu, paper-input, paper-textarea {
   --paper-input-container-focus-color: var(--theme-primary-color);
   background-color: var(--background-contrast-color);
@@ -21,10 +23,19 @@ paper-ripple {
   margin-bottom: 26px;
 }
 
+.input-container-small-margin {
+  margin-bottom: var(--spacing-minus-5);
+}
+
 .input-field-small {
   min-width: 85px;
   max-width: 180px;
   width: 10%;
+}
+
+.input-field-tiny {
+  max-width: 65px;
+  width: 18px;
 }
 
 .input-field {

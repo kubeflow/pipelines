@@ -12,6 +12,7 @@ import { customElement, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 
+import '../date-time-picker/date-time-picker';
 import '../job-details/job-details';
 import '../job-list/job-list';
 import '../page-error/page-error';

@@ -36,7 +36,7 @@ interface NewPipelineData {
 export class PipelineNew extends PageElement {
 
   @property({ type: Array })
-  public packages: PipelinePackage[];
+  public packages: PipelinePackage[] = [];
 
   @property({ type: Number })
   protected _packageIndex = -1;

@@ -56,7 +56,7 @@ paper-spinner {
 }
 
 paper-tab {
-  font-size: var(--font-size-strong);
+  font-size: var(--font-size-large);
   min-width: 110px;
 }
 
@@ -151,6 +151,10 @@ paper-tab:not(:first-child) {
   flex-grow: 1;
 }
 
+.font-large {
+  font-size: var(--font-size-large);
+}
+
 .inline {
   display: inline;
 }
@@ -189,6 +193,10 @@ paper-tab:not(:first-child) {
   padding-right: var(--spacing-base);
 }
 
+.padded-right-spacing-minus-4 {
+  padding-right: var(--spacing-minus-4);
+}
+
 .padded-spacing-minus-1 {
   padding: var(--spacing-minus-1);
 }
@@ -210,7 +218,7 @@ paper-tab:not(:first-child) {
 }
 
 .param-header {
-  font-size: var(--font-size-strong);
+  font-size: var(--font-size-large);
   font-weight: bold;
   padding-right: var(--spacing-minus-1);
 }
