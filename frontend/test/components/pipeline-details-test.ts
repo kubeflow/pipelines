@@ -27,11 +27,12 @@ async function _resetFixture(): Promise<void> {
   });
 }
 
-const testCronTrigger = new Trigger();
-testCronTrigger.cron_schedule = new CronSchedule('0 * * * ? *');
-testCronTrigger.cron_schedule.end_time =
-    new Date(Math.round(Date.now() / 1000) + 5 * 24 * 60 * 60).toISOString();
-testCronTrigger.cron_schedule.start_time = new Date().toISOString();
+const testCronTrigger =
+    new Trigger(
+        new CronSchedule(
+            '0 * * * ? *',
+            new Date().toISOString(),
+            new Date(Math.round(Date.now() / 1000) + 5 * 24 * 60 * 60).toISOString()));
 
 const testPipeline = new Pipeline();
 testPipeline.created_at = '';
@@ -100,7 +101,7 @@ describe('pipeline-details', () => {
 
     const scheduleDiv = fixture.shadowRoot.querySelector('.schedule.value') as HTMLDivElement;
     assert(isVisible(scheduleDiv), 'should find schedule div');
-    assert.strictEqual(scheduleDiv.innerText, testPipeline.trigger.cron_schedule.cron,
+    assert.strictEqual(scheduleDiv.innerText, testPipeline.trigger.crontab,
         'displayed schedule does not match test data');
 
     const enabledDiv = fixture.shadowRoot.querySelector('.enabled.value') as HTMLDivElement;

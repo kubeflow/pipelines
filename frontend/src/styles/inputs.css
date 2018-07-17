@@ -27,17 +27,6 @@ paper-ripple {
   margin-bottom: var(--spacing-minus-5);
 }
 
-.input-field-small {
-  min-width: 85px;
-  max-width: 180px;
-  width: 10%;
-}
-
-.input-field-tiny {
-  max-width: 65px;
-  width: 18px;
-}
-
 .input-field {
   min-width: 136px;
   max-width: 220px;
@@ -49,6 +38,22 @@ paper-ripple {
   max-width: 400px;
   min-width: 220px;
   width: 40%;
+}
+
+.input-field-small {
+  min-width: 85px;
+  max-width: 180px;
+  width: 10%;
+}
+
+.input-field-tiny {
+  max-width: 65px;
+  width: 18px;
+}
+
+.input-field-very-small {
+  max-width: 120px;
+  width: 65px;
 }
 
 .param-name {

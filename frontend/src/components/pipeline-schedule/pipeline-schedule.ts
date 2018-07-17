@@ -12,20 +12,29 @@ import 'polymer/polymer.html';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
-import { CronSchedule, Trigger } from '../../api/pipeline';
+import { CronSchedule, PeriodicSchedule, Trigger } from '../../api/pipeline';
 import { DateTimePicker } from '../date-time-picker/date-time-picker';
 
 import './pipeline-schedule.html';
 
 const IMMEDIATELY = 'Run right away';
+const PERIODIC = 'Periodic';
 const CRON = 'Cron';
 
-enum Intervals {
+enum CronIntervals {
   MINUTE = 'every minute',
   HOURLY = 'hourly',
   DAILY = 'daily',
   WEEKLY = 'weekly',
   MONTHLY = 'monthly',
+}
+
+enum PeriodicIntervals {
+  MINUTES = 'minutes',
+  HOURS = 'hours',
+  DAYS = 'days',
+  WEEKS = 'weeks',
+  MONTHS = 'months',
 }
 
 @customElement('pipeline-schedule')
@@ -36,17 +45,28 @@ export class PipelineSchedule extends Polymer.Element {
 
   // Visible for testing
   @property({ type: Array })
-  public _runIntervals = [
-    Intervals.MINUTE,
-    Intervals.HOURLY,
-    Intervals.DAILY,
-    Intervals.WEEKLY,
-    Intervals.MONTHLY,
+  public _cronIntervals = [
+    CronIntervals.MINUTE,
+    CronIntervals.HOURLY,
+    CronIntervals.DAILY,
+    CronIntervals.WEEKLY,
+    CronIntervals.MONTHLY,
+  ];
+
+  // Visible for testing
+  @property({ type: Array })
+  public _periodicIntervals = [
+    PeriodicIntervals.MINUTES,
+    PeriodicIntervals.HOURS,
+    PeriodicIntervals.DAYS,
+    PeriodicIntervals.WEEKS,
+    PeriodicIntervals.MONTHS,
   ];
 
   @property({ type: Array })
   protected readonly _SCHEDULES = [
     IMMEDIATELY,
+    PERIODIC,
     CRON,
   ];
 
@@ -55,7 +75,10 @@ export class PipelineSchedule extends Polymer.Element {
 
   // Set default interval to 'hourly'
   @property({ type: Number })
-  protected _runIntervalIndex = 1;
+  protected _intervalIndex = 1;
+
+  @property({ type: Number })
+  protected _frequency = 1;
 
   @property({ type: String })
   protected _crontab = '';
@@ -95,7 +118,13 @@ export class PipelineSchedule extends Polymer.Element {
   @property({ type: Object })
   protected _endDate: Date|null = null;
 
-  // TODO: write getters for the date-time pickers.
+  public get startDateTimePicker(): DateTimePicker|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#startDateTimePicker') : null;
+  }
+
+  public get endDateTimePicker(): DateTimePicker|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#endDateTimePicker') : null;
+  }
 
   public get scheduleTypeDropdown(): PaperDropdownMenuElement {
     return this.$.scheduleTypeDropdown as PaperDropdownMenuElement;
@@ -105,20 +134,24 @@ export class PipelineSchedule extends Polymer.Element {
     return this.$.scheduleTypeListbox as PaperListboxElement;
   }
 
-  public get startDateTimePicker(): DateTimePicker|null {
-    return this.shadowRoot ? this.shadowRoot.querySelector('#startDateTimePicker') : null;
+  public get cronIntervalDropdown(): PaperDropdownMenuElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#cronIntervalDropdown') : null;
   }
 
-  public get endDateTimePicker(): DateTimePicker|null {
-    return this.shadowRoot ? this.shadowRoot.querySelector('#endDateTimePicker') : null;
+  public get cronIntervalListbox(): PaperListboxElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#cronIntervalListbox') : null;
   }
 
-  public get intervalDropdown(): PaperDropdownMenuElement|null {
-    return this.shadowRoot ? this.shadowRoot.querySelector('#intervalDropdown') : null;
+  public get periodFrequencyInput(): PaperInputElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#frequency') : null;
   }
 
-  public get intervalListbox(): PaperListboxElement|null {
-    return this.shadowRoot ? this.shadowRoot.querySelector('#intervalListbox') : null;
+  public get periodicIntervalDropdown(): PaperDropdownMenuElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#periodicIntervalDropdown') : null;
+  }
+
+  public get periodicIntervalListbox(): PaperListboxElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#periodicIntervalListbox') : null;
   }
 
   public get allWeekdaysCheckbox(): PaperCheckboxElement|null {
@@ -126,28 +159,22 @@ export class PipelineSchedule extends Polymer.Element {
   }
 
   public toTrigger(): Trigger|null {
-    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY) {
-      return null;
+    if (this._SCHEDULES[this._scheduleTypeIndex] === PERIODIC) {
+      return new Trigger(
+          new PeriodicSchedule(this._getPeriodInSeconds(), this._startTime(), this._endTime()));
     }
 
-    const cronSchedule = new CronSchedule(this._crontab);
-    const startTime = this._startTime();
-    const endTime = this._endTime();
-    if (startTime) {
-      cronSchedule.start_time = startTime;
+    if (this._SCHEDULES[this._scheduleTypeIndex] === CRON) {
+      return new Trigger(new CronSchedule(this._crontab, this._startTime(), this._endTime()));
     }
-    if (endTime) {
-      cronSchedule.end_time = endTime;
-    }
-    const trigger = new Trigger();
-    trigger.cron_schedule = cronSchedule;
-    return trigger;
+
+    return null;
   }
 
   // TODO: Maybe use a polymer validator (property?) here?
   // Our requirements necessitate that we know whether each date-time is valid, invalid, or hidden
   // as distinct states.
-  @observe('_scheduleTypeIndex, _runIntervalIndex, _startIsValid, _startDate, _endDate,\
+  @observe('_scheduleTypeIndex, _intervalIndex, _startIsValid, _startDate, _endDate,\
       _endIsValid, _weekdays.*')
   protected _validateSchedule(): void {
     this._errorMsg = '';
@@ -167,13 +194,15 @@ export class PipelineSchedule extends Polymer.Element {
         }
       }
 
-      // Weekday selection is valid if interval is not weekly or any weekday is
-      // selected.
-      this._weekdaySelectionIsValid =
-          this._runIntervals[this._runIntervalIndex] !== Intervals.WEEKLY ||
-          this._weekdays.map((w) => w.active).reduce((prev, cur) => prev || cur);
+      if (this._SCHEDULES[this._scheduleTypeIndex] === CRON) {
+        // Weekday selection is valid if interval is not weekly or any weekday is
+        // selected.
+        this._weekdaySelectionIsValid =
+            this._cronIntervals[this._intervalIndex] !== CronIntervals.WEEKLY ||
+            this._weekdays.map((w) => w.active).reduce((prev, cur) => prev || cur);
 
-      this.scheduleIsValid = startAndEndAreValid && this._weekdaySelectionIsValid;
+        this.scheduleIsValid = startAndEndAreValid && this._weekdaySelectionIsValid;
+      }
 
       if (this.scheduleIsValid) {
         this._updateDisplayCrontab();
@@ -202,10 +231,11 @@ export class PipelineSchedule extends Polymer.Element {
     }
   }
 
-  @observe('_runIntervalIndex')
+  @observe('_intervalIndex')
   protected _updateWeekdayButtonEnabledState(): void {
     // Weekdays are only enabled if interval is 'weekly'.
-    this._enableWeekdayButtons = this._runIntervals[this._runIntervalIndex] === Intervals.WEEKLY;
+    this._enableWeekdayButtons =
+        this._cronIntervals[this._intervalIndex] === CronIntervals.WEEKLY;
     if (!this._enableWeekdayButtons) {
       // Check 'All weekdays' checkbox and update individual weekday buttons.
       this._allDaysOfWeekActive = true;
@@ -213,23 +243,60 @@ export class PipelineSchedule extends Polymer.Element {
     }
   }
 
-  // Show Cron schedule UI
-  protected _showCronScheduleInputs(scheduleTypeIndex: number): boolean {
+  // Show date/time inputs which are shared by Periodic and Cron schedules.
+  protected _showDateTimePickers(scheduleTypeIndex: number): boolean {
+    return this._showPeriodicInputs(scheduleTypeIndex) || this._showCronInputs(scheduleTypeIndex);
+  }
+
+  // Show schedule inputs for periodic runs specified by intervals.
+  protected _showPeriodicInputs(scheduleTypeIndex: number): boolean {
+    return this._SCHEDULES[scheduleTypeIndex] === PERIODIC;
+  }
+
+  // Show schedule inputs for recurring runs specified by cron.
+  protected _showCronInputs(scheduleTypeIndex: number): boolean {
     return this._SCHEDULES[scheduleTypeIndex] === CRON;
   }
 
   private _startTime(): string {
-    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY || !this._startDate) {
+    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY ||
+        !this._startDate || !this.startDateTimePicker) {
       return '';
     }
-    return (this.$.startDatepicker as DateTimePicker).dateTimeAsIsoString();
+    return this.startDateTimePicker.dateTimeAsIsoString();
   }
 
   private _endTime(): string {
-    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY || !this._endDate) {
+    if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY ||
+        !this._endDate || !this.endDateTimePicker) {
       return '';
     }
-    return (this.$.endDatepicker as DateTimePicker).dateTimeAsIsoString();
+    return this.endDateTimePicker.dateTimeAsIsoString();
+  }
+
+  private _getPeriodInSeconds(): number {
+    let intervalSeconds = 0;
+    switch (this._periodicIntervals[this._intervalIndex]) {
+      case PeriodicIntervals.MINUTES:
+        intervalSeconds = 60;
+        break;
+      case PeriodicIntervals.HOURS:
+        intervalSeconds = 60 * 60;
+        break;
+      case PeriodicIntervals.DAYS:
+        intervalSeconds = 60 * 60 * 24;
+        break;
+      case PeriodicIntervals.WEEKS:
+        intervalSeconds = 60 * 60 * 24 * 7;
+        break;
+      case PeriodicIntervals.MONTHS:
+        intervalSeconds = 60 * 60 * 24 * 30;
+        break;
+      default:
+        Utils.log.error('Invalid interval index:', this._intervalIndex);
+        return -1;
+    }
+    return intervalSeconds * this._frequency;
   }
 
   // The crontab we send to the backend needs to be UTC.
@@ -250,17 +317,17 @@ export class PipelineSchedule extends Polymer.Element {
     let dayOfMonth = '*';
     const month = '*';
     let dayOfWeek = '?';
-    switch (this._runIntervals[this._runIntervalIndex]) {
-      case Intervals.MINUTE:
+    switch (this._cronIntervals[this._intervalIndex]) {
+      case CronIntervals.MINUTE:
         break;
-      case Intervals.HOURLY:
+      case CronIntervals.HOURLY:
         minute = targetMinutes || minute;
         break;
-      case Intervals.DAILY:
+      case CronIntervals.DAILY:
         minute = targetMinutes || minute;
         hour = targetHours || hour;
         break;
-      case Intervals.WEEKLY:
+      case CronIntervals.WEEKLY:
         minute = targetMinutes || minute;
         hour = targetHours || hour;
         dayOfMonth = '?';
@@ -276,13 +343,13 @@ export class PipelineSchedule extends Polymer.Element {
               []).join(',');
         }
         break;
-      case Intervals.MONTHLY:
+      case CronIntervals.MONTHLY:
         minute = targetMinutes || minute;
         hour = targetHours || hour;
         dayOfMonth = targetDayOfMonth || dayOfMonth;
         break;
       default:
-        Utils.log.error('Invalid interval index:', this._runIntervalIndex);
+        Utils.log.error('Invalid interval index:', this._intervalIndex);
     }
     return [ second, minute, hour, dayOfMonth, month, dayOfWeek ].join(' ');
   }

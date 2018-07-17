@@ -1,12 +1,18 @@
 import { Parameter } from './parameter';
 
 export class CronSchedule {
-  public start_time?: string;
-  public end_time?: string;
-  public cron = '';
+  private start_time?: string;
+  private end_time?: string;
+  private cron = '';
 
-  constructor(cron: string) {
+  constructor(cron: string, startTime?: string, endTime?: string) {
     this.cron = cron;
+    if (startTime) {
+      this.start_time = startTime;
+    }
+    if (endTime) {
+      this.end_time = endTime;
+    }
   }
 
   public static buildFromObject(cronSchedule: any): CronSchedule {
@@ -20,18 +26,36 @@ export class CronSchedule {
     return newCronSchedule;
   }
 
+  public get crontab(): string {
+    return this.cron;
+  }
+
+  public get startTime(): string {
+    return this.start_time || '';
+  }
+
+  public get endTime(): string {
+    return this.end_time || '';
+  }
+
   public toString(): string {
     return this.cron;
   }
 }
 
 export class PeriodicSchedule {
-  public start_time?: string;
-  public end_time?: string;
-  public interval_second: number;
+  private start_time?: string;
+  private end_time?: string;
+  private interval_second: number;
 
-  constructor(intervalSeconds: number) {
+  constructor(intervalSeconds: number, startTime?: string, endTime?: string) {
     this.interval_second = intervalSeconds;
+    if (startTime) {
+      this.start_time = startTime;
+    }
+    if (endTime) {
+      this.end_time = endTime;
+    }
   }
 
   public static buildFromObject(periodicSchedule: any): PeriodicSchedule {
@@ -43,6 +67,18 @@ export class PeriodicSchedule {
       newPeriodicSchedule.end_time = periodicSchedule.end_time;
     }
     return newPeriodicSchedule;
+  }
+
+  public get intervalSeconds(): number {
+    return this.interval_second;
+  }
+
+  public get startTime(): string {
+    return this.start_time || '';
+  }
+
+  public get endTime(): string {
+    return this.end_time || '';
   }
 
   public toString(): string {
@@ -81,8 +117,17 @@ export class PeriodicSchedule {
 }
 
 export class Trigger {
-  public cron_schedule?: CronSchedule;
-  public periodic_schedule?: PeriodicSchedule;
+  private cron_schedule?: CronSchedule;
+  private periodic_schedule?: PeriodicSchedule;
+
+  constructor(schedule?: CronSchedule|PeriodicSchedule) {
+    if (schedule instanceof CronSchedule) {
+      this.cron_schedule = schedule;
+    }
+    if (schedule instanceof PeriodicSchedule) {
+      this.periodic_schedule = schedule;
+    }
+  }
 
   public static buildFromObject(trigger: any): Trigger {
     const newTrigger = new Trigger();
@@ -93,6 +138,14 @@ export class Trigger {
       newTrigger.periodic_schedule = PeriodicSchedule.buildFromObject(trigger.periodic_schedule);
     }
     return newTrigger;
+  }
+
+  public get crontab(): string {
+    return this.cron_schedule ? this.cron_schedule.crontab : '';
+  }
+
+  public get periodInSeconds(): number {
+    return this.periodic_schedule ? this.periodic_schedule.intervalSeconds : -1;
   }
 
   public toString(): string {

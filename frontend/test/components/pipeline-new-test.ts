@@ -183,8 +183,8 @@ describe('pipeline-new', () => {
     const parameterInputs = fixture.$.pipelineParameters.querySelectorAll('paper-input');
     parameterInputs.forEach((input, index) => (input as PaperInputElement).value = index + '');
     const schedule = fixture.$.schedule.querySelector('pipeline-schedule') as PipelineSchedule;
-    // Now the Pipeline will have a schedule
-    (schedule.$.scheduleTypeListbox as PaperListboxElement).select(1);
+    // Include default cron schedule
+    schedule.scheduleTypeListbox.select(2);
     Polymer.flush();
 
     fixture.deployButton.click();
@@ -202,7 +202,7 @@ describe('pipeline-new', () => {
           actualPipeline.parameters[i].value, (parameterInputs[i] as PaperInputElement).value);
     }
     // "0 0 * * * ?" is the default schedule. It means "run every hour".
-    assert.strictEqual(actualPipeline.trigger.cron_schedule.cron, '0 0 * * * ?');
+    assert.strictEqual(actualPipeline.trigger.crontab, '0 0 * * * ?');
 
     deployPipelineStub.restore();
   });
