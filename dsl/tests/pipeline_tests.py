@@ -46,13 +46,19 @@ class TestPipeline(unittest.TestCase):
 
   def test_decorator(self):
     """Test @pipeline decorator."""
-    @mlp.pipeline
+    @mlp.pipeline(
+      name='p1',
+      description='description1'
+    )
     def my_pipeline1():
       pass
 
-    @mlp.pipeline
+    @mlp.pipeline(
+      name='p2',
+      description='description2'
+    )
     def my_pipeline2():
       pass
     
-    self.assertIn(my_pipeline1, mlp.Pipeline.get_pipeline_functions())
-    self.assertIn(my_pipeline2, mlp.Pipeline.get_pipeline_functions())
+    self.assertEqual(('p1', 'description1'), mlp.Pipeline.get_pipeline_functions()[my_pipeline1])
+    self.assertEqual(('p2', 'description2'), mlp.Pipeline.get_pipeline_functions()[my_pipeline2])

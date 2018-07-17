@@ -14,18 +14,24 @@
 import mlp
 
 
-def pipeline(func):
+def pipeline(name, description):
   """Decorator of pipeline functions.
 
   Usage:
   ```python
-  @mlp.pipeline
+  @mlp.pipeline(
+    name='my awesome pipeline',
+    description='Is it really awesome?'
+  )
   def my_pipeline(a: mlp.PipelineParam, b: mlp.PipelineParam):
     ...
   ```
   """
-  Pipeline.add_pipeline_function(func)
-  return func
+  def _pipeline(func):
+    Pipeline.add_pipeline(name, description, func)
+    return func
+
+  return _pipeline
 
 
 class Pipeline():
@@ -48,7 +54,8 @@ class Pipeline():
   _default_pipeline = None
 
   # All pipeline functions with @pipeline decorator that are imported.
-  _pipeline_functions = []
+  # Each key is a pipeline function. Each value is a (name, description).
+  _pipeline_functions = {}
 
   @staticmethod
   def get_default_pipeline():
@@ -61,9 +68,9 @@ class Pipeline():
     return Pipeline._pipeline_functions
 
   @staticmethod
-  def add_pipeline_function(func):
+  def add_pipeline(name, description, func):
     """Add a pipeline function (decorated with @mlp.pipeline)."""
-    Pipeline._pipeline_functions.append(func)
+    Pipeline._pipeline_functions[func] = (name, description)
   
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
@@ -73,7 +80,9 @@ class Pipeline():
     """
     self.name = name
     self.ops = {}
-    self.groups = [mlp.OpsGroup('pipeline')]
+    # Add the root group.
+    self.groups = [mlp.OpsGroup('pipeline', name=name)]
+    self.group_id = 0
 
   def __enter__(self):
     if Pipeline._default_pipeline:
@@ -111,3 +120,9 @@ class Pipeline():
   def pop_ops_group(self):
     """Remove the current OpsGroup from the stack."""
     del self.groups[-1]
+
+  def get_next_group_id(self):
+    """Get next id for a new group. """
+
+    self.group_id += 1
+    return self.group_id

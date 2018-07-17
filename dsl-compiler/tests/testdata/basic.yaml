@@ -1,0 +1,90 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: savemostfrequent-
+spec:
+  arguments:
+    parameters:
+    - name: message
+    - name: outputpath
+  entrypoint: savemostfrequent
+  onExit: exiting
+  templates:
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: message
+            value: '{{inputs.parameters.message}}'
+        name: get-Frequent
+        template: get-Frequent
+      - arguments:
+          parameters:
+          - name: get-Frequent-word
+            value: '{{tasks.get-Frequent.outputs.parameters.get-Frequent-word}}'
+          - name: outputpath
+            value: '{{inputs.parameters.outputpath}}'
+        dependencies:
+        - get-Frequent
+        name: save
+        template: save
+    inputs:
+      parameters:
+      - name: message
+      - name: outputpath
+    name: exit-handler-1
+  - container:
+      args:
+      - echo exit!
+      command:
+      - sh
+      - -c
+      image: python:3.5-jessie
+    name: exiting
+  - container:
+      args:
+      - python -c "from collections import Counter; words = Counter('{{inputs.parameters.message}}'.split());
+        print(max(words, key=words.get))" | tee /tmp/message.txt
+      command:
+      - sh
+      - -c
+      image: python:3.5-jessie
+    inputs:
+      parameters:
+      - name: message
+    name: get-Frequent
+    outputs:
+      parameters:
+      - name: get-Frequent-word
+        valueFrom:
+          path: /tmp/message.txt
+  - container:
+      args:
+      - echo {{inputs.parameters.get-Frequent-word}} | tee /tmp/results.txt | gsutil
+        cp /tmp/results.txt {{inputs.parameters.outputpath}}
+      command:
+      - sh
+      - -c
+      image: google/cloud-sdk
+    inputs:
+      parameters:
+      - name: get-Frequent-word
+      - name: outputpath
+    name: save
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: message
+            value: '{{inputs.parameters.message}}'
+          - name: outputpath
+            value: '{{inputs.parameters.outputpath}}'
+        name: exit-handler-1
+        template: exit-handler-1
+      - name: exiting
+        template: exiting
+    inputs:
+      parameters:
+      - name: message
+      - name: outputpath
+    name: savemostfrequent

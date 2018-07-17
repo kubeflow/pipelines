@@ -22,7 +22,7 @@ class OpsGroup(object):
   It is useful for implementing a compiler.
   """
 
-  def __init__(self, group_type: str):
+  def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
       group_type: usually one of 'exit_handler', 'branch', and 'loop'.
@@ -30,10 +30,16 @@ class OpsGroup(object):
     self.type = group_type
     self.ops = list()
     self.groups = list()
+    self.name = name
 
   def __enter__(self):
     if not mlp.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
+
+    if not self.name:
+      self.name = (self.type + '-' +
+          str(mlp.Pipeline.get_default_pipeline().get_next_group_id()))
+    self.name = self.name.replace('_', '-')
 
     mlp.Pipeline.get_default_pipeline().push_ops_group(self)
     return self

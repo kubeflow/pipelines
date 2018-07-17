@@ -1,0 +1,88 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: downloadandsavemostfrequent-
+spec:
+  arguments:
+    parameters:
+    - name: url
+    - name: outputpath
+  entrypoint: downloadandsavemostfrequent
+  templates:
+  - container:
+      args:
+      - gsutil cat {{inputs.parameters.url}} | tee /tmp/results.txt
+      command:
+      - sh
+      - -c
+      image: google/cloud-sdk
+    inputs:
+      parameters:
+      - name: url
+    name: download
+    outputs:
+      parameters:
+      - name: download-downloaded
+        valueFrom:
+          path: /tmp/results.txt
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: url
+            value: '{{inputs.parameters.url}}'
+        name: download
+        template: download
+      - arguments:
+          parameters:
+          - name: download-downloaded
+            value: '{{tasks.download.outputs.parameters.download-downloaded}}'
+        dependencies:
+        - download
+        name: get-Frequent
+        template: get-Frequent
+      - arguments:
+          parameters:
+          - name: get-Frequent-word
+            value: '{{tasks.get-Frequent.outputs.parameters.get-Frequent-word}}'
+          - name: outputpath
+            value: '{{inputs.parameters.outputpath}}'
+        dependencies:
+        - get-Frequent
+        name: save
+        template: save
+    inputs:
+      parameters:
+      - name: outputpath
+      - name: url
+    name: downloadandsavemostfrequent
+  - container:
+      args:
+      - python -c "from collections import Counter; words = Counter('{{inputs.parameters.download-downloaded}}'.split());
+        print(max(words, key=words.get))" | tee /tmp/message.txt
+      command:
+      - sh
+      - -c
+      image: python:3.5-jessie
+    inputs:
+      parameters:
+      - name: download-downloaded
+    name: get-Frequent
+    outputs:
+      parameters:
+      - name: get-Frequent-word
+        valueFrom:
+          path: /tmp/message.txt
+  - container:
+      args:
+      - echo {{inputs.parameters.get-Frequent-word}} | tee /tmp/results.txt | gsutil
+        cp /tmp/results.txt {{inputs.parameters.outputpath}}
+      command:
+      - sh
+      - -c
+      image: google/cloud-sdk
+    inputs:
+      parameters:
+      - name: get-Frequent-word
+      - name: outputpath
+    name: save

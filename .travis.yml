@@ -34,3 +34,8 @@ script:
   - sudo pip3 install typing
   - sudo pip3 install .
   - python3 tests/main.py
+
+  # DSL compiler tests
+  - cd $TRAVIS_BUILD_DIR/dsl-compiler
+  - sudo pip3 install .
+  - python3 tests/main.py
