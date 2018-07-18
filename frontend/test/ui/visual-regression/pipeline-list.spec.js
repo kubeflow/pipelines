@@ -18,14 +18,14 @@ describe('list pipelines', () => {
   });
 
   it('shows hover effect on pipeline', () => {
-    const selector = 'app-shell pipeline-list item-list paper-item';
+    const selector = 'app-shell pipeline-list item-list #listContainer paper-item';
 
     browser.moveToObject(selector, 0, 0);
     assertDiffs(browser.checkDocument());
   });
 
   it('enables Clone when pipeline clicked', () => {
-    const selector = 'app-shell pipeline-list item-list paper-item';
+    const selector = 'app-shell pipeline-list item-list #listContainer paper-item';
 
     browser.click(selector);
     assertDiffs(browser.checkDocument());
@@ -46,19 +46,19 @@ describe('list pipelines', () => {
   });
 
   it('loads previous page on "previous" button press after pressing "next"', () => {
-    const previousButtonselector = 'app-shell pipeline-list item-list paper-button#previousPage';
-    browser.click(previousButtonselector);
+    const previousButtonSelector = 'app-shell pipeline-list item-list paper-button#previousPage';
+    browser.click(previousButtonSelector);
 
     assertDiffs(browser.checkDocument());
   });
 
   it('resets the pipelne list after clicking into a pipeline', () => {
     // Navigate to second page
-    const nextButtonselector = 'app-shell pipeline-list item-list paper-button#nextPage';
-    browser.click(nextButtonselector);
+    const nextButtonSelector = 'app-shell pipeline-list item-list paper-button#nextPage';
+    browser.click(nextButtonSelector);
 
     // Go to a Pipeline's details page
-    const pipelineSelector = 'app-shell pipeline-list item-list paper-item';
+    const pipelineSelector = 'app-shell pipeline-list item-list #listContainer paper-item';
     browser.doubleClick(pipelineSelector);
 
     // Return to Pipeline list page
@@ -70,10 +70,22 @@ describe('list pipelines', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('loads additional pipelines after changing page size', () => {
+    // Default is 20, but we'll change it to 50.
+    const pageSizeDropdownSelector = 'app-shell pipeline-list item-list paper-dropdown-menu';
+    browser.click(pageSizeDropdownSelector);
+
+    const pageSizeSelector =
+        'app-shell pipeline-list item-list paper-dropdown-menu::paper-item:nth-of-type(2)';
+    browser.click(pageSizeSelector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
   it('populates cloned pipeline', () => {
-    // Find a pipeline with package ID of 1 so it can be cloned. The second pipeline works.
+    // Find a pipeline with package ID of 1 so it can be cloned.
     // TODO: Explore making this more reliable
-    const selector = 'app-shell pipeline-list item-list paper-item:nth-of-type(2)';
+    const selector = 'app-shell pipeline-list item-list #listContainer paper-item';
     browser.doubleClick(selector);
 
     const cloneBtnSelector = 'app-shell pipeline-list paper-button#cloneBtn';

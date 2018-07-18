@@ -1,5 +1,5 @@
-@import '../../styles/vars.css';
 @import '../../styles/common.css';
+@import '../../styles/vars.css';
 
 div {
   font-family: var(--app-content-font-family);
@@ -130,6 +130,16 @@ div {
 
 .link:hover {
   text-decoration: underline;
+}
+
+.page-size-label {
+  color: var(--secondary-text-color);
+  padding: 0 0 4px;
+}
+
+.page-size-dropdown {
+  padding: 0 10px;
+  width: 50px;
 }
 
 .row {

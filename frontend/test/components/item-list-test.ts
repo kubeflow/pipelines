@@ -350,7 +350,7 @@ describe('item-list', () => {
         new ItemListColumn('col1', ColumnTypeName.STRING),
         new ItemListColumn('col2', ColumnTypeName.DATE),
       ];
-      loadNewPage(new NewListPageEvent('', 0, '', ''));
+      loadNewPage(new NewListPageEvent('', 0, 20, '', ''));
     });
 
     it('disables previous page button on first page', () => {
@@ -450,7 +450,7 @@ describe('item-list', () => {
 
     it('starts with next page button disabled if nextPageToken is empty', () => {
       // Simulating only one page of results by initially loading the final page.
-      loadNewPage(new NewListPageEvent('', pageResponses.length - 1, '' , ''));
+      loadNewPage(new NewListPageEvent('', pageResponses.length - 1, 20, '' , ''));
 
       const nextPageButton = fixture.$.nextPage as HTMLElement;
       assert.strictEqual((nextPageButton as PaperButtonElement).disabled,

@@ -72,6 +72,15 @@ the License.
     <hr class="no-margin">
 
     <div class="center-text flex padded-spacing-minus-3">
+      <span class="page-size-label font-medium">Show rows:</span>
+      <paper-dropdown-menu class="page-size-dropdown" vertical-align="bottom"
+                           horizontal-align="right" value="{{selectedPageSize}}" no-animations no-label-float>
+        <paper-listbox slot="dropdown-content" class="dropdown-content">
+          <template is="dom-repeat" items="[[pageSizes]]" as="pageSize">
+            <paper-item>[[pageSize]]</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
       <paper-button id="previousPage" class="toolbar-button" on-click="_previousPage" disabled="[[!_currentPage]]">
           <iron-icon icon="chevron-left"></iron-icon>
       </paper-button>

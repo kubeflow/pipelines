@@ -43,6 +43,20 @@ describe('view pipeline details', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('loads additional runs after changing page size', () => {
+    // Default is 20, but we'll change it to 50.
+    const pageSizeDropdownSelector =
+        'app-shell pipeline-details job-list item-list paper-dropdown-menu';
+    browser.click(pageSizeDropdownSelector);
+
+    const pageSizeSelector =
+        'app-shell pipeline-details job-list item-list ' +
+        'paper-dropdown-menu::paper-item:nth-of-type(2)';
+    browser.click(pageSizeSelector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
   it('populates new pipeline on clone', () => {
     const cloneBtnSelector = 'app-shell pipeline-details paper-button#cloneBtn';
 

@@ -28,9 +28,6 @@ export class JobList extends Polymer.Element {
   @property({ type: Array })
   public jobsMetadata: JobMetadata[] = [];
 
-  @property({ type: Number })
-  protected _pageSize = 20;
-
   protected jobListRows: ItemListRow[] = [];
 
   protected jobListColumns: ItemListColumn[] = [
@@ -53,8 +50,9 @@ export class JobList extends Polymer.Element {
 
   public loadJobs(pipelineId: string): void {
     this._pipelineId = pipelineId;
-    (this.$.jobsItemList as ItemListElement).reset();
-    this._loadJobsInternal(new ListJobsRequest(pipelineId, this._pageSize));
+    const itemList = this.$.jobsItemList as ItemListElement;
+    itemList.reset();
+    this._loadJobsInternal(new ListJobsRequest(pipelineId, itemList.selectedPageSize));
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
@@ -102,7 +100,7 @@ export class JobList extends Polymer.Element {
   }
 
   private _loadNewListPage(ev: NewListPageEvent): void {
-    const request = new ListJobsRequest(this._pipelineId, this._pageSize);
+    const request = new ListJobsRequest(this._pipelineId, ev.detail.pageSize);
     request.filterBy = ev.detail.filterBy;
     request.pageToken = ev.detail.pageToken;
     request.sortBy = ev.detail.sortBy;
@@ -115,7 +113,7 @@ export class JobList extends Polymer.Element {
         this._debouncer,
         Polymer.Async.timeOut.after(300),
         async () => {
-          const request = new ListJobsRequest(this._pipelineId, this._pageSize);
+          const request = new ListJobsRequest(this._pipelineId, ev.detail.pageSize);
           request.filterBy = ev.detail.filterString;
           request.orderAscending = ev.detail.orderAscending;
           request.sortBy = ev.detail.sortColumn;

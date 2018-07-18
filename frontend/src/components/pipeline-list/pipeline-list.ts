@@ -41,9 +41,6 @@ export class PipelineList extends PageElement {
   @property({ type: Boolean })
   protected _atLeastOneItemIsSelected = false;
 
-  @property({ type: Number })
-  protected _pageSize = 20;
-
   public get newButton(): PaperButtonElement {
     return this.$.newBtn as PaperButtonElement;
   }
@@ -88,7 +85,7 @@ export class PipelineList extends PageElement {
 
   public load(_: string): void {
     this.itemList.reset();
-    this._loadPipelines(new ListPipelinesRequest(this._pageSize));
+    this._loadPipelines(new ListPipelinesRequest(this.itemList.selectedPageSize));
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
@@ -144,7 +141,7 @@ export class PipelineList extends PageElement {
     if (successfulDeletes > 0) {
       Utils.showNotification(`Successfully deleted ${successfulDeletes} Pipelines!`);
       this.itemList.reset();
-      this._loadPipelines(new ListPipelinesRequest(this._pageSize));
+      this._loadPipelines(new ListPipelinesRequest(this.itemList.selectedPageSize));
     }
 
     if (unsuccessfulDeletes > 0) {
@@ -159,7 +156,7 @@ export class PipelineList extends PageElement {
   }
 
   private _loadNewListPage(ev: NewListPageEvent): void {
-    const request = new ListPipelinesRequest(this._pageSize);
+    const request = new ListPipelinesRequest(ev.detail.pageSize);
     request.filterBy = ev.detail.filterBy;
     request.pageToken = ev.detail.pageToken;
     request.sortBy = ev.detail.sortBy;
@@ -186,7 +183,7 @@ export class PipelineList extends PageElement {
         this._debouncer,
         Polymer.Async.timeOut.after(300),
         async () => {
-          const request = new ListPipelinesRequest(this._pageSize);
+          const request = new ListPipelinesRequest(ev.detail.pageSize);
           request.filterBy = ev.detail.filterString;
           request.orderAscending = ev.detail.orderAscending;
           request.sortBy = ev.detail.sortColumn;

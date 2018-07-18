@@ -157,6 +157,18 @@ export class ItemListElement extends Polymer.Element {
   @property({ type: Boolean })
   public sortLocally = false;
 
+  /**
+   * Possible values for number of rows shown per page
+   */
+  @property({ type: Array })
+  public pageSizes: number[] = [ 20, 50, 100 ];
+
+  /**
+   * Selected number of rows to show per page. Defaults to 20 items per page.
+   */
+  @property({ type: Number })
+  public selectedPageSize = this.pageSizes[0];
+
   @property({ type: Boolean })
   protected _showFilterBox = false;
 
@@ -270,7 +282,11 @@ export class ItemListElement extends Polymer.Element {
       // Reset paging.
       this.reset();
       this.dispatchEvent(
-          new ListFormatChangeEvent(this.filterString, this._currentSort.asc, this._sortByColumn));
+          new ListFormatChangeEvent(
+              this.filterString,
+              this._currentSort.asc,
+              this.selectedPageSize,
+              this._sortByColumn));
     }
     this._updateSortIcons();
   }
@@ -531,11 +547,15 @@ export class ItemListElement extends Polymer.Element {
     this.dispatchEvent(new ItemDblClickEvent(realIndex));
   }
 
-  @observe('filterString')
-  protected _filterStringChanged(): void {
+  /**
+   * SortBy is slightly more complicated, so it is handled within the _sortBy() function instead.
+   */
+  @observe('filterString', 'selectedPageSize')
+  protected _listFormatChanged(): void {
     this.reset();
     this.dispatchEvent(
-        new ListFormatChangeEvent(this.filterString, this._currentSort.asc, this._sortByColumn)
+        new ListFormatChangeEvent(
+            this.filterString, this._currentSort.asc, this.selectedPageSize, this._sortByColumn)
     );
   }
 
@@ -555,12 +575,12 @@ export class ItemListElement extends Polymer.Element {
     this._loadNewPage();
   }
 
-  // TODO: Add support for sortBy which should also call reset()
   private _loadNewPage(): void {
     this.dispatchEvent(
         new NewListPageEvent(
             this.filterString,
             this._currentPage,
+            this.selectedPageSize,
             this._pageTokens[this._currentPage],
             this._sortByColumn));
   }

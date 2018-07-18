@@ -29,11 +29,12 @@ export class ListFormatChangeEvent extends BaseCustomEvent {
   public detail: {
     filterString: string,
     orderAscending: boolean,
+    pageSize: number,
     sortColumn: string,
   };
 
-  constructor(filterString: string, orderAscending: boolean, sortColumn: string) {
-    super(ListFormatChangeEvent.name, { filterString, orderAscending, sortColumn });
+  constructor(filterString: string, orderAscending: boolean, pageSize: number, sortColumn: string) {
+    super(ListFormatChangeEvent.name, { filterString, orderAscending, pageSize, sortColumn });
   }
 }
 
@@ -41,12 +42,18 @@ export class NewListPageEvent extends BaseCustomEvent {
   public detail: {
     filterBy: string,
     pageNumber: number,
+    pageSize: number,
     pageToken: string,
     sortBy: string,
   };
 
-  constructor(filterBy: string, pageNumber: number, pageToken: string, sortBy: string) {
-    super(NewListPageEvent.name, { filterBy, pageNumber, pageToken, sortBy });
+  constructor(
+      filterBy: string,
+      pageNumber: number,
+      pageSize: number,
+      pageToken: string,
+      sortBy: string) {
+    super(NewListPageEvent.name, { filterBy, pageNumber, pageSize, pageToken, sortBy });
   }
 }
 

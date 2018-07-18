@@ -155,6 +155,10 @@ paper-tab:not(:first-child) {
   font-size: var(--font-size-large);
 }
 
+.font-medium {
+  font-size: var(--font-size-medium);
+}
+
 .inline {
   display: inline;
 }

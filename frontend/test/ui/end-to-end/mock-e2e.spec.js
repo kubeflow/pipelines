@@ -16,7 +16,7 @@ describe('deploy new pipeline', () => {
 
   it('starts out with all mock pipelines', () => {
     browser.waitForVisible(listSelector, waitTimeout);
-    const selector = 'app-shell pipeline-list item-list paper-item';
+    const selector = 'app-shell pipeline-list item-list #listContainer paper-item';
     browser.waitForVisible(selector, waitTimeout);
 
     assert.equal($$(selector).length, 20, 'should start out with a full page of 20 pipelines');
@@ -27,7 +27,7 @@ describe('deploy new pipeline', () => {
     browser.waitForVisible(selector, waitTimeout);
     browser.click(selector);
 
-    const listSelector = 'app-shell pipeline-list item-list paper-item';
+    const listSelector = 'app-shell pipeline-list item-list #listContainer paper-item';
     browser.waitForVisible(selector, waitTimeout);
     assert.equal($$(listSelector).length, mockPipelinesLength - 20,
         'second page should show the remaining pipelines');
@@ -93,7 +93,7 @@ describe('deploy new pipeline', () => {
 
     browser.waitForVisible(listSelector, waitTimeout);
 
-    const selector = 'app-shell pipeline-list item-list paper-item';
+    const selector = 'app-shell pipeline-list item-list #listContainer paper-item';
     browser.waitForVisible(selector, waitTimeout);
     const index = mockPipelinesLength - 20 + 1;
     assert.equal($$(selector).length, index, 'should have a new item added to pipeline list');
@@ -140,7 +140,7 @@ describe('deploy new pipeline', () => {
   });
 
   it('lists exactly one job', () => {
-    const selector = 'app-shell pipeline-details job-list item-list paper-item';
+    const selector = 'app-shell pipeline-details job-list item-list #listContainer paper-item';
     const jobsText = browser.getText(selector);
 
     assert(!Array.isArray(jobsText) && typeof jobsText === 'string',
@@ -149,7 +149,7 @@ describe('deploy new pipeline', () => {
   });
 
   it('opens job details on double click', () => {
-    const selector = 'app-shell pipeline-details job-list item-list paper-item';
+    const selector = 'app-shell pipeline-details job-list item-list #listContainer paper-item';
 
     browser.waitForVisible(selector, waitTimeout);
     browser.doubleClick(selector);
@@ -185,7 +185,7 @@ describe('deploy new pipeline', () => {
     browser.waitForVisible(selector, waitTimeout);
     browser.click(selector);
 
-    const listSelector = 'app-shell pipeline-list item-list paper-item';
+    const listSelector = 'app-shell pipeline-list item-list #listContainer paper-item';
     browser.waitForVisible(selector, waitTimeout);
     assert.equal($$(listSelector).length, mockPipelinesLength - 20,
         'second page should show the remaining pipelines');

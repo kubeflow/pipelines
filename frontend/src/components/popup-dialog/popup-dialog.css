@@ -22,7 +22,7 @@
 }
 
 .title {
-  font-size: var(--font-size-strong);
+  font-size: var(--font-size-large);
   margin: 0;
   padding: var(--spacing-plus-1);
 }
