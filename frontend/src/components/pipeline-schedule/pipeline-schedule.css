@@ -23,6 +23,17 @@ paper-button.toggle[disabled] {
   color: var(--disabled-color);
 }
 
+.align-left {
+  padding-bottom: var(--spacing-minus-1);
+  padding-left: var(--spacing-minus-3);
+  padding-right: var(--spacing-minus-1);
+  padding-top: var(--spacing-minus-1);
+}
+
+.align-max-concurrency {
+  padding: var(--spacing-minus-1) var(--spacing-minus-3) var(--spacing-minus-5);
+}
+
 .error-msg-container {
   min-height: 20px;
 }

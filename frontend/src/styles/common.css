@@ -44,6 +44,10 @@ iron-icon[icon="error-outline"] {
   color: var(--danger-color);
 }
 
+paper-checkbox {
+  --paper-checkbox-label-color: var(--secondary-text-color);
+}
+
 paper-progress.loading {
   --paper-progress-active-color: var(--theme-primary-color);
   height: 1px;

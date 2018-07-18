@@ -69,6 +69,10 @@ export class PipelineNew extends PageElement {
 
   private _schedule: PipelineSchedule;
 
+  public get schedule(): PipelineSchedule {
+    return this._schedule;
+  }
+
   public get listBox(): PaperListboxElement {
     return this.$.packagesListbox as PaperListboxElement;
   }
@@ -187,6 +191,7 @@ export class PipelineNew extends PageElement {
     newPipeline.enabled = true;
     newPipeline.package_id = this._packageId;
     newPipeline.parameters = this._parameters;
+    newPipeline.max_concurrency = this._schedule.maxConcurrentJobs;
     const trigger = this._schedule.toTrigger();
     if (trigger) {
       newPipeline.trigger = trigger;

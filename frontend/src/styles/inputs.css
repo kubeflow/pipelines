@@ -46,14 +46,12 @@ paper-ripple {
   width: 10%;
 }
 
-.input-field-tiny {
-  max-width: 65px;
+.input-field-width-18 {
   width: 18px;
 }
 
-.input-field-very-small {
-  max-width: 120px;
-  width: 65px;
+.input-field-width-45 {
+  width: 45px;
 }
 
 .param-name {

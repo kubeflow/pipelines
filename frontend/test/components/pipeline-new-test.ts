@@ -182,17 +182,18 @@ describe('pipeline-new', () => {
     fixture.descriptionInput.value = 'The Pipeline description';
     const parameterInputs = fixture.$.pipelineParameters.querySelectorAll('paper-input');
     parameterInputs.forEach((input, index) => (input as PaperInputElement).value = index + '');
-    const schedule = fixture.$.schedule.querySelector('pipeline-schedule') as PipelineSchedule;
+    fixture.schedule.maxConcurrentJobsInput.value = '50';
     // Include default cron schedule
-    schedule.scheduleTypeListbox.select(2);
+    fixture.schedule.scheduleTypeListbox.select(2);
     Polymer.flush();
 
     fixture.deployButton.click();
 
     assert(deployPipelineStub.calledOnce, 'Apis.newPipeline() should only be called once.');
-    const actualPipeline = deployPipelineStub.firstCall.args[0];
+    const actualPipeline = deployPipelineStub.firstCall.args[0] as Pipeline;
     assert.strictEqual(actualPipeline.name, fixture.nameInput.value);
     assert.strictEqual(actualPipeline.description, fixture.descriptionInput.value);
+    assert.strictEqual(actualPipeline.max_concurrency, fixture.schedule.maxConcurrentJobs);
 
     // TODO: mock time and test format.
     assert.strictEqual(actualPipeline.package_id, (fixture.listBox.selectedItem as any).packageId);
