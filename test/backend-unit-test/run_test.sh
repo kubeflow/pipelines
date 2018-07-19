@@ -16,7 +16,7 @@
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: run_test.sh
     [--commit_sha     commit SHA to pull code from]
     [-h help]"
 }

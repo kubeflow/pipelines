@@ -20,6 +20,10 @@ spec:
       value: scheduledworkflow
     - name: scheduler-image-suffix
       value: scheduler
+    - name: api-integration-test-image-suffix
+      value: api_integration_test
+    - name: wait-ml-pipeline-ready-image-suffix
+      value: wait_mlp_ready
   onExit: clean-up
   templates:
   - name: integration-test
@@ -31,6 +35,8 @@ spec:
       - name: frontend-image-suffix
       - name: scheduledworkflow-image-suffix
       - name: scheduler-image-suffix
+      - name: api-integration-test-image-suffix
+      - name: wait-ml-pipeline-ready-image-suffix
     steps:
     - - name: create-namespace
         template: create-namespace
@@ -100,6 +106,30 @@ spec:
             value: "{{inputs.parameters.scheduler-image-suffix}}"
           - name: docker-file
             value: Dockerfile.scheduler
+      - name: build-api-integration-test-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: test/api-integration-test
+          - name: image-suffix
+            value: "{{inputs.parameters.api-integration-test-image-suffix}}"
+      - name: build-wait-ml-pipeline-ready-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: test/wait-ml-pipeline-ready
+          - name: image-suffix
+            value: "{{inputs.parameters.wait-ml-pipeline-ready-image-suffix}}"
     - - name: deploy-ml-pipeline
         template: deploy-ml-pipeline
         arguments:
@@ -118,12 +148,26 @@ spec:
             value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
           - name: scheduler-image-suffix
             value: "{{inputs.parameters.scheduler-image-suffix}}"
+    - - name: wait-ml-pipeline-ready
+        template: wait-ml-pipeline-ready
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: wait-ml-pipeline-ready-image-suffix
+            value: "{{inputs.parameters.wait-ml-pipeline-ready-image-suffix}}"
     - - name: run-api-integration-tests
         template: run-api-integration-tests
         arguments:
           parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
+          - name: api-integration-test-image-suffix
+            value: "{{inputs.parameters.api-integration-test-image-suffix}}"
 
   - name: get-project
     script:
@@ -198,29 +242,26 @@ spec:
         "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
       ]
 
+  - name: wait-ml-pipeline-ready
+    inputs:
+      parameters:
+      - name: project
+      - name: commit-sha
+      - name: wait-ml-pipeline-ready-image-suffix
+    container:
+      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.wait-ml-pipeline-ready-image-suffix}}
+      args: ["--namespace", "{{workflow.name}}"]
+
   - name: run-api-integration-tests
     inputs:
       parameters:
+      - name: project
       - name: commit-sha
+      - name: api-integration-test-image-suffix
     container:
-      image: gcr.io/ml-pipeline/api-integration-test:v20180711-c096fbb-e3b0c4
-      imagePullPolicy: 'Always'
+      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-integration-test-image-suffix}}
       args: [
         "--namespace", "{{workflow.name}}",
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
-      ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh"
-
-  - name: run-backend-unit-tests
-    inputs:
-      parameters:
-      - name: commit-sha
-    container:
-      image: gcr.io/ml-pipeline/backend-unit-test:v20180710-4ab3cd3-e3b0c4
-      imagePullPolicy: 'Always'
-      args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
       volumeMounts:
@@ -230,62 +271,17 @@ spec:
   - name: clean-up
     inputs:
       parameters:
-      - name: commit-sha
-      - name: bootstrapper-image-suffix
-      - name: api-image-suffix
-      - name: frontend-image-suffix
       - name: cleanup
     steps:
     - - name: delete-namespace
         template: delete-namespace
         when: "{{inputs.parameters.cleanup}} == true"
-      - name: delete-api-images
-        template: delete-images
-        when: "{{inputs.parameters.cleanup}} == true"
-        arguments:
-          parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.api-image-suffix}}"
-      - name: delete-frontend-images
-        template: delete-images
-        when: "{{inputs.parameters.cleanup}} == true"
-        arguments:
-          parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.frontend-image-suffix}}"
-      - name: delete-bootstrapper-images
-        template: delete-images
-        when: "{{inputs.parameters.cleanup}} == true"
-        arguments:
-          parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.bootstrapper-image-suffix}}"
 
   - name: delete-namespace
     container:
       image: gcr.io/ml-pipeline/bootstrapper
       command: [kubectl]
       args: ["delete", "ns", "{{workflow.name}}"]
-
-  - name: delete-images
-    inputs:
-      parameters:
-      - name: commit-sha
-      - name: image-suffix
-    container:
-      image: google/cloud-sdk
-      command: [sh, -c]
-      args: [
-        "gcloud container images delete \
-        gcr.io/$(gcloud config config-helper --format \"value(configuration.properties.core.project)\")/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}} \
-        --force-delete-tags --quiet"
-      ]
 
   volumes:
   - name: secret-volume

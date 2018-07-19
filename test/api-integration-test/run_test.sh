@@ -16,7 +16,7 @@
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: run_test.sh
     [--commit_sha     commit SHA to pull code from]
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
