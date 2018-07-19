@@ -20,18 +20,9 @@ version = '0.1'
 
 
 setup(
-  name='mlpc',
+  name='testsample',
   version=version,
   packages=[
-    'mlpc'
+    'mypipeline'
   ],
-  install_requires=[
-    'PyYaml'
-  ],
-  description='ML Pipelines Compiler',
-  entry_points = {
-    'console_scripts': [ 
-        'dsl-compile = mlpc.main:main',
-        ]
-  }
 )

@@ -13,25 +13,4 @@
 # limitations under the License.
 
 
-from setuptools import setup
-
-
-version = '0.1'
-
-
-setup(
-  name='mlpc',
-  version=version,
-  packages=[
-    'mlpc'
-  ],
-  install_requires=[
-    'PyYaml'
-  ],
-  description='ML Pipelines Compiler',
-  entry_points = {
-    'console_scripts': [ 
-        'dsl-compile = mlpc.main:main',
-        ]
-  }
-)
+from .compose import *

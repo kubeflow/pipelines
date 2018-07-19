@@ -17,6 +17,7 @@ import mlp
 import mlpc
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -109,7 +110,7 @@ class TestCompiler(unittest.TestCase):
       # print(tmpdir)
 
   def test_invalid_pipelines(self):
-    """Test converting operator to template"""
+    """Test invalid pipelines."""
 
     @mlp.pipeline(
       name='name',
@@ -136,3 +137,50 @@ class TestCompiler(unittest.TestCase):
 
     with self.assertRaises(ValueError):
       mlpc.Compiler()._compile(missing_decoration)
+
+  def test_package_compile(self):
+    """Test compiling python packages."""
+
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    test_package_dir = os.path.join(test_data_dir, 'testpackage')
+    tmpdir = tempfile.mkdtemp()
+    cwd = os.getcwd()
+    try:
+      os.chdir(test_package_dir)
+      subprocess.check_call(['python3', 'setup.py', 'sdist', '--format=gztar', '-d', tmpdir])
+      package_path = os.path.join(tmpdir, 'testsample-0.1.tar.gz')
+      target_yaml = os.path.join(tmpdir, 'compose.yaml')
+      subprocess.check_call([
+          'dsl-compile', '--package', package_path, '--namespace', 'mypipeline',
+          '--output', target_yaml, '--function', 'download_save_most_frequent_word'])
+      with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
+        golden = yaml.load(f)
+      with open(target_yaml, 'r') as f:
+        compiled = yaml.load(f)
+
+      self.maxDiff = None
+      self.assertEqual(golden, compiled)
+    finally:
+      shutil.rmtree(tmpdir)
+      os.chdir(cwd)
+
+
+  def test_py_compile(self):
+    """Test compiling python files."""
+
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    py_file = os.path.join(test_data_dir, 'basic.py')
+    tmpdir = tempfile.mkdtemp()
+    try:
+      target_yaml = os.path.join(tmpdir, 'basic.yaml')
+      subprocess.check_call([
+          'dsl-compile', '--py', py_file, '--output', target_yaml])
+      with open(os.path.join(test_data_dir, 'basic.yaml'), 'r') as f:
+        golden = yaml.load(f)
+      with open(target_yaml, 'r') as f:
+        compiled = yaml.load(f)
+
+      self.maxDiff = None
+      self.assertEqual(golden, compiled)
+    finally:
+      shutil.rmtree(tmpdir)
