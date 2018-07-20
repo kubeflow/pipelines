@@ -66,6 +66,7 @@
             "watch",
             "update",
             "patch",
+            "delete",
           ],
         },
         {
@@ -82,6 +83,7 @@
             "watch",
             "update",
             "patch",
+            "delete",
           ],
         },
       ],

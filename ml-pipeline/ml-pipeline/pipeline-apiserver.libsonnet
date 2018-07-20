@@ -81,6 +81,7 @@
             "list",
             "update",
             "patch",
+            "delete",
           ],
         },
       ],
