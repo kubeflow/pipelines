@@ -31,8 +31,6 @@ type FakeClientManager struct {
 	packageStore                storage.PackageStoreInterface
 	pipelineStore               storage.PipelineStoreInterface
 	jobStore                    storage.JobStoreInterface
-	pipelineStoreV2             storage.PipelineStoreV2Interface
-	jobStoreV2                  storage.JobStoreV2Interface
 	objectStore                 storage.ObjectStoreInterface
 	workflowClientFake          *storage.FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
@@ -62,9 +60,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		db:                          db,
 		packageStore:                storage.NewPackageStore(db, time),
 		pipelineStore:               storage.NewPipelineStore(db, time),
-		jobStore:                    storage.NewJobStore(db, workflowClient, time),
-		pipelineStoreV2:             storage.NewPipelineStoreV2(db, time),
-		jobStoreV2:                  storage.NewJobStoreV2(db, time),
+		jobStore:                    storage.NewJobStore(db, time),
 		workflowClientFake:          workflowClient,
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
@@ -84,14 +80,6 @@ func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
 
 func (f *FakeClientManager) PackageStore() storage.PackageStoreInterface {
 	return f.packageStore
-}
-
-func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
-	return f.pipelineStore
-}
-
-func (f *FakeClientManager) JobStore() storage.JobStoreInterface {
-	return f.jobStore
 }
 
 func (f *FakeClientManager) ObjectStore() storage.ObjectStoreInterface {
@@ -114,12 +102,12 @@ func (f *FakeClientManager) WorkflowClientFake() *storage.FakeWorkflowClient {
 	return f.workflowClientFake
 }
 
-func (f *FakeClientManager) PipelineStoreV2() storage.PipelineStoreV2Interface {
-	return f.pipelineStoreV2
+func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
+	return f.pipelineStore
 }
 
-func (f *FakeClientManager) JobStoreV2() storage.JobStoreV2Interface {
-	return f.jobStoreV2
+func (f *FakeClientManager) JobStore() storage.JobStoreInterface {
+	return f.jobStore
 }
 
 func (f *FakeClientManager) ScheduledWorkflow() v1alpha1.ScheduledWorkflowInterface {

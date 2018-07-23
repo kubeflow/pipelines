@@ -46,9 +46,7 @@ type ClientManager struct {
 	db                *gorm.DB
 	packageStore      storage.PackageStoreInterface
 	pipelineStore     storage.PipelineStoreInterface
-	pipelineStoreV2   storage.PipelineStoreV2Interface
 	jobStore          storage.JobStoreInterface
-	jobStoreV2        storage.JobStoreV2Interface
 	objectStore       storage.ObjectStoreInterface
 	scheduledWorkflow scheduledworkflowclient.ScheduledWorkflowInterface
 	time              util.TimeInterface
@@ -58,21 +56,12 @@ type ClientManager struct {
 func (c *ClientManager) PackageStore() storage.PackageStoreInterface {
 	return c.packageStore
 }
-
 func (c *ClientManager) PipelineStore() storage.PipelineStoreInterface {
 	return c.pipelineStore
 }
 
 func (c *ClientManager) JobStore() storage.JobStoreInterface {
 	return c.jobStore
-}
-
-func (c *ClientManager) PipelineStoreV2() storage.PipelineStoreV2Interface {
-	return c.pipelineStoreV2
-}
-
-func (c *ClientManager) JobStoreV2() storage.JobStoreV2Interface {
-	return c.jobStoreV2
 }
 
 func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
@@ -106,19 +95,11 @@ func (c *ClientManager) init() {
 	c.db = db
 	c.packageStore = storage.NewPackageStore(db, c.time)
 
-	// Initialize pipeline store
+	// Initialize pipeline store v2
 	c.pipelineStore = storage.NewPipelineStore(db, c.time)
 
-	// Initialize job store
-	wfClient := client.CreateWorkflowClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
-	c.jobStore = storage.NewJobStore(db, wfClient, c.time)
-
-	// Initialize pipeline store v2
-	c.pipelineStoreV2 = storage.NewPipelineStoreV2(db, c.time)
-
 	// Initialize job store v2
-	c.jobStoreV2 = storage.NewJobStoreV2(db, c.time)
+	c.jobStore = storage.NewJobStore(db, c.time)
 
 	// Initialize package manager.
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
@@ -149,21 +130,18 @@ func initDBClient(initConnectionTimeout time.Duration) *gorm.DB {
 	util.TerminateIfError(err)
 
 	// Create table
-	response := db.AutoMigrate(&model.Package{}, &model.Pipeline{}, &model.Job{}, &model.JobDetailV2{}, &model.PipelineDetailV2{})
+	response := db.AutoMigrate(&model.Package{}, &model.JobDetail{}, &model.PipelineDetail{})
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
-	// Create a foreign key so deleting a pipeline will delete all jobs associated with it.
-	response = db.Model(&model.Job{}).
-		AddForeignKey("PipelineID", "pipelines(ID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for PipelineID in job table. Error: %s", response.Error)
 	}
-	response = db.Model(&model.JobDetailV2{}).
-		AddForeignKey("PipelineID", "pipeline_detail_v2(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	response = db.Model(&model.JobDetail{}).
+		AddForeignKey("PipelineID", "pipeline_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for PipelineID in job_detail_v2 table. Error: %s", response.Error)
+		glog.Fatalf("Failed to create a foreign key for PipelineID in job_detail table. Error: %s", response.Error)
 	}
 	return db
 }

@@ -1,46 +1,28 @@
-// Copyright 2018 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package storage
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/jinzhu/gorm"
-	k8sclient "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 type JobStoreInterface interface {
-	GetJob(pipelineId uint32, jobName string) (*model.JobDetail, error)
-	ListJobs(pipelineId uint32, pageToken string, pageSize int, sortByFieldName string) ([]model.Job, string, error)
-	CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduledAtInSec int64, createdAtInSec int64) (
-		*model.JobDetail, error)
+	GetJob(pipelineId string, jobId string) (*model.JobDetail, error)
+	ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string) ([]model.Job, string, error)
+	UpdateJob(workflow *util.Workflow) (err error)
 }
 
 type JobStore struct {
-	db       *gorm.DB
-	wfClient workflowclient.WorkflowInterface
-	time     util.TimeInterface
+	db   *gorm.DB
+	time util.TimeInterface
 }
 
 // ListJobs list the job metadata for a pipeline from DB
-func (s *JobStore) ListJobs(pipelineId uint32, pageToken string, pageSize int, sortByFieldName string) ([]model.Job, string, error) {
+func (s *JobStore) ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string) ([]model.Job, string, error) {
 	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetJobTablePrimaryKeyColumn())
 	if err != nil {
 		return nil, "", err
@@ -52,13 +34,120 @@ func (s *JobStore) ListJobs(pipelineId uint32, pageToken string, pageSize int, s
 	if err != nil {
 		return nil, "", util.Wrap(err, "List jobs failed.")
 	}
-	return s.toJobs(models), pageToken, err
+	return s.toJobMetadatas(models), pageToken, err
 }
 
-func (s *JobStore) queryJobTable(pipelineId uint32, context *PaginationContext) ([]model.ListableDataModel, error) {
-	var jobs []model.Job
+// GetJob Get the job manifest from Workflow CRD
+func (s *JobStore) GetJob(pipelineId string, jobId string) (*model.JobDetail, error) {
+	var job model.JobDetail
+	r := s.db.Raw(`SELECT * FROM job_details WHERE PipelineId=? AND UUID=? LIMIT 1`, pipelineId, jobId).Scan(&job)
+	if r.RecordNotFound() {
+		return nil, util.NewResourceNotFoundError("Job", fmt.Sprint(jobId))
+	}
+	if r.Error != nil {
+		return nil, util.NewInternalServerError(r.Error, "Failed to get job: %v", r.Error.Error())
+	}
+	return &job, nil
+}
+
+func (s *JobStore) createJob(
+	ownerUID string,
+	name string,
+	namespace string,
+	workflowUID string,
+	scheduledAtInSec int64,
+	condition string,
+	marshalled string,
+	workflow *util.Workflow) (err error) {
+	job := &model.JobDetail{
+		Job: model.Job{
+			UUID:             workflowUID,
+			Name:             name,
+			Namespace:        namespace,
+			PipelineID:       ownerUID,
+			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
+			ScheduledAtInSec: scheduledAtInSec,
+			Conditions:       condition,
+		},
+		Workflow: marshalled,
+	}
+
+	r := s.db.Create(job)
+	if r.Error != nil {
+		return util.NewInternalServerError(r.Error, "Error while creating job using workflow: %v, %+v",
+			r.Error, workflow.Workflow)
+	}
+
+	return nil
+}
+
+func (s *JobStore) UpdateJob(workflow *util.Workflow) (err error) {
+	if workflow.Name == "" {
+		return util.NewInvalidInputError("The workflow must have a name: %+v", workflow.Workflow)
+	}
+	if workflow.Namespace == "" {
+		return util.NewInvalidInputError("The workflow must have a namespace: %+v", workflow.Workflow)
+	}
+	ownerUID := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+	if ownerUID == "" {
+		return util.NewInvalidInputError("The workflow must have a valid owner: %+v", workflow.Workflow)
+	}
+
+	marshalled, err := json.Marshal(workflow.Workflow)
+	if err != nil {
+		return util.NewInternalServerError(err, "Unable to marshal a workflow: %+v", workflow.Workflow)
+	}
+
+	if workflow.UID == "" {
+		return util.NewInvalidInputError("The workflow must have a UID: %+v", workflow.Workflow)
+	}
+
+	scheduledAtInSec := workflow.ScheduledAtInSecOr0()
+
+	condition := workflow.Condition()
+
+	r := s.db.Exec(`UPDATE job_details SET 
+		Name = ?,
+		Namespace = ?,
+		PipelineID = ?,
+		CreatedAtInSec = ?,
+		ScheduledAtInSec = ?,
+		Conditions = ?,
+		Workflow = ?
+		WHERE UUID = ?`,
+		workflow.Name,
+		workflow.Namespace,
+		ownerUID,
+		workflow.CreationTimestamp.Unix(),
+		scheduledAtInSec,
+		condition,
+		string(marshalled),
+		string(workflow.UID))
+
+	if r.Error != nil {
+		return util.NewInternalServerError(r.Error, "Error while updating job using workflow: %v, %+v",
+			r.Error, workflow.Workflow)
+	}
+
+	if r.RowsAffected <= 0 {
+		return s.createJob(
+			ownerUID,
+			workflow.Name,
+			workflow.Namespace,
+			string(workflow.UID),
+			scheduledAtInSec,
+			condition,
+			string(marshalled),
+			workflow)
+	}
+
+	return nil
+}
+
+func (s *JobStore) queryJobTable(pipelineId string, context *PaginationContext) ([]model.ListableDataModel, error) {
+	var jobs []model.JobDetail
 	var query bytes.Buffer
-	query.WriteString(fmt.Sprintf("SELECT * FROM jobs WHERE PipelineID = %v", pipelineId))
+	query.WriteString(fmt.Sprintf("SELECT * FROM job_details WHERE PipelineID = '%s'", pipelineId))
 	toPaginationQuery("AND", &query, context)
 	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
 	if r := s.db.Raw(query.String()).Scan(&jobs); r.Error != nil {
@@ -67,98 +156,23 @@ func (s *JobStore) queryJobTable(pipelineId uint32, context *PaginationContext) 
 	return s.toListableModels(jobs), nil
 }
 
-// CreateJob create Workflow by calling CRD, and store the metadata to DB
-func (s *JobStore) CreateJob(pipelineId uint32, wf *v1alpha1.Workflow, scheduledAtInSec int64,
-	createdAtInSec int64) (*model.JobDetail, error) {
-
-	// TODO: handle the case where the workflow is created but updating the DB fails.
-
-	// Try to schedule the job once
-	newWf, err := s.wfClient.Create(wf)
-	if err != nil {
-		return nil, util.NewInternalServerError(err,
-			"Failed to create an Argo workflow for name (%s), generateName (%s).", wf.Name,
-			wf.GenerateName)
-	}
-
-	// Store the result in the DB
-	job := &model.Job{
-		CreatedAtInSec:   createdAtInSec,
-		UpdatedAtInSec:   createdAtInSec,
-		Name:             newWf.Name,
-		Status:           model.JobExecutionPending,
-		PipelineID:       pipelineId,
-		ScheduledAtInSec: scheduledAtInSec,
-	}
-	if r := s.db.Create(job); r.Error != nil {
-		return nil, util.NewInternalServerError(r.Error, "Failed to store job metadata: %v",
-			r.Error.Error())
-	}
-	result := &model.JobDetail{Workflow: newWf, Job: job}
-	return result, nil
-}
-
-// GetJob Get the job manifest from Workflow CRD
-func (s *JobStore) GetJob(pipelineId uint32, jobName string) (*model.JobDetail, error) {
-	// validate the the pipeline has the job.
-	job, err := getJobMetadata(s.db, pipelineId, jobName)
-	if err != nil {
-		return nil, err
-	}
-
-	wf, err := s.wfClient.Get(jobName, k8sclient.GetOptions{})
-	if err != nil {
-		// We should always expect the job to exist. In case the job is not found, it's an
-		// unexpected scenario that implies something is wrong internally. So we don't differentiate
-		// resource not found or other exceptions here, just always return internal error.
-		return nil, util.NewInternalServerError(err,
-			"Failed to get workflow %s from K8s CRD. Error: %s", jobName, err.Error())
-	}
-	return &model.JobDetail{Workflow: wf, Job: job}, nil
-}
-
-// UpdateJobStatus update the job's status field. Only this field is supported to update for now.
-func (s *JobStore) updateJobStatus(job *model.Job) (*model.Job, error) {
-	newJob := *job
-	newJob.UpdatedAtInSec = s.time.Now().Unix()
-	r := s.db.Exec(`UPDATE jobs SET Status = ?, UpdatedAtInSec = ? WHERE Name = ?`, newJob.Status, newJob.UpdatedAtInSec, newJob.Name)
-	if r.Error != nil {
-		return nil, util.NewInternalServerError(r.Error, "Failed to update the job metadata: %s", r.Error.Error())
-	}
-	return &newJob, nil
-}
-
-func (s *JobStore) toListableModels(jobs []model.Job) []model.ListableDataModel {
+func (s *JobStore) toListableModels(jobs []model.JobDetail) []model.ListableDataModel {
 	models := make([]model.ListableDataModel, len(jobs))
 	for i := range models {
-		models[i] = jobs[i]
+		models[i] = jobs[i].Job
 	}
 	return models
 }
 
-func (s *JobStore) toJobs(models []model.ListableDataModel) []model.Job {
-	jobs := make([]model.Job, len(models))
+func (s *JobStore) toJobMetadatas(models []model.ListableDataModel) []model.Job {
+	jobMetadatas := make([]model.Job, len(models))
 	for i := range models {
-		jobs[i] = models[i].(model.Job)
+		jobMetadatas[i] = models[i].(model.Job)
 	}
-	return jobs
-}
-
-func getJobMetadata(db *gorm.DB, pipelineId uint32, jobName string) (*model.Job, error) {
-	job := &model.Job{}
-	result := db.Raw("SELECT * FROM jobs where PipelineId = ? and Name = ?", pipelineId, jobName).Scan(job)
-	if result.RecordNotFound() {
-		return nil, util.NewResourceNotFoundError("Job", jobName)
-	}
-	if result.Error != nil {
-		// TODO result can return multiple errors. log all of the errors when error handling v2 in place.
-		return nil, util.NewInternalServerError(result.Error, "Failed to get job: %v", result.Error.Error())
-	}
-	return job, nil
+	return jobMetadatas
 }
 
 // factory function for job store
-func NewJobStore(db *gorm.DB, wfClient workflowclient.WorkflowInterface,
-	time util.TimeInterface) *JobStore {
-	return &JobStore{db: db, wfClient: wfClient, time: time}
+func NewJobStore(db *gorm.DB, time util.TimeInterface) *JobStore {
+	return &JobStore{db: db, time: time}
 }

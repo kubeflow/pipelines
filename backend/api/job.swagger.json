@@ -1,0 +1,144 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "job.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/apis/v1alpha2/pipelines/{pipeline_id}/jobs": {
+      "get": {
+        "operationId": "ListJobs",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiListJobsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page_token",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      }
+    },
+    "/apis/v1alpha2/pipelines/{pipeline_id}/jobs/{job_id}": {
+      "get": {
+        "operationId": "GetJob",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiJobDetail"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "apiJob": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scheduled_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "apiJobDetail": {
+      "type": "object",
+      "properties": {
+        "job": {
+          "$ref": "#/definitions/apiJob"
+        },
+        "workflow": {
+          "type": "string"
+        }
+      }
+    },
+    "apiListJobsResponse": {
+      "type": "object",
+      "properties": {
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiJob"
+          }
+        },
+        "next_page_token": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

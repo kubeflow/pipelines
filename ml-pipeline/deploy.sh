@@ -26,9 +26,6 @@ RELEASE_VERSION="${RELEASE_VERSION:-0.0.9}"
 # Default ml pipeline api server image
 API_SERVER_IMAGE="gcr.io/ml-pipeline/api-server:${RELEASE_VERSION}"
 
-# Default ml pipeline scheduling controller image
-SCHEDULER_IMAGE="gcr.io/ml-pipeline/scheduler:${RELEASE_VERSION}"
-
 # Default ml pipeline scheduledworkflow CRD controller image
 SCHEDULED_WORKFLOW_IMAGE="gcr.io/ml-pipeline/scheduledworkflow:${RELEASE_VERSION}"
 
@@ -53,7 +50,6 @@ usage()
     echo "usage: deploy.sh
     [-n | --namespace namespace ]
     [-a | --api_image ml-pipeline apiserver docker image to use ]
-    [-s | --scheduler_image ml-pipeline scheduling controller image]
     [-w | --scheduled_workflow_image ml-pipeline scheduled workflow controller image]
     [-p | --persistence_agent_image ml-pipeline persistence agent image]
     [-u | --ui_image ml-pipeline frontend UI docker image]
@@ -70,9 +66,6 @@ while [ "$1" != "" ]; do
                                              ;;
         -a | --api_image )                   shift
                                              API_SERVER_IMAGE=$1
-                                             ;;
-        -s | --scheduler_image )             shift
-                                             SCHEDULER_IMAGE=$1
                                              ;;
         -w | --scheduled_workflow_image )    shift
                                              SCHEDULED_WORKFLOW_IMAGE=$1
@@ -141,7 +134,6 @@ fi
 # Generate a ksonnet component manifest and assign parameters
 ( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline --namespace=${NAMESPACE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline api_image ${API_SERVER_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline scheduler_image ${SCHEDULER_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline scheduledworkflow_image ${SCHEDULED_WORKFLOW_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline persistenceagent_image ${PERSISTENCE_AGENT_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline ui_image ${UI_IMAGE} )

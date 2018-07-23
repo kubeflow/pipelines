@@ -10,25 +10,25 @@ import "parameter.proto";
 service PackageService {
   rpc GetPackage(GetPackageRequest) returns (Package) {
     option (google.api.http) = {
-      get: "/apis/v1alpha1/packages/{id}"
+      get: "/apis/v1alpha2/packages/{id}"
     };
   }
 
   rpc ListPackages(ListPackagesRequest) returns (ListPackagesResponse) {
     option (google.api.http) = {
-      get: "/apis/v1alpha1/packages"
+      get: "/apis/v1alpha2/packages"
     };
   }
 
   rpc DeletePackage(DeletePackageRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      delete: "/apis/v1alpha1/packages/{id}"
+      delete: "/apis/v1alpha2/packages/{id}"
     };
   }
 
   rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
     option (google.api.http) = {
-      get: "/apis/v1alpha1/packages/{id}/templates"
+      get: "/apis/v1alpha2/packages/{id}/templates"
     };
   }
 }

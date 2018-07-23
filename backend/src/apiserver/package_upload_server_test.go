@@ -56,16 +56,12 @@ func (s *FakeBadPackageStore) UpdatePackageStatus(uint32, model.PackageStatus) e
 
 func initResourceManager(
 	ps storage.PackageStoreInterface,
-	js storage.JobStoreInterface,
-	pls storage.PipelineStoreInterface,
 	fm storage.ObjectStoreInterface) *resource.ResourceManager {
 	clientManager := &ClientManager{
-		packageStore:  ps,
-		jobStore:      js,
-		pipelineStore: pls,
-		objectStore:   fm,
-		time:          util.NewFakeTimeForEpoch(),
-		uuid:          util.NewFakeUUIDGeneratorOrFatal(defaultUUID, nil)}
+		packageStore: ps,
+		objectStore:  fm,
+		time:         util.NewFakeTimeForEpoch(),
+		uuid:         util.NewFakeUUIDGeneratorOrFatal(defaultUUID, nil)}
 	return resource.NewResourceManager(clientManager)
 }
 
@@ -74,12 +70,12 @@ func TestUploadPackage(t *testing.T) {
 	defer store.Close()
 	fm := storage.NewFakeObjectStore()
 
-	server := PackageUploadServer{resourceManager: initResourceManager(store.PackageStore(), nil, nil, fm)}
+	server := PackageUploadServer{resourceManager: initResourceManager(store.PackageStore(), fm)}
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	w.CreateFormFile("uploadfile", "hello-world")
 	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1alpha1/packages/upload", bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", "/apis/v1alpha2/packages/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()
@@ -109,13 +105,13 @@ func TestUploadPackage(t *testing.T) {
 func TestUploadPackage_GetFormFileError(t *testing.T) {
 	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	server := PackageUploadServer{resourceManager: initResourceManager(store.PackageStore(), nil, nil, storage.NewFakeObjectStore())}
+	server := PackageUploadServer{resourceManager: initResourceManager(store.PackageStore(), storage.NewFakeObjectStore())}
 	var b bytes.Buffer
 	b.WriteString("I am invalid file")
 	w := multipart.NewWriter(&b)
 	w.CreateFormFile("uploadfile", "hello-world")
 	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1alpha1/packages/upload", bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", "/apis/v1alpha2/packages/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()
@@ -126,12 +122,12 @@ func TestUploadPackage_GetFormFileError(t *testing.T) {
 }
 
 func TestUploadPackage_CreatePackageError(t *testing.T) {
-	server := PackageUploadServer{resourceManager: initResourceManager(&FakeBadPackageStore{}, nil, nil, storage.NewFakeObjectStore())}
+	server := PackageUploadServer{resourceManager: initResourceManager(&FakeBadPackageStore{}, storage.NewFakeObjectStore())}
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	w.CreateFormFile("uploadfile", "hello-world.yaml")
 	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1alpha1/packages/upload", bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", "/apis/v1alpha2/packages/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()

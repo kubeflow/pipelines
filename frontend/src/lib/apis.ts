@@ -8,9 +8,7 @@ import { ListPipelinesResponse } from '../api/list_pipelines_response';
 import { Pipeline } from '../api/pipeline';
 import { PackageTemplate, PipelinePackage } from '../api/pipeline_package';
 
-const v1alpha1Prefix = '/apis/v1alpha1';
 const v1alpha2Prefix = '/apis/v1alpha2';
-// TODO: We need to continue using the '/apis/v1alpha1' prefix for *package* requests!
 
 async function _fetch(
     path: string, apisPrefix?: string, query?: string, init?: RequestInit): Promise<string> {
@@ -28,7 +26,7 @@ async function _fetch(
  */
 export async function isApiServerReady(): Promise<boolean> {
   try {
-    const healthStats = JSON.parse(await _fetch('/healthz', v1alpha1Prefix));
+    const healthStats = JSON.parse(await _fetch('/healthz', v1alpha2Prefix));
     return healthStats.apiServerReady;
   } catch (_) {
     return false;
@@ -39,21 +37,21 @@ export async function isApiServerReady(): Promise<boolean> {
  * Gets a list of the pipeline packages defined on the backend.
  */
 export async function getPackages(request: ListPackagesRequest): Promise<ListPackagesResponse> {
-  return JSON.parse(await _fetch('/packages', v1alpha1Prefix));
+  return JSON.parse(await _fetch('/packages', v1alpha2Prefix));
 }
 
 /**
  * Gets the details of a certain package given its id.
  */
 export async function getPackage(id: number): Promise<PipelinePackage> {
-  return JSON.parse(await _fetch(`/packages/${id}`, v1alpha1Prefix));
+  return JSON.parse(await _fetch(`/packages/${id}`, v1alpha2Prefix));
 }
 
 /**
  * Gets the Argo template of a certain package given its id.
  */
 export async function getPackageTemplate(id: number): Promise<PackageTemplate> {
-  return JSON.parse(await _fetch(`/packages/${id}/templates`, v1alpha1Prefix));
+  return JSON.parse(await _fetch(`/packages/${id}/templates`, v1alpha2Prefix));
 }
 
 /**
@@ -63,7 +61,7 @@ export async function getPackageTemplate(id: number): Promise<PackageTemplate> {
 export async function uploadPackage(packageData: any): Promise<PipelinePackage> {
   const fd = new FormData();
   fd.append('uploadfile', packageData, packageData.name);
-  const response = await _fetch('/packages/upload', v1alpha1Prefix, '', {
+  const response = await _fetch('/packages/upload', v1alpha2Prefix, '', {
     body: fd,
     cache: 'no-cache',
     method: 'POST',

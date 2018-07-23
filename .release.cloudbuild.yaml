@@ -16,14 +16,6 @@ steps:
   waitFor: ['pullAPIServer']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/scheduler:$COMMIT_SHA']
-  id:   'pullScheduler'
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/scheduler:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/scheduler:$TAG_NAME']
-  id:   'tagScheduler'
-  waitFor: ['pullScheduler']
-
-- name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA']
   id:   'pullScheduledworkflow'
 - name: 'gcr.io/cloud-builders/docker'
@@ -59,7 +51,6 @@ steps:
 images:
 - 'gcr.io/$PROJECT_ID/frontend:$TAG_NAME'
 - 'gcr.io/$PROJECT_ID/api-server:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/scheduler:$TAG_NAME'
 - 'gcr.io/$PROJECT_ID/scheduledworkflow:$TAG_NAME'
 - 'gcr.io/$PROJECT_ID/persistenceagent:$TAG_NAME'
 - 'gcr.io/$PROJECT_ID/bootstrapper:$TAG_NAME'

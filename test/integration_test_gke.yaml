@@ -18,8 +18,8 @@ spec:
       value: frontend
     - name: scheduledworkflow-image-suffix
       value: scheduledworkflow
-    - name: scheduler-image-suffix
-      value: scheduler
+    - name: persistenceagent-image-suffix
+      value: persistenceagent
     - name: api-integration-test-image-suffix
       value: api_integration_test
     - name: wait-ml-pipeline-ready-image-suffix
@@ -34,7 +34,7 @@ spec:
       - name: api-image-suffix
       - name: frontend-image-suffix
       - name: scheduledworkflow-image-suffix
-      - name: scheduler-image-suffix
+      - name: persistenceagent-image-suffix
       - name: api-integration-test-image-suffix
       - name: wait-ml-pipeline-ready-image-suffix
     steps:
@@ -92,7 +92,7 @@ spec:
             value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
           - name: docker-file
             value: Dockerfile.scheduledworkflow
-      - name: build-scheduler-image
+      - name: build-persistenceagent-image
         template: build-image
         arguments:
           parameters:
@@ -103,9 +103,9 @@ spec:
           - name: docker-path
             value: backend
           - name: image-suffix
-            value: "{{inputs.parameters.scheduler-image-suffix}}"
+            value: "{{inputs.parameters.persistenceagent-image-suffix}}"
           - name: docker-file
-            value: Dockerfile.scheduler
+            value: Dockerfile.persistenceagent
       - name: build-api-integration-test-image
         template: build-image
         arguments:
@@ -146,8 +146,8 @@ spec:
             value: "{{inputs.parameters.frontend-image-suffix}}"
           - name: scheduledworkflow-image-suffix
             value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
-          - name: scheduler-image-suffix
-            value: "{{inputs.parameters.scheduler-image-suffix}}"
+          - name: persistenceagent-image-suffix
+            value: "{{inputs.parameters.persistenceagent-image-suffix}}"
     - - name: wait-ml-pipeline-ready
         template: wait-ml-pipeline-ready
         arguments:
@@ -230,7 +230,7 @@ spec:
       - name: api-image-suffix
       - name: frontend-image-suffix
       - name: scheduledworkflow-image-suffix
-      - name: scheduler-image-suffix
+      - name: persistenceagent-image-suffix
     container:
       image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.bootstrapper-image-suffix}}
       args: [
@@ -238,7 +238,7 @@ spec:
         "--api_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-image-suffix}}",
         "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-image-suffix}}",
         "--scheduled_workflow_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.scheduledworkflow-image-suffix}}",
-        "--scheduler_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.scheduler-image-suffix}}",
+        "--persistence_agent_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.persistenceagent-image-suffix}}",
         "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
       ]
 

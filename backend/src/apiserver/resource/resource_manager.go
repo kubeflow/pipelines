@@ -28,7 +28,6 @@ import (
 	scheduledworkflow "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	scheduledworkflowclient "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	"github.com/pkg/errors"
-	"github.com/robfig/cron"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -36,9 +35,7 @@ import (
 type ClientManagerInterface interface {
 	PackageStore() storage.PackageStoreInterface
 	PipelineStore() storage.PipelineStoreInterface
-	PipelineStoreV2() storage.PipelineStoreV2Interface
 	JobStore() storage.JobStoreInterface
-	JobStoreV2() storage.JobStoreV2Interface
 	ObjectStore() storage.ObjectStoreInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	Time() util.TimeInterface
@@ -49,8 +46,6 @@ type ResourceManager struct {
 	packageStore      storage.PackageStoreInterface
 	pipelineStore     storage.PipelineStoreInterface
 	jobStore          storage.JobStoreInterface
-	pipelineStoreV2   storage.PipelineStoreV2Interface
-	jobStoreV2        storage.JobStoreV2Interface
 	objectStore       storage.ObjectStoreInterface
 	scheduledWorkflow scheduledworkflowclient.ScheduledWorkflowInterface
 	time              util.TimeInterface
@@ -62,8 +57,6 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		packageStore:      clientManager.PackageStore(),
 		pipelineStore:     clientManager.PipelineStore(),
 		jobStore:          clientManager.JobStore(),
-		pipelineStoreV2:   clientManager.PipelineStoreV2(),
-		jobStoreV2:        clientManager.JobStoreV2(),
 		objectStore:       clientManager.ObjectStore(),
 		scheduledWorkflow: clientManager.ScheduledWorkflow(),
 		time:              clientManager.Time(),
@@ -157,167 +150,15 @@ func (r *ResourceManager) GetPackageTemplate(packageId uint32) ([]byte, error) {
 	return template, nil
 }
 
-func (r *ResourceManager) ListPipelines(pageToken string, pageSize int, sortByFieldName string) (pipelines []model.Pipeline, nextPageToken string, err error) {
-	return r.pipelineStore.ListPipelines(pageToken, pageSize, sortByFieldName)
-}
-
-func (r *ResourceManager) GetPipeline(id uint32) (*model.Pipeline, error) {
-	return r.pipelineStore.GetPipeline(id)
-}
-
-func (r *ResourceManager) DeletePipeline(id uint32) error {
-	_, err := r.pipelineStore.GetPipeline(id)
-	if err != nil {
-		return util.Wrap(err, "Delete pipeline failed")
-	}
-
-	// Mark pipeline as deleted so it's not visible to user anymore
-	err = r.pipelineStore.UpdatePipelineStatus(id, model.PipelineDeleting)
-	if err != nil {
-		return util.Wrap(err, "Delete pipeline failed")
-	}
-
-	// Delete pipeline file and DB entry.
-	// Not fail the request if this step failed. A background job will do the cleanup.
-	// https://github.com/googleprivate/ml/issues/388
-	err = r.objectStore.DeleteFile(storage.PipelineFolder, fmt.Sprint(id))
-	if err != nil {
-		glog.Errorf("%+v", errors.Wrapf(err, "Failed to delete pipeline yaml file for pipeline %v", id))
-		return nil
-	}
-	err = r.pipelineStore.DeletePipeline(id)
-	if err != nil {
-		glog.Errorf("%+v", errors.Wrapf(err, "Failed to delete pipeline DB entry for pipeline %v", id))
-	}
-
-	return nil
-}
-
-func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error) {
-	// If the pipeline runs on a schedule
-	if pipeline.Schedule != "" {
-		// Validate the pipeline schedule.
-		_, err := cron.Parse(pipeline.Schedule)
-		if err != nil {
-			error := util.NewInvalidInputErrorWithDetails(
-				err, fmt.Sprintf("The pipeline schedule cannot be parsed: %s: %s", pipeline.Schedule, err))
-			return nil, error
-		}
-	}
-
-	_, err := r.packageStore.GetPackage(pipeline.PackageId)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline failed")
-	}
-
-	// store pipeline template to the object store.
-	template, err := r.GetPackageTemplate(pipeline.PackageId)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline failed")
-	}
-
-	// Inject parameters user provided to the pipeline template.
-	workflow, err := util.InjectParameters(template, pipeline.Parameters)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline failed")
-	}
-
-	pipeline.Status = model.PipelineCreating
-	// Create pipeline metadata
-	pipeline, err = r.pipelineStore.CreatePipeline(pipeline)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline failed")
-	}
-
-	err = r.objectStore.AddAsYamlFile(workflow, storage.PipelineFolder, fmt.Sprint(pipeline.ID))
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline failed")
-	}
-
-	pipeline.Status = model.PipelineReady
-	// Mark pipeline ready so it's visible to user
-	err = r.pipelineStore.UpdatePipelineStatus(pipeline.ID, pipeline.Status)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline failed")
-	}
-
-	// If there is no pipeline schedule, the job is created immediately.
-	if pipeline.Schedule == "" {
-		_, err := r.createJobFromPipeline(pipeline, r.time.Now().Unix())
-		if err != nil {
-			return nil, util.Wrap(err, "Create pipeline failed")
-		}
-	}
-
-	return pipeline, nil
-}
-
-func (r *ResourceManager) CreateJobFromPipelineID(pipelineID uint32, scheduledAtInSec int64) (
-	*model.JobDetail, error) {
-	// Get the pipeline.
-	pipeline, err := r.pipelineStore.GetPipeline(pipelineID)
-	if err != nil {
-		return nil, util.Wrapf(err, "Could not get pipeline from pipeline ID: %v", pipelineID)
-	}
-
-	// Create the job.
-	jobDetail, err := r.createJobFromPipeline(pipeline, scheduledAtInSec)
-	if err != nil {
-		return nil, util.Wrapf(err, "Could not create a job for pipeline %v.",
-			pipeline.ID)
-	}
-
-	return jobDetail, nil
-}
-
-func (r *ResourceManager) createJobFromPipeline(pipeline *model.Pipeline, scheduledAtInSec int64) (*model.JobDetail, error) {
-	var workflow workflow.Workflow
-	err := r.objectStore.GetFromYamlFile(&workflow, storage.PipelineFolder, fmt.Sprint(pipeline.ID))
-	if err != nil {
-		return nil, util.Wrapf(err, "Could not read pipeline with ID %v from object store", pipeline.ID)
-	}
-
-	// Define the time at which the workflow is created in the DB. The same time should be stored
-	// in the DB and substituted in the workflow parameters (i.e. time.Now() should not be
-	// called multiple times.
-	createdAtInSec := r.time.Now().Unix()
-
-	// Format the parameters of the workflow and the workflow name
-	formatter := util.NewWorkflowFormatter(r.uuid, scheduledAtInSec, createdAtInSec)
-	formatter.Format(&workflow)
-
-	// Create job.
-	jobDetail, err := r.jobStore.CreateJob(pipeline.ID, &workflow, scheduledAtInSec, createdAtInSec)
-	if err != nil {
-		return nil, util.Wrapf(err, "Could not create job for pipeline %v", pipeline.ID)
-	}
-
-	glog.Infof("Successfully created job %v for pipeline %v.", jobDetail.Workflow.Name,
-		pipeline.ID)
-
-	return jobDetail, nil
-}
-
-func (r *ResourceManager) EnablePipeline(pipelineID uint32, enabled bool) error {
-	// Note: no validation needed.
-	err := r.pipelineStore.EnablePipeline(pipelineID, enabled)
-	if err != nil {
-		return util.Wrapf(err, "Failed to enable/disable pipeline. Enabled: %v, pipelineID: %v",
-			enabled, pipelineID)
-	}
-
-	return nil
-}
-
-func (r *ResourceManager) GetJob(pipelineId uint32, jobName string) (*model.JobDetail, error) {
+func (r *ResourceManager) GetJob(pipelineId string, jobId string) (*model.JobDetail, error) {
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return nil, util.Wrap(err, "Get job failed")
 	}
-	return r.jobStore.GetJob(pipelineId, jobName)
+	return r.jobStore.GetJob(pipelineId, jobId)
 }
 
-func (r *ResourceManager) ListJobs(pipelineId uint32, pageToken string, pageSize int, sortByFieldName string) (jobs []model.Job, nextPageToken string, err error) {
+func (r *ResourceManager) ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string) (jobs []model.Job, nextPageToken string, err error) {
 	_, err = r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return nil, "", util.Wrap(err, "List jobs failed")
@@ -325,31 +166,15 @@ func (r *ResourceManager) ListJobs(pipelineId uint32, pageToken string, pageSize
 	return r.jobStore.ListJobs(pipelineId, pageToken, pageSize, sortByFieldName)
 }
 
-func (r *ResourceManager) GetJobV2(pipelineId string, jobId string) (*model.JobDetailV2, error) {
-	_, err := r.pipelineStoreV2.GetPipeline(pipelineId)
-	if err != nil {
-		return nil, util.Wrap(err, "Get job failed")
-	}
-	return r.jobStoreV2.GetJob(pipelineId, jobId)
+func (r *ResourceManager) ListPipelines(pageToken string, pageSize int, sortByFieldName string) (pipelines []model.Pipeline, nextPageToken string, err error) {
+	return r.pipelineStore.ListPipelines(pageToken, pageSize, sortByFieldName)
 }
 
-func (r *ResourceManager) ListJobsV2(pipelineId string, pageToken string, pageSize int, sortByFieldName string) (jobs []model.JobV2, nextPageToken string, err error) {
-	_, err = r.pipelineStoreV2.GetPipeline(pipelineId)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List jobs failed")
-	}
-	return r.jobStoreV2.ListJobs(pipelineId, pageToken, pageSize, sortByFieldName)
+func (r *ResourceManager) GetPipeline(id string) (*model.Pipeline, error) {
+	return r.pipelineStore.GetPipeline(id)
 }
 
-func (r *ResourceManager) ListPipelinesV2(pageToken string, pageSize int, sortByFieldName string) (pipelines []model.PipelineV2, nextPageToken string, err error) {
-	return r.pipelineStoreV2.ListPipelines(pageToken, pageSize, sortByFieldName)
-}
-
-func (r *ResourceManager) GetPipelineV2(id string) (*model.PipelineV2, error) {
-	return r.pipelineStoreV2.GetPipeline(id)
-}
-
-func (r *ResourceManager) CreatePipelineV2(pipeline *model.PipelineV2) (*model.PipelineV2, error) {
+func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error) {
 	var workflow workflow.Workflow
 	err := r.objectStore.GetFromYamlFile(&workflow, storage.PackageFolder, fmt.Sprint(pipeline.PackageId))
 	if err != nil {
@@ -378,10 +203,10 @@ func (r *ResourceManager) CreatePipelineV2(pipeline *model.PipelineV2) (*model.P
 	pipeline.UUID = string(newScheduledWorkflow.UID)
 	pipeline.Namespace = newScheduledWorkflow.Namespace
 	pipeline.Conditions = util.NewScheduledWorkflow(newScheduledWorkflow).ConditionSummary()
-	return r.pipelineStoreV2.CreatePipeline(pipeline)
+	return r.pipelineStore.CreatePipeline(pipeline)
 }
 
-func (r *ResourceManager) EnablePipelineV2(pipelineID string, enabled bool) error {
+func (r *ResourceManager) EnablePipeline(pipelineID string, enabled bool) error {
 	pipeline, err := r.checkPipelineExist(pipelineID)
 	if err != nil {
 		return util.Wrap(err, "Enable/Disable pipeline failed")
@@ -396,7 +221,7 @@ func (r *ResourceManager) EnablePipelineV2(pipelineID string, enabled bool) erro
 			enabled, pipelineID)
 	}
 
-	err = r.pipelineStoreV2.EnablePipeline(pipelineID, enabled)
+	err = r.pipelineStore.EnablePipeline(pipelineID, enabled)
 	if err != nil {
 		return util.Wrapf(err, "Failed to enable/disable pipeline. Enabled: %v, pipelineID: %v",
 			enabled, pipelineID)
@@ -405,7 +230,7 @@ func (r *ResourceManager) EnablePipelineV2(pipelineID string, enabled bool) erro
 	return nil
 }
 
-func (r *ResourceManager) DeletePipelineV2(pipelineID string) error {
+func (r *ResourceManager) DeletePipeline(pipelineID string) error {
 	pipeline, err := r.checkPipelineExist(pipelineID)
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline failed")
@@ -414,7 +239,7 @@ func (r *ResourceManager) DeletePipelineV2(pipelineID string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Delete pipeline CRD failed.")
 	}
-	err = r.pipelineStoreV2.DeletePipeline(pipelineID)
+	err = r.pipelineStore.DeletePipeline(pipelineID)
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline failed")
 	}
@@ -424,8 +249,8 @@ func (r *ResourceManager) DeletePipelineV2(pipelineID string) error {
 // checkPipelineExist The Kubernetes API doesn't support CRUD by UID. This method
 // retrieve the pipeline metadata from the database, then retrieve the CRD
 // using the pipeline name, and compare the given pipeline id is same as the CRD.
-func (r *ResourceManager) checkPipelineExist(pipelineID string) (*model.PipelineV2, error) {
-	pipeline, err := r.pipelineStoreV2.GetPipeline(pipelineID)
+func (r *ResourceManager) checkPipelineExist(pipelineID string) (*model.Pipeline, error) {
+	pipeline, err := r.pipelineStore.GetPipeline(pipelineID)
 	if err != nil {
 		return nil, util.Wrap(err, "Check pipeline exist failed")
 	}
@@ -487,18 +312,13 @@ func toCrdParameter(paramsString string) []scheduledworkflow.Parameter {
 	return swParams
 }
 
-func (r *ResourceManager) GetPipelineAndLatestJobIterator() (*storage.PipelineAndLatestJobIterator,
-	error) {
-	return r.pipelineStore.GetPipelineAndLatestJobIterator()
-}
-
 func (r *ResourceManager) ReportWorkflowResource(resource string) error {
 	var workflow workflow.Workflow
 	err := json.Unmarshal([]byte(resource), &workflow)
 	if err != nil {
 		return util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, resource)
 	}
-	err = r.jobStoreV2.UpdateJob(util.NewWorkflow(&workflow))
+	err = r.jobStore.UpdateJob(util.NewWorkflow(&workflow))
 	if err != nil {
 		return err
 	}
@@ -512,7 +332,7 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(resource string) error
 		return util.NewInvalidInputError("Could not unmarshal scheduled workflow: %v: %v",
 			err, resource)
 	}
-	err = r.pipelineStoreV2.UpdatePipeline(util.NewScheduledWorkflow(&scheduledWorkflow))
+	err = r.pipelineStore.UpdatePipeline(util.NewScheduledWorkflow(&scheduledWorkflow))
 	if err != nil {
 		return err
 	}

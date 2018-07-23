@@ -22,7 +22,6 @@ const confusionMatrixMetadataJsonPath = './model-output/metadata.json';
 const confusionMatrixPath = './model-output/confusion_matrix.csv';
 const staticHtmlPath = './model-output/hello-world.html';
 
-const v1alpha1Prefix = '/apis/v1alpha1';
 const v1alpha2Prefix = '/apis/v1alpha2';
 
 let tensorboardPod = '';
@@ -46,7 +45,7 @@ export default (app) => {
   app.set('json spaces', 2);
   app.use(express.json());
 
-  app.get(v1alpha1Prefix + '/healthz', (req, res) => {
+  app.get(v1alpha2Prefix + '/healthz', (req, res) => {
     if (apiServerReady) {
       res.send({ apiServerReady });
     } else {
@@ -214,7 +213,7 @@ export default (app) => {
     res.json(job);
   });
 
-  app.get(v1alpha1Prefix + '/packages', (req, res) => {
+  app.get(v1alpha2Prefix + '/packages', (req, res) => {
     res.header('Content-Type', 'application/json');
     const response: ListPackagesResponse = {
       next_page_token: '',
@@ -223,13 +222,13 @@ export default (app) => {
     res.json(response);
   });
 
-  app.get(v1alpha1Prefix + '/packages/:pid/templates', (req, res) => {
+  app.get(v1alpha2Prefix + '/packages/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     res.send(JSON.stringify(
       { template: fs.readFileSync('./mock-backend/mock-template.yaml', 'utf-8') }));
   });
 
-  app.post(v1alpha1Prefix + '/packages/upload', (req, res) => {
+  app.post(v1alpha2Prefix + '/packages/upload', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.packages[0]);
   });
@@ -301,15 +300,10 @@ export default (app) => {
     res.sendFile(_path.resolve('test', 'components', 'index.html'));
   });
 
-  app.all(v1alpha1Prefix + '*', (req, res) => {
-    res.status(404).send('Bad request endpoint.');
-  });
-
   app.all(v1alpha2Prefix + '*', (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
 
-  proxyMiddleware(app, v1alpha1Prefix);
   proxyMiddleware(app, v1alpha2Prefix);
 
 };

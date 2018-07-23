@@ -46,14 +46,6 @@ $ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerf
 $ gcloud docker -- push gcr.io/<your-gcp-project>/api-server:latest
 ````
 
-To build the scheduling controller image and upload it to GCR: 
-````
-# Run in the repository root directory 
-$ docker build -t gcr.io/<your-gcp-project>/scheduler:latest -f backend/Dockerfile.scheduler ./backend
-# Push to GCR
-$ gcloud docker -- push gcr.io/<your-gcp-project>/scheduler:latest
-````
-
 To build the scheduled workflow controller image and upload it to GCR: 
 ````
 # Run in the repository root directory 

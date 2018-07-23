@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestToApiJobDetailV2(t *testing.T) {
-	modelJob := &model.JobDetailV2{
-		JobV2: model.JobV2{
+func TestToApiJobDetail(t *testing.T) {
+	modelJob := &model.JobDetail{
+		Job: model.Job{
 			UUID:             "job123",
 			Name:             "name123",
 			Namespace:        "ns123",
@@ -23,9 +23,9 @@ func TestToApiJobDetailV2(t *testing.T) {
 		},
 		Workflow: "workflow123",
 	}
-	apiJob := ToApiJobDetailV2(modelJob)
-	expectedApiJob := &api.JobDetailV2{
-		Job: &api.JobV2{
+	apiJob := ToApiJobDetail(modelJob)
+	expectedApiJob := &api.JobDetail{
+		Job: &api.Job{
 			Id:          "job123",
 			Name:        "name123",
 			Namespace:   "ns123",
@@ -38,8 +38,8 @@ func TestToApiJobDetailV2(t *testing.T) {
 	assert.Equal(t, expectedApiJob, apiJob)
 }
 
-func TestToApiJobsV2(t *testing.T) {
-	modelJob1 := model.JobV2{
+func TestToApiJobs(t *testing.T) {
+	modelJob1 := model.Job{
 		UUID:             "job1",
 		Name:             "name1",
 		Namespace:        "ns1",
@@ -48,7 +48,7 @@ func TestToApiJobsV2(t *testing.T) {
 		ScheduledAtInSec: 1,
 		Conditions:       "running",
 	}
-	modelJob2 := model.JobV2{
+	modelJob2 := model.Job{
 		UUID:             "job2",
 		Name:             "name2",
 		Namespace:        "ns2",
@@ -57,8 +57,8 @@ func TestToApiJobsV2(t *testing.T) {
 		ScheduledAtInSec: 2,
 		Conditions:       "done",
 	}
-	apiJobs := ToApiJobsV2([]model.JobV2{modelJob1, modelJob2})
-	expectedApiJob := []*api.JobV2{
+	apiJobs := ToApiJobs([]model.Job{modelJob1, modelJob2})
+	expectedApiJob := []*api.Job{
 		{
 			Id:          "job1",
 			Name:        "name1",
@@ -79,8 +79,8 @@ func TestToApiJobsV2(t *testing.T) {
 	assert.Equal(t, expectedApiJob, apiJobs)
 }
 
-func TestToApiPipelineV2(t *testing.T) {
-	modelPipeline := model.PipelineV2{
+func TestToApiPipeline(t *testing.T) {
+	modelPipeline := model.Pipeline{
 		UUID:      "pipeline1",
 		Name:      "name1",
 		PackageId: 1,
@@ -96,9 +96,9 @@ func TestToApiPipelineV2(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	apiPipeline, err := ToApiPipelineV2(&modelPipeline)
+	apiPipeline, err := ToApiPipeline(&modelPipeline)
 	assert.Nil(t, err)
-	expectedPipeline := &api.PipelineV2{
+	expectedPipeline := &api.Pipeline{
 		Id:             "pipeline1",
 		Name:           "name1",
 		PackageId:      1,
@@ -116,8 +116,8 @@ func TestToApiPipelineV2(t *testing.T) {
 	assert.Equal(t, expectedPipeline, apiPipeline)
 }
 
-func TestNonScheduledPipelineToApiPipelineV2(t *testing.T) {
-	modelPipeline := model.PipelineV2{
+func TestNonScheduledPipelineToApiPipeline(t *testing.T) {
+	modelPipeline := model.Pipeline{
 		UUID:           "pipeline1",
 		Name:           "name1",
 		PackageId:      1,
@@ -128,9 +128,9 @@ func TestNonScheduledPipelineToApiPipelineV2(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	apiPipeline, err := ToApiPipelineV2(&modelPipeline)
+	apiPipeline, err := ToApiPipeline(&modelPipeline)
 	assert.Nil(t, err)
-	expectedPipeline := &api.PipelineV2{
+	expectedPipeline := &api.Pipeline{
 		Id:             "pipeline1",
 		Name:           "name1",
 		PackageId:      1,
@@ -144,8 +144,8 @@ func TestNonScheduledPipelineToApiPipelineV2(t *testing.T) {
 	assert.Equal(t, expectedPipeline, apiPipeline)
 }
 
-func TestToApiPipelinesV2(t *testing.T) {
-	modelPipeline1 := model.PipelineV2{
+func TestToApiPipelines(t *testing.T) {
+	modelPipeline1 := model.Pipeline{
 		UUID:      "pipeline1",
 		Name:      "name1",
 		PackageId: 1,
@@ -161,7 +161,7 @@ func TestToApiPipelinesV2(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	modelpipeline2 := model.PipelineV2{
+	modelpipeline2 := model.Pipeline{
 		UUID:      "pipeline2",
 		Name:      "name2",
 		PackageId: 2,
@@ -177,9 +177,9 @@ func TestToApiPipelinesV2(t *testing.T) {
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
 	}
-	apiPipelines, err := ToApiPipelinesV2([]model.PipelineV2{modelPipeline1, modelpipeline2})
+	apiPipelines, err := ToApiPipelines([]model.Pipeline{modelPipeline1, modelpipeline2})
 	assert.Nil(t, err)
-	expectedPipelines := []*api.PipelineV2{
+	expectedPipelines := []*api.Pipeline{
 		{
 			Id:             "pipeline1",
 			Name:           "name1",
@@ -214,8 +214,8 @@ func TestToApiPipelinesV2(t *testing.T) {
 	assert.Equal(t, expectedPipelines, apiPipelines)
 }
 
-func TestToModelPipelineV2(t *testing.T) {
-	apiPipeline := &api.PipelineV2{
+func TestToModelPipeline(t *testing.T) {
+	apiPipeline := &api.Pipeline{
 		Id:             "pipeline1",
 		Name:           "name1",
 		PackageId:      1,
@@ -228,10 +228,10 @@ func TestToModelPipelineV2(t *testing.T) {
 			}}},
 		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 	}
-	modelPipeline, err := ToModelPipelineV2(apiPipeline)
+	modelPipeline, err := ToModelPipeline(apiPipeline)
 	assert.Nil(t, err)
 
-	expectedModelPipeline := &model.PipelineV2{
+	expectedModelPipeline := &model.Pipeline{
 		UUID:      "pipeline1",
 		Name:      "name1",
 		PackageId: 1,

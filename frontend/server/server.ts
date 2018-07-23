@@ -37,7 +37,6 @@ const apiServerAddress = `http://${apiServerHost}:${apiServerPort}`;
 
 app.use(express.static(staticDir));
 
-const v1alpha1Prefix = '/apis/v1alpha1';
 const v1alpha2Prefix = '/apis/v1alpha2';
 
 const healthzStats = {
@@ -46,7 +45,7 @@ const healthzStats = {
   commitHash,
 };
 
-app.get(v1alpha1Prefix + '/healthz', (req, res) => {
+app.get(v1alpha2Prefix + '/healthz', (req, res) => {
   fetch(apiServerAddress + '/healthz', { timeout: 1000 })
     .then(() => healthzStats.apiServerReady = true)
     .catch(() => healthzStats.apiServerReady = false)
@@ -166,10 +165,9 @@ app.get('/k8s/pod/logs', async (req, res) => {
   }
 });
 
-proxyMiddleware(app, v1alpha1Prefix);
 proxyMiddleware(app, v1alpha2Prefix);
 
-app.all(v1alpha1Prefix + '/*', proxy({
+app.all(v1alpha2Prefix + '/*', proxy({
   changeOrigin: true,
   onProxyReq: (proxyReq, req, res) => {
     console.log('Proxied request: ', proxyReq.path);

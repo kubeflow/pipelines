@@ -24,36 +24,6 @@ import (
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
-func ToApiJob(job *model.Job) *api.Job {
-	// We don't expose the status of the job for now, since the Sync service is not in place yet to
-	// sync the status of a job from K8s CRD to the DB. We only use Status column to track whether
-	// K8s resource is created successfully.
-	return &api.Job{
-		Name:        job.Name,
-		CreatedAt:   &timestamp.Timestamp{Seconds: job.CreatedAtInSec},
-		ScheduledAt: &timestamp.Timestamp{Seconds: job.ScheduledAtInSec},
-	}
-}
-
-func ToApiJobs(jobs []model.Job) []*api.Job {
-	apiJobs := make([]*api.Job, 0)
-	for _, job := range jobs {
-		apiJobs = append(apiJobs, ToApiJob(&job))
-	}
-	return apiJobs
-}
-
-func ToApiJobDetail(jobDetail *model.JobDetail) (*api.JobDetail, error) {
-	workflow, err := json.Marshal(jobDetail.Workflow)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to marshal job details back to client.")
-	}
-	return &api.JobDetail{
-		Job:      ToApiJob(jobDetail.Job),
-		Workflow: string(workflow),
-	}, nil
-}
-
 func ToApiPackage(pkg *model.Package) (*api.Package, error) {
 	params, err := toApiParameters(pkg.Parameters)
 	if err != nil {
@@ -78,52 +48,6 @@ func ToApiPackages(pkgs []model.Package) ([]*api.Package, error) {
 		apiPkgs = append(apiPkgs, apiPkg)
 	}
 	return apiPkgs, nil
-}
-
-func ToApiPipeline(pipeline *model.Pipeline) (*api.Pipeline, error) {
-	params, err := toApiParameters(pipeline.Parameters)
-	if err != nil {
-		return nil, util.Wrap(err, "Error convert pipeline DB model to API model.")
-	}
-	return &api.Pipeline{
-		Id:          pipeline.ID,
-		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
-		Name:        pipeline.Name,
-		Description: pipeline.Description,
-		PackageId:   pipeline.PackageId,
-		Schedule:    pipeline.Schedule,
-		Enabled:     pipeline.Enabled,
-		EnabledAt:   &timestamp.Timestamp{Seconds: pipeline.EnabledAtInSec},
-		Parameters:  params,
-	}, nil
-}
-
-func ToApiPipelines(pipelines []model.Pipeline) ([]*api.Pipeline, error) {
-	apiPipelines := make([]*api.Pipeline, 0)
-	for _, pipeline := range pipelines {
-		apiPipeline, err := ToApiPipeline(&pipeline)
-		if err != nil {
-			return nil, util.Wrap(err, "Error convert pipelines DB model to API model.")
-		}
-		apiPipelines = append(apiPipelines, apiPipeline)
-	}
-	return apiPipelines, nil
-}
-
-func ToModelPipeline(pipeline *api.Pipeline) (*model.Pipeline, error) {
-	params, err := toModelParameters(pipeline.Parameters)
-	if err != nil {
-		return nil, util.Wrap(err, "Error convert pipeline API model to DB model.")
-	}
-	return &model.Pipeline{
-		ID:          pipeline.Id,
-		Name:        pipeline.Name,
-		Description: pipeline.Description,
-		PackageId:   pipeline.PackageId,
-		Schedule:    pipeline.Schedule,
-		Enabled:     pipeline.Enabled,
-		Parameters:  params,
-	}, nil
 }
 
 func toApiParameters(paramsString string) ([]*api.Parameter, error) {
@@ -163,8 +87,8 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 	return string(paramsBytes), nil
 }
 
-func toApiJobV2(job *model.JobV2) *api.JobV2 {
-	return &api.JobV2{
+func toApiJob(job *model.Job) *api.Job {
+	return &api.Job{
 		Id:          job.UUID,
 		Name:        job.Name,
 		Namespace:   job.Namespace,
@@ -174,27 +98,27 @@ func toApiJobV2(job *model.JobV2) *api.JobV2 {
 	}
 }
 
-func ToApiJobsV2(jobs []model.JobV2) []*api.JobV2 {
-	apiJobs := make([]*api.JobV2, 0)
+func ToApiJobs(jobs []model.Job) []*api.Job {
+	apiJobs := make([]*api.Job, 0)
 	for _, job := range jobs {
-		apiJobs = append(apiJobs, toApiJobV2(&job))
+		apiJobs = append(apiJobs, toApiJob(&job))
 	}
 	return apiJobs
 }
 
-func ToApiJobDetailV2(job *model.JobDetailV2) *api.JobDetailV2 {
-	return &api.JobDetailV2{
-		Job:      toApiJobV2(&job.JobV2),
+func ToApiJobDetail(job *model.JobDetail) *api.JobDetail {
+	return &api.JobDetail{
+		Job:      toApiJob(&job.Job),
 		Workflow: job.Workflow,
 	}
 }
 
-func ToApiPipelineV2(pipeline *model.PipelineV2) (*api.PipelineV2, error) {
+func ToApiPipeline(pipeline *model.Pipeline) (*api.Pipeline, error) {
 	params, err := toApiParameters(pipeline.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Error convert pipeline DB model to API model.")
 	}
-	return &api.PipelineV2{
+	return &api.Pipeline{
 		Id:             pipeline.UUID,
 		Name:           pipeline.Name,
 		Description:    pipeline.Description,
@@ -209,10 +133,10 @@ func ToApiPipelineV2(pipeline *model.PipelineV2) (*api.PipelineV2, error) {
 	}, nil
 }
 
-func ToApiPipelinesV2(pipelines []model.PipelineV2) ([]*api.PipelineV2, error) {
-	apiPipelines := make([]*api.PipelineV2, 0)
+func ToApiPipelines(pipelines []model.Pipeline) ([]*api.Pipeline, error) {
+	apiPipelines := make([]*api.Pipeline, 0)
 	for _, pipeline := range pipelines {
-		apiPipeline, err := ToApiPipelineV2(&pipeline)
+		apiPipeline, err := ToApiPipeline(&pipeline)
 		if err != nil {
 			return nil, util.Wrap(err, "Error convert pipelines DB model to API model.")
 		}
@@ -221,12 +145,12 @@ func ToApiPipelinesV2(pipelines []model.PipelineV2) ([]*api.PipelineV2, error) {
 	return apiPipelines, nil
 }
 
-func ToModelPipelineV2(pipeline *api.PipelineV2) (*model.PipelineV2, error) {
+func ToModelPipeline(pipeline *api.Pipeline) (*model.Pipeline, error) {
 	params, err := toModelParameters(pipeline.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Error convert pipeline API model to DB model.")
 	}
-	return &model.PipelineV2{
+	return &model.Pipeline{
 		UUID:           pipeline.Id,
 		Name:           pipeline.Name,
 		Description:    pipeline.Description,

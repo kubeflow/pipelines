@@ -16,6 +16,7 @@ package main
 
 import (
 	"flag"
+	"os"
 	"time"
 
 	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
@@ -106,12 +107,12 @@ func main() {
 func init() {
 	flag.StringVar(&kubeconfig, kubeconfigFlagName, "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, masterFlagName, "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
-	flag.StringVar(&namespace, namespaceFlagName, "default", "The namespace the ML pipeline API server is deployed to")
+	flag.StringVar(&namespace, namespaceFlagName, os.Getenv("POD_NAMESPACE"), "The namespace the ML pipeline API server is deployed to")
 	flag.DurationVar(&initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
 	flag.DurationVar(&timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineAPIServerPort, mlPipelineAPIServerPortFlagName, "8887", "Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
-		"/api/v1/proxy/namespaces/%s/services/ml-pipeline:8888/apis/v1alpha1/%s",
+		"/api/v1/proxy/namespaces/%s/services/ml-pipeline:8888/apis/v1alpha2/%s",
 		"The base path for the ML pipeline API server.")
 }

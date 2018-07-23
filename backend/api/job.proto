@@ -8,24 +8,24 @@ import "google/protobuf/timestamp.proto";
 service JobService {
   rpc GetJob(GetJobRequest) returns (JobDetail) {
     option (google.api.http) = {
-      get: "/apis/v1alpha1/pipelines/{pipeline_id}/jobs/{job_name}"
+      get: "/apis/v1alpha2/pipelines/{pipeline_id}/jobs/{job_id}"
     };
   }
 
   rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1alpha1/pipelines/{pipeline_id}/jobs"
+      get: "/apis/v1alpha2/pipelines/{pipeline_id}/jobs"
     };
   }
 }
 
 message GetJobRequest {
-  uint32 pipeline_id = 1;
-  string job_name = 2;
+  string pipeline_id = 1;
+  string job_id = 2;
 }
 
 message ListJobsRequest {
-  uint32 pipeline_id = 1;
+  string pipeline_id = 1;
   string page_token = 2;
   int32 page_size = 3;
   string sort_by = 4;
@@ -37,9 +37,12 @@ message ListJobsResponse {
 }
 
 message Job {
-  string name = 1;
-  google.protobuf.Timestamp created_at =2;
-  google.protobuf.Timestamp scheduled_at =3;
+  string id = 1;
+  string name = 2;
+  string namespace = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp scheduled_at = 5;
+  string status = 6;
 }
 
 message JobDetail {

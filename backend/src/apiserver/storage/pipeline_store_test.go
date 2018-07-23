@@ -16,122 +16,115 @@ package storage
 
 import (
 	"testing"
+	"time"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
+	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
-func createPipeline(name string, packageId uint32) *model.Pipeline {
-	return &model.Pipeline{Name: name, PackageId: packageId, Status: model.PipelineReady}
-}
-
-func pipelineExpected1() model.Pipeline {
-	return model.Pipeline{
-		ID:             1,
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
-		Name:           "pipeline1",
-		PackageId:      1,
-		Enabled:        true,
-		EnabledAtInSec: 1,
-		Status:         model.PipelineReady}
-}
-
-func TestListPipelines_FilterOutNotReady(t *testing.T) {
+func initializePipelineDB() *gorm.DB {
 	db := NewFakeDbOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	pipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
-	pipelineStore.CreatePipeline(createPipeline("pipeline2", 2))
-	pipelineStore.CreatePipeline(&model.Pipeline{Name: "pipeline3", PackageId: 3, Status: model.PipelineCreating})
-	pipelinesExpected := []model.Pipeline{
-		pipelineExpected1(),
-		{
-			ID:             2,
-			CreatedAtInSec: 2,
-			UpdatedAtInSec: 2,
-			Name:           "pipeline2",
-			PackageId:      2,
-			Enabled:        true,
-			EnabledAtInSec: 2,
-			Status:         model.PipelineReady,
-		}}
-
-	pipelines, newToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 10 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
-	assert.Nil(t, err)
-	assert.Equal(t, "", newToken)
-	assert.Equal(t, pipelinesExpected, pipelines, "Got unexpected pipelines")
-}
-
-func TestListPipelines_Pagination(t *testing.T) {
-	db := NewFakeDbOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	pipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
-	pipelineStore.CreatePipeline(createPipeline("pipeline2", 2))
-	pipelineStore.CreatePipeline(createPipeline("pipeline2", 2))
-	pipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
-	pipelinesExpected := []model.Pipeline{
-		pipelineExpected1(),
-		{
-			ID:             4,
-			CreatedAtInSec: 4,
-			UpdatedAtInSec: 4,
-			Name:           "pipeline1",
+	pipeline1 := &model.PipelineDetail{
+		Pipeline: model.Pipeline{
+			UUID:           "1",
+			Name:           "pp1",
+			Namespace:      "n1",
 			PackageId:      1,
 			Enabled:        true,
-			EnabledAtInSec: 4,
-			Status:         model.PipelineReady,
+			CreatedAtInSec: 0,
+			UpdatedAtInSec: 0,
+		},
+		ScheduledWorkflow: "scheduledworkflow1",
+	}
+	pipeline2 := &model.PipelineDetail{
+		Pipeline: model.Pipeline{
+			UUID:           "2",
+			Name:           "pp2",
+			Namespace:      "n1",
+			PackageId:      1,
+			Enabled:        true,
+			CreatedAtInSec: 1,
+			UpdatedAtInSec: 1,
+		},
+		ScheduledWorkflow: "scheduledworkflow2",
+	}
+	db.Create(pipeline1)
+	db.Create(pipeline2)
+	return db
+}
+func TestListPipelines_Pagination(t *testing.T) {
+	db := initializePipelineDB()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
+	pipelinesExpected := []model.Pipeline{
+		{
+			UUID:           "1",
+			Name:           "pp1",
+			Namespace:      "n1",
+			PackageId:      1,
+			Enabled:        true,
+			CreatedAtInSec: 0,
+			UpdatedAtInSec: 0,
 		}}
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 1 /*pageSize*/, "Name" /*sortByFieldName*/)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
-	pipelinesExpected = []model.Pipeline{
+	pipelinesExpected2 := []model.Pipeline{
 		{
-			ID:             2,
-			CreatedAtInSec: 2,
-			UpdatedAtInSec: 2,
-			Name:           "pipeline2",
-			PackageId:      2,
+			UUID:           "2",
+			Name:           "pp2",
+			Namespace:      "n1",
+			PackageId:      1,
 			Enabled:        true,
-			EnabledAtInSec: 2,
-			Status:         model.PipelineReady,
-		},
-		{
-			ID:             3,
-			CreatedAtInSec: 3,
-			UpdatedAtInSec: 3,
-			Name:           "pipeline2",
-			PackageId:      2,
-			Enabled:        true,
-			EnabledAtInSec: 3,
-			Status:         model.PipelineReady,
+			CreatedAtInSec: 1,
+			UpdatedAtInSec: 1,
 		}}
 	pipelines, newToken, err := pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
-	assert.Equal(t, pipelinesExpected, pipelines)
+	assert.Equal(t, pipelinesExpected2, pipelines)
 }
 
 func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	pipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
-	pipelineExpected := []model.Pipeline{pipelineExpected1()}
 
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
+	pipelinesExpected := []model.Pipeline{
+		{
+			UUID:           "1",
+			Name:           "pp1",
+			Namespace:      "n1",
+			PackageId:      1,
+			Enabled:        true,
+			CreatedAtInSec: 0,
+			UpdatedAtInSec: 0,
+		},
+		{
+			UUID:           "2",
+			Name:           "pp2",
+			Namespace:      "n1",
+			PackageId:      1,
+			Enabled:        true,
+			CreatedAtInSec: 1,
+			UpdatedAtInSec: 1,
+		}}
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, pipelineExpected, pipelines)
+	assert.Equal(t, pipelinesExpected, pipelines)
 }
+
 func TestListPipelinesError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
@@ -142,64 +135,62 @@ func TestListPipelinesError(t *testing.T) {
 }
 
 func TestGetPipeline(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	pipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
 
-	pipeline, err := pipelineStore.GetPipeline(1)
+	pipelineExpected := model.Pipeline{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
+	}
+
+	pipeline, err := pipelineStore.GetPipeline("1")
 	assert.Nil(t, err)
-	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
-}
-
-func TestGetPipeline_NotFound_Creating(t *testing.T) {
-	db := NewFakeDbOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	pipelineStore.CreatePipeline(&model.Pipeline{Name: "pipeline3", PackageId: 3, Status: model.PipelineCreating})
-
-	_, err := pipelineStore.GetPipeline(1)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
-		"Expected get pipeline to return not found error")
+	assert.Equal(t, pipelineExpected, *pipeline, "Got unexpected pipeline")
 }
 
 func TestGetPipeline_NotFoundError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	_, err := pipelineStore.GetPipeline(1)
+	_, err := pipelineStore.GetPipeline("notexist")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return not found error")
 }
 
 func TestGetPipeline_InternalError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
-	_, err := pipelineStore.GetPipeline(1)
+	_, err := pipelineStore.GetPipeline("1")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return internal error")
 }
 
 func TestDeletePipeline(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	pipelineStore.CreatePipeline(createPipeline("pipeline1", 1))
 
-	err := pipelineStore.DeletePipeline(1)
+	err := pipelineStore.DeletePipeline("1")
 	assert.Nil(t, err)
-	_, err = pipelineStore.GetPipeline(1)
+	_, err = pipelineStore.GetPipeline("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestDeletePipeline_InternalError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
-	err := pipelineStore.DeletePipeline(1)
+
+	err := pipelineStore.DeletePipeline("1")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected delete pipeline to return internal error")
 }
@@ -208,10 +199,26 @@ func TestCreatePipeline(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	pipeline := createPipeline("pipeline1", 1)
+	pipeline := &model.Pipeline{
+		UUID:      "1",
+		Name:      "pp1",
+		Namespace: "n1",
+		PackageId: 1,
+		Enabled:   true,
+	}
+
 	pipeline, err := pipelineStore.CreatePipeline(pipeline)
 	assert.Nil(t, err)
-	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
+	pipelineExpected := &model.Pipeline{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+	}
+	assert.Equal(t, pipelineExpected, pipeline, "Got unexpected pipelines")
 }
 
 func TestCreatePipelineError(t *testing.T) {
@@ -219,258 +226,308 @@ func TestCreatePipelineError(t *testing.T) {
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
+	pipeline := &model.Pipeline{
+		UUID:      "1",
+		Name:      "pp1",
+		Namespace: "n1",
+		PackageId: 1,
+		Enabled:   true,
+	}
 
-	pipeline := createPipeline("pipeline1", 1)
 	pipeline, err := pipelineStore.CreatePipeline(pipeline)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create pipeline to return error")
 }
 
 func TestEnablePipeline(t *testing.T) {
-
-	db := NewFakeDbOrFatal()
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+	err := pipelineStore.EnablePipeline("1", false)
+	assert.Nil(t, err)
 
-	// Creating a pipeline. It is enabled by default.
-	createdPipeline := &model.Pipeline{Name: "Pipeline123", Status: model.PipelineReady}
-	createdPipeline, err := pipelineStore.CreatePipeline(createdPipeline)
-	assert.Nil(t, err)
-	pipelineID := createdPipeline.ID
+	pipelineExpected := model.Pipeline{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      1,
+		Enabled:        false,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 1,
+	}
 
-	// Verify that the created pipeline is enabled.
-	createdPipeline, err = pipelineStore.GetPipeline(pipelineID)
+	pipeline, err := pipelineStore.GetPipeline("1")
 	assert.Nil(t, err)
-	assert.Equal(t, true, createdPipeline.Enabled, "The pipeline must be enabled.")
-	assert.Equal(t, int64(1), createdPipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
-	assert.Equal(t, int64(1), createdPipeline.UpdatedAtInSec, "Unexpected value of UpdatedAtInSec.")
-
-	// Verify that enabling the pipeline has no effect. In particular, EnabledAtInSec should
-	// not change.
-	err = pipelineStore.EnablePipeline(pipelineID, true)
-	assert.Nil(t, err)
-	pipeline, err := pipelineStore.GetPipeline(pipelineID)
-	assert.Nil(t, err)
-	assert.Equal(t, true, pipeline.Enabled, "The pipeline must be enabled.")
-	assert.Equal(t, int64(1), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
-
-	// Verify that disabling the pipeline changes both Enabled and EnabledAtInSec
-	err = pipelineStore.EnablePipeline(pipelineID, false)
-	assert.Nil(t, err)
-	pipeline, err = pipelineStore.GetPipeline(pipelineID)
-	assert.Nil(t, err)
-	assert.Equal(t, false, pipeline.Enabled, "The pipeline must be enabled.")
-	assert.Equal(t, int64(2), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
-
-	// Verify that disabling again as no effect.
-	err = pipelineStore.EnablePipeline(pipelineID, false)
-	assert.Nil(t, err)
-	pipeline, err = pipelineStore.GetPipeline(pipelineID)
-	assert.Nil(t, err)
-	assert.Equal(t, false, pipeline.Enabled, "The pipeline must be enabled.")
-	assert.Equal(t, int64(2), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
-
-	// Verify that enabling the pipeline changes both Enabled and EnabledAtInSec
-	err = pipelineStore.EnablePipeline(pipelineID, true)
-	assert.Nil(t, err)
-	pipeline, err = pipelineStore.GetPipeline(pipelineID)
-	assert.Nil(t, err)
-	assert.Equal(t, true, pipeline.Enabled, "The pipeline must be enabled.")
-	assert.Equal(t, int64(3), pipeline.EnabledAtInSec, "Unexpected value of EnabledAtInSec.")
-
-	// Verify that none of the fields of the pipeline have changed.
-	createdPipeline.EnabledAtInSec = pipeline.EnabledAtInSec
-	createdPipeline.UpdatedAtInSec = pipeline.UpdatedAtInSec
-	assert.Equal(t, createdPipeline, pipeline)
+	assert.Equal(t, pipelineExpected, *pipeline, "Got unexpected pipeline")
 }
 
-func TestEnablePipelineRecordNotFound(t *testing.T) {
-	db := NewFakeDbOrFatal()
+func TestEnablePipeline_SkipUpdate(t *testing.T) {
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+	err := pipelineStore.EnablePipeline("1", true)
+	assert.Nil(t, err)
 
-	err := pipelineStore.EnablePipeline(12, true)
-	assert.IsType(t, &util.UserError{}, err)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	pipelineExpected := model.Pipeline{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
+	}
+
+	pipeline, err := pipelineStore.GetPipeline("1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected, *pipeline, "Got unexpected pipeline")
 }
 
-func TestEnablePipelineDatabaseError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+func TestEnablePipeline_DatabaseError(t *testing.T) {
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-
-	// Creating a pipeline. It is enabled by default.
-	createdPipeline := &model.Pipeline{Name: "Pipeline123"}
-	createdPipeline, err := pipelineStore.CreatePipeline(createdPipeline)
-	assert.Nil(t, err)
-	pipelineID := createdPipeline.ID
-
-	// Closing the DB.
 	db.Close()
 
 	// Enabling the pipeline.
-	err = pipelineStore.EnablePipeline(pipelineID, true)
+	err := pipelineStore.EnablePipeline("1", true)
+	println(err.Error())
 	assert.Contains(t, err.Error(), "Error when enabling pipeline 1 to true: sql: database is closed")
 }
 
-func TestUpdatePipelineStatus(t *testing.T) {
-	db := NewFakeDbOrFatal()
+func TestUpdatePipeline_Success(t *testing.T) {
+	db := initializePipelineDB()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-	pipeline, err := pipelineStore.CreatePipeline(&model.Pipeline{Name: "pipeline1", PackageId: 1, Status: model.PipelineCreating})
-	assert.Nil(t, err)
-	err = pipelineStore.UpdatePipelineStatus(pipeline.ID, model.PipelineReady)
 
-	db.First(&pipeline, pipeline.ID)
+	pipelineExpected := model.Pipeline{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
+	}
+
+	pipeline, err := pipelineStore.GetPipeline("1")
 	assert.Nil(t, err)
-	assert.Equal(t, pipelineExpected1(), *pipeline, "Got unexpected pipelines")
+	assert.Equal(t, pipelineExpected, *pipeline)
+
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Enabled:        false,
+			MaxConcurrency: util.Int64Pointer(200),
+			Workflow: &swfapi.WorkflowResource{
+				Parameters: []swfapi.Parameter{
+					{Name: "PARAM1", Value: "NEW_VALUE1"},
+				},
+			},
+			Trigger: swfapi.Trigger{
+				CronSchedule: &swfapi.CronSchedule{
+					StartTime: util.MetaV1TimePointer(metav1.NewTime(time.Unix(10, 0).UTC())),
+					EndTime:   util.MetaV1TimePointer(metav1.NewTime(time.Unix(20, 0).UTC())),
+					Cron:      "MY_CRON",
+				},
+				PeriodicSchedule: &swfapi.PeriodicSchedule{
+					StartTime:      util.MetaV1TimePointer(metav1.NewTime(time.Unix(30, 0).UTC())),
+					EndTime:        util.MetaV1TimePointer(metav1.NewTime(time.Unix(40, 0).UTC())),
+					IntervalSecond: 50,
+				},
+			},
+		},
+		Status: swfapi.ScheduledWorkflowStatus{
+			Conditions: []swfapi.ScheduledWorkflowCondition{{
+				Type:               swfapi.ScheduledWorkflowEnabled,
+				Status:             core.ConditionTrue,
+				LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
+				LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
+				Reason:             string(swfapi.ScheduledWorkflowEnabled),
+				Message:            "The schedule is enabled.",
+			},
+			},
+		},
+	})
+
+	err = pipelineStore.UpdatePipeline(swf)
+	assert.Nil(t, err)
+
+	pipelineExpected = model.Pipeline{
+		UUID:           "1",
+		Name:           "MY_NAME",
+		Namespace:      "MY_NAMESPACE",
+		PackageId:      1,
+		Enabled:        false,
+		Conditions:     "Enabled:",
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 1,
+		MaxConcurrency: 200,
+		Parameters:     "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(10),
+				CronScheduleEndTimeInSec:   util.Int64Pointer(20),
+				Cron: util.StringPointer("MY_CRON"),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(30),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(40),
+				IntervalSecond:                 util.Int64Pointer(50),
+			},
+		},
+	}
+
+	pipeline, err = pipelineStore.GetPipeline("1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected, *pipeline)
 }
 
-func TestUpdatePipelineStatusError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
+	db := initializePipelineDB()
 	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
+	pipelineExpected := model.Pipeline{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
+	}
+
+	pipeline, err := pipelineStore.GetPipeline("1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected, *pipeline)
+
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+	})
+
+	err = pipelineStore.UpdatePipeline(swf)
+	assert.Nil(t, err)
+
+	pipelineExpected = model.Pipeline{
+		UUID:           "1",
+		Name:           "MY_NAME",
+		Namespace:      "MY_NAMESPACE",
+		PackageId:      1,
+		Enabled:        false,
+		Conditions:     "NO_STATUS:",
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 1,
+		MaxConcurrency: 0,
+		Parameters:     "[]",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: nil,
+				CronScheduleEndTimeInSec:   nil,
+				Cron: util.StringPointer(""),
+			},
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: nil,
+				PeriodicScheduleEndTimeInSec:   nil,
+				IntervalSecond:                 util.Int64Pointer(0),
+			},
+		},
+	}
+
+	pipeline, err = pipelineStore.GetPipeline("1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipelineExpected, *pipeline)
+}
+
+func TestUpdatePipeline_MissingField(t *testing.T) {
+	db := initializePipelineDB()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
+	// Name
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+	})
+
+	err := pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a name")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// Namespace
+	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_NAME",
+			UID:  "1",
+		},
+	})
+
+	err = pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a namespace")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// UID
+	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+		},
+	})
+
+	err = pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a UID")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+}
+
+func TestUpdatePipeline_RecordNotFound(t *testing.T) {
+	db := initializePipelineDB()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "UNKNOWN_UID",
+		},
+	})
+
+	err := pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "There is no pipeline")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+}
+
+func TestUpdatePipeline_InternalError(t *testing.T) {
+	db := initializePipelineDB()
+	//defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
-	err := pipelineStore.UpdatePipelineStatus(1, model.PipelineReady)
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-}
 
-func TestGetPipelineAndLatestJobIteratorPipelineWithoutJob(t *testing.T) {
-	db := NewFakeDbOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-
-	pipeline1 := &model.Pipeline{
-		Name:      "MY_PIPELINE_1",
-		PackageId: 123,
-		Schedule:  "1 0 * * *",
-		Status:    model.PipelineReady}
-
-	pipeline2 := &model.Pipeline{
-		Name:      "MY_PIPELINE_2",
-		PackageId: 123,
-		Schedule:  "1 0 * * 1",
-		Status:    model.PipelineReady}
-
-	workflow1 := v1alpha1.Workflow{
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "MY_WORKFLOW_NAME_1",
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "UNKNOWN_UID",
 		},
-	}
+	})
 
-	workflow2 := v1alpha1.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "MY_WORKFLOW_NAME_2",
-		},
-	}
-
-	pipelineStore.CreatePipeline(pipeline1)
-	pipelineStore.CreatePipeline(pipeline2)
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-	jobStore.CreateJob(1, &workflow1, defaultScheduledAtInSec, defaultCreatedAtInSec)
-	jobStore.CreateJob(1, &workflow2, defaultScheduledAtInSec+5, defaultCreatedAtInSec)
-
-	// Checking the first row, which does not have a job.
-	iterator, err := pipelineStore.GetPipelineAndLatestJobIterator()
-
-	assert.Nil(t, err)
-	assert.True(t, iterator.Next())
-
-	result, err := iterator.Get()
-	assert.Nil(t, err)
-
-	expected := &PipelineAndLatestJob{
-		PipelineID:             2,
-		PipelineName:           pipeline2.Name,
-		PipelineSchedule:       pipeline2.Schedule,
-		JobName:                nil,
-		JobScheduledAtInSec:    nil,
-		PipelineEnabled:        true,
-		PipelineEnabledAtInSec: 2,
-	}
-
-	assert.Equal(t, expected, result)
-
-	// Checking the second row, which has a job.
-	assert.True(t, iterator.Next())
-
-	result, err = iterator.Get()
-	assert.Nil(t, err)
-
-	expected = &PipelineAndLatestJob{
-		PipelineID:             1,
-		PipelineName:           pipeline1.Name,
-		PipelineSchedule:       pipeline1.Schedule,
-		JobName:                &workflow2.Name,
-		JobScheduledAtInSec:    util.Int64Pointer(defaultScheduledAtInSec + 5),
-		PipelineEnabled:        true,
-		PipelineEnabledAtInSec: 1,
-	}
-
-	assert.Equal(t, expected, result)
-
-	// Checking that there are no rows left.
-	assert.False(t, iterator.Next())
-
-}
-
-func TestGetPipelineAndLatestJobIteratorPipelineWithoutSchedule(t *testing.T) {
-	db := NewFakeDbOrFatal()
-	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
-
-	pipeline1 := &model.Pipeline{
-		Name:      "MY_PIPELINE_1",
-		PackageId: 123,
-		Schedule:  "1 0 * * *",
-		Status:    model.PipelineReady}
-
-	pipeline2 := &model.Pipeline{
-		Name:      "MY_PIPELINE_2",
-		PackageId: 123,
-		Schedule:  "",
-		Status:    model.PipelineReady}
-
-	workflow1 := v1alpha1.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "MY_WORKFLOW_NAME_1",
-		},
-	}
-
-	workflow2 := v1alpha1.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "MY_WORKFLOW_NAME_2",
-		},
-	}
-
-	pipelineStore.CreatePipeline(pipeline1)
-	pipelineStore.CreatePipeline(pipeline2)
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-	jobStore.CreateJob(1, &workflow1, defaultScheduledAtInSec+5, defaultCreatedAtInSec)
-	jobStore.CreateJob(1, &workflow2, defaultScheduledAtInSec, defaultCreatedAtInSec)
-
-	// Checking the first row, which does not have a job.
-	iterator, err := pipelineStore.GetPipelineAndLatestJobIterator()
-
-	assert.Nil(t, err)
-	assert.True(t, iterator.Next())
-
-	result, err := iterator.Get()
-	assert.Nil(t, err)
-
-	expected := &PipelineAndLatestJob{
-		PipelineID:             1,
-		PipelineName:           pipeline1.Name,
-		PipelineSchedule:       pipeline1.Schedule,
-		JobName:                &workflow1.Name,
-		JobScheduledAtInSec:    util.Int64Pointer(defaultScheduledAtInSec + 5),
-		PipelineEnabled:        true,
-		PipelineEnabledAtInSec: 1,
-	}
-
-	assert.Equal(t, expected, result)
-
-	// Checking that there are no rows left.
-	assert.False(t, iterator.Next())
-
+	err := pipelineStore.UpdatePipeline(swf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
+	assert.Contains(t, err.(*util.UserError).Error(), "database is closed")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.Internal)
 }

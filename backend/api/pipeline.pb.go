@@ -37,7 +37,7 @@ func (m *CreatePipelineRequest) Reset()         { *m = CreatePipelineRequest{} }
 func (m *CreatePipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*CreatePipelineRequest) ProtoMessage()    {}
 func (*CreatePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ab243bf9ceccfbf7, []int{0}
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{0}
 }
 func (m *CreatePipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreatePipelineRequest.Unmarshal(m, b)
@@ -65,7 +65,7 @@ func (m *CreatePipelineRequest) GetPipeline() *Pipeline {
 }
 
 type GetPipelineRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -75,7 +75,7 @@ func (m *GetPipelineRequest) Reset()         { *m = GetPipelineRequest{} }
 func (m *GetPipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*GetPipelineRequest) ProtoMessage()    {}
 func (*GetPipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ab243bf9ceccfbf7, []int{1}
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{1}
 }
 func (m *GetPipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetPipelineRequest.Unmarshal(m, b)
@@ -95,11 +95,11 @@ func (m *GetPipelineRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GetPipelineRequest proto.InternalMessageInfo
 
-func (m *GetPipelineRequest) GetId() uint32 {
+func (m *GetPipelineRequest) GetId() string {
 	if m != nil {
 		return m.Id
 	}
-	return 0
+	return ""
 }
 
 type ListPipelinesRequest struct {
@@ -115,7 +115,7 @@ func (m *ListPipelinesRequest) Reset()         { *m = ListPipelinesRequest{} }
 func (m *ListPipelinesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesRequest) ProtoMessage()    {}
 func (*ListPipelinesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ab243bf9ceccfbf7, []int{2}
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{2}
 }
 func (m *ListPipelinesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesRequest.Unmarshal(m, b)
@@ -168,7 +168,7 @@ func (m *ListPipelinesResponse) Reset()         { *m = ListPipelinesResponse{} }
 func (m *ListPipelinesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesResponse) ProtoMessage()    {}
 func (*ListPipelinesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ab243bf9ceccfbf7, []int{3}
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{3}
 }
 func (m *ListPipelinesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesResponse.Unmarshal(m, b)
@@ -203,7 +203,7 @@ func (m *ListPipelinesResponse) GetNextPageToken() string {
 }
 
 type DeletePipelineRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -213,7 +213,7 @@ func (m *DeletePipelineRequest) Reset()         { *m = DeletePipelineRequest{} }
 func (m *DeletePipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*DeletePipelineRequest) ProtoMessage()    {}
 func (*DeletePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ab243bf9ceccfbf7, []int{4}
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{4}
 }
 func (m *DeletePipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePipelineRequest.Unmarshal(m, b)
@@ -233,15 +233,15 @@ func (m *DeletePipelineRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DeletePipelineRequest proto.InternalMessageInfo
 
-func (m *DeletePipelineRequest) GetId() uint32 {
+func (m *DeletePipelineRequest) GetId() string {
 	if m != nil {
 		return m.Id
 	}
-	return 0
+	return ""
 }
 
 type EnablePipelineRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -251,7 +251,7 @@ func (m *EnablePipelineRequest) Reset()         { *m = EnablePipelineRequest{} }
 func (m *EnablePipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*EnablePipelineRequest) ProtoMessage()    {}
 func (*EnablePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ab243bf9ceccfbf7, []int{5}
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{5}
 }
 func (m *EnablePipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EnablePipelineRequest.Unmarshal(m, b)
@@ -271,15 +271,15 @@ func (m *EnablePipelineRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_EnablePipelineRequest proto.InternalMessageInfo
 
-func (m *EnablePipelineRequest) GetId() uint32 {
+func (m *EnablePipelineRequest) GetId() string {
 	if m != nil {
 		return m.Id
 	}
-	return 0
+	return ""
 }
 
 type DisablePipelineRequest struct {
-	Id                   uint32   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -289,7 +289,7 @@ func (m *DisablePipelineRequest) Reset()         { *m = DisablePipelineRequest{}
 func (m *DisablePipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*DisablePipelineRequest) ProtoMessage()    {}
 func (*DisablePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ab243bf9ceccfbf7, []int{6}
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{6}
 }
 func (m *DisablePipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DisablePipelineRequest.Unmarshal(m, b)
@@ -309,23 +309,284 @@ func (m *DisablePipelineRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DisablePipelineRequest proto.InternalMessageInfo
 
-func (m *DisablePipelineRequest) GetId() uint32 {
+func (m *DisablePipelineRequest) GetId() string {
 	if m != nil {
 		return m.Id
+	}
+	return ""
+}
+
+type CronSchedule struct {
+	StartTime            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime              *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	Cron                 string               `protobuf:"bytes,3,opt,name=cron,proto3" json:"cron,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *CronSchedule) Reset()         { *m = CronSchedule{} }
+func (m *CronSchedule) String() string { return proto.CompactTextString(m) }
+func (*CronSchedule) ProtoMessage()    {}
+func (*CronSchedule) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{7}
+}
+func (m *CronSchedule) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CronSchedule.Unmarshal(m, b)
+}
+func (m *CronSchedule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CronSchedule.Marshal(b, m, deterministic)
+}
+func (dst *CronSchedule) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CronSchedule.Merge(dst, src)
+}
+func (m *CronSchedule) XXX_Size() int {
+	return xxx_messageInfo_CronSchedule.Size(m)
+}
+func (m *CronSchedule) XXX_DiscardUnknown() {
+	xxx_messageInfo_CronSchedule.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CronSchedule proto.InternalMessageInfo
+
+func (m *CronSchedule) GetStartTime() *timestamp.Timestamp {
+	if m != nil {
+		return m.StartTime
+	}
+	return nil
+}
+
+func (m *CronSchedule) GetEndTime() *timestamp.Timestamp {
+	if m != nil {
+		return m.EndTime
+	}
+	return nil
+}
+
+func (m *CronSchedule) GetCron() string {
+	if m != nil {
+		return m.Cron
+	}
+	return ""
+}
+
+type PeriodicSchedule struct {
+	StartTime            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime              *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	IntervalSecond       int64                `protobuf:"varint,3,opt,name=interval_second,json=intervalSecond,proto3" json:"interval_second,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
+	XXX_unrecognized     []byte               `json:"-"`
+	XXX_sizecache        int32                `json:"-"`
+}
+
+func (m *PeriodicSchedule) Reset()         { *m = PeriodicSchedule{} }
+func (m *PeriodicSchedule) String() string { return proto.CompactTextString(m) }
+func (*PeriodicSchedule) ProtoMessage()    {}
+func (*PeriodicSchedule) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{8}
+}
+func (m *PeriodicSchedule) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PeriodicSchedule.Unmarshal(m, b)
+}
+func (m *PeriodicSchedule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PeriodicSchedule.Marshal(b, m, deterministic)
+}
+func (dst *PeriodicSchedule) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PeriodicSchedule.Merge(dst, src)
+}
+func (m *PeriodicSchedule) XXX_Size() int {
+	return xxx_messageInfo_PeriodicSchedule.Size(m)
+}
+func (m *PeriodicSchedule) XXX_DiscardUnknown() {
+	xxx_messageInfo_PeriodicSchedule.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PeriodicSchedule proto.InternalMessageInfo
+
+func (m *PeriodicSchedule) GetStartTime() *timestamp.Timestamp {
+	if m != nil {
+		return m.StartTime
+	}
+	return nil
+}
+
+func (m *PeriodicSchedule) GetEndTime() *timestamp.Timestamp {
+	if m != nil {
+		return m.EndTime
+	}
+	return nil
+}
+
+func (m *PeriodicSchedule) GetIntervalSecond() int64 {
+	if m != nil {
+		return m.IntervalSecond
 	}
 	return 0
 }
 
+type Trigger struct {
+	// Types that are valid to be assigned to Trigger:
+	//	*Trigger_CronSchedule
+	//	*Trigger_PeriodicSchedule
+	Trigger              isTrigger_Trigger `protobuf_oneof:"trigger"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
+}
+
+func (m *Trigger) Reset()         { *m = Trigger{} }
+func (m *Trigger) String() string { return proto.CompactTextString(m) }
+func (*Trigger) ProtoMessage()    {}
+func (*Trigger) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{9}
+}
+func (m *Trigger) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Trigger.Unmarshal(m, b)
+}
+func (m *Trigger) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Trigger.Marshal(b, m, deterministic)
+}
+func (dst *Trigger) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Trigger.Merge(dst, src)
+}
+func (m *Trigger) XXX_Size() int {
+	return xxx_messageInfo_Trigger.Size(m)
+}
+func (m *Trigger) XXX_DiscardUnknown() {
+	xxx_messageInfo_Trigger.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Trigger proto.InternalMessageInfo
+
+type isTrigger_Trigger interface {
+	isTrigger_Trigger()
+}
+
+type Trigger_CronSchedule struct {
+	CronSchedule *CronSchedule `protobuf:"bytes,1,opt,name=cron_schedule,json=cronSchedule,proto3,oneof"`
+}
+type Trigger_PeriodicSchedule struct {
+	PeriodicSchedule *PeriodicSchedule `protobuf:"bytes,2,opt,name=periodic_schedule,json=periodicSchedule,proto3,oneof"`
+}
+
+func (*Trigger_CronSchedule) isTrigger_Trigger()     {}
+func (*Trigger_PeriodicSchedule) isTrigger_Trigger() {}
+
+func (m *Trigger) GetTrigger() isTrigger_Trigger {
+	if m != nil {
+		return m.Trigger
+	}
+	return nil
+}
+
+func (m *Trigger) GetCronSchedule() *CronSchedule {
+	if x, ok := m.GetTrigger().(*Trigger_CronSchedule); ok {
+		return x.CronSchedule
+	}
+	return nil
+}
+
+func (m *Trigger) GetPeriodicSchedule() *PeriodicSchedule {
+	if x, ok := m.GetTrigger().(*Trigger_PeriodicSchedule); ok {
+		return x.PeriodicSchedule
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Trigger) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _Trigger_OneofMarshaler, _Trigger_OneofUnmarshaler, _Trigger_OneofSizer, []interface{}{
+		(*Trigger_CronSchedule)(nil),
+		(*Trigger_PeriodicSchedule)(nil),
+	}
+}
+
+func _Trigger_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*Trigger)
+	// trigger
+	switch x := m.Trigger.(type) {
+	case *Trigger_CronSchedule:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.CronSchedule); err != nil {
+			return err
+		}
+	case *Trigger_PeriodicSchedule:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.PeriodicSchedule); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Trigger.Trigger has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _Trigger_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*Trigger)
+	switch tag {
+	case 1: // trigger.cron_schedule
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(CronSchedule)
+		err := b.DecodeMessage(msg)
+		m.Trigger = &Trigger_CronSchedule{msg}
+		return true, err
+	case 2: // trigger.periodic_schedule
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(PeriodicSchedule)
+		err := b.DecodeMessage(msg)
+		m.Trigger = &Trigger_PeriodicSchedule{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _Trigger_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*Trigger)
+	// trigger
+	switch x := m.Trigger.(type) {
+	case *Trigger_CronSchedule:
+		s := proto.Size(x.CronSchedule)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Trigger_PeriodicSchedule:
+		s := proto.Size(x.PeriodicSchedule)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
 type Pipeline struct {
-	Id                   uint32               `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Name                 string               `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Description          string               `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	PackageId            uint32               `protobuf:"varint,5,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
-	Schedule             string               `protobuf:"bytes,6,opt,name=schedule,proto3" json:"schedule,omitempty"`
-	Enabled              bool                 `protobuf:"varint,7,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	EnabledAt            *timestamp.Timestamp `protobuf:"bytes,8,opt,name=enabled_at,json=enabledAt,proto3" json:"enabled_at,omitempty"`
-	Parameters           []*Parameter         `protobuf:"bytes,9,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name        string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	PackageId   uint32 `protobuf:"varint,4,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
+	Enabled     bool   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// The status is surfacing the resource condition. A resource can potentially
+	// have multiple conditions, although in most cases, it should be in one
+	// state.
+	// https://github.com/eBay/Kubernetes/blob/master/docs/devel/api-conventions.md
+	// In case of a single state, the status ends with a colon:
+	// STATUS_1:
+	// In case of multiple states, the statuses are separated by a colon.
+	// STATUS_1:STATUS_2:
+	Status               string               `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	MaxConcurrency       int64                `protobuf:"varint,7,opt,name=max_concurrency,json=maxConcurrency,proto3" json:"max_concurrency,omitempty"`
+	Parameters           []*Parameter         `protobuf:"bytes,8,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	Trigger              *Trigger             `protobuf:"bytes,9,opt,name=trigger,proto3" json:"trigger,omitempty"`
+	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -335,7 +596,7 @@ func (m *Pipeline) Reset()         { *m = Pipeline{} }
 func (m *Pipeline) String() string { return proto.CompactTextString(m) }
 func (*Pipeline) ProtoMessage()    {}
 func (*Pipeline) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ab243bf9ceccfbf7, []int{7}
+	return fileDescriptor_pipeline_59e5f75a155bd946, []int{10}
 }
 func (m *Pipeline) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Pipeline.Unmarshal(m, b)
@@ -355,18 +616,11 @@ func (m *Pipeline) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Pipeline proto.InternalMessageInfo
 
-func (m *Pipeline) GetId() uint32 {
+func (m *Pipeline) GetId() string {
 	if m != nil {
 		return m.Id
 	}
-	return 0
-}
-
-func (m *Pipeline) GetCreatedAt() *timestamp.Timestamp {
-	if m != nil {
-		return m.CreatedAt
-	}
-	return nil
+	return ""
 }
 
 func (m *Pipeline) GetName() string {
@@ -390,13 +644,6 @@ func (m *Pipeline) GetPackageId() uint32 {
 	return 0
 }
 
-func (m *Pipeline) GetSchedule() string {
-	if m != nil {
-		return m.Schedule
-	}
-	return ""
-}
-
 func (m *Pipeline) GetEnabled() bool {
 	if m != nil {
 		return m.Enabled
@@ -404,16 +651,44 @@ func (m *Pipeline) GetEnabled() bool {
 	return false
 }
 
-func (m *Pipeline) GetEnabledAt() *timestamp.Timestamp {
+func (m *Pipeline) GetStatus() string {
 	if m != nil {
-		return m.EnabledAt
+		return m.Status
 	}
-	return nil
+	return ""
+}
+
+func (m *Pipeline) GetMaxConcurrency() int64 {
+	if m != nil {
+		return m.MaxConcurrency
+	}
+	return 0
 }
 
 func (m *Pipeline) GetParameters() []*Parameter {
 	if m != nil {
 		return m.Parameters
+	}
+	return nil
+}
+
+func (m *Pipeline) GetTrigger() *Trigger {
+	if m != nil {
+		return m.Trigger
+	}
+	return nil
+}
+
+func (m *Pipeline) GetCreatedAt() *timestamp.Timestamp {
+	if m != nil {
+		return m.CreatedAt
+	}
+	return nil
+}
+
+func (m *Pipeline) GetUpdatedAt() *timestamp.Timestamp {
+	if m != nil {
+		return m.UpdatedAt
 	}
 	return nil
 }
@@ -426,6 +701,9 @@ func init() {
 	proto.RegisterType((*DeletePipelineRequest)(nil), "api.DeletePipelineRequest")
 	proto.RegisterType((*EnablePipelineRequest)(nil), "api.EnablePipelineRequest")
 	proto.RegisterType((*DisablePipelineRequest)(nil), "api.DisablePipelineRequest")
+	proto.RegisterType((*CronSchedule)(nil), "api.CronSchedule")
+	proto.RegisterType((*PeriodicSchedule)(nil), "api.PeriodicSchedule")
+	proto.RegisterType((*Trigger)(nil), "api.Trigger")
 	proto.RegisterType((*Pipeline)(nil), "api.Pipeline")
 }
 
@@ -666,49 +944,61 @@ var _PipelineService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "pipeline.proto",
 }
 
-func init() { proto.RegisterFile("pipeline.proto", fileDescriptor_pipeline_ab243bf9ceccfbf7) }
+func init() { proto.RegisterFile("pipeline.proto", fileDescriptor_pipeline_59e5f75a155bd946) }
 
-var fileDescriptor_pipeline_ab243bf9ceccfbf7 = []byte{
-	// 645 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x54, 0x4d, 0x6f, 0xd3, 0x4c,
-	0x10, 0x56, 0xd2, 0xaf, 0x64, 0xa2, 0x24, 0xd2, 0xe8, 0x4d, 0xeb, 0xd7, 0xa5, 0x6a, 0x64, 0xf5,
-	0x23, 0x14, 0xb0, 0xd5, 0x72, 0x82, 0x5b, 0x4b, 0x2b, 0x84, 0xc4, 0xa1, 0x72, 0x7b, 0x44, 0x8a,
-	0x36, 0xf1, 0x90, 0xae, 0xe2, 0xd8, 0x8b, 0x77, 0x53, 0xd1, 0x22, 0x2e, 0xfc, 0x05, 0x6e, 0xfc,
-	0x25, 0x8e, 0xfc, 0x05, 0x7e, 0x08, 0xf2, 0x7a, 0x1d, 0x12, 0x27, 0x69, 0xb9, 0x79, 0x66, 0x9e,
-	0x9d, 0x67, 0xbe, 0x1e, 0x43, 0x43, 0x70, 0x41, 0x21, 0x8f, 0xc8, 0x15, 0x49, 0xac, 0x62, 0x5c,
-	0x61, 0x82, 0xdb, 0x4f, 0x06, 0x71, 0x3c, 0x08, 0xc9, 0x63, 0x82, 0x7b, 0x2c, 0x8a, 0x62, 0xc5,
-	0x14, 0x8f, 0x23, 0x99, 0x41, 0xec, 0x5d, 0x13, 0xd5, 0x56, 0x6f, 0xfc, 0xd1, 0x53, 0x7c, 0x44,
-	0x52, 0xb1, 0x91, 0x30, 0x80, 0xed, 0x22, 0x80, 0x46, 0x42, 0xdd, 0x99, 0x60, 0x53, 0xb0, 0x84,
-	0x8d, 0x48, 0x51, 0x92, 0x39, 0x9c, 0x33, 0x68, 0xbd, 0x49, 0x88, 0x29, 0xba, 0x34, 0x95, 0xf8,
-	0xf4, 0x69, 0x4c, 0x52, 0xe1, 0x53, 0xa8, 0xe4, 0xc5, 0x59, 0xa5, 0x76, 0xa9, 0x53, 0x3b, 0xa9,
-	0xbb, 0x4c, 0x70, 0x77, 0x82, 0x9b, 0x84, 0x9d, 0x3d, 0xc0, 0xb7, 0xa4, 0x8a, 0x09, 0x1a, 0x50,
-	0xe6, 0x81, 0x7e, 0x5a, 0xf7, 0xcb, 0x3c, 0x70, 0x86, 0xf0, 0xdf, 0x7b, 0x2e, 0x27, 0x30, 0x99,
-	0xe3, 0x76, 0x00, 0x04, 0x1b, 0x50, 0x57, 0xc5, 0x43, 0x8a, 0x34, 0xbe, 0xea, 0x57, 0x53, 0xcf,
-	0x75, 0xea, 0xc0, 0x6d, 0xd0, 0x46, 0x57, 0xf2, 0x7b, 0xb2, 0xca, 0xed, 0x52, 0x67, 0xcd, 0xaf,
-	0xa4, 0x8e, 0x2b, 0x7e, 0x4f, 0xb8, 0x05, 0x1b, 0x32, 0x4e, 0x54, 0xb7, 0x77, 0x67, 0xad, 0xe8,
-	0x87, 0xeb, 0xa9, 0x79, 0x76, 0xe7, 0x84, 0xd0, 0x2a, 0x90, 0x49, 0x11, 0x47, 0x92, 0xf0, 0x19,
-	0x54, 0xf3, 0xba, 0xa5, 0x55, 0x6a, 0xaf, 0xcc, 0xf7, 0xf5, 0x37, 0x8e, 0x07, 0xd0, 0x8c, 0xe8,
-	0xb3, 0xea, 0x4e, 0xd5, 0x57, 0xd6, 0x34, 0xf5, 0xd4, 0x7d, 0x99, 0xd7, 0xe8, 0x1c, 0x42, 0xeb,
-	0x9c, 0x42, 0x9a, 0x1f, 0x62, 0x71, 0x06, 0x87, 0xd0, 0xba, 0x88, 0x58, 0x2f, 0x7c, 0x14, 0xd8,
-	0x81, 0xcd, 0x73, 0x2e, 0xff, 0x05, 0xf9, 0xb3, 0x0c, 0x95, 0x1c, 0x53, 0x0c, 0xe2, 0x2b, 0x80,
-	0xbe, 0xde, 0x6e, 0xd0, 0x65, 0x4a, 0xd7, 0x5e, 0x3b, 0xb1, 0xdd, 0xec, 0x40, 0xdc, 0xfc, 0x40,
-	0xdc, 0xeb, 0xfc, 0x82, 0xfc, 0xaa, 0x41, 0x9f, 0x2a, 0x44, 0x58, 0x8d, 0xd8, 0x88, 0xcc, 0x5c,
-	0xf5, 0x37, 0xb6, 0xa1, 0x16, 0x90, 0xec, 0x27, 0x5c, 0xa4, 0x17, 0x69, 0xad, 0xea, 0xd0, 0xb4,
-	0x2b, 0x5b, 0x66, 0x7f, 0x98, 0xce, 0x8b, 0x07, 0xd6, 0x9a, 0x2e, 0xa4, 0x6a, 0x3c, 0xef, 0x02,
-	0xb4, 0xa1, 0x22, 0xfb, 0x37, 0x14, 0x8c, 0x43, 0xb2, 0xd6, 0xf5, 0xeb, 0x89, 0x8d, 0x16, 0x6c,
-	0x90, 0x9e, 0x4d, 0x60, 0x6d, 0xb4, 0x4b, 0x9d, 0x8a, 0x9f, 0x9b, 0x69, 0x17, 0xe6, 0x33, 0xed,
-	0xa2, 0xf2, 0x78, 0x17, 0x06, 0x7d, 0xaa, 0xd0, 0x4d, 0xeb, 0x31, 0x17, 0x2f, 0xad, 0xaa, 0xde,
-	0x77, 0x23, 0xdb, 0x77, 0xee, 0xf6, 0xa7, 0x10, 0x27, 0x3f, 0xd6, 0xa0, 0x99, 0x4f, 0xf3, 0x8a,
-	0x92, 0x5b, 0xde, 0x27, 0x1c, 0x40, 0x63, 0x56, 0x22, 0x68, 0xeb, 0x0c, 0x0b, 0x75, 0x63, 0xcf,
-	0x5e, 0x93, 0x73, 0xf4, 0xed, 0xd7, 0xef, 0xef, 0xe5, 0x3d, 0xc7, 0x4a, 0xe5, 0x2c, 0xbd, 0xdb,
-	0x63, 0x16, 0x8a, 0x1b, 0x76, 0xec, 0x4d, 0x8e, 0xec, 0xf5, 0x44, 0x47, 0xf8, 0x01, 0x6a, 0x53,
-	0x3a, 0xc2, 0x2d, 0x9d, 0x69, 0x5e, 0x59, 0x45, 0x8a, 0x7d, 0x4d, 0xb1, 0x8b, 0x3b, 0xcb, 0x28,
-	0xbc, 0x2f, 0x3c, 0xf8, 0x8a, 0x37, 0x50, 0x9f, 0x91, 0x04, 0xfe, 0xaf, 0xd3, 0x2c, 0xd2, 0xa4,
-	0x6d, 0x2f, 0x0a, 0x65, 0x0a, 0x72, 0xda, 0x9a, 0xce, 0xc6, 0xa5, 0x1d, 0x61, 0x02, 0x8d, 0xd9,
-	0x2b, 0x37, 0x03, 0x5b, 0x78, 0xfa, 0xf6, 0xe6, 0xdc, 0x26, 0x2f, 0xd2, 0x1f, 0x96, 0xf3, 0x5c,
-	0xf3, 0x1c, 0x38, 0x7b, 0x0f, 0xb6, 0xe5, 0x65, 0xbb, 0xc6, 0x31, 0x34, 0x0b, 0x82, 0xc1, 0x6d,
-	0x4d, 0xba, 0x58, 0x46, 0x4b, 0x59, 0x5f, 0x68, 0xd6, 0x43, 0x67, 0xff, 0x61, 0xd6, 0x20, 0xcb,
-	0x8a, 0x43, 0x68, 0xcc, 0x2a, 0xdf, 0xb4, 0xba, 0xf0, 0x77, 0xb0, 0x94, 0xd4, 0x6c, 0xf0, 0xe8,
-	0xe1, 0x0d, 0xf6, 0xd6, 0xf5, 0xb3, 0x97, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x51, 0xaa, 0xe3,
-	0xa9, 0x36, 0x06, 0x00, 0x00,
+var fileDescriptor_pipeline_59e5f75a155bd946 = []byte{
+	// 839 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x55, 0xd1, 0x6e, 0x23, 0x35,
+	0x14, 0xdd, 0x49, 0xb6, 0x4d, 0x72, 0xdb, 0x24, 0xbb, 0x16, 0xe9, 0x0e, 0x53, 0x56, 0x1b, 0x8d,
+	0xba, 0x6d, 0x58, 0x20, 0x11, 0x45, 0x48, 0xc0, 0xdb, 0xb6, 0x5d, 0xb1, 0x48, 0x3c, 0x54, 0xd3,
+	0x3e, 0x22, 0x8d, 0xdc, 0x99, 0x4b, 0x6a, 0x75, 0xe2, 0x31, 0xb6, 0x53, 0xb5, 0x45, 0xbc, 0xf0,
+	0x0b, 0xf0, 0x80, 0xf8, 0x07, 0xbe, 0x86, 0x5f, 0xe0, 0x43, 0x90, 0x3d, 0x9e, 0x34, 0x99, 0x26,
+	0x0d, 0x6f, 0xbc, 0x8d, 0xaf, 0xcf, 0xf5, 0xbd, 0x3e, 0xf7, 0xf8, 0x0c, 0x74, 0x04, 0x13, 0x98,
+	0x31, 0x8e, 0x43, 0x21, 0x73, 0x9d, 0x93, 0x3a, 0x15, 0x2c, 0xf8, 0x68, 0x9c, 0xe7, 0xe3, 0x0c,
+	0x47, 0x54, 0xb0, 0x11, 0xe5, 0x3c, 0xd7, 0x54, 0xb3, 0x9c, 0xab, 0x02, 0x12, 0xbc, 0x72, 0xbb,
+	0x76, 0x75, 0x31, 0xfd, 0x71, 0xa4, 0xd9, 0x04, 0x95, 0xa6, 0x13, 0xe1, 0x00, 0xbb, 0x55, 0x00,
+	0x4e, 0x84, 0xbe, 0x75, 0x9b, 0x5d, 0x41, 0x25, 0x9d, 0xa0, 0x46, 0x59, 0x04, 0xc2, 0x23, 0xe8,
+	0x1d, 0x4b, 0xa4, 0x1a, 0x4f, 0x5d, 0x27, 0x11, 0xfe, 0x34, 0x45, 0xa5, 0xc9, 0xc7, 0xd0, 0x2c,
+	0x9b, 0xf3, 0xbd, 0xbe, 0x37, 0xd8, 0x3a, 0x6c, 0x0f, 0xa9, 0x60, 0xc3, 0x19, 0x6e, 0xb6, 0x1d,
+	0xee, 0x01, 0xf9, 0x16, 0x75, 0xf5, 0x80, 0x0e, 0xd4, 0x58, 0x6a, 0x53, 0x5b, 0x51, 0x8d, 0xa5,
+	0xe1, 0x15, 0x7c, 0xf0, 0x3d, 0x53, 0x33, 0x98, 0x2a, 0x71, 0x2f, 0x01, 0x04, 0x1d, 0x63, 0xac,
+	0xf3, 0x2b, 0xe4, 0x0e, 0xdf, 0x32, 0x91, 0x73, 0x13, 0x20, 0xbb, 0x60, 0x17, 0xb1, 0x62, 0x77,
+	0xe8, 0xd7, 0xfa, 0xde, 0x60, 0x23, 0x6a, 0x9a, 0xc0, 0x19, 0xbb, 0x43, 0xf2, 0x02, 0x1a, 0x2a,
+	0x97, 0x3a, 0xbe, 0xb8, 0xf5, 0xeb, 0x36, 0x71, 0xd3, 0x2c, 0x8f, 0x6e, 0xc3, 0x0c, 0x7a, 0x95,
+	0x62, 0x4a, 0xe4, 0x5c, 0x21, 0xf9, 0x04, 0x5a, 0x65, 0xdf, 0xca, 0xf7, 0xfa, 0xf5, 0x87, 0xf7,
+	0xba, 0xdf, 0x27, 0xfb, 0xd0, 0xe5, 0x78, 0xa3, 0xe3, 0xb9, 0xfe, 0x6a, 0xb6, 0x4c, 0xdb, 0x84,
+	0x4f, 0xcb, 0x1e, 0xc3, 0x03, 0xe8, 0x9d, 0x60, 0x86, 0x0f, 0x49, 0xac, 0x72, 0x70, 0x00, 0xbd,
+	0x77, 0x9c, 0x5e, 0x64, 0x6b, 0x81, 0x03, 0xd8, 0x39, 0x61, 0xea, 0xbf, 0x20, 0x7f, 0xf7, 0x60,
+	0xfb, 0x58, 0xe6, 0xfc, 0x2c, 0xb9, 0xc4, 0x74, 0x9a, 0x21, 0xf9, 0x1a, 0x40, 0x69, 0x2a, 0x75,
+	0x6c, 0x84, 0xe1, 0x46, 0x17, 0x0c, 0x0b, 0x51, 0x0c, 0x4b, 0x51, 0x0c, 0xcf, 0x4b, 0xd5, 0x44,
+	0x2d, 0x8b, 0x36, 0x6b, 0xf2, 0x25, 0x34, 0x91, 0xa7, 0x45, 0x62, 0x6d, 0x6d, 0x62, 0x03, 0x79,
+	0x6a, 0xd3, 0x08, 0x3c, 0x4d, 0x64, 0xce, 0xdd, 0x08, 0xec, 0x77, 0xf8, 0x97, 0x07, 0xcf, 0x4e,
+	0x51, 0xb2, 0x3c, 0x65, 0xc9, 0xff, 0xd8, 0xda, 0x01, 0x74, 0x19, 0xd7, 0x28, 0xaf, 0x69, 0x16,
+	0x2b, 0x4c, 0x72, 0x9e, 0xda, 0x2e, 0xeb, 0x51, 0xa7, 0x0c, 0x9f, 0xd9, 0xa8, 0xa1, 0xb1, 0x71,
+	0x2e, 0xd9, 0x78, 0x8c, 0x92, 0x7c, 0x05, 0x6d, 0x73, 0x87, 0x58, 0xb9, 0xbe, 0x5d, 0xa7, 0xcf,
+	0xad, 0x4e, 0xe6, 0xb9, 0x7e, 0xff, 0x24, 0xda, 0x4e, 0xe6, 0xb9, 0x3f, 0x81, 0xe7, 0xc2, 0x5d,
+	0xfa, 0x3e, 0xbb, 0x68, 0xb7, 0x57, 0xa8, 0xac, 0x42, 0xc9, 0xfb, 0x27, 0xd1, 0x33, 0x51, 0x89,
+	0x1d, 0xb5, 0xa0, 0xa1, 0x8b, 0x56, 0xc2, 0x3f, 0xea, 0xd0, 0x2c, 0x15, 0x50, 0x1d, 0xbd, 0xe1,
+	0x9d, 0x53, 0xc7, 0x47, 0x2b, 0xb2, 0xdf, 0xa4, 0x0f, 0x5b, 0x29, 0xaa, 0x44, 0x32, 0x61, 0x4c,
+	0xc3, 0x8d, 0x64, 0x3e, 0x54, 0xbc, 0xb7, 0xe4, 0xca, 0x48, 0x9a, 0xa5, 0xfe, 0xd3, 0xbe, 0x37,
+	0x68, 0x9b, 0xf7, 0x66, 0x23, 0xdf, 0xa5, 0xc4, 0x87, 0x06, 0x5a, 0x89, 0xa6, 0xfe, 0x46, 0xdf,
+	0x1b, 0x34, 0xa3, 0x72, 0x49, 0x76, 0x60, 0x53, 0x69, 0xaa, 0xa7, 0xca, 0xdf, 0x74, 0x6f, 0xcd,
+	0xae, 0x0c, 0xc7, 0x13, 0x7a, 0x13, 0x27, 0x39, 0x4f, 0xa6, 0x52, 0x22, 0x4f, 0x6e, 0xfd, 0x46,
+	0xc1, 0xf1, 0x84, 0xde, 0x1c, 0xdf, 0x47, 0xc9, 0xd0, 0x54, 0x76, 0xf6, 0xa3, 0xfc, 0xa6, 0x7d,
+	0x7c, 0x9d, 0x82, 0x96, 0x32, 0x1c, 0xcd, 0x21, 0xc8, 0xfe, 0x8c, 0x07, 0xbf, 0x65, 0x39, 0xdc,
+	0xb6, 0x60, 0x37, 0xa6, 0xa8, 0xdc, 0x34, 0xb2, 0x4a, 0xac, 0x87, 0xa5, 0x31, 0xd5, 0x3e, 0xac,
+	0x97, 0x95, 0x43, 0xbf, 0xd5, 0x26, 0x75, 0x2a, 0xd2, 0x32, 0x75, 0x6b, 0x7d, 0xaa, 0x43, 0xbf,
+	0xd5, 0x87, 0x7f, 0x6e, 0x40, 0xb7, 0x1c, 0xcd, 0x19, 0xca, 0x6b, 0x96, 0x20, 0x19, 0x43, 0x67,
+	0xd1, 0x4d, 0x49, 0xe0, 0x44, 0xb3, 0xc4, 0x62, 0x83, 0x45, 0xe3, 0x09, 0xdf, 0xfc, 0xfa, 0xf7,
+	0x3f, 0xbf, 0xd5, 0xf6, 0x42, 0xdf, 0x38, 0xbf, 0x1a, 0x5d, 0x7f, 0x4e, 0x33, 0x71, 0x49, 0x0f,
+	0x47, 0x33, 0x3f, 0xfa, 0x66, 0x66, 0xb9, 0xe4, 0x07, 0xd8, 0x9a, 0xb3, 0x5c, 0xf2, 0xc2, 0x9e,
+	0xf4, 0xd0, 0x84, 0xab, 0x25, 0x5e, 0xdb, 0x12, 0xaf, 0xc8, 0xcb, 0x55, 0x25, 0x46, 0x3f, 0xb3,
+	0xf4, 0x17, 0x72, 0x09, 0xed, 0x05, 0xf7, 0x24, 0x1f, 0xda, 0x63, 0x96, 0xd9, 0x77, 0x10, 0x2c,
+	0xdb, 0x2a, 0xcc, 0x36, 0xec, 0xdb, 0x72, 0x01, 0x59, 0x79, 0x23, 0x22, 0xa1, 0xb3, 0x68, 0x88,
+	0x8e, 0xb0, 0xa5, 0x2e, 0x19, 0xec, 0x3c, 0x98, 0xcc, 0x3b, 0xf3, 0x6f, 0x0b, 0x3f, 0xb5, 0x75,
+	0xf6, 0xc3, 0xbd, 0x47, 0xaf, 0x35, 0x2a, 0x84, 0x4c, 0xa6, 0xd0, 0xad, 0x78, 0x2b, 0xd9, 0xb5,
+	0x45, 0x97, 0x3b, 0xee, 0xca, 0xaa, 0x9f, 0xd9, 0xaa, 0x07, 0xe1, 0xeb, 0xc7, 0xab, 0xa6, 0xc5,
+	0xa9, 0xe4, 0x0a, 0x3a, 0x8b, 0x3f, 0x09, 0x77, 0xd5, 0xa5, 0x7f, 0x8e, 0x95, 0x45, 0xdd, 0x04,
+	0xdf, 0x3c, 0x3e, 0xc1, 0x8b, 0x4d, 0x9b, 0xf6, 0xc5, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0xaa,
+	0xaf, 0xba, 0x56, 0x61, 0x08, 0x00, 0x00,
 }

@@ -16,260 +16,438 @@ package storage
 
 import (
 	"testing"
+	"time"
 
-	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	defaultScheduledAtInSec = 10
-	defaultCreatedAtInSec   = 20
-)
-
-func initializeJobDB() (*gorm.DB, sqlmock.Sqlmock) {
-	db, mock, _ := sqlmock.New()
-	gormDB, _ := gorm.Open("sqlite3", db)
-	return gormDB, mock
-}
-
-func createWorkflow(name string) *v1alpha1.Workflow {
-	return &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: name},
-		Status:     v1alpha1.WorkflowStatus{Phase: "Pending"}}
-}
-
-func TestCreateJob(t *testing.T) {
+func initializeDB() *gorm.DB {
 	db := NewFakeDbOrFatal()
-	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-
-	wf1 := createWorkflow("wf1")
-
-	jobExpected := model.Job{
-		CreatedAtInSec:   defaultCreatedAtInSec,
-		Name:             wf1.Name,
-		ScheduledAtInSec: defaultScheduledAtInSec,
-		Status:           model.JobExecutionPending,
-		UpdatedAtInSec:   defaultCreatedAtInSec,
-		PipelineID:       1,
+	job1 := &model.JobDetail{
+		Job: model.Job{
+			UUID:             "1",
+			Name:             "job1",
+			Namespace:        "n1",
+			PipelineID:       "1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+		},
+		Workflow: "workflow1",
 	}
-	wfExpected := createWorkflow(wf1.Name)
-	jobDetailExpect := model.JobDetail{
-		Workflow: wfExpected,
-		Job:      &jobExpected}
-	jobDetail, err := jobStore.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
-
-	assert.Nil(t, err)
-	assert.Equal(t, jobDetailExpect, *jobDetail, "Unexpected Job parsed.")
-
-	job, err := getJobMetadata(db, 1, wf1.Name)
-	assert.Equal(t, jobExpected, *job)
-}
-
-func TestCreateJob_CreateWorkflowFailed(t *testing.T) {
-	db := NewFakeDbOrFatal()
-	defer db.Close()
-	jobStore := NewJobStore(db, &FakeBadWorkflowClient{}, util.NewFakeTimeForEpoch())
-
-	wf1 := createWorkflow("wf1")
-
-	jobDetail, err := jobStore.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
-	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
-	assert.Nil(t, jobDetail)
-
-	job, err := getJobMetadata(db, 1, wf1.Name)
-	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Job wf1 not found.")
-	assert.Nil(t, job)
-}
-
-func TestCreateJob_CreateMetadataError(t *testing.T) {
-	db := NewFakeDbOrFatal()
-	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-	db.Close()
-
-	_, err := jobStore.CreateJob(1, &v1alpha1.Workflow{},
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
-		"Expected to throw an internal error")
-	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "Internal Server Error")
-	assert.Contains(t, err.(*util.UserError).Error(), "Failed to store job metadata")
-}
-
-func TestCreateJob_UpdateMetadataFailed(t *testing.T) {
-	db, mock := initializeJobDB()
-	mock.ExpectExec("INSERT INTO \"jobs\"").
-		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectExec("UPDATE jobs").WillReturnError(errors.New("something"))
-
-	store := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-	wf1 := createWorkflow("wf1")
-	jobExpected := model.Job{
-		CreatedAtInSec:   defaultCreatedAtInSec,
-		UpdatedAtInSec:   defaultCreatedAtInSec,
-		Name:             wf1.Name,
-		Status:           model.JobExecutionPending,
-		ScheduledAtInSec: defaultScheduledAtInSec,
-		PipelineID:       1,
+	job2 := &model.JobDetail{
+		Job: model.Job{
+			UUID:             "2",
+			Name:             "job2",
+			Namespace:        "n2",
+			PipelineID:       "1",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "done",
+		},
+		Workflow: "workflow1",
 	}
-	wfExpected := createWorkflow(wf1.Name)
-	jobDetailExpect := model.JobDetail{
-		Workflow: wfExpected,
-		Job:      &jobExpected}
-
-	jobDetail, err := store.CreateJob(1, wf1, defaultScheduledAtInSec, defaultCreatedAtInSec)
-
-	assert.Nil(t, err)
-	assert.Equal(t, jobDetailExpect, *jobDetail)
+	job3 := &model.JobDetail{
+		Job: model.Job{
+			UUID:             "3",
+			Name:             "job3",
+			Namespace:        "n3",
+			PipelineID:       "2",
+			CreatedAtInSec:   3,
+			ScheduledAtInSec: 3,
+			Conditions:       "done",
+		},
+		Workflow: "workflow3",
+	}
+	db.Create(job1)
+	db.Create(job2)
+	db.Create(job3)
+	return db
 }
 
 func TestListJobs_Pagination(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializeDB()
 	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-
-	jobDetail, err := jobStore.CreateJob(1, createWorkflow("wf1"),
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	jobDetail2, err := jobStore.CreateJob(1, createWorkflow("wf2"),
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	jobStore.CreateJob(2, createWorkflow("wf3"),
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
 	expectedFirstPageJobs := []model.Job{
 		{
-			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   defaultCreatedAtInSec,
-			Name:             jobDetail.Job.Name,
-			Status:           model.JobExecutionPending,
-			ScheduledAtInSec: defaultScheduledAtInSec,
-			PipelineID:       1,
+			UUID:             "1",
+			Name:             "job1",
+			Namespace:        "n1",
+			PipelineID:       "1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
 		}}
 	expectedSecondPageJobs := []model.Job{
 		{
-			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   defaultCreatedAtInSec,
-			Name:             jobDetail2.Job.Name,
-			Status:           model.JobExecutionPending,
-			ScheduledAtInSec: defaultScheduledAtInSec,
-			PipelineID:       1,
+			UUID:             "2",
+			Name:             "job2",
+			Namespace:        "n2",
+			PipelineID:       "1",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "done",
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs(1, "", 1, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 1, model.GetJobTablePrimaryKeyColumn())
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageJobs, jobs, "Unexpected Job listed.")
 	assert.NotEmpty(t, nextPageToken)
 
-	jobs, nextPageToken, err = jobStore.ListJobs(1, nextPageToken, 1, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err = jobStore.ListJobs("1", nextPageToken, 1, model.GetJobTablePrimaryKeyColumn())
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageJobs, jobs, "Unexpected Job listed.")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializeDB()
 	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-	jobDetail, err := jobStore.CreateJob(1, createWorkflow("wf1"),
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	jobDetail2, err := jobStore.CreateJob(1, createWorkflow("wf2"),
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+
 	expectedJobs := []model.Job{
 		{
-			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   defaultCreatedAtInSec,
-			Name:             jobDetail.Job.Name,
-			Status:           model.JobExecutionPending,
-			ScheduledAtInSec: defaultScheduledAtInSec,
-			PipelineID:       1,
+			UUID:             "1",
+			Name:             "job1",
+			Namespace:        "n1",
+			PipelineID:       "1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
 		},
 		{
-			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   defaultCreatedAtInSec,
-			Name:             jobDetail2.Job.Name,
-			Status:           model.JobExecutionPending,
-			ScheduledAtInSec: defaultScheduledAtInSec,
-			PipelineID:       1,
+			UUID:             "2",
+			Name:             "job2",
+			Namespace:        "n2",
+			PipelineID:       "1",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "done",
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs(1, "", 10, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 10, model.GetJobTablePrimaryKeyColumn())
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJobs, jobs, "Unexpected Job listed.")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListJobsError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializeDB()
 	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
-	_, _, err := jobStore.ListJobs(1, "", 10, model.GetJobTablePrimaryKeyColumn())
+	_, _, err := jobStore.ListJobs("1", "", 10, model.GetJobTablePrimaryKeyColumn())
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }
 
 func TestGetJob(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializeDB()
 	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-	wf1 := createWorkflow("wf1")
-	createdJobDetail, err := jobStore.CreateJob(1, wf1,
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
-	assert.Nil(t, err)
-	jobDetailExpect := model.JobDetail{
-		Workflow: wf1,
-		Job: &model.Job{
-			CreatedAtInSec:   defaultCreatedAtInSec,
-			UpdatedAtInSec:   defaultCreatedAtInSec,
-			Status:           model.JobExecutionPending,
-			Name:             createdJobDetail.Job.Name,
-			ScheduledAtInSec: defaultScheduledAtInSec,
-			PipelineID:       1,
-		}}
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
-	jobDetail, err := jobStore.GetJob(1, wf1.Name)
+	expectedJob := &model.JobDetail{
+		Job: model.Job{
+			UUID:             "1",
+			Name:             "job1",
+			Namespace:        "n1",
+			PipelineID:       "1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+		},
+		Workflow: "workflow1",
+	}
+
+	jobDetail, err := jobStore.GetJob("1", "1")
 	assert.Nil(t, err)
-	assert.Equal(t, jobDetailExpect, *jobDetail)
+	assert.Equal(t, expectedJob, jobDetail)
 }
 
 func TestGetJob_NotFoundError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializeDB()
 	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
-	_, err := jobStore.GetJob(1, "wf1")
+	_, err := jobStore.GetJob("1", "notfound")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected not to find the job")
 }
 
 func TestGetJob_InternalError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+	db := initializeDB()
 	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-	wf1 := createWorkflow("wf1")
-	jobStore.CreateJob(1, wf1,
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
 
-	_, err := jobStore.GetJob(1, wf1.Name)
+	_, err := jobStore.GetJob("1", "1")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get job to return internal error")
 }
 
-func TestGetJob_GetWorkflowError(t *testing.T) {
-	db := NewFakeDbOrFatal()
+func TestUpdateJob_UpdateSuccess(t *testing.T) {
+	db := initializeDB()
 	defer db.Close()
-	jobStore := NewJobStore(db, NewWorkflowClientFake(), util.NewFakeTimeForEpoch())
-	wf1 := createWorkflow("wf1")
-	jobStore.CreateJob(1, wf1,
-		defaultScheduledAtInSec, defaultCreatedAtInSec)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
-	jobStore = NewJobStore(db, &FakeBadWorkflowClient{}, util.NewFakeTimeForEpoch())
-	_, err := jobStore.GetJob(1, wf1.Name)
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
-		"Expected to throw an internal error")
+	expectedJob := &model.JobDetail{
+		Job: model.Job{
+			UUID:             "1",
+			Name:             "job1",
+			Namespace:        "n1",
+			PipelineID:       "1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+		},
+		Workflow: "workflow1",
+	}
+
+	jobDetail, err := jobStore.GetJob("1", "1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, jobDetail)
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+			Labels: map[string]string{
+				"scheduledworkflows.kubeflow.org/workflowEpoch": "100",
+			},
+			CreationTimestamp: metav1.NewTime(time.Unix(11, 0).UTC()),
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.NodeRunning,
+		},
+	})
+
+	err = jobStore.UpdateJob(workflow)
+	assert.Nil(t, err)
+
+	expectedJob = &model.JobDetail{
+		Job: model.Job{
+			UUID:             "1",
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			PipelineID:       "1",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 100,
+			Conditions:       "Running:",
+		},
+		Workflow: workflow.ToStringForStore(),
+	}
+
+	jobDetail, err = jobStore.GetJob("1", "1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, jobDetail)
+}
+
+func TestUpdateJob_CreateSuccess(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "2",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("2"),
+			}},
+			Labels: map[string]string{
+				"scheduledworkflows.kubeflow.org/workflowEpoch": "100",
+			},
+			CreationTimestamp: metav1.NewTime(time.Unix(11, 0).UTC()),
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.NodeRunning,
+		},
+	})
+
+	err := jobStore.UpdateJob(workflow)
+	assert.Nil(t, err)
+
+	expectedJob := &model.JobDetail{
+		Job: model.Job{
+			UUID:             "2",
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			PipelineID:       "2",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 100,
+			Conditions:       "Running:",
+		},
+		Workflow: workflow.ToStringForStore(),
+	}
+
+	jobDetail, err := jobStore.GetJob("2", "2")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, jobDetail)
+}
+
+func TestUpdateJob_UpdateError(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	db.Close()
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+			Labels: map[string]string{
+				"scheduledworkflows.kubeflow.org/workflowEpoch": "100",
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Phase: workflowapi.NodeRunning,
+		},
+	})
+
+	err := jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Error while updating job")
+}
+
+func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+			CreationTimestamp: metav1.NewTime(time.Unix(11, 0).UTC()),
+		},
+	})
+
+	err := jobStore.UpdateJob(workflow)
+	assert.Nil(t, err)
+
+	expectedJob := &model.JobDetail{
+		Job: model.Job{
+			UUID:             "1",
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			PipelineID:       "1",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 0,
+			Conditions:       ":",
+		},
+		Workflow: workflow.ToStringForStore(),
+	}
+
+	jobDetail, err := jobStore.GetJob("1", "1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob, jobDetail)
+}
+
+func TestUpdateJob_MissingField(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+
+	// Name
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+
+	err := jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a name")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// Namespace
+	workflow = util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "MY_NAME",
+			UID:  "1",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+
+	err = jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a namespace")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// Owner
+	workflow = util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "1",
+		},
+	})
+
+	err = jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a valid owner")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
+
+	// UID
+	workflow = util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+
+	err = jobStore.UpdateJob(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a UID")
+	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 }

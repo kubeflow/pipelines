@@ -120,6 +120,7 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline_E2E() {
 		Name:        "hello-world",
 		PackageId:   packageId,
 		Description: "this is my first pipeline",
+		Enabled:     true,
 		Parameters: []*api.Parameter{
 			{Name: "param1", Value: "goodbye"},
 			{Name: "param2", Value: "world"},
@@ -137,19 +138,23 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline_E2E() {
 	getPipResponse, err := s.pipelineClient.GetPipeline(ctx, &api.GetPipelineRequest{Id: pipelineId})
 	checkGetPipelineResponse(t, getPipResponse, err, requestStartTime, packageId)
 
+	// The pipeline CRD would create the job and it synced to the DB by persistent agent.
+	// This could take a few seconds to finish.
+	time.Sleep(20 * time.Second)
+
 	/* ---------- Verify list job works ---------- */
 	listJobsResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PipelineId: pipelineId})
 	checkListJobsResponse(t, listJobsResponse, err, requestStartTime)
-	jobName := listJobsResponse.Jobs[0].Name
+	jobId := listJobsResponse.Jobs[0].Id
 
 	/* ---------- Verify job complete successfully ---------- */
-	err = s.checkJobSucceed(clientSet, s.namespace, pipelineId, jobName)
+	err = s.checkJobSucceed(clientSet, s.namespace, pipelineId, jobId)
 	if err != nil {
 		assert.Fail(t, "The job doesn't complete. Error: "+err.Error())
 	}
 
 	/* ---------- Verify get job works ---------- */
-	getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobName: jobName})
+	getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobId: jobId})
 	checkGetJobResponse(t, getJobResponse, err, requestStartTime)
 
 	/* ---------- Verify delete pipeline works ---------- */
@@ -161,7 +166,7 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline_E2E() {
 	checkNoPipelineExists(t, listPipResponse, err)
 
 	/* ---------- Verify can't retrieve the job ---------- */
-	_, err = s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobName: jobName})
+	_, err = s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobId: jobId})
 	assert.NotNil(t, err)
 
 	/* ---------- Verify delete package works ---------- */
@@ -173,11 +178,11 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline_E2E() {
 	checkNoPackageExists(t, listPkgResponse, err)
 }
 
-func (s *OneTimePipelineTestSuite) checkJobSucceed(clientSet *kubernetes.Clientset, namespace string, pipelineId uint32, jobName string) error {
+func (s *OneTimePipelineTestSuite) checkJobSucceed(clientSet *kubernetes.Clientset, namespace string, pipelineId string, jobId string) error {
 	var waitForJobSucceed = func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobName: jobName})
+		getJobResponse, err := s.jobClient.GetJob(ctx, &api.GetJobRequest{PipelineId: pipelineId, JobId: jobId})
 		if err != nil {
 			return errors.New("Can't get job.")
 		}
@@ -296,10 +301,12 @@ func verifyPackage(t *testing.T, pkg *api.Package, requestStartTime int64) {
 func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64, expectedPkgId uint32) {
 	assert.NotNil(t, *pipeline)
 	assert.NotNil(t, pipeline.CreatedAt)
-	assert.NotNil(t, pipeline.EnabledAt)
 	// Only verify the time fields have valid value and in the right range.
 	assert.True(t, pipeline.CreatedAt.Seconds >= requestStartTime)
-	assert.True(t, pipeline.EnabledAt.Seconds >= requestStartTime)
+
+	// Scrub the pipeline status and updateAt, since it's changing as test progress.
+	pipeline.Status = ""
+	pipeline.UpdatedAt = nil
 
 	expected := api.Pipeline{
 		Id:          pipeline.Id,
@@ -308,11 +315,11 @@ func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64
 		Description: "this is my first pipeline",
 		PackageId:   expectedPkgId,
 		Enabled:     true,
-		EnabledAt:   &timestamp.Timestamp{Seconds: pipeline.EnabledAt.Seconds},
 		Parameters: []*api.Parameter{
 			{Name: "param1", Value: "goodbye"},
 			{Name: "param2", Value: "world"},
 		},
+		Trigger: &api.Trigger{},
 	}
 	assert.Equal(t, expected, *pipeline)
 }
@@ -321,7 +328,6 @@ func verifyJob(t *testing.T, actual *api.Job, requestStartTime int64) {
 	// Only verify the time fields have valid value and in the right range.
 	assert.True(t, actual.CreatedAt.Seconds >= requestStartTime)
 	assert.True(t, actual.ScheduledAt.Seconds >= requestStartTime)
-	assert.Contains(t, actual.Name, "arguments-parameters-")
 }
 
 func TestOneTimePipeline(t *testing.T) {
