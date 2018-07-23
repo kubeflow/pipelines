@@ -44,6 +44,9 @@ the License.
 
     <!--Item list-->
     <div id="listContainer" class="flex-column flex-grow overflow-auto">
+      <template is="dom-if" if="[[!rows.length]]">
+        <span class="empty-message">[[emptyMessage]]</span>
+      </template>
       <template is="dom-repeat" id="list" items="{{rows}}" as="row"
                 filter="{{_computeFilter(filterString)}}" initial-count="100">
         <paper-item class="row" selected$={{row.selected}} on-click="_rowClicked"

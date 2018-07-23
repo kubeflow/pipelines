@@ -89,7 +89,18 @@ describe('item-list', () => {
       }),
     ];
     fixture.rows = rows;
-    (Polymer.dom as any).flush();
+    Polymer.flush();
+  });
+
+  it('shows empty message iff there are no items', () => {
+    const emptyMessage = 'test empty message';
+    fixture.emptyMessage = emptyMessage;
+    assert(fixture.emptyMessageSpan.innerText === '', 'No empty message should show');
+    const saveRows = fixture.rows;
+    fixture.rows = [];
+    Polymer.flush();
+    assert.strictEqual(fixture.emptyMessageSpan.innerText, emptyMessage,
+        'Empty message should show after emptying items');
   });
 
   it('displays a row per item in list', () => {

@@ -169,6 +169,12 @@ export class ItemListElement extends Polymer.Element {
   @property({ type: Number })
   public selectedPageSize = this.pageSizes[0];
 
+  /**
+   * Message to show if the list has no items
+   */
+  @property({ type: String })
+  public emptyMessage = '';
+
   @property({ type: Boolean })
   protected _showFilterBox = false;
 
@@ -199,6 +205,11 @@ export class ItemListElement extends Polymer.Element {
   private _pageTokens = [''];
 
   private _sortByColumn = '';
+
+  public get emptyMessageSpan(): HTMLSpanElement {
+    const root = this.shadowRoot as ShadowRoot;
+    return root.querySelector('.empty-message') as HTMLSpanElement;
+  }
 
   public reset(): void {
     this._pageTokens = [''];

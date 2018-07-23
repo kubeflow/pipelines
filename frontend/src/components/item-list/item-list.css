@@ -112,6 +112,11 @@ div {
   padding-left: var(--spacing-minus-2);
 }
 
+.empty-message {
+  margin: var(--spacing-minus-1) auto;
+  color: var(--secondary-text-color);
+}
+
 .filterShown--true {
   color: var(--theme-primary-color);
 }
