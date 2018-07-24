@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -xe
+
 DOCKER_FILE=Dockerfile
 
 usage()
@@ -52,6 +54,7 @@ done
 BASE_DIR=/ml
 
 ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts
+cp ~/.ssh/github/* ~/.ssh
 
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
 git clone git@github.com:googleprivate/ml.git ${BASE_DIR}

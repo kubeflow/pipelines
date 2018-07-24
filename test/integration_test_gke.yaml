@@ -197,7 +197,7 @@ spec:
         value: Dockerfile
       - name: image-suffix
     container:
-      image: gcr.io/ml-pipeline/image-builder:v20180709-be45e85-e3b0c4
+      image: gcr.io/ml-pipeline/image-builder:v20180724-0.0.10-60-g2d7875a-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
@@ -207,7 +207,7 @@ spec:
       ]
       volumeMounts:
       - name: secret-volume
-        mountPath: "/root/.ssh"
+        mountPath: "/root/.ssh/github"
       env:
       - name: TEST_ID
         value: "{{workflow.name}}"
@@ -266,7 +266,7 @@ spec:
       ]
       volumeMounts:
       - name: secret-volume
-        mountPath: "/root/.ssh"
+        mountPath: "/root/.ssh/github"
 
   - name: clean-up
     inputs:

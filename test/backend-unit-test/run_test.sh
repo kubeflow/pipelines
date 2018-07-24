@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -xe
+
 usage()
 {
     echo "usage: run_test.sh
@@ -41,9 +43,9 @@ TEST_RESULT_BASE_DIR=gs://ml-pipeline-test
 JUNIT_TEST_RESULT=junit_BackendUnitTestOutput.xml
 TEST_DIR=backend/src
 
-
 # Add github to SSH known host.
 ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts
+cp ~/.ssh/github/* ~/.ssh
 
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
 git clone git@github.com:${GITHUB_REPO}.git ${BASE_DIR}

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -xe
 
 usage()
 {
@@ -40,27 +41,56 @@ while [ "$1" != "" ]; do
     shift
 done
 
-TEST_CLUSTER=spinner
+TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
+TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}
+ZONE=us-west1-a
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=60
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
 
-echo presubmit test starts...
+echo "presubmit test starts"
 
-gcloud container clusters get-credentials ${TEST_CLUSTER} --zone us-west1-a --project ml-pipeline-test
+echo "create test cluster"
+gcloud config set project ml-pipeline-test
+gcloud config set compute/zone us-west1-a
+gcloud container clusters create ${TEST_CLUSTER} \
+  --scopes cloud-platform \
+  --enable-cloud-logging \
+  --enable-cloud-monitoring \
+  --machine-type n1-standard-2 \
+  --num-nodes 3
+
+function delete_cluster {
+  echo "Delete cluster..."
+  gcloud container clusters delete ${TEST_CLUSTER} --async
+}
+trap delete_cluster EXIT
+
+gcloud container clusters get-credentials ${TEST_CLUSTER}
 kubectl config set-context $(kubectl config current-context) --namespace=default
+
+echo "Add necessary cluster role bindings"
+ACCOUNT=$(gcloud info --format='value(config.account)')
+kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT
+kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default
+
+echo "Create k8s secret for github SSH credentials"
+cp /etc/ssh-knative/ssh-knative ./id_rsa
+kubectl create secret generic ssh-key-secret --from-file=id_rsa=./id_rsa
+
+echo "install argo"
+argo install
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} -p commit-sha="${PULL_PULL_SHA}" | awk '/Name:/{print $NF}'`
 echo argo workflow submitted successfully
 
-echo check status of argo workflow $ARGO_WORKFLOW....
-
+echo "check status of argo workflow $ARGO_WORKFLOW...."
 # probing the argo workflow status until it completed. Timeout after 20 minutes
 for i in $(seq 1 ${PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT})
 do
-  WORKFLOW_STATUS=`kubectl get wf $ARGO_WORKFLOW --show-labels`
+  WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW --show-labels`
   echo $WORKFLOW_STATUS | grep ${WORKFLOW_COMPLETE_KEYWORD} && s=0 && break || s=$? && printf "Workflow ${ARGO_WORKFLOW} is not finished.\n${WORKFLOW_STATUS}\nSleep for 20 seconds...\n" && sleep 20
 done
 
@@ -69,9 +99,7 @@ if [[ $s != 0 ]]
  then echo "Prow job Failed: Argo workflow timeout.." && exit $s
 fi
 
-echo Argo workflow finished....
-
-echo Copy test result...
+echo "Argo workflow finished. Copy test result"
 mkdir -p $ARTIFACT_DIR
 gsutil mv -r gs://ml-pipeline-test/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}/* ${ARTIFACT_DIR}
 
