@@ -44,7 +44,7 @@ done
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}
 ZONE=us-west1-a
-PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=60
+PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=90
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
@@ -101,7 +101,7 @@ fi
 
 echo "Argo workflow finished. Copy test result"
 mkdir -p $ARTIFACT_DIR
-gsutil mv -r gs://ml-pipeline-test/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}/* ${ARTIFACT_DIR}
+gsutil mv -r gs://ml-pipeline-test/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}/* ${ARTIFACT_DIR} || true
 
 ARGO_WORKFLOW_DETAILS=`argo get ${ARGO_WORKFLOW}`
 ARGO_WORKFLOW_LOGS=`argo logs -w ${ARGO_WORKFLOW}`
