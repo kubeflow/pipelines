@@ -140,7 +140,8 @@ func (s *OneTimePipelineTestSuite) TestOneTimePipeline_E2E() {
 
 	// The pipeline CRD would create the job and it synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
-	time.Sleep(20 * time.Second)
+	// TODO: Retry list job every 5 seconds instead of sleeping for 40 seconds.
+	time.Sleep(40 * time.Second)
 
 	/* ---------- Verify list job works ---------- */
 	listJobsResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PipelineId: pipelineId})
