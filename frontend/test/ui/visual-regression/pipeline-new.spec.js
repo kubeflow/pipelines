@@ -71,6 +71,8 @@ describe('create new pipeline', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  // TODO: add visual regression tests for various ways to schedule a pipeline.
+
   it('resets the page when the user navigates away', () => {
     // Select a package
     const backSelector = 'app-shell pipeline-new paper-icon-button';

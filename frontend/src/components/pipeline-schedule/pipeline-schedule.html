@@ -40,7 +40,7 @@
         }
       }
 
-      paper-input.crontab {
+      paper-input.cron-expression {
         width: 240px;
         --paper-input-container-disabled: {
           opacity: 0.7;
@@ -112,6 +112,7 @@
           <span class="font-large align-left">Run</span>
 
           <paper-dropdown-menu id="cronIntervalDropdown" class="input-field-small error-overflow"
+                               disabled="[[_allowEditingCronExpression]]"
                                no-label-float invalid="[[!_weekdaySelectionIsValid]]"
                                error-message="Please select at least one weekday">
             <paper-listbox id="cronIntervalListbox" slot="dropdown-content" class="dropdown-content"
@@ -127,7 +128,7 @@
         <div class="flex font-large">
           <span class="align-left">on</span>
           <paper-checkbox id="allWeekdaysCheckbox"
-                          disabled="[[!_enableWeekdayButtons]]"
+                          disabled="[[_disableWeekdayButtons(_enableWeekdayButtons, _allowEditingCronExpression)]]"
                           checked="{{_allDaysOfWeekActive}}"
                           on-checked-changed="_selectAllWeekdaysCheckboxChanged">
           All
@@ -136,25 +137,29 @@
           <span id="weekdayButtons">
             <template is="dom-repeat" items="{{_weekdays}}" as="weekday">
               <paper-button class="toggle" active="{{weekday.active}}" toggles
-                            disabled="[[!_enableWeekdayButtons]]">
+                            disabled="[[_disableWeekdayButtons(_enableWeekdayButtons, _allowEditingCronExpression)]]">
                 [[weekday.day]]
               </paper-button>
             </template>
           </span>
         </div>
 
-        <!-- Crontab text field -->
+        <div class="font-medium">
+          <paper-checkbox id="allowEditingCron" class="align-left"
+                          checked="{{_allowEditingCronExpression}}">
+            Allow editing cron expression. (format is specified
+            <a href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
+               target="blank">here</a>)
+          </paper-checkbox>
+        </div>
+
+        <!-- Cron expression text field -->
         <div class="flex">
-          <!--
-            TODO: Allow users to update crontab manually and automatically
-            update the rest of the UI based on it.
-          -->
-          <paper-input class="crontab" label="crontab" readonly disabled
-                       value="[[_crontab]]">
+          <paper-input id="cronExpression" class="cron-expression disabled" label="cron expression"
+                       tabindex="-1" value="{{_cronExpression}}">
           </paper-input>
         </div>
-        <div>Note: End date/time is handled outside of cron.</div>
-
+        <div class="cron-note">Note: Start and end dates/times are handled outside of cron.</div>
 
       </template>
 

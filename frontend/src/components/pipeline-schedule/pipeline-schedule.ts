@@ -87,7 +87,10 @@ export class PipelineSchedule extends Polymer.Element {
   protected _maxConcurrentJobs = 10;
 
   @property({ type: String })
-  protected _crontab = '';
+  protected _cronExpression = '';
+
+  @property({ type: Boolean })
+  protected _allowEditingCronExpression = false;
 
   @property({ type: String })
   protected _errorMsg = '';
@@ -152,6 +155,14 @@ export class PipelineSchedule extends Polymer.Element {
     return this.shadowRoot ? this.shadowRoot.querySelector('#cronIntervalListbox') : null;
   }
 
+  public get allowEditingCronCheckbox(): PaperCheckboxElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#allowEditingCron') : null;
+  }
+
+  public get cronExpressionInput(): PaperInputElement|null {
+    return this.shadowRoot ? this.shadowRoot.querySelector('#cronExpression') : null;
+  }
+
   public get periodFrequencyInput(): PaperInputElement|null {
     return this.shadowRoot ? this.shadowRoot.querySelector('#frequency') : null;
   }
@@ -179,7 +190,8 @@ export class PipelineSchedule extends Polymer.Element {
     }
 
     if (this._SCHEDULES[this._scheduleTypeIndex] === CRON) {
-      return new Trigger(new CronSchedule(this._crontab, this._startTime(), this._endTime()));
+      return new Trigger(
+          new CronSchedule(this._cronExpression, this._startTime(), this._endTime()));
     }
 
     return null;
@@ -211,16 +223,15 @@ export class PipelineSchedule extends Polymer.Element {
       this.scheduleIsValid = startAndEndAreValid && this._maxConcurrentJobsIsValid;
 
       if (this._SCHEDULES[this._scheduleTypeIndex] === CRON) {
-        // Weekday selection is valid if interval is not weekly or any weekday is
-        // selected.
+        // Weekday selection is valid if interval is not weekly or any weekday is selected.
         this._weekdaySelectionIsValid =
             this._cronIntervals[this._intervalIndex] !== CronIntervals.WEEKLY ||
             this._weekdays.map((w) => w.active).reduce((prev, cur) => prev || cur);
 
         this.scheduleIsValid = this.scheduleIsValid && this._weekdaySelectionIsValid;
 
-        if (this.scheduleIsValid) {
-          this._updateDisplayCrontab();
+        if (this.scheduleIsValid && !this._allowEditingCronExpression) {
+          this._updateDisplayCronExpression();
         }
       }
     }
@@ -239,9 +250,8 @@ export class PipelineSchedule extends Polymer.Element {
   // Update all weekday buttons when all-weekdays checkbox is (un)checked.
   protected _selectAllWeekdaysCheckboxChanged(): void {
     const root = this.shadowRoot as ShadowRoot;
-    // If this function is called on-checked-changed, the property in this
-    // class won't have actually been updated yet, so we have to get it this
-    // way.
+    // If this function is called on-checked-changed, the property in this class won't have actually
+    // been updated yet, so we have to get it this way.
     if (root) {
       const allWeekdaysCheckbox = root.querySelector('#allWeekdaysCheckbox');
       if (allWeekdaysCheckbox) {
@@ -250,6 +260,14 @@ export class PipelineSchedule extends Polymer.Element {
             (_, i) => this.set('_weekdays.' + i + '.active', allWeekdaysCheckboxChecked));
       }
     }
+  }
+
+  protected _disableWeekdayButtons(
+      enableWeekdayButtons: boolean,
+      allowEditingCronExpression: boolean): boolean {
+    // If a user opts to manually enter the cron expression, then we disable the other UI we provide
+    // for constructing simple cron expressions.
+    return !enableWeekdayButtons || allowEditingCronExpression;
   }
 
   @observe('_intervalIndex')
@@ -277,6 +295,24 @@ export class PipelineSchedule extends Polymer.Element {
   // Show schedule inputs for recurring runs specified by cron.
   protected _showCronInputs(scheduleTypeIndex: number): boolean {
     return this._SCHEDULES[scheduleTypeIndex] === CRON;
+  }
+
+  // Disable tabbing to the cron expression input field and change its style if it is not editable.
+  // We use CSS rather than the paper-input's "disabled" property because of an issue with how
+  // Polymer treats tabindex when the disabled property changes.
+  // See: https://github.com/PolymerElements/iron-behaviors/pull/83
+  @observe('_allowEditingCronExpression')
+  protected _updateCronInputDisabledState(): void {
+    if (this.cronExpressionInput) {
+      if (this._allowEditingCronExpression) {
+        this.cronExpressionInput.classList.remove('disabled');
+        this.cronExpressionInput.setAttribute('tabindex', '0');
+      } else {
+        this.cronExpressionInput.classList.add('disabled');
+        this.cronExpressionInput.setAttribute('tabindex', '-1');
+        this._updateDisplayCronExpression();
+      }
+    }
   }
 
   private _startTime(): string {
@@ -320,8 +356,8 @@ export class PipelineSchedule extends Polymer.Element {
     return intervalSeconds * this._frequency;
   }
 
-  // The crontab we send to the backend needs to be UTC.
-  private _generateCrontab(): string {
+  // The cron expression we send to the backend needs to be UTC.
+  private _generateCronExpression(): string {
     let targetDayOfMonth = '0';
     let targetHours = '0';
     let targetMinutes = '0';
@@ -376,7 +412,7 @@ export class PipelineSchedule extends Polymer.Element {
   }
 
   @observe('_weekdays.*')
-  private _updateDisplayCrontab(): void {
-    this._crontab = this._generateCrontab();
+  private _updateDisplayCronExpression(): void {
+    this._cronExpression = this._generateCronExpression();
   }
 }

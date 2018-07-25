@@ -134,8 +134,8 @@ describe('pipeline-schedule', () => {
       assert.strictEqual(fixture.allWeekdaysCheckbox.disabled, true);
     });
 
-    it('updates the crontab when the recurrence interval is changed', (done) => {
-      const crontabs = [
+    it('updates the cron expression when the recurrence interval is changed', (done) => {
+      const cronExpressions = [
         '0 * * * * ?', // 'every minute'
         '0 0 * * * ?', // 'hourly'
         '0 0 0 * * ?', // 'daily'
@@ -146,7 +146,9 @@ describe('pipeline-schedule', () => {
         fixture._cronIntervals.forEach((v, i) => {
           fixture.cronIntervalListbox.select(i);
           assert.strictEqual(fixture.cronIntervalDropdown.value, v);
-          assert.deepStrictEqual(fixture.toTrigger(), new Trigger(new CronSchedule(crontabs[i])));
+          assert.deepStrictEqual(
+              fixture.toTrigger(),
+              new Trigger(new CronSchedule(cronExpressions[i])));
           assert.strictEqual(fixture.allWeekdaysCheckbox.checked, true);
           assert.strictEqual(fixture.allWeekdaysCheckbox.disabled, v !== 'weekly');
         });
@@ -176,6 +178,56 @@ describe('pipeline-schedule', () => {
       // Default cron schedule corresponds to "hourly"
       const expectedCronTrigger = new Trigger(new CronSchedule('0 0 * * * ?'));
       assert.deepStrictEqual(fixture.toTrigger(), expectedCronTrigger);
+    });
+
+    it('returns manually entered cron expression when toTrigger is called', () => {
+      // We use the CSS class rather than the element property because of an issue with Polymer
+      // inputs and tabindex. See: https://github.com/PolymerElements/iron-behaviors/pull/83
+      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
+
+      // Because we set the cron expression directly, checking this checkbox isn't actually
+      // necessary. Thus we just check that the input field went from disabled to enabled.
+      fixture.allowEditingCronCheckbox.checked = true;
+      fixture.cronExpressionInput.value = '1 2 3 4 5 ?';
+
+      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), false);
+      const expectedCronTrigger = new Trigger(new CronSchedule('1 2 3 4 5 ?'));
+      assert.deepStrictEqual(fixture.toTrigger(), expectedCronTrigger);
+    });
+
+    it('rederives cron expression from inputs when editing is redisabled', () => {
+      // Default cron schedule corresponds to "hourly"
+      const originalCronTrigger = new Trigger(new CronSchedule('0 0 * * * ?'));
+      assert.deepStrictEqual(fixture.toTrigger(), originalCronTrigger);
+      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
+
+      // Enable editing and change the cron expression
+      fixture.allowEditingCronCheckbox.checked = true;
+      fixture.cronExpressionInput.value = '1 2 3 4 5 ?';
+      const newCronTrigger = new Trigger(new CronSchedule('1 2 3 4 5 ?'));
+      assert.deepStrictEqual(fixture.toTrigger(), newCronTrigger);
+      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), false);
+
+      // Redisable editing of cron expression. Cron expression should revert to original
+      fixture.allowEditingCronCheckbox.checked = false;
+      assert.deepStrictEqual(fixture.toTrigger(), originalCronTrigger);
+      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
+    });
+
+    it('allows/disallows tabbing to the cron expression field depending on disabled state', () => {
+      // Should initially forbid tabbing as the field is disabled by default
+      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
+      assert.strictEqual(fixture.cronExpressionInput.getAttribute('tabindex'), '-1');
+
+      // Should allow tabbing when the cron field is editable
+      fixture.allowEditingCronCheckbox.checked = true;
+      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), false);
+      assert.strictEqual(fixture.cronExpressionInput.getAttribute('tabindex'), '0');
+
+      // Should not allow tabbing when the cron field is once again disabled
+      fixture.allowEditingCronCheckbox.checked = false;
+      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
+      assert.strictEqual(fixture.cronExpressionInput.getAttribute('tabindex'), '-1');
     });
 
   });

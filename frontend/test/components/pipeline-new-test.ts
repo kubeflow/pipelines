@@ -203,7 +203,7 @@ describe('pipeline-new', () => {
           actualPipeline.parameters[i].value, (parameterInputs[i] as PaperInputElement).value);
     }
     // "0 0 * * * ?" is the default schedule. It means "run every hour".
-    assert.strictEqual(actualPipeline.trigger.crontab, '0 0 * * * ?');
+    assert.strictEqual(actualPipeline.trigger.cronExpression, '0 0 * * * ?');
 
     deployPipelineStub.restore();
   });

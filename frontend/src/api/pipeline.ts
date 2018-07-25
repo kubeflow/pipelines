@@ -26,7 +26,7 @@ export class CronSchedule {
     return newCronSchedule;
   }
 
-  public get crontab(): string {
+  public get cronExpression(): string {
     return this.cron;
   }
 
@@ -140,8 +140,8 @@ export class Trigger {
     return newTrigger;
   }
 
-  public get crontab(): string {
-    return this.cron_schedule ? this.cron_schedule.crontab : '';
+  public get cronExpression(): string {
+    return this.cron_schedule ? this.cron_schedule.cronExpression : '';
   }
 
   public get periodInSeconds(): number {

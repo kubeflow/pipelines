@@ -23,6 +23,11 @@ paper-button.toggle[disabled] {
   color: var(--disabled-color);
 }
 
+paper-input.disabled {
+  --primary-text-color: var(--secondary-text-color);
+  pointer-events: none;
+}
+
 .align-left {
   padding-bottom: var(--spacing-minus-1);
   padding-left: var(--spacing-minus-3);
@@ -34,10 +39,14 @@ paper-button.toggle[disabled] {
   padding: var(--spacing-minus-1) var(--spacing-minus-3) var(--spacing-minus-5);
 }
 
-.error-msg-container {
-  min-height: 20px;
+.cron-note {
+  padding-top: var(--spacing-minus-3);
 }
 
 .error-msg {
   color: var(--error-text-color);
+}
+
+.error-msg-container {
+  min-height: var(--spacing-minus-1);
 }

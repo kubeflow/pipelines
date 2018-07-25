@@ -101,7 +101,7 @@ describe('pipeline-details', () => {
 
     const scheduleDiv = fixture.shadowRoot.querySelector('.schedule.value') as HTMLDivElement;
     assert(isVisible(scheduleDiv), 'should find schedule div');
-    assert.strictEqual(scheduleDiv.innerText, testPipeline.trigger.crontab,
+    assert.strictEqual(scheduleDiv.innerText, testPipeline.trigger.cronExpression,
         'displayed schedule does not match test data');
 
     const enabledDiv = fixture.shadowRoot.querySelector('.enabled.value') as HTMLDivElement;
