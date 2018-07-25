@@ -120,7 +120,7 @@ func ToApiPipeline(pipeline *model.Pipeline) (*api.Pipeline, error) {
 	}
 	return &api.Pipeline{
 		Id:             pipeline.UUID,
-		Name:           pipeline.Name,
+		Name:           pipeline.DisplayName,
 		Description:    pipeline.Description,
 		PackageId:      pipeline.PackageId,
 		Enabled:        pipeline.Enabled,
@@ -152,7 +152,7 @@ func ToModelPipeline(pipeline *api.Pipeline) (*model.Pipeline, error) {
 	}
 	return &model.Pipeline{
 		UUID:           pipeline.Id,
-		Name:           pipeline.Name,
+		DisplayName:    pipeline.Name,
 		Description:    pipeline.Description,
 		PackageId:      pipeline.PackageId,
 		Enabled:        pipeline.Enabled,

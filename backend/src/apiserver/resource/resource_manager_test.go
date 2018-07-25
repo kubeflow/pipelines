@@ -258,14 +258,15 @@ func TestCreatePipeline(t *testing.T) {
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: 1,
-		Enabled:   true,
+		DisplayName: "pp 1",
+		PackageId:   1,
+		Enabled:     true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
 	expectedPipeline := &model.Pipeline{
 		UUID:           "123",
-		Name:           "pp1",
+		DisplayName:    "pp 1",
+		Name:           "pipeline-pp1",
 		Namespace:      "default",
 		PackageId:      1,
 		Enabled:        true,
@@ -318,9 +319,9 @@ func TestEnablePipeline(t *testing.T) {
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: 1,
-		Enabled:   true,
+		DisplayName: "pp 1",
+		PackageId:   1,
+		Enabled:     true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
 	assert.Nil(t, err)
@@ -329,7 +330,8 @@ func TestEnablePipeline(t *testing.T) {
 	newPipeline, err = manager.GetPipeline(newPipeline.UUID)
 	expectedPipeline := &model.Pipeline{
 		UUID:           "123",
-		Name:           "pp1",
+		DisplayName:    "pp 1",
+		Name:           "pipeline-pp1",
 		Namespace:      "default",
 		PackageId:      1,
 		Enabled:        false,
@@ -663,5 +665,12 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
+}
 
+func TestToScheduledWorkflowName_SpecialCharsAndSpace(t *testing.T) {
+	assert.Equal(t, toScheduledWorkflowName("! HaVe ä £unky name"), "pipeline-haveunkyname")
+}
+
+func TestToScheduledWorkflowName_TruncateLongName(t *testing.T) {
+	assert.Equal(t, toScheduledWorkflowName("AloooooooooooooooooongName"), "pipeline-aloooooooooooooo")
 }

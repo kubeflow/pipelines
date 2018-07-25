@@ -18,7 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
+
+	"regexp"
+
+	"math"
 
 	workflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
@@ -180,8 +185,9 @@ func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipel
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
+
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
-		ObjectMeta: v1.ObjectMeta{Name: pipeline.Name},
+		ObjectMeta: v1.ObjectMeta{GenerateName: toScheduledWorkflowName(pipeline.DisplayName)},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        pipeline.Enabled,
 			MaxConcurrency: &pipeline.MaxConcurrency,
@@ -201,6 +207,7 @@ func (r *ResourceManager) CreatePipeline(pipeline *model.Pipeline) (*model.Pipel
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
 	pipeline.UUID = string(newScheduledWorkflow.UID)
+	pipeline.Name = newScheduledWorkflow.Name
 	pipeline.Namespace = newScheduledWorkflow.Namespace
 	pipeline.Conditions = util.NewScheduledWorkflow(newScheduledWorkflow).ConditionSummary()
 	return r.pipelineStore.CreatePipeline(pipeline)
@@ -310,6 +317,18 @@ func toCrdParameter(paramsString string) []scheduledworkflow.Parameter {
 		swParams = append(swParams, swParam)
 	}
 	return swParams
+}
+
+// Process the pipeline name to remove special char, prepend with "pipeline-" prefix, and
+// truncate size to <=25
+func toScheduledWorkflowName(displayName string) string {
+	const (
+		// K8s resource name only allow lower case alphabetic char, number and -
+		swfCompatibleNameRegx = "[^a-z0-9-]+"
+	)
+	reg := regexp.MustCompile(swfCompatibleNameRegx)
+	processedName := "pipeline-" + reg.ReplaceAllString(strings.ToLower(displayName), "")
+	return processedName[:int(math.Min(float64(len(processedName)), 25))]
 }
 
 func (r *ResourceManager) ReportWorkflowResource(resource string) error {

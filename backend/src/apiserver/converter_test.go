@@ -81,10 +81,11 @@ func TestToApiJobs(t *testing.T) {
 
 func TestToApiPipeline(t *testing.T) {
 	modelPipeline := model.Pipeline{
-		UUID:      "pipeline1",
-		Name:      "name1",
-		PackageId: 1,
-		Enabled:   true,
+		UUID:        "pipeline1",
+		DisplayName: "name 1",
+		Name:        "name1",
+		PackageId:   1,
+		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -100,7 +101,7 @@ func TestToApiPipeline(t *testing.T) {
 	assert.Nil(t, err)
 	expectedPipeline := &api.Pipeline{
 		Id:             "pipeline1",
-		Name:           "name1",
+		Name:           "name 1",
 		PackageId:      1,
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -119,7 +120,7 @@ func TestToApiPipeline(t *testing.T) {
 func TestNonScheduledPipelineToApiPipeline(t *testing.T) {
 	modelPipeline := model.Pipeline{
 		UUID:           "pipeline1",
-		Name:           "name1",
+		DisplayName:    "name1",
 		PackageId:      1,
 		Enabled:        true,
 		Trigger:        model.Trigger{},
@@ -146,10 +147,11 @@ func TestNonScheduledPipelineToApiPipeline(t *testing.T) {
 
 func TestToApiPipelines(t *testing.T) {
 	modelPipeline1 := model.Pipeline{
-		UUID:      "pipeline1",
-		Name:      "name1",
-		PackageId: 1,
-		Enabled:   true,
+		UUID:        "pipeline1",
+		DisplayName: "name 1",
+		Name:        "name1",
+		PackageId:   1,
+		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -162,10 +164,11 @@ func TestToApiPipelines(t *testing.T) {
 		UpdatedAtInSec: 1,
 	}
 	modelpipeline2 := model.Pipeline{
-		UUID:      "pipeline2",
-		Name:      "name2",
-		PackageId: 2,
-		Enabled:   true,
+		UUID:        "pipeline2",
+		DisplayName: "name 2",
+		Name:        "name2",
+		PackageId:   2,
+		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(2),
@@ -182,7 +185,7 @@ func TestToApiPipelines(t *testing.T) {
 	expectedPipelines := []*api.Pipeline{
 		{
 			Id:             "pipeline1",
-			Name:           "name1",
+			Name:           "name 1",
 			PackageId:      1,
 			Enabled:        true,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -197,7 +200,7 @@ func TestToApiPipelines(t *testing.T) {
 		},
 		{
 			Id:             "pipeline2",
-			Name:           "name2",
+			Name:           "name 2",
 			PackageId:      2,
 			Enabled:        true,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
@@ -232,10 +235,10 @@ func TestToModelPipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedModelPipeline := &model.Pipeline{
-		UUID:      "pipeline1",
-		Name:      "name1",
-		PackageId: 1,
-		Enabled:   true,
+		UUID:        "pipeline1",
+		DisplayName: "name1",
+		PackageId:   1,
+		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),

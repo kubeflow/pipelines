@@ -33,6 +33,7 @@ func initializePipelineDB() *gorm.DB {
 	pipeline1 := &model.PipelineDetail{
 		Pipeline: model.Pipeline{
 			UUID:           "1",
+			DisplayName:    "pp 1",
 			Name:           "pp1",
 			Namespace:      "n1",
 			PackageId:      1,
@@ -45,6 +46,7 @@ func initializePipelineDB() *gorm.DB {
 	pipeline2 := &model.PipelineDetail{
 		Pipeline: model.Pipeline{
 			UUID:           "2",
+			DisplayName:    "pp 2",
 			Name:           "pp2",
 			Namespace:      "n1",
 			PackageId:      1,
@@ -66,6 +68,7 @@ func TestListPipelines_Pagination(t *testing.T) {
 	pipelinesExpected := []model.Pipeline{
 		{
 			UUID:           "1",
+			DisplayName:    "pp 1",
 			Name:           "pp1",
 			Namespace:      "n1",
 			PackageId:      1,
@@ -80,6 +83,7 @@ func TestListPipelines_Pagination(t *testing.T) {
 	pipelinesExpected2 := []model.Pipeline{
 		{
 			UUID:           "2",
+			DisplayName:    "pp 2",
 			Name:           "pp2",
 			Namespace:      "n1",
 			PackageId:      1,
@@ -101,6 +105,7 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	pipelinesExpected := []model.Pipeline{
 		{
 			UUID:           "1",
+			DisplayName:    "pp 1",
 			Name:           "pp1",
 			Namespace:      "n1",
 			PackageId:      1,
@@ -110,6 +115,7 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 		},
 		{
 			UUID:           "2",
+			DisplayName:    "pp 2",
 			Name:           "pp2",
 			Namespace:      "n1",
 			PackageId:      1,
@@ -141,6 +147,7 @@ func TestGetPipeline(t *testing.T) {
 
 	pipelineExpected := model.Pipeline{
 		UUID:           "1",
+		DisplayName:    "pp 1",
 		Name:           "pp1",
 		Namespace:      "n1",
 		PackageId:      1,
@@ -200,17 +207,19 @@ func TestCreatePipeline(t *testing.T) {
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 	pipeline := &model.Pipeline{
-		UUID:      "1",
-		Name:      "pp1",
-		Namespace: "n1",
-		PackageId: 1,
-		Enabled:   true,
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PackageId:   1,
+		Enabled:     true,
 	}
 
 	pipeline, err := pipelineStore.CreatePipeline(pipeline)
 	assert.Nil(t, err)
 	pipelineExpected := &model.Pipeline{
 		UUID:           "1",
+		DisplayName:    "pp 1",
 		Name:           "pp1",
 		Namespace:      "n1",
 		PackageId:      1,
@@ -227,11 +236,12 @@ func TestCreatePipelineError(t *testing.T) {
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
 	pipeline := &model.Pipeline{
-		UUID:      "1",
-		Name:      "pp1",
-		Namespace: "n1",
-		PackageId: 1,
-		Enabled:   true,
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PackageId:   1,
+		Enabled:     true,
 	}
 
 	pipeline, err := pipelineStore.CreatePipeline(pipeline)
@@ -248,6 +258,7 @@ func TestEnablePipeline(t *testing.T) {
 
 	pipelineExpected := model.Pipeline{
 		UUID:           "1",
+		DisplayName:    "pp 1",
 		Name:           "pp1",
 		Namespace:      "n1",
 		PackageId:      1,
@@ -270,6 +281,7 @@ func TestEnablePipeline_SkipUpdate(t *testing.T) {
 
 	pipelineExpected := model.Pipeline{
 		UUID:           "1",
+		DisplayName:    "pp 1",
 		Name:           "pp1",
 		Namespace:      "n1",
 		PackageId:      1,
@@ -302,6 +314,7 @@ func TestUpdatePipeline_Success(t *testing.T) {
 
 	pipelineExpected := model.Pipeline{
 		UUID:           "1",
+		DisplayName:    "pp 1",
 		Name:           "pp1",
 		Namespace:      "n1",
 		PackageId:      1,
@@ -359,6 +372,7 @@ func TestUpdatePipeline_Success(t *testing.T) {
 
 	pipelineExpected = model.Pipeline{
 		UUID:           "1",
+		DisplayName:    "pp 1",
 		Name:           "MY_NAME",
 		Namespace:      "MY_NAMESPACE",
 		PackageId:      1,
@@ -394,6 +408,7 @@ func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
 
 	pipelineExpected := model.Pipeline{
 		UUID:           "1",
+		DisplayName:    "pp 1",
 		Name:           "pp1",
 		Namespace:      "n1",
 		PackageId:      1,
@@ -419,6 +434,7 @@ func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
 
 	pipelineExpected = model.Pipeline{
 		UUID:           "1",
+		DisplayName:    "pp 1",
 		Name:           "MY_NAME",
 		Namespace:      "MY_NAMESPACE",
 		PackageId:      1,

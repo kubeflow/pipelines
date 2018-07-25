@@ -23,6 +23,7 @@ func NewScheduledWorkflowClientFake() *FakeScheduledWorkflowClient {
 func (c *FakeScheduledWorkflowClient) Create(workflow *v1alpha1.ScheduledWorkflow) (*v1alpha1.ScheduledWorkflow, error) {
 	workflow.UID = "123"
 	workflow.Namespace = "default"
+	workflow.Name = workflow.GenerateName
 	c.workflows[workflow.Name] = workflow
 	return workflow, nil
 }
