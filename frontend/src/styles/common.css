@@ -249,7 +249,10 @@ paper-tab:not(:first-child) {
 }
 
 .tabs-container {
+  border-bottom: solid 1px var(--divider-color);
+  flex: var(--height-small) 0 0;
   margin-top: var(--spacing-minus-2);
+  position: relative;
 }
 
 .toolbar {

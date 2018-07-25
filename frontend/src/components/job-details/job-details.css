@@ -40,12 +40,6 @@ paper-progress.job-progress {
   width: 20px;
 }
 
-.tabs-container {
-  border-bottom: solid 1px var(--divider-color);
-  flex: var(--height-small) 0 0;
-  position: relative;
-}
-
 .toolbar {
   border-bottom: none;
 }

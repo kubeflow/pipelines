@@ -151,7 +151,10 @@
         "startedAt": "2018-04-17T20:58:23Z",
         "finishedAt": "2018-04-17T20:58:28Z",
         "outputs": {
-          "result": "tails"
+          "parameters": [{
+            "name": "result",
+            "value": "tails"
+          }]
         },
         "children": [
           "coinflip-recursive-q7dqb-1720466287"
@@ -186,7 +189,10 @@
         "startedAt": "2018-04-17T20:58:28Z",
         "finishedAt": "2018-04-17T20:58:33Z",
         "outputs": {
-          "result": "heads"
+          "parameters": [{
+            "name": "result",
+            "value": "heads"
+          }]
         },
         "children": [
           "coinflip-recursive-q7dqb-855846949"

@@ -42,28 +42,70 @@
           <div class="strong center-text padded-spacing-minus-4">[[_selectedNode.id]]</div>
         </div>
 
-        <div class="details-table padded-spacing-minus-4">
-          <div>
-            <span class="key">Status:</span>
-            <span class="value">[[_selectedNode.phase]]</span>
-          </div>
-          <div>
-            <span class="key">Started:</span>
-            <span class="value">[[_formatDateString(_selectedNode.startedAt)]]</span>
-          </div>
-          <div>
-            <span class="key">Finished:</span>
-            <span class="value">[[_formatDateString(_selectedNode.finishedAt)]]</span>
-          </div>
+        <div class="tabs-container">
+          <paper-tabs id="tabs" class="no-shrink" selected="{{_selectedTab}}">
+              <paper-tab id="configTab">Task Configuration</paper-tab>
+              <paper-tab id="logsTab">Logs</paper-tab>
+          </paper-tabs>
         </div>
 
-        <div class="strong padded-spacing-minus-3">Pod Logs</div>
-        <div class="relative">
-          <page-error id="logsError" class="flex-grow"></page-error>
-          <pre id="logsContainer"
-               class="overflow-auto logs-container padded-spacing-minus-4 flex-grow"></pre>
-          <paper-spinner class="absolute-spinner" active="[[_loadingLogs]]"></paper-spinner>
-        </div>
+        <iron-pages class="scrollable" selected="{{_selectedTab}}">
+          <div>
+            <div class="padded-spacing-minus-1 details-table">
+              <div>
+                <span class="key">Status:</span>
+                <span class="value">[[_selectedNode.phase]]</span>
+              </div>
+              <div>
+                <span class="key">Started:</span>
+                <span class="value">[[_formatDateString(_selectedNode.startedAt)]]</span>
+              </div>
+              <div>
+                <span class="key">Finished:</span>
+                <span class="value">[[_formatDateString(_selectedNode.finishedAt)]]</span>
+              </div>
+            </div>
+
+            <div class="strong padded-top-left">Inputs</div>
+            <template is="dom-if" if="[[!_selectedNode.inputs.parameters]]">
+              <div class="padded">_</div>
+            </template>
+            <template is="dom-if" if="[[_selectedNode.inputs.parameters]]">
+              <div class="details-table padded">
+                <template is="dom-repeat" items="[[_selectedNode.inputs.parameters]]" as="input">
+                <div>
+                  <span class="key">[[input.name]]:</span>
+                  <span class="value">[[input.value]]</span>
+                </div>
+                </template>
+              </div>
+            </template>
+
+            <div class="strong padded-top-left">Outputs</div>
+            <template is="dom-if" if="[[!_selectedNode.outputs.parameters]]">
+              <div class="padded">_</div>
+            </template>
+            <template is="dom-if" if="[[_selectedNode.outputs.parameters]]">
+              <div class="details-table padded">
+                <template is="dom-repeat" items="[[_selectedNode.outputs.parameters]]" as="output">
+                <div>
+                  <span class="key">[[output.name]]:</span>
+                  <span class="value">[[output.value]]</span>
+                </div>
+                </template>
+              </div>
+            </template>
+          </div>
+
+          <div class="scrollable">
+            <div class="relative">
+              <page-error id="logsError" class="flex-grow"></page-error>
+              <pre id="logsContainer"
+                  class="overflow-auto logs-container padded-spacing-minus-4 flex-grow"></pre>
+              <paper-spinner class="absolute-spinner" active="[[_loadingLogs]]"></paper-spinner>
+            </div>
+          </div>
+        </iron-pages>
       </div>
     </div>
   </template>

@@ -54,6 +54,9 @@ const VIRTUAL_NODE_HEIGHT = 30;
 @customElement('job-graph')
 export class JobGraph extends Polymer.Element {
 
+  @property({ type: Number })
+  protected _selectedTab = 0;
+
   @property({ type: Array })
   protected _workflowNodes: DisplayNode[] = [];
 
@@ -70,6 +73,7 @@ export class JobGraph extends Polymer.Element {
 
   public refresh(graph: ArgoTemplate): void {
     this._exitNodeDetails();
+    this._selectedTab = 0;
     // Ensure that we're working with empty arrays.
     this._workflowEdges = [];
     this._workflowNodes = [];

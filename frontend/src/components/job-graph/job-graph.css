@@ -32,6 +32,10 @@
   flex-basis: 50%;
 }
 
+paper-tab {
+  font-size: var(--font-size);
+}
+
 .pipeline-dag {
   position: relative;
 }

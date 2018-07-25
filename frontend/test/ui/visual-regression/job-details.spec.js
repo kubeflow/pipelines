@@ -76,11 +76,15 @@ describe('view job details', () => {
 
   it('opens node details upon click', () => {
     // Select a step that will show in the viewport without scrolling.
-    const selector = 'app-shell job-details job-graph .pipeline-node:nth-of-type(5)';
+    const selector = 'app-shell job-details job-graph .pipeline-node:nth-of-type(4)';
 
     browser.waitForVisible(selector);
     browser.click(selector);
+    assertDiffs(browser.checkDocument());
+  });
 
+  it('switches to logs viewer', () => {
+    browser.click('app-shell job-details job-graph #logsTab');
     // Wait for the mock server to return the logs
     browser.pause(400);
 
