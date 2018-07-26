@@ -1,12 +1,14 @@
 FROM golang:1.10
 
+# Download and install the latest release of dep
+ADD https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 /usr/bin/dep
+RUN chmod +x /usr/bin/dep
+
 WORKDIR /go/src/github.com/googleprivate/ml/backend
 COPY . .
 
 WORKDIR /go/src/github.com/googleprivate/ml/backend/src
-RUN go get ./...
-# TODO(IronPan): use go dep https://github.com/googleprivate/ml/issues/561
-RUN rm -r /go/src/k8s.io/kubernetes/vendor/github.com/golang/glog
+RUN dep ensure --vendor-only
 RUN go build -o /bin/apiserver apiserver/*.go
 
 

@@ -3,6 +3,10 @@
 
 FROM golang:1.10
 
+# Download and install the latest release of dep
+ADD https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 /usr/bin/dep
+RUN chmod +x /usr/bin/dep
+
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
 RUN tar -C /usr/local/gcloud -xvf /tmp/google-cloud-sdk.tar.gz
