@@ -3,6 +3,7 @@ import * as webpack from 'webpack';
 import * as merge from 'webpack-merge';
 import common from './webpack.common';
 
+// tslint:disable-next-line:no-default-export
 export default merge(common, {
   plugins: [
     new MinifyPlugin(),

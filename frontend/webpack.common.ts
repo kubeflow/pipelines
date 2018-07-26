@@ -4,69 +4,63 @@ import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
 import * as HtmlWebpackPlugin from 'html-webpack-plugin';
 import * as path from 'path';
 
+// tslint:disable-next-line:no-default-export
 export default {
   entry: {
     index: path.resolve(__dirname, 'src/index.ts'),
-  },
-  output: {
-    filename: 'app.js',
-    path: path.resolve(__dirname, 'dist')
-  },
-  resolve: {
-    modules: [
-      path.resolve(__dirname, 'bower_components'),
-      path.resolve(__dirname, 'node_modules'),
-    ],
-    extensions: ['.ts', '.tsx', '.js', '.jsx', '.html']
   },
   module: {
     rules: [
       // Intentionally leaving out .js files, **typescriptify all the things!**
       {
-        test: /\.html$/,
         loader: 'polymer-webpack-loader',
         options: {
           processStyleLinks: true,
         },
+        test: /\.html$/,
       },
       // This is for web component styles, which is needed by the polymer
       // loader above, in order to inline styles in their element templates.
       {
-        test: /\.css$/,
         include: [path.resolve(__dirname, 'src/components')],
+        test: /\.css$/,
         use: 'css-loader',
       },
       // This is for all other style files, which are not web components.
       {
-        test: /\.css$/,
         exclude: [path.resolve(__dirname, 'src/components')],
+        test: /\.css$/,
         use: ExtractTextPlugin.extract({
           use: [{
             loader: 'css-loader',
             options: {
+              minimize: true,
               sourceMap: true,
-              minimize: true
             },
           }],
         }),
       },
       {
-        test: /\.ts$/,
         enforce: 'pre',
-        loader: 'tslint-loader',
         exclude: /bower_components/,
+        loader: 'tslint-loader',
         options: {
           emitErrors: true,
         },
+        test: /\.ts$/,
       },
       {
-        test: /\.ts$/,
         loader: 'ts-loader',
+        test: /\.ts$/,
       },
     ]
   },
+  output: {
+    filename: 'app.js',
+    path: path.resolve(__dirname, 'dist')
+  },
   plugins: [
-    new CopyWebpackPlugin([{
+    CopyWebpackPlugin([{
       from: path.resolve(__dirname, 'bower_components/webcomponentsjs/*.js'),
       to: 'bower_components/webcomponentsjs/[name].[ext]'
     }, {
@@ -75,5 +69,12 @@ export default {
     }]),
     new CleanWebpackPlugin(['dist']),
     new ExtractTextPlugin('styles.css'),
-  ]
+  ],
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.html'],
+    modules: [
+      path.resolve(__dirname, 'bower_components'),
+      path.resolve(__dirname, 'node_modules'),
+    ],
+  },
 };

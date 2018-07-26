@@ -1,10 +1,11 @@
-const CopyWebpackPlugin = require('copy-webpack-plugin');
+import * as CopyWebpackPlugin from 'copy-webpack-plugin';
 import * as path from 'path';
 import * as webpack from 'webpack';
 import * as merge from 'webpack-merge';
 import mockApiMiddleware from './mock-backend/mock-api-middleware';
 import common from './webpack.common';
 
+// tslint:disable-next-line:no-default-export
 export default merge(common, {
   devServer: {
     before: mockApiMiddleware,
@@ -23,7 +24,7 @@ export default merge(common, {
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify('dev'),
     }),
-    new CopyWebpackPlugin([{
+    CopyWebpackPlugin([{
       from: path.resolve(__dirname, 'index.html'),
       to: 'index.html',
     }, {
