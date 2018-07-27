@@ -53,6 +53,7 @@ func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {
 	var pipeline model.PipelineDetail
 	// Get the pipeline as well as its parameter.
 	r := s.db.Raw(`SELECT * FROM pipeline_details WHERE UUID=? LIMIT 1`, id).Scan(&pipeline)
+
 	if r.RecordNotFound() {
 		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}

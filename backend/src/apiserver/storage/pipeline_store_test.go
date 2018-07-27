@@ -32,12 +32,19 @@ func initializePipelineDB() *gorm.DB {
 	db := NewFakeDbOrFatal()
 	pipeline1 := &model.PipelineDetail{
 		Pipeline: model.Pipeline{
-			UUID:           "1",
-			DisplayName:    "pp 1",
-			Name:           "pp1",
-			Namespace:      "n1",
-			PackageId:      1,
-			Enabled:        true,
+			UUID:        "1",
+			DisplayName: "pp 1",
+			Name:        "pp1",
+			Namespace:   "n1",
+			PackageId:   1,
+			Enabled:     true,
+			Trigger: model.Trigger{
+				PeriodicSchedule: model.PeriodicSchedule{
+					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+					PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+					IntervalSecond:                 util.Int64Pointer(3),
+				},
+			},
 			CreatedAtInSec: 0,
 			UpdatedAtInSec: 0,
 		},
@@ -45,11 +52,18 @@ func initializePipelineDB() *gorm.DB {
 	}
 	pipeline2 := &model.PipelineDetail{
 		Pipeline: model.Pipeline{
-			UUID:           "2",
-			DisplayName:    "pp 2",
-			Name:           "pp2",
-			Namespace:      "n1",
-			PackageId:      1,
+			UUID:        "2",
+			DisplayName: "pp 2",
+			Name:        "pp2",
+			Namespace:   "n1",
+			PackageId:   1,
+			Trigger: model.Trigger{
+				CronSchedule: model.CronSchedule{
+					CronScheduleStartTimeInSec: util.Int64Pointer(1),
+					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
+					Cron: util.StringPointer("1 * *"),
+				},
+			},
 			Enabled:        true,
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
@@ -67,12 +81,19 @@ func TestListPipelines_Pagination(t *testing.T) {
 
 	pipelinesExpected := []model.Pipeline{
 		{
-			UUID:           "1",
-			DisplayName:    "pp 1",
-			Name:           "pp1",
-			Namespace:      "n1",
-			PackageId:      1,
-			Enabled:        true,
+			UUID:        "1",
+			DisplayName: "pp 1",
+			Name:        "pp1",
+			Namespace:   "n1",
+			PackageId:   1,
+			Enabled:     true,
+			Trigger: model.Trigger{
+				PeriodicSchedule: model.PeriodicSchedule{
+					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+					PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+					IntervalSecond:                 util.Int64Pointer(3),
+				},
+			},
 			CreatedAtInSec: 0,
 			UpdatedAtInSec: 0,
 		}}
@@ -82,12 +103,19 @@ func TestListPipelines_Pagination(t *testing.T) {
 	assert.Equal(t, pipelinesExpected, pipelines)
 	pipelinesExpected2 := []model.Pipeline{
 		{
-			UUID:           "2",
-			DisplayName:    "pp 2",
-			Name:           "pp2",
-			Namespace:      "n1",
-			PackageId:      1,
-			Enabled:        true,
+			UUID:        "2",
+			DisplayName: "pp 2",
+			Name:        "pp2",
+			Namespace:   "n1",
+			PackageId:   1,
+			Enabled:     true,
+			Trigger: model.Trigger{
+				CronSchedule: model.CronSchedule{
+					CronScheduleStartTimeInSec: util.Int64Pointer(1),
+					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
+					Cron: util.StringPointer("1 * *"),
+				},
+			},
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 		}}
@@ -104,22 +132,36 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 
 	pipelinesExpected := []model.Pipeline{
 		{
-			UUID:           "1",
-			DisplayName:    "pp 1",
-			Name:           "pp1",
-			Namespace:      "n1",
-			PackageId:      1,
-			Enabled:        true,
+			UUID:        "1",
+			DisplayName: "pp 1",
+			Name:        "pp1",
+			Namespace:   "n1",
+			PackageId:   1,
+			Enabled:     true,
+			Trigger: model.Trigger{
+				PeriodicSchedule: model.PeriodicSchedule{
+					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+					PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+					IntervalSecond:                 util.Int64Pointer(3),
+				},
+			},
 			CreatedAtInSec: 0,
 			UpdatedAtInSec: 0,
 		},
 		{
-			UUID:           "2",
-			DisplayName:    "pp 2",
-			Name:           "pp2",
-			Namespace:      "n1",
-			PackageId:      1,
-			Enabled:        true,
+			UUID:        "2",
+			DisplayName: "pp 2",
+			Name:        "pp2",
+			Namespace:   "n1",
+			PackageId:   1,
+			Enabled:     true,
+			Trigger: model.Trigger{
+				CronSchedule: model.CronSchedule{
+					CronScheduleStartTimeInSec: util.Int64Pointer(1),
+					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
+					Cron: util.StringPointer("1 * *"),
+				},
+			},
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 		}}
@@ -146,11 +188,18 @@ func TestGetPipeline(t *testing.T) {
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelineExpected := model.Pipeline{
-		UUID:           "1",
-		DisplayName:    "pp 1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PackageId:      1,
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PackageId:   1,
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+				IntervalSecond:                 util.Int64Pointer(3),
+			},
+		},
 		Enabled:        true,
 		CreatedAtInSec: 0,
 		UpdatedAtInSec: 0,
@@ -257,12 +306,19 @@ func TestEnablePipeline(t *testing.T) {
 	assert.Nil(t, err)
 
 	pipelineExpected := model.Pipeline{
-		UUID:           "1",
-		DisplayName:    "pp 1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PackageId:      1,
-		Enabled:        false,
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PackageId:   1,
+		Enabled:     false,
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+				IntervalSecond:                 util.Int64Pointer(3),
+			},
+		},
 		CreatedAtInSec: 0,
 		UpdatedAtInSec: 1,
 	}
@@ -280,12 +336,19 @@ func TestEnablePipeline_SkipUpdate(t *testing.T) {
 	assert.Nil(t, err)
 
 	pipelineExpected := model.Pipeline{
-		UUID:           "1",
-		DisplayName:    "pp 1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PackageId:      1,
-		Enabled:        true,
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PackageId:   1,
+		Enabled:     true,
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+				IntervalSecond:                 util.Int64Pointer(3),
+			},
+		},
 		CreatedAtInSec: 0,
 		UpdatedAtInSec: 0,
 	}
@@ -313,12 +376,19 @@ func TestUpdatePipeline_Success(t *testing.T) {
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelineExpected := model.Pipeline{
-		UUID:           "1",
-		DisplayName:    "pp 1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PackageId:      1,
-		Enabled:        true,
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PackageId:   1,
+		Enabled:     true,
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+				IntervalSecond:                 util.Int64Pointer(3),
+			},
+		},
 		CreatedAtInSec: 0,
 		UpdatedAtInSec: 0,
 	}
@@ -407,12 +477,19 @@ func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelineExpected := model.Pipeline{
-		UUID:           "1",
-		DisplayName:    "pp 1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PackageId:      1,
-		Enabled:        true,
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PackageId:   1,
+		Enabled:     true,
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+				IntervalSecond:                 util.Int64Pointer(3),
+			},
+		},
 		CreatedAtInSec: 0,
 		UpdatedAtInSec: 0,
 	}

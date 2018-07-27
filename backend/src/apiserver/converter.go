@@ -190,7 +190,6 @@ func toModelTrigger(trigger *api.Trigger) model.Trigger {
 }
 
 func toApiTrigger(trigger model.Trigger) *api.Trigger {
-	apiTrigger := api.Trigger{}
 	if trigger.Cron != nil {
 		var cronSchedule api.CronSchedule
 		cronSchedule.Cron = *trigger.Cron
@@ -202,23 +201,21 @@ func toApiTrigger(trigger model.Trigger) *api.Trigger {
 			cronSchedule.EndTime = &timestamp.Timestamp{
 				Seconds: *trigger.CronScheduleEndTimeInSec}
 		}
-		apiTrigger = api.Trigger{
-			Trigger: &api.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
+		return &api.Trigger{Trigger: &api.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
 
 	if trigger.IntervalSecond != nil {
-		var periodicSchedule api.PeriodicSchedule
-		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
+		var periodicSchedule api.Trigger_PeriodicSchedule
+		periodicSchedule.PeriodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
-			periodicSchedule.StartTime = &timestamp.Timestamp{
+			periodicSchedule.PeriodicSchedule.StartTime = &timestamp.Timestamp{
 				Seconds: *trigger.PeriodicScheduleStartTimeInSec}
 		}
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
-			periodicSchedule.EndTime = &timestamp.Timestamp{
+			periodicSchedule.PeriodicSchedule.EndTime = &timestamp.Timestamp{
 				Seconds: *trigger.PeriodicScheduleEndTimeInSec}
 		}
-		apiTrigger = api.Trigger{
-			Trigger: &api.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
+		return &api.Trigger{Trigger: &periodicSchedule}
 	}
-	return &apiTrigger
+	return &api.Trigger{}
 }
