@@ -129,6 +129,20 @@ describe('job-details', () => {
     });
   });
 
+  it('clones the job into a new pipeline', (done) => {
+    const listener = (e: RouteEvent) => {
+      assert.strictEqual(e.detail.path, '/pipelines/new');
+      assert.deepStrictEqual(e.detail.data, {
+        packageId: testPipeline.package_id,
+        parameters: testPipeline.parameters,
+      }, 'parameters should be passed when cloning the pipeline');
+      document.removeEventListener(RouteEvent.name, listener);
+      done();
+    };
+    document.addEventListener(RouteEvent.name, listener);
+    fixture.cloneButton.click();
+  });
+
   describe('Output list', () => {
 
     let listFilesStub: sinon.SinonStub;

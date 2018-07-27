@@ -103,6 +103,11 @@ describe('view job details', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('clones job into a new pipeline', () => {
+    browser.click('app-shell job-details #cloneButton');
+    assertDiffs(browser.checkDocument());
+  });
+
   describe('error handling', () => {
 
     beforeAll(() => {
