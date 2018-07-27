@@ -82,3 +82,8 @@ class ContainerOp(object):
   def after(self, op):
     """Specify explicit dependency on another op."""
     self.dependent_op_names.append(op.name)
+
+  def clone(self, name):
+    """Clone an operator with a new name."""
+    return ContainerOp(name, self.image, self.command, self.arguments, self.argument_inputs,
+                       self.file_inputs, self.file_outputs)

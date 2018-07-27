@@ -25,7 +25,7 @@ class OpsGroup(object):
   def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
-      group_type: usually one of 'exit_handler', 'branch', and 'loop'.
+      group_type: usually one of 'exit_handler', 'condition', and 'loop'.
     """
     self.type = group_type
     self.ops = list()
@@ -73,3 +73,27 @@ class ExitHandler(OpsGroup):
       raise ValueError('exit_op cannot depend on any other ops.')
 
     self.exit_op = exit_op
+
+
+class Condition(OpsGroup):
+  """Represents an condition group with a condition.
+
+  Example usage:
+  ```python
+  with mlp.Condition(param1=='pizza'):
+    op1 = ContainerOp(...)
+    op2 = ContainerOp(...)
+  ```
+  Note: Only equal operator "==" is supported.
+  """
+
+  def __init__(self, condition):
+    """Create a new instance of ExitHandler.
+    Args:
+      exit_op: an operator invoked at exiting a group of ops.
+
+    Raises:
+      ValueError is the exit_op is invalid.
+    """
+    super(Condition, self).__init__('condition')
+    self.condition = condition

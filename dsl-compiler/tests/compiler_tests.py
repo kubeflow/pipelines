@@ -164,18 +164,15 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       os.chdir(cwd)
 
-
-  def test_py_compile(self):
-    """Test compiling python files."""
-
+  def _test_py_compile(self, file_base_name):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    py_file = os.path.join(test_data_dir, 'basic.py')
+    py_file = os.path.join(test_data_dir, file_base_name + '.py')
     tmpdir = tempfile.mkdtemp()
     try:
-      target_yaml = os.path.join(tmpdir, 'basic.yaml')
+      target_yaml = os.path.join(tmpdir, file_base_name + '.yaml')
       subprocess.check_call([
           'dsl-compile', '--py', py_file, '--output', target_yaml])
-      with open(os.path.join(test_data_dir, 'basic.yaml'), 'r') as f:
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
         golden = yaml.load(f)
       with open(target_yaml, 'r') as f:
         compiled = yaml.load(f)
@@ -184,3 +181,12 @@ class TestCompiler(unittest.TestCase):
       self.assertEqual(golden, compiled)
     finally:
       shutil.rmtree(tmpdir)
+    
+  def test_py_compile_basic(self):
+    """Test compiling python files."""
+    self._test_py_compile('basic')
+
+  def test_py_compile_condition(self):
+    """Test compiling python files."""
+    self._test_py_compile('coin')
+

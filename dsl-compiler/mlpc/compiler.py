@@ -12,6 +12,7 @@
 
 
 from collections import defaultdict
+import copy
 import inspect
 import mlp
 import re
@@ -88,7 +89,7 @@ class Compiler(object):
       template['outputs'] = {'parameters': output_parameters}
     return template
 
-  def _get_groups_for_ops(self, pipeline):
+  def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
 
     Each pipeline has a root group. Each group has a list of operators (leaf) and groups.
@@ -109,11 +110,11 @@ class Compiler(object):
         ops_to_groups[op.name] = [x.name for x in current_groups] + [op.name]
 
     ops_to_groups = {}
-    current_groups = [pipeline.groups[0]]
+    current_groups = [root_group]
     _get_op_groups_helper(current_groups, ops_to_groups)
     return ops_to_groups
 
-  def _get_groups(self, pipeline):
+  def _get_groups(self, root_group):
     """Helper function to get all groups (not including ops) in a pipeline."""
 
     def _get_groups_helper(group):
@@ -122,7 +123,7 @@ class Compiler(object):
         groups += _get_groups_helper(g)
       return groups
 
-    return _get_groups_helper(pipeline.groups[0])
+    return _get_groups_helper(root_group)
         
   def _get_uncommon_ancestors(self, op_groups, op1, op2):
     """Helper function to get unique ancestors between two ops.
@@ -136,7 +137,7 @@ class Compiler(object):
     group2 = op_groups[op2.name][common_groups_len:]
     return (group1, group2)
 
-  def _get_inputs_outputs(self, pipeline, op_groups):
+  def _get_inputs_outputs(self, pipeline, root_group, op_groups):
     """Get inputs and outputs of each group and op.
 
     Returns:
@@ -146,10 +147,12 @@ class Compiler(object):
       produces the param. If the param is a pipeline param (no producer op), then
       producing_op_name is None.
     """
-    inputs = defaultdict(list)
-    outputs = defaultdict(list)
+    condition_params = self._get_condition_params_for_ops(root_group)
+    inputs = defaultdict(set)
+    outputs = defaultdict(set)
     for op in pipeline.ops.values():
-      for param in op.inputs:
+      # op's inputs and all params used in conditions for that op are both considered.
+      for param in op.inputs + list(condition_params[op.name]):
         full_name = self._param_full_name(param)
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
@@ -159,24 +162,46 @@ class Compiler(object):
             if i == 0:
               # If it is the first uncommon downstream group, then the input comes from
               # the first uncommon upstream group.
-              inputs[g].append((full_name, upstream_groups[0]))
+              inputs[g].add((full_name, upstream_groups[0]))
             else:
               # If not the first downstream group, then the input is passed down from
               # its ancestor groups so the upstream group is None.
-              inputs[g].append(full_name, None)
+              inputs[g].add((full_name, None))
           for i, g in enumerate(upstream_groups):
             if i == len(upstream_groups) - 1:
               # If last upstream group, it is an operator and output comes from container.
-              outputs[g].append((full_name, None))
+              outputs[g].add((full_name, None))
             else:
               # If not last upstream group, output value comes from one of its child.
-              outputs[g].append((full_name, upstream_groups[i+1]))
+              outputs[g].add((full_name, upstream_groups[i+1]))
         elif param.value is None:
           for g in op_groups[op.name]:
-            inputs[g].append((full_name, None))
+            inputs[g].add((full_name, None))
     return inputs, outputs
     
-  def _get_dependencies(self, pipeline, op_groups):
+  def _get_condition_params_for_ops(self, root_group):
+    """Get parameters referenced in conditions of ops."""
+
+    conditions = defaultdict(set)
+
+    def _get_condition_params_for_ops_helper(group, current_conditions_params):
+      new_current_conditions_params = current_conditions_params
+      if group.type == 'condition':
+        new_current_conditions_params = list(current_conditions_params)
+        if isinstance(group.condition.operand1, mlp.PipelineParam):
+          new_current_conditions_params.append(group.condition.operand1)
+        if isinstance(group.condition.operand2, mlp.PipelineParam):
+          new_current_conditions_params.append(group.condition.operand2)
+      for op in group.ops:
+        for param in new_current_conditions_params:
+          conditions[op.name].add(param)
+      for g in group.groups:
+        _get_condition_params_for_ops_helper(g, new_current_conditions_params)
+
+    _get_condition_params_for_ops_helper(root_group, [])
+    return conditions
+      
+  def _get_dependencies(self, pipeline, root_group, op_groups):
     """Get dependent groups and ops for all ops and groups.
 
     Returns:
@@ -186,10 +211,11 @@ class Compiler(object):
       then G3 is dependent on G2. Basically dependency only exists in the first uncommon
       ancesters in their ancesters chain. Only sibling groups/ops can have dependencies.
     """
-    dependencies = defaultdict(list)
+    condition_params = self._get_condition_params_for_ops(root_group)
+    dependencies = defaultdict(set)
     for op in pipeline.ops.values():
       unstream_op_names = set()
-      for param in op.inputs:
+      for param in op.inputs + list(condition_params[op.name]):
         if param.op_name:
           unstream_op_names.add(param.op_name)
       unstream_op_names |= set(op.dependent_op_names)
@@ -198,8 +224,17 @@ class Compiler(object):
         upstream_op = pipeline.ops[op_name]
         upstream_groups, downstream_groups = self._get_uncommon_ancestors(
             op_groups, upstream_op, op)
-        dependencies[downstream_groups[0]].append(upstream_groups[0])
+        dependencies[downstream_groups[0]].add(upstream_groups[0])
     return dependencies
+
+  def _create_condition(self, condition):
+    left = ('{{inputs.parameters.%s}}' % self._param_full_name(condition.operand1)
+            if isinstance(condition.operand1, mlp.PipelineParam)
+            else str(condition.operand1))
+    right = ('{{inputs.parameters.%s}}' % self._param_full_name(condition.operand2)
+             if isinstance(condition.operand2, mlp.PipelineParam)
+             else str(condition.operand2))
+    return ('%s == %s' % (left, right))
 
   def _group_to_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
@@ -229,49 +264,94 @@ class Compiler(object):
       template_outputs.sort(key=lambda x: x['name'])
       template['outputs'] = {'parameters': template_outputs}
 
-    # Generate tasks section.
-    tasks = []
-    for sub_group in group.groups + group.ops:
-      task = {
-        'name': sub_group.name,
-        'template': sub_group.name,
+    if group.type == 'condition':
+      # This is a workaround for the fact that argo does not support conditions in DAG mode.
+      # Basically, we insert an extra group that contains only the original group. The extra group
+      # operates in "step" mode where condition is supported.
+      only_child = group.groups[0]
+      step = {
+          'name': only_child.name,
+          'template': only_child.name,
       }
-      # Generate dependencies section for this task.
-      if dependencies.get(sub_group.name, None):
-        group_dependencies = list(dependencies[sub_group.name])
-        group_dependencies.sort()
-        task['dependencies'] = group_dependencies
-
-      # Generate arguments section for this task.
-      if inputs.get(sub_group.name, None):
+      if inputs.get(only_child.name, None):
         arguments = []
-        for param_name, dependent_name in inputs[sub_group.name]:
-          if dependent_name:
-            # The value comes from an upstream sibling.
-            arguments.append({
-              'name': param_name,
-              'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-            })
-          else:
-            # The value comes from its parent.
-            arguments.append({
+        for param_name, dependent_name in inputs[only_child.name]:
+          arguments.append({
               'name': param_name,
               'value': '{{inputs.parameters.%s}}' % param_name
-            })
+          })
         arguments.sort(key=lambda x: x['name'])
-        task['arguments'] = {'parameters': arguments}
-      tasks.append(task)
-    tasks.sort(key=lambda x: x['name'])
-    template['dag'] = {'tasks': tasks}
+        step['arguments'] = {'parameters': arguments}
+        step['when'] = self._create_condition(group.condition)
+      template['steps'] = [[step]]
+    else:
+      # Generate tasks section.
+      tasks = []
+      for sub_group in group.groups + group.ops:
+        task = {
+          'name': sub_group.name,
+          'template': sub_group.name,
+        }
+        # Generate dependencies section for this task.
+        if dependencies.get(sub_group.name, None):
+          group_dependencies = list(dependencies[sub_group.name])
+          group_dependencies.sort()
+          task['dependencies'] = group_dependencies
+
+        # Generate arguments section for this task.
+        if inputs.get(sub_group.name, None):
+          arguments = []
+          for param_name, dependent_name in inputs[sub_group.name]:
+            if dependent_name:
+              # The value comes from an upstream sibling.
+              arguments.append({
+                'name': param_name,
+                'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+              })
+            else:
+              # The value comes from its parent.
+              arguments.append({
+                'name': param_name,
+                'value': '{{inputs.parameters.%s}}' % param_name
+              })
+          arguments.sort(key=lambda x: x['name'])
+          task['arguments'] = {'parameters': arguments}
+        tasks.append(task)
+      tasks.sort(key=lambda x: x['name'])
+      template['dag'] = {'tasks': tasks}
     return template     
 
+  def _create_new_groups(self, root_group):
+    """Create a copy of the input group, and insert extra groups for conditions."""
+
+    new_group = copy.deepcopy(root_group)
+    
+    def _insert_group_for_condition_helper(group):
+      for i, g in enumerate(group.groups):
+        if g.type == 'condition':
+          child_condition_group = mlp.OpsGroup('condition-child', g.name + '-child')
+          child_condition_group.ops = g.ops
+          child_condition_group.groups = g.groups
+          g.groups = [child_condition_group]
+          g.ops = list()
+          _insert_group_for_condition_helper(child_condition_group)
+        else:
+          _insert_group_for_condition_helper(g)
+
+    _insert_group_for_condition_helper(new_group)
+    return new_group
+    
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
-    op_groups = self._get_groups_for_ops(pipeline)
-    inputs, outputs = self._get_inputs_outputs(pipeline, op_groups)
-    dependencies = self._get_dependencies(pipeline, op_groups)
-    groups = self._get_groups(pipeline)
+    # This is needed only because Argo does not support condition in DAG mode.
+    # Revisit when https://github.com/argoproj/argo/issues/921 is fixed.
+    new_root_group = self._create_new_groups(pipeline.groups[0])
+
+    op_groups = self._get_groups_for_ops(new_root_group)
+    inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups)
+    dependencies = self._get_dependencies(pipeline, new_root_group, op_groups)
+    groups = self._get_groups(new_root_group)
 
     templates = []
     for g in groups:

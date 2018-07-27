@@ -15,6 +15,6 @@
 
 from ._pipeline_param import PipelineParam
 from ._container_op import ContainerOp
-from ._ops_group import OpsGroup, ExitHandler
+from ._ops_group import OpsGroup, ExitHandler, Condition
 from ._pipeline import Pipeline, pipeline
 

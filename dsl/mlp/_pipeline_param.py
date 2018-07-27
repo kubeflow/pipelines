@@ -14,6 +14,12 @@
 
 
 import re
+from collections import namedtuple
+
+
+# TODO: Move this to a separate class
+# For now, this identifies a condition with only "==" operator supported.
+ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
 
 
 class PipelineParam(object):
@@ -67,4 +73,10 @@ class PipelineParam(object):
     op_name = self.op_name if self.op_name else ''
 
     return '{{pipelineparam:op=%s;name=%s}}' % (op_name, self.name)
+
+  def __eq__(self, other):
+    return ConditionOperator('==', self, other)
+
+  def __hash__(self):
+    return hash((self.op_name, self.name))
 
