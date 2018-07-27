@@ -82,6 +82,58 @@ describe('list pipelines', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('allows the list to be sorted. Defaults to ascending order', () => {
+    // Sort by Package ID column (ascending)
+    const columnButtonSelector =
+        'app-shell pipeline-list item-list #header::div:nth-of-type(4)::paper-button';
+    browser.click(columnButtonSelector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('sorts in descending order on second time a column is clicked', () => {
+    // Sort by Package ID column (descending)
+    // Sort will be descending now since it has already been clicked once in the previous test.
+    const packageIdColumnButtonSelector =
+        'app-shell pipeline-list item-list #header::div:nth-of-type(4)::paper-button';
+
+    browser.click(packageIdColumnButtonSelector);
+
+    // List should be reset to first page of results
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('allows the list to be filtered by Pipeline name', () => {
+    // Open up the filter box
+    const filterButtonSelector = 'app-shell pipeline-list item-list paper-icon-button';
+    browser.click(filterButtonSelector);
+
+    const filterBoxSelector =
+        'app-shell pipeline-list item-list #headerContainer::div:nth-of-type(2)::input';
+    browser.setValue(filterBoxSelector, 'can');
+
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('allows the list to be filtered and sorted', () => {
+    // List is already filtered from previous test
+    // Sort by Pipeline name column, click twice to invert ordering.
+    const nameColumnButtonSelector =
+        'app-shell pipeline-list item-list #header::div:nth-of-type(2)::paper-button';
+    browser.click(nameColumnButtonSelector);
+    browser.click(nameColumnButtonSelector);
+
+    assertDiffs(browser.checkDocument());
+
+    // Clear filter by clicking the button again.
+    const filterButtonSelector = 'app-shell pipeline-list item-list paper-icon-button';
+    browser.click(filterButtonSelector);
+    // Reset sorting to default, which is ascending by created time.
+    const createdAtColumnButtonSelector =
+        'app-shell pipeline-list item-list #header::div:nth-of-type(5)::paper-button';
+    browser.click(createdAtColumnButtonSelector);
+  });
+
   it('populates cloned pipeline', () => {
     // Find a pipeline with package ID of 1 so it can be cloned.
     // TODO: Explore making this more reliable

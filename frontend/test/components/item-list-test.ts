@@ -49,8 +49,8 @@ describe('item-list', () => {
    * @param i index of row whose element to return
    */
   function getRow(i: number): HTMLElement {
-    const listContainer = fixture.$.listContainer as HTMLElement;
-    return listContainer.querySelectorAll('paper-item')[i] as HTMLElement;
+    const listContainer = fixture.listContainer;
+    return listContainer.querySelectorAll('paper-item')[i];
   }
 
   /**
@@ -95,7 +95,7 @@ describe('item-list', () => {
   it('shows empty message iff there are no items', () => {
     const emptyMessage = 'test empty message';
     fixture.emptyMessage = emptyMessage;
-    assert(fixture.emptyMessageSpan.innerText === '', 'No empty message should show');
+    assert.strictEqual(fixture.emptyMessageSpan.innerText, '', 'No empty message should show');
     const saveRows = fixture.rows;
     fixture.rows = [];
     Polymer.flush();
@@ -104,22 +104,21 @@ describe('item-list', () => {
   });
 
   it('displays a row per item in list', () => {
-    const listContainer = fixture.$.listContainer as HTMLElement;
-    const children = listContainer.querySelectorAll('paper-item');
-    assert(children.length === 5, 'five rows should appear');
+    const rows = fixture.listContainer.querySelectorAll('.row');
+    assert.strictEqual(rows.length, 5, 'five rows should appear');
   });
 
   it('starts out with all items unselected', () => {
-    assert(JSON.stringify(fixture.selectedIndices) === '[]', 'all items should be unselected');
+    assert.strictEqual(JSON.stringify(fixture.selectedIndices), '[]',
+        'all items should be unselected');
   });
 
   it('displays column names in the header row', () => {
     // Column 0 is for the checkbox
-    const header = fixture.$.header as HTMLElement;
-    const col1 = header.children[1] as HTMLElement;
-    const col2 = header.children[2] as HTMLElement;
-    assert(col1.innerText.trim() === 'col1', 'header should have first column name');
-    assert(col2.innerText.trim() === 'col2', 'header should have second column name');
+    const col1 = fixture.header.children[1] as HTMLElement;
+    const col2 = fixture.header.children[2] as HTMLElement;
+    assert.strictEqual(col1.innerText.trim(), 'col1', 'header should have first column name');
+    assert.strictEqual(col2.innerText.trim(), 'col2', 'header should have second column name');
   });
 
   it('displays column names in the item rows', () => {
@@ -129,8 +128,10 @@ describe('item-list', () => {
       const secondCol = row.children[2] as HTMLElement;
       const firstColText = 'first column ' + (i + 1);
       const secondColText = 'second column ' + (i + 1);
-      assert(firstCol.innerText.trim() === firstColText, 'first column should show on item');
-      assert(secondCol.innerText.trim() === secondColText, 'second column should show on item');
+      assert.strictEqual(firstCol.innerText.trim(), firstColText,
+          'first column should show on item');
+      assert.strictEqual(secondCol.innerText.trim(), secondColText,
+          'second column should show on item');
     }
   });
 
@@ -143,8 +144,8 @@ describe('item-list', () => {
     const row1 = getRow(1);
     const icon0 = row0.children[0].children[1] as any;
     const icon1 = row1.children[0].children[1] as any;
-    assert(icon0.icon === 'folder');
-    assert(icon1.icon === 'search');
+    assert.strictEqual(icon0.icon, 'folder');
+    assert.strictEqual(icon1.icon, 'search');
   });
 
   it('selects items', () => {
@@ -161,43 +162,36 @@ describe('item-list', () => {
     fixture._selectItemByDisplayIndex(0);
     fixture._selectItemByDisplayIndex(2);
 
-    assert(JSON.stringify(fixture.selectedIndices) === '[0,2]',
+    assert.strictEqual(JSON.stringify(fixture.selectedIndices), '[0,2]',
         'first and third items should be selected');
   });
 
   it('can select/unselect all', () => {
-    const header = fixture.$.header as HTMLElement;
-    const c = header.querySelector('#selectAllCheckbox') as HTMLElement;
-    c.click();
+    fixture.selectAllCheckbox.click();
 
-    assert(JSON.stringify(fixture.selectedIndices) === '[0,1,2,3,4]',
+    assert.strictEqual(JSON.stringify(fixture.selectedIndices), '[0,1,2,3,4]',
         'all items should be in the selected indices array');
     assert(isSelected(0) && isSelected(1) && isSelected(2) && isSelected(3) && isSelected(4),
         'all items should be selected');
 
-    c.click();
+    fixture.selectAllCheckbox.click();
 
-    assert(JSON.stringify(fixture.selectedIndices) === '[]',
+    assert.strictEqual(JSON.stringify(fixture.selectedIndices), '[]',
         'no items should be in the selected indices array');
     assert(!isSelected(0) && !isSelected(1) && !isSelected(2) && !isSelected(3) && !isSelected(4),
         'all items should be unselected');
   });
 
   it('selects all items if the Select All checkbox is clicked with one item selected', () => {
-    const header = fixture.$.header as HTMLElement;
     fixture._selectItemByDisplayIndex(1);
-    const c = header.querySelector('#selectAllCheckbox') as HTMLElement;
-    c.click();
+    fixture.selectAllCheckbox.click();
 
-    assert(JSON.stringify(fixture.selectedIndices) === '[0,1,2,3,4]',
+    assert.strictEqual(JSON.stringify(fixture.selectedIndices), '[0,1,2,3,4]',
         'all items should be selected');
   });
 
   it('checks the Select All checkbox if all items are selected individually', () => {
-    const header = fixture.$.header as HTMLElement;
-    const c = header.querySelector('#selectAllCheckbox') as any;
-
-    assert(!c.checked, 'Select All checkbox should start out unchecked');
+    assert(!fixture.selectAllCheckbox.checked, 'Select All checkbox should start out unchecked');
 
     fixture._selectItemByDisplayIndex(0);
     fixture._selectItemByDisplayIndex(1);
@@ -205,18 +199,16 @@ describe('item-list', () => {
     fixture._selectItemByDisplayIndex(3);
     fixture._selectItemByDisplayIndex(4);
 
-    assert(c.checked, 'Select All checkbox should become checked');
+    assert(fixture.selectAllCheckbox.checked, 'Select All checkbox should become checked');
   });
 
   it('unchecks the Select All checkbox if one item becomes unchecked', () => {
-    const header = fixture.$.header as HTMLElement;
-    const c = header.querySelector('#selectAllCheckbox') as any;
-
     fixture._selectAll();
-    assert(c.checked, 'Select All checkbox should be checked');
+    assert(fixture.selectAllCheckbox.checked, 'Select All checkbox should be checked');
 
     fixture._unselectItemByDisplayIndex(1);
-    assert(!c.checked, 'Select All checkbox should become unchecked after unselecting an item');
+    assert(!fixture.selectAllCheckbox.checked,
+        'Select All checkbox should be unchecked after unselecting an item');
   });
 
   it('selects the clicked item', () => {
@@ -302,16 +294,15 @@ describe('item-list', () => {
       shiftKey: true,
     }));
 
-    assert(JSON.stringify(fixture.selectedIndices) === '[0,1,2,3,4]',
+    assert.strictEqual(JSON.stringify(fixture.selectedIndices), '[0,1,2,3,4]',
         'all rows 1 to 5 should be selected');
   });
 
   it('hides the header when no-header property is used', () => {
-    const header = fixture.$.header as HTMLElement;
-    assert(header.offsetHeight !== 0, 'the header row should be visible');
+    assert.notStrictEqual(fixture.header.offsetHeight, 0, 'the header row should be visible');
 
     fixture.hideHeader = true;
-    assert(header.offsetHeight === 0, 'the header row should be hidden');
+    assert.strictEqual(fixture.header.offsetHeight, 0, 'the header row should be hidden');
   });
 
   it('prevents item selection when disable-selection property is used', () => {
@@ -349,9 +340,8 @@ describe('item-list', () => {
 
     const loadNewPage = (ev: NewListPageEvent) => {
       fixture.updateNextPageToken(pageResponses[ev.detail.pageNumber].nextPageToken);
-      const list = fixture.$.list as Polymer.DomRepeat;
       fixture.rows = pageResponses[ev.detail.pageNumber].rows;
-      list.render();
+      fixture.list.render();
     };
 
     beforeEach(async () => {
@@ -365,18 +355,16 @@ describe('item-list', () => {
     });
 
     it('disables previous page button on first page', () => {
-      const previousPageButton = fixture.$.previousPage as HTMLElement;
       assert.strictEqual(
-          (previousPageButton as PaperButtonElement).disabled,
+          fixture.previousPageButton.disabled,
           true,
           'Previous page button should be disabled');
 
     });
 
     it('enables next page button on first page', () => {
-      const nextPageButton = fixture.$.nextPage as HTMLElement;
       assert.strictEqual(
-          (nextPageButton as PaperButtonElement).disabled,
+          fixture.nextPageButton.disabled,
           false,
           'Next page button should not be disabled');
     });
@@ -389,8 +377,7 @@ describe('item-list', () => {
           fixture.rows[1].columns[0] === 'item b',
           'First page should have correct rows');
 
-      const nextPageButton = fixture.$.nextPage as HTMLElement;
-      nextPageButton.click();
+      fixture.nextPageButton.click();
 
       assert.strictEqual(fixture.rows.length, 2, 'Second page should have only 2 elements');
       assert(
@@ -407,17 +394,15 @@ describe('item-list', () => {
           fixture.rows[1].columns[0] === 'item b',
           'First page should have correct rows');
 
-      const previousPageButton = fixture.$.previousPage as HTMLElement;
-      const nextPageButton = fixture.$.nextPage as HTMLElement;
-      nextPageButton.click();
+      fixture.nextPageButton.click();
 
         // Verify second page before navigating to first.
       assert.strictEqual(
-          (previousPageButton as PaperButtonElement).disabled,
+          fixture.previousPageButton.disabled,
           false,
           'Previous page button should be disabled after navigating to second page');
       assert.strictEqual(
-          (nextPageButton as PaperButtonElement).disabled,
+          fixture.nextPageButton.disabled,
           false,
           'Next page button should be enabled after navigating to second page');
       assert.strictEqual(fixture.rows.length, 2, 'Second page should have only 2 elements');
@@ -426,14 +411,14 @@ describe('item-list', () => {
           fixture.rows[1].columns[0] === 'item d',
           'Second page should have correct rows');
 
-      previousPageButton.click();
+      fixture.previousPageButton.click();
 
       assert.strictEqual(
-          (previousPageButton as PaperButtonElement).disabled,
+          fixture.previousPageButton.disabled,
           true,
           'Previous page button should be disabled after returning to first page');
       assert.strictEqual(
-          (nextPageButton as PaperButtonElement).disabled,
+          fixture.nextPageButton.disabled,
           false,
           'Next page button should be enabled after returning to first page');
       assert.strictEqual(fixture.rows.length, 2, 'First page should have only 2 elements');
@@ -445,16 +430,16 @@ describe('item-list', () => {
 
     it('disables next page button after reaching final page', () => {
       // The test sets up 3 pages
-      const nextPageButton = fixture.$.nextPage as HTMLElement;
-      nextPageButton.click();
+      fixture.nextPageButton.click();
       assert.strictEqual(
-          (nextPageButton as PaperButtonElement).disabled,
+          fixture.nextPageButton.disabled,
           false,
           'Next page button should not be disabled');
 
-      nextPageButton.click();
+      fixture.nextPageButton.click();
 
-      assert.strictEqual((nextPageButton as PaperButtonElement).disabled,
+      assert.strictEqual(
+          fixture.nextPageButton.disabled,
           true,
           'Next page button should be disabled');
     });
@@ -463,14 +448,14 @@ describe('item-list', () => {
       // Simulating only one page of results by initially loading the final page.
       loadNewPage(new NewListPageEvent('', pageResponses.length - 1, 20, '' , ''));
 
-      const nextPageButton = fixture.$.nextPage as HTMLElement;
-      assert.strictEqual((nextPageButton as PaperButtonElement).disabled,
+      assert.strictEqual(
+          fixture.nextPageButton.disabled,
           true,
           'Next page button should be disabled if nextPageToken is empty');
     });
   });
 
-  describe('local filtering', () => {
+  describe('filtering', () => {
 
     beforeEach(() => {
       _resetFixture(true);
@@ -498,89 +483,75 @@ describe('item-list', () => {
     });
 
     it('hides the filter box by default', () => {
-      const filterBox = fixture.$.filterBox as HTMLElement;
-      assert(filterBox.offsetHeight === 0, 'filter box should not show by default');
+      assert.strictEqual(fixture.filterBox.offsetHeight, 0,
+          'filter box should not show by default');
     });
 
     it('shows/hides filter box when toggle is clicked', () => {
-      const filterBox = fixture.$.filterBox as HTMLElement;
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      filterToggle.click();
-      assert(filterBox.offsetHeight > 0,
+      fixture.filterToggleButton.click();
+      assert(fixture.filterBox.offsetHeight > 0,
           'filter box should show when toggle is clicked');
 
-      filterToggle.click();
-      assert(filterBox.offsetHeight === 0,
+      fixture.filterToggleButton.click();
+      assert.strictEqual(fixture.filterBox.offsetHeight, 0,
           'filter box should hide when toggle is clicked again');
     });
 
     it('filters items when typing characters in the filter box', () => {
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       fixture.filterString = '3';
       Polymer.flush();
-      const rows = listContainer.querySelectorAll('.row');
-      assert(rows.length === 1, 'only one item has "3" in its name');
-      assert(rows[0].children[1].textContent.trim() === 'first column 3',
+      const rows = fixture.listContainer.querySelectorAll('.row');
+      assert.strictEqual(rows.length, 1, 'only one item has "3" in its name');
+      assert.strictEqual(rows[0].children[1].textContent.trim(), 'first column 3',
           'filter should only return the third item');
     });
 
     it('shows all items when filter string is deleted', () => {
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       fixture.filterString = '3';
       Polymer.flush();
       fixture.filterString = '';
       Polymer.flush();
-      const rows = listContainer.querySelectorAll('.row');
-      assert(rows.length === 5, 'should show all rows after filter string is deleted');
+      const rows = fixture.listContainer.querySelectorAll('.row');
+      assert.strictEqual(rows.length, 5, 'should show all rows after filter string is deleted');
     });
 
     it('filters items based on first column only', () => {
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       fixture.filterString = 'second';
       Polymer.flush();
-      const rows = listContainer.querySelectorAll('.row');
-      assert(rows.length === 0,
+      const rows = fixture.listContainer.querySelectorAll('.row');
+      assert.strictEqual(rows.length, 0,
           'should not show any rows, since no row has "second" in its first column');
     });
 
     it('ignores case when filtering', () => {
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       fixture.filterString = 'COLUMN 4';
       Polymer.flush();
-      const rows = listContainer.querySelectorAll('.row');
-      assert(rows.length === 1,
+      const rows = fixture.listContainer.querySelectorAll('.row');
+      assert.strictEqual(rows.length, 1,
           'should show one row containing "column 4", since filtering is case insensitive');
-      assert(rows[0].children[1].textContent.trim() === 'first column 4',
+      assert.strictEqual(rows[0].children[1].textContent.trim(), 'first column 4',
           'filter should return the fourth item');
     });
 
     it('resets filter when filter box is closed', () => {
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       fixture.filterString = '3';
       Polymer.flush();
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       Polymer.flush();
-      assert(listContainer.querySelectorAll('.row').length === 5,
+      assert.strictEqual(fixture.listContainer.querySelectorAll('.row').length, 5,
           'all rows should show after closing filter box');
     });
 
     it('selects only visible items when Select All checkbox is clicked', () => {
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      const selectAllCheckbox = fixture.$.selectAllCheckbox as HTMLElement;
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       fixture.filterString = '3';
       Polymer.flush();
-      selectAllCheckbox.click();
+      fixture.selectAllCheckbox.click();
 
       fixture.filterString = '';
       Polymer.flush();
@@ -593,29 +564,21 @@ describe('item-list', () => {
     });
 
     it('returns the correct selectedIndices result matching clicked items when filtering', () => {
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       fixture.filterString = '2';
       Polymer.flush();
 
       const firstRow = getRow(0);
       firstRow.click();
       const selectedIndices = fixture.selectedIndices;
-      assert(selectedIndices.length === 1, 'only one item should be selected');
-      assert(selectedIndices[0] === 1, 'the second index (only one shown) should be selected');
+      assert.strictEqual(selectedIndices.length, 1, 'only one item should be selected');
+      assert.strictEqual(selectedIndices[0], 1,
+          'the second index (only one shown) should be selected');
     });
-  });
 
-  describe('remote filtering', () => {
-
-    const rows = [
-      new ItemListRow({ columns: ['item c*', new Date('11/11/2017, 8:58:42 AM')] }),
-      new ItemListRow({ columns: ['item a*', new Date('11/11/2017, 8:59:42 AM')] }),
-      new ItemListRow({ columns: ['item b', new Date('11/11/2017, 8:57:42 AM')] })
-    ];
-
-    beforeEach(() => {
-      _resetFixture();
+    // Remote filtering is handled by the backend, not the item-list component.
+    it('should not change list when doing remote filtering', () => {
+      _resetFixture(false);
       fixture.columns = [
         new ItemListColumn('col1', ColumnTypeName.STRING),
         new ItemListColumn('col2', ColumnTypeName.STRING),
@@ -637,22 +600,18 @@ describe('item-list', () => {
           columns: ['first column 5', 'second column 5'],
         }),
       ];
-    });
-
-    it('should not change list when doing remote filtering', () => {
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      filterToggle.click();
+      fixture.filterToggleButton.click();
       fixture.filterString = 'a';
       Polymer.flush();
-      assert(listContainer.querySelectorAll('.row').length === 5, 'should show all items');
+      assert.strictEqual(fixture.listContainer.querySelectorAll('.row').length, 5,
+          'should show all items');
     });
   });
 
-  describe('local sorting', () => {
+  describe('sorting', () => {
     const rows = [
-      new ItemListRow({ columns: ['item c*', new Date('11/11/2017, 8:58:42 AM')] }),
-      new ItemListRow({ columns: ['item a*', new Date('11/11/2017, 8:59:42 AM')] }),
+      new ItemListRow({ columns: ['item cx', new Date('11/11/2017, 8:58:42 AM')] }),
+      new ItemListRow({ columns: ['item ax', new Date('11/11/2017, 8:59:42 AM')] }),
       new ItemListRow({ columns: ['item b', new Date('11/11/2017, 8:57:42 AM')] })
     ];
 
@@ -662,133 +621,91 @@ describe('item-list', () => {
 
     beforeEach(async () => {
       _resetFixture(false, true);
-      const list = fixture.$.list as Polymer.DomRepeat;
       fixture.rows = rows;
       fixture.columns = [
         new ItemListColumn('col1', ColumnTypeName.STRING, 'col1SortKey'),
         new ItemListColumn('col2', ColumnTypeName.DATE, 'col2SortKey'),
       ];
-      list.render();
+      fixture.list.render();
     });
 
     it('sorts on first column by default', () => {
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      const renderedRows = listContainer.querySelectorAll('.row');
-      for (let i = 0; i < fixture.rows.length; ++i) {
+      const renderedRows = fixture.listContainer.querySelectorAll('.row');
+      for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
         const sortedColumns = fixture.rows[col0SortedOrder[i]].columns;
-        assert(columns[0].textContent.trim() === sortedColumns[0]);
-        assert(columns[1].textContent.trim() ===
+        assert.strictEqual(columns[0].textContent.trim(), sortedColumns[0]);
+        assert.strictEqual(
+            columns[1].textContent.trim(),
             new Date(sortedColumns[1].toString()).toLocaleString());
       }
     });
 
     it('switches sort to descending order if first column is sorted on again', () => {
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      const renderedRows = listContainer.querySelectorAll('.row');
-      const list = fixture.$.list as Polymer.DomRepeat;
+      const renderedRows = fixture.listContainer.querySelectorAll('.row');
       fixture._sortBy(0);
-      list.render();
-      for (let i = 0; i < fixture.rows.length; ++i) {
+      fixture.list.render();
+      for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
         const sortedColumns = fixture.rows[col0ReverseOrder[i]].columns;
-        assert(columns[0].textContent.trim() === sortedColumns[0]);
-        assert(columns[1].textContent.trim() ===
+        assert.strictEqual(columns[0].textContent.trim(), sortedColumns[0]);
+        assert.strictEqual(
+            columns[1].textContent.trim(),
             new Date(sortedColumns[1].toString()).toLocaleString());
       }
     });
 
     it('when switching to sorting on second column, uses ascending order', () => {
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      const list = fixture.$.list as Polymer.DomRepeat;
       fixture._sortBy(1);
-      list.render();
-      const renderedRows = listContainer.querySelectorAll('.row');
-      for (let i = 0; i < fixture.rows.length; ++i) {
+      fixture.list.render();
+      const renderedRows = fixture.listContainer.querySelectorAll('.row');
+      for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
         const sortedColumns = fixture.rows[col1SortedOrder[i]].columns;
-        assert(columns[0].textContent.trim() === sortedColumns[0]);
-        assert(columns[1].textContent.trim() ===
+        assert.strictEqual(columns[0].textContent.trim(), sortedColumns[0]);
+        assert.strictEqual(
+            columns[1].textContent.trim(),
             new Date(sortedColumns[1].toString()).toLocaleString());
       }
     });
 
     it('shows arrow icon on the sorted column', () => {
-      const list = fixture.$.list as Polymer.DomRepeat;
-      const headerIcons = fixture.$.header.querySelectorAll('.sort-icon') as any;
+      const headerIcons = fixture.header.querySelectorAll('.sort-icon') as any;
       assert(!headerIcons[0].hidden, 'first column should show sort icon');
-      assert(headerIcons[0].icon === 'arrow-upward',
+      assert.strictEqual(headerIcons[0].icon, 'arrow-upward',
           'first column should show ascending sort icon');
       assert(headerIcons[1].hidden, 'second column icon should be hidden');
 
       fixture._sortBy(1);
-      list.render();
+      fixture.list.render();
       assert(headerIcons[0].hidden, 'first column icon should be hidden');
       assert(!headerIcons[1].hidden, 'second column should show sort icon');
-      assert(headerIcons[1].icon === 'arrow-upward',
+      assert.strictEqual(headerIcons[1].icon, 'arrow-upward',
           'second column should show ascending sort icon');
 
       fixture._sortBy(1);
-      list.render();
+      fixture.list.render();
       assert(headerIcons[0].hidden, 'first column icon should be hidden');
       assert(!headerIcons[1].hidden, 'second column should show sort icon');
-      assert(headerIcons[1].icon === 'arrow-downward',
+      assert.strictEqual(headerIcons[1].icon, 'arrow-downward',
           'second column should show descending sort icon');
     });
 
     it('sorts the clicked column', () => {
-      const list = fixture.$.list as Polymer.DomRepeat;
-      const headerButtons = fixture.$.header.querySelectorAll('.column-button') as any;
-      const headerIcons = fixture.$.header.querySelectorAll('.sort-icon') as any;
+      const headerButtons = fixture.header.querySelectorAll('.column-button') as any;
+      const headerIcons = fixture.header.querySelectorAll('.sort-icon') as any;
       headerButtons[0].click();
-      list.render();
-      assert(headerIcons[0].icon === 'arrow-downward',
+      fixture.list.render();
+      assert.strictEqual(headerIcons[0].icon, 'arrow-downward',
           'first column should show descending sort icon');
 
       headerButtons[1].click();
-      list.render();
-      assert(headerIcons[1].icon === 'arrow-upward',
+      fixture.list.render();
+      assert.strictEqual(headerIcons[1].icon, 'arrow-upward',
           'second column should show ascending sort icon');
     });
 
-    it('sorts while filtering is active', () => {
-      fixture.filterLocally = true;
-      const list = fixture.$.list as Polymer.DomRepeat;
-      const listContainer = fixture.$.listContainer as HTMLElement;
-      const filterToggle = fixture.$.filterToggle as HTMLElement;
-      filterToggle.click();
-      fixture.filterString = '*';
-      list.render();
-
-      let renderedRows = listContainer.querySelectorAll('.row');
-      // row 0
-      let columns0 = renderedRows[0].querySelectorAll('.column');
-      assert(columns0[0].textContent.trim() === fixture.rows[1].columns[0]);
-      assert(columns0[1].textContent.trim() ===
-        new Date(fixture.rows[1].columns[1].toString()).toLocaleString());
-      // row 1
-      let columns1 = renderedRows[1].querySelectorAll('.column');
-      assert(columns1[0].textContent.trim() === fixture.rows[0].columns[0]);
-      assert(columns1[1].textContent.trim() ===
-        new Date(fixture.rows[0].columns[1].toString()).toLocaleString());
-
-      fixture._sortBy(0);
-      list.render();
-      renderedRows = listContainer.querySelectorAll('.row');
-      // row 0
-      columns0 = renderedRows[0].querySelectorAll('.column');
-      assert(columns0[0].textContent.trim() === fixture.rows[0].columns[0]);
-      assert(columns0[1].textContent.trim() ===
-        new Date(fixture.rows[0].columns[1].toString()).toLocaleString());
-      // row 1
-      columns1 = renderedRows[1].querySelectorAll('.column');
-      assert(columns1[0].textContent.trim() === fixture.rows[1].columns[0]);
-      assert(columns1[1].textContent.trim() ===
-        new Date(fixture.rows[1].columns[1].toString()).toLocaleString());
-    });
-
     it('sorts numbers correctly', () => {
-      const listContainer = fixture.$.listContainer as HTMLElement;
       fixture.columns = [ new ItemListColumn('col1', ColumnTypeName.NUMBER) ];
       fixture.rows = [
         new ItemListRow({ columns: [11] }),
@@ -797,16 +714,16 @@ describe('item-list', () => {
       ];
       const sortedOrder = [1, 2, 0];
 
-      const renderedRows = listContainer.querySelectorAll('.row');
-      for (let i = 0; i < fixture.rows.length; ++i) {
+      const renderedRows = fixture.listContainer.querySelectorAll('.row');
+      for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
-        assert(columns[0].textContent.trim() ===
+        assert.strictEqual(
+            columns[0].textContent.trim(),
             fixture.rows[sortedOrder[i]].columns[0].toString());
       }
     });
 
     it('sorts correctly when there are equal values', () => {
-      const listContainer = fixture.$.listContainer as HTMLElement;
       fixture.columns = [ new ItemListColumn('col1', ColumnTypeName.NUMBER) ];
       fixture.rows = [
         new ItemListRow({ columns: [2] }),
@@ -818,10 +735,11 @@ describe('item-list', () => {
       ];
       const sortedOrder = [1, 3, 0, 2, 5, 4];
 
-      const renderedRows = listContainer.querySelectorAll('.row');
-      for (let i = 0; i < fixture.rows.length; ++i) {
+      const renderedRows = fixture.listContainer.querySelectorAll('.row');
+      for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
-        assert(columns[0].textContent.trim() ===
+        assert.strictEqual(
+            columns[0].textContent.trim(),
             fixture.rows[sortedOrder[i]].columns[0].toString());
       }
     });
@@ -839,8 +757,58 @@ describe('item-list', () => {
       const firstRow = getRow(0);
       firstRow.click();
       const selectedIndices = fixture.selectedIndices;
-      assert(selectedIndices.length === 1, 'only one item should be selected');
-      assert(selectedIndices[0] === 2, 'the third index (shown first) should be selected');
+      assert.strictEqual(selectedIndices.length, 1, 'only one item should be selected');
+      assert.strictEqual(selectedIndices[0], 2, 'the third index (shown first) should be selected');
+    });
+
+    // Remote sorting is handled by the backend, not the item-list component.
+    it('should not change row order when doing remote sorting', () => {
+      _resetFixture(false, false);
+      fixture.columns = [ new ItemListColumn('col1', ColumnTypeName.NUMBER) ];
+      fixture.rows = [
+        new ItemListRow({ columns: [3] }),
+        new ItemListRow({ columns: [1] }),
+        new ItemListRow({ columns: [2] }),
+        new ItemListRow({ columns: [4] }),
+      ];
+      const unsortedValues = [3, 1, 2, 4];
+
+      Polymer.flush();
+      const renderedRows = fixture.listContainer.querySelectorAll('.row');
+      for (let i = 0; i < fixture.rows.length; i++) {
+        const columns = renderedRows[i].querySelectorAll('.column');
+        assert.strictEqual(columns[0].textContent.trim(), unsortedValues[i].toString());
+      }
+    });
+
+    // Remote sorting is handled by the backend, not the item-list component.
+    it('should allow simulaneous, local sorting and filtering', () => {
+      _resetFixture(true, true);
+      fixture.columns = [
+        new ItemListColumn('col1', ColumnTypeName.STRING),
+        new ItemListColumn('col2', ColumnTypeName.NUMBER),
+      ];
+      fixture.rows = [
+        new ItemListRow({ columns: ['a', 3] }),
+        new ItemListRow({ columns: ['a', 1] }),
+        new ItemListRow({ columns: ['a', 2] }),
+        new ItemListRow({ columns: ['b', 3] }),
+        new ItemListRow({ columns: ['b', 1] }),
+        new ItemListRow({ columns: ['b', 2] }),
+      ];
+      fixture.filterToggleButton.click();
+      fixture.filterString = 'b';
+      // Sort by second column
+      fixture._sortBy(1);
+
+      fixture.list.render();
+
+      const expectedColumnValues = ['1', '2', '3'];
+      const renderedRows = fixture.listContainer.querySelectorAll('.row');
+      for (let i = 0; i < renderedRows.length; i++) {
+        const columns = renderedRows[i].querySelectorAll('.column');
+        assert.strictEqual(columns[1].textContent.trim(), expectedColumnValues[i]);
+      }
     });
   });
 

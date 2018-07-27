@@ -211,6 +211,38 @@ export class ItemListElement extends Polymer.Element {
     return root.querySelector('.empty-message') as HTMLSpanElement;
   }
 
+  public get filterBox(): HTMLElement {
+    return this.$.filterBox as HTMLElement;
+  }
+
+  public get filterToggleButton(): PaperIconButtonElement {
+    return this.$.filterToggle as PaperIconButtonElement;
+  }
+
+  public get header(): HTMLElement {
+    return this.$.header as HTMLElement;
+  }
+
+  public get list(): Polymer.DomRepeat {
+    return this.$.list as Polymer.DomRepeat;
+  }
+
+  public get listContainer(): HTMLElement {
+    return this.$.listContainer as HTMLElement;
+  }
+
+  public get nextPageButton(): PaperButtonElement {
+    return this.$.nextPage as PaperButtonElement;
+  }
+
+  public get previousPageButton(): PaperButtonElement {
+    return this.$.previousPage as PaperButtonElement;
+  }
+
+  public get selectAllCheckbox(): PaperCheckboxElement {
+    return this.$.selectAllCheckbox as PaperCheckboxElement;
+  }
+
   public reset(): void {
     this._pageTokens = [''];
     this._maxPageNumber = Number.MAX_SAFE_INTEGER;

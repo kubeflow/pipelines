@@ -70,27 +70,30 @@ export default (app) => {
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
       // This may need to be updated when the backend implements filtering.
-      pipelines = fixedData.pipelines.filter((p) => p.name.toLocaleLowerCase().match(
-          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()));
+      pipelines = fixedData.pipelines.filter((p) =>
+          p.name.toLocaleLowerCase().indexOf(
+              decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
 
     }
 
-    if (req.query.sortBy) {
-      if (!isValidSortKey(PipelineSortKeys, req.query.sortBy)) {
-        res.status(405).send(`Unsupported sort string: ${req.query.sortBy}`);
-        return;
+    // The backend sorts by created_at by default.
+    const sortKey = req.query.sortBy || PipelineSortKeys.CREATED_AT;
+
+    if (!isValidSortKey(PipelineSortKeys, sortKey)) {
+      res.status(405).send(`Unsupported sort string: ${sortKey}`);
+      return;
+    }
+
+    pipelines.sort((a, b) => {
+      let result = 1;
+      if (a[sortKey] < b[sortKey]) {
+        result = -1;
       }
-      pipelines.sort((a, b) => {
-        let result = 1;
-        if (a[req.query.sortBy] < b[req.query.sortBy]) {
-          result = -1;
-        }
-        if (a[req.query.sortBy] === b[req.query.sortBy]) {
-          result = 0;
-        }
-        return result * ((req.query.ascending === 'true') ? 1 : -1);
-      });
-    }
+      if (a[sortKey] === b[sortKey]) {
+        result = 0;
+      }
+      return result * ((req.query.ascending === 'true') ? 1 : -1);
+    });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
     const end = start + (+req.query.pageSize);
@@ -151,29 +154,28 @@ export default (app) => {
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
       // This may need to be updated when the backend implements filtering.
-      jobs = jobs.filter((j) => j.name.toLocaleLowerCase().match(
-          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()));
+      jobs = jobs.filter((j) => j.name.toLocaleLowerCase().indexOf(
+          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
     }
 
     // The backend sorts by created_at by default.
-    req.query.sortBy = req.query.sortBy || JobSortKeys.CREATED_AT;
+    const sortKey = req.query.sortBy || JobSortKeys.CREATED_AT;
 
-    if (req.query.sortBy) {
-      if (!isValidSortKey(JobSortKeys, req.query.sortBy)) {
-        res.status(405).send(`Unsupported sort string: ${req.query.sortBy}`);
-        return;
-      }
-      jobs.sort((a, b) => {
-        let result = 1;
-        if (a[req.query.sortBy] < b[req.query.sortBy]) {
-          result = -1;
-        }
-        if (a[req.query.sortBy] === b[req.query.sortBy]) {
-          result = 0;
-        }
-        return result * ((req.query.ascending === 'true') ? 1 : -1);
-      });
+    if (!isValidSortKey(JobSortKeys, sortKey)) {
+      res.status(405).send(`Unsupported sort string: ${sortKey}`);
+      return;
     }
+
+    jobs.sort((a, b) => {
+      let result = 1;
+      if (a[sortKey] < b[sortKey]) {
+        result = -1;
+      }
+      if (a[sortKey] === b[sortKey]) {
+        result = 0;
+      }
+      return result * ((req.query.ascending === 'true') ? 1 : -1);
+    });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
     const end = start + (+req.query.pageSize);

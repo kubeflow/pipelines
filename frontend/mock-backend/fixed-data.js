@@ -140,14 +140,14 @@ const data = {
   pipelines: [
     {
       id: '7fc01714-4a13-4c05-5902-a8a72c14253b',
-      created_at: "2018-04-05T20:58:23.000Z",
+      created_at: "2018-03-01T21:58:23.000Z",
       name: 'No Jobs',
       description: 'This pipeline has no jobs',
       package_id: 2,
       status: 'Succeeded',
       trigger: { cron_schedule: { cron: '30 1 * * * ?' } },
       enabled: true,
-      updated_at: "2018-04-05T20:58:23.000Z",
+      updated_at: "2018-03-01T21:58:23.000Z",
       max_concurrency: 10,
       parameters: [
         {
@@ -171,14 +171,14 @@ const data = {
     },
     {
       id: '7fc01714-4a13-4c05-7186-a8a72c14253b',
-      created_at: "2018-04-06T20:58:23.000Z",
+      created_at: "2018-03-02T22:58:23.000Z",
       name: 'Cannot be deleted - 1',
       description: 'This pipeline cannot be deleted',
       package_id: 1,
       status: 'Succeeded',
       trigger: { cron_schedule: { cron: '0 0 * * * ?' }, },
       enabled: false,
-      updated_at: "2018-04-06T20:58:23.000Z",
+      updated_at: "2018-03-02T22:58:23.000Z",
       max_concurrency: 10,
       parameters: [
         {
@@ -198,14 +198,14 @@ const data = {
     },
     {
       id: '7fc01714-4a13-4c05-8957-a8a72c14253b',
-      created_at: "2018-04-07T20:58:23.000Z",
+      created_at: "2018-03-03T23:58:23.000Z",
       name: 'Cannot be deleted - 2',
       description: 'This pipeline cannot be deleted',
       package_id: 2,
       status: 'Succeeded',
       trigger: { cron_schedule: { cron: '0 0 0 * * ?' } },
       enabled: true,
-      updated_at: "2018-04-07T20:58:23.000Z",
+      updated_at: "2018-03-03T23:58:23.000Z",
       max_concurrency: 10,
       parameters: [
         {
@@ -236,10 +236,10 @@ function generateNJobs() {
     dummyJobs.push( {
       job: {
         id: i,
-        created_at: "2018-07-12T20:58:23.000Z",
+        created_at: '2018-07-12T20:' + i.toString().padStart(2, '0') + ':23.000Z',
         name: 'dummy-coinflip-recursive-asdlx' + i,
         namespace: 'namespace',
-        scheduled_at: "2018-07-12T20:58:23.000Z",
+        scheduled_at: '2018-07-12T20:' + i.toString().padStart(2, '0') + ':23.000Z',
         status: 'Succeeded',
       },
       workflow: JSON.stringify(coinflipJob),
@@ -254,14 +254,14 @@ function generateNPipelines() {
     pipelines.push( {
       // TODO: this should be a UUID.
       id: 'Some-pipeline-id-' + i,
-      created_at: "2018-04-01T20:58:23.000Z",
+      created_at: '2018-04-01T20:' + i.toString().padStart(2, '0') + ':23.000Z',
       description: 'Some description',
       name: 'Pipeline#' + i,
       package_id: (i % 6) + 1,
       status: 'Succeeded',
       trigger: null,
       enabled: false,
-      updated_at: "2018-04-01T20:58:23.000Z",
+      updated_at: '2018-04-01T20:' + i.toString().padStart(2, '0') + ':23.000Z',
       max_concurrency: 10,
       parameters: [
         {
