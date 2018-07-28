@@ -28,8 +28,24 @@ export class PopupDialog extends Polymer.Element {
 
   private _closeCallback: (result: DialogResult) => void;
 
+  public get bodyElement(): HTMLDivElement {
+    return this.shadowRoot!.querySelector('.body') as HTMLDivElement;
+  }
+
+  public get button1Element(): PaperButtonElement {
+    return this.shadowRoot!.querySelector('paper-button') as PaperButtonElement;
+  }
+
+  public get button2Element(): PaperButtonElement {
+    return this.shadowRoot!.querySelector('paper-button:nth-of-type(2)') as PaperButtonElement;
+  }
+
   public get dialog(): PaperDialogElement {
     return this.$.dialog as PaperDialogElement;
+  }
+
+  public get titleElement(): HTMLDivElement {
+    return this.shadowRoot!.querySelector('.title') as HTMLDivElement;
   }
 
   public open(): Promise<DialogResult> {

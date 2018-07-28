@@ -27,6 +27,7 @@ import './pipeline-details-test';
 import './pipeline-list-test';
 import './pipeline-new-test';
 import './pipeline-schedule-test';
+import './popup-dialog-test';
 import './table-viewer-test';
 
 mocha.run(() => {
