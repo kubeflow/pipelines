@@ -1,0 +1,34 @@
+<dom-module id="table-viewer">
+  <template>
+
+    <link rel="stylesheet" href="./table-viewer.css">
+    <table id="table">
+      <tr class="header">
+        <template is="dom-repeat" items="[[header]]" as="cell">
+          <th>[[cell]]</th>
+        </template>
+      </tr>
+      <template is="dom-repeat" items="[[_pageRows]]" as="row">
+        <tr>
+          <template is="dom-repeat" items="[[row]]" as="cell">
+            <td>[[cell]]</td>
+          </template>
+        </tr>
+      </template>
+    </table>
+    <br>
+    <div class="page-buttons">
+      <paper-icon-button id="prevPage" icon="chevron-left" on-click="_prevPage"
+                         disabled$="[[!_hasPrevPage]]"></paper-icon-button>
+      <span class="padded">
+        Page
+        <span id="pageIndex" class="padded-spacing-minus-5 strong">[[pageIndex]]</span>
+        of
+        <span id="numPages" class="padded-spacing-minus-5">[[_numPages]]</span>
+      </span>
+      <paper-icon-button id="nextPage" icon="chevron-right" on-click="_nextPage"
+                         disabled$="[[!_hasNextPage]]"></paper-icon-button>
+    </div>
+
+  </template>
+</dom-module>

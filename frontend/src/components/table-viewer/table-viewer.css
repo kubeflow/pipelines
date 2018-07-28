@@ -1,0 +1,46 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+paper-icon-button {
+  border-radius: 50%;
+  height: 30px;
+  padding: 3px;
+  width: 30px;
+}
+
+paper-icon-button:hover {
+  background-color: #eee;
+}
+
+paper-icon-button[disabled] {
+  color: #ccc;
+}
+
+table, th, td {
+  border: 1px solid #ddd;
+  border-collapse: collapse;
+}
+
+table {
+  background-color: var(--background-base-color);
+  border-radius: 4px;
+  display: block;
+  margin: auto;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+tr:hover {
+  background-color: #f3f3f3;
+}
+
+th {
+  background-color: #eee;
+  font-weight: bold;
+  justify-content: space-evenly;
+  padding: 5px;
+}
+
+td {
+  padding: 3px;
+}

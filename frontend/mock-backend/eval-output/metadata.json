@@ -1,14 +1,33 @@
 {
-  "outputs": [{
+  "outputs": [
+    {
       "type": "roc",
       "format": "csv",
       "source": "./roc/roc.csv",
       "schema": [],
       "predicted_col": "column1",
       "target_col": "column2"
-    }, {
+    },
+    {
       "type": "tensorboard",
       "source": "gs://path/to/logdir"
+    },
+    {
+      "format": "csv",
+      "header": [
+        "id",
+        "category",
+        "description",
+        "district",
+        "resolution",
+        "long",
+        "lat",
+        "hour",
+        "weekday",
+        "dayinyear"
+      ],
+      "source": "./table.csv",
+      "type": "table"
     }
   ]
 }

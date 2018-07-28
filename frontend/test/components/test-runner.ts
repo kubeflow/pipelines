@@ -27,6 +27,7 @@ import './pipeline-details-test';
 import './pipeline-list-test';
 import './pipeline-new-test';
 import './pipeline-schedule-test';
+import './table-viewer-test';
 
 mocha.run(() => {
   // This div can be waited on by the browser automation script to identify the

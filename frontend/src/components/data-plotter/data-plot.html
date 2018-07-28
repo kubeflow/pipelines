@@ -22,6 +22,9 @@
       <template is="dom-if" if="[[_renderHtmlApp]]">
         <iframe id="iframe" src="javascript:void(0);" class="iframe" sandbox="allow-scripts"></iframe>
       </template>
+      <template is="dom-if" if="[[_renderTable]]">
+        <table-viewer></table-viewer>
+      </template>
     </div>
     </template>
 </dom-module>

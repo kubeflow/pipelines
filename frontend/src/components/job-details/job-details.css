@@ -29,6 +29,11 @@ paper-progress.job-progress {
   line-height: var(--paper-font-title_-_line-height);
 }
 
+.page-content {
+  box-sizing: border-box;
+  width: 100%;
+}
+
 .plot-container[loading] {
   opacity: 0.6;
 }

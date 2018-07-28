@@ -17,6 +17,7 @@ const fixedData = require('./fixed-data').data;
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocDataPath = './eval-output/roc.csv';
+const tableDataPath = './eval-output/table.csv';
 
 const confusionMatrixMetadataJsonPath = './model-output/metadata.json';
 const confusionMatrixPath = './model-output/confusion_matrix.csv';
@@ -254,6 +255,8 @@ export default (app) => {
       res.sendFile(_path.resolve(__dirname, rocDataPath));
     } else if (path.endsWith('confusion_matrix.csv')) {
       res.sendFile(_path.resolve(__dirname, confusionMatrixPath));
+    } else if (path.endsWith('table.csv')) {
+      res.sendFile(_path.resolve(__dirname, tableDataPath));
     } else if (path.endsWith('hello-world.html')) {
       res.sendFile(_path.resolve(__dirname, staticHtmlPath));
     } else if (path.endsWith('analysis/metadata.json')) {

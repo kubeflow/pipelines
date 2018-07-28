@@ -7,8 +7,11 @@ import * as Utils from '../../lib/utils';
 import { csvParseRows } from 'd3';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { PlotMetadata, PlotType } from '../../model/output_metadata';
+import { TableViewer } from '../table-viewer/table-viewer';
 import { drawMatrix } from './confusion-matrix';
 import { drawROC } from './roc-plot';
+
+import '../table-viewer/table-viewer';
 
 import './data-plot.html';
 
@@ -33,6 +36,9 @@ export class DataPlot extends Polymer.Element {
   @property({ type: Boolean })
   protected _renderHtmlApp = false;
 
+  @property({ type: Boolean })
+  protected _renderTable = false;
+
   @property({ type: String })
   protected _staticHtmlSource = '';
 
@@ -50,6 +56,9 @@ export class DataPlot extends Polymer.Element {
           break;
         case PlotType.ROC:
           this._plotRocCurve(this.plotMetadata);
+          break;
+        case PlotType.TABLE:
+          this._plotTable(this.plotMetadata);
           break;
         case PlotType.TENSORBOARD:
           this._addTensorboardControls();
@@ -77,8 +86,14 @@ export class DataPlot extends Polymer.Element {
   }
 
   private async _plotConfusionMatrix(metadata: PlotMetadata): Promise<void> {
-    if (!metadata.source || !metadata.labels || !metadata.schema) {
-      throw new Error('Malformed metadata, a field is missing.');
+    if (!metadata.source) {
+      throw new Error('Malformed metadata, property "source" is required.');
+    }
+    if (!metadata.labels) {
+      throw new Error('Malformed metadata, property "labels" is required.');
+    }
+    if (!metadata.schema) {
+      throw new Error('Malformed metadata, property "schema" missing.');
     }
     const data = csvParseRows(await Apis.readFile(metadata.source));
     const labels = metadata.labels;
@@ -123,6 +138,31 @@ export class DataPlot extends Polymer.Element {
       margin: 50,
       width: 650
     });
+  }
+
+  private async _plotTable(metadata: PlotMetadata): Promise<void> {
+    if (!metadata.source) {
+      throw new Error('Malformed metadata, property "source" is required.');
+    }
+    if (!metadata.header) {
+      throw new Error('Malformed metadata, property "header" is required.');
+    }
+    if (!metadata.format) {
+      throw new Error('Malformed metadata, property "format" is required.');
+    }
+    this._renderTable = true;
+
+    this.plotTitle = 'Table viewer from file: ' + metadata.source;
+    switch (metadata.format) {
+      case 'csv':
+        const data = csvParseRows(await Apis.readFile(metadata.source));
+        const tableViewer = this.shadowRoot!.querySelector('table-viewer') as TableViewer;
+        tableViewer.header = metadata.header;
+        tableViewer.rows = data;
+        break;
+      default:
+        throw new Error('Unsupported table format: ' + metadata.format);
+    }
   }
 
   private async _renderStaticWebApp(metadata: PlotMetadata): Promise<void> {
