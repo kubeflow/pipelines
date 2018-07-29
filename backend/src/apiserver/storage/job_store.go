@@ -12,7 +12,7 @@ import (
 
 type JobStoreInterface interface {
 	GetJob(pipelineId string, jobId string) (*model.JobDetail, error)
-	ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string) ([]model.Job, string, error)
+	ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error)
 	UpdateJob(workflow *util.Workflow) (err error)
 }
 
@@ -22,8 +22,8 @@ type JobStore struct {
 }
 
 // ListJobs list the job metadata for a pipeline from DB
-func (s *JobStore) ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string) ([]model.Job, string, error) {
-	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetJobTablePrimaryKeyColumn())
+func (s *JobStore) ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error) {
+	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetJobTablePrimaryKeyColumn(), isDesc)
 	if err != nil {
 		return nil, "", err
 	}

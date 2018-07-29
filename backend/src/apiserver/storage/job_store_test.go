@@ -97,12 +97,48 @@ func TestListJobs_Pagination(t *testing.T) {
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 1, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 1, model.GetJobTablePrimaryKeyColumn(), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageJobs, jobs, "Unexpected Job listed.")
 	assert.NotEmpty(t, nextPageToken)
 
-	jobs, nextPageToken, err = jobStore.ListJobs("1", nextPageToken, 1, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err = jobStore.ListJobs("1", nextPageToken, 1, model.GetJobTablePrimaryKeyColumn(), false)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedSecondPageJobs, jobs, "Unexpected Job listed.")
+	assert.Empty(t, nextPageToken)
+}
+
+func TestListJobs_Pagination_Descend(t *testing.T) {
+	db := initializeDB()
+	defer db.Close()
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+
+	expectedFirstPageJobs := []model.Job{
+		{
+			UUID:             "2",
+			Name:             "job2",
+			Namespace:        "n2",
+			PipelineID:       "1",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "done",
+		}}
+	expectedSecondPageJobs := []model.Job{
+		{
+			UUID:             "1",
+			Name:             "job1",
+			Namespace:        "n1",
+			PipelineID:       "1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+		}}
+	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 1, model.GetJobTablePrimaryKeyColumn(), true)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedFirstPageJobs, jobs, "Unexpected Job listed.")
+	assert.NotEmpty(t, nextPageToken)
+
+	jobs, nextPageToken, err = jobStore.ListJobs("1", nextPageToken, 1, model.GetJobTablePrimaryKeyColumn(), true)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageJobs, jobs, "Unexpected Job listed.")
 	assert.Empty(t, nextPageToken)
@@ -132,7 +168,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 10, model.GetJobTablePrimaryKeyColumn())
+	jobs, nextPageToken, err := jobStore.ListJobs("1", "", 10, model.GetJobTablePrimaryKeyColumn(), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJobs, jobs, "Unexpected Job listed.")
 	assert.Empty(t, nextPageToken)
@@ -143,7 +179,7 @@ func TestListJobsError(t *testing.T) {
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
-	_, _, err := jobStore.ListJobs("1", "", 10, model.GetJobTablePrimaryKeyColumn())
+	_, _, err := jobStore.ListJobs("1", "", 10, model.GetJobTablePrimaryKeyColumn(), false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }

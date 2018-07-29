@@ -10,7 +10,7 @@ import (
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines(pageToken string, pageSize int, sortByFieldName string) ([]model.Pipeline, string, error)
+	ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Pipeline, string, error)
 	GetPipeline(id string) (*model.Pipeline, error)
 	CreatePipeline(*model.Pipeline) (*model.Pipeline, error)
 	DeletePipeline(id string) error
@@ -23,8 +23,8 @@ type PipelineStore struct {
 	time util.TimeInterface
 }
 
-func (s *PipelineStore) ListPipelines(pageToken string, pageSize int, sortByFieldName string) ([]model.Pipeline, string, error) {
-	context, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPipelineTablePrimaryKeyColumn())
+func (s *PipelineStore) ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Pipeline, string, error) {
+	context, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPipelineTablePrimaryKeyColumn(), isDesc)
 	if err != nil {
 		return nil, "", err
 	}

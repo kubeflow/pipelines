@@ -49,7 +49,7 @@ func TestListPackages_FilterOutNotReady(t *testing.T) {
 		Status:         model.PackageReady}
 	pkgsExpected := []model.Package{expectedPkg1, expectedPkg2}
 
-	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 10 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
+	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 10 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/, false)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pkgsExpected, pkgs)
@@ -76,7 +76,7 @@ func TestListPackages_Pagination(t *testing.T) {
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PackageReady}
 	pkgsExpected := []model.Package{expectedPkg1, expectedPkg4}
-	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pkgsExpected, pkgs)
@@ -95,7 +95,53 @@ func TestListPackages_Pagination(t *testing.T) {
 		Status:         model.PackageReady}
 	pkgsExpected2 := []model.Package{expectedPkg2, expectedPkg3}
 
-	pkgs, nextPageToken, err = packageStore.ListPackages(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	pkgs, nextPageToken, err = packageStore.ListPackages(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false)
+	assert.Nil(t, err)
+	assert.Empty(t, nextPageToken)
+	assert.Equal(t, pkgsExpected2, pkgs)
+}
+
+func TestListPackages_Pagination_Descend(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch())
+	packageStore.CreatePackage(createPkg("pkg1"))
+	packageStore.CreatePackage(createPkg("pkg2"))
+	packageStore.CreatePackage(createPkg("pkg2"))
+	packageStore.CreatePackage(createPkg("pkg1"))
+
+	expectedPkg2 := model.Package{
+		ID:             2,
+		CreatedAtInSec: 2,
+		Name:           "pkg2",
+		Parameters:     `[{"Name": "param1"}]`,
+		Status:         model.PackageReady}
+	expectedPkg3 := model.Package{
+		ID:             3,
+		CreatedAtInSec: 3,
+		Name:           "pkg2",
+		Parameters:     `[{"Name": "param1"}]`,
+		Status:         model.PackageReady}
+	pkgsExpected := []model.Package{expectedPkg3, expectedPkg2}
+	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, pkgsExpected, pkgs)
+
+	expectedPkg1 := model.Package{
+		ID:             1,
+		CreatedAtInSec: 1,
+		Name:           "pkg1",
+		Parameters:     `[{"Name": "param1"}]`,
+		Status:         model.PackageReady}
+	expectedPkg4 := model.Package{
+		ID:             4,
+		CreatedAtInSec: 4,
+		Name:           "pkg1",
+		Parameters:     `[{"Name": "param1"}]`,
+		Status:         model.PackageReady}
+	pkgsExpected2 := []model.Package{expectedPkg4, expectedPkg1}
+	pkgs, nextPageToken, err = packageStore.ListPackages(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, pkgsExpected2, pkgs)
@@ -114,7 +160,7 @@ func TestListPackages_Pagination_LessThanPageSize(t *testing.T) {
 		Status:         model.PackageReady}
 	pkgsExpected := []model.Package{expectedPkg1}
 
-	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
+	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pkgsExpected, pkgs)
@@ -125,7 +171,7 @@ func TestListPackagesError(t *testing.T) {
 	defer db.Close()
 	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
-	_, _, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/)
+	_, _, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 

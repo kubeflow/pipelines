@@ -97,11 +97,19 @@ func deserializePageToken(pageToken string) (*Token, error) {
 // This function construct query as something like
 // select * from table where (name, id)>=("foo","2") order by name, id
 func toPaginationQuery(op string, query *bytes.Buffer, context *PaginationContext) {
+	equalitySymbol := ">="
+	if context.isDesc {
+		equalitySymbol = "<="
+	}
 	if token := context.token; token != nil {
 		query.WriteString(
-			fmt.Sprintf(" %v (%v,%v)>=('%v','%v') ", op,
-				context.sortByFieldName, context.keyFieldName,
+			fmt.Sprintf(" %v (%v,%v) %v ('%v','%v') ", op,
+				context.sortByFieldName, context.keyFieldName, equalitySymbol,
 				token.SortByFieldValue, token.KeyFieldValue))
 	}
-	query.WriteString(fmt.Sprintf(" ORDER BY %v, %v ", context.sortByFieldName, context.keyFieldName))
+	order := "ASC"
+	if context.isDesc {
+		order = "DESC"
+	}
+	query.WriteString(fmt.Sprintf(" ORDER BY %v %v, %v %v", context.sortByFieldName, order, context.keyFieldName, order))
 }

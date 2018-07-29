@@ -74,6 +74,7 @@ func initializePipelineDB() *gorm.DB {
 	db.Create(pipeline2)
 	return db
 }
+
 func TestListPipelines_Pagination(t *testing.T) {
 	db := initializePipelineDB()
 	defer db.Close()
@@ -97,7 +98,7 @@ func TestListPipelines_Pagination(t *testing.T) {
 			CreatedAtInSec: 0,
 			UpdatedAtInSec: 0,
 		}}
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 1 /*pageSize*/, "Name" /*sortByFieldName*/)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 1 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
@@ -119,7 +120,58 @@ func TestListPipelines_Pagination(t *testing.T) {
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 		}}
-	pipelines, newToken, err := pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	pipelines, newToken, err := pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
+	assert.Nil(t, err)
+	assert.Equal(t, "", newToken)
+	assert.Equal(t, pipelinesExpected2, pipelines)
+}
+
+func TestListPipelines_Pagination_Descent(t *testing.T) {
+	db := initializePipelineDB()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
+	pipelinesExpected := []model.Pipeline{
+		{
+			UUID:        "2",
+			DisplayName: "pp 2",
+			Name:        "pp2",
+			Namespace:   "n1",
+			PackageId:   1,
+			Enabled:     true,
+			Trigger: model.Trigger{
+				CronSchedule: model.CronSchedule{
+					CronScheduleStartTimeInSec: util.Int64Pointer(1),
+					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
+					Cron: util.StringPointer("1 * *"),
+				},
+			},
+			CreatedAtInSec: 1,
+			UpdatedAtInSec: 1,
+		}}
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 1 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, pipelinesExpected, pipelines)
+	pipelinesExpected2 := []model.Pipeline{
+		{
+			UUID:        "1",
+			DisplayName: "pp 1",
+			Name:        "pp1",
+			Namespace:   "n1",
+			PackageId:   1,
+			Enabled:     true,
+			Trigger: model.Trigger{
+				PeriodicSchedule: model.PeriodicSchedule{
+					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+					PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+					IntervalSecond:                 util.Int64Pointer(3),
+				},
+			},
+			CreatedAtInSec: 0,
+			UpdatedAtInSec: 0,
+		}}
+	pipelines, newToken, err := pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, pipelinesExpected2, pipelines)
@@ -165,7 +217,7 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 		}}
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
@@ -176,7 +228,7 @@ func TestListPipelinesError(t *testing.T) {
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
-	_, _, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/)
+	_, _, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
 
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to list pipeline to return error")

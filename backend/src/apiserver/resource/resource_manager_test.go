@@ -170,7 +170,7 @@ func TestListJob(t *testing.T) {
 	}
 	store.DB().Create(pipeline1)
 	store.DB().Create(job1)
-	jobs, newToken, err := manager.ListJobs(pipeline1.UUID, "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/)
+	jobs, newToken, err := manager.ListJobs(pipeline1.UUID, "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
 	jobsExpected := []model.Job{{
 		UUID:             "1",
 		Name:             "job1",
@@ -190,7 +190,7 @@ func TestListJob_PipelineNotFoundError(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	_, _, err := manager.ListJobs("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/)
+	_, _, err := manager.ListJobs("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
 	assert.Contains(t, err.Error(), "Pipeline 1 not found")
 }
 

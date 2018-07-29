@@ -30,7 +30,7 @@ func getFakeModelToken(sortByFieldName string) (string, error) {
 func TestNewPaginationContext(t *testing.T) {
 	token, err := getFakeModelToken("Author")
 	assert.Nil(t, err)
-	request, err := NewPaginationContext(token, 3, "Author", "Name")
+	request, err := NewPaginationContext(token, 3, "Author", "Name", false)
 	expected := &PaginationContext{
 		pageSize:        3,
 		sortByFieldName: "Author",
@@ -43,14 +43,14 @@ func TestNewPaginationContext(t *testing.T) {
 func TestNewPaginationContext_NegativePageSizeError(t *testing.T) {
 	token, err := getFakeModelToken("Author")
 	assert.Nil(t, err)
-	_, err = NewPaginationContext(token, -1, "Author", "Name")
+	_, err = NewPaginationContext(token, -1, "Author", "Name", false)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
 
 func TestNewPaginationContext_DefaultPageSize(t *testing.T) {
 	token, err := getFakeModelToken("Author")
 	assert.Nil(t, err)
-	request, err := NewPaginationContext(token, 0, "Author", "Name")
+	request, err := NewPaginationContext(token, 0, "Author", "Name", false)
 	expected := &PaginationContext{
 		pageSize:        defaultPageSize,
 		sortByFieldName: "Author",
@@ -63,7 +63,7 @@ func TestNewPaginationContext_DefaultPageSize(t *testing.T) {
 func TestNewPaginationContext_DefaultSorting(t *testing.T) {
 	token, err := getFakeModelToken("Name")
 	assert.Nil(t, err)
-	request, err := NewPaginationContext(token, 3, "", "Name")
+	request, err := NewPaginationContext(token, 3, "", "Name", false)
 	expected := &PaginationContext{
 		pageSize:        3,
 		sortByFieldName: "Name",
@@ -74,6 +74,6 @@ func TestNewPaginationContext_DefaultSorting(t *testing.T) {
 }
 
 func TestNewPaginationContext_InvalidToken(t *testing.T) {
-	_, err := NewPaginationContext("invalid token", 3, "", "Name")
+	_, err := NewPaginationContext("invalid token", 3, "", "Name", false)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }

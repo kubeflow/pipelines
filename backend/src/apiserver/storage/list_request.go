@@ -29,11 +29,12 @@ type PaginationContext struct {
 	pageSize        int
 	sortByFieldName string
 	keyFieldName    string
+	isDesc          bool
 	token           *Token
 }
 
 // NewPaginationContext create a new list request, along with validating the list inputs, such as tokens.
-func NewPaginationContext(pageToken string, pageSize int, sortByFieldName string, keyFieldName string) (*PaginationContext, error) {
+func NewPaginationContext(pageToken string, pageSize int, sortByFieldName string, keyFieldName string, isDesc bool) (*PaginationContext, error) {
 	if pageSize < 0 {
 		return nil, util.NewInvalidInputError("The page size should be greater than 0. Got %v", strconv.Itoa(pageSize))
 	}
@@ -56,5 +57,6 @@ func NewPaginationContext(pageToken string, pageSize int, sortByFieldName string
 		pageSize:        pageSize,
 		sortByFieldName: sortByFieldName,
 		keyFieldName:    keyFieldName,
+		isDesc:          isDesc,
 		token:           token}, nil
 }

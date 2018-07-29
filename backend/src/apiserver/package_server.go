@@ -20,10 +20,11 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/googleprivate/ml/backend/api"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
-	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
 var packageModelFieldsBySortableAPIFields = map[string]string{
+	// Sort by CreatedAtInSec by default
+	"":           "CreatedAtInSec",
 	"id":         "ID",
 	"name":       "Name",
 	"created_at": "CreatedAtInSec",
@@ -42,11 +43,11 @@ func (s *PackageServer) GetPackage(ctx context.Context, request *api.GetPackageR
 }
 
 func (s *PackageServer) ListPackages(ctx context.Context, request *api.ListPackagesRequest) (*api.ListPackagesResponse, error) {
-	sortByModelField, ok := packageModelFieldsBySortableAPIFields[request.SortBy]
-	if request.SortBy != "" && !ok {
-		return nil, util.NewInvalidInputError("Received invalid sort by field %v.", request.SortBy)
+	sortByModelField, isDesc, err := parseSortByQueryString(request.SortBy, packageModelFieldsBySortableAPIFields)
+	if err != nil {
+		return nil, err
 	}
-	packages, nextPageToken, err := s.resourceManager.ListPackages(request.PageToken, int(request.PageSize), sortByModelField)
+	packages, nextPageToken, err := s.resourceManager.ListPackages(request.PageToken, int(request.PageSize), sortByModelField, isDesc)
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,6 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/googleprivate/ml/backend/api"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
-	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
 var pipelineModelFieldsBySortableAPIFields = map[string]string{
@@ -43,11 +42,11 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
-	sortByModelField, ok := pipelineModelFieldsBySortableAPIFields[request.SortBy]
-	if request.SortBy != "" && !ok {
-		return nil, util.NewInvalidInputError("Received invalid sort by field %v.", request.SortBy)
+	sortByModelField, isDesc, err := parseSortByQueryString(request.SortBy, pipelineModelFieldsBySortableAPIFields)
+	if err != nil {
+		return nil, err
 	}
-	pipelines, nextPageToken, err := s.resourceManager.ListPipelines(request.PageToken, int(request.PageSize), sortByModelField)
+	pipelines, nextPageToken, err := s.resourceManager.ListPipelines(request.PageToken, int(request.PageSize), sortByModelField, isDesc)
 	if err != nil {
 		return nil, err
 	}

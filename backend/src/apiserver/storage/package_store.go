@@ -25,7 +25,7 @@ import (
 )
 
 type PackageStoreInterface interface {
-	ListPackages(pageToken string, pageSize int, sortByFieldName string) ([]model.Package, string, error)
+	ListPackages(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Package, string, error)
 	GetPackage(packageId uint32) (*model.Package, error)
 	DeletePackage(packageId uint32) error
 	CreatePackage(*model.Package) (*model.Package, error)
@@ -37,8 +37,8 @@ type PackageStore struct {
 	time util.TimeInterface
 }
 
-func (s *PackageStore) ListPackages(pageToken string, pageSize int, sortByFieldName string) ([]model.Package, string, error) {
-	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPackageTablePrimaryKeyColumn())
+func (s *PackageStore) ListPackages(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Package, string, error) {
+	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPackageTablePrimaryKeyColumn(), isDesc)
 	if err != nil {
 		return nil, "", err
 	}

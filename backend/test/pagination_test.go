@@ -96,6 +96,20 @@ func (s *PaginationTestSuit) TestPagination_E2E() {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "InvalidArgument")
 
+	/* ---------- List packages sorted by names descend order ---------- */
+	listFirstPagePackageResponse, err = s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{PageSize: 2, SortBy: "name desc"})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listFirstPagePackageResponse.Packages))
+	assert.Equal(t, "loops.yaml", listFirstPagePackageResponse.Packages[0].Name)
+	assert.Equal(t, "hello-world.yaml", listFirstPagePackageResponse.Packages[1].Name)
+	assert.NotEmpty(t, listFirstPagePackageResponse.NextPageToken)
+
+	listSecondPagePackageResponse, err = s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{PageToken: listFirstPagePackageResponse.NextPageToken, PageSize: 2, SortBy: "name desc"})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listSecondPagePackageResponse.Packages))
+	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePackageResponse.Packages[0].Name)
+	assert.Empty(t, listSecondPagePackageResponse.NextPageToken)
+
 	/* ---------- Instantiate 3 pipeline using the packages ---------- */
 	loopsPipeline := &api.Pipeline{
 		Name:      "loops",
@@ -139,6 +153,20 @@ func (s *PaginationTestSuit) TestPagination_E2E() {
 	_, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "description"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "InvalidArgument")
+
+	/* ---------- List pipelines sorted by names ---------- */
+	listFirstPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "created_at desc"})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
+	assert.Equal(t, "hello-world", listFirstPagePipelineResponse.Pipelines[0].Name)
+	assert.Equal(t, "arguments-parameters", listFirstPagePipelineResponse.Pipelines[1].Name)
+	assert.NotEmpty(t, listFirstPagePackageResponse.NextPageToken)
+
+	listSecondPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "created_at desc"})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listSecondPagePipelineResponse.Pipelines))
+	assert.Equal(t, "loops", listSecondPagePipelineResponse.Pipelines[0].Name)
+	assert.Empty(t, listSecondPagePackageResponse.NextPageToken)
 
 	// TODO(https://github.com/googleprivate/ml/issues/473): Add tests for list jobs.
 

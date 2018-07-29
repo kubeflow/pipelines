@@ -5,7 +5,6 @@ import (
 
 	"github.com/googleprivate/ml/backend/api"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
-	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
 var jobModelFieldsBySortableAPIFields = map[string]string{
@@ -28,12 +27,12 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {
-	sortByModelField, ok := jobModelFieldsBySortableAPIFields[request.SortBy]
-	if request.SortBy != "" && !ok {
-		return nil, util.NewInvalidInputError("Received invalid sort by field %v.", request.SortBy)
+	sortByModelField, isDesc, err := parseSortByQueryString(request.SortBy, jobModelFieldsBySortableAPIFields)
+	if err != nil {
+		return nil, err
 	}
 	jobs, nextPageToken, err := s.resourceManager.ListJobs(
-		request.PipelineId, request.PageToken, int(request.PageSize), sortByModelField)
+		request.PipelineId, request.PageToken, int(request.PageSize), sortByModelField, isDesc)
 	if err != nil {
 		return nil, err
 	}
