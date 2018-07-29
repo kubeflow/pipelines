@@ -19,6 +19,9 @@ RUN go build -o /bin/apiserver apiserver/*.go
 
 FROM alpine
 
+ARG COMMIT_SHA=unknown
+ENV COMMIT_SHA=${COMMIT_SHA}
+
 WORKDIR /bin
 
 COPY --from=builder /bin/apiserver /bin/apiserver

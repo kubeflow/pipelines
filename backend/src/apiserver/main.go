@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -92,7 +93,9 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
 	packageUploadServer := &PackageUploadServer{resourceManager: resourceManager}
 	topMux.HandleFunc("/apis/v1alpha2/packages/upload", packageUploadServer.UploadPackage)
-	topMux.HandleFunc("/apis/v1alpha2/healthz", func(w http.ResponseWriter, r *http.Request) {})
+	topMux.HandleFunc("/apis/v1alpha2/healthz", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, `{"commit_sha":"`+getStringConfig("COMMIT_SHA")+"}")
+	})
 
 	topMux.Handle("/apis/", mux)
 
