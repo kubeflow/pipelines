@@ -116,21 +116,11 @@ class TestCompiler(unittest.TestCase):
       name='name',
       description='description'
     )
-    def invalid_param_annotation(message: str, outputpath: mlp.PipelineParam):
+    def invalid_param_defaults(message, outputpath='something'):
       pass
 
     with self.assertRaises(ValueError):
-      mlpc.Compiler()._compile(invalid_param_annotation)
-
-    @mlp.pipeline(
-      name='name',
-      description='description'
-    )
-    def missing_param_annotation(message: mlp.PipelineParam, outputpath):
-      pass
-
-    with self.assertRaises(ValueError):
-      mlpc.Compiler()._compile(missing_param_annotation)
+      mlpc.Compiler()._compile(invalid_param_defaults)
 
     def missing_decoration(message: mlp.PipelineParam):
       pass

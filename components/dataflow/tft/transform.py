@@ -296,7 +296,8 @@ def main():
 
   run_transform(args.output, schema, args.train, args.eval,
                 args.project, args.mode, preprocessing_fn=preprocessing_fn)
-
+  with open('/output.txt', 'w') as f:
+    f.write(args.output)
 
 if __name__== "__main__":
   main()

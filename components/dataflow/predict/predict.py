@@ -236,6 +236,8 @@ def main():
 
   run_predict(args.output, args.data, schema, args.target, model_export_dir,
               args.project, args.mode, args.batchsize)
+  with open('/output.txt', 'w') as f:
+    f.write(os.path.join(args.output, 'prediction_results-*'))
 
 
 if __name__== "__main__":

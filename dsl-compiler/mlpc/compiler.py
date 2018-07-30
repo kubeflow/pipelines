@@ -37,7 +37,7 @@ class Compiler(object):
   """
 
   def _sanitize_name(self, name):
-    return re.sub(r"[^\w]", '', name).lower()
+    return re.sub(r"[^A-Za-z0-9_\-]", '', name).lower().replace('_', '-')
 
   def _param_full_name(self, param):
     if param.op_name:
@@ -174,7 +174,7 @@ class Compiler(object):
             else:
               # If not last upstream group, output value comes from one of its child.
               outputs[g].add((full_name, upstream_groups[i+1]))
-        elif param.value is None:
+        else:
           for g in op_groups[op.name]:
             inputs[g].add((full_name, None))
     return inputs, outputs
@@ -364,7 +364,13 @@ class Compiler(object):
   def _create_pipeline_workflow(self, args, pipeline):
     """Create workflow for the pipeline."""
 
-    input_params = [{'name': arg} for arg in args]
+    input_params = []
+    for arg in args:
+      param = {'name': arg.name}
+      if arg.value is not None:
+        param['value'] = str(arg.value)
+      input_params.append(param)
+
     templates = self._create_templates(pipeline)
     templates.sort(key=lambda x: x['name'])
 
@@ -388,13 +394,12 @@ class Compiler(object):
       workflow['spec']['onExit'] = exit_handler.name
     return workflow
 
-  def _validate_args(self, argspec): 
-    for arg in argspec.args:
-      if arg not in argspec.annotations:
-        raise ValueError('There is no annotation for argument "%s".' % arg)
-      if not issubclass(argspec.annotations[arg], mlp.PipelineParam):
-        raise ValueError(
-            'Annotation of argument "%s" has to be type mlp.PipelineParam or its child.' % arg)
+  def _validate_args(self, argspec):
+    if argspec.defaults:
+      for value in argspec.defaults:
+        if not issubclass(type(value), mlp.PipelineParam):
+          raise ValueError(
+              'Default values of argument has to be type mlp.PipelineParam or its child.')
 
   def _validate_exit_handler(self, pipeline):
     """Makes sure there is only one global exit handler.
@@ -423,7 +428,15 @@ class Compiler(object):
     argspec = inspect.getfullargspec(pipeline_func)
     self._validate_args(argspec)
 
-    args_list = [mlp.PipelineParam(arg_name) for arg_name in argspec.args]
+    args_list = [mlp.PipelineParam(self._sanitize_name(arg_name))
+                 for arg_name in argspec.args]
+
+    if argspec.defaults:
+      # Set default values
+      for arg, default in zip(reversed(args_list), reversed(argspec.defaults)):
+        arg.value = default.value
+        arg.name = default.name
+
     registered_pipeline_functions = mlp.Pipeline.get_pipeline_functions()
     if pipeline_func not in registered_pipeline_functions:
       raise ValueError('Please use a function with @mlp.pipeline decorator.')
@@ -436,7 +449,7 @@ class Compiler(object):
     # Remove when argo supports local exit handler.    
     self._validate_exit_handler(p)
 
-    workflow = self._create_pipeline_workflow(argspec.args, p)
+    workflow = self._create_pipeline_workflow(args_list, p)
     return workflow
 
   def compile(self, pipeline_func, package_path):

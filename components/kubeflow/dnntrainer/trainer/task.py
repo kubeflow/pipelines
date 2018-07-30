@@ -315,6 +315,8 @@ def main():
           lambda: eval_input_receiver_fn(
               args.transformed_data_dir, schema, args.target)))
 
+  with open('/output.txt', 'w') as f:
+    f.write(args.job_dir)
 
 if __name__ == '__main__':
   main()

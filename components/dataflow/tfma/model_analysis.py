@@ -231,7 +231,8 @@ def main():
   run_analysis(args.output, model_export_dir, args.eval, schema,
                args.project, args.mode, args.slice_columns)
   generate_static_html_output(args.output, args.slice_columns)
-
+  with open('/output.txt', 'w') as f:
+    f.write(args.output)
 
 if __name__== "__main__":
   main()
