@@ -65,13 +65,41 @@ describe('template parser', () => {
         new RegExp('Could not find template for entrypoint: ' + entrypoint));
   });
 
-  it('returns an empty array if entrypoint has no steps', () => {
+  it('throws an error if entrypoint has no steps or dag', () => {
     const entrypoint = 'entrypoint-name';
     const mockTemplate = mockApiResponseForTemplate(`
       spec:
         entrypoint: ${entrypoint}
         templates:
         - name: ${entrypoint}
+    `);
+    assert.throws(() => TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''),
+        new RegExp('Entrypoint must have either a dag or steps component'));
+  });
+
+  it('does not return an output for steps with no arguments', () => {
+    const entrypoint = 'entrypoint-name';
+    const mockTemplate = mockApiResponseForTemplate(`
+      spec:
+        entrypoint: ${entrypoint}
+        templates:
+        - name: ${entrypoint}
+          steps:
+          - name: step1
+    `);
+    assert.deepEqual(TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''), []);
+  });
+
+  it('does not return an output for a dag with no arguments', () => {
+    const entrypoint = 'entrypoint-name';
+    const mockTemplate = mockApiResponseForTemplate(`
+      spec:
+        entrypoint: ${entrypoint}
+        templates:
+        - name: ${entrypoint}
+          dag:
+            tasks:
+            - name: step1
     `);
     assert.deepEqual(TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''), []);
   });
@@ -93,6 +121,24 @@ describe('template parser', () => {
     assert.deepEqual(TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''), []);
   });
 
+  it('does not return an output for a dag with no output parameter', () => {
+    const entrypoint = 'entrypoint-name';
+    const mockTemplate = mockApiResponseForTemplate(`
+      spec:
+        entrypoint: ${entrypoint}
+        templates:
+        - name: ${entrypoint}
+          dag:
+            tasks:
+            - name: step1
+              arguments:
+                parameters:
+                - name: not-output
+                  value: not-output-path
+    `);
+    assert.deepEqual(TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''), []);
+  });
+
   it('extracts outputs for steps running in parallel', () => {
     const entrypoint = 'entrypoint-name';
     const mockTemplate = mockApiResponseForTemplate(`
@@ -102,6 +148,33 @@ describe('template parser', () => {
         - name: ${entrypoint}
           steps:
           - - name: step1
+              arguments:
+                parameters:
+                - name: output
+                  value: output/path1
+            - name: step2
+              arguments:
+                parameters:
+                - name: output
+                  value: output/path2
+    `);
+    const expectedPaths = [
+      { path: 'output/path1', step: 'step1' },
+      { path: 'output/path2', step: 'step2' },
+    ];
+    assert.deepEqual(TemplateParser.parseTemplateOuputPaths(mockTemplate, '', ''), expectedPaths);
+  });
+
+  it('extracts outputs for a dag', () => {
+    const entrypoint = 'entrypoint-name';
+    const mockTemplate = mockApiResponseForTemplate(`
+      spec:
+        entrypoint: ${entrypoint}
+        templates:
+        - name: ${entrypoint}
+          dag:
+            tasks:
+            - name: step1
               arguments:
                 parameters:
                 - name: output

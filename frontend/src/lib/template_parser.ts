@@ -44,32 +44,51 @@ export function parseTemplateOuputPaths(
   if (!spec.templates) {
     throw new Error('Spec does not contain any templates');
   }
-  const entryTemplate = spec.templates.filter((t) => t.name === entryPoint)[0];
+  const entryTemplate = spec.templates.find((t) => t.name === entryPoint);
 
   if (!entryTemplate) {
     throw new Error('Could not find template for entrypoint: ' + entryPoint);
   }
 
-  // Steps can be nested twice (because of Argo's double dash convention) or just once
-  // so, flatten it first.
-  const steps = [].concat.apply([], entryTemplate.steps) as ArgoTemplateStep[];
+  if (entryTemplate.steps) {
+    // Steps can be nested twice (because of Argo's double dash convention) or just once
+    // so, flatten it first.
+    const steps = [].concat.apply([], entryTemplate.steps) as ArgoTemplateStep[];
 
-  if (!steps) {
-    return [];
-  }
-
-  return steps.map((step) => {
-    if (Array.isArray(step)) {
-      step = step[0];
+    return steps.map((step) => {
+      if (Array.isArray(step)) {
+        step = step[0];
+      }
+      if (!step.arguments || !step.arguments.parameters) {
+        return { path: '', step: '' };
+      }
+      const args = (step.arguments as ArgoTemplateStepArguments);
+      const params = args.parameters as ArgoTemplateStepParameter[];
+      const outputParam = params.filter((p) => p.name === 'output');
+      const path = outputParam && outputParam.length === 1 ?
+          replacePlaceholders(outputParam[0].value as string, baseOutputPath, jobId) : '';
+      return {
+        path,
+        step: step.name as string,
+      };
+    }).filter((p) => !!p.path);
+  } else if (entryTemplate.dag) {
+    if (!entryTemplate.dag.tasks) {
+      throw new Error('Dag does not have a tasks component');
     }
-    const args = (step.arguments as ArgoTemplateStepArguments);
-    const params = args.parameters as ArgoTemplateStepParameter[];
-    const outputParam = params.filter((p) => p.name === 'output');
-    const path = outputParam && outputParam.length === 1 ?
-        replacePlaceholders(outputParam[0].value as string, baseOutputPath, jobId) : '';
-    return {
-      path,
-      step: step.name as string,
-    };
-  }).filter((p) => !!p.path);
+    return entryTemplate.dag.tasks.map((task) => {
+      if (!task.arguments || !task.arguments.parameters) {
+        return { path: '', step: '' };
+      }
+      const outputParam = (task.arguments.parameters || []).filter((p) => p.name === 'output');
+      const path = outputParam && outputParam.length === 1 ?
+          replacePlaceholders(outputParam[0].value as string, baseOutputPath, jobId) : '';
+      return {
+        path,
+        step: task.name as string,
+      };
+    }).filter((p) => !!p.path);
+  } else {
+    throw new Error('Entrypoint must have either a dag or steps component');
+  }
 }
