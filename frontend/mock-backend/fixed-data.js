@@ -235,7 +235,8 @@ function generateNJobs() {
   for (i = jobs.length + 1; i < NUM_DUMMY_JOBS + jobs.length + 1; i++) {
     dummyJobs.push( {
       job: {
-        id: i,
+        // TODO: this should be a UUID.
+        id: 'Some-job-id-' + i,
         created_at: '2018-07-12T20:' + i.toString().padStart(2, '0') + ':23.000Z',
         name: 'dummy-coinflip-recursive-asdlx' + i,
         namespace: 'namespace',

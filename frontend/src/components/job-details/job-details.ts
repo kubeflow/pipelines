@@ -108,7 +108,7 @@ export class JobDetails extends PageElement {
       (this.$.jobGraph as JobGraph).refresh(this.workflow);
     } catch (err) {
       this.showPageError('There was an error while loading the job graph');
-      Utils.log.error('Could not draw job graph from object:', this.workflow);
+      Utils.log.error('Could not draw job graph from object:', this.workflow, '\n', err);
     }
 
     // If pipeline params include output, retrieve them so they can be rendered by the data-plot

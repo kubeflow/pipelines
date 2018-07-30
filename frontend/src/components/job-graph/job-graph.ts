@@ -127,6 +127,18 @@ export class JobGraph extends Polymer.Element {
         }
       });
 
+    // Add BoundaryID edges. Only add these edges to nodes that don't already have inbound edges.
+    Object.keys(workflowNodes)
+      .forEach((nodeId) => {
+        // Many nodes have the Argo root node as a boundaryID, and we can discard these.
+        if (workflowNodes[nodeId].boundaryID &&
+            (!g.inEdges(nodeId) || !g.inEdges(nodeId)!.length) &&
+            workflowNodes[nodeId].boundaryID !== workflowName) {
+          // BoundaryIDs point from children to parents.
+          g.setEdge(workflowNodes[nodeId].boundaryID, nodeId);
+        }
+      });
+
     dagre.layout(g);
 
     // Creates the array of nodes used that will be rendered and adds additional
@@ -176,8 +188,8 @@ export class JobGraph extends Polymer.Element {
   }
 
   protected async _nodeClicked(e: GraphNodeClickEvent<NodeStatus>): Promise<void> {
+    // Ignore virtual nodes
     if (this._isVirtual(e.model.node)) {
-      // Ignore virtual nodes
       return;
     }
 
