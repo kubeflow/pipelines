@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: sequential-
+spec:
+  arguments:
+    parameters:
+    - name: url
+  entrypoint: sequential
+  templates:
+  - container:
+      args:
+      - gsutil cat {{inputs.parameters.url}} | tee /tmp/results.txt
+      command:
+      - sh
+      - -c
+      image: google/cloud-sdk
+    inputs:
+      parameters:
+      - name: url
+    name: download
+    outputs:
+      parameters:
+      - name: download-downloaded
+        valueFrom:
+          path: /tmp/results.txt
+  - container:
+      args:
+      - echo {{inputs.parameters.download-downloaded}}
+      command:
+      - sh
+      - -c
+      image: library/bash
+    inputs:
+      parameters:
+      - name: download-downloaded
+    name: echo
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: url
+            value: '{{inputs.parameters.url}}'
+        name: download
+        template: download
+      - arguments:
+          parameters:
+          - name: download-downloaded
+            value: '{{tasks.download.outputs.parameters.download-downloaded}}'
+        dependencies:
+        - download
+        name: echo
+        template: echo
+    inputs:
+      parameters:
+      - name: url
+    name: sequential
