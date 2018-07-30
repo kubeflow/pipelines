@@ -1,0 +1,19 @@
+apiVersion: kubeflow.org/v1alpha2
+kind: TFJob
+metadata:
+  name: "tf-job-final"
+spec:
+  tfReplicaSpecs:
+    MASTER:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+          - name: tensorflow
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer
+            command:
+              - python
+              - -m
+              - trainer.task
+              - --learning-rate=0.1

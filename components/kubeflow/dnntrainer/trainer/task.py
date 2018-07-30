@@ -277,6 +277,15 @@ def eval_input_receiver_fn(tf_transform_dir, schema, target):
 
 
 def main():
+  # configure the TF_CONFIG such that the tensorflow recoginzes the MASTER in the yaml file as the chief.
+  # TODO: kubeflow is working on fixing the problem and this TF_CONFIG can be
+  # removed then.
+  tf_config = os.environ['TF_CONFIG']
+  tf_json = json.loads(tf_config)
+  tf_json['environment'] = 'cloud'
+  tf_config = json.dumps(tf_json)
+  os.environ['TF_CONFIG'] = tf_config
+
   args = parse_arguments()
   tf.logging.set_verbosity(tf.logging.INFO)
 

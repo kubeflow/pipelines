@@ -16,7 +16,8 @@ FROM ubuntu:16.04
 
 RUN apt-get update -y
 
-RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools
+RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools \
+                                                  wget unzip git
 
 RUN easy_install pip
 
@@ -28,5 +29,4 @@ RUN apt-get install --no-install-recommends -y -q build-essential && \
     apt-get --purge autoremove -y build-essential
 
 ADD build /ml
-
 WORKDIR /ml

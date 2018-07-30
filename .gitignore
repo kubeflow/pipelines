@@ -26,6 +26,7 @@ frontend/test/ui/visual-regression/screenshots/screen
 
 # IDE
 .idea/
+ml.iml
 
 # Vendor
 vendor/
@@ -33,4 +34,5 @@ vendor/
 # Merge files
 *.orig
 
+*.pyc
 .DS_Store

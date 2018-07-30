@@ -36,6 +36,34 @@ from tensorflow.python.lib.io import file_io
 import time
 import yaml
 
+def _generate_train_yaml(src_filename, dst_filename, workers, pss, job_name, args_list):
+  """_generate_train_yaml  generates train yaml files based on train.template.yaml"""
+  with open(src_filename, 'r') as f:
+    content = yaml.load(f)
+
+  if not job_name:
+    # This is for unit test validation.
+    job_name = 'trainer-' + datetime.datetime.now().strftime('%y%m%d-%H%M%S')
+  content['metadata']['name'] = job_name
+  if workers and pss:
+    content['spec']['tfReplicaSpecs']['PS']['replicas'] = pss
+    content['spec']['tfReplicaSpecs']['PS']['template']['spec']['containers'][0]['command'].extend(args_list)
+    content['spec']['tfReplicaSpecs']['Worker']['replicas'] = workers
+    content['spec']['tfReplicaSpecs']['Worker']['template']['spec']['containers'][0]['command'].extend(args_list)
+    content['spec']['tfReplicaSpecs']['MASTER']['template']['spec']['containers'][0]['command'].extend(args_list)
+  else:
+    # No workers and pss set. Remove the sections because setting replicas=0 doesn't work.
+    master_spec = content['spec']['tfReplicaSpecs']['MASTER']
+    content['spec']['tfReplicaSpecs'].pop('PS')
+    content['spec']['tfReplicaSpecs'].pop('Worker')
+    # Set worker parameters. worker is the only item in replicaSpecs in this case.
+    master_spec['template']['spec']['containers'][0]['command'].extend(args_list)
+
+  with open(dst_filename, 'w') as f:
+    yaml.dump(content, f, default_flow_style=False)
+
+  return job_name
+
 
 def main(argv=None):
   parser = argparse.ArgumentParser(description='ML Trainer')
@@ -107,29 +135,8 @@ def main(argv=None):
                for k,v in six.iteritems(args_dict) if v is not None]
   logging.info('Generating training template.')
   template_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'train.template.yaml')
-  with open(template_file, 'r') as f:
-    content = yaml.load(f)
 
-  job_name = 'trainer-' + datetime.datetime.now().strftime('%y%m%d-%H%M%S')
-  content['metadata']['name'] = job_name
-  if workers and pss:
-    for spec in content['spec']['replicaSpecs']:
-      if spec['tfReplicaType'] == 'WORKER':
-        spec['replicas'] = workers
-      elif spec['tfReplicaType'] == 'PS':
-        spec['replicas'] = pss
-      spec['template']['spec']['containers'][0]['command'].extend(args_list)
-  else:
-    # No workers and pss set. Remove the sections because setting replicas=0 doesn't work.
-    replicas = content['spec']['replicaSpecs']
-    content['spec']['replicaSpecs'] = [r for r in replicas
-                                       if r['tfReplicaType'] not in ['WORKER', 'PS']]
-    # Set master parameters. master is the only item in replicaSpecs in this case.
-    master_spec = content['spec']['replicaSpecs'][0]
-    master_spec['template']['spec']['containers'][0]['command'].extend(args_list)
-
-  with open('train.yaml', 'w') as f:
-    yaml.dump(content, f, default_flow_style=False)
+  job_name = _generate_train_yaml(template_file, 'train.yaml', workers, pss, '', args_list)
   
   logging.info('Start training.')
   subprocess.call(['kubectl', 'create', '-f', 'train.yaml', '--namespace', 'kubeflow'])
@@ -149,26 +156,27 @@ def main(argv=None):
     time.sleep(2)
     check_job_commands = ['kubectl', 'describe', 'tfjob', job_name, '--namespace', 'kubeflow']
     kubectl_proc = subprocess.Popen(check_job_commands, stdout=subprocess.PIPE)
-    grep_proc = subprocess.Popen(['grep', 'Phase:'], stdin=kubectl_proc.stdout,
+    grep_proc = subprocess.Popen(['grep', 'Succeeded'], stdin=kubectl_proc.stdout,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     kubectl_proc.stdout.close() 
     stdout, stderr = grep_proc.communicate()
-    parts = stdout.rstrip().split(':')
-    if len(parts) != 2:
-      logging.error('Training failed.')
-      logging.info(subprocess.check_output(check_job_commands))
-      break
-
-    status = parts[1].strip()
-    if status == 'Done':
-      # TODO: status == 'Done' may not always indicate success.
-      # Switching to K8s API to handle errors.
+    result = stdout.rstrip().split(':')
+    if len(result) == 2:
       logging.info('Training done.')
       break
-    elif status == 'Failed':
-      logging.error('Training failed.')
-      logging.info(subprocess.check_output(check_job_commands))
-      break
+    check_job_commands = ['kubectl', 'describe', 'tfjob', job_name, '--namespace', 'kubeflow']
+    kubectl_proc = subprocess.Popen(check_job_commands, stdout=subprocess.PIPE)
+    grep_proc = subprocess.Popen(['grep', 'Active'], stdin=kubectl_proc.stdout,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    kubectl_proc.stdout.close()
+    stdout, stderr = grep_proc.communicate()
+    result = stdout.rstrip().split(':')
+    if len(result) == 2:
+      continue
+
+    # TODO: Switching to K8s API to handle errors.
+    logging.error('Training failed.')
+    logging.info(subprocess.check_output(check_job_commands))
 
 if __name__== "__main__":
   main()
