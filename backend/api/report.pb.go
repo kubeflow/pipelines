@@ -37,7 +37,7 @@ func (m *ReportWorkflowRequest) Reset()         { *m = ReportWorkflowRequest{} }
 func (m *ReportWorkflowRequest) String() string { return proto.CompactTextString(m) }
 func (*ReportWorkflowRequest) ProtoMessage()    {}
 func (*ReportWorkflowRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_report_84a5cd7af1e7daa1, []int{0}
+	return fileDescriptor_report_6ba771f00413a851, []int{0}
 }
 func (m *ReportWorkflowRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReportWorkflowRequest.Unmarshal(m, b)
@@ -76,7 +76,7 @@ func (m *ReportScheduledWorkflowRequest) Reset()         { *m = ReportScheduledW
 func (m *ReportScheduledWorkflowRequest) String() string { return proto.CompactTextString(m) }
 func (*ReportScheduledWorkflowRequest) ProtoMessage()    {}
 func (*ReportScheduledWorkflowRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_report_84a5cd7af1e7daa1, []int{1}
+	return fileDescriptor_report_6ba771f00413a851, []int{1}
 }
 func (m *ReportScheduledWorkflowRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReportScheduledWorkflowRequest.Unmarshal(m, b)
@@ -213,9 +213,9 @@ var _ReportService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "report.proto",
 }
 
-func init() { proto.RegisterFile("report.proto", fileDescriptor_report_84a5cd7af1e7daa1) }
+func init() { proto.RegisterFile("report.proto", fileDescriptor_report_6ba771f00413a851) }
 
-var fileDescriptor_report_84a5cd7af1e7daa1 = []byte{
+var fileDescriptor_report_6ba771f00413a851 = []byte{
 	// 264 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x4a, 0x2d, 0xc8,
 	0x2f, 0x2a, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x94, 0x92, 0x49,

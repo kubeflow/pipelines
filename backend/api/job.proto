@@ -2,8 +2,23 @@ syntax = "proto3";
 
 package api;
 
+import "error.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  responses: {
+    key: "default";
+    value: {
+      schema: {
+        json_schema: {
+          ref: ".api.Status";
+        }
+      }
+    }
+  }
+};
 
 service JobService {
   rpc GetJob(GetJobRequest) returns (JobDetail) {
