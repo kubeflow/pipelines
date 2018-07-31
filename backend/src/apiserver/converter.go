@@ -84,6 +84,9 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}
+	if len(paramsBytes) > util.MaxParameterBytes {
+		return "", util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+	}
 	return string(paramsBytes), nil
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 )
 
 func TestToApiJobDetail(t *testing.T) {
@@ -249,4 +250,22 @@ func TestToModelPipeline(t *testing.T) {
 		Parameters:     `[{"name":"param2","value":"world"}]`,
 	}
 	assert.Equal(t, expectedModelPipeline, modelPipeline)
+}
+
+func TestToModelPipeline_ParameterTooLong(t *testing.T) {
+	var params []*api.Parameter
+	// Create a long enough parameter string so it exceed the length limit of parameter.
+	for i := 0; i < 10000; i++ {
+		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
+	}
+	apiPipeline := &api.Pipeline{
+		Id:             "pipeline1",
+		Name:           "name1",
+		PackageId:      1,
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Parameters:     params,
+	}
+	_, err := ToModelPipeline(apiPipeline)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
