@@ -1,0 +1,59 @@
+# Copyright 2018 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+import mlp
+
+
+@mlp.pipeline(
+  name='Pipeline TFJob',
+  description='Demonstrate the DSL for TFJob'
+)
+def kubeflow_training(train: mlp.PipelineParam, evaluation: mlp.PipelineParam,
+  schema: mlp.PipelineParam, output: mlp.PipelineParam, project: mlp.PipelineParam,
+  learning_rate: mlp.PipelineParam, hidden_layer_size: mlp.PipelineParam,
+  steps: mlp.PipelineParam, target: mlp.PipelineParam, 
+  workers: mlp.PipelineParam = mlp.PipelineParam(name = 'workers', value = 0), 
+  pss: mlp.PipelineParam = mlp.PipelineParam(name = 'pss', value = 0),
+  preprocess_mode: mlp.PipelineParam = mlp.PipelineParam(name = 'preprocessmode', value = 'local'), 
+  predict_mode: mlp.PipelineParam = mlp.PipelineParam(name = 'predictmode', value = 'local')):
+  # TODO: use the argo job name as the workflow
+  workflow = 'kubeflow-training-dsl'
+  preprocess = mlp.ContainerOp( 
+      name = 'preprocess', 
+      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft', 
+      arguments = ['--train', train, '--eval', evaluation, '--schema', schema, '--output', '%s/%s/transformed' % (output, workflow),
+        '--project', project, '--mode', preprocess_mode],
+      file_outputs = {'transformed': '/output.txt'})
+
+  training = mlp.ContainerOp(
+      name = 'training', 
+      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf', 
+      arguments = ['--job-dir', '%s/%s/train' % (output, workflow), '--transformed-data-dir', preprocess.output, 
+        '--schema', schema, '--learning-rate', learning_rate, '--hidden-layer-size', hidden_layer_size, '--steps', steps,
+        '--target', target, '--workers', workers, '--pss', pss],
+      file_outputs = {'trained': '/output.txt'}
+      )
+
+  prediction = mlp.ContainerOp(
+      name = 'prediction',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict',
+      arguments = ['--output', '%s/%s/predict' % (output, workflow), '--data', evaluation, '--schema', schema,
+        '--target', target, '--model',  training.output, '--mode', predict_mode, '--project', project],
+      file_outputs = {'prediction': '/output.txt'})
+
+  confusion_matrix = mlp.ContainerOp(
+      name = 'confusionmatrix', 
+      image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix',
+      arguments = ['--output', '%s/%s/confusionmatrix' % (output, workflow), '--predictions', prediction.output])

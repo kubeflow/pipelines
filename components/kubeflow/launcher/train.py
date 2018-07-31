@@ -181,5 +181,8 @@ def main(argv=None):
     logging.error('Training failed.')
     logging.info(subprocess.check_output(check_job_commands))
 
+  with open('/output.txt', 'w') as f:
+    f.write(args.job_dir)
+
 if __name__== "__main__":
   main()
