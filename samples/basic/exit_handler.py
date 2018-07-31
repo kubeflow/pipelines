@@ -35,12 +35,10 @@ def download_and_print(url: mlp.PipelineParam):
        image='google/cloud-sdk',
        command=['sh', '-c'],
        arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
-       argument_inputs=[url],
        file_outputs={'downloaded': '/tmp/results.txt'})
 
     op2 = mlp.ContainerOp(
        name='echo',
        image='library/bash',
        command=['sh', '-c'],
-       arguments=['echo %s' % op1.output],
-       argument_inputs=[op1.output])
+       arguments=['echo %s' % op1.output])

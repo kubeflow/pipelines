@@ -71,7 +71,7 @@ spec:
       - --region
       - us-central1
       - --name
-      - xgboost-spark-{{workflow.name}}
+      - xgb-{{workflow.name}}
       - --staging
       - '{{inputs.parameters.output}}'
       command: null
@@ -93,7 +93,7 @@ spec:
       - --region
       - us-central1
       - --name
-      - xgboost-spark-{{workflow.name}}
+      - xgb-{{workflow.name}}
       command: null
       image: gcr.io/bradley-playground/ml-pipeline-dataproc-delete-cluster
     inputs:

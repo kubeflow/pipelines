@@ -28,7 +28,7 @@ class CreateClusterOp(mlp.ContainerOp):
       arguments=[
           '--project', project,
           '--region', region,
-          '--name', 'xgboost-spark-{{workflow.name}}',
+          '--name', 'xgb-{{workflow.name}}',
           '--staging', staging
      ],
      file_outputs={'output': '/output.txt'})
@@ -43,7 +43,7 @@ class DeleteClusterOp(mlp.ContainerOp):
       arguments=[
           '--project', project,
           '--region', region,
-          '--name', 'xgboost-spark-{{workflow.name}}',
+          '--name', 'xgb-{{workflow.name}}',
       ],
       is_exit_handler=True)
 

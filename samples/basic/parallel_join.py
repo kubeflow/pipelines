@@ -28,7 +28,6 @@ def download_and_join(url1: mlp.PipelineParam, url2: mlp.PipelineParam):
      image='google/cloud-sdk',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url1],
-     argument_inputs=[url1],
      file_outputs={'downloaded': '/tmp/results.txt'})
 
   download2 = mlp.ContainerOp(
@@ -36,14 +35,12 @@ def download_and_join(url1: mlp.PipelineParam, url2: mlp.PipelineParam):
      image='google/cloud-sdk',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url2],
-     argument_inputs=[url2],
      file_outputs={'downloaded': '/tmp/results.txt'})
 
   echo = mlp.ContainerOp(
      name='echo',
      image='library/bash',
      command=['sh', '-c'],
-     arguments=['echo %s %s' % (download1.output, download2.output)],
-     argument_inputs=[download1.output, download2.output])
+     arguments=['echo %s %s' % (download1.output, download2.output)])
 
 
