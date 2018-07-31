@@ -163,7 +163,10 @@ def main(argv=None):
     result = stdout.rstrip().split(':')
     if len(result) == 2:
       logging.info('Training done.')
+      with open('/output.txt', 'w') as f:
+        f.write(args.job_dir)
       break
+
     check_job_commands = ['kubectl', 'describe', 'tfjob', job_name, '--namespace', 'kubeflow']
     kubectl_proc = subprocess.Popen(check_job_commands, stdout=subprocess.PIPE)
     grep_proc = subprocess.Popen(['grep', 'Active'], stdin=kubectl_proc.stdout,

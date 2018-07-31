@@ -44,6 +44,8 @@ def main(argv=None):
     create_response = _utils.create_cluster(api, args.project, args.region, args.name, dest_files[0])
     print('Cluster creation request submitted. Waiting for completion...')
     _utils.wait_for_operation(api, create_response['name'])
+    with open('/output.txt', 'w') as f:
+      f.write(args.name)
     print('Cluster created.')
   finally:
     _utils.remove_resources_from_gcs(dest_files)

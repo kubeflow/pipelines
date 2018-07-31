@@ -20,9 +20,8 @@ class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
-               argument_inputs : List[mlp.PipelineParam]=None,
                file_inputs : Dict[mlp.PipelineParam, str]=None,
-               file_outputs : Dict[str, str]=None):
+               file_outputs : Dict[str, str]=None, is_exit_handler=False):
     """Create a new instance of ContainerOp.
 
     Args:
@@ -33,16 +32,13 @@ class ContainerOp(object):
       arguments: the arguments of the command. The command can include "%s" and supply
           a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
           At container run time the argument will be 'echo param_value'.
-      argument_inputs: A list of parameters that will be used inline the arguments.
-          For example, if one of the arguments is: ('echo %s' % input1), then input1
-          needs to be included in inline_inputs. It's one way for outside world to send inputs
-          to the container.
       file_inputs: Maps PipelineParams to local file paths. At pipeline run time,
-          the value of a PipelineParam is saved to its corresponding local file. It's
-          one way for outside world to send inputs to the container.
+          the value of a PipelineParam is saved to its corresponding local file. It is
+          not implemented yet.
       file_outputs: Maps output labels to local file paths. At pipeline run time,
           the value of a PipelineParam is saved to its corresponding local file. It's
           one way for outside world to receive outputs of the container.
+      is_exit_handler: Whether it is used as an exit handler.
     """
 
     if not mlp.Pipeline.get_default_pipeline():
@@ -55,15 +51,22 @@ class ContainerOp(object):
     self.image = image
     self.command = command
     self.arguments = arguments
+    self.is_exit_handler = is_exit_handler
 
-    self.argument_inputs = argument_inputs
+    matches = []
+    if arguments:
+      for arg in arguments:
+        match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+)}}', str(arg))
+        matches += match
+
+    self.argument_inputs = [mlp.PipelineParam(x[1], x[0]) for x in matches]
     self.file_inputs = file_inputs
     self.file_outputs = file_outputs
     self.dependent_op_names = []
 
     self.inputs = []
-    if argument_inputs:
-      self.inputs += argument_inputs
+    if self.argument_inputs:
+      self.inputs += self.argument_inputs
 
     if file_inputs:
       self.inputs += list(file_inputs.keys())
@@ -77,7 +80,7 @@ class ContainerOp(object):
     if len(self.outputs) == 1:
       self.output = list(self.outputs.values())[0]
 
-    mlp.Pipeline.get_default_pipeline().add_op(self)
+    mlp.Pipeline.get_default_pipeline().add_op(self, is_exit_handler)
 
   def after(self, op):
     """Specify explicit dependency on another op."""
@@ -85,5 +88,4 @@ class ContainerOp(object):
 
   def clone(self, name):
     """Clone an operator with a new name."""
-    return ContainerOp(name, self.image, self.command, self.arguments, self.argument_inputs,
-                       self.file_inputs, self.file_outputs)
+    return ContainerOp(name, self.image, self.command, self.arguments, self.file_inputs, self.file_outputs)

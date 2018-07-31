@@ -175,8 +175,9 @@ class Compiler(object):
               # If not last upstream group, output value comes from one of its child.
               outputs[g].add((full_name, upstream_groups[i+1]))
         else:
-          for g in op_groups[op.name]:
-            inputs[g].add((full_name, None))
+          if not op.is_exit_handler:
+            for g in op_groups[op.name]:
+              inputs[g].add((full_name, None))
     return inputs, outputs
     
   def _get_condition_params_for_ops(self, root_group):
@@ -409,8 +410,7 @@ class Compiler(object):
 
     def _validate_exit_handler_helper(group, exiting_op_names, handler_exists):
       if group.type == 'exit_handler':
-        if (handler_exists or len(exiting_op_names) > 1
-            or group.exit_op.name != exiting_op_names[0]):
+        if handler_exists or len(exiting_op_names) > 1:
           raise ValueError('Only one global exit_handler is allowed and all ops need to be included.')
         handler_exists = True
 

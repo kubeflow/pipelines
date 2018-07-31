@@ -34,7 +34,6 @@ class GetFrequentWordOp(mlp.ContainerOp):
         arguments=['python -c "from collections import Counter; '
                    'words = Counter(\'%s\'.split()); print(max(words, key=words.get))" '
                    '| tee /tmp/message.txt' % message],
-        argument_inputs=[message],
         file_outputs={'word': '/tmp/message.txt'})
 
 
@@ -54,8 +53,7 @@ class SaveMessageOp(mlp.ContainerOp):
         image='google/cloud-sdk',
         command=['sh', '-c'],
         arguments=['echo %s | tee /tmp/results.txt | gsutil cp /tmp/results.txt %s'
-                   % (message, output_path)],
-        argument_inputs=[message, output_path])
+                   % (message, output_path)])
 
 
 class ExitHandlerOp(mlp.ContainerOp):

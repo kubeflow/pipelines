@@ -66,6 +66,12 @@ def main(argv=None):
         api, args.project, args.region, args.cluster, dest_files[0], spark_args)
     print('Job request submitted. Waiting for completion...')
     _utils.wait_for_job(api, args.project, args.region, job_id)
+
+    with open('/output_train.txt', 'w') as f:
+      f.write(os.path.join(args.output, 'train', 'part-*'))
+    with open('/output_eval.txt', 'w') as f:
+      f.write(os.path.join(args.output, 'eval', 'part-*'))
+
     print('Job completed.')
   finally:
     _utils.remove_resources_from_gcs(dest_files)

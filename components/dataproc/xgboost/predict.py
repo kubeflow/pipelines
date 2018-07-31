@@ -56,6 +56,8 @@ def main(argv=None):
       'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor', spark_args)
   logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_job(api, args.project, args.region, job_id)
+  with open('/output.txt', 'w') as f:
+    f.write(os.path.join(args.output, 'part-*.csv'))
   logging.info('Job completed.')
 
 

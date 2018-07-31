@@ -94,7 +94,7 @@ class Pipeline():
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
         
-  def add_op(self, op: mlp.ContainerOp):
+  def add_op(self, op: mlp.ContainerOp, define_only: bool):
     """Add a new operator.
 
     Args:
@@ -106,7 +106,8 @@ class Pipeline():
       raise ValueError('Op with name "%s" exists already.' % op.name)
 
     self.ops[op.name] = op
-    self.groups[-1].ops.append(op)
+    if not define_only:
+      self.groups[-1].ops.append(op)
 
   def push_ops_group(self, group: mlp.OpsGroup):
     """Push an OpsGroup into the stack.
