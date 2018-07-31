@@ -139,6 +139,20 @@ export class JobGraph extends Polymer.Element {
         }
       });
 
+    // Remove all virtual nodes
+    g.nodes().forEach((nodeId) => {
+      if (this._isVirtual(workflowNodes[nodeId])) {
+        const parents = (g.inEdges(nodeId) || []).map((edge) => edge.v);
+        parents.forEach((p) => g.removeEdge(p, nodeId));
+        (g.outEdges(nodeId) || []).forEach((outboundEdge) => {
+          g.removeEdge(outboundEdge.v, outboundEdge.w);
+          // Checking if we have a parent here to handle case where root node is virtual.
+          parents.forEach((p) => g.setEdge(p, outboundEdge.w));
+        });
+        g.removeNode(nodeId);
+      }
+    });
+
     dagre.layout(g);
 
     // Creates the array of nodes used that will be rendered and adds additional
