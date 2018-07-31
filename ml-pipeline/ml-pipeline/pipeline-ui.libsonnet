@@ -95,6 +95,7 @@
           ],
           resources: [
             "pods",
+            "pods/log",
           ],
           verbs: [
             "create",
@@ -137,6 +138,7 @@
                 }],
               },
             ],
+            serviceAccountName: "ml-pipeline-ui",
           },
         },
       },

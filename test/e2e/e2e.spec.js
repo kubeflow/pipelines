@@ -15,7 +15,8 @@ describe('deploy new pipeline', () => {
     const selector = 'app-shell pipeline-list item-list #listContainer';
     browser.waitForVisible(selector, waitTimeout);
 
-    assert.equal(browser.getText(selector), '', 'initial pipeline list is not empty');
+    assert.equal(browser.getText(selector), 'No pipelines found. Click New Pipeline to start.',
+        'initial pipeline list is not empty');
   });
 
   it('opens new pipeline page', () => {
@@ -44,7 +45,7 @@ describe('deploy new pipeline', () => {
                         .querySelector('#altFileUpload').style.display='none'`);
     const pkgIdSelector = 'app-shell pipeline-new paper-dropdown-menu ' +
                           'paper-menu-button::paper-input paper-input-container::iron-input';
-    browser.waitForValue(pkgIdSelector, waitTimeout);
+    browser.waitForValue(pkgIdSelector, 5 * waitTimeout);
   });
 
   it('populates pipeline details and deploys', () => {
@@ -63,8 +64,8 @@ describe('deploy new pipeline', () => {
     }, waitTimeout);
   });
 
-  it('finds the new pipeline ' + pipelineName + ' in the list of pipelines', () => {
-    const selector = 'app-shell pipeline-list item-list paper-item';
+  it('finds the new pipeline in the list of pipelines', () => {
+    const selector = 'app-shell pipeline-list item-list #listContainer paper-item';
     browser.waitForVisible(selector, waitTimeout);
     assert.equal($$(selector).length, 1, 'should only show one pipeline');
 
@@ -99,17 +100,35 @@ describe('deploy new pipeline', () => {
     browser.click(selector);
   });
 
-  it('lists exactly one job', () => {
-    const selector = 'app-shell pipeline-details job-list item-list paper-item';
-    const jobsText = browser.getText(selector);
+  it('schedules and lists exactly one job', (done) => {
+    const listSelector = 'app-shell pipeline-details job-list item-list #listContainer';
+    browser.waitForVisible(listSelector, waitTimeout);
 
+    let attempts = 0;
+
+    const selector = 'app-shell pipeline-details job-list item-list #listContainer paper-item';
+    let items = $$(selector);
+    const maxAttempts = 80;
+
+    while (attempts < maxAttempts && (!items || items.length === 0)) {
+      browser.click('app-shell pipeline-details paper-button#refreshBtn');
+      browser.pause(1000);
+      items = $$(selector);
+      attempts++;
+    }
+
+    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but job did not start`);
+    assert(items && items.length > 0, 'only one job should show up');
+
+    const jobsText = browser.getText(selector);
     assert(!Array.isArray(jobsText) && typeof jobsText === 'string',
-        'only one job should show up');
-    assert(jobsText.startsWith('hello-world'), 'job name should start with hello-world');
+      'only one job should show up');
+    assert(jobsText.startsWith('pipeline-helloworld'),
+      'job name should start with pipeline-helloworld: ' + jobsText);
   });
 
   it('opens job details on double click', () => {
-    const selector = 'app-shell pipeline-details job-list item-list paper-item';
+    const selector = 'app-shell pipeline-details job-list item-list #listContainer paper-item';
 
     browser.waitForVisible(selector, waitTimeout);
     browser.doubleClick(selector);
@@ -142,7 +161,8 @@ describe('deploy new pipeline', () => {
     const selector = 'app-shell pipeline-list item-list #listContainer';
     browser.waitForVisible(selector, waitTimeout);
 
-    assert.equal(browser.getText(selector), '', 'initial pipeline list is not empty');
+    assert.equal(browser.getText(selector), 'No pipelines found. Click New Pipeline to start.',
+        'final pipeline list is not empty');
   });
 
 });

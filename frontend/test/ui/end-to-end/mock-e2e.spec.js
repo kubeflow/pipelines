@@ -185,10 +185,12 @@ describe('deploy new pipeline', () => {
     browser.waitForVisible(selector, waitTimeout);
     browser.click(selector);
 
+    browser.pause(500);
+
     const listSelector = 'app-shell pipeline-list item-list #listContainer paper-item';
     browser.waitForVisible(selector, waitTimeout);
     assert.equal($$(listSelector).length, mockPipelinesLength - 20,
-        'second page should show the remaining pipelines');
+        'second page should show the remaining pipelines, it shows: ' + $$(listSelector).length);
   });
 
 });

@@ -1,16 +1,8 @@
 const path = require('path');
 
-if (!process.env.ML_PIPELINE_UI_SERVICE_HOST || !process.env.ML_PIPELINE_UI_SERVICE_PORT) {
-  console.error('This test must run in the ML Pipelines cluster');
-  process.exit(1);
-}
-
-const frontendAddress =
-    `http://${process.env.ML_PIPELINE_UI_SERVICE_HOST}:${process.env.ML_PIPELINE_UI_SERVICE_PORT}`;
-
 exports.config = {
   maxInstances: 1,
-  baseUrl: frontendAddress,
+  baseUrl: 'http://localhost:3000',
   capabilities: [{
     maxInstances: 1,
     browserName: 'chrome',
@@ -26,13 +18,19 @@ exports.config = {
   host: '127.0.01',
   port: 4444,
   jasmineNodeOpts: {
-    defaultTimeoutInterval: 10000,
+    defaultTimeoutInterval: 100000,
   },
   logLevel: 'silent',
   plugins: {
     'wdio-webcomponents': {},
   },
-  reporters: ['dot'],
+  reporters: ['dot', 'junit'],
+  reporterOptions: {
+    junit: {
+      outputDir: './',
+      outputFileFormat: () => 'junit_E2eTestOutput.xml',
+    },
+  },
   specs: [
     './e2e.spec.js',
   ],

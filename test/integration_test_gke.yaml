@@ -22,6 +22,8 @@ spec:
       value: persistenceagent
     - name: api-integration-test-image-suffix
       value: api_integration_test
+    - name: e2e-tests-image-suffix
+      value: e2e-tests
     - name: wait-ml-pipeline-ready-image-suffix
       value: wait_mlp_ready
   onExit: clean-up
@@ -36,6 +38,7 @@ spec:
       - name: scheduledworkflow-image-suffix
       - name: persistenceagent-image-suffix
       - name: api-integration-test-image-suffix
+      - name: e2e-tests-image-suffix
       - name: wait-ml-pipeline-ready-image-suffix
     steps:
     - - name: create-namespace
@@ -118,6 +121,18 @@ spec:
             value: test/api-integration-test
           - name: image-suffix
             value: "{{inputs.parameters.api-integration-test-image-suffix}}"
+      - name: build-e2e-tests-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: test/e2e
+          - name: image-suffix
+            value: "{{inputs.parameters.e2e-tests-image-suffix}}"
       - name: build-wait-ml-pipeline-ready-image
         template: build-image
         arguments:
@@ -168,6 +183,16 @@ spec:
             value: "{{inputs.parameters.commit-sha}}"
           - name: api-integration-test-image-suffix
             value: "{{inputs.parameters.api-integration-test-image-suffix}}"
+    - - name: run-e2e-tests
+        template: run-e2e-tests
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: e2e-tests-image-suffix
+            value: "{{inputs.parameters.e2e-tests-image-suffix}}"
 
   - name: get-project
     script:
@@ -267,6 +292,18 @@ spec:
       volumeMounts:
       - name: secret-volume
         mountPath: "/root/.ssh/github"
+
+  - name: run-e2e-tests
+    inputs:
+      parameters:
+      - name: project
+      - name: commit-sha
+      - name: e2e-tests-image-suffix
+    container:
+      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.e2e-tests-image-suffix}}
+      args: [
+        "--namespace", "{{workflow.name}}-e2e-tests",
+      ]
 
   - name: clean-up
     inputs:
