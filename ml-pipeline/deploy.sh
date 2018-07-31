@@ -21,7 +21,7 @@ NAMESPACE=default
 APP_DIR=ml-pipeline-app
 
 # Version number of this release.
-RELEASE_VERSION="${RELEASE_VERSION:-0.0.9}"
+RELEASE_VERSION="${RELEASE_VERSION:-0.0.11}"
 
 # Default ml pipeline api server image
 API_SERVER_IMAGE="gcr.io/ml-pipeline/api-server:${RELEASE_VERSION}"
