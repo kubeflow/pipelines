@@ -32,6 +32,7 @@ paper-spinner {
 
 .iframe {
   border: 1px solid #ddd;
+  min-height: 600px;
   width: 100%;
 }
 
