@@ -203,7 +203,7 @@ const data = {
       description: 'This pipeline cannot be deleted',
       package_id: 2,
       status: 'Succeeded',
-      trigger: { cron_schedule: { cron: '0 0 0 * * ?' } },
+      trigger: { periodic_schedule: { interval_second: 439652 } },
       enabled: true,
       updated_at: "2018-03-03T23:58:23.000Z",
       max_concurrency: 10,

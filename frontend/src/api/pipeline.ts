@@ -95,24 +95,30 @@ export class PeriodicSchedule {
     const seconds = Math.floor(this.interval_second % secInMin);
     let interval = 'Run every';
     if (months) {
-      interval += ` ${months} months`;
+      interval += ` ${months} months,`;
     }
     if (weeks) {
-      interval += ` ${weeks} weeks`;
+      interval += ` ${weeks} weeks,`;
     }
     if (days) {
-      interval += ` ${days} days`;
+      interval += ` ${days} days,`;
     }
     if (hours) {
-      interval += ` ${hours} hours`;
+      interval += ` ${hours} hours,`;
     }
     if (minutes) {
-      interval += ` ${minutes} minutes`;
+      interval += ` ${minutes} minutes,`;
     }
     if (seconds) {
-      interval += ` ${seconds} seconds`;
+      interval += ` ${seconds} seconds,`;
     }
-    return interval;
+    // Add 'and' if necessary
+    const insertAndLocation = interval.lastIndexOf(', ') + 1;
+    if (insertAndLocation > 0) {
+      interval = interval.slice(0, insertAndLocation) + ' and' + interval.slice(insertAndLocation);
+    }
+    // Remove trailing comma
+    return interval.slice(0, -1);
   }
 }
 
@@ -153,7 +159,7 @@ export class Trigger {
       return this.cron_schedule.toString();
     }
     if (this.periodic_schedule) {
-      this.periodic_schedule.toString();
+      return this.periodic_schedule.toString();
     }
     return '';
   }
