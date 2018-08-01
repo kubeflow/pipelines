@@ -103,7 +103,7 @@ Here we choose cloud-platform scope so it can invoke Dataproc cluster. You can f
 For example following would create a cluster with 3 nodes and n1-standard-2 [machine type](https://cloud.google.com/compute/docs/machine-types), with logging and monitoring enabled.
 ```
 $ gcloud container clusters create ml-pipeline \
-  --zone us-west1-a \
+  --zone us-central1-a \
   --scopes cloud-platform \
   --enable-cloud-logging \
   --enable-cloud-monitoring \
