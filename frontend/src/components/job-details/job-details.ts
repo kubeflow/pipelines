@@ -13,7 +13,6 @@ import prettyJson from 'json-pretty-html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { Pipeline } from '../../api/pipeline';
 import { PackageTemplate } from '../../api/pipeline_package';
-import { OutputInfo, parseTemplateOuputPaths } from '../../lib/template_parser';
 import { NodePhase, Workflow } from '../../model/argo_template';
 import { RouteEvent } from '../../model/events';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
@@ -23,6 +22,12 @@ import { JobGraph } from '../job-graph/job-graph';
 import '../data-plotter/data-plot';
 import '../job-graph/job-graph';
 import './job-details.html';
+
+export interface OutputInfo {
+  index?: number;
+  path: string;
+  step: string;
+}
 
 @customElement('job-details')
 export class JobDetails extends PageElement {
@@ -52,7 +57,6 @@ export class JobDetails extends PageElement {
   protected _pipelineId = '';
 
   private _jobId = '';
-  private _jobName = '';
 
   public get refreshButton(): PaperButtonElement {
     return this.$.refreshButton as PaperButtonElement;
@@ -99,6 +103,7 @@ export class JobDetails extends PageElement {
     } catch (err) {
       this.showPageError('There was an error while loading details for job: ' + this._jobId);
       Utils.log.error('Error loading job details:', err);
+      return;
     } finally {
       this._loadingJob = false;
     }
@@ -140,7 +145,7 @@ export class JobDetails extends PageElement {
     return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRuntime(start: string, end: string, status: NodePhase): string {
+  protected _getRunTime(start: string, end: string, status: NodePhase): string {
     return Utils.getRunTime(start, end, status);
   }
 
@@ -170,13 +175,18 @@ export class JobDetails extends PageElement {
 
   private async _loadJobOutputs(
       baseOutputPath: string, packageTemplate: PackageTemplate): Promise<void> {
-    let outputPaths: OutputInfo[] = [];
-    try {
-      outputPaths = parseTemplateOuputPaths(packageTemplate, baseOutputPath, this._jobName);
-    } catch (err) {
-      this.showPageError('There was an error while parsing this job\'s YAML template', err);
-      return;
-    }
+    const outputPaths: OutputInfo[] = [];
+    Object.keys(this.workflow.status.nodes).forEach((id) => {
+      const node = this.workflow.status.nodes[id];
+      if (!node.inputs) {
+        return;
+      }
+      (node.inputs.parameters || []).filter((p) => p.name === 'output').forEach((p) =>
+          outputPaths.push({
+            path: p.value!,
+            step: node.displayName,
+          }));
+    });
 
     this._loadingOutputs = true;
     try {
@@ -188,7 +198,7 @@ export class JobDetails extends PageElement {
       await Promise.all(outputPaths.map(async (outputInfo, outputIndex) => {
         outputInfo.index = outputIndex;
         const fileList = await Apis.listFiles(outputInfo.path);
-        const metadataFile = fileList.filter((f) => f.endsWith('/metadata.json'))[0];
+        const metadataFile = fileList.find((f) => f.endsWith('/metadata.json'));
         if (metadataFile) {
           const metadataJson = await Apis.readFile(metadataFile);
           const metadata = JSON.parse(metadataJson) as OutputMetadata;

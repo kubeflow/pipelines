@@ -1,5 +1,7 @@
 import * as sinon from 'sinon';
 import * as fixedData from '../../mock-backend/fixed-data';
+// tslint:disable-next-line:no-var-requires
+const coinflipJob = require('../../mock-backend/mock-coinflip-job-runtime.json');
 import * as assert from '../../node_modules/assert/assert';
 import * as Apis from '../../src/lib/apis';
 import * as Utils from '../../src/lib/utils';
@@ -18,24 +20,19 @@ import * as testUtils from './test-utils';
 let fixture: JobDetails;
 let getPipelineStub: sinon.SinonStub;
 let getJobStub: sinon.SinonStub;
+let graphRefreshStub: sinon.SinonStub;
 
-const mockTemplate = `
-  spec:
-    entrypoint: entrypoint-name
-    templates:
-    - name: entrypoint-name
-      steps:
-      - - name: step1
-          arguments:
-            parameters:
-            - name: output
-              value: output/path1
-        - name: step2
-          arguments:
-            parameters:
-            - name: output
-              value: output/path2
-`;
+const mockJob: Job = {
+  job: {
+    created_at: 'test-created-at',
+    id: 'test-id',
+    name: 'test-job',
+    namespace: 'test-namespace',
+    scheduled_at: 'test-scheduled-at',
+    status: 'RUNNING',
+  },
+  workflow: JSON.stringify(coinflipJob),
+};
 
 async function _resetFixture(): Promise<void> {
   return testUtils.resetFixture('job-details', null, (f: JobDetails) => {
@@ -67,9 +64,17 @@ describe('job-details', () => {
     getJobStub = sinon.stub(Apis, 'getJob');
     getJobStub.returns(testJob);
 
+    graphRefreshStub = sinon.stub(JobGraph.prototype, 'refresh');
+
     getPipelineStub = sinon.stub(Apis, 'getPipeline');
     getPipelineStub.returns(testPipeline);
     await _resetFixture();
+  });
+
+  afterEach(() => {
+    getPipelineStub.restore();
+    getJobStub.restore();
+    graphRefreshStub.restore();
   });
 
   it('shows the basic details of the job without schedule', () => {
@@ -147,7 +152,6 @@ describe('job-details', () => {
 
     let listFilesStub: sinon.SinonStub;
     let readFileStub: sinon.SinonStub;
-    let templatesStub: sinon.SinonStub;
 
     const metadata1: OutputMetadata = {
       outputs: [{
@@ -176,13 +180,12 @@ describe('job-details', () => {
 
       listFilesStub = sinon.stub(Apis, 'listFiles');
       readFileStub = sinon.stub(Apis, 'readFile');
-      templatesStub = sinon.stub(Apis, 'getPackageTemplate');
 
       listFilesStub.returns(['gs://test/bucket/path/metadata.json']);
       readFileStub.onFirstCall().returns(JSON.stringify(metadata1));
-      readFileStub.onSecondCall().returns(JSON.stringify(metadata2));
+      readFileStub.returns(JSON.stringify(metadata2));
       getPipelineStub.returns(testPipeline);
-      templatesStub.returns({ template: mockTemplate });
+      getJobStub.returns(mockJob);
 
       fixture.tabs.select(1);
     });
@@ -194,34 +197,32 @@ describe('job-details', () => {
     afterEach(() => {
       listFilesStub.restore();
       readFileStub.restore();
-      templatesStub.restore();
     });
 
     it('switches to the list of outputs upon switching to the outputs tab', async () => {
       assert(testUtils.isVisible(fixture.outputList), 'should now show output list');
     });
 
-    it('shows an error and no outputs if the YAML is bad', async () => {
-      templatesStub.returns({ template: `bad yaml` });
-      await _resetFixture();
+    it('shows an error and no outputs if the runtime json is bad', async () => {
+      getJobStub.returns({ job: mockJob.job, workflow: 'bad json' });
+      await _resetFixture().catch(() => 0);
       assert.strictEqual(fixture.outputList.innerText.trim(), '',
-          'no outputs should be rendered if YAML is bad');
+          'no outputs should be rendered if runtime json is bad');
       assert.deepStrictEqual(fixture.outputPlots, [],
-          'should not have any output plots if YAML is bad');
+          'should not have any output plots if runtime json is bad');
       const errorEl = fixture.$.pageErrorElement as PageError;
       assert.deepStrictEqual(errorEl.error,
-          'There was an error while parsing this job\'s YAML template',
-          'should show YAML load error');
+          'There was an error while loading details for job: ' + mockJob.job.name);
     });
 
-    it('shows the list of outputs if good YAML is specified', async () => {
-      templatesStub.returns({ template: mockTemplate });
+    it('shows the list of outputs if good runtime json is specified', async () => {
+      getJobStub.returns(mockJob);
       await _resetFixture();
       fixture.tabs.select(1);
 
-      assert.strictEqual(fixture.outputPlots.length, 2);
+      assert.strictEqual(fixture.outputPlots.length, 4);
       const plots: DataPlot[] = fixture.plotContainer.querySelectorAll('div') as any;
-      assert.strictEqual(plots.length, 2);
+      assert.strictEqual(plots.length, 4);
       assert.strictEqual(plots[0].plotMetadata.type, PlotType.CONFUSION_MATRIX);
       assert.strictEqual(plots[1].plotMetadata.type, PlotType.ROC);
     });
@@ -239,9 +240,8 @@ describe('job-details', () => {
     });
 
     it('passes the job graph object to the job-graph component', async () => {
-      const jobGraphRefreshStub = sinon.spy(JobGraph.prototype, 'refresh');
       await _resetFixture();
-      assert.deepStrictEqual(jobGraphRefreshStub.lastCall.args[0].metadata,
+      assert.deepStrictEqual(graphRefreshStub.lastCall.args[0].metadata,
           JSON.parse(testJob.workflow).metadata);
     });
 
