@@ -14,22 +14,27 @@
 
 
 import mlp
+import datetime
 
 
 @mlp.pipeline(
   name='Pipeline TFJob',
   description='Demonstrate the DSL for TFJob'
 )
-def kubeflow_training(train: mlp.PipelineParam, evaluation: mlp.PipelineParam,
-  schema: mlp.PipelineParam, output: mlp.PipelineParam, project: mlp.PipelineParam,
-  learning_rate: mlp.PipelineParam, hidden_layer_size: mlp.PipelineParam,
-  steps: mlp.PipelineParam, target: mlp.PipelineParam, 
-  workers: mlp.PipelineParam = mlp.PipelineParam(name = 'workers', value = 0), 
-  pss: mlp.PipelineParam = mlp.PipelineParam(name = 'pss', value = 0),
-  preprocess_mode: mlp.PipelineParam = mlp.PipelineParam(name = 'preprocessmode', value = 'local'), 
-  predict_mode: mlp.PipelineParam = mlp.PipelineParam(name = 'predictmode', value = 'local')):
+def kubeflow_training( output: mlp.PipelineParam, project: mlp.PipelineParam,
+  evaluation: mlp.PipelineParam=mlp.PipelineParam(name='evaluation', value='gs://ml-pipeline-playground/flower/eval100.csv'),
+  train: mlp.PipelineParam=mlp.PipelineParam(name='train', value='gs://ml-pipeline-playground/flower/train200.csv'),
+  schema: mlp.PipelineParam=mlp.PipelineParam(name='schema', value='gs://ml-pipeline-playground/flower/schema.json'),
+  learning_rate: mlp.PipelineParam=mlp.PipelineParam(name='learningrate', value=0.1),
+  hidden_layer_size: mlp.PipelineParam=mlp.PipelineParam(name='hiddenlayersize', value='100,50'),
+  steps: mlp.PipelineParam=mlp.PipelineParam(name='steps', value=2000),
+  target: mlp.PipelineParam=mlp.PipelineParam(name='target', value='label'),
+  workers: mlp.PipelineParam=mlp.PipelineParam(name='workers', value=0),
+  pss: mlp.PipelineParam=mlp.PipelineParam(name='pss', value=0),
+  preprocess_mode: mlp.PipelineParam=mlp.PipelineParam(name='preprocessmode', value='local'),
+  predict_mode: mlp.PipelineParam=mlp.PipelineParam(name='predictmode', value='local')):
   # TODO: use the argo job name as the workflow
-  workflow = 'kubeflow-training-dsl'
+  workflow = 'kubeflow-training-dsl-' + datetime.datetime.now().strftime('%y%m%d-%H%M%S')
   preprocess = mlp.ContainerOp( 
       name = 'preprocess', 
       image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft', 
