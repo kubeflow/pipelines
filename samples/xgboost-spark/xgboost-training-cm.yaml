@@ -39,7 +39,7 @@ spec:
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
       command: null
-      image: gcr.io/bradley-playground/ml-pipeline-dataproc-analyze
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze
     inputs:
       parameters:
       - name: create-cluster-output
@@ -75,7 +75,7 @@ spec:
       - --staging
       - '{{inputs.parameters.output}}'
       command: null
-      image: gcr.io/bradley-playground/ml-pipeline-dataproc-create-cluster
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster
     inputs:
       parameters:
       - name: output
@@ -95,7 +95,7 @@ spec:
       - --name
       - xgb-{{workflow.name}}
       command: null
-      image: gcr.io/bradley-playground/ml-pipeline-dataproc-delete-cluster
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster
     inputs:
       parameters:
       - name: project
@@ -214,7 +214,7 @@ spec:
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/predict'
       command: null
-      image: gcr.io/bradley-playground/ml-pipeline-dataproc-predict
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-predict
     inputs:
       parameters:
       - name: analyze-output
@@ -256,7 +256,7 @@ spec:
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/model'
       command: null
-      image: gcr.io/bradley-playground/ml-pipeline-dataproc-train
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-train
     inputs:
       parameters:
       - name: analyze-output
@@ -290,7 +290,7 @@ spec:
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/transform'
       command: null
-      image: gcr.io/bradley-playground/ml-pipeline-dataproc-transform
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-transform
     inputs:
       parameters:
       - name: analyze-output

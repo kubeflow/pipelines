@@ -24,7 +24,7 @@ class CreateClusterOp(mlp.ContainerOp):
   def __init__(self, name, project, region, staging):
     super(CreateClusterOp, self).__init__(
       name=name,
-      image='gcr.io/bradley-playground/ml-pipeline-dataproc-create-cluster',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster',
       arguments=[
           '--project', project,
           '--region', region,
@@ -39,7 +39,7 @@ class DeleteClusterOp(mlp.ContainerOp):
   def __init__(self, name, project, region):
     super(DeleteClusterOp, self).__init__(
       name=name,
-      image='gcr.io/bradley-playground/ml-pipeline-dataproc-delete-cluster',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster',
       arguments=[
           '--project', project,
           '--region', region,
@@ -53,7 +53,7 @@ class AnalyzeOp(mlp.ContainerOp):
   def __init__(self, name, project, region, cluster_name, schema, train_data, output):
     super(AnalyzeOp, self).__init__(
       name=name,
-      image='gcr.io/bradley-playground/ml-pipeline-dataproc-analyze',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze',
       arguments=[
           '--project', project,
           '--region', region,
@@ -71,7 +71,7 @@ class TransformOp(mlp.ContainerOp):
                target, analysis, output):
     super(TransformOp, self).__init__(
       name=name,
-      image='gcr.io/bradley-playground/ml-pipeline-dataproc-transform',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform',
       arguments=[
           '--project', project,
           '--region', region,
@@ -96,7 +96,7 @@ class TrainerOp(mlp.ContainerOp):
 
     super(TrainerOp, self).__init__(
       name=name,
-      image='gcr.io/bradley-playground/ml-pipeline-dataproc-train',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train',
       arguments=[
           '--project', project,
           '--region', region,
@@ -119,7 +119,7 @@ class PredictOp(mlp.ContainerOp):
   def __init__(self, name, project, region, cluster_name, data, model, target, analysis, output):
     super(PredictOp, self).__init__(
       name=name,
-      image='gcr.io/bradley-playground/ml-pipeline-dataproc-predict',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict',
       arguments=[
           '--project', project,
           '--region', region,
