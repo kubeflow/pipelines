@@ -55,10 +55,11 @@ export function dateDiffToString(diff: number): string {
   const SECOND = 1000;
   const MINUTE = 60 * SECOND;
   const HOUR = 60 * MINUTE;
-  const seconds = Math.floor((diff / SECOND) % 60);
-  const minutes = Math.floor((diff / MINUTE) % 60);
-  const hours = Math.floor((diff / HOUR) % 24);
-  return `${hours.toFixed()}:${minutes.toFixed()}:${seconds.toFixed()}`;
+  const seconds = Math.floor((diff / SECOND) % 60).toString().padStart(2, '0');
+  const minutes = Math.floor((diff / MINUTE) % 60).toString().padStart(2, '0');
+  // Hours are the largest denomination, so we don't pad them
+  const hours = Math.floor((diff / HOUR) % 24).toString();
+  return `${hours}:${minutes}:${seconds}`;
 }
 
 export function getAncestorElementWithClass(element: HTMLElement, className: string): Element {
