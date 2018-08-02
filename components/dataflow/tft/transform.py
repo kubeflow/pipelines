@@ -75,11 +75,11 @@ def parse_arguments():
   parser.add_argument('--mode',
                       choices=['local', 'cloud'],
                       help='whether to run the job locally or in Cloud Dataflow.')
-  parser.add_argument('--preprocessing_module',
+  parser.add_argument('--preprocessing-module',
                       type=str,
                       required=False,
                       help=('GCS path to a python file defining '
-                            'a "preprocess" function.'))
+                            '"preprocess" and "get_feature_columns" functions.'))
 
   args = parser.parse_args()
   return args

@@ -102,6 +102,11 @@ def main(argv=None):
                       help='Maximum number of training data epochs on which to train. If '
                            'both "steps" and "epochs" are specified, the training '
                            'job will run for "steps" or "epochs", whichever occurs first.')
+  parser.add_argument('--preprocessing-module',
+                      type=str,
+                      required=False,
+                      help=('GCS path to a python file defining '
+                            '"preprocess" and "get_feature_columns" functions.'))
   parser.add_argument('--workers', type=int, default=0)
   parser.add_argument('--pss', type=int, default=0)
   parser.add_argument('--cluster', type=str,

@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+
 import tensorflow_transform as transform
 
 # Categorical features are assumed to each have a maximum value in the dataset.
@@ -59,6 +60,7 @@ VOCAB_FEATURE_KEYS = [
 LABEL_KEY = 'tips'
 FARE_KEY = 'fare'
 
+
 def preprocess(inputs):
   """tf.transform's callback function for preprocessing inputs.
   Args:
@@ -74,13 +76,14 @@ def preprocess(inputs):
   for key in VOCAB_FEATURE_KEYS:
     # Build a vocabulary for this feature.
     outputs[key] = transform.string_to_int(
-        inputs[key], vocab_filename='vocab_' + key)
+        inputs[key], vocab_filename='vocab_' + key,
+        top_k=VOCAB_SIZE, num_oov_buckets=OOV_SIZE)
 
   for key in BUCKET_FEATURE_KEYS:
     outputs[key] = transform.bucketize(inputs[key], FEATURE_BUCKET_COUNT)
 
   for key in CATEGORICAL_FEATURE_KEYS:
-    outputs[key] = inputs[key]
+    outputs[key] = tf.to_int64(inputs[key])
 
   taxi_fare = inputs[FARE_KEY]
   taxi_tip = inputs[LABEL_KEY]
@@ -91,3 +94,26 @@ def preprocess(inputs):
       tf.greater(taxi_tip, tip_threshold))
 
   return outputs
+
+
+def get_feature_columns(transformed_data_dir):
+  """Callback that returns a list of feature columns for building a tf.estimator.
+  Args:
+    transformed_data_dir: The GCS directory holding the output of the tft transformation.
+  Returns:
+    A list of tf.feature_column.
+  """
+  return (
+    [tf.feature_column.numeric_column(key, shape=()) for key in DENSE_FLOAT_FEATURE_KEYS] +
+    [tf.feature_column.indicator_column(
+        tf.feature_column.categorical_column_with_identity(
+            key, num_buckets=VOCAB_SIZE+OOV_SIZE))
+     for key in VOCAB_FEATURE_KEYS] +
+    [tf.feature_column.indicator_column(
+        tf.feature_column.categorical_column_with_identity(
+            key, num_buckets=FEATURE_BUCKET_COUNT, default_value=0))
+     for key in BUCKET_FEATURE_KEYS] +
+    [tf.feature_column.indicator_column(
+        tf.feature_column.categorical_column_with_identity(
+            key, num_buckets=num_buckets, default_value=0))
+     for key, num_buckets in zip(CATEGORICAL_FEATURE_KEYS, MAX_CATEGORICAL_FEATURE_VALUES)])

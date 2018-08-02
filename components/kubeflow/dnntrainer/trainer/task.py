@@ -75,6 +75,11 @@ def parse_arguments():
                       help='Maximum number of training data epochs on which to train. If '
                            'both "steps" and "epochs" are specified, the training '
                            'job will run for "steps" or "epochs", whichever occurs first.')
+  parser.add_argument('--preprocessing-module',
+                      type=str,
+                      required=False,
+                      help=('GCS path to a python file defining '
+                            '"preprocess" and "get_feature_columns" functions.'))
 
   args = parser.parse_args()
   args.hidden_layer_size = [int(x.strip()) for x in args.hidden_layer_size.split(',')]
@@ -214,11 +219,8 @@ def build_feature_columns(schema, transformed_data_dir, target):
 
 
 def get_estimator(schema, transformed_data_dir, target_name, output_dir, hidden_units,
-                  optimizer, learning_rate):
+                  optimizer, learning_rate, feature_columns):
   """Get proper tf.estimator (DNNClassifier or DNNRegressor)."""
-
-  feature_columns = build_feature_columns(schema, transformed_data_dir, target_name)
-
   optimizer = tf.train.AdagradOptimizer(learning_rate)
   if optimizer == 'Adam':
     optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -290,8 +292,21 @@ def main():
   tf.logging.set_verbosity(tf.logging.INFO)
 
   schema = json.loads(file_io.read_file_to_string(args.schema))
+  feature_columns = None
+  if args.preprocessing_module:
+    module_dir = os.path.abspath(os.path.dirname(__file__))
+    preprocessing_module_path = os.path.join(module_dir, 'preprocessing.py')
+    with open(preprocessing_module_path, 'w+') as preprocessing_file:
+      preprocessing_file.write(
+          file_io.read_file_to_string(args.preprocessing_module))
+    import preprocessing
+    feature_columns = preprocessing.get_feature_columns(args.transformed_data_dir)
+  else:
+    feature_columns = build_feature_columns(schema, args.transformed_data_dir, args.target)
+
   estimator = get_estimator(schema, args.transformed_data_dir, args.target, args.job_dir,
-                            args.hidden_layer_size, args.optimizer, args.learning_rate)
+                            args.hidden_layer_size, args.optimizer, args.learning_rate,
+                            feature_columns)
 
   # TODO: Expose batch size.
   train_input_fn = make_training_input_fn(

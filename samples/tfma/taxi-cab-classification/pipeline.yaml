@@ -97,6 +97,8 @@ spec:
             value: "{{inputs.parameters.workers}}"
           - name: pss
             value: "{{inputs.parameters.pss}}"
+          - name: preprocessing-module
+            value: "{{inputs.parameters.preprocessing-module}}"
     - - name: analyze
         template: analyze
         when: "{{inputs.parameters.analyze-slice-column}} != \"\""
@@ -153,7 +155,7 @@ spec:
           "--output", "{{inputs.parameters.output}}",
           "--project", "{{inputs.parameters.project}}",
           "--mode", "{{inputs.parameters.preprocess-mode}}",
-          "--preprocessing_module", "{{inputs.parameters.preprocessing-module}}",
+          "--preprocessing-module", "{{inputs.parameters.preprocessing-module}}",
       ]
   - name: train
     inputs:
@@ -167,6 +169,7 @@ spec:
       - name: steps
       - name: workers
       - name: pss
+      - name: preprocessing-module
     container:
       image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
       args: [
@@ -179,6 +182,7 @@ spec:
           "--target", "{{inputs.parameters.target}}",
           "--workers", "{{inputs.parameters.workers}}",
           "--pss", "{{inputs.parameters.pss}}",
+          "--preprocessing-module", "{{inputs.parameters.preprocessing-module}}",
       ]
   - name: analyze
     inputs:
