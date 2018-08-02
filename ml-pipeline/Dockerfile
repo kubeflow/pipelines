@@ -1,7 +1,7 @@
 # This is a dockerfile for an image with kubectl and ksonnet installed
 # Available at gcr.io/ml-pipeline/bootstrapper
 
-FROM ubuntu
+FROM ubuntu:18.04
 
 RUN apt-get update -y
 RUN apt-get install -y curl
@@ -12,10 +12,10 @@ RUN chmod +x ./kubectl
 RUN mv kubectl /usr/local/bin/
 
 # Install ksonnet
-RUN curl -LO https://github.com/ksonnet/ksonnet/releases/download/v0.9.2/ks_0.9.2_linux_amd64.tar.gz
-RUN tar -xzf ks_0.9.2_linux_amd64.tar.gz
-RUN chmod +x ./ks_0.9.2_linux_amd64/ks
-RUN mv ./ks_0.9.2_linux_amd64/ks /usr/local/bin/
+RUN curl -LO https://github.com/ksonnet/ksonnet/releases/download/v0.11.0/ks_0.11.0_linux_amd64.tar.gz
+RUN tar -xzf ks_0.11.0_linux_amd64.tar.gz
+RUN chmod +x ./ks_0.11.0_linux_amd64/ks
+RUN mv ./ks_0.11.0_linux_amd64/ks /usr/local/bin/
 
 
 # Set USER env variable to workaround a known issue

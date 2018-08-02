@@ -50,7 +50,7 @@ spec:
     spec:
       containers:
       - name: deploy
-        image: gcr.io/ml-pipeline/bootstrapper:0.0.11
+        image: gcr.io/ml-pipeline/bootstrapper:0.0.12
         imagePullPolicy: 'Always'
         # Additional parameter available:
         args: [

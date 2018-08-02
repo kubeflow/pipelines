@@ -23,7 +23,7 @@ import (
 )
 
 func CreateMySQLConfig(user string, mysqlServiceHost string,
-	mysqlServicePort string, dbName string) *mysql.Config {
+		mysqlServicePort string, dbName string) *mysql.Config {
 	return &mysql.Config{
 		User:                 user,
 		Net:                  "tcp",
@@ -35,7 +35,7 @@ func CreateMySQLConfig(user string, mysqlServiceHost string,
 }
 
 func CreateGormClient(driverName string, sqliteDatasourceName string, user string,
-	mysqlServiceHost string, mysqlServicePort string, dbName string) (*gorm.DB, error) {
+		mysqlServiceHost string, mysqlServicePort string, dbName string) (*gorm.DB, error) {
 
 	var dataSourceName string
 

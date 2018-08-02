@@ -47,6 +47,10 @@ steps:
   args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/release/$TAG_NAME/bootstrapper.yaml']
   id:   'copyBootstrapperYAML'
   waitFor: ['prepareBootstrapperYAML']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/release/latest/bootstrapper.yaml']
+  id:   'copyBootstrapperYAMLToLatest'
+  waitFor: ['prepareBootstrapperYAML']
 
 images:
 - 'gcr.io/$PROJECT_ID/frontend:$TAG_NAME'

@@ -5,18 +5,17 @@
 This document guides you through the steps to install Machine Learning Pipelines and run your first pipeline sample. 
 
 ## Requirements
-- Install Kubernetes v1.8 or later
-- Install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
- 
-If you don't want to install [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) and its dependencies(such as VirtualBox), you can use [GKE](https://cloud.google.com/kubernetes-engine/) instead. See [Appendix](#setup-gke) for more information about setting up a GKE cluster.
-
+- Install [gcloud CLI](https://cloud.google.com/sdk/) and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#download-as-part-of-the-google-cloud-sdk)
+- Install [git client](https://git-scm.com/downloads)
+- Install [conda](https://conda.io/docs/user-guide/install/download.html)
+- Install [docker client](https://www.docker.com/get-docker )
 
 ## Install
 
-To install ML pipeline, just create a bootstrapper job using [bootstrapper.yaml](https://storage.googleapis.com/ml-pipeline/bootstrapper.yaml)
+To install ML pipeline, just create a bootstrapper job 
 ```
 TODO(yangpa): Use github path when project is public.  
-$ kubectl create -f https://storage.googleapis.com/ml-pipeline/bootstrapper.yaml
+$ kubectl create -f https://storage.googleapis.com/ml-pipeline/release/latest/bootstrapper.yaml
 ```
 And you should see a job created that deploys all ML pipeline components in the cluster.
 ```
@@ -108,7 +107,7 @@ $ gcloud container clusters create ml-pipeline \
   --enable-cloud-logging \
   --enable-cloud-monitoring \
   --machine-type n1-standard-2 \
-  --num-nodes 3
+  --num-nodes 4
 ```
 Set the newly created GKE cluster as default.
 ```

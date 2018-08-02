@@ -17,8 +17,11 @@
 # K8s Namespace that all resources deployed to
 NAMESPACE=default
 
-# Ksonnet app name
+# ML pipeline Ksonnet app name
 APP_DIR=ml-pipeline-app
+
+# Kubeflow Ksonnet directory
+KF_DIR=kf-app
 
 # Version number of this release.
 RELEASE_VERSION="${RELEASE_VERSION:-0.0.11}"
@@ -42,6 +45,9 @@ REPORT_USAGE="true"
 # installed by Kubeflow or exist in a test cluster.
 DEPLOY_ARGO="true"
 
+# Whether to include kubeflow or not.
+WITH_KUBEFLOW="true"
+
 # Whether this is an install or uninstall.
 UNINSTALL=false
 
@@ -54,6 +60,7 @@ usage()
     [-p | --persistence_agent_image ml-pipeline persistence agent image]
     [-u | --ui_image ml-pipeline frontend UI docker image]
     [-r | --report_usage deploy roles or not. Roles are needed for GKE]
+    [--with_kubeflow whether to include kubeflow or not]
     [--deploy_argo whether to deploy argo or not]
     [--uninstall uninstall ml pipeline]
     [-h help]"
@@ -78,6 +85,9 @@ while [ "$1" != "" ]; do
                                              ;;
         -r | --report_usage )                shift
                                              REPORT_USAGE=$1
+                                             ;;
+        --with_kubeflow )                    shift
+                                             WITH_KUBEFLOW=$1
                                              ;;
         --deploy_argo )                      shift
                                              DEPLOY_ARGO=$1
@@ -143,6 +153,19 @@ fi
 
 if ${UNINSTALL} ; then
   ( cd ${APP_DIR} && ks delete default)
+  # TODO(yangpa): Uninstall kubeflow when uninstalling ml pipeline.
 else
   ( cd ${APP_DIR} && ks apply default -c ml-pipeline)
+  if [ "$WITH_KUBEFLOW" = true ]; then
+    # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
+    # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
+    kubectl create ns kubeflow
+    mkdir -p ${KF_DIR}
+    # We use kubeflow v0.2.2 by default
+    KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.2.2"}
+    (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
+    tar -xzvf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
+    SOURCE_DIR=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
+    (cd ${SOURCE_DIR} && export KUBEFLOW_REPO=`pwd -P` && scripts/deploy.sh)
+  fi
 fi
