@@ -35,6 +35,10 @@ import six
 from tensorflow.python.lib.io import file_io
 import time
 import yaml
+from py import tf_job_client
+from kubernetes import client as k8s_client
+from kubernetes import config
+
 
 def _generate_train_yaml(src_filename, dst_filename, workers, pss, job_name, args_list):
   """_generate_train_yaml  generates train yaml files based on train.template.yaml"""
@@ -52,12 +56,13 @@ def _generate_train_yaml(src_filename, dst_filename, workers, pss, job_name, arg
     content['spec']['tfReplicaSpecs']['Worker']['template']['spec']['containers'][0]['command'].extend(args_list)
     content['spec']['tfReplicaSpecs']['MASTER']['template']['spec']['containers'][0]['command'].extend(args_list)
   else:
-    # No workers and pss set. Remove the sections because setting replicas=0 doesn't work.
+    # If no workers and pss set, default is 1.
     master_spec = content['spec']['tfReplicaSpecs']['MASTER']
-    content['spec']['tfReplicaSpecs'].pop('PS')
-    content['spec']['tfReplicaSpecs'].pop('Worker')
-    # Set worker parameters. worker is the only item in replicaSpecs in this case.
+    worker_spec = content['spec']['tfReplicaSpecs']['Worker']
+    ps_spec = content['spec']['tfReplicaSpecs']['PS']
     master_spec['template']['spec']['containers'][0]['command'].extend(args_list)
+    worker_spec['template']['spec']['containers'][0]['command'].extend(args_list)
+    ps_spec['template']['spec']['containers'][0]['command'].extend(args_list)
 
   with open(dst_filename, 'w') as f:
     yaml.dump(content, f, default_flow_style=False)
@@ -144,6 +149,7 @@ def main(argv=None):
   job_name = _generate_train_yaml(template_file, 'train.yaml', workers, pss, '', args_list)
   
   logging.info('Start training.')
+  #TODO: convert to tf-operator library.
   subprocess.call(['kubectl', 'create', '-f', 'train.yaml', '--namespace', 'kubeflow'])
 
   # Create metadata.json file for visualization.
@@ -156,36 +162,29 @@ def main(argv=None):
   with file_io.FileIO(os.path.join(args.job_dir, 'metadata.json'), 'w') as f:
     json.dump(metadata, f)
 
-  # TODO: Replace polling with kubeflow API calls.
-  while True:
-    time.sleep(2)
-    check_job_commands = ['kubectl', 'describe', 'tfjob', job_name, '--namespace', 'kubeflow']
-    kubectl_proc = subprocess.Popen(check_job_commands, stdout=subprocess.PIPE)
-    grep_proc = subprocess.Popen(['grep', 'Succeeded'], stdin=kubectl_proc.stdout,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    kubectl_proc.stdout.close() 
-    stdout, stderr = grep_proc.communicate()
-    result = stdout.rstrip().split(':')
-    if len(result) == 2:
-      logging.info('Training done.')
-      with open('/output.txt', 'w') as f:
-        f.write(args.job_dir)
-      break
 
-    check_job_commands = ['kubectl', 'describe', 'tfjob', job_name, '--namespace', 'kubeflow']
-    kubectl_proc = subprocess.Popen(check_job_commands, stdout=subprocess.PIPE)
-    grep_proc = subprocess.Popen(['grep', 'Active'], stdin=kubectl_proc.stdout,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    kubectl_proc.stdout.close()
-    stdout, stderr = grep_proc.communicate()
-    result = stdout.rstrip().split(':')
-    if len(result) == 2:
-      continue
 
-    # TODO: Switching to K8s API to handle errors.
-    logging.error('Training failed.')
-    logging.info(subprocess.check_output(check_job_commands))
+  # Set up handler for k8s clients
+  config.load_incluster_config()
+  api_client = k8s_client.ApiClient()
 
+  response = tf_job_client.wait_for_job(api_client, 'kubeflow', job_name, 'v1alpha2', status_callback=tf_job_client.log_status)
+  succ = True
+  #TODO: update this failure checking after tf-operator has the condition checking function.
+  if 'Worker' in response['status']['tfReplicaStatuses']:
+    if 'failed' in response['status']['tfReplicaStatuses']['Worker']:
+      logging.error('Training failed since workers failed.')
+      succ = False
+  if 'PS' in response['status']['tfReplicaStatuses']:
+    if 'failed' in response['status']['tfReplicaStatuses']['PS']:
+      logging.error('Training failed since PSs failed.')
+      succ = False
+  if 'MASTER' in response['status']['tfReplicaStatuses']:
+    if 'failed' in response['status']['tfReplicaStatuses']['MASTER']:
+      logging.error('Training failed since MASTER failed.')
+      succ = False
+  if succ:
+    logging.info('Training success.')
   with open('/output.txt', 'w') as f:
     f.write(args.job_dir)
 

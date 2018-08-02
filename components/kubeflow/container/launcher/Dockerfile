@@ -16,11 +16,12 @@ FROM ubuntu:16.04
 
 RUN apt-get update -y
 
-RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip
+RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip git
 
 RUN easy_install pip
 
-RUN pip install pyyaml==3.12 six==1.11.0 requests==2.18.4 tensorflow==1.7.0
+RUN pip install pyyaml==3.12 six==1.11.0 requests==2.18.4 tensorflow==1.7.0 \
+      kubernetes google-api-python-client retrying
 
 RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     unzip -qq google-cloud-sdk.zip -d tools && \
@@ -40,6 +41,10 @@ RUN wget -nv https://github.com/ksonnet/ksonnet/releases/download/v0.9.0/ks_0.9.
     cp ./ks_0.9.0_linux_amd64/ks /tools/ks/bin && \
     rm ks_0.9.0_linux_amd64.tar.gz && \
     rm -r ks_0.9.0_linux_amd64
+
+RUN git clone https://github.com/kubeflow/tf-operator.git 
+
+ENV PYTHONPATH $PYTHONPATH:/tf-operator
 
 ENV PATH $PATH:/tools/google-cloud-sdk/bin:/tools/ks/bin
 
