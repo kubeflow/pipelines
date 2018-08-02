@@ -79,10 +79,10 @@
             <br/>
             <br/>
 
-            <template is="dom-if" if="[[pipeline.parameters.length]]">
+            <template is="dom-if" if="[[workflow.spec.arguments.parameters.length]]">
               <div class="param-header">Job Parameters</div>
               <div class="params-table details-table">
-                <template is="dom-repeat" items="[[pipeline.parameters]]" as="param">
+                <template is="dom-repeat" items="[[workflow.spec.arguments.parameters]]" as="param">
                   <div>
                     <span class="key">[[param.name]]</span>
                     <span class="value">[[param.value]]</span>

@@ -12,7 +12,7 @@ import { DataPlot } from '../../src/components/data-plotter/data-plot';
 import { JobDetails } from '../../src/components/job-details/job-details';
 import { JobGraph } from '../../src/components/job-graph/job-graph';
 import { PageError } from '../../src/components/page-error/page-error';
-import { NODE_PHASE, NodePhase } from '../../src/model/argo_template';
+import { NODE_PHASE, NodePhase, Workflow } from '../../src/model/argo_template';
 import { RouteEvent } from '../../src/model/events';
 import { OutputMetadata, PlotType } from '../../src/model/output_metadata';
 import * as testUtils from './test-utils';
@@ -112,15 +112,20 @@ describe('job-details', () => {
         'displayed duration does not match test data');
   });
 
-  it('shows parameters table if there are parameters', async () => {
+  it('shows parameters table with substituted job parameters if there are any', async () => {
     testPipeline.parameters = [
       { name: 'param1', value: 'value1' },
-      { name: 'param2', value: 'value2' },
+      { name: 'param2', value: 'value2[[placeholder]]' },
     ];
     getPipelineStub.restore();
     getPipelineStub = sinon.stub(Apis, 'getPipeline');
     getPipelineStub.returns(testPipeline);
     await _resetFixture();
+    const workflow = JSON.parse(mockJob.workflow) as Workflow;
+    workflow.spec.arguments.parameters = testPipeline.parameters;
+    workflow.spec.arguments.parameters[1].value = 'value2withplaceholder';
+    fixture.workflow = workflow;
+    Polymer.flush();
 
     const paramsTable = fixture.shadowRoot.querySelector('.params-table') as HTMLDivElement;
     assert(testUtils.isVisible(paramsTable), 'should show params table');
@@ -129,17 +134,23 @@ describe('job-details', () => {
     paramRows.forEach((row, i) => {
       const key = row.querySelector('.key') as HTMLDivElement;
       const value = row.querySelector('.value') as HTMLDivElement;
-      assert.strictEqual(key.innerText, fixture.pipeline.parameters[i].name);
-      assert.strictEqual(value.innerText, fixture.pipeline.parameters[i].value);
+      assert.strictEqual(key.innerText, fixture.workflow.spec.arguments.parameters[i].name);
+      assert.strictEqual(value.innerText, fixture.workflow.spec.arguments.parameters[i].value);
     });
   });
 
   it('clones the job into a new pipeline', (done) => {
+    const workflow = JSON.parse(mockJob.workflow) as Workflow;
+    const params = [{ name: 'param1', value: 'value2withplaceholder' }];
+    workflow.spec.arguments.parameters = params;
+    fixture.workflow = workflow;
+    Polymer.flush();
+
     const listener = (e: RouteEvent) => {
       assert.strictEqual(e.detail.path, '/pipelines/new');
       assert.deepStrictEqual(e.detail.data, {
         packageId: testPipeline.package_id,
-        parameters: testPipeline.parameters,
+        parameters: params,
       }, 'parameters should be passed when cloning the pipeline');
       document.removeEventListener(RouteEvent.name, listener);
       done();

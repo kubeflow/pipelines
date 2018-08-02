@@ -12,7 +12,6 @@ import * as Utils from '../../lib/utils';
 import prettyJson from 'json-pretty-html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { Pipeline } from '../../api/pipeline';
-import { PackageTemplate } from '../../api/pipeline_package';
 import { NodePhase, Workflow } from '../../model/argo_template';
 import { RouteEvent } from '../../model/events';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
@@ -40,9 +39,6 @@ export class JobDetails extends PageElement {
 
   @property({ type: Object })
   public pipeline: Pipeline;
-
-  @property({ type: Object })
-  public packageTemplate: PackageTemplate;
 
   @property({ type: Number })
   public selectedTab = 0;
@@ -99,7 +95,6 @@ export class JobDetails extends PageElement {
       const response = await Apis.getJob(this._pipelineId, this._jobId);
       this.workflow = JSON.parse(response.workflow);
       this.pipeline = await Apis.getPipeline(this._pipelineId);
-      this.packageTemplate = await Apis.getPackageTemplate(this.pipeline.package_id);
     } catch (err) {
       this.showPageError('There was an error while loading details for job: ' + this._jobId);
       Utils.log.error('Error loading job details:', err);
@@ -118,10 +113,7 @@ export class JobDetails extends PageElement {
 
     // If pipeline params include output, retrieve them so they can be rendered by the data-plot
     // component.
-    const baseOutputPath = this._getBaseOutputPath();
-    if (baseOutputPath) {
-      await this._loadJobOutputs(baseOutputPath, this.packageTemplate);
-    }
+    await this._loadJobOutputs();
   }
 
   protected _refresh(): void {
@@ -133,7 +125,8 @@ export class JobDetails extends PageElement {
         new RouteEvent('/pipelines/new',
           {
             packageId: this.pipeline.package_id,
-            parameters: this.pipeline.parameters,
+            parameters: this.workflow.spec.arguments ?
+                (this.workflow.spec.arguments.parameters || []) : [],
           }));
   }
 
@@ -153,17 +146,6 @@ export class JobDetails extends PageElement {
     return Utils.nodePhaseToColor(status);
   }
 
-  private _getBaseOutputPath(): string {
-    if (this.pipeline.parameters) {
-      const output = this.pipeline.parameters.find((p) => p.name === 'output');
-
-      const baseOutputPathValue = output ? output.value : '';
-
-      return baseOutputPathValue ? baseOutputPathValue.toString() : '';
-    }
-    return '';
-  }
-
   private _reset(): void {
     // Clear any preexisting page error.
     this._pageError = '';
@@ -173,8 +155,7 @@ export class JobDetails extends PageElement {
     this.set('outputPlots', []);
   }
 
-  private async _loadJobOutputs(
-      baseOutputPath: string, packageTemplate: PackageTemplate): Promise<void> {
+  private async _loadJobOutputs(): Promise<void> {
     const outputPaths: OutputInfo[] = [];
     Object.keys(this.workflow.status.nodes).forEach((id) => {
       const node = this.workflow.status.nodes[id];
