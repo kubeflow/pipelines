@@ -302,7 +302,8 @@ spec:
     container:
       image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.e2e-tests-image-suffix}}
       args: [
-        "--namespace", "{{workflow.name}}-e2e-tests",
+        "--namespace", "{{workflow.name}}",
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
 
   - name: clean-up

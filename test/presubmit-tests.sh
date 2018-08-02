@@ -101,7 +101,7 @@ fi
 
 echo "Argo workflow finished. Copy test result"
 mkdir -p $ARTIFACT_DIR
-gsutil mv -r gs://ml-pipeline-test/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}/* ${ARTIFACT_DIR} || true
+gsutil cp -r gs://ml-pipeline-test/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}/* ${ARTIFACT_DIR} || true
 
 ARGO_WORKFLOW_DETAILS=`argo get ${ARGO_WORKFLOW}`
 ARGO_WORKFLOW_LOGS=`argo logs -w ${ARGO_WORKFLOW}`
