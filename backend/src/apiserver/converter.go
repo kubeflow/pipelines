@@ -208,17 +208,17 @@ func toApiTrigger(trigger model.Trigger) *api.Trigger {
 	}
 
 	if trigger.IntervalSecond != nil {
-		var periodicSchedule api.Trigger_PeriodicSchedule
-		periodicSchedule.PeriodicSchedule.IntervalSecond = *trigger.IntervalSecond
+		var periodicSchedule api.PeriodicSchedule
+		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
-			periodicSchedule.PeriodicSchedule.StartTime = &timestamp.Timestamp{
+			periodicSchedule.StartTime = &timestamp.Timestamp{
 				Seconds: *trigger.PeriodicScheduleStartTimeInSec}
 		}
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
-			periodicSchedule.PeriodicSchedule.EndTime = &timestamp.Timestamp{
+			periodicSchedule.EndTime = &timestamp.Timestamp{
 				Seconds: *trigger.PeriodicScheduleEndTimeInSec}
 		}
-		return &api.Trigger{Trigger: &periodicSchedule}
+		return &api.Trigger{Trigger: &api.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
 	return &api.Trigger{}
 }

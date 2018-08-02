@@ -80,7 +80,7 @@ func TestToApiJobs(t *testing.T) {
 	assert.Equal(t, expectedApiJob, apiJobs)
 }
 
-func TestToApiPipeline(t *testing.T) {
+func TestCronScheduledPipelineToApiPipeline(t *testing.T) {
 	modelPipeline := model.Pipeline{
 		UUID:        "pipeline1",
 		DisplayName: "name 1",
@@ -112,6 +112,44 @@ func TestToApiPipeline(t *testing.T) {
 			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * *",
+			}}},
+		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
+	}
+	assert.Equal(t, expectedPipeline, apiPipeline)
+}
+
+func TestPeriodicScheduledPipelineToApiPipeline(t *testing.T) {
+	modelPipeline := model.Pipeline{
+		UUID:        "pipeline1",
+		DisplayName: "name 1",
+		Name:        "name1",
+		PackageId:   1,
+		Enabled:     true,
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				IntervalSecond:                 util.Int64Pointer(3),
+			},
+		},
+		MaxConcurrency: 1,
+		Parameters:     `[{"name":"param2","value":"world"}]`,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+	}
+	apiPipeline, err := ToApiPipeline(&modelPipeline)
+	assert.Nil(t, err)
+	expectedPipeline := &api.Pipeline{
+		Id:             "pipeline1",
+		Name:           "name 1",
+		PackageId:      1,
+		Enabled:        true,
+		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_PeriodicSchedule{PeriodicSchedule: &api.PeriodicSchedule{
+				StartTime:      &timestamp.Timestamp{Seconds: 1},
+				IntervalSecond: 3,
 			}}},
 		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 	}
