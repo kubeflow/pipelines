@@ -90,9 +90,7 @@
       },
       rules: [
         {
-          apiGroups: [
-            "argoproj.io",
-          ],
+          apiGroups: [""],
           resources: [
             "pods",
             "pods/log",
@@ -100,6 +98,7 @@
           verbs: [
             "create",
             "get",
+            "list",
           ],
         },
       ],

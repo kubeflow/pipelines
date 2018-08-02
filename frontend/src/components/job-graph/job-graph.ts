@@ -236,7 +236,7 @@ export class JobGraph extends Polymer.Element {
     } catch (err) {
       errorEl.style.display = 'block';
       errorEl.showButton = false;
-      errorEl.error = 'Could not retrieve logs for pod: ' + this._selectedNode.id;
+      errorEl.error = `Could not retrieve logs for pod: ${this._selectedNode.id}. Error:\n${err}`;
       logsContainer.style.display = 'none';
     } finally {
       this._loadingLogs = false;

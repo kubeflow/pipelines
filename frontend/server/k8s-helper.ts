@@ -89,5 +89,7 @@ export function waitForTensorboard(logdir: string, timeout: number): Promise<str
 
 export function getPodLogs(podName: string): string {
   return k8sV1Client.readNamespacedPodLog(podName, namespace, 'main')
-    .then((response) => response.body, (error) => error.body);
+    .then((response) => response.body, (error) => {
+      throw new Error(JSON.stringify(error.body));
+    });
 }
