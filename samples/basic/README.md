@@ -1,12 +1,14 @@
-The sample pipelines are represented as Python3 functions (DSL code). To run these samples, for now you need to compile them into workflow yamls and then upload to the pipeline system. In the future, we will build the compiler into the pipeline system so these Python3 functions are directly deployable.
+## Compile
+Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
+compile your sample python into workflow yaml.
 
-To compile these workflow yamls:
+## Deploy
+The directory includes a pre-compiled pipeline (sequential.yaml).  
+Open the ML pipeline UI.  
+The sequential example expects one parameter: 
 
-1. Make sure you have Python3 set up.
-2. Clone the repo.
-3. Run `pip3 install ./dsl/. --upgrade`. This is the library used to represent pipelines with Python code.
-4. Run `pip3 install ./dsl-compiler/. --upgrade`. This is the compiler to compile DSL code into workflow yaml.
-5. Run `dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]`. For example: `dsl-compile --py ./samples/basic/sequential.py --output /tmp/sequential.yaml`.
-6. Then you can upload the generated yaml in ML Pipelines system to run.
+```
+url: gs://[YOUR_GCS_BUCKET]
+```
 
-The directory also includes a compiled pipeline (sequential.yaml). The only parameter it expects is a GS URL to a text file. For example, you can use gs://bradley-playground/shakespeare1.txt.
+For example, you can use gs://ml-pipeline/shakespeare1.txt.

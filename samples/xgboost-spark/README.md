@@ -1,23 +1,36 @@
-Samples in this directory involve two systems
+## Disclaimer: 
+**XGBoost DSL is under testing.**
 
-1. A GKE cluster to run [argo](https://github.com/argoproj/argo)
-2. A dataproc cluster to run the actual steps
+## The requirements:
+* Preprocessing uses Google Cloud DataFlow. So [DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project.
 
-The first GKE cluster needs to be set up manually:
+## Compile
+Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
+compile your sample python into workflow yaml.
 
-  ```gcloud container clusters create [your-gke-cluster-name] --zone us-west1-a --scopes cloud-platform```
+## Deploy
+To run a classification training pipeline sample with SFPD data:
+* Prepare output directory  
+Create a GCS bucket to store the generated model. Make sure it's in the same project as the ML pipeline deployed above.
 
-The second dataproc cluster is created and shut down automatically during sample run. Which project to run it is a parameter.
+```bash
+gsutil mb gs://[YOUR_GCS_BUCKET]
+```
 
+* Deploy  
+Open the ML pipeline UI.  
+Kubeflow-training-classification requires two argument:
 
-The requirements:
+```
+project: MY_GCP_PROJECT
+output: gs://[YOUR_GCS_BUCKET]
+train: gs://ml-pipeline-playground/sfpd/train.csv"
+eval: gs://ml-pipeline-playground/sfpd/eval.csv"
+schema: gs://ml-pipeline-playground/sfpd/schema.json"
+```
 
-* Two clusters should run in the same cloud project. Otherwise, one needs to grant compute service account of first project access to the second project.
-
-* Argo GKE Cluster needs to have cloud-platform scope so it can start dataproc cluster. So "--scopes cloud-platform" is needed in setting up the argo GKE cluster.
-
-* Your project should also have Dataproc API enabled.
-
+<!---
+#TODO: this will be added to the readme after testing. argo commands would mislead users from the web console.
 
 To run a classification training pipeline sample with SFPD data:
 
@@ -60,6 +73,6 @@ argo submit xgboost-evaluation.yaml \
      -p trueclass=talk.politics.mideast \
      -p analysis=gs://ml-pipeline-playground/newsgroup/analysis/ \
      --entrypoint xgboost-evaluation
-
+--->
 
 

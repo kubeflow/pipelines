@@ -1,16 +1,36 @@
+## Disclaimer: 
+**TFMA DSL is under testing.**
+
+## The requirements:
+Preprocessing uses Google Cloud DataFlow. So [DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project.
+
+## Compile
+<!---
+Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
+compile your sample python into workflow yaml.
+--->
+Currently, the DSL python file is not generated for TFMA yet. You can submit the yaml file directly to the Web UI.
+
+## Deploy
 This sample runs a pipeline with tensorflow transform and model-analysis components.
+* Prepare output directory  
+Create a GCS bucket to store the generated model. Make sure it's in the same project as the ML pipeline deployed above.
 
-## Requirements:
+```bash
+gsutil mb gs://[YOUR_GCS_BUCKET]
+```
 
-* A GKE cluster with [argo](https://github.com/argoproj/argo) and
-  [kubeflow](https://github.com/kubeflow/kubeflow) installed.
-  The GKE cluster needs cloud-platform scope. For example:
+* Deploy  
+Open the ML pipeline UI.  
+Kubeflow-training-classification requires two argument:
 
-  `gcloud container clusters create [your-gke-cluster-name] --zone us-central1-a --scopes cloud-platform`
+```
+project: MY_GCP_PROJECT
+output: gs://[YOUR_GCS_BUCKET]
+```
 
-* Preprocessing uses Google Cloud DataFlow. So DataFlow API needs to be enabled for given project.
 
-## The dataset
+### The dataset
 
 This sample is based on the model-analysis example [here](https://github.com/tensorflow/model-analysis/tree/master/examples/chicago_taxi).
 
@@ -29,6 +49,7 @@ dataset in [Google BigQuery](https://cloud.google.com/bigquery/). Explore the
 full dataset in the
 [BigQuery UI](https://bigquery.cloud.google.com/dataset/bigquery-public-data:chicago_taxi_trips).
 
+<!---
 ## Running the sample
 
 ```sh
@@ -37,3 +58,4 @@ argo submit taxi-cab-classification/pipeline.yaml \
      -p output="gs://my-bucket/taximodel" \
      --entrypoint kubeflow-training
 ```
+--->

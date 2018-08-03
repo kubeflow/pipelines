@@ -1,29 +1,33 @@
-The requirements:
+## The requirements:
+Preprocessing uses Google Cloud DataFlow. So [DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project. 
 
-* requires a GKE cluster with [argo](https://github.com/argoproj/argo) and
-  [kubeflow](https://github.com/kubeflow/kubeflow) installed.
-  The GKE cluster needs cloud-platform scope. For example:
+## Compile
+Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
+compile your python sample into workflow yaml.
 
-  ```gcloud container clusters create [your-gke-cluster-name] --zone us-central1-a --scopes cloud-platform```
-
-* Preprocessing uses Google Cloud DataFlow. So DataFlow API needs to be enabled for given project.
-
-The sample 
-
+## Deploy
 To run an image classification training pipeline sample:
+### Prepare output directory  
+Create a GCS bucket to store the generated model. Make sure it's in the same project as the ML pipeline deployed above.
 
-argo submit kubeflow-training-classification.yaml \
-     -p project=MY_GCP_PROJECT \
-     -p output="gs://my-bucket/flowermodel" \
-     -p schema=gs://ml-pipeline-playground/flower/schema.json \
-     -p train=gs://ml-pipeline-playground/flower/train200.csv \
-     -p eval=gs://ml-pipeline-playground/flower/eval100.csv \
-     -p target=label \
-     -p hidden-layer-size="100,50" \
-     -p steps=2000 \
-     -p learning-rate=0.1 \
-     --entrypoint kubeflow-training
+```bash
+gsutil mb gs://[YOUR_GCS_BUCKET]
+```
 
+### Deploy  
+Open the ML pipeline UI.  
+Kubeflow-training-classification requires two argument:
+
+```
+project: MY_GCP_PROJECT
+output: gs://[YOUR_GCS_BUCKET]
+```
+
+**Note that chicago taxi fare prediction training pipeline 
+[sample](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/kubeflow-training-regression.yaml) is under testing.**
+
+<!---
+#TODO: since this is not tested, it is commented out for now.
 
 To run a chicago taxi fare prediction training pipeline sample:
 
@@ -39,7 +43,4 @@ argo submit kubeflow-training-regression.yaml \
      -p steps=3000 \
      -p learning-rate=0.1 \
      --entrypoint kubeflow-training
-
-
-
-
+--->

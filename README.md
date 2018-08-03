@@ -42,30 +42,8 @@ $ kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o jsonpath='{.i
 You can now access the ML pipeline UI at [localhost:8080](http://localhost:8080).
 
 ## Run your first TFJob pipeline
-Clone pipelines repo
- 
-(note that you cannot clone a private repo to a laptop, please remote to your workstation and do it there)
-```
-git clone https://github.com/googleprivate/ml.git
-```
-
-Install DSL compiler by following [README.md](https://github.com/googleprivate/ml/blob/master/samples/basic/README.md). 
-
-Create a GCS bucket to store the generated model. Make sure it's in the same project as the ML Pipeline deployed above.
-```
-gsutil mb -c nearline gs://[YOUR_GCS_BUCKET]
-```
-
-Compile [kubeflow-training-classification.py](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/kubeflow-training-classification.py)
-and upload the generated yaml through the Pipeline UI. Fill up the following parameters
-```
-project: MY_GCP_PROJECT
-output: gs://[YOUR_GCS_BUCKET]/flowermodel 
-```
-
-Run and check out the current status in the Web UI. 
-
-Checkout [here](https://github.com/googleprivate/ml/blob/master/samples) for more samples. 
+First, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to set up the local DSL(Domain-Specific Language) development environment.  
+Second, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
 
 ## Uninstall
 To uninstall ML pipeline, create a job following the same steps as installation, with additional uninstall argument. 
