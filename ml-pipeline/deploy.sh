@@ -153,19 +153,43 @@ fi
 
 if ${UNINSTALL} ; then
   ( cd ${APP_DIR} && ks delete default)
+  exit 0
   # TODO(yangpa): Uninstall kubeflow when uninstalling ml pipeline.
+fi
+
+# Install Kubeflow
+( cd ${APP_DIR} && ks apply default -c ml-pipeline)
+if [ "$WITH_KUBEFLOW" = true ]; then
+  # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
+  # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
+  kubectl create ns kubeflow
+  mkdir -p ${KF_DIR}
+  # We use kubeflow v0.2.2 by default
+  KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.2.2"}
+  (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
+  tar -xzvf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
+  SOURCE_DIR=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
+  (cd ${SOURCE_DIR} && export KUBEFLOW_REPO=`pwd -P` && scripts/deploy.sh)
+fi
+
+# Wait for service to be ready
+
+MAX_ATTEMPT=60
+READY_KEYWORD="\"apiServerReady\":true"
+CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+# probing the UI healthz/ status until it's ready. Timeout after 4 minutes
+echo "Waiting for ML pipeline to be ready..."
+for i in $(seq 1 ${MAX_ATTEMPT})
+do
+  echo -n .
+  UI_STATUS=`curl --cacert $CA_CERT -H "Authorization: Bearer $TOKEN" https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}/api/v1/proxy/namespaces/${NAMESPACE}/services/ml-pipeline-ui:80/apis/v1alpha2/healthz`
+  echo $UI_STATUS | grep -q ${READY_KEYWORD} && s=0 && break || s=$? && sleep 4
+done
+
+if [[ $s != 0 ]]
+  then echo "ML Pipeline not start successfully after 4 minutes. Timeout..." && exit $s
 else
-  ( cd ${APP_DIR} && ks apply default -c ml-pipeline)
-  if [ "$WITH_KUBEFLOW" = true ]; then
-    # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
-    # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
-    kubectl create ns kubeflow
-    mkdir -p ${KF_DIR}
-    # We use kubeflow v0.2.2 by default
-    KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.2.2"}
-    (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
-    tar -xzvf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
-    SOURCE_DIR=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
-    (cd ${SOURCE_DIR} && export KUBEFLOW_REPO=`pwd -P` && scripts/deploy.sh)
-  fi
+  echo "ML Pipeline Is Now Ready" && exit $s
 fi
