@@ -14,11 +14,16 @@
 # limitations under the License.
 
 
-if [ -z "$1" ]
-  then
-    PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
+if [ -z "$1" ]; then
+  PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
 else
   PROJECT_ID=$1
+fi
+
+if [ -z "$2" ]; then
+  TAG_NAME="latest"
+else
+  TAG_NAME="$2"
 fi
 
 # build base image
@@ -27,6 +32,5 @@ pushd ../base
 popd
 
 docker build -t ml-pipeline-dataflow-tfma .
-docker tag ml-pipeline-dataflow-tfma gcr.io/${PROJECT_ID}/ml-pipeline-dataflow-tfma
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataflow-tfma
-
+docker tag ml-pipeline-dataflow-tfma gcr.io/${PROJECT_ID}/ml-pipeline-dataflow-tfma:${TAG_NAME}
+docker push gcr.io/${PROJECT_ID}/ml-pipeline-dataflow-tfma:${TAG_NAME}

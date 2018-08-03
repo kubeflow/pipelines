@@ -1,4 +1,5 @@
 steps:
+# Build the pipeline system images and bootstrapper
 - name: 'debian'
   entrypoint: '/bin/bash'
   args: ['-c', 'sed -i -e "s/ARG DATE/ENV DATE \"$(date -u)\"/" /workspace/frontend/Dockerfile']
@@ -35,11 +36,31 @@ steps:
   id:   'copyBootstrapperYAML'
   waitFor: ['prepareBootstrapperYAML']
 
+# Build the Dataflow-based pipeline component images
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: '/bin/bash' 
+  args: ['-c', 'cd /workspace/components/dataflow/containers/predict && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  id: 'buildPredictComponent'
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: '/bin/bash' 
+  args: ['-c', 'cd /workspace/components/dataflow/containers/tft && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  id: 'buildTFTComponent'
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: '/bin/bash' 
+  args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  id: 'buildTMAComponent'
+
 images:
+# Images for the pipeline system itself
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA'
+
+# Images for the Dataflow-based pipeline components
+- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA'
 
 timeout: '1800s'
