@@ -78,7 +78,12 @@
       }
     ],
     "entrypoint": "coinflip",
-    "arguments": {}
+    "arguments": {
+      "parameters":[
+        { "name": "x", "value": 10 },
+        { "name": "y", "value": 20 }
+      ]
+    }
   },
   "status": {
     "phase": "Succeeded",

@@ -207,8 +207,7 @@ export default (app) => {
 
   app.get(v1alpha2Prefix + '/pipelines/:pid/jobs/:jid', (req, res) => {
     const jid = req.params.jid;
-    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
-    const job = pipeline.jobs.find((j) => j.job.id === jid);
+    const job = fixedData.jobs.find((j) => j.job.id === jid);
     if (!job) {
       res.status(404).send('Cannot find a job with id: ' + jid);
       return;

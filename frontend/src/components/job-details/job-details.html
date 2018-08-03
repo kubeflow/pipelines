@@ -25,7 +25,10 @@
       <div class="overlay" hidden="[[!_loadingJob]]"></div>
       <div class="flex-column flex-grow padded-top-left page-content">
         <div class="flex padded-right">
-          <div class="job-name">[[workflow.metadata.name]]</div>
+          <div class="job-name">
+            [[workflow.metadata.name]]
+            <span class="faded job-id">ID: [[_jobId]]</span>
+          </div>
           <div>
             <div class="flex">
               <iron-icon class="status-icon" icon$=[[_getStatusIcon(workflow.status.phase)]]></iron-icon>

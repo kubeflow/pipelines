@@ -282,7 +282,7 @@ function generateNPipelines() {
           value: 'gs://path-to-my-project',
         }
       ],
-      jobs: [],
+      jobs,
     });
   }
   return pipelines;

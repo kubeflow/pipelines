@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "name": "coinflip-heads-c085010d-771a-4cdf-979c-257e991501b5",
+    "name": "coinflip-error-nklng2",
     "namespace": "default",
     "selfLink": "/apis/argoproj.io/v1alpha1/namespaces/default/workflows/coinflip-heads-c085010d-771a-4cdf-979c-257e991501b5",
-    "uid": "b150b835-6dc9-11e8-bba7-42010a8a0fc2",
+    "uid": "47a3d09c-7db4-4788-ac55-3f8d908574aa",
     "resourceVersion": "10527150",
     "creationTimestamp": "2018-06-11T22:49:26Z",
     "labels": {
