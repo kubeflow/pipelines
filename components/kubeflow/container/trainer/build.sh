@@ -14,11 +14,16 @@
 # limitations under the License.
 
 
-if [ -z "$1" ]
-  then
-    PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
+if [ -z "$1" ]; then
+  PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
 else
   PROJECT_ID=$1
+fi
+
+if [ -z "$2" ]; then
+  TAG_NAME="latest"
+else
+  TAG_NAME="$2"
 fi
 
 mkdir -p ./build
@@ -27,5 +32,5 @@ rsync -arvp "../../dnntrainer"/ ./build/
 docker build -t ml-pipeline-kubeflow-trainer .
 rm -rf ./build
 
-docker tag ml-pipeline-kubeflow-trainer gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-trainer
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-trainer
+docker tag ml-pipeline-kubeflow-trainer gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-trainer:${TAG_NAME}
+docker push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-trainer:${TAG_NAME}

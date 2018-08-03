@@ -77,6 +77,22 @@ steps:
   id:   'tagTFMA'
   waitFor: ['pullTFMA']
 
+# Pull and retag the images for the Kubeflow-based pipeline components
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA']
+  id:   'pullTrainer'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$TAG_NAME']
+  id:   'tagTrainer'
+  waitFor: ['pullTrainer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
+  id:   'pullLauncher'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$TAG_NAME']
+  id:   'tagLauncher'
+  waitFor: ['pullLauncher']
+
 images:
 - 'gcr.io/$PROJECT_ID/frontend:$TAG_NAME'
 - 'gcr.io/$PROJECT_ID/api-server:$TAG_NAME'
@@ -87,5 +103,8 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$TAG_NAME'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$TAG_NAME'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$TAG_NAME'
+
+- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$TAG_NAME'
+- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$TAG_NAME'
 
 timeout: '600s'
