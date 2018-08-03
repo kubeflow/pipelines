@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func initializeDB() *gorm.DB {
+func initializePrepopulatedDB() *gorm.DB {
 	db := NewFakeDbOrFatal()
 	job1 := &model.JobDetail{
 		Job: model.Job{
@@ -73,7 +73,7 @@ func initializeDB() *gorm.DB {
 }
 
 func TestListJobs_Pagination(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
@@ -109,7 +109,7 @@ func TestListJobs_Pagination(t *testing.T) {
 }
 
 func TestListJobs_Pagination_Descend(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
@@ -145,7 +145,7 @@ func TestListJobs_Pagination_Descend(t *testing.T) {
 }
 
 func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
@@ -175,7 +175,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListJobsError(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
@@ -185,7 +185,7 @@ func TestListJobsError(t *testing.T) {
 }
 
 func TestGetJob(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
@@ -208,7 +208,7 @@ func TestGetJob(t *testing.T) {
 }
 
 func TestGetJob_NotFoundError(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
@@ -218,7 +218,7 @@ func TestGetJob_NotFoundError(t *testing.T) {
 }
 
 func TestGetJob_InternalError(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
@@ -229,7 +229,7 @@ func TestGetJob_InternalError(t *testing.T) {
 }
 
 func TestUpdateJob_UpdateSuccess(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
@@ -271,7 +271,7 @@ func TestUpdateJob_UpdateSuccess(t *testing.T) {
 		},
 	})
 
-	err = jobStore.UpdateJob(workflow)
+	err = jobStore.CreateOrUpdateJob(workflow)
 	assert.Nil(t, err)
 
 	expectedJob = &model.JobDetail{
@@ -293,20 +293,24 @@ func TestUpdateJob_UpdateSuccess(t *testing.T) {
 }
 
 func TestUpdateJob_CreateSuccess(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+
+	// Checking that the job is not yet in the DB
+	jobDetail, err := jobStore.GetJob("3000", "2000")
+	assert.NotNil(t, err)
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
-			UID:       "2",
+			UID:       "2000",
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1alpha1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
-				UID:        types.UID("2"),
+				UID:        types.UID("3000"),
 			}},
 			Labels: map[string]string{
 				"scheduledworkflows.kubeflow.org/workflowEpoch": "100",
@@ -318,15 +322,15 @@ func TestUpdateJob_CreateSuccess(t *testing.T) {
 		},
 	})
 
-	err := jobStore.UpdateJob(workflow)
+	err = jobStore.CreateOrUpdateJob(workflow)
 	assert.Nil(t, err)
 
 	expectedJob := &model.JobDetail{
 		Job: model.Job{
-			UUID:             "2",
+			UUID:             "2000",
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
-			PipelineID:       "2",
+			PipelineID:       "3000",
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 100,
 			Conditions:       "Running:",
@@ -334,13 +338,13 @@ func TestUpdateJob_CreateSuccess(t *testing.T) {
 		Workflow: workflow.ToStringForStore(),
 	}
 
-	jobDetail, err := jobStore.GetJob("2", "2")
+	jobDetail, err = jobStore.GetJob("3000", "2000")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJob, jobDetail)
 }
 
 func TestUpdateJob_UpdateError(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	db.Close()
@@ -365,13 +369,13 @@ func TestUpdateJob_UpdateError(t *testing.T) {
 		},
 	})
 
-	err := jobStore.UpdateJob(workflow)
+	err := jobStore.CreateOrUpdateJob(workflow)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Error while updating job")
+	assert.Contains(t, err.Error(), "Error while creating or updating job")
 }
 
 func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
@@ -390,7 +394,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		},
 	})
 
-	err := jobStore.UpdateJob(workflow)
+	err := jobStore.CreateOrUpdateJob(workflow)
 	assert.Nil(t, err)
 
 	expectedJob := &model.JobDetail{
@@ -412,7 +416,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 }
 
 func TestUpdateJob_MissingField(t *testing.T) {
-	db := initializeDB()
+	db := initializePrepopulatedDB()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 
@@ -430,7 +434,7 @@ func TestUpdateJob_MissingField(t *testing.T) {
 		},
 	})
 
-	err := jobStore.UpdateJob(workflow)
+	err := jobStore.CreateOrUpdateJob(workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a name")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
@@ -449,7 +453,7 @@ func TestUpdateJob_MissingField(t *testing.T) {
 		},
 	})
 
-	err = jobStore.UpdateJob(workflow)
+	err = jobStore.CreateOrUpdateJob(workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a namespace")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
@@ -463,7 +467,7 @@ func TestUpdateJob_MissingField(t *testing.T) {
 		},
 	})
 
-	err = jobStore.UpdateJob(workflow)
+	err = jobStore.CreateOrUpdateJob(workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a valid owner")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
@@ -482,7 +486,7 @@ func TestUpdateJob_MissingField(t *testing.T) {
 		},
 	})
 
-	err = jobStore.UpdateJob(workflow)
+	err = jobStore.CreateOrUpdateJob(workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The workflow must have a UID")
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)

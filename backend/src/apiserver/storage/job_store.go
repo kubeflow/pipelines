@@ -13,7 +13,7 @@ import (
 type JobStoreInterface interface {
 	GetJob(pipelineId string, jobId string) (*model.JobDetail, error)
 	ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error)
-	UpdateJob(workflow *util.Workflow) (err error)
+	CreateOrUpdateJob(workflow *util.Workflow) (err error)
 }
 
 type JobStore struct {
@@ -74,14 +74,14 @@ func (s *JobStore) createJob(
 
 	r := s.db.Create(job)
 	if r.Error != nil {
-		return util.NewInternalServerError(r.Error, "Error while creating job using workflow: %v, %+v",
-			r.Error, workflow.Workflow)
+		return util.NewInternalServerError(r.Error, "Error while creating job for workflow: '%v/%v",
+			workflow.Namespace, workflow.Name)
 	}
 
 	return nil
 }
 
-func (s *JobStore) UpdateJob(workflow *util.Workflow) (err error) {
+func (s *JobStore) CreateOrUpdateJob(workflow *util.Workflow) (err error) {
 	if workflow.Name == "" {
 		return util.NewInvalidInputError("The workflow must have a name: %+v", workflow.Workflow)
 	}
@@ -106,6 +106,24 @@ func (s *JobStore) UpdateJob(workflow *util.Workflow) (err error) {
 
 	condition := workflow.Condition()
 
+	// Attempting to create the job in the DB.
+
+	createError := s.createJob(
+		ownerUID,
+		workflow.Name,
+		workflow.Namespace,
+		string(workflow.UID),
+		scheduledAtInSec,
+		condition,
+		string(marshalled),
+		workflow)
+
+	if createError == nil {
+		return nil
+	}
+
+	// If creating the job did not work, attempting to update the job in the DB.
+
 	r := s.db.Exec(`UPDATE job_details SET 
 		Name = ?,
 		Namespace = ?,
@@ -124,21 +142,12 @@ func (s *JobStore) UpdateJob(workflow *util.Workflow) (err error) {
 		string(marshalled),
 		string(workflow.UID))
 
-	if r.Error != nil {
-		return util.NewInternalServerError(r.Error, "Error while updating job using workflow: %v, %+v",
-			r.Error, workflow.Workflow)
-	}
+	updateError := r.Error
 
-	if r.RowsAffected <= 0 {
-		return s.createJob(
-			ownerUID,
-			workflow.Name,
-			workflow.Namespace,
-			string(workflow.UID),
-			scheduledAtInSec,
-			condition,
-			string(marshalled),
-			workflow)
+	if updateError != nil {
+		return util.NewInternalServerError(updateError,
+			"Error while creating or updating job for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
+			workflow.Namespace, workflow.Name, createError.Error(), updateError.Error())
 	}
 
 	return nil

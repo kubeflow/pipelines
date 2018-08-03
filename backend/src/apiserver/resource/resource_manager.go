@@ -337,7 +337,7 @@ func (r *ResourceManager) ReportWorkflowResource(resource string) error {
 	if err != nil {
 		return util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, resource)
 	}
-	err = r.jobStore.UpdateJob(util.NewWorkflow(&workflow))
+	err = r.jobStore.CreateOrUpdateJob(util.NewWorkflow(&workflow))
 	if err != nil {
 		return err
 	}
