@@ -8,7 +8,6 @@ This document guides you through the steps to install Machine Learning Pipelines
 - Install [gcloud CLI](https://cloud.google.com/sdk/) and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#download-as-part-of-the-google-cloud-sdk)
 - Install [git client](https://git-scm.com/downloads)
 - Install [conda](https://conda.io/docs/user-guide/install/download.html)
-- Install [docker client](https://www.docker.com/get-docker )
 - [Setup a GKE cluster](#setup-gke)
 
 ## Install
