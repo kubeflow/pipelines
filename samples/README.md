@@ -47,7 +47,7 @@ dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]`
 For example:  
 
 ```bash
-dsl-compile --py ./sample/basic/sequential.py --output ~/Desktop/sequential.yaml
+dsl-compile --py ./samples/basic/sequential.py --output ~/Desktop/sequential.yaml
 ```
 
 
