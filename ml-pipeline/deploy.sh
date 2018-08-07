@@ -24,7 +24,7 @@ APP_DIR=ml-pipeline-app
 KF_DIR=kf-app
 
 # Version number of this release.
-RELEASE_VERSION="${RELEASE_VERSION:-0.0.11}"
+RELEASE_VERSION="${RELEASE_VERSION:-0.0.12}"
 
 # Default ml pipeline api server image
 API_SERVER_IMAGE="gcr.io/ml-pipeline/api-server:${RELEASE_VERSION}"
