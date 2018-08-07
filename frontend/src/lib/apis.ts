@@ -12,6 +12,7 @@ const v1alpha2Prefix = '/apis/v1alpha2';
 
 async function _fetch(
     path: string, apisPrefix?: string, query?: string, init?: RequestInit): Promise<string> {
+  init = Object.assign(init || {}, { credentials: 'same-origin' });
   const response = await fetch((apisPrefix || '') + path + (query ? '?' + query : ''), init);
   const responseText = await response.text();
   if (response.ok) {
