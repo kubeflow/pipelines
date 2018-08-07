@@ -73,7 +73,7 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA']
   id:   'pullTFMA'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tma:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$TAG_NAME']
   id:   'tagTFMA'
   waitFor: ['pullTFMA']
 
