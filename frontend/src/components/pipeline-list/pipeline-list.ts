@@ -201,8 +201,8 @@ export class PipelineList extends PageElement {
 
       this.itemList.updateNextPageToken(getPipelinesResponse.next_page_token || '');
     } catch (err) {
-      this.showPageError('There was an error while loading the pipeline list.');
-      Utils.log.error('Error loading pipelines:', err);
+      this.showPageError('There was an error while loading the pipeline list', err.message);
+      Utils.log.verbose('Error loading pipelines:', err);
     }
 
     this.pipelineListRows = this.pipelines.map((pipeline) => {

@@ -134,7 +134,7 @@ describe('pipeline-list', () => {
       await _resetFixture();
       assert.equal(fixture.pipelines.length, 0, 'should not show any pipelines');
       const errorEl = fixture.$.pageErrorElement as PageError;
-      assert.equal(errorEl.error, 'There was an error while loading the pipeline list.',
+      assert.equal(errorEl.error, 'There was an error while loading the pipeline list',
           'should show pipeline load error');
       getPipelinesStub.restore();
     });

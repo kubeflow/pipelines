@@ -92,8 +92,9 @@ export class PipelineDetails extends PageElement {
       (this.$.jobs as JobList).loadJobs(this.pipeline.id);
       this._disableClonePipelineButton = false;
     } catch (err) {
-      this.showPageError('There was an error while loading details for pipeline ' + id);
-      Utils.log.error('Error loading pipeline:', err);
+      this.showPageError(
+          'There was an error while loading details for pipeline ' + id, err.message);
+      Utils.log.verbose('Error loading pipeline:', err);
     }
   }
 

@@ -80,6 +80,14 @@ export class JobGraph extends Polymer.Element {
 
     this._jobGraph = graph;
 
+    if (!this._jobGraph) {
+      throw new Error('Job graph object is null.');
+    } else if (!this._jobGraph.status) {
+      throw new Error('Job graph object has no status component.');
+    } else if (!this._jobGraph.status.nodes) {
+      throw new Error('Job graph has no nodes.');
+    }
+
     const g = new dagre.graphlib.Graph();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
@@ -225,7 +233,8 @@ export class JobGraph extends Polymer.Element {
       selectedNode.classList.add('selected');
     } else {
       // This should never happen
-      Utils.log.error('Cannot find clicked node with id ' + this._selectedNode.id);
+      Utils.showDialog('Error', 'Cannot find clicked node with id: ' + this._selectedNode.id);
+      Utils.log.verbose('Cannot find clicked node with id ' + this._selectedNode.id);
     }
 
     try {

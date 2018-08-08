@@ -96,8 +96,9 @@ export class JobDetails extends PageElement {
       this.workflow = JSON.parse(response.workflow);
       this.pipeline = await Apis.getPipeline(this._pipelineId);
     } catch (err) {
-      this.showPageError('There was an error while loading details for job: ' + this._jobId);
-      Utils.log.error('Error loading job details:', err);
+      this.showPageError(
+          'There was an error while loading details for job: ' + this._jobId, err.message);
+      Utils.log.verbose('Error loading job details:', err);
       return;
     } finally {
       this._loadingJob = false;
@@ -107,13 +108,18 @@ export class JobDetails extends PageElement {
     try {
       (this.$.jobGraph as JobGraph).refresh(this.workflow);
     } catch (err) {
-      this.showPageError('There was an error while loading the job graph');
-      Utils.log.error('Could not draw job graph from object:', this.workflow, '\n', err);
+      this.showPageError('There was an error while loading the job graph', err.message);
+      Utils.log.verbose('Could not draw job graph from object:', this.workflow, '\n', err);
     }
 
     // If pipeline params include output, retrieve them so they can be rendered by the data-plot
     // component.
-    await this._loadJobOutputs();
+    try {
+      await this._loadJobOutputs();
+    } catch (err) {
+      this.showPageError('There was an error while loading the job outputs', err.message);
+      Utils.log.verbose('Could not load job outputs from object:', this.workflow, '\n', err);
+    }
   }
 
   protected _refresh(): void {
@@ -156,8 +162,14 @@ export class JobDetails extends PageElement {
   }
 
   private async _loadJobOutputs(): Promise<void> {
+    if (!this.workflow) {
+      throw new Error('Job workflow object is null.');
+    } else if (!this.workflow.status) {
+      throw new Error('Job workflow object has no status component.');
+    }
+
     const outputPaths: OutputInfo[] = [];
-    Object.keys(this.workflow.status.nodes).forEach((id) => {
+    Object.keys(this.workflow.status.nodes || []).forEach((id) => {
       const node = this.workflow.status.nodes[id];
       if (!node.inputs) {
         return;
@@ -199,7 +211,7 @@ export class JobDetails extends PageElement {
       }).reduce((flattenedOutputs, currentOutputs) => flattenedOutputs.concat(currentOutputs), []);
     } catch (err) {
       this.showPageError('There was an error while loading details for this job');
-      Utils.log.error('Error loading job details:', err);
+      Utils.log.verbose('Error loading job details:', err.message);
     } finally {
       this._loadingOutputs = false;
     }

@@ -3,10 +3,12 @@
 .error {
   background-color: var(--error-background-color);
   border: 1px solid var(--divider-color);
+  box-sizing: border-box;
   color: var(--error-text-color);
   font-size: var(--app-content-font-size);
   justify-content: space-between;
   margin: var(--spacing-minus-1);
+  min-height: 50px;
   padding: var(--spacing-minus-4);
 }
 
@@ -24,9 +26,10 @@
 
 .refresh-btn {
   background-color: var(--background-base-color);
+}
+
+paper-button {
   color: var(--primary-text-color);
-  font-weight: bold;
-  margin: 0;
   max-height: var(--height-xsmall);
   min-width: 75px;
 }

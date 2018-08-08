@@ -1,4 +1,5 @@
 import { customElement, property } from 'polymer-decorators/src/decorators';
+import * as Utils from '../../lib/utils';
 
 import 'iron-icon/iron-icon.html';
 import 'paper-button/paper-button.html';
@@ -11,10 +12,17 @@ export class PageError extends Polymer.Element {
   @property({ type: String })
   public error = '';
 
+  @property({ type: String })
+  public details = '';
+
   @property({ type: Boolean })
   public showButton = true;
 
   protected _refresh(): void {
     location.reload();
+  }
+
+  protected _showDetails(): void {
+    Utils.showDialog(this.error, this.details, 'Close');
   }
 }

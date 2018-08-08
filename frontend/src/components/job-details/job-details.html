@@ -19,7 +19,8 @@
 
     <paper-progress class="loading no-shrink" indeterminate disabled="[[!_loadingJob]]"></paper-progress>
 
-    <page-error id="pageErrorElement" error="[[_pageError]]" class="no-shrink"></page-error>
+    <page-error id="pageErrorElement" error="[[_pageError]]" details="[[_pageErrorDetails]]"
+                class="no-shrink"></page-error>
 
     <div class="relative">
       <div class="overlay" hidden="[[!_loadingJob]]"></div>

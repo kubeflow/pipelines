@@ -8,11 +8,14 @@
           <iron-icon class="icon" icon="error"></iron-icon>
           [[error]]
         </div>
-        <template is="dom-if" if="[[showButton]]">
-          <paper-button class="refresh-btn" on-click="_refresh" raised>
+        <div>
+          <paper-button hidden="[[!details]]" on-click="_showDetails">
+            Details
+          </paper-button>
+          <paper-button hidden="[[!showButton]]" class="refresh-btn" on-click="_refresh" raised>
             Refresh
           </paper-button>
-        </template>
+        </div>
       </div>
     </template>
   </template>
