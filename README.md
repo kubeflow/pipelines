@@ -5,14 +5,15 @@
 This document guides you through the steps to install Machine Learning Pipelines and run your first pipeline sample. 
 
 ## Requirements
-- Install [gcloud CLI](https://cloud.google.com/sdk/) and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#download-as-part-of-the-google-cloud-sdk)
-- Install [git client](https://git-scm.com/downloads)
-- Install [conda](https://conda.io/docs/user-guide/install/download.html)
-- [Setup a GKE cluster](#setup-gke)
 
+The guideline assume you have a [GCP Project](https://cloud.google.com/resource-manager/docs/creating-managing-projects) ready. You can use [Cloud Shell](https://cloud.google.com/shell/docs/quickstart) to run all the commands in this guideline. 
+
+Alternatively, if you prefer to install and interact with GKE from your local machine, make sure you have [gcloud CLI](https://cloud.google.com/sdk/) and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#download-as-part-of-the-google-cloud-sdk) installed locally.
+ 
 ## Install
 
-To install ML pipeline, run following command 
+
+In Cloud Shell or your local console, follow the instruction and [Setup a GKE cluster](#setup-gke). After GKE is ready, run following command to install ML pipeline
 ```
 $ kubectl create -f https://storage.googleapis.com/ml-pipeline/release/latest/bootstrapper.yaml
 ```
@@ -38,7 +39,9 @@ When deployment is successful, forward its port to visit the ML pipeline UI.
 ```
 $ kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}') 8080:3000
 ```
-You can now access the ML pipeline UI at [localhost:8080](http://localhost:8080).
+If you are using Cloud Shell, you could view the UI by open the [web preview](https://cloud.google.com/shell/docs/using-web-preview#previewing_the_application) button ![alt text](https://cloud.google.com/shell/docs/images/web-preview-button.png). Make sure the it's preview on port 8080.
+
+If you are using local console instead of Cloud Shell, you can access the ML pipeline UI at [localhost:8080](http://localhost:8080).
 
 ## Run your first TFJob pipeline
 First, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to set up the local DSL(Domain-Specific Language) development environment.  
