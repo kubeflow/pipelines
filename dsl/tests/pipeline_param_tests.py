@@ -35,3 +35,6 @@ class TestPipelineParam(unittest.TestCase):
 
     p = mlp.PipelineParam(name='param2')
     self.assertEqual('{{pipelineparam:op=;name=param2}}', str(p))
+
+    p = mlp.PipelineParam(name='param3', value='value3')
+    self.assertEqual('{{pipelineparam:op=;name=param3}}', str(p))

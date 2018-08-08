@@ -67,8 +67,10 @@ class PipelineParam(object):
     the placeholder "{{pipelineparam:op=%s;name=%s}}" with its own parameter identifier.
     """
 
-    if self.value:
-      return str(self.value)
+    #This is deleted because if users specify default values to PipelineParam,
+    # The compiler can not detect it as the value is not NULL.
+    #if self.value:
+    #  return str(self.value)
 
     op_name = self.op_name if self.op_name else ''
 
