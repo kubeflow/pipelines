@@ -12,20 +12,18 @@ Alternatively, if you prefer to install and interact with GKE from your local ma
  
 ## Install
 
-
 In Cloud Shell or your local console, follow the instruction and [Setup a GKE cluster](#setup-gke). After GKE is ready, run following command to install ML pipeline
+```bash
+kubectl create -f https://storage.googleapis.com/ml-pipeline/release/latest/bootstrapper.yaml
 ```
-$ kubectl create -f https://storage.googleapis.com/ml-pipeline/release/latest/bootstrapper.yaml
+And by running `kubectl get job`, you should see a job created that deploys ML pipeline along with all dependencies in the cluster.
 ```
-And you should see a job created that deploys ML pipeline along with all dependencies in the cluster.
-```
-$ kubectl get job
 NAME                      DESIRED   SUCCESSFUL   AGE
 deploy-ml-pipeline-wjqwt  1         1            9m
 ```
 You can check the deployment log in case of any failure
-```
-$ kubectl logs $(kubectl get pods -l job-name=[JOB_NAME] -o jsonpath='{.items[0].metadata.name}')
+```bash
+kubectl logs $(kubectl get pods -l job-name=[JOB_NAME] -o jsonpath='{.items[0].metadata.name}')
 ```
 
 By default, the ML pipeline will deployed with usage collection turned on. 
@@ -36,8 +34,8 @@ See [bootstrapper.yaml](https://github.com/googleprivate/ml/blob/master/bootstra
 
 
 When deployment is successful, forward its port to visit the ML pipeline UI. 
-```
-$ kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}') 8080:3000
+```bash
+kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}') 8080:3000
 ```
 If you are using Cloud Shell, you could view the UI by open the [web preview](https://cloud.google.com/shell/docs/using-web-preview#previewing_the_application) button ![alt text](https://cloud.google.com/shell/docs/images/web-preview-button.png). Make sure the it's preview on port 8080.
 
@@ -58,18 +56,18 @@ Check [bootstrapper.yaml](https://storage.googleapis.com/ml-pipeline/bootstrappe
 Follow the [instruction](https://cloud.google.com/resource-manager/docs/creating-managing-projects) and create a GCP project. 
 Once created, enable the GKE API in this [page](https://console.developers.google.com/apis/enabled). You can also find more details about enabling the [billing](https://cloud.google.com/billing/docs/how-to/modify-project?visit_id=1-636559671979777487-508867449&rd=1#enable-billing), as well as activating [GKE API](https://cloud.google.com/kubernetes-engine/docs/quickstart#before-you-begin).
 
-```
-$ gcloud auth login
-$ gcloud config set project [your-project-id]
+```bash
+gcloud auth login
+gcloud config set project [your-project-id]
 ```
 
 The ML pipeline will be running on a GKE cluster. To start a new GKE cluster, first set a default compute zone (us-central1-a in this case):
-```
-$ gcloud config set compute/zone us-central1-a
+```bash
+gcloud config set compute/zone us-central1-a
 ```
 Then start a GKE cluster. 
-```
-$ gcloud container clusters create ml-pipeline \
+```bash
+gcloud container clusters create ml-pipeline \
   --zone us-central1-a \
   --scopes cloud-platform \
   --enable-cloud-logging \
@@ -83,8 +81,8 @@ ML Pipeline uses Argo as its underlying pipeline orchestration system. When inst
 
 On GKE with RBAC enabled, you might need to grant your account the ability to create such new cluster roles.
 
-```
-$ kubectl create clusterrolebinding BINDING_NAME --clusterrole=cluster-admin --user=YOUREMAIL@gmail.com
+```bash
+kubectl create clusterrolebinding BINDING_NAME --clusterrole=cluster-admin --user=YOUREMAIL@gmail.com
 ```
 
 Now the GKE cluster is ready to use.

@@ -1,27 +1,48 @@
 ## Requirement:
- * Follow [README.md](https://github.com/googleprivate/ml/blob/master/README.md) to 
+* Follow [README.md](https://github.com/googleprivate/ml/blob/master/README.md) to 
 launch a GKE cluster with ML pipeline installed.
- * Make sure conda3 is installed.
- * Create a clean python3 envionrment
- 
- ```
-  conda create --name mlpipeline python=3.6
-  source activate mlpipeline
- ```
- 
-If `conda` command is not found, be sure to add the anaconda path:
- 
+
+* Install [Miniconda](https://conda.io/miniconda.html)   
+For example, in Debian/Ubuntu/[Cloud shell](https://console.cloud.google.com/cloudshell) environment:   
+```bash
+apt-get update; apt-get install -y wget bzip2
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
 ```
-export PATH=ANACONDA_PATH/bin:$PATH`
-source ~/.bashrc
+In Windows environment, download the [installer](https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe) and 
+remember to select "*Add Anaconda to my PATH environment variable*" option during the installation.
+
+In Mac environment, download the [installer](https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh) and
+run the following command:
+
+```bash
+bash Miniconda3-latest-MacOSX-x86_64.sh
+```
+
+* Create a clean python3 envionrment
+ 
+```bash
+conda create --name mlpipeline python=3.6
+source activate mlpipeline
+```
+ 
+If `conda` command is not found, be sure to add the Miniconda path:
+ 
+```bash
+export PATH=ANACONDA_PATH/bin:$PATH
+source ~/.bashrc # In Mac environment, one should call "source ~/.bash_profile"
+
 ```
  
 ## Install the compiler
 * Clone the repo.  
-note that you cannot clone a private repo to a laptop, please remote to your workstation and clone it there.
+Download the latest [release](https://github.com/googleprivate/ml/releases) and unarchive it.  
  
-```
-git clone https://github.com/googleprivate/ml.git
+```bash
+# If a tartall is downloaded, run tar command
+tar -zxvf ml-VERSION.tar.gz
+# If a zipfile is downloaded, run unzip command
+unzip ml-VERSION.zip
 ```
  
 * Install mlp library and DSL compiler  
