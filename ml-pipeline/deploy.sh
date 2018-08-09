@@ -20,8 +20,11 @@ NAMESPACE=default
 # ML pipeline Ksonnet app name
 APP_DIR=ml-pipeline-app
 
-# Kubeflow Ksonnet directory
+# Kubeflow directory
 KF_DIR=kf-app
+
+# Kubeflow Ksonnet app name
+KUBEFLOW_KS_APP=kubeflow-ks-app
 
 # Version number of this release.
 RELEASE_VERSION="${RELEASE_VERSION:-0.0.12}"
@@ -151,14 +154,6 @@ fi
 ( cd ${APP_DIR} && ks param set ml-pipeline report_usage ${REPORT_USAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
 
-if ${UNINSTALL} ; then
-  ( cd ${APP_DIR} && ks delete default)
-  exit 0
-  # TODO(yangpa): Uninstall kubeflow when uninstalling ml pipeline.
-fi
-
-# Install Kubeflow
-( cd ${APP_DIR} && ks apply default -c ml-pipeline)
 if [ "$WITH_KUBEFLOW" = true ]; then
   # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
   # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
@@ -169,8 +164,21 @@ if [ "$WITH_KUBEFLOW" = true ]; then
   (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
   tar -xzvf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
   SOURCE_DIR=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
-  (cd ${SOURCE_DIR} && export KUBEFLOW_REPO=`pwd -P` && scripts/deploy.sh)
+  (cd ${SOURCE_DIR} && export KUBEFLOW_REPO=`pwd` KUBEFLOW_KS_DIR=`pwd`/${KUBEFLOW_KS_APP} && scripts/deploy.sh)
 fi
+
+if ${UNINSTALL} ; then
+  ( cd ${APP_DIR} && ks delete default)
+  if [ "$WITH_KUBEFLOW" = true ]; then
+    SOURCE_DIR=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
+    # Uninstall Kubeflow
+    (cd ${SOURCE_DIR}/${KUBEFLOW_KS_APP} && ks delete default)
+  fi
+  exit 0
+fi
+
+# Install ML pipeline
+( cd ${APP_DIR} && ks apply default -c ml-pipeline)
 
 # Wait for service to be ready
 
