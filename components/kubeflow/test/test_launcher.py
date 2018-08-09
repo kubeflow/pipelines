@@ -38,7 +38,7 @@ class TestLauncher(unittest.TestCase):
       pss = 1
       args_list = []
       args_list.append('--learning-rate=0.1')
-      train._generate_train_yaml(train_template_file, train_dst_file, worker, pss, 'tf-job-final', args_list)
+      train._generate_train_yaml(train_template_file, train_dst_file, worker, pss, args_list)
       with open(os.path.join(test_data_dir, 'train.yaml'), 'r') as f:
         golden = yaml.load(f)
       with open(train_dst_file, 'r') as f:
@@ -60,7 +60,7 @@ class TestLauncher(unittest.TestCase):
       pss = 0
       args_list = []
       args_list.append('--learning-rate=0.1')
-      train._generate_train_yaml(train_template_file, train_dst_file, worker, pss, 'tf-job-final', args_list)
+      train._generate_train_yaml(train_template_file, train_dst_file, worker, pss, args_list)
       with open(os.path.join(test_data_dir, 'train2.yaml'), 'r') as f:
         golden = yaml.load(f)
       with open(train_dst_file, 'r') as f:

@@ -40,15 +40,13 @@ from kubernetes import client as k8s_client
 from kubernetes import config
 
 
-def _generate_train_yaml(src_filename, dst_filename, workers, pss, job_name, args_list):
+def _generate_train_yaml(src_filename, workers, pss, args_list):
   """_generate_train_yaml  generates train yaml files based on train.template.yaml"""
   with open(src_filename, 'r') as f:
     content = yaml.load(f)
 
-  if not job_name:
-    # This is for unit test validation.
-    job_name = 'trainer-' + datetime.datetime.now().strftime('%y%m%d-%H%M%S')
-  content['metadata']['name'] = job_name
+  content['metadata']['generateName'] = 'trainer-'
+
   if workers and pss:
     content['spec']['tfReplicaSpecs']['PS']['replicas'] = pss
     content['spec']['tfReplicaSpecs']['PS']['template']['spec']['containers'][0]['command'].extend(args_list)
@@ -64,11 +62,7 @@ def _generate_train_yaml(src_filename, dst_filename, workers, pss, job_name, arg
     worker_spec['template']['spec']['containers'][0]['command'].extend(args_list)
     ps_spec['template']['spec']['containers'][0]['command'].extend(args_list)
 
-  with open(dst_filename, 'w') as f:
-    yaml.dump(content, f, default_flow_style=False)
-
-  return job_name
-
+  return content
 
 def main(argv=None):
   parser = argparse.ArgumentParser(description='ML Trainer')
@@ -119,6 +113,10 @@ def main(argv=None):
                            'If not set, assuming this runs in a GKE container and current ' +
                            'cluster is used.')
   parser.add_argument('--zone', type=str, help='zone of the kubeflow cluster.')
+  parser.add_argument('--kfversion', type=str,
+                      default='v1alpha2',
+                      help='The version of the deployed kubeflow. ' +
+                           'If not set, the default version is v1alpha2')
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
@@ -141,16 +139,19 @@ def main(argv=None):
 
   workers = args_dict.pop('workers')
   pss = args_dict.pop('pss')
+  kf_version = args_dict.pop('kfversion')
   args_list = ['--%s=%s' % (k.replace('_', '-'),v)
                for k,v in six.iteritems(args_dict) if v is not None]
   logging.info('Generating training template.')
   template_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'train.template.yaml')
-
-  job_name = _generate_train_yaml(template_file, 'train.yaml', workers, pss, '', args_list)
+  content_yaml = _generate_train_yaml(template_file, workers, pss, args_list)
   
   logging.info('Start training.')
-  #TODO: convert to tf-operator library.
-  subprocess.call(['kubectl', 'create', '-f', 'train.yaml', '--namespace', 'kubeflow'])
+  # Set up handler for k8s clients
+  config.load_incluster_config()
+  api_client = k8s_client.ApiClient()
+  create_response = tf_job_client.create_tf_job(api_client, content_yaml, version=kf_version)
+  job_name = create_response['metadata']['name']
 
   # Create metadata.json file for visualization.
   metadata = {
@@ -162,29 +163,25 @@ def main(argv=None):
   with file_io.FileIO(os.path.join(args.job_dir, 'metadata.json'), 'w') as f:
     json.dump(metadata, f)
 
-
-
-  # Set up handler for k8s clients
-  config.load_incluster_config()
-  api_client = k8s_client.ApiClient()
-
-  response = tf_job_client.wait_for_job(api_client, 'kubeflow', job_name, 'v1alpha2', status_callback=tf_job_client.log_status)
+  wait_response = tf_job_client.wait_for_job(api_client, 'default', job_name, kf_version)
   succ = True
   #TODO: update this failure checking after tf-operator has the condition checking function.
-  if 'Worker' in response['status']['tfReplicaStatuses']:
-    if 'failed' in response['status']['tfReplicaStatuses']['Worker']:
+  if 'Worker' in wait_response['status']['tfReplicaStatuses']:
+    if 'Failed' in wait_response['status']['tfReplicaStatuses']['Worker']:
       logging.error('Training failed since workers failed.')
       succ = False
-  if 'PS' in response['status']['tfReplicaStatuses']:
-    if 'failed' in response['status']['tfReplicaStatuses']['PS']:
+  if 'PS' in wait_response['status']['tfReplicaStatuses']:
+    if 'Failed' in wait_response['status']['tfReplicaStatuses']['PS']:
       logging.error('Training failed since PSs failed.')
       succ = False
-  if 'MASTER' in response['status']['tfReplicaStatuses']:
-    if 'failed' in response['status']['tfReplicaStatuses']['MASTER']:
+  if 'MASTER' in wait_response['status']['tfReplicaStatuses']:
+    if 'Failed' in wait_response['status']['tfReplicaStatuses']['MASTER']:
       logging.error('Training failed since MASTER failed.')
       succ = False
   if succ:
     logging.info('Training success.')
+
+  tf_job_client.delete_tf_job(api_client, 'default', job_name, version=kf_version)
   with open('/output.txt', 'w') as f:
     f.write(args.job_dir)
 
