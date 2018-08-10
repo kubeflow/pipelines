@@ -35,22 +35,26 @@ const (
 
 type FakeBadPackageStore struct{}
 
+func (s *FakeBadPackageStore) GetPackageWithStatus(id string, status model.PackageStatus) (*model.Package, error) {
+	return nil, util.NewInternalServerError(errors.New("Error"), "bad package store")
+}
+
 func (s *FakeBadPackageStore) ListPackages(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Package, string, error) {
 	return nil, "", util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
 
-func (s *FakeBadPackageStore) GetPackage(packageId uint32) (*model.Package, error) {
+func (s *FakeBadPackageStore) GetPackage(packageId string) (*model.Package, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
 
 func (s *FakeBadPackageStore) CreatePackage(*model.Package) (*model.Package, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
-func (s *FakeBadPackageStore) DeletePackage(packageId uint32) error {
+func (s *FakeBadPackageStore) DeletePackage(packageId string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
 
-func (s *FakeBadPackageStore) UpdatePackageStatus(uint32, model.PackageStatus) error {
+func (s *FakeBadPackageStore) UpdatePackageStatus(string, model.PackageStatus) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad package store")
 }
 
@@ -84,22 +88,22 @@ func TestUploadPackage(t *testing.T) {
 	assert.Equal(t, 200, rr.Code)
 
 	// Verify stored in object store
-	template, err := fm.GetFile(storage.PackageFolder, "1")
+	template, err := fm.GetFile(storage.PackageFolder, resource.DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
 	// Verify metadata in db
 	pkgsExpect := []model.Package{
 		{
-			ID:             1,
+			UUID:           resource.DefaultFakeUUID,
 			CreatedAtInSec: 1,
 			Name:           "hello-world",
 			Parameters:     "[]",
 			Status:         model.PackageReady}}
-	pkg, str, err := store.PackageStore().ListPackages("" /*pageToken*/, 2 /*pageSize*/, "id" /*sortByFieldName*/, false /*isDesc*/)
+	pkg, str, err := store.PackageStore().ListPackages("" /*pageToken*/, 2 /*pageSize*/, "UUID" /*sortByFieldName*/, false /*isDesc*/)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
-	assert.Equal(t, pkg, pkgsExpect)
+	assert.Equal(t, pkgsExpect, pkg)
 }
 
 func TestUploadPackage_GetFormFileError(t *testing.T) {

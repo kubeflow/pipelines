@@ -29,6 +29,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string.",
             "in": "body",
             "required": true,
             "schema": {
@@ -55,6 +56,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "Workflow is a workflow custom resource marshalled into a json string.",
             "in": "body",
             "required": true,
             "schema": {

@@ -53,7 +53,7 @@ func (m *MinioObjectStore) AddFile(file []byte, folder string, fileName string) 
 func (m *MinioObjectStore) DeleteFile(folder string, fileName string) error {
 	err := m.minioClient.DeleteObject(m.bucketName, buildPath(folder, fileName))
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to delete %v from %", fileName, folder, err.Error())
+		return util.NewInternalServerError(err, "Failed to delete %v from %v", fileName, folder)
 	}
 	return nil
 }

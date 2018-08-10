@@ -25,7 +25,7 @@ import (
 var packageModelFieldsBySortableAPIFields = map[string]string{
 	// Sort by CreatedAtInSec by default
 	"":           "CreatedAtInSec",
-	"id":         "ID",
+	"id":         "UUID",
 	"name":       "Name",
 	"created_at": "CreatedAtInSec",
 }

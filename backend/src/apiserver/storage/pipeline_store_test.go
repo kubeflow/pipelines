@@ -18,67 +18,65 @@ import (
 	"testing"
 	"time"
 
+	"database/sql"
+
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
 )
 
-func initializePipelineDB() *gorm.DB {
+func initializeDbAndStore() (*sql.DB, *PipelineStore) {
 	db := NewFakeDbOrFatal()
-	pipeline1 := &model.PipelineDetail{
-		Pipeline: model.Pipeline{
-			UUID:        "1",
-			DisplayName: "pp 1",
-			Name:        "pp1",
-			Namespace:   "n1",
-			PackageId:   1,
-			Enabled:     true,
-			Trigger: model.Trigger{
-				PeriodicSchedule: model.PeriodicSchedule{
-					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
-					PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
-					IntervalSecond:                 util.Int64Pointer(3),
-				},
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+	pipeline1 := &model.Pipeline{
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PackageId:   "1",
+		Enabled:     true,
+		Conditions:  "ready",
+		Trigger: model.Trigger{
+			PeriodicSchedule: model.PeriodicSchedule{
+				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+				IntervalSecond:                 util.Int64Pointer(3),
 			},
-			CreatedAtInSec: 0,
-			UpdatedAtInSec: 0,
 		},
-		ScheduledWorkflow: "scheduledworkflow1",
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
 	}
-	pipeline2 := &model.PipelineDetail{
-		Pipeline: model.Pipeline{
-			UUID:        "2",
-			DisplayName: "pp 2",
-			Name:        "pp2",
-			Namespace:   "n1",
-			PackageId:   1,
-			Trigger: model.Trigger{
-				CronSchedule: model.CronSchedule{
-					CronScheduleStartTimeInSec: util.Int64Pointer(1),
-					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
-				},
+	pipelineStore.CreatePipeline(pipeline1)
+	pipeline2 := &model.Pipeline{
+		UUID:        "2",
+		DisplayName: "pp 2",
+		Name:        "pp2",
+		Namespace:   "n1",
+		PackageId:   "1",
+		Conditions:  "ready",
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(1),
+				CronScheduleEndTimeInSec:   util.Int64Pointer(2),
+				Cron:                       util.StringPointer("1 * *"),
 			},
-			Enabled:        true,
-			CreatedAtInSec: 1,
-			UpdatedAtInSec: 1,
 		},
-		ScheduledWorkflow: "scheduledworkflow2",
+		Enabled:        true,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 	}
-	db.Create(pipeline1)
-	db.Create(pipeline2)
-	return db
+	pipelineStore.CreatePipeline(pipeline2)
+
+	return db, pipelineStore
 }
 
 func TestListPipelines_Pagination(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelinesExpected := []model.Pipeline{
 		{
@@ -86,7 +84,8 @@ func TestListPipelines_Pagination(t *testing.T) {
 			DisplayName: "pp 1",
 			Name:        "pp1",
 			Namespace:   "n1",
-			PackageId:   1,
+			PackageId:   "1",
+			Conditions:  "ready",
 			Enabled:     true,
 			Trigger: model.Trigger{
 				PeriodicSchedule: model.PeriodicSchedule{
@@ -95,8 +94,8 @@ func TestListPipelines_Pagination(t *testing.T) {
 					IntervalSecond:                 util.Int64Pointer(3),
 				},
 			},
-			CreatedAtInSec: 0,
-			UpdatedAtInSec: 0,
+			CreatedAtInSec: 1,
+			UpdatedAtInSec: 1,
 		}}
 	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 1 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
 	assert.Nil(t, err)
@@ -108,17 +107,18 @@ func TestListPipelines_Pagination(t *testing.T) {
 			DisplayName: "pp 2",
 			Name:        "pp2",
 			Namespace:   "n1",
-			PackageId:   1,
+			PackageId:   "1",
 			Enabled:     true,
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
-			CreatedAtInSec: 1,
-			UpdatedAtInSec: 1,
+			CreatedAtInSec: 2,
+			UpdatedAtInSec: 2,
+			Conditions:     "ready",
 		}}
 	pipelines, newToken, err := pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
 	assert.Nil(t, err)
@@ -127,9 +127,8 @@ func TestListPipelines_Pagination(t *testing.T) {
 }
 
 func TestListPipelines_Pagination_Descent(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelinesExpected := []model.Pipeline{
 		{
@@ -137,17 +136,18 @@ func TestListPipelines_Pagination_Descent(t *testing.T) {
 			DisplayName: "pp 2",
 			Name:        "pp2",
 			Namespace:   "n1",
-			PackageId:   1,
+			PackageId:   "1",
 			Enabled:     true,
+			Conditions:  "ready",
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
-			CreatedAtInSec: 1,
-			UpdatedAtInSec: 1,
+			CreatedAtInSec: 2,
+			UpdatedAtInSec: 2,
 		}}
 	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 1 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
 	assert.Nil(t, err)
@@ -159,8 +159,9 @@ func TestListPipelines_Pagination_Descent(t *testing.T) {
 			DisplayName: "pp 1",
 			Name:        "pp1",
 			Namespace:   "n1",
-			PackageId:   1,
+			PackageId:   "1",
 			Enabled:     true,
+			Conditions:  "ready",
 			Trigger: model.Trigger{
 				PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -168,8 +169,8 @@ func TestListPipelines_Pagination_Descent(t *testing.T) {
 					IntervalSecond:                 util.Int64Pointer(3),
 				},
 			},
-			CreatedAtInSec: 0,
-			UpdatedAtInSec: 0,
+			CreatedAtInSec: 1,
+			UpdatedAtInSec: 1,
 		}}
 	pipelines, newToken, err := pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
 	assert.Nil(t, err)
@@ -178,9 +179,8 @@ func TestListPipelines_Pagination_Descent(t *testing.T) {
 }
 
 func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelinesExpected := []model.Pipeline{
 		{
@@ -188,8 +188,9 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 			DisplayName: "pp 1",
 			Name:        "pp1",
 			Namespace:   "n1",
-			PackageId:   1,
+			PackageId:   "1",
 			Enabled:     true,
+			Conditions:  "ready",
 			Trigger: model.Trigger{
 				PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -197,25 +198,26 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 					IntervalSecond:                 util.Int64Pointer(3),
 				},
 			},
-			CreatedAtInSec: 0,
-			UpdatedAtInSec: 0,
+			CreatedAtInSec: 1,
+			UpdatedAtInSec: 1,
 		},
 		{
 			UUID:        "2",
 			DisplayName: "pp 2",
 			Name:        "pp2",
 			Namespace:   "n1",
-			PackageId:   1,
+			PackageId:   "1",
 			Enabled:     true,
+			Conditions:  "ready",
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
-			CreatedAtInSec: 1,
-			UpdatedAtInSec: 1,
+			CreatedAtInSec: 2,
+			UpdatedAtInSec: 2,
 		}}
 	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
 	assert.Nil(t, err)
@@ -224,9 +226,9 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListPipelinesError(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
 	db.Close()
 	_, _, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
 
@@ -235,16 +237,16 @@ func TestListPipelinesError(t *testing.T) {
 }
 
 func TestGetPipeline(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelineExpected := model.Pipeline{
 		UUID:        "1",
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PackageId:   1,
+		PackageId:   "1",
+		Conditions:  "ready",
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -253,8 +255,8 @@ func TestGetPipeline(t *testing.T) {
 			},
 		},
 		Enabled:        true,
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 0,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
 	}
 
 	pipeline, err := pipelineStore.GetPipeline("1")
@@ -263,18 +265,18 @@ func TestGetPipeline(t *testing.T) {
 }
 
 func TestGetPipeline_NotFoundError(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
 	_, err := pipelineStore.GetPipeline("notexist")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get pipeline to return not found error")
 }
 
 func TestGetPipeline_InternalError(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
 	db.Close()
 	_, err := pipelineStore.GetPipeline("1")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
@@ -282,9 +284,8 @@ func TestGetPipeline_InternalError(t *testing.T) {
 }
 
 func TestDeletePipeline(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	err := pipelineStore.DeletePipeline("1")
 	assert.Nil(t, err)
@@ -293,9 +294,9 @@ func TestDeletePipeline(t *testing.T) {
 }
 
 func TestDeletePipeline_InternalError(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
 	db.Close()
 
 	err := pipelineStore.DeletePipeline("1")
@@ -312,7 +313,7 @@ func TestCreatePipeline(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PackageId:   1,
+		PackageId:   "1",
 		Enabled:     true,
 	}
 
@@ -323,7 +324,7 @@ func TestCreatePipeline(t *testing.T) {
 		DisplayName:    "pp 1",
 		Name:           "pp1",
 		Namespace:      "n1",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        true,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -341,7 +342,7 @@ func TestCreatePipelineError(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PackageId:   1,
+		PackageId:   "1",
 		Enabled:     true,
 	}
 
@@ -351,9 +352,9 @@ func TestCreatePipelineError(t *testing.T) {
 }
 
 func TestEnablePipeline(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
 	err := pipelineStore.EnablePipeline("1", false)
 	assert.Nil(t, err)
 
@@ -362,7 +363,8 @@ func TestEnablePipeline(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PackageId:   1,
+		PackageId:   "1",
+		Conditions:  "ready",
 		Enabled:     false,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
@@ -371,8 +373,8 @@ func TestEnablePipeline(t *testing.T) {
 				IntervalSecond:                 util.Int64Pointer(3),
 			},
 		},
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 1,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 3,
 	}
 
 	pipeline, err := pipelineStore.GetPipeline("1")
@@ -381,9 +383,9 @@ func TestEnablePipeline(t *testing.T) {
 }
 
 func TestEnablePipeline_SkipUpdate(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
 	err := pipelineStore.EnablePipeline("1", true)
 	assert.Nil(t, err)
 
@@ -392,7 +394,8 @@ func TestEnablePipeline_SkipUpdate(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PackageId:   1,
+		PackageId:   "1",
+		Conditions:  "ready",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
@@ -401,8 +404,8 @@ func TestEnablePipeline_SkipUpdate(t *testing.T) {
 				IntervalSecond:                 util.Int64Pointer(3),
 			},
 		},
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 0,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
 	}
 
 	pipeline, err := pipelineStore.GetPipeline("1")
@@ -411,9 +414,9 @@ func TestEnablePipeline_SkipUpdate(t *testing.T) {
 }
 
 func TestEnablePipeline_DatabaseError(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+
 	db.Close()
 
 	// Enabling the pipeline.
@@ -423,16 +426,16 @@ func TestEnablePipeline_DatabaseError(t *testing.T) {
 }
 
 func TestUpdatePipeline_Success(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelineExpected := model.Pipeline{
 		UUID:        "1",
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PackageId:   1,
+		PackageId:   "1",
+		Conditions:  "ready",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
@@ -441,8 +444,8 @@ func TestUpdatePipeline_Success(t *testing.T) {
 				IntervalSecond:                 util.Int64Pointer(3),
 			},
 		},
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 0,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
 	}
 
 	pipeline, err := pipelineStore.GetPipeline("1")
@@ -497,18 +500,18 @@ func TestUpdatePipeline_Success(t *testing.T) {
 		DisplayName:    "pp 1",
 		Name:           "MY_NAME",
 		Namespace:      "MY_NAMESPACE",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        false,
 		Conditions:     "Enabled:",
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 1,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 3,
 		MaxConcurrency: 200,
 		Parameters:     "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(10),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(20),
-				Cron: util.StringPointer("MY_CRON"),
+				Cron:                       util.StringPointer("MY_CRON"),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(30),
@@ -524,16 +527,16 @@ func TestUpdatePipeline_Success(t *testing.T) {
 }
 
 func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	pipelineExpected := model.Pipeline{
 		UUID:        "1",
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PackageId:   1,
+		PackageId:   "1",
+		Conditions:  "ready",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
@@ -542,8 +545,8 @@ func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
 				IntervalSecond:                 util.Int64Pointer(3),
 			},
 		},
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 0,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
 	}
 
 	pipeline, err := pipelineStore.GetPipeline("1")
@@ -566,18 +569,17 @@ func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
 		DisplayName:    "pp 1",
 		Name:           "MY_NAME",
 		Namespace:      "MY_NAMESPACE",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        false,
 		Conditions:     "NO_STATUS:",
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 1,
-		MaxConcurrency: 0,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 3,
 		Parameters:     "[]",
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: nil,
 				CronScheduleEndTimeInSec:   nil,
-				Cron: util.StringPointer(""),
+				Cron:                       util.StringPointer(""),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: nil,
@@ -593,9 +595,8 @@ func TestUpdatePipeline_MostlyEmptySpec(t *testing.T) {
 }
 
 func TestUpdatePipeline_MissingField(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	// Name
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -638,9 +639,8 @@ func TestUpdatePipeline_MissingField(t *testing.T) {
 }
 
 func TestUpdatePipeline_RecordNotFound(t *testing.T) {
-	db := initializePipelineDB()
+	db, pipelineStore := initializeDbAndStore()
 	defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -657,11 +657,8 @@ func TestUpdatePipeline_RecordNotFound(t *testing.T) {
 }
 
 func TestUpdatePipeline_InternalError(t *testing.T) {
-	db := initializePipelineDB()
-	//defer db.Close()
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch())
+	db, pipelineStore := initializeDbAndStore()
 	db.Close()
-
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",

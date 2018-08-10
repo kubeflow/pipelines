@@ -85,12 +85,12 @@ func TestCronScheduledPipelineToApiPipeline(t *testing.T) {
 		UUID:        "pipeline1",
 		DisplayName: "name 1",
 		Name:        "name1",
-		PackageId:   1,
+		PackageId:   "1",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron: util.StringPointer("1 * *"),
+				Cron:                       util.StringPointer("1 * *"),
 			},
 		},
 		MaxConcurrency: 1,
@@ -103,7 +103,7 @@ func TestCronScheduledPipelineToApiPipeline(t *testing.T) {
 	expectedPipeline := &api.Pipeline{
 		Id:             "pipeline1",
 		Name:           "name 1",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -123,7 +123,7 @@ func TestPeriodicScheduledPipelineToApiPipeline(t *testing.T) {
 		UUID:        "pipeline1",
 		DisplayName: "name 1",
 		Name:        "name1",
-		PackageId:   1,
+		PackageId:   "1",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
@@ -141,7 +141,7 @@ func TestPeriodicScheduledPipelineToApiPipeline(t *testing.T) {
 	expectedPipeline := &api.Pipeline{
 		Id:             "pipeline1",
 		Name:           "name 1",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -160,7 +160,7 @@ func TestNonScheduledPipelineToApiPipeline(t *testing.T) {
 	modelPipeline := model.Pipeline{
 		UUID:           "pipeline1",
 		DisplayName:    "name1",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        true,
 		Trigger:        model.Trigger{},
 		MaxConcurrency: 1,
@@ -173,7 +173,7 @@ func TestNonScheduledPipelineToApiPipeline(t *testing.T) {
 	expectedPipeline := &api.Pipeline{
 		Id:             "pipeline1",
 		Name:           "name1",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -189,12 +189,12 @@ func TestToApiPipelines(t *testing.T) {
 		UUID:        "pipeline1",
 		DisplayName: "name 1",
 		Name:        "name1",
-		PackageId:   1,
+		PackageId:   "1",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron: util.StringPointer("1 * *"),
+				Cron:                       util.StringPointer("1 * *"),
 			},
 		},
 		MaxConcurrency: 1,
@@ -206,12 +206,12 @@ func TestToApiPipelines(t *testing.T) {
 		UUID:        "pipeline2",
 		DisplayName: "name 2",
 		Name:        "name2",
-		PackageId:   2,
+		PackageId:   "2",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(2),
-				Cron: util.StringPointer("2 * *"),
+				Cron:                       util.StringPointer("2 * *"),
 			},
 		},
 		MaxConcurrency: 2,
@@ -225,7 +225,7 @@ func TestToApiPipelines(t *testing.T) {
 		{
 			Id:             "pipeline1",
 			Name:           "name 1",
-			PackageId:      1,
+			PackageId:      "1",
 			Enabled:        true,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -240,7 +240,7 @@ func TestToApiPipelines(t *testing.T) {
 		{
 			Id:             "pipeline2",
 			Name:           "name 2",
-			PackageId:      2,
+			PackageId:      "2",
 			Enabled:        true,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
@@ -260,7 +260,7 @@ func TestToModelPipeline(t *testing.T) {
 	apiPipeline := &api.Pipeline{
 		Id:             "pipeline1",
 		Name:           "name1",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        true,
 		MaxConcurrency: 1,
 		Trigger: &api.Trigger{
@@ -276,12 +276,12 @@ func TestToModelPipeline(t *testing.T) {
 	expectedModelPipeline := &model.Pipeline{
 		UUID:        "pipeline1",
 		DisplayName: "name1",
-		PackageId:   1,
+		PackageId:   "1",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron: util.StringPointer("1 * *"),
+				Cron:                       util.StringPointer("1 * *"),
 			},
 		},
 		MaxConcurrency: 1,
@@ -299,7 +299,7 @@ func TestToModelPipeline_ParameterTooLong(t *testing.T) {
 	apiPipeline := &api.Pipeline{
 		Id:             "pipeline1",
 		Name:           "name1",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        true,
 		MaxConcurrency: 1,
 		Parameters:     params,

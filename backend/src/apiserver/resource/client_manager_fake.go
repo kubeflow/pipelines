@@ -15,11 +15,12 @@
 package resource
 
 import (
+	"database/sql"
+
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/src/apiserver/storage"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
-	"github.com/jinzhu/gorm"
 )
 
 const (
@@ -27,7 +28,7 @@ const (
 )
 
 type FakeClientManager struct {
-	db                          *gorm.DB
+	db                          *sql.DB
 	packageStore                storage.PackageStoreInterface
 	pipelineStore               storage.PipelineStoreInterface
 	jobStore                    storage.JobStoreInterface
@@ -58,7 +59,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 
 	return &FakeClientManager{
 		db:                          db,
-		packageStore:                storage.NewPackageStore(db, time),
+		packageStore:                storage.NewPackageStore(db, time, uuid),
 		pipelineStore:               storage.NewPipelineStore(db, time),
 		jobStore:                    storage.NewJobStore(db, time),
 		workflowClientFake:          workflowClient,
@@ -90,11 +91,11 @@ func (f *FakeClientManager) Time() util.TimeInterface {
 	return f.time
 }
 
-func (c *FakeClientManager) UUID() util.UUIDGeneratorInterface {
-	return c.uuid
+func (f *FakeClientManager) UUID() util.UUIDGeneratorInterface {
+	return f.uuid
 }
 
-func (f *FakeClientManager) DB() *gorm.DB {
+func (f *FakeClientManager) DB() *sql.DB {
 	return f.db
 }
 

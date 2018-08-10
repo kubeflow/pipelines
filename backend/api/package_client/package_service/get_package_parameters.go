@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -64,7 +63,7 @@ for the get package operation typically these are written to a http.Request
 type GetPackageParams struct {
 
 	/*ID*/
-	ID int64
+	ID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +104,13 @@ func (o *GetPackageParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithID adds the id to the get package params
-func (o *GetPackageParams) WithID(id int64) *GetPackageParams {
+func (o *GetPackageParams) WithID(id string) *GetPackageParams {
 	o.SetID(id)
 	return o
 }
 
 // SetID adds the id to the get package params
-func (o *GetPackageParams) SetID(id int64) {
+func (o *GetPackageParams) SetID(id string) {
 	o.ID = id
 }
 
@@ -124,7 +123,7 @@ func (o *GetPackageParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 	var res []error
 
 	// path param id
-	if err := r.SetPathParam("id", swag.FormatInt64(o.ID)); err != nil {
+	if err := r.SetPathParam("id", o.ID); err != nil {
 		return err
 	}
 

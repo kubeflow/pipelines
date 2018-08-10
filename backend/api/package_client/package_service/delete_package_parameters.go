@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -64,7 +63,7 @@ for the delete package operation typically these are written to a http.Request
 type DeletePackageParams struct {
 
 	/*ID*/
-	ID int64
+	ID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +104,13 @@ func (o *DeletePackageParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithID adds the id to the delete package params
-func (o *DeletePackageParams) WithID(id int64) *DeletePackageParams {
+func (o *DeletePackageParams) WithID(id string) *DeletePackageParams {
 	o.SetID(id)
 	return o
 }
 
 // SetID adds the id to the delete package params
-func (o *DeletePackageParams) SetID(id int64) {
+func (o *DeletePackageParams) SetID(id string) {
 	o.ID = id
 }
 
@@ -124,7 +123,7 @@ func (o *DeletePackageParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 	var res []error
 
 	// path param id
-	if err := r.SetPathParam("id", swag.FormatInt64(o.ID)); err != nil {
+	if err := r.SetPathParam("id", o.ID); err != nil {
 		return err
 	}
 

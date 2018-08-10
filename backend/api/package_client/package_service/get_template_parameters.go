@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
@@ -64,7 +63,7 @@ for the get template operation typically these are written to a http.Request
 type GetTemplateParams struct {
 
 	/*ID*/
-	ID int64
+	ID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +104,13 @@ func (o *GetTemplateParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithID adds the id to the get template params
-func (o *GetTemplateParams) WithID(id int64) *GetTemplateParams {
+func (o *GetTemplateParams) WithID(id string) *GetTemplateParams {
 	o.SetID(id)
 	return o
 }
 
 // SetID adds the id to the get template params
-func (o *GetTemplateParams) SetID(id int64) {
+func (o *GetTemplateParams) SetID(id string) {
 	o.ID = id
 }
 
@@ -124,7 +123,7 @@ func (o *GetTemplateParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 	var res []error
 
 	// path param id
-	if err := r.SetPathParam("id", swag.FormatInt64(o.ID)); err != nil {
+	if err := r.SetPathParam("id", o.ID); err != nil {
 		return err
 	}
 

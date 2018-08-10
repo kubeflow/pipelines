@@ -33,13 +33,13 @@ type APIPipeline struct {
 	ID string `json:"id,omitempty"`
 
 	// max concurrency
-	MaxConcurrency int64 `json:"max_concurrency,omitempty"`
+	MaxConcurrency string `json:"max_concurrency,omitempty"`
 
 	// name
 	Name string `json:"name,omitempty"`
 
 	// package id
-	PackageID int64 `json:"package_id,omitempty"`
+	PackageID string `json:"package_id,omitempty"`
 
 	// parameters
 	Parameters []*APIParameter `json:"parameters"`

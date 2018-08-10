@@ -115,7 +115,7 @@ message Pipeline{
   string id = 1;
   string name = 2;
   string description = 3;
-  uint32 package_id = 4;
+  string package_id = 4;
   bool enabled = 5;
   // The status is surfacing the resource condition. A resource can potentially
   // have multiple conditions, although in most cases, it should be in one

@@ -30,7 +30,7 @@ func ToApiPackage(pkg *model.Package) (*api.Package, error) {
 		return nil, util.Wrap(err, "Error convert package DB model to API model.")
 	}
 	return &api.Package{
-		Id:          pkg.ID,
+		Id:          pkg.UUID,
 		CreatedAt:   &timestamp.Timestamp{Seconds: pkg.CreatedAtInSec},
 		Name:        pkg.Name,
 		Description: pkg.Description,

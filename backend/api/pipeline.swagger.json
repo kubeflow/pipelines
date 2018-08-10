@@ -279,8 +279,7 @@
           "type": "string"
         },
         "package_id": {
-          "type": "integer",
-          "format": "int64"
+          "type": "string"
         },
         "enabled": {
           "type": "boolean",

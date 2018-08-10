@@ -27,7 +27,7 @@ type APIPackage struct {
 	Description string `json:"description,omitempty"`
 
 	// id
-	ID int64 `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 
 	// name
 	Name string `json:"name,omitempty"`

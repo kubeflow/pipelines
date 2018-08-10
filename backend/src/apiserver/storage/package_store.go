@@ -15,26 +15,27 @@
 package storage
 
 import (
-	"fmt"
-
 	"bytes"
+	"database/sql"
+	"fmt"
 
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/jinzhu/gorm"
 )
 
 type PackageStoreInterface interface {
 	ListPackages(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Package, string, error)
-	GetPackage(packageId uint32) (*model.Package, error)
-	DeletePackage(packageId uint32) error
+	GetPackage(packageId string) (*model.Package, error)
+	GetPackageWithStatus(id string, status model.PackageStatus) (*model.Package, error)
+	DeletePackage(packageId string) error
 	CreatePackage(*model.Package) (*model.Package, error)
-	UpdatePackageStatus(uint32, model.PackageStatus) error
+	UpdatePackageStatus(string, model.PackageStatus) error
 }
 
 type PackageStore struct {
-	db   *gorm.DB
+	db   *sql.DB
 	time util.TimeInterface
+	uuid util.UUIDGeneratorInterface
 }
 
 func (s *PackageStore) ListPackages(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Package, string, error) {
@@ -50,34 +51,67 @@ func (s *PackageStore) ListPackages(pageToken string, pageSize int, sortByFieldN
 }
 
 func (s *PackageStore) queryPackageTable(context *PaginationContext) ([]model.ListableDataModel, error) {
-	var packages []model.Package
 	var query bytes.Buffer
 	query.WriteString(fmt.Sprintf("SELECT * FROM packages WHERE Status = '%v'", model.PackageReady))
 	toPaginationQuery("AND", &query, context)
 	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
-	if r := s.db.Raw(query.String()).Scan(&packages); r.Error != nil {
-		return nil, util.NewInternalServerError(r.Error, "Failed to list packages: %v", r.Error.Error())
+	r, err := s.db.Query(query.String())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list packages: %v", err.Error())
+	}
+	defer r.Close()
+	packages, err := s.scanRows(r)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list packages: %v", err.Error())
 	}
 	return s.toListablePackages(packages), nil
 }
 
-func (s *PackageStore) GetPackage(id uint32) (*model.Package, error) {
-	var pkg model.Package
-	r := s.db.Where("Status = ?", model.PackageReady).First(&pkg, id)
-	if r.RecordNotFound() {
-		return nil, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
+func (s *PackageStore) scanRows(rows *sql.Rows) ([]model.Package, error) {
+	var packages []model.Package
+	for rows.Next() {
+		var uuid, name, parameters, description string
+		var createdAtInSec int64
+		var status model.PackageStatus
+		if err := rows.Scan(&uuid, &createdAtInSec, &name, &description, &parameters, &status); err != nil {
+			return packages, err
+		}
+		packages = append(packages, model.Package{
+			UUID:           uuid,
+			CreatedAtInSec: createdAtInSec,
+			Name:           name,
+			Description:    description,
+			Parameters:     parameters,
+			Status:         status})
 	}
-	if r.Error != nil {
-		// TODO query can return multiple errors. log all of the errors when error handling v2 in place.
-		return nil, util.NewInternalServerError(r.Error, "Failed to get package: %v", r.Error.Error())
-	}
-	return &pkg, nil
+	return packages, nil
 }
 
-func (s *PackageStore) DeletePackage(id uint32) error {
-	r := s.db.Exec(`DELETE FROM packages WHERE ID=?`, id)
-	if r.Error != nil {
-		return util.NewInternalServerError(r.Error, "Failed to delete package: %v", r.Error.Error())
+func (s *PackageStore) GetPackage(id string) (*model.Package, error) {
+	return s.GetPackageWithStatus(id, model.PackageReady)
+}
+
+func (s *PackageStore) GetPackageWithStatus(id string, status model.PackageStatus) (*model.Package, error) {
+	r, err := s.db.Query("SELECT * FROM packages WHERE uuid=? AND status=? LIMIT 1", id, status)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get package: %v", err.Error())
+	}
+	defer r.Close()
+	packages, err := s.scanRows(r)
+
+	if err != nil || len(packages) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get package: %v", err.Error())
+	}
+	if len(packages) == 0 {
+		return nil, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
+	}
+	return &packages[0], nil
+}
+
+func (s *PackageStore) DeletePackage(id string) error {
+	_, err := s.db.Exec(`DELETE FROM packages WHERE UUID=?`, id)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to delete package: %v", err.Error())
 	}
 	return nil
 }
@@ -86,17 +120,37 @@ func (s *PackageStore) CreatePackage(p *model.Package) (*model.Package, error) {
 	newPackage := *p
 	now := s.time.Now().Unix()
 	newPackage.CreatedAtInSec = now
-	if r := s.db.Create(&newPackage); r.Error != nil {
-		return nil, util.NewInternalServerError(r.Error, "Failed to add package to package table: %v",
-			r.Error.Error())
+	id, err := s.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a package id.")
+	}
+	newPackage.UUID = id.String()
+	stmt, err := s.db.Prepare(
+		`INSERT INTO packages (UUID, CreatedAtInSec,Name,Description,Parameters,Status)
+						VALUES (?,?,?,?,?,?)`)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to add package to package table: %v",
+			err.Error())
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(
+		newPackage.UUID,
+		newPackage.CreatedAtInSec,
+		newPackage.Name,
+		newPackage.Description,
+		newPackage.Parameters,
+		string(newPackage.Status))
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to add package to package table: %v",
+			err.Error())
 	}
 	return &newPackage, nil
 }
 
-func (s *PackageStore) UpdatePackageStatus(id uint32, status model.PackageStatus) error {
-	r := s.db.Exec(`UPDATE packages SET Status=? WHERE ID=?`, status, id)
-	if r.Error != nil {
-		return util.NewInternalServerError(r.Error, "Failed to update the package metadata: %s", r.Error.Error())
+func (s *PackageStore) UpdatePackageStatus(id string, status model.PackageStatus) error {
+	_, err := s.db.Exec(`UPDATE packages SET Status=? WHERE UUID=?`, status, id)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update the package metadata: %s", err.Error())
 	}
 	return nil
 }
@@ -118,6 +172,6 @@ func (s *PackageStore) toPackages(models []model.ListableDataModel) []model.Pack
 }
 
 // factory function for package store
-func NewPackageStore(db *gorm.DB, time util.TimeInterface) *PackageStore {
-	return &PackageStore{db: db, time: time}
+func NewPackageStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *PackageStore {
+	return &PackageStore{db: db, time: time, uuid: uuid}
 }

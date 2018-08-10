@@ -248,18 +248,18 @@ func checkGetTemplateResponse(t *testing.T, response *api.GetTemplateResponse, e
 	assert.Equal(t, string(expected), response.Template)
 }
 
-func checkInstantiatePipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64, expectPkgId uint32) {
+func checkInstantiatePipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64, expectPkgId string) {
 	assert.Nil(t, err)
 	verifyPipeline(t, response, requestStartTime, expectPkgId)
 }
 
-func checkListPipelinesResponse(t *testing.T, response *api.ListPipelinesResponse, err error, requestStartTime int64, expectPkgId uint32) {
+func checkListPipelinesResponse(t *testing.T, response *api.ListPipelinesResponse, err error, requestStartTime int64, expectPkgId string) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(response.Pipelines))
 	verifyPipeline(t, response.Pipelines[0], requestStartTime, expectPkgId)
 }
 
-func checkGetPipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64, expectPkgId uint32) {
+func checkGetPipelineResponse(t *testing.T, response *api.Pipeline, err error, requestStartTime int64, expectPkgId string) {
 	assert.Nil(t, err)
 	verifyPipeline(t, response, requestStartTime, expectPkgId)
 }
@@ -299,7 +299,7 @@ func verifyPackage(t *testing.T, pkg *api.Package, requestStartTime int64) {
 	assert.Equal(t, expected, *pkg)
 }
 
-func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64, expectedPkgId uint32) {
+func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64, expectedPkgId string) {
 	assert.NotNil(t, *pipeline)
 	assert.NotNil(t, pipeline.CreatedAt)
 	// Only verify the time fields have valid value and in the right range.

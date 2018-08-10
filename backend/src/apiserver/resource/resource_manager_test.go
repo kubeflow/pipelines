@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"encoding/json"
+
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/storage"
@@ -28,6 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -63,7 +66,7 @@ func TestCreatePackage(t *testing.T) {
 	manager := NewResourceManager(store)
 	pkg, err := manager.CreatePackage("package1", []byte(""))
 	pkgExpected := &model.Package{
-		ID:             1,
+		UUID:           DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "package1",
 		Parameters:     "[]",
@@ -101,10 +104,10 @@ func TestCreatePackage_CreatePackageFileError(t *testing.T) {
 	_, err := manager.CreatePackage("package1", []byte(""))
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "bad object store")
-	var pkg model.Package
-	r := store.DB().First(&pkg, "1")
-	assert.Nil(t, r.Error)
-	assert.Equal(t, model.PackageCreating, pkg.Status)
+	// Verify there is a package in DB with status PackageCreating.
+	pkg, err := manager.packageStore.GetPackageWithStatus(DefaultFakeUUID, model.PackageCreating)
+	assert.Nil(t, err)
+	assert.NotNil(t, pkg)
 }
 
 func TestGetPackageTemplate(t *testing.T) {
@@ -112,9 +115,9 @@ func TestGetPackageTemplate(t *testing.T) {
 	defer store.Close()
 	pkg, _ := store.PackageStore().CreatePackage(createPkg("pkg1"))
 	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.PackageFolder, fmt.Sprint(pkg.ID))
+	store.ObjectStore().AddFile(template, storage.PackageFolder, fmt.Sprint(pkg.UUID))
 	manager := NewResourceManager(store)
-	actualTemplate, err := manager.GetPackageTemplate(pkg.ID)
+	actualTemplate, err := manager.GetPackageTemplate(pkg.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, template, actualTemplate)
 }
@@ -125,7 +128,7 @@ func TestGetPackageTemplate_PackageMetadataNotFound(t *testing.T) {
 	template := []byte("workflow: foo")
 	store.ObjectStore().AddFile(template, storage.PackageFolder, fmt.Sprint(1))
 	manager := NewResourceManager(store)
-	_, err := manager.GetPackageTemplate(1)
+	_, err := manager.GetPackageTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Package 1 not found")
 }
@@ -135,50 +138,51 @@ func TestGetPackageTemplate_PackageFileNotFound(t *testing.T) {
 	defer store.Close()
 	pkg, _ := store.PackageStore().CreatePackage(createPkg("pkg1"))
 	manager := NewResourceManager(store)
-	_, err := manager.GetPackageTemplate(pkg.ID)
+	_, err := manager.GetPackageTemplate(pkg.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to get 1 from packages: object not found")
+	assert.Contains(t, err.Error(), "object not found")
 }
 
 func TestListJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	pipeline1 := &model.PipelineDetail{
-		Pipeline: model.Pipeline{
-			UUID:           "1",
-			Name:           "pp1",
-			Namespace:      "n1",
-			PackageId:      1,
-			Enabled:        true,
-			CreatedAtInSec: 0,
-			UpdatedAtInSec: 0,
-		},
-		ScheduledWorkflow: "scheduledworkflow1",
+
+	pipeline1 := &model.Pipeline{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      "1",
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
 	}
-	job1 := &model.JobDetail{
-		Job: model.Job{
-			UUID:             "1",
-			Name:             "job1",
-			Namespace:        "n1",
-			PipelineID:       "1",
-			CreatedAtInSec:   1,
-			ScheduledAtInSec: 1,
-			Conditions:       "running",
+	_, err := manager.pipelineStore.CreatePipeline(pipeline1)
+	assert.Nil(t, err)
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "job1",
+			Namespace:         "n1",
+			UID:               "1",
+			CreationTimestamp: metav1.Time{Time: time.Unix(1, 0)},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
 		},
-		Workflow: "workflow1",
-	}
-	store.DB().Create(pipeline1)
-	store.DB().Create(job1)
-	jobs, newToken, err := manager.ListJobs(pipeline1.UUID, "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
+	})
+	err = manager.jobStore.CreateOrUpdateJob(workflow)
+	assert.Nil(t, err)
+	jobs, newToken, err := manager.ListJobs("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
 	jobsExpected := []model.Job{{
-		UUID:             "1",
-		Name:             "job1",
-		Namespace:        "n1",
-		PipelineID:       "1",
-		CreatedAtInSec:   1,
-		ScheduledAtInSec: 1,
-		Conditions:       "running",
+		UUID:           "1",
+		Name:           "job1",
+		Namespace:      "n1",
+		PipelineID:     "1",
+		CreatedAtInSec: 1,
+		Conditions:     ":",
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
@@ -198,44 +202,44 @@ func TestGetJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	pipeline1 := &model.PipelineDetail{
-		Pipeline: model.Pipeline{
-			UUID:           "1",
-			Name:           "pp1",
-			Namespace:      "n1",
-			PackageId:      1,
-			Enabled:        true,
-			CreatedAtInSec: 0,
-			UpdatedAtInSec: 0,
-		},
-		ScheduledWorkflow: "scheduledworkflow1",
+	pipeline1 := &model.Pipeline{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PackageId:      "1",
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
 	}
-	job1 := &model.JobDetail{
-		Job: model.Job{
-			UUID:             "1",
-			Name:             "job1",
-			Namespace:        "n1",
-			PipelineID:       "1",
-			CreatedAtInSec:   1,
-			ScheduledAtInSec: 1,
-			Conditions:       "running",
+	_, err := manager.pipelineStore.CreatePipeline(pipeline1)
+	assert.Nil(t, err)
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "job1",
+			Namespace:         "n1",
+			UID:               "1",
+			CreationTimestamp: metav1.Time{Time: time.Unix(1, 0)},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
 		},
-		Workflow: "workflow1",
-	}
-	store.DB().Create(pipeline1)
-	store.DB().Create(job1)
-	job, err := manager.GetJob(pipeline1.UUID, job1.UUID)
+	})
+	err = manager.jobStore.CreateOrUpdateJob(workflow)
+	job, err := manager.GetJob("1", "1")
+	workflowBytes, _ := json.Marshal(workflow)
 	jobExpected := &model.JobDetail{
 		Job: model.Job{
-			UUID:             "1",
-			Name:             "job1",
-			Namespace:        "n1",
-			PipelineID:       "1",
-			CreatedAtInSec:   1,
-			ScheduledAtInSec: 1,
-			Conditions:       "running",
+			UUID:           "1",
+			Name:           "job1",
+			Namespace:      "n1",
+			PipelineID:     "1",
+			CreatedAtInSec: 1,
+			Conditions:     ":",
 		},
-		Workflow: "workflow1",
+		Workflow: string(workflowBytes),
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, jobExpected, job)
@@ -259,7 +263,7 @@ func TestCreatePipeline(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		DisplayName: "pp 1",
-		PackageId:   1,
+		PackageId:   "1",
 		Enabled:     true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -268,7 +272,7 @@ func TestCreatePipeline(t *testing.T) {
 		DisplayName:    "pp 1",
 		Name:           "pipeline-pp1",
 		Namespace:      "default",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        true,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -288,7 +292,7 @@ func TestCreatePipeline_FailedToCreateScheduleWorkflow(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	_, err := manager.CreatePipeline(pipeline)
@@ -304,7 +308,7 @@ func TestCreatePipeline_FailedToRetrieveYaml(t *testing.T) {
 	manager.objectStore = &FakeBadObjectStore{}
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	_, err := manager.CreatePipeline(pipeline)
@@ -320,7 +324,7 @@ func TestEnablePipeline(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		DisplayName: "pp 1",
-		PackageId:   1,
+		PackageId:   "1",
 		Enabled:     true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -333,7 +337,7 @@ func TestEnablePipeline(t *testing.T) {
 		DisplayName:    "pp 1",
 		Name:           "pipeline-pp1",
 		Namespace:      "default",
-		PackageId:      1,
+		PackageId:      "1",
 		Enabled:        false,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 2,
@@ -360,7 +364,7 @@ func TestEnablePipeline_CrdFailure(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -380,7 +384,7 @@ func TestEnablePipeline_DbFailure(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -399,7 +403,7 @@ func TestDeletePipeline(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -430,7 +434,7 @@ func TestDeletePipeline_CrdFailure(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -450,7 +454,7 @@ func TestDeletePipeline_DbFailure(t *testing.T) {
 	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -474,7 +478,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 	// Create pipeline
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -540,7 +544,7 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 	// Create pipeline
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -580,7 +584,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 	// Create pipeline
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)
@@ -603,7 +607,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 	expectedPipeline := &model.Pipeline{
 		Name:       "MY_NAME",
 		Namespace:  "MY_NAMESPACE",
-		PackageId:  1,
+		PackageId:  "1",
 		Enabled:    false,
 		UUID:       newPipeline.UUID,
 		Conditions: "NO_STATUS:",
@@ -645,7 +649,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	// Create pipeline
 	pipeline := &model.Pipeline{
 		Name:      "pp1",
-		PackageId: 1,
+		PackageId: "1",
 		Enabled:   true,
 	}
 	newPipeline, err := manager.CreatePipeline(pipeline)

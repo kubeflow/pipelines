@@ -21,61 +21,24 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func initializePrepopulatedDB() *gorm.DB {
-	db := NewFakeDbOrFatal()
-	job1 := &model.JobDetail{
-		Job: model.Job{
-			UUID:             "1",
-			Name:             "job1",
-			Namespace:        "n1",
-			PipelineID:       "1",
-			CreatedAtInSec:   1,
-			ScheduledAtInSec: 1,
-			Conditions:       "running",
-		},
-		Workflow: "workflow1",
-	}
-	job2 := &model.JobDetail{
-		Job: model.Job{
-			UUID:             "2",
-			Name:             "job2",
-			Namespace:        "n2",
-			PipelineID:       "1",
-			CreatedAtInSec:   2,
-			ScheduledAtInSec: 2,
-			Conditions:       "done",
-		},
-		Workflow: "workflow1",
-	}
-	job3 := &model.JobDetail{
-		Job: model.Job{
-			UUID:             "3",
-			Name:             "job3",
-			Namespace:        "n3",
-			PipelineID:       "2",
-			CreatedAtInSec:   3,
-			ScheduledAtInSec: 3,
-			Conditions:       "done",
-		},
-		Workflow: "workflow3",
-	}
-	db.Create(job1)
-	db.Create(job2)
-	db.Create(job3)
-	return db
+func initializePrepopulatedDB(jobStore *JobStore) {
+	workflow := util.NewWorkflow(&workflowapi.Workflow{})
+	jobStore.createJob("1", "job1", "n1", "1", 1, 1, "running", "workflow1", workflow)
+	jobStore.createJob("1", "job2", "n2", "2", 2, 2, "done", "workflow1", workflow)
+	jobStore.createJob("2", "job3", "n3", "3", 3, 3, "done", "workflow3", workflow)
 }
 
 func TestListJobs_Pagination(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	expectedFirstPageJobs := []model.Job{
 		{
@@ -109,9 +72,10 @@ func TestListJobs_Pagination(t *testing.T) {
 }
 
 func TestListJobs_Pagination_Descend(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	expectedFirstPageJobs := []model.Job{
 		{
@@ -145,9 +109,10 @@ func TestListJobs_Pagination_Descend(t *testing.T) {
 }
 
 func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	expectedJobs := []model.Job{
 		{
@@ -175,9 +140,11 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListJobsError(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
+
 	db.Close()
 	_, _, err := jobStore.ListJobs("1", "", 10, model.GetJobTablePrimaryKeyColumn(), false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
@@ -185,9 +152,10 @@ func TestListJobsError(t *testing.T) {
 }
 
 func TestGetJob(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	expectedJob := &model.JobDetail{
 		Job: model.Job{
@@ -208,9 +176,10 @@ func TestGetJob(t *testing.T) {
 }
 
 func TestGetJob_NotFoundError(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	_, err := jobStore.GetJob("1", "notfound")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
@@ -218,9 +187,10 @@ func TestGetJob_NotFoundError(t *testing.T) {
 }
 
 func TestGetJob_InternalError(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 	db.Close()
 
 	_, err := jobStore.GetJob("1", "1")
@@ -229,9 +199,10 @@ func TestGetJob_InternalError(t *testing.T) {
 }
 
 func TestUpdateJob_UpdateSuccess(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	expectedJob := &model.JobDetail{
 		Job: model.Job{
@@ -293,9 +264,10 @@ func TestUpdateJob_UpdateSuccess(t *testing.T) {
 }
 
 func TestUpdateJob_CreateSuccess(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	// Checking that the job is not yet in the DB
 	jobDetail, err := jobStore.GetJob("3000", "2000")
@@ -344,9 +316,10 @@ func TestUpdateJob_CreateSuccess(t *testing.T) {
 }
 
 func TestUpdateJob_UpdateError(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 	db.Close()
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
@@ -375,9 +348,10 @@ func TestUpdateJob_UpdateError(t *testing.T) {
 }
 
 func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -416,9 +390,10 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 }
 
 func TestUpdateJob_MissingField(t *testing.T) {
-	db := initializePrepopulatedDB()
+	db := NewFakeDbOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	initializePrepopulatedDB(jobStore)
 
 	// Name
 	workflow := util.NewWorkflow(&workflowapi.Workflow{

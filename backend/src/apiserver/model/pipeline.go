@@ -7,14 +7,14 @@ type Pipeline struct {
 	DisplayName    string `gorm:"column:DisplayName; not null"` /* The name that user provides. Can contain special characters*/
 	Name           string `gorm:"column:Name; not null"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Namespace      string `gorm:"column:Namespace; not null;"`
-	Description    string `gorm:"column:Description"`
-	PackageId      uint32 `gorm:"column:PackageId; not null"`
+	Description    string `gorm:"column:Description; not null"`
+	PackageId      string `gorm:"column:PackageId; not null"`
 	Enabled        bool   `gorm:"column:Enabled; not null"`
 	Conditions     string `gorm:"column:Conditions; not null"`
-	MaxConcurrency int64  `gorm:"column:MaxConcurrency"`
+	MaxConcurrency int64  `gorm:"column:MaxConcurrency;not null"`
 	Trigger        `gorm:"column:Trigger;"`
-	Parameters     string `gorm:"column:Parameters; size:10000"`   /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"` /* The time this record is stored in DB*/
+	Parameters     string `gorm:"column:Parameters;not null; size:10000"` /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`        /* The time this record is stored in DB*/
 	UpdatedAtInSec int64  `gorm:"column:UpdatedAtInSec; not null"`
 }
 

@@ -29,18 +29,18 @@ const (
 )
 
 type Package struct {
-	ID             uint32        `gorm:"column:ID; primary_key"`
+	UUID           string        `gorm:"column:UUID; not null; primary_key"`
 	CreatedAtInSec int64         `gorm:"column:CreatedAtInSec; not null"`
 	Name           string        `gorm:"column:Name; not null"`
-	Description    string        `gorm:"column:Description"`
-	Parameters     string        `gorm:"column:Parameters; size:10000"` /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */
+	Description    string        `gorm:"column:Description; not null"`
+	Parameters     string        `gorm:"column:Parameters; not null size:10000"` /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */
 	Status         PackageStatus `gorm:"column:Status; not null"`
 }
 
 func (p Package) GetValueOfPrimaryKey() string {
-	return fmt.Sprint(p.ID)
+	return fmt.Sprint(p.UUID)
 }
 
 func GetPackageTablePrimaryKeyColumn() string {
-	return "ID"
+	return "UUID"
 }

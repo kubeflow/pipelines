@@ -77,11 +77,11 @@ func (r *ResourceManager) ListPackages(pageToken string, pageSize int, sortByFie
 	return r.packageStore.ListPackages(pageToken, pageSize, sortByFieldName, isDesc)
 }
 
-func (r *ResourceManager) GetPackage(packageId uint32) (*model.Package, error) {
+func (r *ResourceManager) GetPackage(packageId string) (*model.Package, error) {
 	return r.packageStore.GetPackage(packageId)
 }
 
-func (r *ResourceManager) DeletePackage(packageId uint32) error {
+func (r *ResourceManager) DeletePackage(packageId string) error {
 	_, err := r.packageStore.GetPackage(packageId)
 	if err != nil {
 		return util.Wrap(err, "Delete package failed")
@@ -123,24 +123,24 @@ func (r *ResourceManager) CreatePackage(name string, pkgFile []byte) (*model.Pac
 	}
 
 	// Store the package file
-	err = r.objectStore.AddFile(pkgFile, storage.PackageFolder, fmt.Sprint(newPkg.ID))
+	err = r.objectStore.AddFile(pkgFile, storage.PackageFolder, fmt.Sprint(newPkg.UUID))
 	if err != nil {
 		return nil, util.Wrap(err, "Create package failed")
 	}
 
 	newPkg.Status = model.PackageReady
-	err = r.packageStore.UpdatePackageStatus(newPkg.ID, newPkg.Status)
+	err = r.packageStore.UpdatePackageStatus(newPkg.UUID, newPkg.Status)
 	if err != nil {
 		return nil, util.Wrap(err, "Create package failed")
 	}
 	return newPkg, nil
 }
 
-func (r *ResourceManager) UpdatePackageStatus(packageId uint32, status model.PackageStatus) error {
+func (r *ResourceManager) UpdatePackageStatus(packageId string, status model.PackageStatus) error {
 	return r.packageStore.UpdatePackageStatus(packageId, status)
 }
 
-func (r *ResourceManager) GetPackageTemplate(packageId uint32) ([]byte, error) {
+func (r *ResourceManager) GetPackageTemplate(packageId string) ([]byte, error) {
 	// Verify package exist
 	_, err := r.packageStore.GetPackage(packageId)
 	if err != nil {

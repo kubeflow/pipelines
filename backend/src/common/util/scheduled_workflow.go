@@ -75,6 +75,13 @@ func (s *ScheduledWorkflow) PeriodicScheduleEndTimeInSecOrNull() *int64 {
 	return nil
 }
 
+func (s *ScheduledWorkflow) MaxConcurrencyOr0() int64 {
+	if s.Spec.MaxConcurrency != nil {
+		return *s.Spec.MaxConcurrency
+	}
+	return 0
+}
+
 func (s *ScheduledWorkflow) IntervalSecondOr0() int64 {
 	if s.Spec.PeriodicSchedule != nil {
 		return s.Spec.PeriodicSchedule.IntervalSecond

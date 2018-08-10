@@ -43,7 +43,7 @@ const (
 
 // Container for all service clients
 type ClientManager struct {
-	db                *gorm.DB
+	db                *sql.DB
 	packageStore      storage.PackageStoreInterface
 	pipelineStore     storage.PipelineStoreInterface
 	jobStore          storage.JobStoreInterface
@@ -93,7 +93,7 @@ func (c *ClientManager) init() {
 
 	// Initialize package store
 	c.db = db
-	c.packageStore = storage.NewPackageStore(db, c.time)
+	c.packageStore = storage.NewPackageStore(db, c.time, c.uuid)
 
 	// Initialize pipeline store v2
 	c.pipelineStore = storage.NewPipelineStore(db, c.time)
@@ -113,7 +113,7 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func initDBClient(initConnectionTimeout time.Duration) *gorm.DB {
+func initDBClient(initConnectionTimeout time.Duration) *sql.DB {
 	driverName := getStringConfig("DBConfig.DriverName")
 	var arg string
 
@@ -143,7 +143,7 @@ func initDBClient(initConnectionTimeout time.Duration) *gorm.DB {
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for PipelineID in job_detail table. Error: %s", response.Error)
 	}
-	return db
+	return db.DB()
 }
 
 // Initialize the connection string for connecting to Mysql database
