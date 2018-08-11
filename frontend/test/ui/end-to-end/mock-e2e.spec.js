@@ -193,4 +193,12 @@ describe('deploy new job', () => {
         'second page should show the remaining jobs, it shows: ' + $$(listSelector).length);
   });
 
+  it('can use hash navigation to show the jobs page directly', () => {
+    browser.url(`/jobs/details/${fixedData.jobs[1].id}#runs`);
+    const selector = 'app-shell job-details run-list item-list #listContainer paper-item';
+     // Should find a page full of jobs
+    browser.waitForVisible(selector, waitTimeout);
+    assert.equal($$(selector).length, 20, 'should show a full page of jobs ');
+  });
+
 });

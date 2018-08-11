@@ -299,6 +299,7 @@ paper-tab:not(:first-child) {
 }
 
 .unstyled {
-  text-decoration: none;
   color: inherit;
+  display: inherit;
+  text-decoration: none;
 }

@@ -73,6 +73,11 @@ export class JobDetails extends PageElement {
   public async load(id: string): Promise<void> {
     if (!!id) {
       this.selectedTab = 0;
+      const anchorElement = this.tabs.querySelector(`[href="${location.hash}"]`);
+      if (anchorElement) {
+        const tabElement = anchorElement.parentElement as PaperTabElement;
+        this.selectedTab = this.tabs.indexOf(tabElement);
+      }
 
       this._loadJob(id);
     }

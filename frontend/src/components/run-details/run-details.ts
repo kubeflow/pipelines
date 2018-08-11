@@ -153,10 +153,15 @@ export class RunDetails extends PageElement {
   }
 
   private _reset(): void {
+    this.selectedTab = 0;
+    const anchorElement = this.tabs.querySelector(`[href="${location.hash}"]`);
+    if (anchorElement) {
+      const tabElement = anchorElement.parentElement as PaperTabElement;
+      this.selectedTab = this.tabs.indexOf(tabElement);
+    }
+
     // Clear any preexisting page error.
     this._pageError = '';
-    // Reset the selected tab each time the user navigates to this page.
-    this.selectedTab = 0;
     // Clear outputPlots to keep from re-adding the same outputs over and over.
     this.set('outputPlots', []);
   }
