@@ -12,7 +12,7 @@ Alternatively, if you prefer to install and interact with GKE from your local ma
  
 ## Install
 
-In Cloud Shell or your local console, follow the instruction and [Setup a GKE cluster](#setup-gke). After GKE is ready, run following command to install ML pipeline
+In Cloud Shell or your local console, follow the instruction and [Setup a GKE cluster](#setup-gke). After GKE is ready, run following command to deploy the ML Pipeline Services and Kubeflow to your cluster:
 ```bash
 kubectl create -f https://storage.googleapis.com/ml-pipeline/release/latest/bootstrapper.yaml
 ```
@@ -67,7 +67,7 @@ gcloud config set compute/zone us-central1-a
 ```
 Then start a GKE cluster. 
 ```bash
-gcloud container clusters create ml-pipeline \
+gcloud container clusters create [your-cluster-name] \
   --zone us-central1-a \
   --scopes cloud-platform \
   --enable-cloud-logging \
@@ -77,7 +77,7 @@ gcloud container clusters create ml-pipeline \
 ```
 Here we choose cloud-platform scope so it can invoke GCP APIs. You can find all options for creating a cluster in [here](https://cloud.google.com/sdk/gcloud/reference/container/clusters/create). 
 
-ML Pipeline uses Argo as its underlying pipeline orchestration system. When installing ML pipeline, a few new cluster roles will be generated for Argo and Pipeline’s API server, in order to allow them creating and retrieving resources such as pods, Argo workflow CRDs etc. 
+ML Pipelines Service uses Argo as its underlying orchestration system. When installing ML Pipeline Services, a few new cluster roles will be generated for Argo and Pipeline’s API server, in order to allow them creating and retrieving resources such as pods, Argo workflow CRDs etc. 
 
 On GKE with RBAC enabled, you might need to grant your account the ability to create such new cluster roles.
 
