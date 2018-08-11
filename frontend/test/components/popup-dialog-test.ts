@@ -1,4 +1,3 @@
-import * as sinon from 'sinon';
 import * as assert from '../../node_modules/assert/assert';
 
 import { DialogResult, PopupDialog } from '../../src/components/popup-dialog/popup-dialog';

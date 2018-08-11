@@ -2,7 +2,7 @@ import { DialogResult, PopupDialog } from '../components/popup-dialog/popup-dial
 import { NODE_PHASE, NodePhase } from '../model/argo_template';
 
 import 'paper-toast/paper-toast';
-import { Trigger } from '../api/pipeline';
+import { Trigger } from '../api/job';
 import '../components/popup-dialog/popup-dialog';
 
 export function deleteAllChildren(parent: HTMLElement): void {

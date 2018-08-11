@@ -6,6 +6,8 @@ package job_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -21,21 +23,43 @@ type APIJob struct {
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty"`
 
+	// description
+	Description string `json:"description,omitempty"`
+
+	// enabled
+	Enabled bool `json:"enabled,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
+
+	// max concurrency
+	MaxConcurrency string `json:"max_concurrency,omitempty"`
 
 	// name
 	Name string `json:"name,omitempty"`
 
-	// namespace
-	Namespace string `json:"namespace,omitempty"`
+	// parameters
+	Parameters []*APIParameter `json:"parameters"`
 
-	// scheduled at
-	// Format: date-time
-	ScheduledAt strfmt.DateTime `json:"scheduled_at,omitempty"`
+	// pipeline id
+	PipelineID string `json:"pipeline_id,omitempty"`
 
-	// status
+	// The status is surfacing the resource condition. A resource can potentially
+	// have multiple conditions, although in most cases, it should be in one
+	// state.
+	// https://github.com/eBay/Kubernetes/blob/master/docs/devel/api-conventions.md
+	// In case of a single state, the status ends with a colon:
+	// STATUS_1:
+	// In case of multiple states, the statuses are separated by a colon.
+	// STATUS_1:STATUS_2:
 	Status string `json:"status,omitempty"`
+
+	// trigger
+	Trigger *APITrigger `json:"trigger,omitempty"`
+
+	// updated at
+	// Format: date-time
+	UpdatedAt strfmt.DateTime `json:"updated_at,omitempty"`
 }
 
 // Validate validates this api job
@@ -46,7 +70,15 @@ func (m *APIJob) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateScheduledAt(formats); err != nil {
+	if err := m.validateParameters(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTrigger(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateUpdatedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -69,13 +101,56 @@ func (m *APIJob) validateCreatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIJob) validateScheduledAt(formats strfmt.Registry) error {
+func (m *APIJob) validateParameters(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.ScheduledAt) { // not required
+	if swag.IsZero(m.Parameters) { // not required
 		return nil
 	}
 
-	if err := validate.FormatOf("scheduled_at", "body", "date-time", m.ScheduledAt.String(), formats); err != nil {
+	for i := 0; i < len(m.Parameters); i++ {
+		if swag.IsZero(m.Parameters[i]) { // not required
+			continue
+		}
+
+		if m.Parameters[i] != nil {
+			if err := m.Parameters[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("parameters" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *APIJob) validateTrigger(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Trigger) { // not required
+		return nil
+	}
+
+	if m.Trigger != nil {
+		if err := m.Trigger.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("trigger")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *APIJob) validateUpdatedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.UpdatedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
 	}
 

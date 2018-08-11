@@ -54,16 +54,16 @@ func NewGetJobOK() *GetJobOK {
 GetJobOK get job o k
 */
 type GetJobOK struct {
-	Payload *job_model.APIJobDetail
+	Payload *job_model.APIJob
 }
 
 func (o *GetJobOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/pipelines/{pipeline_id}/jobs/{job_id}][%d] getJobOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1alpha2/jobs/{id}][%d] getJobOK  %+v", 200, o.Payload)
 }
 
 func (o *GetJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(job_model.APIJobDetail)
+	o.Payload = new(job_model.APIJob)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -96,7 +96,7 @@ func (o *GetJobDefault) Code() int {
 }
 
 func (o *GetJobDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/pipelines/{pipeline_id}/jobs/{job_id}][%d] GetJob default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1alpha2/jobs/{id}][%d] GetJob default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *GetJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

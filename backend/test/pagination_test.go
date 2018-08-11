@@ -17,12 +17,12 @@ type PaginationTestSuit struct {
 	suite.Suite
 	namespace      string
 	conn           *grpc.ClientConn
-	packageClient  api.PackageServiceClient
 	pipelineClient api.PipelineServiceClient
 	jobClient      api.JobServiceClient
+	runClient      api.RunServiceClient
 }
 
-// Check the namespace have ML pipeline installed and ready
+// Check the namespace have ML job installed and ready
 func (s *PaginationTestSuit) SetupTest() {
 	err := waitForReady(*namespace, *initializeTimeout)
 	if err != nil {
@@ -33,9 +33,9 @@ func (s *PaginationTestSuit) SetupTest() {
 	if err != nil {
 		glog.Exit("Failed to get RPC connection. Error: %s", err.Error())
 	}
-	s.packageClient = api.NewPackageServiceClient(s.conn)
 	s.pipelineClient = api.NewPipelineServiceClient(s.conn)
 	s.jobClient = api.NewJobServiceClient(s.conn)
+	s.runClient = api.NewRunServiceClient(s.conn)
 }
 
 func (s *PaginationTestSuit) TearDownTest() {
@@ -51,138 +51,138 @@ func (s *PaginationTestSuit) TestPagination_E2E() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	/* ---------- Upload three packages ---------- */
-	pkgBody, writer := uploadPackageFileOrFail("resources/hello-world.yaml")
+	/* ---------- Upload three pipelines ---------- */
+	pipelineBody, writer := uploadPipelineFileOrFail("resources/hello-world.yaml")
 	_, err = clientSet.RESTClient().Post().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "packages/upload")).
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
 		SetHeader("Content-Type", writer.FormDataContentType()).
-		Body(pkgBody).Do().Raw()
+		Body(pipelineBody).Do().Raw()
 	assert.Nil(t, err)
 
-	pkgBody, writer = uploadPackageFileOrFail("resources/arguments-parameters.yaml")
+	pipelineBody, writer = uploadPipelineFileOrFail("resources/arguments-parameters.yaml")
 	_, err = clientSet.RESTClient().Post().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "packages/upload")).
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
 		SetHeader("Content-Type", writer.FormDataContentType()).
-		Body(pkgBody).Do().Raw()
+		Body(pipelineBody).Do().Raw()
 	assert.Nil(t, err)
 
-	pkgBody, writer = uploadPackageFileOrFail("resources/loops.yaml")
+	pipelineBody, writer = uploadPipelineFileOrFail("resources/loops.yaml")
 	_, err = clientSet.RESTClient().Post().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "packages/upload")).
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
 		SetHeader("Content-Type", writer.FormDataContentType()).
-		Body(pkgBody).Do().Raw()
+		Body(pipelineBody).Do().Raw()
 	assert.Nil(t, err)
 
-	/* ---------- List package sorted by names ---------- */
-	listFirstPagePackageResponse, err := s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{PageSize: 2, SortBy: "name"})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPagePackageResponse.Packages))
-	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePackageResponse.Packages[0].Name)
-	assert.Equal(t, "hello-world.yaml", listFirstPagePackageResponse.Packages[1].Name)
-	assert.NotEmpty(t, listFirstPagePackageResponse.NextPageToken)
-
-	listSecondPagePackageResponse, err := s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{PageToken: listFirstPagePackageResponse.NextPageToken, PageSize: 2, SortBy: "name"})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(listSecondPagePackageResponse.Packages))
-	assert.Equal(t, "loops.yaml", listSecondPagePackageResponse.Packages[0].Name)
-	assert.Empty(t, listSecondPagePackageResponse.NextPageToken)
-
-	argumentsParametersPkgId := listFirstPagePackageResponse.Packages[0].Id
-	helloWorldPkgId := listFirstPagePackageResponse.Packages[1].Id
-	loopsPkgId := listSecondPagePackageResponse.Packages[0].Id
-
-	/* ---------- List packages sort by unsupported description field. Should fail. ---------- */
-	_, err = s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{PageSize: 2, SortBy: "description"})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "InvalidArgument")
-
-	/* ---------- List packages sorted by names descend order ---------- */
-	listFirstPagePackageResponse, err = s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{PageSize: 2, SortBy: "name desc"})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPagePackageResponse.Packages))
-	assert.Equal(t, "loops.yaml", listFirstPagePackageResponse.Packages[0].Name)
-	assert.Equal(t, "hello-world.yaml", listFirstPagePackageResponse.Packages[1].Name)
-	assert.NotEmpty(t, listFirstPagePackageResponse.NextPageToken)
-
-	listSecondPagePackageResponse, err = s.packageClient.ListPackages(ctx, &api.ListPackagesRequest{PageToken: listFirstPagePackageResponse.NextPageToken, PageSize: 2, SortBy: "name desc"})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(listSecondPagePackageResponse.Packages))
-	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePackageResponse.Packages[0].Name)
-	assert.Empty(t, listSecondPagePackageResponse.NextPageToken)
-
-	/* ---------- Instantiate 3 pipeline using the packages ---------- */
-	loopsPipeline := &api.Pipeline{
-		Name:      "loops",
-		PackageId: loopsPkgId,
-	}
-	loopsPipeline, err = s.pipelineClient.CreatePipeline(ctx, &api.CreatePipelineRequest{Pipeline: loopsPipeline})
-	assert.Nil(t, err)
-
-	argumentsParametersPipeline := &api.Pipeline{
-		Name:      "arguments-parameters",
-		PackageId: argumentsParametersPkgId,
-		Parameters: []*api.Parameter{
-			{Name: "param2", Value: "world"},
-		},
-	}
-	argumentsParametersPipeline, err = s.pipelineClient.CreatePipeline(ctx, &api.CreatePipelineRequest{Pipeline: argumentsParametersPipeline})
-	assert.Nil(t, err)
-
-	helloWorldPipeline := &api.Pipeline{
-		Name:      "hello-world",
-		PackageId: helloWorldPkgId,
-	}
-	helloWorldPipeline, err = s.pipelineClient.CreatePipeline(ctx, &api.CreatePipelineRequest{Pipeline: helloWorldPipeline})
-	assert.Nil(t, err)
-
-	/* ---------- List pipelines sorted by names ---------- */
-	listFirstPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "created_at"})
+	/* ---------- List pipeline sorted by names ---------- */
+	listFirstPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "name"})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
-	assert.Equal(t, "loops", listFirstPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "arguments-parameters", listFirstPagePipelineResponse.Pipelines[1].Name)
-	assert.NotEmpty(t, listFirstPagePackageResponse.NextPageToken)
+	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelineResponse.Pipelines[0].Name)
+	assert.Equal(t, "hello-world.yaml", listFirstPagePipelineResponse.Pipelines[1].Name)
+	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
 
-	listSecondPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "created_at"})
+	listSecondPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "name"})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(listSecondPagePipelineResponse.Pipelines))
-	assert.Equal(t, "hello-world", listSecondPagePipelineResponse.Pipelines[0].Name)
-	assert.Empty(t, listSecondPagePackageResponse.NextPageToken)
+	assert.Equal(t, "loops.yaml", listSecondPagePipelineResponse.Pipelines[0].Name)
+	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
+
+	argumentsParametersPipelineId := listFirstPagePipelineResponse.Pipelines[0].Id
+	helloWorldPipelineId := listFirstPagePipelineResponse.Pipelines[1].Id
+	loopsPipelineId := listSecondPagePipelineResponse.Pipelines[0].Id
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
 	_, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "description"})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "InvalidArgument")
 
-	/* ---------- List pipelines sorted by names ---------- */
-	listFirstPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "created_at desc"})
+	/* ---------- List pipelines sorted by names descend order ---------- */
+	listFirstPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "name desc"})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
-	assert.Equal(t, "hello-world", listFirstPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "arguments-parameters", listFirstPagePipelineResponse.Pipelines[1].Name)
-	assert.NotEmpty(t, listFirstPagePackageResponse.NextPageToken)
+	assert.Equal(t, "loops.yaml", listFirstPagePipelineResponse.Pipelines[0].Name)
+	assert.Equal(t, "hello-world.yaml", listFirstPagePipelineResponse.Pipelines[1].Name)
+	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
 
-	listSecondPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "created_at desc"})
+	listSecondPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "name desc"})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(listSecondPagePipelineResponse.Pipelines))
-	assert.Equal(t, "loops", listSecondPagePipelineResponse.Pipelines[0].Name)
-	assert.Empty(t, listSecondPagePackageResponse.NextPageToken)
+	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelineResponse.Pipelines[0].Name)
+	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
 
-	// TODO(https://github.com/googleprivate/ml/issues/473): Add tests for list jobs.
+	/* ---------- Instantiate 3 job using the pipelines ---------- */
+	loopsJob := &api.Job{
+		Name:       "loops",
+		PipelineId: loopsPipelineId,
+	}
+	loopsJob, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: loopsJob})
+	assert.Nil(t, err)
+
+	argumentsParametersJob := &api.Job{
+		Name:       "arguments-parameters",
+		PipelineId: argumentsParametersPipelineId,
+		Parameters: []*api.Parameter{
+			{Name: "param2", Value: "world"},
+		},
+	}
+	argumentsParametersJob, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: argumentsParametersJob})
+	assert.Nil(t, err)
+
+	helloWorldJob := &api.Job{
+		Name:       "hello-world",
+		PipelineId: helloWorldPipelineId,
+	}
+	helloWorldJob, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: helloWorldJob})
+	assert.Nil(t, err)
+
+	/* ---------- List jobs sorted by names ---------- */
+	listFirstPageJobResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageSize: 2, SortBy: "created_at"})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listFirstPageJobResponse.Jobs))
+	assert.Equal(t, "loops", listFirstPageJobResponse.Jobs[0].Name)
+	assert.Equal(t, "arguments-parameters", listFirstPageJobResponse.Jobs[1].Name)
+	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
+
+	listSecondPageJobResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageToken: listFirstPageJobResponse.NextPageToken, PageSize: 2, SortBy: "created_at"})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listSecondPageJobResponse.Jobs))
+	assert.Equal(t, "hello-world", listSecondPageJobResponse.Jobs[0].Name)
+	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
+
+	/* ---------- List jobs sort by unsupported description field. Should fail. ---------- */
+	_, err = s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageSize: 2, SortBy: "description"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "InvalidArgument")
+
+	/* ---------- List jobs sorted by names ---------- */
+	listFirstPageJobResponse, err = s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageSize: 2, SortBy: "created_at desc"})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listFirstPageJobResponse.Jobs))
+	assert.Equal(t, "hello-world", listFirstPageJobResponse.Jobs[0].Name)
+	assert.Equal(t, "arguments-parameters", listFirstPageJobResponse.Jobs[1].Name)
+	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
+
+	listSecondPageJobResponse, err = s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageToken: listFirstPageJobResponse.NextPageToken, PageSize: 2, SortBy: "created_at desc"})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(listSecondPageJobResponse.Jobs))
+	assert.Equal(t, "loops", listSecondPageJobResponse.Jobs[0].Name)
+	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
+
+	// TODO(https://github.com/googleprivate/ml/issues/473): Add tests for list runs.
 
 	/* ---------- Clean up ---------- */
-	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: argumentsParametersPipeline.Id})
+	_, err = s.jobClient.DeleteJob(ctx, &api.DeleteJobRequest{Id: argumentsParametersJob.Id})
 	assert.Nil(t, err)
-	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: helloWorldPipeline.Id})
+	_, err = s.jobClient.DeleteJob(ctx, &api.DeleteJobRequest{Id: helloWorldJob.Id})
 	assert.Nil(t, err)
-	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: loopsPipeline.Id})
+	_, err = s.jobClient.DeleteJob(ctx, &api.DeleteJobRequest{Id: loopsJob.Id})
 	assert.Nil(t, err)
 
-	_, err = s.packageClient.DeletePackage(ctx, &api.DeletePackageRequest{Id: argumentsParametersPkgId})
+	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: argumentsParametersPipelineId})
 	assert.Nil(t, err)
-	_, err = s.packageClient.DeletePackage(ctx, &api.DeletePackageRequest{Id: helloWorldPkgId})
+	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: helloWorldPipelineId})
 	assert.Nil(t, err)
-	_, err = s.packageClient.DeletePackage(ctx, &api.DeletePackageRequest{Id: loopsPkgId})
+	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: loopsPipelineId})
 	assert.Nil(t, err)
 
 }

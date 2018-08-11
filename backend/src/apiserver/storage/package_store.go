@@ -23,60 +23,60 @@ import (
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
-type PackageStoreInterface interface {
-	ListPackages(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Package, string, error)
-	GetPackage(packageId string) (*model.Package, error)
-	GetPackageWithStatus(id string, status model.PackageStatus) (*model.Package, error)
-	DeletePackage(packageId string) error
-	CreatePackage(*model.Package) (*model.Package, error)
-	UpdatePackageStatus(string, model.PackageStatus) error
+type PipelineStoreInterface interface {
+	ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Pipeline, string, error)
+	GetPipeline(pipelineId string) (*model.Pipeline, error)
+	GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error)
+	DeletePipeline(pipelineId string) error
+	CreatePipeline(*model.Pipeline) (*model.Pipeline, error)
+	UpdatePipelineStatus(string, model.PipelineStatus) error
 }
 
-type PackageStore struct {
+type PipelineStore struct {
 	db   *sql.DB
 	time util.TimeInterface
 	uuid util.UUIDGeneratorInterface
 }
 
-func (s *PackageStore) ListPackages(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Package, string, error) {
-	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPackageTablePrimaryKeyColumn(), isDesc)
+func (s *PipelineStore) ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Pipeline, string, error) {
+	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPipelineTablePrimaryKeyColumn(), isDesc)
 	if err != nil {
 		return nil, "", err
 	}
-	models, pageToken, err := listModel(paginationContext, s.queryPackageTable)
+	models, pageToken, err := listModel(paginationContext, s.queryPipelineTable)
 	if err != nil {
-		return nil, "", util.Wrap(err, "List package failed.")
+		return nil, "", util.Wrap(err, "List pipeline failed.")
 	}
-	return s.toPackages(models), pageToken, err
+	return s.toPipelines(models), pageToken, err
 }
 
-func (s *PackageStore) queryPackageTable(context *PaginationContext) ([]model.ListableDataModel, error) {
+func (s *PipelineStore) queryPipelineTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var query bytes.Buffer
-	query.WriteString(fmt.Sprintf("SELECT * FROM packages WHERE Status = '%v'", model.PackageReady))
+	query.WriteString(fmt.Sprintf("SELECT * FROM pipelines WHERE Status = '%v'", model.PipelineReady))
 	toPaginationQuery("AND", &query, context)
 	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
 	r, err := s.db.Query(query.String())
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list packages: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to list pipelines: %v", err.Error())
 	}
 	defer r.Close()
-	packages, err := s.scanRows(r)
+	pipelines, err := s.scanRows(r)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list packages: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to list pipelines: %v", err.Error())
 	}
-	return s.toListablePackages(packages), nil
+	return s.toListablePipelines(pipelines), nil
 }
 
-func (s *PackageStore) scanRows(rows *sql.Rows) ([]model.Package, error) {
-	var packages []model.Package
+func (s *PipelineStore) scanRows(rows *sql.Rows) ([]model.Pipeline, error) {
+	var pipelines []model.Pipeline
 	for rows.Next() {
 		var uuid, name, parameters, description string
 		var createdAtInSec int64
-		var status model.PackageStatus
+		var status model.PipelineStatus
 		if err := rows.Scan(&uuid, &createdAtInSec, &name, &description, &parameters, &status); err != nil {
-			return packages, err
+			return pipelines, err
 		}
-		packages = append(packages, model.Package{
+		pipelines = append(pipelines, model.Pipeline{
 			UUID:           uuid,
 			CreatedAtInSec: createdAtInSec,
 			Name:           name,
@@ -84,78 +84,78 @@ func (s *PackageStore) scanRows(rows *sql.Rows) ([]model.Package, error) {
 			Parameters:     parameters,
 			Status:         status})
 	}
-	return packages, nil
+	return pipelines, nil
 }
 
-func (s *PackageStore) GetPackage(id string) (*model.Package, error) {
-	return s.GetPackageWithStatus(id, model.PackageReady)
+func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {
+	return s.GetPipelineWithStatus(id, model.PipelineReady)
 }
 
-func (s *PackageStore) GetPackageWithStatus(id string, status model.PackageStatus) (*model.Package, error) {
-	r, err := s.db.Query("SELECT * FROM packages WHERE uuid=? AND status=? LIMIT 1", id, status)
+func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error) {
+	r, err := s.db.Query("SELECT * FROM pipelines WHERE uuid=? AND status=? LIMIT 1", id, status)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get package: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get pipeline: %v", err.Error())
 	}
 	defer r.Close()
-	packages, err := s.scanRows(r)
+	pipelines, err := s.scanRows(r)
 
-	if err != nil || len(packages) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to get package: %v", err.Error())
+	if err != nil || len(pipelines) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get pipeline: %v", err.Error())
 	}
-	if len(packages) == 0 {
-		return nil, util.NewResourceNotFoundError("Package", fmt.Sprint(id))
+	if len(pipelines) == 0 {
+		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}
-	return &packages[0], nil
+	return &pipelines[0], nil
 }
 
-func (s *PackageStore) DeletePackage(id string) error {
-	_, err := s.db.Exec(`DELETE FROM packages WHERE UUID=?`, id)
+func (s *PipelineStore) DeletePipeline(id string) error {
+	_, err := s.db.Exec(`DELETE FROM pipelines WHERE UUID=?`, id)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to delete package: %v", err.Error())
+		return util.NewInternalServerError(err, "Failed to delete pipeline: %v", err.Error())
 	}
 	return nil
 }
 
-func (s *PackageStore) CreatePackage(p *model.Package) (*model.Package, error) {
-	newPackage := *p
+func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
+	newPipeline := *p
 	now := s.time.Now().Unix()
-	newPackage.CreatedAtInSec = now
+	newPipeline.CreatedAtInSec = now
 	id, err := s.uuid.NewRandom()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a package id.")
+		return nil, util.NewInternalServerError(err, "Failed to create a pipeline id.")
 	}
-	newPackage.UUID = id.String()
+	newPipeline.UUID = id.String()
 	stmt, err := s.db.Prepare(
-		`INSERT INTO packages (UUID, CreatedAtInSec,Name,Description,Parameters,Status)
+		`INSERT INTO pipelines (UUID, CreatedAtInSec,Name,Description,Parameters,Status)
 						VALUES (?,?,?,?,?,?)`)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to add package to package table: %v",
+		return nil, util.NewInternalServerError(err, "Failed to add pipeline to pipeline table: %v",
 			err.Error())
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(
-		newPackage.UUID,
-		newPackage.CreatedAtInSec,
-		newPackage.Name,
-		newPackage.Description,
-		newPackage.Parameters,
-		string(newPackage.Status))
+		newPipeline.UUID,
+		newPipeline.CreatedAtInSec,
+		newPipeline.Name,
+		newPipeline.Description,
+		newPipeline.Parameters,
+		string(newPipeline.Status))
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to add package to package table: %v",
+		return nil, util.NewInternalServerError(err, "Failed to add pipeline to pipeline table: %v",
 			err.Error())
 	}
-	return &newPackage, nil
+	return &newPipeline, nil
 }
 
-func (s *PackageStore) UpdatePackageStatus(id string, status model.PackageStatus) error {
-	_, err := s.db.Exec(`UPDATE packages SET Status=? WHERE UUID=?`, status, id)
+func (s *PipelineStore) UpdatePipelineStatus(id string, status model.PipelineStatus) error {
+	_, err := s.db.Exec(`UPDATE pipelines SET Status=? WHERE UUID=?`, status, id)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to update the package metadata: %s", err.Error())
+		return util.NewInternalServerError(err, "Failed to update the pipeline metadata: %s", err.Error())
 	}
 	return nil
 }
 
-func (s *PackageStore) toListablePackages(pkgs []model.Package) []model.ListableDataModel {
+func (s *PipelineStore) toListablePipelines(pkgs []model.Pipeline) []model.ListableDataModel {
 	models := make([]model.ListableDataModel, len(pkgs))
 	for i := range models {
 		models[i] = pkgs[i]
@@ -163,15 +163,15 @@ func (s *PackageStore) toListablePackages(pkgs []model.Package) []model.Listable
 	return models
 }
 
-func (s *PackageStore) toPackages(models []model.ListableDataModel) []model.Package {
-	pkgs := make([]model.Package, len(models))
+func (s *PipelineStore) toPipelines(models []model.ListableDataModel) []model.Pipeline {
+	pkgs := make([]model.Pipeline, len(models))
 	for i := range models {
-		pkgs[i] = models[i].(model.Package)
+		pkgs[i] = models[i].(model.Pipeline)
 	}
 	return pkgs
 }
 
-// factory function for package store
-func NewPackageStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *PackageStore {
-	return &PackageStore{db: db, time: time, uuid: uuid}
+// factory function for pipeline store
+func NewPipelineStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *PipelineStore {
+	return &PipelineStore{db: db, time: time, uuid: uuid}
 }

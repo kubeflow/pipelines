@@ -5,6 +5,8 @@ package api;
 import "error.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "parameter.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
@@ -21,46 +23,112 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service JobService {
-  rpc GetJob(GetJobRequest) returns (JobDetail) {
+  rpc CreateJob(CreateJobRequest) returns (Job) {
     option (google.api.http) = {
-      get: "/apis/v1alpha2/pipelines/{pipeline_id}/jobs/{job_id}"
+      post: "/apis/v1alpha2/jobs"
+      body: "job"
+    };
+  }
+
+  rpc GetJob(GetJobRequest) returns (Job) {
+    option (google.api.http) = {
+      get: "/apis/v1alpha2/jobs/{id}"
     };
   }
 
   rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1alpha2/pipelines/{pipeline_id}/jobs"
+      get: "/apis/v1alpha2/jobs"
+    };
+  }
+
+  rpc EnableJob(EnableJobRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1alpha2/jobs/{id}/enable"
+    };
+  }
+
+  rpc DisableJob(DisableJobRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1alpha2/jobs/{id}/disable"
+    };
+  }
+
+  rpc DeleteJob(DeleteJobRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1alpha2/jobs/{id}"
     };
   }
 }
 
-message GetJobRequest {
-  string pipeline_id = 1;
-  string job_id = 2;
+message CreateJobRequest{
+  Job job = 1;
 }
 
-message ListJobsRequest {
-  string pipeline_id = 1;
-  string page_token = 2;
-  int32 page_size = 3;
-  string sort_by = 4;
+message GetJobRequest{
+  string id = 1;
 }
 
-message ListJobsResponse {
+message ListJobsRequest{
+  string page_token = 1;
+  int32 page_size = 2;
+  string sort_by = 3;
+}
+
+message ListJobsResponse{
   repeated Job jobs = 1;
   string next_page_token = 2;
 }
 
-message Job {
+message DeleteJobRequest{
   string id = 1;
-  string name = 2;
-  string namespace = 3;
-  google.protobuf.Timestamp created_at = 4;
-  google.protobuf.Timestamp scheduled_at = 5;
-  string status = 6;
 }
 
-message JobDetail {
-  Job job = 1;
-  string workflow = 2;
+message EnableJobRequest {
+  string id = 1;
+}
+
+message DisableJobRequest {
+  string id = 1;
+}
+
+message CronSchedule {
+  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  string cron = 3;
+}
+
+message PeriodicSchedule {
+  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+  int64 interval_second = 3;
+}
+
+message Trigger{
+  oneof trigger{
+    CronSchedule cron_schedule = 1;
+    PeriodicSchedule periodic_schedule = 2;
+  }
+}
+
+message Job{
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string pipeline_id = 4;
+  bool enabled = 5;
+  // The status is surfacing the resource condition. A resource can potentially
+  // have multiple conditions, although in most cases, it should be in one
+  // state.
+  // https://github.com/eBay/Kubernetes/blob/master/docs/devel/api-conventions.md
+  // In case of a single state, the status ends with a colon:
+  // STATUS_1:
+  // In case of multiple states, the statuses are separated by a colon.
+  // STATUS_1:STATUS_2:
+  string status = 6;
+  int64 max_concurrency = 7;
+  repeated Parameter parameters = 8;
+  Trigger trigger = 9;
+  google.protobuf.Timestamp created_at =10;
+  google.protobuf.Timestamp updated_at =11;
 }

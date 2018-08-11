@@ -1,0 +1,127 @@
+<dom-module id="job-new">
+  <template>
+    <link rel="stylesheet" href="./job-new.css">
+
+    <style>
+      /*
+      This is here instead of in the .css file because of css-loader, which
+      tries to validate CSS while loading, and ends up commenting out all
+      mixins, since they're not officially in the CSS spec.
+      */
+      paper-dropdown-menu, paper-input, paper-textarea {
+        --paper-input-container: {
+          padding: 0;
+        }
+        --paper-input-container-label: {
+          box-sizing: border-box;
+          padding: 0 8px;
+        }
+        --paper-input-container-input: {
+          box-sizing: border-box;
+          font-size: 14px;
+          padding: 0 6px;
+        }
+        --paper-input-container-label-floating: {
+          padding: 0 8px;
+        }
+        --paper-input-error: {
+          padding: 0 6px;
+        }
+
+        /* Ensure the ripple fills the whole element */
+        --paper-dropdown-menu-ripple: {
+          bottom: 0px;
+          left: 0;
+          right: 0;
+          top: 0px;
+        }
+      }
+      paper-textarea {
+        --iron-autogrow-textarea: {
+          padding: 0 6px;
+        }
+      }
+    </style>
+
+    <div class="toolbar">
+      <a href="/jobs" class="unstyled toolbar-arrow-back">
+        <paper-icon-button icon="arrow-back"></paper-icon-button>
+      </a>
+      <div class="toolbar-title">
+        Configure New Job
+      </div>
+    </div>
+
+    <page-error id="pageErrorElement" error="[[_pageError]]"
+                details="[[_pageErrorDetails]]"></page-error>
+
+
+    <div class="relative">
+      <div class="overlay" hidden="[[!_busy]]">
+        <paper-spinner class="absolute-spinner" active></paper-spinner>
+      </div>
+      <div class="scrollable padded">
+        <div class="flex">
+          <paper-dropdown-menu id="pipelinesDropdown" class="input-field-large"
+                               label="Choose a Pipeline">
+            <paper-listbox id="pipelinesListbox" slot="dropdown-content"
+                           class="dropdown-content" selected="{{_pipelineIndex}}">
+              <template is="dom-repeat" items="[[pipelines]]" as="pkg">
+                <paper-item pipeline-id="[[pkg.id]]" parameters="[[pkg.parameters]]">
+                  <paper-item-body two-line>
+                    <div>[[pkg.name]]</div>
+                    <div secondary>ID: [[pkg.id]]</div>
+                  </paper-item-body>
+                </paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <span class="or-tag">- or -</span>
+          <paper-button id="uploadBtn" class="action-button" on-click="_altUpload">
+            Upload New Pipeline
+          </paper-button>
+          <!--This is hidden but its functionality is used by the alt upload button above-->
+          <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
+        </div>
+
+        <paper-input id="name" class="input-field-large" label="Job Name"
+                     autofocus required maxlength="50" spellcheck="false" value="{{_name}}"
+                     auto-validate error-message="Job must have a name">
+        </paper-input>
+        <paper-textarea id="description" class="input-field-large" label="Description"
+                        spellcheck="false" value="{{_description}}">
+        </paper-textarea>
+
+        <hr>
+
+        <!-- Job Parameters -->
+        <div id="jobParameters">
+          <template is="dom-if" if="[[_parameters.length]]">
+            <div id="parametersTitle" class="param-header">Parameters</div>
+            <template is="dom-repeat" items="{{_parameters}}" as="param">
+              <div class="param-name">[[param.name]]</div>
+              <paper-input class="input-field-large no-shrink" no-label-float
+                           spellcheck="false" value="{{param.value}}">
+              </paper-input>
+            </template>
+            <hr>
+          </template>
+        </div>
+
+        <!-- Job Run Schedule -->
+        <div class="param-header">Schedule</div>
+        <br>
+        <!-- The schedule component is dynamically added and removed from this div -->
+        <div id="schedule"></div>
+        <hr>
+
+        <paper-button id="deployButton" class="action-button" raised
+                      disabled="[[!_inputIsValid]]" on-click="_deploy">
+          Deploy
+          <iron-icon icon="chevron-right"></iron-icon>
+        </paper-button>
+      </div>
+    </div>
+
+  </template>
+</dom-module>

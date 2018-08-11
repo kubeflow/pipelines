@@ -1,12 +1,12 @@
 import { Job } from '../api/job';
 import { ListJobsRequest } from '../api/list_jobs_request';
 import { ListJobsResponse } from '../api/list_jobs_response';
-import { ListPackagesRequest } from '../api/list_packages_request';
-import { ListPackagesResponse } from '../api/list_packages_response';
 import { ListPipelinesRequest } from '../api/list_pipelines_request';
 import { ListPipelinesResponse } from '../api/list_pipelines_response';
-import { Pipeline } from '../api/pipeline';
-import { PackageTemplate, PipelinePackage } from '../api/pipeline_package';
+import { ListRunsRequest } from '../api/list_runs_request';
+import { ListRunsResponse } from '../api/list_runs_response';
+import { Pipeline, PipelineTemplate } from '../api/pipeline';
+import { Run } from '../api/run';
 
 const v1alpha2Prefix = '/apis/v1alpha2';
 
@@ -35,34 +35,34 @@ export async function isApiServerReady(): Promise<boolean> {
 }
 
 /**
- * Gets a list of the pipeline packages defined on the backend.
+ * Gets a list of the pipelines defined on the backend.
  */
-export async function getPackages(request: ListPackagesRequest): Promise<ListPackagesResponse> {
-  return JSON.parse(await _fetch('/packages', v1alpha2Prefix));
+export async function listPipelines(request: ListPipelinesRequest): Promise<ListPipelinesResponse> {
+  return JSON.parse(await _fetch('/pipelines', v1alpha2Prefix));
 }
 
 /**
- * Gets the details of a certain package given its id.
+ * Gets the details of a certain pipeline given its id.
  */
-export async function getPackage(id: number): Promise<PipelinePackage> {
-  return JSON.parse(await _fetch(`/packages/${id}`, v1alpha2Prefix));
+export async function getPipeline(id: number): Promise<Pipeline> {
+  return JSON.parse(await _fetch(`/pipelines/${id}`, v1alpha2Prefix));
 }
 
 /**
- * Gets the Argo template of a certain package given its id.
+ * Gets the Argo template of a certain pipeline given its id.
  */
-export async function getPackageTemplate(id: number): Promise<PackageTemplate> {
-  return JSON.parse(await _fetch(`/packages/${id}/templates`, v1alpha2Prefix));
+export async function getPipelineTemplate(id: number): Promise<PipelineTemplate> {
+  return JSON.parse(await _fetch(`/pipelines/${id}/templates`, v1alpha2Prefix));
 }
 
 /**
- * Uploads the given package file to the backend, and gets back a PipelinePackage
+ * Uploads the given pipeline file to the backend, and gets back a Pipeline
  * object with its metadata parsed.
  */
-export async function uploadPackage(packageData: any): Promise<PipelinePackage> {
+export async function uploadPipeline(pipelineData: any): Promise<Pipeline> {
   const fd = new FormData();
-  fd.append('uploadfile', packageData, packageData.name);
-  const response = await _fetch('/packages/upload', v1alpha2Prefix, '', {
+  fd.append('uploadfile', pipelineData, pipelineData.name);
+  const response = await _fetch('/pipelines/upload', v1alpha2Prefix, '', {
     body: fd,
     cache: 'no-cache',
     method: 'POST',
@@ -71,25 +71,25 @@ export async function uploadPackage(packageData: any): Promise<PipelinePackage> 
 }
 
 /**
- * Gets a list of the pipeline package pipelines defined on the backend.
+ * Gets a list of the pipeline jobs defined on the backend.
  */
-export async function getPipelines(request: ListPipelinesRequest): Promise<ListPipelinesResponse> {
-  return ListPipelinesResponse.buildFromObject(
-      JSON.parse(await _fetch('/pipelines', v1alpha2Prefix, request.toQueryParams())));
+export async function listJobs(request: ListJobsRequest): Promise<ListJobsResponse> {
+  return ListJobsResponse.buildFromObject(
+      JSON.parse(await _fetch('/jobs', v1alpha2Prefix, request.toQueryParams())));
 }
 
 /**
- * Gets the details of a certain package pipeline given its id.
+ * Gets the details of a certain pipeline job given its id.
  */
-export async function getPipeline(id: string): Promise<Pipeline> {
-  return Pipeline.buildFromObject(JSON.parse(await _fetch(`/pipelines/${id}`, v1alpha2Prefix)));
+export async function getJob(id: string): Promise<Job> {
+  return Job.buildFromObject(JSON.parse(await _fetch(`/jobs/${id}`, v1alpha2Prefix)));
 }
 
 /**
- * Sends a request to the backened to permanently delete a pipeline.
+ * Sends a request to the backened to permanently delete a job.
  */
-export function deletePipeline(id: string): Promise<string> {
-  return _fetch(`/pipelines/${id}`, v1alpha2Prefix, '', {
+export function deleteJob(id: string): Promise<string> {
+  return _fetch(`/jobs/${id}`, v1alpha2Prefix, '', {
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',
@@ -99,38 +99,25 @@ export function deletePipeline(id: string): Promise<string> {
 }
 
 /**
- * Sends a new pipeline request to the backend.
+ * Sends a new job request to the backend.
  */
-export async function newPipeline(pipeline: Pipeline): Promise<Pipeline> {
-  const response = await _fetch('/pipelines', v1alpha2Prefix, '', {
-    body: JSON.stringify(pipeline),
+export async function newJob(job: Job): Promise<Job> {
+  const response = await _fetch('/jobs', v1alpha2Prefix, '', {
+    body: JSON.stringify(job),
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',
     },
     method: 'POST',
   });
-  return Pipeline.buildFromObject(JSON.parse(response));
+  return Job.buildFromObject(JSON.parse(response));
 }
 
 /**
- * Sends an enable pipeline request to the backend.
+ * Sends an enable job request to the backend.
  */
-export function enablePipeline(id: string): Promise<string> {
-  return _fetch(`/pipelines/${id}/enable`, v1alpha2Prefix, '', {
-    cache: 'no-cache',
-    headers: {
-      'content-type': 'application/json',
-    },
-    method: 'POST',
-  });
-}
-
-/**
- * Sends a disable pipeline request to the backend.
- */
-export function disablePipeline(id: string): Promise<string> {
-  return _fetch(`/pipelines/${id}/disable`, v1alpha2Prefix, '', {
+export function enableJob(id: string): Promise<string> {
+  return _fetch(`/jobs/${id}/enable`, v1alpha2Prefix, '', {
     cache: 'no-cache',
     headers: {
       'content-type': 'application/json',
@@ -140,21 +127,33 @@ export function disablePipeline(id: string): Promise<string> {
 }
 
 /**
- * Gets a list of all the pipeline jobs belonging to the specified pipelined
- * from the backend.
+ * Sends a disable job request to the backend.
  */
-export async function getJobs(request: ListJobsRequest): Promise<ListJobsResponse> {
-  return ListJobsResponse.buildFromObject(
+export function disableJob(id: string): Promise<string> {
+  return _fetch(`/jobs/${id}/disable`, v1alpha2Prefix, '', {
+    cache: 'no-cache',
+    headers: {
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+  });
+}
+
+/**
+ * Gets a list of all the job runs from the backend.
+ */
+export async function listRuns(request: ListRunsRequest): Promise<ListRunsResponse> {
+  return ListRunsResponse.buildFromObject(
       JSON.parse(await _fetch(
-          `/pipelines/${request.pipelineId}/jobs`, v1alpha2Prefix, request.toQueryParams())));
+          `/jobs/${request.jobId}/runs`, v1alpha2Prefix, request.toQueryParams())));
 }
 
 /**
- * Gets a pipeline job given its id.
+ * Gets a job run given its id.
  */
-export async function getJob(pipelineId: string, jobId: string): Promise<Job> {
-  return Job.buildFromObject(JSON.parse(
-      await _fetch(`/pipelines/${pipelineId}/jobs/${jobId}`, v1alpha2Prefix)));
+export async function getRun(jobId: string, runId: string): Promise<Run> {
+  return Run.buildFromObject(JSON.parse(
+      await _fetch(`/jobs/${jobId}/runs/${runId}`, v1alpha2Prefix)));
 }
 
 /**

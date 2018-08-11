@@ -58,9 +58,9 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
 	server := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor))
-	api.RegisterPackageServiceServer(server, &PackageServer{resourceManager})
-	api.RegisterJobServiceServer(server, &JobServer{resourceManager})
 	api.RegisterPipelineServiceServer(server, &PipelineServer{resourceManager})
+	api.RegisterRunServiceServer(server, &RunServer{resourceManager})
+	api.RegisterJobServiceServer(server, &JobServer{resourceManager})
 	api.RegisterReportServiceServer(server, &ReportServer{resourceManager})
 
 	// Register reflection service on gRPC server.
@@ -80,19 +80,19 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 
 	// Create gRPC HTTP MUX and register services.
 	mux := runtime.NewServeMux()
-	registerHttpHandlerFromEndpoint(api.RegisterPackageServiceHandlerFromEndpoint, "PackageService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)
+	registerHttpHandlerFromEndpoint(api.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, mux)
 
-	// Create a top level mux to include both package upload server and gRPC servers.
+	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := http.NewServeMux()
 
 	// multipart upload is only supported in HTTP. In long term, we should have gRPC endpoints that
-	// accept package url for importing.
+	// accept pipeline url for importing.
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
-	packageUploadServer := &PackageUploadServer{resourceManager: resourceManager}
-	topMux.HandleFunc("/apis/v1alpha2/packages/upload", packageUploadServer.UploadPackage)
+	pipelineUploadServer := &PipelineUploadServer{resourceManager: resourceManager}
+	topMux.HandleFunc("/apis/v1alpha2/pipelines/upload", pipelineUploadServer.UploadPipeline)
 	topMux.HandleFunc("/apis/v1alpha2/healthz", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `{"commit_sha":"`+getStringConfig("COMMIT_SHA")+"}")
 	})

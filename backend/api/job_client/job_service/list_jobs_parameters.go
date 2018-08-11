@@ -67,8 +67,6 @@ type ListJobsParams struct {
 	PageSize *int32
 	/*PageToken*/
 	PageToken *string
-	/*PipelineID*/
-	PipelineID string
 	/*SortBy*/
 	SortBy *string
 
@@ -132,17 +130,6 @@ func (o *ListJobsParams) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
-// WithPipelineID adds the pipelineID to the list jobs params
-func (o *ListJobsParams) WithPipelineID(pipelineID string) *ListJobsParams {
-	o.SetPipelineID(pipelineID)
-	return o
-}
-
-// SetPipelineID adds the pipelineId to the list jobs params
-func (o *ListJobsParams) SetPipelineID(pipelineID string) {
-	o.PipelineID = pipelineID
-}
-
 // WithSortBy adds the sortBy to the list jobs params
 func (o *ListJobsParams) WithSortBy(sortBy *string) *ListJobsParams {
 	o.SetSortBy(sortBy)
@@ -192,11 +179,6 @@ func (o *ListJobsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 			}
 		}
 
-	}
-
-	// path param pipeline_id
-	if err := r.SetPathParam("pipeline_id", o.PipelineID); err != nil {
-		return err
 	}
 
 	if o.SortBy != nil {

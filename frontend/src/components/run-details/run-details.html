@@ -1,0 +1,119 @@
+<dom-module id="run-details">
+  <template>
+    <link rel="stylesheet" href="./run-details.css">
+
+    <div class="toolbar">
+      <a href="/jobs/details/[[_jobId]]" class="unstyled toolbar-arrow-back">
+        <paper-icon-button icon="arrow-back"></paper-icon-button>
+      </a>
+      <div class="toolbar-title">Run Details</div>
+      <paper-button id="refreshButton" class="toolbar-button" on-click="_refresh">
+        <iron-icon icon="refresh"></iron-icon>
+        Refresh
+      </paper-button>
+      <paper-button id="cloneButton" class="toolbar-button" on-click="_clone">
+        <iron-icon icon="content-copy"></iron-icon>
+        Clone
+      </paper-button>
+    </div>
+
+    <paper-progress class="loading no-shrink" indeterminate disabled="[[!_loadingRun]]"></paper-progress>
+
+    <page-error id="pageErrorElement" error="[[_pageError]]" details="[[_pageErrorDetails]]"
+                class="no-shrink"></page-error>
+
+    <div class="relative">
+      <div class="overlay" hidden="[[!_loadingRun]]"></div>
+      <div class="flex-column flex-grow padded-top-left page-content">
+        <div class="flex padded-right">
+          <div class="run-name">
+            [[workflow.metadata.name]]
+            <span class="faded run-id">ID: [[_runId]]</span>
+          </div>
+          <div>
+            <div class="flex">
+              <iron-icon class="status-icon" icon$=[[_getStatusIcon(workflow.status.phase)]]></iron-icon>
+              <!-- TODO: Get or compute the run's progress here -->
+              <paper-progress id="progress" class="run-progress" value="100"
+                              style$="--paper-progress-active-color: var([[_getProgressColor(workflow.status.phase)]])">
+              </paper-progress>
+            </div>
+            <div>
+              <span class="status">[[workflow.status.phase]]</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs-container">
+          <paper-tabs id="tabs" class="no-shrink" selected="{{selectedTab}}">
+            <paper-tab id="info-tab">Basic Info</paper-tab>
+            <paper-tab id="output-tab">Output</paper-tab>
+            <paper-tab id="graph-tab">Graph</paper-tab>
+          </paper-tabs>
+        </div>
+
+        <iron-pages class="scrollable" selected="{{selectedTab}}">
+
+          <!-- iron-page tab 1 -->
+          <div>
+            <br/>
+            <div class="details-table">
+              <div>
+                <span class="status key">Status</span>
+                <span class="status value">[[workflow.status.phase]]</span>
+              </div>
+              <div>
+                <span class="created-at key">Created at</span>
+                <span class="created-at value">[[_formatDateString(workflow.metadata.creationTimestamp)]]</span>
+              </div>
+              <div>
+                <span class="started-at key">Started at</span>
+                <span class="started-at value">[[_formatDateString(workflow.status.startedAt)]]</span>
+              </div>
+              <div>
+                <span class="finished-at key">Finished at</span>
+                <span class="finished-at value">[[_formatDateString(workflow.status.finishedAt)]]</span>
+              </div>
+              <div>
+                <span class="duration key">Duration</span>
+                <span class="duration value">[[_getRunTime(workflow.status.startedAt, workflow.status.finishedAt, workflow.status.phase)]]</span>
+              </div>
+            </div>
+
+            <br/>
+            <br/>
+
+            <template is="dom-if" if="[[workflow.spec.arguments.parameters.length]]">
+              <div class="param-header">Run Parameters</div>
+              <div class="params-table details-table">
+                <template is="dom-repeat" items="[[workflow.spec.arguments.parameters]]" as="param">
+                  <div>
+                    <span class="key">[[param.name]]</span>
+                    <span class="value">[[param.value]]</span>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+          </div>
+
+          <!-- iron-page tab 2 -->
+          <div id="outputList" class="relative">
+            <div class="overlay" hidden="[[!_loadingOutputs]]">
+              <paper-spinner class="absolute-spinner" active></paper-spinner>
+            </div>
+            <div id="plotContainer" class="plot-container">
+              <template is="dom-repeat" items="[[outputPlots]]" as="plotMetadata">
+                <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
+              </template>
+            </div>
+          </div>
+
+          <!-- iron-page tab 3 -->
+          <runtime-graph id="runtimeGraph"></runtime-graph>
+        </iron-pages>
+      </div>
+    </div>
+
+  </template>
+</dom-module>

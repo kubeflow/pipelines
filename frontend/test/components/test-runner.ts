@@ -22,12 +22,12 @@ const mochaOptions: MochaSetupOptions = {
 mocha.setup(mochaOptions);
 
 import './item-list-test';
-import './job-details-tests';
-import './pipeline-details-test';
-import './pipeline-list-test';
-import './pipeline-new-test';
-import './pipeline-schedule-test';
+import './job-details-test';
+import './job-list-test';
+import './job-new-test';
+import './job-schedule-test';
 import './popup-dialog-test';
+import './run-details-tests';
 import './table-viewer-test';
 
 mocha.run(() => {

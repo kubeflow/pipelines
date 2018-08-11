@@ -1,24 +1,25 @@
-import { ListPackagesRequest } from './list_packages_request';
+export class ListPipelinesRequest {
+  public orderAscending: boolean;
+  public pageSize?: number;
+  public pageToken: string;
+  public sortBy: string;
 
-export class ListPipelinesRequest extends ListPackagesRequest {
-  public filterBy: string;
-
-  constructor(pageSize: number) {
-    super(pageSize);
-    this.filterBy = '';
+  constructor(pageSize?: number) {
+    this.pageSize = pageSize;
+    this.pageToken = '';
+    this.sortBy = '';
+    this.orderAscending = true;
   }
 
   public toQueryParams(): string {
-    // TODO: this isn't actually supported by the backend yet (and won't be for a while.) (5/23)
-    return super.toQueryParams() +
-        (this.filterBy ? '&filterBy=' + encodeURIComponent(this.filterBy) : '');
+    const params = [
+      `ascending=${this.orderAscending}`,
+      `pageToken=${this.pageToken}`,
+      `sortBy=${encodeURIComponent(this.sortBy)}`,
+    ];
+    if (this.pageSize !== undefined) {
+      params.push(`pageSize=${this.pageSize}`);
+    }
+    return params.join('&');
   }
-}
-
-// Valid sortKeys as specified by the backend.
-export enum PipelineSortKeys {
-  CREATED_AT = 'created_at',
-  ID = 'id',
-  NAME = 'name',
-  PACKAGE_ID = 'package_id'
 }

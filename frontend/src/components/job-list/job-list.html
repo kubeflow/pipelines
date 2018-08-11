@@ -2,9 +2,42 @@
   <template>
     <link rel="stylesheet" href="./job-list.css">
 
-    <item-list id="jobsItemList" class="flex-grow" rows="[[jobListRows]]"
-               empty-message="No jobs found for this pipeline yet."
-               columns="[[jobListColumns]]">
-    </item-list>
+    <div class="toolbar">
+      <span class="toolbar-title">All Jobs</span>
+      <paper-button id="newBtn" class="toolbar-button" on-click="_newJob">
+        <iron-icon icon="add"></iron-icon>
+        New Job
+      </paper-button>
+      <paper-button id="refreshBtn" class="toolbar-button" on-click="_refresh">
+        <iron-icon icon="refresh"></iron-icon>
+        Refresh
+      </paper-button>
+      <paper-button id="cloneBtn" class="toolbar-button" on-click="_cloneJob"
+                    disabled="[[!_oneItemIsSelected]]">
+        <iron-icon icon="content-copy"></iron-icon>
+        Clone
+      </paper-button>
+      <paper-button id="deleteBtn" class="toolbar-button" on-click="_deleteJob"
+                    disabled="[[!_atLeastOneItemIsSelected]]">
+        <iron-icon icon="delete"></iron-icon>
+        Delete
+      </paper-button>
+    </div>
+
+    <page-error id="pageErrorElement" error="[[_pageError]]" class="no-shrink"
+                details="[[_pageErrorDetails]]"></page-error>
+
+    <div class="relative">
+      <div class="overlay" hidden="[[!_busy]]">
+        <paper-spinner class="absolute-spinner" active></paper-spinner>
+      </div>
+      <div class="scrollable">
+        <item-list id="jobsItemList" class="flex-grow" rows="[[jobListRows]]"
+                   empty-message="No jobs found. Click New Job to start."
+                   columns="[[jobListColumns]]">
+        </item-list>
+      </div>
+    </div>
+
   </template>
 </dom-module>

@@ -15,14 +15,14 @@ import { PageElement } from '../../model/page_element';
 import '../date-time-picker/date-time-picker';
 import '../job-details/job-details';
 import '../job-list/job-list';
+import '../job-new/job-new';
+import '../job-schedule/job-schedule';
 import '../page-error/page-error';
-import '../pipeline-details/pipeline-details';
-import '../pipeline-list/pipeline-list';
-import '../pipeline-new/pipeline-new';
-import '../pipeline-schedule/pipeline-schedule';
+import '../run-details/run-details';
+import '../run-list/run-list';
 import './app-shell.html';
 
-const defaultPage = 'pipelines';
+const defaultPage = 'jobs';
 
 @customElement('app-shell')
 export class AppShell extends Polymer.Element {
@@ -67,8 +67,8 @@ export class AppShell extends Polymer.Element {
             const parts = newPath.substr(1).split('/');
             if (parts.length) {
               // If there's only one part, that's the page name. If there's more,
-              // the page name is the first two, to allow for things like pipelines/details
-              // and job/details. The rest are the argument to that page.
+              // the page name is the first two, to allow for things like jobs/details
+              // and run/details. The rest are the argument to that page.
               const args = parts.splice(2).join('/');
               let pageName = `${parts.join('/')}`;
               // For root '/', return the default page

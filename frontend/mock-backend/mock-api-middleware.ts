@@ -3,15 +3,15 @@ import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
 
-import { JobMetadata } from '../src/api/job';
+import { ListPipelinesResponse } from '../src/api/list_pipelines_response';
 import { JobSortKeys } from '../src/api/list_jobs_request';
 import { ListJobsResponse } from '../src/api/list_jobs_response';
-import { ListPackagesResponse } from '../src/api/list_packages_response';
-import { PipelineSortKeys } from '../src/api/list_pipelines_request';
-import { ListPipelinesResponse } from '../src/api/list_pipelines_response';
-import { Pipeline } from '../src/api/pipeline';
+import { RunSortKeys } from '../src/api/list_runs_request';
+import { ListRunsResponse } from '../src/api/list_runs_response';
+import { Job } from '../src/api/job';
+import { RunMetadata } from '../src/api/run';
 
-const prefix = __dirname + '/pipeline-data';
+const prefix = __dirname + '/job-data';
 
 const fixedData = require('./fixed-data').data;
 
@@ -54,7 +54,7 @@ export default (app) => {
     }
   });
 
-  app.get(v1alpha2Prefix + '/pipelines', (req, res) => {
+  app.get(v1alpha2Prefix + '/jobs', (req, res) => {
     if (!apiServerReady) {
       res.status(404).send();
       return;
@@ -62,101 +62,19 @@ export default (app) => {
 
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
-    const response: ListPipelinesResponse = {
-      next_page_token: '',
-      pipelines: [],
-    };
-
-    let pipelines: Pipeline[] = fixedData.pipelines;
-    if (req.query.filterBy) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
-      // This may need to be updated when the backend implements filtering.
-      pipelines = fixedData.pipelines.filter((p) =>
-          p.name.toLocaleLowerCase().indexOf(
-              decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
-
-    }
-
-    // The backend sorts by created_at by default.
-    const sortKey = req.query.sortBy || PipelineSortKeys.CREATED_AT;
-
-    if (!isValidSortKey(PipelineSortKeys, sortKey)) {
-      res.status(405).send(`Unsupported sort string: ${sortKey}`);
-      return;
-    }
-
-    pipelines.sort((a, b) => {
-      let result = 1;
-      if (a[sortKey] < b[sortKey]) {
-        result = -1;
-      }
-      if (a[sortKey] === b[sortKey]) {
-        result = 0;
-      }
-      return result * ((req.query.ascending === 'true') ? 1 : -1);
-    });
-
-    const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize);
-    response.pipelines = pipelines.slice(start, end);
-
-    if (end < pipelines.length) {
-      response.next_page_token = end + '';
-    }
-
-    res.json(response);
-  });
-
-  app.post(v1alpha2Prefix + '/pipelines', (req, res) => {
-    const pipeline = req.body;
-    pipeline.id = (fixedData.pipelines.length + 1) + '';
-    pipeline.created_at = new Date().toISOString();
-    pipeline.updated_at = new Date().toISOString();
-    pipeline.jobs = [fixedData.jobs[0]];
-    pipeline.enabled = !!pipeline.trigger;
-    fixedData.pipelines.push(pipeline);
-    setTimeout(() => {
-      res.send(fixedData.pipelines[0]);
-    }, 1000);
-  });
-
-  app.all(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    switch (req.method) {
-      case 'DELETE':
-        const i = fixedData.pipelines.findIndex((p) => p.id === req.params.pid);
-        if (fixedData.pipelines[i].name.startsWith('Cannot be deleted')) {
-          res.status(502).send(`Deletion failed for Pipeline: '${fixedData.pipelines[i].name}'`);
-        } else {
-          // Delete the Pipeline from fixedData.
-          fixedData.pipelines.splice(i, 1);
-          res.send('ok');
-        }
-        break;
-      case 'GET':
-        res.json(fixedData.pipelines.find((p) => p.id === req.params.pid));
-        break;
-      default:
-        res.status(405).send('Unsupported request type: ' + res.method);
-    }
-  });
-
-  app.get(v1alpha2Prefix + '/pipelines/:pid/jobs', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
     const response: ListJobsResponse = {
       jobs: [],
       next_page_token: '',
     };
 
-    let jobs: JobMetadata[] =
-        fixedData.pipelines.find((p) => p.id === req.params.pid).jobs.map((j) => j.job);
-
+    let jobs: Job[] = fixedData.jobs;
     if (req.query.filterBy) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'ee' doesn't match 'Pipeline'
+      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
-      jobs = jobs.filter((j) => j.name.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+      jobs = fixedData.jobs.filter((p) =>
+          p.name.toLocaleLowerCase().indexOf(
+              decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+
     }
 
     // The backend sorts by created_at by default.
@@ -189,50 +107,132 @@ export default (app) => {
     res.json(response);
   });
 
-  app.post(v1alpha2Prefix + '/pipelines/:pid/enable', (req, res) => {
+  app.post(v1alpha2Prefix + '/jobs', (req, res) => {
+    const job = req.body;
+    job.id = (fixedData.jobs.length + 1) + '';
+    job.created_at = new Date().toISOString();
+    job.updated_at = new Date().toISOString();
+    job.runs = [fixedData.runs[0]];
+    job.enabled = !!job.trigger;
+    fixedData.jobs.push(job);
     setTimeout(() => {
-      const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
-      pipeline.enabled = true;
-      res.send('ok');
+      res.send(fixedData.jobs[0]);
     }, 1000);
   });
 
-  app.post(v1alpha2Prefix + '/pipelines/:pid/disable', (req, res) => {
-    setTimeout(() => {
-      const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
-      pipeline.enabled = false;
-      res.send('ok');
-    }, 1000);
+  app.all(v1alpha2Prefix + '/jobs/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    switch (req.method) {
+      case 'DELETE':
+        const i = fixedData.jobs.findIndex((p) => p.id === req.params.pid);
+        if (fixedData.jobs[i].name.startsWith('Cannot be deleted')) {
+          res.status(502).send(`Deletion failed for job: '${fixedData.jobs[i].name}'`);
+        } else {
+          // Delete the job from fixedData.
+          fixedData.jobs.splice(i, 1);
+          res.send('ok');
+        }
+        break;
+      case 'GET':
+        res.json(fixedData.jobs.find((p) => p.id === req.params.pid));
+        break;
+      default:
+        res.status(405).send('Unsupported request type: ' + res.method);
+    }
   });
 
-  app.get(v1alpha2Prefix + '/pipelines/:pid/jobs/:jid', (req, res) => {
-    const jid = req.params.jid;
-    const job = fixedData.jobs.find((j) => j.job.id === jid);
-    if (!job) {
-      res.status(404).send('Cannot find a job with id: ' + jid);
+  app.get(v1alpha2Prefix + '/jobs/:pid/runs', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
+    const response: ListRunsResponse = {
+      next_page_token: '',
+      runs: [],
+    };
+
+    let runs: RunMetadata[] =
+        fixedData.jobs.find((p) => p.id === req.params.pid).runs.map((j) => j.run);
+
+    if (req.query.filterBy) {
+      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
+      // This may need to be updated when the backend implements filtering.
+      runs = runs.filter((j) => j.name.toLocaleLowerCase().indexOf(
+          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+    }
+
+    // The backend sorts by created_at by default.
+    const sortKey = req.query.sortBy || RunSortKeys.CREATED_AT;
+
+    if (!isValidSortKey(RunSortKeys, sortKey)) {
+      res.status(405).send(`Unsupported sort string: ${sortKey}`);
       return;
     }
-    res.json(job);
+
+    runs.sort((a, b) => {
+      let result = 1;
+      if (a[sortKey] < b[sortKey]) {
+        result = -1;
+      }
+      if (a[sortKey] === b[sortKey]) {
+        result = 0;
+      }
+      return result * ((req.query.ascending === 'true') ? 1 : -1);
+    });
+
+    const start = (req.query.pageToken ? +req.query.pageToken : 0);
+    const end = start + (+req.query.pageSize);
+    response.runs = runs.slice(start, end);
+
+    if (end < runs.length) {
+      response.next_page_token = end + '';
+    }
+
+    res.json(response);
   });
 
-  app.get(v1alpha2Prefix + '/packages', (req, res) => {
+  app.post(v1alpha2Prefix + '/jobs/:pid/enable', (req, res) => {
+    setTimeout(() => {
+      const job = fixedData.jobs.find((p) => p.id === req.params.pid);
+      job.enabled = true;
+      res.send('ok');
+    }, 1000);
+  });
+
+  app.post(v1alpha2Prefix + '/jobs/:pid/disable', (req, res) => {
+    setTimeout(() => {
+      const job = fixedData.jobs.find((p) => p.id === req.params.pid);
+      job.enabled = false;
+      res.send('ok');
+    }, 1000);
+  });
+
+  app.get(v1alpha2Prefix + '/jobs/:pid/runs/:jid', (req, res) => {
+    const jid = req.params.jid;
+    const run = fixedData.runs.find((j) => j.run.id === jid);
+    if (!run) {
+      res.status(404).send('Cannot find a run with id: ' + jid);
+      return;
+    }
+    res.json(run);
+  });
+
+  app.get(v1alpha2Prefix + '/pipelines', (req, res) => {
     res.header('Content-Type', 'application/json');
-    const response: ListPackagesResponse = {
+    const response: ListPipelinesResponse = {
       next_page_token: '',
-      packages: fixedData.packages,
+      pipelines: fixedData.pipelines,
     };
     res.json(response);
   });
 
-  app.get(v1alpha2Prefix + '/packages/:pid/templates', (req, res) => {
+  app.get(v1alpha2Prefix + '/pipelines/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     res.send(JSON.stringify(
       { template: fs.readFileSync('./mock-backend/mock-template.yaml', 'utf-8') }));
   });
 
-  app.post(v1alpha2Prefix + '/packages/upload', (req, res) => {
+  app.post(v1alpha2Prefix + '/pipelines/upload', (req, res) => {
     res.header('Content-Type', 'application/json');
-    res.json(fixedData.packages[0]);
+    res.json(fixedData.pipelines[0]);
   });
 
   app.get('/artifacts/list/:path', (req, res) => {

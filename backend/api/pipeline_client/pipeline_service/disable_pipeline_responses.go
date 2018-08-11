@@ -58,7 +58,7 @@ type DisablePipelineOK struct {
 }
 
 func (o *DisablePipelineOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/pipelines/{id}/disable][%d] disablePipelineOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1alpha2/jobs/{id}/disable][%d] disablePipelineOK  %+v", 200, o.Payload)
 }
 
 func (o *DisablePipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -94,7 +94,7 @@ func (o *DisablePipelineDefault) Code() int {
 }
 
 func (o *DisablePipelineDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/pipelines/{id}/disable][%d] DisablePipeline default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1alpha2/jobs/{id}/disable][%d] DisablePipeline default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *DisablePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

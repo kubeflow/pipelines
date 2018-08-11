@@ -1,5 +1,3 @@
-
-const fixedData = require('../../../mock-backend/fixed-data').data;
 const assert = require('assert');
 
 function assertDiffs(results) {
@@ -9,178 +7,107 @@ function assertDiffs(results) {
 describe('view job details', () => {
 
   beforeAll(() => {
-    // This pipeline has jobs.
-    browser.url(`/pipelines/details/${fixedData.pipelines[1].id}`);
-  });
-
-  it('navigates to job list', () => {
-    const selector = 'app-shell pipeline-details paper-tab:last-child';
-    browser.waitForVisible(selector);
-    browser.click(selector);
-
-    assertDiffs(browser.checkDocument());
+    browser.url('/');
   });
 
   it('opens job details on double click', () => {
-    const selector = 'app-shell pipeline-details job-list item-list paper-item';
+    // Find a job with runs that can also be cloned. The 3rd job is one.
+    // TODO: Explore making this more reliable
+    const selector = 'app-shell job-list item-list #listContainer paper-item:nth-of-type(3)';
 
     browser.waitForVisible(selector);
     browser.doubleClick(selector);
     assertDiffs(browser.checkDocument());
   });
 
-  // TODO: The order of the plots on the job output page is currently
-  // non-deterministic likely due to the async calls job-details.
+  it('can switch to run list tab', () => {
+    const selector = 'app-shell job-details paper-tab:last-child';
 
-  it('views the job graph', () => {
-    const selector = 'app-shell job-details #graph-tab';
-
-    browser.waitForVisible(selector);
     browser.click(selector);
     assertDiffs(browser.checkDocument());
   });
 
-  it('clears previous job\'s graph', () => {
-    // Return to job list
-    const backBtnSelector = 'app-shell job-details paper-icon-button';
-    browser.waitForVisible(backBtnSelector);
-    browser.click(backBtnSelector);
+  it('loads next page on "next" button press', () => {
+    const nextButtonselector =
+        'app-shell job-details run-list item-list paper-button#nextPage';
 
-    const jobListTabSelector = 'app-shell pipeline-details paper-tab:last-child';
-    browser.waitForVisible(jobListTabSelector);
-    browser.click(jobListTabSelector);
+    browser.click(nextButtonselector);
+    assertDiffs(browser.checkDocument());
+  });
 
-    // Select a job with a different graph.
-    const differentJobSelector =
-        'app-shell pipeline-details job-list item-list paper-item:nth-of-type(3)';
-    browser.waitForVisible(differentJobSelector);
-    browser.doubleClick(differentJobSelector);
-
-    // Return to job list
-    browser.waitForVisible(backBtnSelector);
-    browser.click(backBtnSelector);
-    browser.waitForVisible(jobListTabSelector);
-    browser.click(jobListTabSelector);
-
-    // Select the original job again.
-    const originalJobSelector = 'app-shell pipeline-details job-list item-list paper-item';
-    browser.waitForVisible(originalJobSelector);
-    browser.doubleClick(originalJobSelector);
-
-    const graphSelector = 'app-shell job-details #graph-tab';
-    browser.waitForVisible(graphSelector);
-    browser.click(graphSelector);
+  it('loads previous page on "previous" button press after pressing "next"', () => {
+    const previousButtonselector =
+        'app-shell job-details run-list item-list paper-button#previousPage';
+    browser.click(previousButtonselector);
 
     assertDiffs(browser.checkDocument());
   });
 
-  it('opens node details upon click', () => {
-    // Select a step that will show in the viewport without scrolling.
-    const selector = 'app-shell job-details job-graph .pipeline-node:nth-of-type(4)';
+  it('loads additional runs after changing page size', () => {
+    // Default is 20, but we'll change it to 50.
+    const pageSizeDropdownSelector =
+        'app-shell job-details run-list item-list paper-dropdown-menu';
+    browser.click(pageSizeDropdownSelector);
 
-    browser.waitForVisible(selector);
-    browser.click(selector);
+    const pageSizeSelector =
+        'app-shell job-details run-list item-list ' +
+        'paper-dropdown-menu::paper-item:nth-of-type(2)';
+    browser.click(pageSizeSelector);
+
     assertDiffs(browser.checkDocument());
   });
 
-  it('switches to logs viewer', () => {
-    browser.click('app-shell job-details job-graph #logsTab');
-    // Wait for the mock server to return the logs
-    browser.pause(400);
+  it('allows the list to be sorted. Defaults to ascending order', () => {
+    // Sort by Run Name column (ascending)
+    const runNameColumnButtonSelector =
+        'app-shell job-details run-list item-list #header::div:nth-of-type(2)::paper-button';
+    browser.click(runNameColumnButtonSelector);
 
-    const logsSelector = 'app-shell job-details job-graph #logsContainer';
-    browser.waitForVisible(logsSelector);
     assertDiffs(browser.checkDocument());
   });
 
-  it('closes node details', () => {
-    const selector = 'app-shell job-details job-graph .hide-node-details';
+  it('sorts in descending order on second time a column is clicked', () => {
+    // Sort by Run Name column (descending)
+    // Sort will be descending now since it has already been clicked once in the previous test.
+    const runNameColumnButtonSelector =
+        'app-shell job-details run-list item-list #header::div:nth-of-type(2)::paper-button';
 
-    browser.waitForVisible(selector);
-    browser.click(selector);
+    browser.click(runNameColumnButtonSelector);
 
-    browser.pause(300);
+    // List should be reset to first page of results
     assertDiffs(browser.checkDocument());
   });
 
-  it('clones job into a new pipeline', () => {
-    browser.click('app-shell job-details #cloneButton');
+  it('allows the list to be filtered by Run name', () => {
+    // Open up the filter box
+    const filterButtonSelector = 'app-shell job-details run-list item-list paper-icon-button';
+    browser.click(filterButtonSelector);
+
+    const filterBoxSelector =
+        'app-shell job-details run-list item-list #headerContainer::div:nth-of-type(2)::input';
+    browser.setValue(filterBoxSelector, 'hello');
+
     assertDiffs(browser.checkDocument());
   });
 
-  describe('error handling', () => {
+  it('allows the list to be filtered and sorted', () => {
+    // List is already filtered from previous test
+    // Sort by run creation time column.
+    const createdAtColumnButtonSelector =
+        'app-shell job-details run-list item-list #header::div:nth-of-type(3)::paper-button';
+    browser.click(createdAtColumnButtonSelector);
 
-    beforeAll(() => {
-      // This pipeline has jobs.
-      browser.url(`/pipelines/details/${fixedData.pipelines[1].id}`);
+    assertDiffs(browser.checkDocument());
 
-      // Navigate to Job list
-      const selector = 'app-shell pipeline-details paper-tab:last-child';
-      browser.waitForVisible(selector);
-      browser.click(selector);
-    });
+    // Clear filter by clicking the button again.
+    const filterButtonSelector = 'app-shell job-details run-list item-list paper-icon-button';
+    browser.click(filterButtonSelector);
+  });
 
-    it('displays error message', () => {
-      // Select a job that will show an error message.
-      const failedJobSelector =
-          'app-shell pipeline-details job-list item-list paper-item:nth-of-type(2)';
+  it('populates new job on clone', () => {
+    const cloneBtnSelector = 'app-shell job-details paper-button#cloneBtn';
 
-      browser.waitForVisible(failedJobSelector);
-      browser.doubleClick(failedJobSelector);
-
-      assertDiffs(browser.checkDocument());
-    });
-
-    it('clears previous job graph even if there is an error', () => {
-      // Return to job list
-      const backBtnSelector = 'app-shell job-details paper-icon-button';
-      browser.waitForVisible(backBtnSelector);
-      browser.click(backBtnSelector);
-
-      const jobListTabSelector = 'app-shell pipeline-details paper-tab:last-child';
-      browser.waitForVisible(jobListTabSelector);
-      browser.click(jobListTabSelector);
-
-      // Select a job that succeeded.
-      const successfulJobSelector = 'app-shell pipeline-details job-list item-list paper-item';
-      browser.waitForVisible(successfulJobSelector);
-      browser.doubleClick(successfulJobSelector);
-
-      // Return to job list
-      browser.waitForVisible(backBtnSelector);
-      browser.click(backBtnSelector);
-      browser.waitForVisible(jobListTabSelector);
-      browser.click(jobListTabSelector);
-
-      // Select a job that will show an error message.
-      const failedJobSelector =
-          'app-shell pipeline-details job-list item-list paper-item:nth-of-type(2)';
-      browser.waitForVisible(failedJobSelector);
-      browser.doubleClick(failedJobSelector);
-
-      const graphSelector = 'app-shell job-details #graph-tab';
-      browser.waitForVisible(graphSelector);
-      browser.click(graphSelector);
-
-      assertDiffs(browser.checkDocument());
-    });
-
-    it('clears error message for subsequent successful job pages', () => {
-      // Return to job list
-      const backBtnSelector = 'app-shell job-details paper-icon-button';
-      browser.waitForVisible(backBtnSelector);
-      browser.click(backBtnSelector);
-
-      const jobListTabSelector = 'app-shell pipeline-details paper-tab:last-child';
-      browser.waitForVisible(jobListTabSelector);
-      browser.click(jobListTabSelector);
-
-      // Select a job that succeeded.
-      const successfulJobSelector = 'app-shell pipeline-details job-list item-list paper-item';
-      browser.waitForVisible(successfulJobSelector);
-      browser.doubleClick(successfulJobSelector);
-
-      assertDiffs(browser.checkDocument());
-    });
+    browser.click(cloneBtnSelector);
+    assertDiffs(browser.checkDocument());
   });
 });

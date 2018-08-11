@@ -20,21 +20,21 @@ all:
 	# Instructions to install the 'swagger' command are located here:
 	# https://github.com/go-swagger/go-swagger
 	swagger generate client \
-		-f ./pipeline.swagger.json \
-		-A pipeline \
-		--principal models.Principal \
-		-c pipeline_client \
-		-m pipeline_model
-	swagger generate client \
 		-f ./job.swagger.json \
 		-A job \
 		--principal models.Principal \
 		-c job_client \
 		-m job_model
 	swagger generate client \
-		-f ./package.swagger.json \
-		-A package \
+		-f ./run.swagger.json \
+		-A run \
 		--principal models.Principal \
-		-c package_client \
-		-m package_model
+		-c run_client \
+		-m run_model
+	swagger generate client \
+		-f ./pipeline.swagger.json \
+		-A pipeline \
+		--principal models.Principal \
+		-c pipeline_client \
+		-m pipeline_model
 	go generate .

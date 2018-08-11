@@ -24,30 +24,30 @@ import (
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
-func ToApiPackage(pkg *model.Package) (*api.Package, error) {
-	params, err := toApiParameters(pkg.Parameters)
+func ToApiPipeline(pipeline *model.Pipeline) (*api.Pipeline, error) {
+	params, err := toApiParameters(pipeline.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Error convert package DB model to API model.")
+		return nil, util.Wrap(err, "Error convert pipeline DB model to API model.")
 	}
-	return &api.Package{
-		Id:          pkg.UUID,
-		CreatedAt:   &timestamp.Timestamp{Seconds: pkg.CreatedAtInSec},
-		Name:        pkg.Name,
-		Description: pkg.Description,
+	return &api.Pipeline{
+		Id:          pipeline.UUID,
+		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		Name:        pipeline.Name,
+		Description: pipeline.Description,
 		Parameters:  params,
 	}, nil
 }
 
-func ToApiPackages(pkgs []model.Package) ([]*api.Package, error) {
-	apiPkgs := make([]*api.Package, 0)
-	for _, pkg := range pkgs {
-		apiPkg, err := ToApiPackage(&pkg)
+func ToApiPipelines(pipelines []model.Pipeline) ([]*api.Pipeline, error) {
+	apiPipelines := make([]*api.Pipeline, 0)
+	for _, pipeline := range pipelines {
+		apiPipeline, err := ToApiPipeline(&pipeline)
 		if err != nil {
-			return nil, util.Wrap(err, "Error convert packages DB model to API model.")
+			return nil, util.Wrap(err, "Error convert pipelines DB model to API model.")
 		}
-		apiPkgs = append(apiPkgs, apiPkg)
+		apiPipelines = append(apiPipelines, apiPipeline)
 	}
-	return apiPkgs, nil
+	return apiPipelines, nil
 }
 
 func toApiParameters(paramsString string) ([]*api.Parameter, error) {
@@ -90,77 +90,77 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 	return string(paramsBytes), nil
 }
 
-func toApiJob(job *model.Job) *api.Job {
-	return &api.Job{
-		Id:          job.UUID,
-		Name:        job.Name,
-		Namespace:   job.Namespace,
-		CreatedAt:   &timestamp.Timestamp{Seconds: job.CreatedAtInSec},
-		ScheduledAt: &timestamp.Timestamp{Seconds: job.ScheduledAtInSec},
-		Status:      job.Conditions,
+func toApiRun(run *model.Run) *api.Run {
+	return &api.Run{
+		Id:          run.UUID,
+		Name:        run.Name,
+		Namespace:   run.Namespace,
+		CreatedAt:   &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
+		ScheduledAt: &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
+		Status:      run.Conditions,
 	}
 }
 
-func ToApiJobs(jobs []model.Job) []*api.Job {
-	apiJobs := make([]*api.Job, 0)
-	for _, job := range jobs {
-		apiJobs = append(apiJobs, toApiJob(&job))
+func ToApiRuns(runs []model.Run) []*api.Run {
+	apiRuns := make([]*api.Run, 0)
+	for _, run := range runs {
+		apiRuns = append(apiRuns, toApiRun(&run))
 	}
-	return apiJobs
+	return apiRuns
 }
 
-func ToApiJobDetail(job *model.JobDetail) *api.JobDetail {
-	return &api.JobDetail{
-		Job:      toApiJob(&job.Job),
-		Workflow: job.Workflow,
+func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
+	return &api.RunDetail{
+		Run:      toApiRun(&run.Run),
+		Workflow: run.Workflow,
 	}
 }
 
-func ToApiPipeline(pipeline *model.Pipeline) (*api.Pipeline, error) {
-	params, err := toApiParameters(pipeline.Parameters)
+func ToApiJob(job *model.Job) (*api.Job, error) {
+	params, err := toApiParameters(job.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Error convert pipeline DB model to API model.")
+		return nil, util.Wrap(err, "Error convert job DB model to API model.")
 	}
-	return &api.Pipeline{
-		Id:             pipeline.UUID,
-		Name:           pipeline.DisplayName,
-		Description:    pipeline.Description,
-		PackageId:      pipeline.PackageId,
-		Enabled:        pipeline.Enabled,
-		CreatedAt:      &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: pipeline.UpdatedAtInSec},
-		Status:         pipeline.Conditions,
-		MaxConcurrency: pipeline.MaxConcurrency,
-		Trigger:        toApiTrigger(pipeline.Trigger),
+	return &api.Job{
+		Id:             job.UUID,
+		Name:           job.DisplayName,
+		Description:    job.Description,
+		PipelineId:     job.PipelineId,
+		Enabled:        job.Enabled,
+		CreatedAt:      &timestamp.Timestamp{Seconds: job.CreatedAtInSec},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: job.UpdatedAtInSec},
+		Status:         job.Conditions,
+		MaxConcurrency: job.MaxConcurrency,
+		Trigger:        toApiTrigger(job.Trigger),
 		Parameters:     params,
 	}, nil
 }
 
-func ToApiPipelines(pipelines []model.Pipeline) ([]*api.Pipeline, error) {
-	apiPipelines := make([]*api.Pipeline, 0)
-	for _, pipeline := range pipelines {
-		apiPipeline, err := ToApiPipeline(&pipeline)
+func ToApiJobs(jobs []model.Job) ([]*api.Job, error) {
+	apiJobs := make([]*api.Job, 0)
+	for _, job := range jobs {
+		apiJob, err := ToApiJob(&job)
 		if err != nil {
-			return nil, util.Wrap(err, "Error convert pipelines DB model to API model.")
+			return nil, util.Wrap(err, "Error convert jobs DB model to API model.")
 		}
-		apiPipelines = append(apiPipelines, apiPipeline)
+		apiJobs = append(apiJobs, apiJob)
 	}
-	return apiPipelines, nil
+	return apiJobs, nil
 }
 
-func ToModelPipeline(pipeline *api.Pipeline) (*model.Pipeline, error) {
-	params, err := toModelParameters(pipeline.Parameters)
+func ToModelJob(job *api.Job) (*model.Job, error) {
+	params, err := toModelParameters(job.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Error convert pipeline API model to DB model.")
+		return nil, util.Wrap(err, "Error convert job API model to DB model.")
 	}
-	return &model.Pipeline{
-		UUID:           pipeline.Id,
-		DisplayName:    pipeline.Name,
-		Description:    pipeline.Description,
-		PackageId:      pipeline.PackageId,
-		Enabled:        pipeline.Enabled,
-		Trigger:        toModelTrigger(pipeline.Trigger),
-		MaxConcurrency: pipeline.MaxConcurrency,
+	return &model.Job{
+		UUID:           job.Id,
+		DisplayName:    job.Name,
+		Description:    job.Description,
+		PipelineId:     job.PipelineId,
+		Enabled:        job.Enabled,
+		Trigger:        toModelTrigger(job.Trigger),
+		MaxConcurrency: job.MaxConcurrency,
 		Parameters:     params,
 	}, nil
 }

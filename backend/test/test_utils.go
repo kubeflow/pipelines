@@ -79,10 +79,10 @@ func waitForReady(namespace string, initializeTimeout time.Duration) error {
 	return errors.Wrapf(err, "Waiting for ml pipeline failed after all attempts.")
 }
 
-func uploadPackageFileOrFail(path string) (*bytes.Buffer, *multipart.Writer) {
+func uploadPipelineFileOrFail(path string) (*bytes.Buffer, *multipart.Writer) {
 	file, err := os.Open(path)
 	if err != nil {
-		glog.Fatalf("Failed to open the package file: %v", err.Error())
+		glog.Fatalf("Failed to open the pipeline file: %v", err.Error())
 	}
 	defer file.Close()
 

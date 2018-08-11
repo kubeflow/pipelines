@@ -1,6 +1,8 @@
+import 'iron-icons/av-icons.html';
 import 'iron-icons/iron-icons.html';
+import 'iron-icons/maps-icons.html';
+import 'paper-button/paper-button.html';
 import 'paper-progress/paper-progress.html';
-import 'paper-spinner/paper-spinner.html';
 import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
@@ -8,213 +10,187 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-// @ts-ignore
-import prettyJson from 'json-pretty-html';
 import { customElement, property } from 'polymer-decorators/src/decorators';
-import { Pipeline } from '../../api/pipeline';
-import { NodePhase, Workflow } from '../../model/argo_template';
+import { Job, Trigger } from '../../api/job';
+import { DialogResult } from '../../components/popup-dialog/popup-dialog';
 import { RouteEvent } from '../../model/events';
-import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
-import { JobGraph } from '../job-graph/job-graph';
+import { RunList } from '../run-list/run-list';
 
-import '../data-plotter/data-plot';
-import '../job-graph/job-graph';
 import './job-details.html';
-
-export interface OutputInfo {
-  index?: number;
-  path: string;
-  step: string;
-}
 
 @customElement('job-details')
 export class JobDetails extends PageElement {
 
-  @property({ type: Array })
-  public outputPlots: PlotMetadata[] = [];
-
   @property({ type: Object })
-  public workflow: Workflow;
-
-  @property({ type: Object })
-  public pipeline: Pipeline;
+  public job: Job | null = null;
 
   @property({ type: Number })
   public selectedTab = 0;
 
   @property({ type: Boolean })
-  protected _loadingJob = false;
+  protected _disableCloneJobButton = true;
 
   @property({ type: Boolean })
-  protected _loadingOutputs = false;
+  protected _busy = false;
 
-  @property({ type: String })
-  protected _pipelineId = '';
+  @property({
+    computed: '_computeAllowJobEnable(job.enabled, job.trigger)',
+    type: Boolean
+  })
+  protected _allowJobEnable = false;
 
-  private _jobId = '';
-
-  public get refreshButton(): PaperButtonElement {
-    return this.$.refreshButton as PaperButtonElement;
-  }
-
-  public get cloneButton(): PaperButtonElement {
-    return this.$.cloneButton as PaperButtonElement;
-  }
+  @property({
+    computed: '_computeAllowJobDisable(job.enabled, job.trigger)',
+    type: Boolean
+  })
+  protected _allowJobDisable = false;
 
   public get tabs(): PaperTabsElement {
     return this.$.tabs as PaperTabsElement;
   }
 
-  public get outputList(): HTMLDivElement {
-    return this.$.outputList as HTMLDivElement;
+  public get cloneButton(): PaperButtonElement {
+    return this.$.cloneBtn as PaperButtonElement;
   }
 
-  public get plotContainer(): HTMLDivElement {
-    return this.$.plotContainer as HTMLDivElement;
+  public get refreshButton(): PaperButtonElement {
+    return this.$.refreshBtn as PaperButtonElement;
   }
 
-  public get jobGraph(): JobGraph {
-    return this.$.jobGraph as JobGraph;
+  public get deleteButton(): PaperButtonElement {
+    return this.$.deleteBtn as PaperButtonElement;
   }
 
-  public async load(_: string, queryParams: { jobId?: string, pipelineId: string }): Promise<void> {
-    this._reset();
-
-    if (queryParams.jobId !== undefined && !!queryParams.pipelineId) {
-      this._pipelineId = queryParams.pipelineId;
-      this._jobId = queryParams.jobId;
-
-      return this._loadJob();
-    }
+  public get enableButton(): PaperButtonElement {
+    return this.$.enableBtn as PaperButtonElement;
   }
 
-  protected async _loadJob(): Promise<void> {
-    this._loadingJob = true;
-    try {
-      const response = await Apis.getJob(this._pipelineId, this._jobId);
-      this.workflow = JSON.parse(response.workflow);
-      this.pipeline = await Apis.getPipeline(this._pipelineId);
-    } catch (err) {
-      this.showPageError(
-          'There was an error while loading details for job: ' + this._jobId, err.message);
-      Utils.log.verbose('Error loading job details:', err);
-      return;
-    } finally {
-      this._loadingJob = false;
-    }
+  public get disableButton(): PaperButtonElement {
+    return this.$.disableBtn as PaperButtonElement;
+  }
 
-    // Render the job graph
-    try {
-      (this.$.jobGraph as JobGraph).refresh(this.workflow);
-    } catch (err) {
-      this.showPageError('There was an error while loading the job graph', err.message);
-      Utils.log.verbose('Could not draw job graph from object:', this.workflow, '\n', err);
-    }
+  public async load(id: string): Promise<void> {
+    if (!!id) {
+      this.selectedTab = 0;
 
-    // If pipeline params include output, retrieve them so they can be rendered by the data-plot
-    // component.
-    try {
-      await this._loadJobOutputs();
-    } catch (err) {
-      this.showPageError('There was an error while loading the job outputs', err.message);
-      Utils.log.verbose('Could not load job outputs from object:', this.workflow, '\n', err);
+      this._loadJob(id);
     }
   }
 
   protected _refresh(): void {
-    this._loadJob();
+    if (this.job) {
+      this._loadJob(this.job.id);
+    }
   }
 
-  protected _clone(): void {
-    this.dispatchEvent(
-        new RouteEvent('/pipelines/new',
-          {
-            packageId: this.pipeline.package_id,
-            parameters: this.workflow.spec.arguments ?
-                (this.workflow.spec.arguments.parameters || []) : [],
-          }));
+  protected async _loadJob(id: string): Promise<void> {
+    try {
+      const job = await Apis.getJob(id);
+      this.job = job;
+
+      (this.$.runs as RunList).loadRuns(this.job.id);
+      this._disableCloneJobButton = false;
+    } catch (err) {
+      this.showPageError(
+          'There was an error while loading details for job ' + id, err.message);
+      Utils.log.verbose('Error loading job:', err);
+    }
+  }
+
+  protected _cloneJob(): void {
+    if (this.job) {
+      this.dispatchEvent(
+          new RouteEvent(
+            '/jobs/new',
+            {
+              parameters: this.job.parameters,
+              pipelineId: this.job.pipeline_id,
+            }));
+    }
+  }
+
+  protected async _enableJob(): Promise<void> {
+    if (this.job) {
+      try {
+        this._busy = true;
+        await Apis.enableJob(this.job.id);
+        this.job = await Apis.getJob(this.job.id);
+        Utils.showNotification('Job enabled');
+      } catch (err) {
+        Utils.showDialog('Error enabling job: ' + err);
+      } finally {
+        this._busy = false;
+      }
+    }
+  }
+
+  protected async _disableJob(): Promise<void> {
+    if (this.job) {
+      try {
+        this._busy = true;
+        await Apis.disableJob(this.job.id);
+        this.job = await Apis.getJob(this.job.id);
+        Utils.showNotification('Job disabled');
+      } catch (err) {
+        Utils.showDialog('Error disabling job: ' + err);
+      } finally {
+        this._busy = false;
+      }
+    }
+  }
+
+  protected async _deleteJob(): Promise<void> {
+    if (this.job) {
+      const dialogResult = await Utils.showDialog(
+          'Delete job?',
+          'You are about to delete this job. Are you sure you want to proceed?',
+          'Delete job',
+          'Cancel');
+
+      // BUTTON1 is Delete
+      if (dialogResult !== DialogResult.BUTTON1) {
+        return;
+      }
+
+      this._busy = true;
+      try {
+        await Apis.deleteJob(this.job.id);
+
+        Utils.showNotification(`Successfully deleted Job: "${this.job.name}"`);
+
+        // Navigate back to Job list page upon successful deletion.
+        this.dispatchEvent(new RouteEvent('/jobs'));
+      } catch (err) {
+        Utils.showDialog('Failed to delete Job', err);
+      } finally {
+        this._busy = false;
+      }
+    }
+  }
+
+  protected _enabledDisplayString(trigger: Trigger, enabled: boolean): string {
+    return Utils.enabledDisplayString(trigger, enabled);
+  }
+
+  protected _scheduleDisplayString(): string {
+    if (this.job && this.job.trigger) {
+      return this.job.trigger.toString();
+    }
+    return '-';
   }
 
   protected _formatDateString(date: string): string {
     return Utils.formatDateString(date);
   }
 
-  protected _getStatusIcon(status: NodePhase): string {
-    return Utils.nodePhaseToIcon(status);
+  // Job can only be enabled/disabled if there's a schedule/trigger
+  protected _computeAllowJobEnable(enabled: boolean, trigger: Trigger|null): boolean {
+    return !!trigger && !enabled;
   }
 
-  protected _getRunTime(start: string, end: string, status: NodePhase): string {
-    return Utils.getRunTime(start, end, status);
+  // Job can only be enabled/disabled if there's a schedule/trigger
+  protected _computeAllowJobDisable(enabled: boolean, trigger: Trigger|null): boolean {
+    return !!trigger && enabled;
   }
-
-  protected _getProgressColor(status: NodePhase): string {
-    return Utils.nodePhaseToColor(status);
-  }
-
-  private _reset(): void {
-    // Clear any preexisting page error.
-    this._pageError = '';
-    // Reset the selected tab each time the user navigates to this page.
-    this.selectedTab = 0;
-    // Clear outputPlots to keep from re-adding the same outputs over and over.
-    this.set('outputPlots', []);
-  }
-
-  private async _loadJobOutputs(): Promise<void> {
-    if (!this.workflow) {
-      throw new Error('Job workflow object is null.');
-    } else if (!this.workflow.status) {
-      throw new Error('Job workflow object has no status component.');
-    }
-
-    const outputPaths: OutputInfo[] = [];
-    Object.keys(this.workflow.status.nodes || []).forEach((id) => {
-      const node = this.workflow.status.nodes[id];
-      if (!node.inputs) {
-        return;
-      }
-      (node.inputs.parameters || []).filter((p) => p.name === 'output').forEach((p) =>
-          outputPaths.push({
-            path: p.value!,
-            step: node.displayName,
-          }));
-    });
-
-    this._loadingOutputs = true;
-    try {
-      // Build a map of the list of PlotMetadata to their corresponding output
-      // details. This map will help us keep outputs sorted by their index first
-      // (which is essentially the order of the steps), then by the output path
-      // to keep a reproducible order.
-      const outputsMap = new Map<PlotMetadata[], OutputInfo>();
-      await Promise.all(outputPaths.map(async (outputInfo, outputIndex) => {
-        outputInfo.index = outputIndex;
-        const fileList = await Apis.listFiles(outputInfo.path);
-        const metadataFile = fileList.find((f) => f.endsWith('/metadata.json'));
-        if (metadataFile) {
-          const metadataJson = await Apis.readFile(metadataFile);
-          const metadata = JSON.parse(metadataJson) as OutputMetadata;
-          outputsMap.set(metadata.outputs, outputInfo);
-        }
-      }));
-
-      this.outputPlots = Array.from(outputsMap.keys()).sort((metadata1, metadata2) => {
-        const outputInfo1 = outputsMap.get(metadata1) as OutputInfo;
-        const outputInfo2 = outputsMap.get(metadata2) as OutputInfo;
-        const index1 = outputInfo1.index as number;
-        const index2 = outputInfo2.index as number;
-        if (index1 === index2) {
-          return outputInfo1.path < outputInfo2.path ? -1 : 1;
-        }
-        return index1 < index2 ? -1 : 1;
-      }).reduce((flattenedOutputs, currentOutputs) => flattenedOutputs.concat(currentOutputs), []);
-    } catch (err) {
-      this.showPageError('There was an error while loading details for this job');
-      Utils.log.verbose('Error loading job details:', err.message);
-    } finally {
-      this._loadingOutputs = false;
-    }
-  }
-
 }

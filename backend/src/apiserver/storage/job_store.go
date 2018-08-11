@@ -2,18 +2,31 @@ package storage
 
 import (
 	"bytes"
-	"database/sql"
 	"fmt"
+
+	"database/sql"
 
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"k8s.io/apimachinery/pkg/util/json"
+)
+
+const (
+	insertJobQuery = `INSERT INTO job_details(
+					UUID,DisplayName,Name,Namespace,Description,
+          PipelineId,Enabled,Conditions,MaxConcurrency,
+          CronScheduleStartTimeInSec,CronScheduleEndTimeInSec,Schedule,
+          PeriodicScheduleStartTimeInSec,PeriodicScheduleEndTimeInSec,IntervalSecond,
+          Parameters,CreatedAtInSec,UpdatedAtInSec,ScheduledWorkflow) 
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 )
 
 type JobStoreInterface interface {
-	GetJob(pipelineId string, jobId string) (*model.JobDetail, error)
-	ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error)
-	CreateOrUpdateJob(workflow *util.Workflow) (err error)
+	ListJobs(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error)
+	GetJob(id string) (*model.Job, error)
+	CreateJob(*model.Job) (*model.Job, error)
+	DeleteJob(id string) error
+	EnableJob(id string, enabled bool) error
+	UpdateJob(swf *util.ScheduledWorkflow) error
 }
 
 type JobStore struct {
@@ -21,201 +34,221 @@ type JobStore struct {
 	time util.TimeInterface
 }
 
-// ListJobs list the job metadata for a pipeline from DB
-func (s *JobStore) ListJobs(pipelineId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error) {
-	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetJobTablePrimaryKeyColumn(), isDesc)
+func (s *JobStore) ListJobs(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error) {
+	context, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetJobTablePrimaryKeyColumn(), isDesc)
 	if err != nil {
 		return nil, "", err
 	}
-	queryJobTable := func(request *PaginationContext) ([]model.ListableDataModel, error) {
-		return s.queryJobTable(pipelineId, request)
-	}
-	models, pageToken, err := listModel(paginationContext, queryJobTable)
+	models, pageToken, err := listModel(context, s.queryJobTable)
 	if err != nil {
 		return nil, "", util.Wrap(err, "List jobs failed.")
 	}
 	return s.toJobMetadatas(models), pageToken, err
 }
 
-func (s *JobStore) queryJobTable(pipelineId string, context *PaginationContext) ([]model.ListableDataModel, error) {
+func (s *JobStore) queryJobTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var query bytes.Buffer
-	query.WriteString(fmt.Sprintf("SELECT * FROM job_details WHERE PipelineID = '%s'", pipelineId))
-	toPaginationQuery("AND", &query, context)
+	query.WriteString(fmt.Sprintf("SELECT * FROM job_details "))
+	toPaginationQuery("WHERE", &query, context)
 	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
-	r, err := s.db.Query(query.String())
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err.Error())
-	}
-	defer r.Close()
-	jobs, err := s.scanRows(r)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err.Error())
-	}
 
+	rows, err := s.db.Query(query.String())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v",
+			err.Error())
+	}
+	defer rows.Close()
+	jobs, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v",
+			err.Error())
+	}
 	return s.toListableModels(jobs), nil
 }
 
-// GetJob Get the job manifest from Workflow CRD
-func (s *JobStore) GetJob(pipelineId string, jobId string) (*model.JobDetail, error) {
-	r, err := s.db.Query(`SELECT * FROM job_details WHERE PipelineId=? AND uuid=? LIMIT 1`, pipelineId, jobId)
+func (s *JobStore) GetJob(id string) (*model.Job, error) {
+	row, err := s.db.Query(`SELECT * FROM job_details WHERE uuid=? LIMIT 1`, id)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get job: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get job: %v",
+			err.Error())
 	}
-	defer r.Close()
-	jobs, err := s.scanRows(r)
-
+	defer row.Close()
+	jobs, err := s.scanRows(row)
 	if err != nil || len(jobs) > 1 {
 		return nil, util.NewInternalServerError(err, "Failed to get job: %v", err.Error())
 	}
 	if len(jobs) == 0 {
-		return nil, util.NewResourceNotFoundError("Job", fmt.Sprint(jobId))
+		return nil, util.NewResourceNotFoundError("Job", fmt.Sprint(id))
 	}
-	return &jobs[0], nil
+	return &jobs[0].Job, nil
 }
 
-func (s *JobStore) scanRows(rows *sql.Rows) ([]model.JobDetail, error) {
+func (s *JobStore) scanRows(r *sql.Rows) ([]model.JobDetail, error) {
 	var jobs []model.JobDetail
-	for rows.Next() {
-		var uuid, name, namespace, pipelineID, conditions, workflow string
-		var CreatedAtInSec, ScheduledAtInSec int64
-		err := rows.Scan(&uuid, &name, &namespace, &pipelineID, &CreatedAtInSec, &ScheduledAtInSec, &conditions, &workflow)
+	for r.Next() {
+		var uuid, displayName, name, namespace, packageId, conditions,
+			scheduledWorkflow, description, parameters string
+		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec,
+			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
+		var cron sql.NullString
+		var enabled bool
+		var createdAtInSec, updatedAtInSec, maxConcurrency int64
+		err := r.Scan(
+			&uuid, &displayName, &name, &namespace, &description,
+			&packageId, &enabled, &conditions, &maxConcurrency,
+			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
+			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
+			&parameters, &createdAtInSec, &updatedAtInSec, &scheduledWorkflow)
+
 		if err != nil {
-			return jobs, nil
+			return nil, err
 		}
 		jobs = append(jobs, model.JobDetail{Job: model.Job{
-			UUID:             uuid,
-			Name:             name,
-			Namespace:        namespace,
-			PipelineID:       pipelineID,
-			CreatedAtInSec:   CreatedAtInSec,
-			ScheduledAtInSec: ScheduledAtInSec,
-			Conditions:       conditions},
-			Workflow: workflow})
+			UUID:           uuid,
+			DisplayName:    displayName,
+			Name:           name,
+			Namespace:      namespace,
+			Description:    description,
+			PipelineId:     packageId,
+			Enabled:        enabled,
+			Conditions:     conditions,
+			MaxConcurrency: maxConcurrency,
+			Trigger: model.Trigger{
+				CronSchedule: model.CronSchedule{
+					CronScheduleStartTimeInSec: NullInt64ToPointer(cronScheduleStartTimeInSec),
+					CronScheduleEndTimeInSec:   NullInt64ToPointer(cronScheduleEndTimeInSec),
+					Cron:                       NullStringToPointer(cron),
+				},
+				PeriodicSchedule: model.PeriodicSchedule{
+					PeriodicScheduleStartTimeInSec: NullInt64ToPointer(periodicScheduleStartTimeInSec),
+					PeriodicScheduleEndTimeInSec:   NullInt64ToPointer(periodicScheduleEndTimeInSec),
+					IntervalSecond:                 NullInt64ToPointer(intervalSecond),
+				},
+			},
+			Parameters:     parameters,
+			CreatedAtInSec: createdAtInSec,
+			UpdatedAtInSec: updatedAtInSec,
+		}, ScheduledWorkflow: scheduledWorkflow})
 	}
 	return jobs, nil
 }
 
-func (s *JobStore) createJob(
-	ownerUID string,
-	name string,
-	namespace string,
-	workflowUID string,
-	createdAtInSec int64,
-	scheduledAtInSec int64,
-	condition string,
-	marshalled string,
-	workflow *util.Workflow) (err error) {
-	job := &model.JobDetail{
-		Job: model.Job{
-			UUID:             workflowUID,
-			Name:             name,
-			Namespace:        namespace,
-			PipelineID:       ownerUID,
-			CreatedAtInSec:   createdAtInSec,
-			ScheduledAtInSec: scheduledAtInSec,
-			Conditions:       condition,
-		},
-		Workflow: marshalled,
-	}
-
-	stmt, err := s.db.Prepare(
-		`INSERT INTO job_details(UUID,Name,Namespace,PipelineID,CreatedAtInSec,ScheduledAtInSec,Conditions,Workflow) 
-		VALUES(?,?,?,?,?,?,?,?)`)
+func (s *JobStore) DeleteJob(id string) error {
+	_, err := s.db.Exec(`DELETE FROM job_details WHERE UUID=?`, id)
 	if err != nil {
-		return util.NewInternalServerError(err, "Error while creating job using workflow: %v, %+v",
-			err, workflow.Workflow)
+		return util.NewInternalServerError(err, "Failed to delete job: %v", err.Error())
 	}
-	defer stmt.Close()
-	_, err = stmt.Exec(
-		job.UUID,
-		job.Name,
-		job.Namespace,
-		job.PipelineID,
-		job.CreatedAtInSec,
-		job.ScheduledAtInSec,
-		job.Conditions,
-		job.Workflow)
-	if err != nil {
-		return util.NewInternalServerError(err, "Error while creating job for workflow: '%v/%v",
-			namespace, name)
-	}
-
 	return nil
 }
 
-func (s *JobStore) CreateOrUpdateJob(workflow *util.Workflow) (err error) {
-	if workflow.Name == "" {
-		return util.NewInvalidInputError("The workflow must have a name: %+v", workflow.Workflow)
-	}
-	if workflow.Namespace == "" {
-		return util.NewInvalidInputError("The workflow must have a namespace: %+v", workflow.Workflow)
-	}
-	ownerUID := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
-	if ownerUID == "" {
-		return util.NewInvalidInputError("The workflow must have a valid owner: %+v", workflow.Workflow)
-	}
-
-	marshalled, err := json.Marshal(workflow.Workflow)
+func (s *JobStore) CreateJob(p *model.Job) (*model.Job, error) {
+	var newJob model.JobDetail
+	newJob.Job = *p
+	now := s.time.Now().Unix()
+	newJob.CreatedAtInSec = now
+	newJob.UpdatedAtInSec = now
+	stmt, err := s.db.Prepare(insertJobQuery)
 	if err != nil {
-		return util.NewInternalServerError(err, "Unable to marshal a workflow: %+v", workflow.Workflow)
+		return nil, util.NewInternalServerError(err, "Failed to add job to job table: %v",
+			err.Error())
+	}
+	defer stmt.Close()
+	if _, err := stmt.Exec(
+		newJob.UUID, newJob.DisplayName, newJob.Name, newJob.Namespace, newJob.Description,
+		newJob.PipelineId, newJob.Enabled, newJob.Conditions, newJob.MaxConcurrency,
+		PointerToNullInt64(newJob.CronScheduleStartTimeInSec), PointerToNullInt64(newJob.CronScheduleEndTimeInSec), PointerToNullString(newJob.Cron),
+		PointerToNullInt64(newJob.PeriodicScheduleStartTimeInSec), PointerToNullInt64(newJob.PeriodicScheduleEndTimeInSec), PointerToNullInt64(newJob.IntervalSecond),
+		newJob.Parameters, newJob.CreatedAtInSec, newJob.UpdatedAtInSec, newJob.ScheduledWorkflow); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to add job to job table: %v",
+			err.Error())
+	}
+	return &newJob.Job, nil
+}
+
+func (s *JobStore) EnableJob(id string, enabled bool) error {
+	now := s.time.Now().Unix()
+	stmt, err := s.db.Prepare(`UPDATE job_details SET Enabled=?, UpdatedAtInSec=? WHERE UUID=? and Enabled=?`)
+	if err != nil {
+		return util.NewInternalServerError(err, "Error when enabling job %v to %v", id, enabled)
+	}
+	defer stmt.Close()
+	if _, err := stmt.Exec(enabled, now, id, !enabled); err != nil {
+		return util.NewInternalServerError(err, "Error when enabling job %v to %v", id, enabled)
+	}
+	return nil
+}
+
+func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
+	now := s.time.Now().Unix()
+
+	if swf.Name == "" {
+		return util.NewInvalidInputError("The resource must have a name: %+v", swf.ScheduledWorkflow)
+	}
+	if swf.Namespace == "" {
+		return util.NewInvalidInputError("The resource must have a namespace: %+v", swf.ScheduledWorkflow)
 	}
 
-	if workflow.UID == "" {
-		return util.NewInvalidInputError("The workflow must have a UID: %+v", workflow.Workflow)
+	if swf.UID == "" {
+		return util.NewInvalidInputError("The resource must have a UID: %+v", swf.UID)
 	}
 
-	scheduledAtInSec := workflow.ScheduledAtInSecOr0()
-
-	condition := workflow.Condition()
-
-	// Attempting to create the job in the DB.
-
-	createError := s.createJob(
-		ownerUID,
-		workflow.Name,
-		workflow.Namespace,
-		string(workflow.UID),
-		workflow.CreationTimestamp.Unix(),
-		scheduledAtInSec,
-		condition,
-		string(marshalled),
-		workflow)
-
-	if createError == nil {
-		return nil
+	parameters, err := swf.ParametersAsString()
+	if err != nil {
+		return err
 	}
-
-	// If creating the job did not work, attempting to update the job in the DB.
-
 	stmt, err := s.db.Prepare(`UPDATE job_details SET 
 		Name = ?,
 		Namespace = ?,
-		PipelineID = ?,
-		CreatedAtInSec = ?,
-		ScheduledAtInSec = ?,
+		Enabled = ?,
 		Conditions = ?,
-		Workflow = ?
+		MaxConcurrency = ?,
+		Parameters = ?,
+		UpdatedAtInSec = ?,
+		CronScheduleStartTimeInSec = ?,
+		CronScheduleEndTimeInSec = ?,
+		Schedule = ?,
+		PeriodicScheduleStartTimeInSec = ?,
+		PeriodicScheduleEndTimeInSec = ?,
+		IntervalSecond = ? 
 		WHERE UUID = ?`)
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Error while creating or updating job for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
-			workflow.Namespace, workflow.Name, createError.Error(), err.Error())
+			"Error while updating job with scheduled workflow: %v: %+v",
+			err, swf.ScheduledWorkflow)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(
-		workflow.Name,
-		workflow.Namespace,
-		ownerUID,
-		workflow.CreationTimestamp.Unix(),
-		scheduledAtInSec,
-		condition,
-		string(marshalled),
-		string(workflow.UID))
+	r, err := stmt.Exec(
+		swf.Name,
+		swf.Namespace,
+		swf.Spec.Enabled,
+		swf.ConditionSummary(),
+		swf.MaxConcurrencyOr0(),
+		parameters,
+		now,
+		PointerToNullInt64(swf.CronScheduleStartTimeInSecOrNull()),
+		PointerToNullInt64(swf.CronScheduleEndTimeInSecOrNull()),
+		swf.CronOrEmpty(),
+		PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
+		PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
+		swf.IntervalSecondOr0(),
+		string(swf.UID))
 
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Error while creating or updating job for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
-			workflow.Namespace, workflow.Name, createError.Error(), err.Error())
+			"Error while updating job with scheduled workflow: %v: %+v",
+			err, swf.ScheduledWorkflow)
+	}
+
+	rowsAffected, err := r.RowsAffected()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Error getting affected rows while updating job with scheduled workflow: %v: %+v",
+			err, swf.ScheduledWorkflow)
+	}
+	if rowsAffected <= 0 {
+		return util.NewInvalidInputError(
+			"There is no job corresponding to this scheduled workflow: %v/%v/%v",
+			swf.UID, swf.Namespace, swf.Name)
 	}
 
 	return nil
@@ -230,14 +263,17 @@ func (s *JobStore) toListableModels(jobs []model.JobDetail) []model.ListableData
 }
 
 func (s *JobStore) toJobMetadatas(models []model.ListableDataModel) []model.Job {
-	jobMetadatas := make([]model.Job, len(models))
+	jobs := make([]model.Job, len(models))
 	for i := range models {
-		jobMetadatas[i] = models[i].(model.Job)
+		jobs[i] = models[i].(model.Job)
 	}
-	return jobMetadatas
+	return jobs
 }
 
 // factory function for job store
 func NewJobStore(db *sql.DB, time util.TimeInterface) *JobStore {
-	return &JobStore{db: db, time: time}
+	return &JobStore{
+		db:   db,
+		time: time,
+	}
 }

@@ -1,0 +1,50 @@
+@import '../../styles/vars.css';
+@import '../../styles/common.css';
+
+:host {
+  display: flex;
+  flex-flow: column;
+}
+
+paper-progress.run-progress {
+  --paper-progress-active-color: var(--theme-primary-color);
+  --paper-progress-height: 10px;
+}
+
+.plot-container,
+#runtimeGraph {
+  background-color: var(--background-base-color);
+  border: solid 1px #ddd;
+  border-radius: 0 0 5px 5px;
+  border-top: 0;
+  flex-grow: 1;
+  overflow: auto;
+}
+
+.run-name {
+  color: var(--primary-text-color);
+  flex-grow: 1;
+  font-size: var(--paper-font-title_-_font-size);
+  font-weight: var(--paper-font-title_-_font-weight);
+  line-height: var(--paper-font-title_-_line-height);
+}
+
+.page-content {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.plot-container[loading] {
+  opacity: 0.6;
+}
+
+.status-icon {
+  color: var(--primary-text-inverse-color);
+  height: 20px;
+  margin: 7px;
+  width: 20px;
+}
+
+.toolbar {
+  border-bottom: none;
+}

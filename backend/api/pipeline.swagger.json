@@ -56,36 +56,6 @@
         "tags": [
           "PipelineService"
         ]
-      },
-      "post": {
-        "operationId": "CreatePipeline",
-        "responses": {
-          "200": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiPipeline"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/apiPipeline"
-            }
-          }
-        ],
-        "tags": [
-          "PipelineService"
-        ]
       }
     },
     "/apis/v1alpha2/pipelines/{id}": {
@@ -146,44 +116,14 @@
         ]
       }
     },
-    "/apis/v1alpha2/pipelines/{id}/disable": {
-      "post": {
-        "operationId": "DisablePipeline",
+    "/apis/v1alpha2/pipelines/{id}/templates": {
+      "get": {
+        "operationId": "GetTemplate",
         "responses": {
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/protobufEmpty"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "PipelineService"
-        ]
-      }
-    },
-    "/apis/v1alpha2/pipelines/{id}/enable": {
-      "post": {
-        "operationId": "EnablePipeline",
-        "responses": {
-          "200": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/protobufEmpty"
+              "$ref": "#/definitions/apiGetTemplateResponse"
             }
           },
           "default": {
@@ -208,18 +148,10 @@
     }
   },
   "definitions": {
-    "apiCronSchedule": {
+    "apiGetTemplateResponse": {
       "type": "object",
       "properties": {
-        "start_time": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "end_time": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "cron": {
+        "template": {
           "type": "string"
         }
       }
@@ -249,28 +181,15 @@
         }
       }
     },
-    "apiPeriodicSchedule": {
-      "type": "object",
-      "properties": {
-        "start_time": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "end_time": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "interval_second": {
-          "type": "string",
-          "format": "int64"
-        }
-      }
-    },
     "apiPipeline": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
         },
         "name": {
           "type": "string"
@@ -278,37 +197,11 @@
         "description": {
           "type": "string"
         },
-        "package_id": {
-          "type": "string"
-        },
-        "enabled": {
-          "type": "boolean",
-          "format": "boolean"
-        },
-        "status": {
-          "type": "string",
-          "title": "The status is surfacing the resource condition. A resource can potentially\nhave multiple conditions, although in most cases, it should be in one\nstate.\nhttps://github.com/eBay/Kubernetes/blob/master/docs/devel/api-conventions.md\nIn case of a single state, the status ends with a colon:\nSTATUS_1:\nIn case of multiple states, the statuses are separated by a colon.\nSTATUS_1:STATUS_2:"
-        },
-        "max_concurrency": {
-          "type": "string",
-          "format": "int64"
-        },
         "parameters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiParameter"
           }
-        },
-        "trigger": {
-          "$ref": "#/definitions/apiTrigger"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time"
         }
       }
     },
@@ -327,17 +220,6 @@
           "items": {
             "$ref": "#/definitions/protobufAny"
           }
-        }
-      }
-    },
-    "apiTrigger": {
-      "type": "object",
-      "properties": {
-        "cron_schedule": {
-          "$ref": "#/definitions/apiCronSchedule"
-        },
-        "periodic_schedule": {
-          "$ref": "#/definitions/apiPeriodicSchedule"
         }
       }
     },

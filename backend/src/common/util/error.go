@@ -137,7 +137,7 @@ func (e *UserError) String() string {
 }
 
 func (e *UserError) wrapf(format string, args ...interface{}) *UserError {
-	return newUserError(errors.Wrapf(e.internalError, format, args),
+	return newUserError(errors.Wrapf(e.internalError, format, args...),
 		e.externalMessage, e.externalStatusCode)
 }
 
@@ -162,9 +162,9 @@ func Wrapf(err error, format string, args ...interface{}) error {
 
 	switch err.(type) {
 	case *UserError:
-		return err.(*UserError).wrapf(format, args)
+		return err.(*UserError).wrapf(format, args...)
 	default:
-		return errors.Wrapf(err, format, args)
+		return errors.Wrapf(err, format, args...)
 	}
 }
 

@@ -1,0 +1,243 @@
+package storage
+
+import (
+	"bytes"
+	"database/sql"
+	"fmt"
+
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
+	"github.com/googleprivate/ml/backend/src/common/util"
+	"k8s.io/apimachinery/pkg/util/json"
+)
+
+type RunStoreInterface interface {
+	GetRun(jobId string, runId string) (*model.RunDetail, error)
+	ListRuns(jobId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Run, string, error)
+	CreateOrUpdateRun(workflow *util.Workflow) (err error)
+}
+
+type RunStore struct {
+	db   *sql.DB
+	time util.TimeInterface
+}
+
+// ListRuns list the run metadata for a job from DB
+func (s *RunStore) ListRuns(jobId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Run, string, error) {
+	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetRunTablePrimaryKeyColumn(), isDesc)
+	if err != nil {
+		return nil, "", err
+	}
+	queryRunTable := func(request *PaginationContext) ([]model.ListableDataModel, error) {
+		return s.queryRunTable(jobId, request)
+	}
+	models, pageToken, err := listModel(paginationContext, queryRunTable)
+	if err != nil {
+		return nil, "", util.Wrap(err, "List runs failed.")
+	}
+	return s.toRunMetadatas(models), pageToken, err
+}
+
+func (s *RunStore) queryRunTable(jobId string, context *PaginationContext) ([]model.ListableDataModel, error) {
+	var query bytes.Buffer
+	query.WriteString(fmt.Sprintf("SELECT * FROM run_details WHERE JobID = '%s'", jobId))
+	toPaginationQuery("AND", &query, context)
+	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
+	r, err := s.db.Query(query.String())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
+	}
+	defer r.Close()
+	runs, err := s.scanRows(r)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
+	}
+
+	return s.toListableModels(runs), nil
+}
+
+// GetRun Get the run manifest from Workflow CRD
+func (s *RunStore) GetRun(jobId string, runId string) (*model.RunDetail, error) {
+	r, err := s.db.Query(`SELECT * FROM run_details WHERE JobId=? AND uuid=? LIMIT 1`, jobId, runId)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
+	}
+	defer r.Close()
+	runs, err := s.scanRows(r)
+
+	if err != nil || len(runs) > 1 {
+		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
+	}
+	if len(runs) == 0 {
+		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
+	}
+	return &runs[0], nil
+}
+
+func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
+	var runs []model.RunDetail
+	for rows.Next() {
+		var uuid, name, namespace, jobID, conditions, workflow string
+		var CreatedAtInSec, ScheduledAtInSec int64
+		err := rows.Scan(&uuid, &name, &namespace, &jobID, &CreatedAtInSec, &ScheduledAtInSec, &conditions, &workflow)
+		if err != nil {
+			return runs, nil
+		}
+		runs = append(runs, model.RunDetail{Run: model.Run{
+			UUID:             uuid,
+			Name:             name,
+			Namespace:        namespace,
+			JobID:            jobID,
+			CreatedAtInSec:   CreatedAtInSec,
+			ScheduledAtInSec: ScheduledAtInSec,
+			Conditions:       conditions},
+			Workflow: workflow})
+	}
+	return runs, nil
+}
+
+func (s *RunStore) createRun(
+	ownerUID string,
+	name string,
+	namespace string,
+	workflowUID string,
+	createdAtInSec int64,
+	scheduledAtInSec int64,
+	condition string,
+	marshalled string,
+	workflow *util.Workflow) (err error) {
+	run := &model.RunDetail{
+		Run: model.Run{
+			UUID:             workflowUID,
+			Name:             name,
+			Namespace:        namespace,
+			JobID:            ownerUID,
+			CreatedAtInSec:   createdAtInSec,
+			ScheduledAtInSec: scheduledAtInSec,
+			Conditions:       condition,
+		},
+		Workflow: marshalled,
+	}
+
+	stmt, err := s.db.Prepare(
+		`INSERT INTO run_details(UUID,Name,Namespace,JobID,CreatedAtInSec,ScheduledAtInSec,Conditions,Workflow) 
+		VALUES(?,?,?,?,?,?,?,?)`)
+	if err != nil {
+		return util.NewInternalServerError(err, "Error while creating run using workflow: %v, %+v",
+			err, workflow.Workflow)
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(
+		run.UUID,
+		run.Name,
+		run.Namespace,
+		run.JobID,
+		run.CreatedAtInSec,
+		run.ScheduledAtInSec,
+		run.Conditions,
+		run.Workflow)
+	if err != nil {
+		return util.NewInternalServerError(err, "Error while creating run for workflow: '%v/%v",
+			namespace, name)
+	}
+
+	return nil
+}
+
+func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
+	if workflow.Name == "" {
+		return util.NewInvalidInputError("The workflow must have a name: %+v", workflow.Workflow)
+	}
+	if workflow.Namespace == "" {
+		return util.NewInvalidInputError("The workflow must have a namespace: %+v", workflow.Workflow)
+	}
+	ownerUID := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+	if ownerUID == "" {
+		return util.NewInvalidInputError("The workflow must have a valid owner: %+v", workflow.Workflow)
+	}
+
+	marshalled, err := json.Marshal(workflow.Workflow)
+	if err != nil {
+		return util.NewInternalServerError(err, "Unable to marshal a workflow: %+v", workflow.Workflow)
+	}
+
+	if workflow.UID == "" {
+		return util.NewInvalidInputError("The workflow must have a UID: %+v", workflow.Workflow)
+	}
+
+	scheduledAtInSec := workflow.ScheduledAtInSecOr0()
+
+	condition := workflow.Condition()
+
+	// Attempting to create the run in the DB.
+
+	createError := s.createRun(
+		ownerUID,
+		workflow.Name,
+		workflow.Namespace,
+		string(workflow.UID),
+		workflow.CreationTimestamp.Unix(),
+		scheduledAtInSec,
+		condition,
+		string(marshalled),
+		workflow)
+
+	if createError == nil {
+		return nil
+	}
+
+	// If creating the run did not work, attempting to update the run in the DB.
+
+	stmt, err := s.db.Prepare(`UPDATE run_details SET 
+		Name = ?,
+		Namespace = ?,
+		JobID = ?,
+		CreatedAtInSec = ?,
+		ScheduledAtInSec = ?,
+		Conditions = ?,
+		Workflow = ?
+		WHERE UUID = ?`)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
+			workflow.Namespace, workflow.Name, createError.Error(), err.Error())
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(
+		workflow.Name,
+		workflow.Namespace,
+		ownerUID,
+		workflow.CreationTimestamp.Unix(),
+		scheduledAtInSec,
+		condition,
+		string(marshalled),
+		string(workflow.UID))
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
+			workflow.Namespace, workflow.Name, createError.Error(), err.Error())
+	}
+
+	return nil
+}
+
+func (s *RunStore) toListableModels(runs []model.RunDetail) []model.ListableDataModel {
+	models := make([]model.ListableDataModel, len(runs))
+	for i := range models {
+		models[i] = runs[i].Run
+	}
+	return models
+}
+
+func (s *RunStore) toRunMetadatas(models []model.ListableDataModel) []model.Run {
+	runMetadatas := make([]model.Run, len(models))
+	for i := range models {
+		runMetadatas[i] = models[i].(model.Run)
+	}
+	return runMetadatas
+}
+
+// factory function for run store
+func NewRunStore(db *sql.DB, time util.TimeInterface) *RunStore {
+	return &RunStore{db: db, time: time}
+}

@@ -1,48 +1,21 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
-:host {
-  display: flex;
-  flex-flow: column;
-}
-
-paper-progress.job-progress {
-  --paper-progress-active-color: var(--theme-primary-color);
-  --paper-progress-height: 10px;
-}
-
-.plot-container,
-#jobGraph {
-  background-color: var(--background-base-color);
-  border: solid 1px #ddd;
-  border-radius: 0 0 5px 5px;
-  border-top: 0;
-  flex-grow: 1;
-  overflow: auto;
-}
-
 .job-name {
   color: var(--primary-text-color);
-  flex-grow: 1;
   font-size: var(--paper-font-title_-_font-size);
   font-weight: var(--paper-font-title_-_font-weight);
   line-height: var(--paper-font-title_-_line-height);
 }
 
-.page-content {
-  box-sizing: border-box;
-  width: 100%;
+.job-id {
+  padding: 0 var(--spacing-minus-3);
 }
 
-.plot-container[loading] {
-  opacity: 0.6;
-}
-
-.status-icon {
-  color: var(--primary-text-inverse-color);
-  height: 20px;
-  margin: 7px;
-  width: 20px;
+.tabs-container {
+  border-bottom: solid 1px var(--divider-color);
+  height: var(--height-small);
+  position: relative;
 }
 
 .toolbar {

@@ -44,24 +44,24 @@ const (
 // Container for all service clients
 type ClientManager struct {
 	db                *sql.DB
-	packageStore      storage.PackageStoreInterface
 	pipelineStore     storage.PipelineStoreInterface
 	jobStore          storage.JobStoreInterface
+	runStore          storage.RunStoreInterface
 	objectStore       storage.ObjectStoreInterface
 	scheduledWorkflow scheduledworkflowclient.ScheduledWorkflowInterface
 	time              util.TimeInterface
 	uuid              util.UUIDGeneratorInterface
 }
 
-func (c *ClientManager) PackageStore() storage.PackageStoreInterface {
-	return c.packageStore
-}
 func (c *ClientManager) PipelineStore() storage.PipelineStoreInterface {
 	return c.pipelineStore
 }
-
 func (c *ClientManager) JobStore() storage.JobStoreInterface {
 	return c.jobStore
+}
+
+func (c *ClientManager) RunStore() storage.RunStoreInterface {
+	return c.runStore
 }
 
 func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
@@ -91,17 +91,17 @@ func (c *ClientManager) init() {
 	// UUID generator
 	c.uuid = util.NewUUIDGenerator()
 
-	// Initialize package store
+	// Initialize pipeline store
 	c.db = db
-	c.packageStore = storage.NewPackageStore(db, c.time, c.uuid)
-
-	// Initialize pipeline store v2
-	c.pipelineStore = storage.NewPipelineStore(db, c.time)
+	c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 
 	// Initialize job store v2
 	c.jobStore = storage.NewJobStore(db, c.time)
 
-	// Initialize package manager.
+	// Initialize run store v2
+	c.runStore = storage.NewRunStore(db, c.time)
+
+	// Initialize pipeline manager.
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
 
 	c.scheduledWorkflow = client.CreateScheduledWorkflowClientOrFatal(
@@ -130,18 +130,18 @@ func initDBClient(initConnectionTimeout time.Duration) *sql.DB {
 	util.TerminateIfError(err)
 
 	// Create table
-	response := db.AutoMigrate(&model.Package{}, &model.JobDetail{}, &model.PipelineDetail{})
+	response := db.AutoMigrate(&model.Pipeline{}, &model.RunDetail{}, &model.JobDetail{})
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
 	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for PipelineID in job table. Error: %s", response.Error)
+		glog.Fatalf("Failed to create a foreign key for JobID in run table. Error: %s", response.Error)
 	}
-	response = db.Model(&model.JobDetail{}).
-		AddForeignKey("PipelineID", "pipeline_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	response = db.Model(&model.RunDetail{}).
+		AddForeignKey("JobID", "job_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for PipelineID in job_detail table. Error: %s", response.Error)
+		glog.Fatalf("Failed to create a foreign key for JobID in run_detail table. Error: %s", response.Error)
 	}
 	return db.DB()
 }

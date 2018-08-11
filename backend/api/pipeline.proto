@@ -23,13 +23,6 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service PipelineService {
-  rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
-    option (google.api.http) = {
-      post: "/apis/v1alpha2/pipelines"
-      body: "pipeline"
-    };
-  }
-
   rpc GetPipeline(GetPipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       get: "/apis/v1alpha2/pipelines/{id}"
@@ -42,93 +35,50 @@ service PipelineService {
     };
   }
 
-  rpc EnablePipeline(EnablePipelineRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/apis/v1alpha2/pipelines/{id}/enable"
-    };
-  }
-
-  rpc DisablePipeline(DisablePipelineRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/apis/v1alpha2/pipelines/{id}/disable"
-    };
-  }
-
   rpc DeletePipeline(DeletePipelineRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1alpha2/pipelines/{id}"
     };
   }
+
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1alpha2/pipelines/{id}/templates"
+    };
+  }
 }
 
-message CreatePipelineRequest{
-  Pipeline pipeline = 1;
-}
-
-message GetPipelineRequest{
+message GetPipelineRequest {
   string id = 1;
 }
 
-message ListPipelinesRequest{
+message ListPipelinesRequest {
   string page_token = 1;
   int32 page_size = 2;
   string sort_by = 3;
 }
 
-message ListPipelinesResponse{
+message ListPipelinesResponse {
   repeated Pipeline pipelines = 1;
   string next_page_token = 2;
 }
 
-message DeletePipelineRequest{
+message DeletePipelineRequest {
   string id = 1;
 }
 
-message EnablePipelineRequest {
+message GetTemplateRequest {
   string id = 1;
 }
 
-message DisablePipelineRequest {
-  string id = 1;
-}
-
-message CronSchedule {
-  google.protobuf.Timestamp start_time = 1;
-  google.protobuf.Timestamp end_time = 2;
-  string cron = 3;
-}
-
-message PeriodicSchedule {
-  google.protobuf.Timestamp start_time = 1;
-  google.protobuf.Timestamp end_time = 2;
-  int64 interval_second = 3;
-}
-
-message Trigger{
-  oneof trigger{
-    CronSchedule cron_schedule = 1;
-    PeriodicSchedule periodic_schedule = 2;
-  }
+message GetTemplateResponse {
+  string template = 1;
 }
 
 message Pipeline{
   string id = 1;
-  string name = 2;
-  string description = 3;
-  string package_id = 4;
-  bool enabled = 5;
-  // The status is surfacing the resource condition. A resource can potentially
-  // have multiple conditions, although in most cases, it should be in one
-  // state.
-  // https://github.com/eBay/Kubernetes/blob/master/docs/devel/api-conventions.md
-  // In case of a single state, the status ends with a colon:
-  // STATUS_1:
-  // In case of multiple states, the statuses are separated by a colon.
-  // STATUS_1:STATUS_2:
-  string status = 6;
-  int64 max_concurrency = 7;
-  repeated Parameter parameters = 8;
-  Trigger trigger = 9;
-  google.protobuf.Timestamp created_at =10;
-  google.protobuf.Timestamp updated_at =11;
+  google.protobuf.Timestamp created_at =2;
+  string name = 3;
+  string description = 4;
+  repeated Parameter parameters = 5;
 }

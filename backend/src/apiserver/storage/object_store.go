@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	PackageFolder  = "packages"
 	PipelineFolder = "pipelines"
+	JobFolder      = "jobs"
 )
 
 // Interface for object store.
@@ -36,7 +36,7 @@ type ObjectStoreInterface interface {
 	GetFromYamlFile(o interface{}, folder string, fileName string) error
 }
 
-// Managing package using Minio
+// Managing pipeline using Minio
 type MinioObjectStore struct {
 	minioClient MinioClientInterface
 	bucketName  string

@@ -25,34 +25,6 @@ type Client struct {
 }
 
 /*
-CreatePipeline create pipeline API
-*/
-func (a *Client) CreatePipeline(params *CreatePipelineParams) (*CreatePipelineOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCreatePipelineParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreatePipeline",
-		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/pipelines",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &CreatePipelineReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CreatePipelineOK), nil
-
-}
-
-/*
 DeletePipeline delete pipeline API
 */
 func (a *Client) DeletePipeline(params *DeletePipelineParams) (*DeletePipelineOK, error) {
@@ -81,62 +53,6 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams) (*DeletePipelineOK
 }
 
 /*
-DisablePipeline disable pipeline API
-*/
-func (a *Client) DisablePipeline(params *DisablePipelineParams) (*DisablePipelineOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewDisablePipelineParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DisablePipeline",
-		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/pipelines/{id}/disable",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &DisablePipelineReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DisablePipelineOK), nil
-
-}
-
-/*
-EnablePipeline enable pipeline API
-*/
-func (a *Client) EnablePipeline(params *EnablePipelineParams) (*EnablePipelineOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewEnablePipelineParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "EnablePipeline",
-		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/pipelines/{id}/enable",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &EnablePipelineReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*EnablePipelineOK), nil
-
-}
-
-/*
 GetPipeline get pipeline API
 */
 func (a *Client) GetPipeline(params *GetPipelineParams) (*GetPipelineOK, error) {
@@ -161,6 +77,34 @@ func (a *Client) GetPipeline(params *GetPipelineParams) (*GetPipelineOK, error) 
 		return nil, err
 	}
 	return result.(*GetPipelineOK), nil
+
+}
+
+/*
+GetTemplate get template API
+*/
+func (a *Client) GetTemplate(params *GetTemplateParams) (*GetTemplateOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetTemplateParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetTemplate",
+		Method:             "GET",
+		PathPattern:        "/apis/v1alpha2/pipelines/{id}/templates",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetTemplateReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetTemplateOK), nil
 
 }
 

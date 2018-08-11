@@ -56,412 +56,413 @@ func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, bucket string, fileN
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func createPkg(name string) *model.Package {
-	return &model.Package{Name: name, Status: model.PackageReady}
-}
-
-func TestCreatePackage(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	pkg, err := manager.CreatePackage("package1", []byte(""))
-	pkgExpected := &model.Package{
-		UUID:           DefaultFakeUUID,
-		CreatedAtInSec: 1,
-		Name:           "package1",
-		Parameters:     "[]",
-		Status:         model.PackageReady,
-	}
-	assert.Nil(t, err)
-	assert.Equal(t, pkgExpected, pkg)
-}
-
-func TestCreatePackage_GetParametersError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	_, err := manager.CreatePackage("package1", []byte("I am invalid yaml"))
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to parse the parameter")
-}
-
-func TestCreatePackage_StorePackageMetadataError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	store.DB().Close()
-	manager := NewResourceManager(store)
-	_, err := manager.CreatePackage("package1", []byte(""))
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to add package to package table")
-}
-
-func TestCreatePackage_CreatePackageFileError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	// Use a bad object store
-	manager.objectStore = &FakeBadObjectStore{}
-	_, err := manager.CreatePackage("package1", []byte(""))
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "bad object store")
-	// Verify there is a package in DB with status PackageCreating.
-	pkg, err := manager.packageStore.GetPackageWithStatus(DefaultFakeUUID, model.PackageCreating)
-	assert.Nil(t, err)
-	assert.NotNil(t, pkg)
-}
-
-func TestGetPackageTemplate(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	pkg, _ := store.PackageStore().CreatePackage(createPkg("pkg1"))
-	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.PackageFolder, fmt.Sprint(pkg.UUID))
-	manager := NewResourceManager(store)
-	actualTemplate, err := manager.GetPackageTemplate(pkg.UUID)
-	assert.Nil(t, err)
-	assert.Equal(t, template, actualTemplate)
-}
-
-func TestGetPackageTemplate_PackageMetadataNotFound(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.PackageFolder, fmt.Sprint(1))
-	manager := NewResourceManager(store)
-	_, err := manager.GetPackageTemplate("1")
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Package 1 not found")
-}
-
-func TestGetPackageTemplate_PackageFileNotFound(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	pkg, _ := store.PackageStore().CreatePackage(createPkg("pkg1"))
-	manager := NewResourceManager(store)
-	_, err := manager.GetPackageTemplate(pkg.UUID)
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "object not found")
-}
-
-func TestListJob(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	pipeline1 := &model.Pipeline{
-		UUID:           "1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PackageId:      "1",
-		Enabled:        true,
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 0,
-	}
-	_, err := manager.pipelineStore.CreatePipeline(pipeline1)
-	assert.Nil(t, err)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "job1",
-			Namespace:         "n1",
-			UID:               "1",
-			CreationTimestamp: metav1.Time{Time: time.Unix(1, 0)},
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID("1"),
-			}},
-		},
-	})
-	err = manager.jobStore.CreateOrUpdateJob(workflow)
-	assert.Nil(t, err)
-	jobs, newToken, err := manager.ListJobs("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
-	jobsExpected := []model.Job{{
-		UUID:           "1",
-		Name:           "job1",
-		Namespace:      "n1",
-		PipelineID:     "1",
-		CreatedAtInSec: 1,
-		Conditions:     ":",
-	}}
-	assert.Nil(t, err)
-	assert.Equal(t, "", newToken)
-	assert.Equal(t, jobsExpected, jobs)
-}
-
-func TestListJob_PipelineNotFoundError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	_, _, err := manager.ListJobs("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
-	assert.Contains(t, err.Error(), "Pipeline 1 not found")
-}
-
-func TestGetJob(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	pipeline1 := &model.Pipeline{
-		UUID:           "1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PackageId:      "1",
-		Enabled:        true,
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 0,
-	}
-	_, err := manager.pipelineStore.CreatePipeline(pipeline1)
-	assert.Nil(t, err)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "job1",
-			Namespace:         "n1",
-			UID:               "1",
-			CreationTimestamp: metav1.Time{Time: time.Unix(1, 0)},
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID("1"),
-			}},
-		},
-	})
-	err = manager.jobStore.CreateOrUpdateJob(workflow)
-	job, err := manager.GetJob("1", "1")
-	workflowBytes, _ := json.Marshal(workflow)
-	jobExpected := &model.JobDetail{
-		Job: model.Job{
-			UUID:           "1",
-			Name:           "job1",
-			Namespace:      "n1",
-			PipelineID:     "1",
-			CreatedAtInSec: 1,
-			Conditions:     ":",
-		},
-		Workflow: string(workflowBytes),
-	}
-	assert.Nil(t, err)
-	assert.Equal(t, jobExpected, job)
-}
-
-func TestGetJob_PipelineNotFoundError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	_, err := manager.GetJob("1", "foo")
-	assert.Contains(t, err.Error(), "Pipeline 1 not found")
+func createPipeline(name string) *model.Pipeline {
+	return &model.Pipeline{Name: name, Status: model.PipelineReady}
 }
 
 func TestCreatePipeline(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
+	pkg, err := manager.CreatePipeline("pipeline1", []byte(""))
+	pkgExpected := &model.Pipeline{
+		UUID:           DefaultFakeUUID,
+		CreatedAtInSec: 1,
+		Name:           "pipeline1",
+		Parameters:     "[]",
+		Status:         model.PipelineReady,
+	}
+	assert.Nil(t, err)
+	assert.Equal(t, pkgExpected, pkg)
+}
+
+func TestCreatePipeline_GetParametersError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	_, err := manager.CreatePipeline("pipeline1", []byte("I am invalid yaml"))
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Failed to parse the parameter")
+}
+
+func TestCreatePipeline_StorePipelineMetadataError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	store.DB().Close()
+	manager := NewResourceManager(store)
+	_, err := manager.CreatePipeline("pipeline1", []byte(""))
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Failed to add pipeline to pipeline table")
+}
+
+func TestCreatePipeline_CreatePipelineFileError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	// Use a bad object store
+	manager.objectStore = &FakeBadObjectStore{}
+	_, err := manager.CreatePipeline("pipeline1", []byte(""))
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "bad object store")
+	// Verify there is a pipeline in DB with status PipelineCreating.
+	pkg, err := manager.pipelineStore.GetPipelineWithStatus(DefaultFakeUUID, model.PipelineCreating)
+	assert.Nil(t, err)
+	assert.NotNil(t, pkg)
+}
+
+func TestGetPipelineTemplate(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	pkg, _ := store.PipelineStore().CreatePipeline(createPipeline("pkg1"))
+	template := []byte("workflow: foo")
+	store.ObjectStore().AddFile(template, storage.JobFolder, fmt.Sprint(pkg.UUID))
+	manager := NewResourceManager(store)
+	actualTemplate, err := manager.GetPipelineTemplate(pkg.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, template, actualTemplate)
+}
+
+func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	template := []byte("workflow: foo")
+	store.ObjectStore().AddFile(template, storage.JobFolder, fmt.Sprint(1))
+	manager := NewResourceManager(store)
+	_, err := manager.GetPipelineTemplate("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Pipeline 1 not found")
+}
+
+func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	pkg, _ := store.PipelineStore().CreatePipeline(createPipeline("pkg1"))
+	manager := NewResourceManager(store)
+	_, err := manager.GetPipelineTemplate(pkg.UUID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "object not found")
+}
+
+func TestListRun(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	job1 := &model.Job{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PipelineId:     "1",
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
+	}
+
+	_, err := manager.jobStore.CreateJob(job1)
+	assert.Nil(t, err)
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "run1",
+			Namespace:         "n1",
+			UID:               "1",
+			CreationTimestamp: metav1.Time{Time: time.Unix(1, 0)},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+	err = manager.runStore.CreateOrUpdateRun(workflow)
+	assert.Nil(t, err)
+	runs, newToken, err := manager.ListRuns("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
+	runsExpected := []model.Run{{
+		UUID:           "1",
+		Name:           "run1",
+		Namespace:      "n1",
+		JobID:          "1",
+		CreatedAtInSec: 1,
+		Conditions:     ":",
+	}}
+	assert.Nil(t, err)
+	assert.Equal(t, "", newToken)
+	assert.Equal(t, runsExpected, runs)
+}
+
+func TestListRun_JobNotFoundError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	_, _, err := manager.ListRuns("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
+	assert.Contains(t, err.Error(), "Job 1 not found")
+}
+
+func TestGetRun(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	job1 := &model.Job{
+		UUID:           "1",
+		Name:           "pp1",
+		Namespace:      "n1",
+		PipelineId:     "1",
+		Enabled:        true,
+		CreatedAtInSec: 0,
+		UpdatedAtInSec: 0,
+	}
+	_, err := manager.jobStore.CreateJob(job1)
+	assert.Nil(t, err)
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "run1",
+			Namespace:         "n1",
+			UID:               "1",
+			CreationTimestamp: metav1.Time{Time: time.Unix(1, 0)},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("1"),
+			}},
+		},
+	})
+	err = manager.runStore.CreateOrUpdateRun(workflow)
+	run, err := manager.GetRun("1", "1")
+	workflowBytes, _ := json.Marshal(workflow)
+	runExpected := &model.RunDetail{
+		Run: model.Run{
+			UUID:           "1",
+			Name:           "run1",
+			Namespace:      "n1",
+			JobID:          "1",
+			CreatedAtInSec: 1,
+			Conditions:     ":",
+		},
+		Workflow: string(workflowBytes),
+	}
+	assert.Nil(t, err)
+	assert.Equal(t, runExpected, run)
+}
+
+func TestGetRun_JobNotFoundError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	_, err := manager.GetRun("1", "foo")
+	assert.Contains(t, err.Error(), "Job 1 not found")
+}
+
+func TestCreateJob(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
 
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
-	pipeline := &model.Pipeline{
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
 		DisplayName: "pp 1",
-		PackageId:   "1",
+		PipelineId:  "1",
 		Enabled:     true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
-	expectedPipeline := &model.Pipeline{
+	newJob, err := manager.CreateJob(job)
+	expectedJob := &model.Job{
 		UUID:           "123",
 		DisplayName:    "pp 1",
-		Name:           "pipeline-pp1",
+		Name:           "job-pp1",
 		Namespace:      "default",
-		PackageId:      "1",
+		PipelineId:     "1",
 		Enabled:        true,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		Conditions:     "NO_STATUS:",
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, expectedPipeline, newPipeline)
+	assert.Equal(t, expectedJob, newJob)
 }
 
-func TestCreatePipeline_FailedToCreateScheduleWorkflow(t *testing.T) {
+func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	// Use a bad object store
 	manager.scheduledWorkflow = &FakeBadScheduledWorkflowClient{}
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	_, err := manager.CreatePipeline(pipeline)
+	_, err := manager.CreateJob(job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to create a scheduled workflow")
 }
 
-func TestCreatePipeline_FailedToRetrieveYaml(t *testing.T) {
+func TestCreateJob_FailedToRetrieveYaml(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	// Use a bad object store
 	manager.objectStore = &FakeBadObjectStore{}
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	_, err := manager.CreatePipeline(pipeline)
+	_, err := manager.CreateJob(job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "bad object store")
 }
 
-func TestEnablePipeline(t *testing.T) {
+func TestEnableJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
-	pipeline := &model.Pipeline{
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
 		DisplayName: "pp 1",
-		PackageId:   "1",
+		PipelineId:  "1",
 		Enabled:     true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
-	err = manager.EnablePipeline(newPipeline.UUID, false)
+	err = manager.EnableJob(newJob.UUID, false)
 	assert.Nil(t, err)
-	newPipeline, err = manager.GetPipeline(newPipeline.UUID)
-	expectedPipeline := &model.Pipeline{
+	newJob, err = manager.GetJob(newJob.UUID)
+	expectedJob := &model.Job{
 		UUID:           "123",
 		DisplayName:    "pp 1",
-		Name:           "pipeline-pp1",
+		Name:           "job-pp1",
 		Namespace:      "default",
-		PackageId:      "1",
+		PipelineId:     "1",
 		Enabled:        false,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 2,
 		Conditions:     "NO_STATUS:",
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, expectedPipeline, newPipeline)
+	assert.Equal(t, expectedJob, newJob)
 }
 
-func TestEnablePipeline_PipelineNotExist(t *testing.T) {
+func TestEnableJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.EnablePipeline("1", false)
+	err := manager.EnableJob("1", false)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Pipeline 1 not found")
+	assert.Contains(t, err.Error(), "Job 1 not found")
 }
 
-func TestEnablePipeline_CrdFailure(t *testing.T) {
+func TestEnableJob_CrdFailure(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
 	manager.scheduledWorkflow = &FakeBadScheduledWorkflowClient{}
-	err = manager.EnablePipeline(newPipeline.UUID, false)
+	err = manager.EnableJob(newJob.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Check pipeline exist failed: some error")
+	assert.Contains(t, err.Error(), "Check job exist failed: some error")
 }
 
-func TestEnablePipeline_DbFailure(t *testing.T) {
+func TestEnableJob_DbFailure(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 	store.DB().Close()
-	err = manager.EnablePipeline(newPipeline.UUID, false)
+	err = manager.EnableJob(newJob.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
-func TestDeletePipeline(t *testing.T) {
+func TestDeleteJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
-	err = manager.DeletePipeline(newPipeline.UUID)
+	err = manager.DeleteJob(newJob.UUID)
 	assert.Nil(t, err)
 
-	pipeline, err = manager.GetPipeline(newPipeline.UUID)
+	job, err = manager.GetJob(newJob.UUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Pipeline 123 not found")
+	assert.Contains(t, err.Error(), "Job 123 not found")
 }
 
-func TestDeletePipeline_PipelineNotExist(t *testing.T) {
+func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	err := manager.DeletePipeline("1")
+	err := manager.DeleteJob("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Pipeline 1 not found")
+	assert.Contains(t, err.Error(), "Job 1 not found")
 }
 
-func TestDeletePipeline_CrdFailure(t *testing.T) {
+func TestDeleteJob_CrdFailure(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
 	manager.scheduledWorkflow = &FakeBadScheduledWorkflowClient{}
-	err = manager.DeletePipeline(newPipeline.UUID)
+	err = manager.DeleteJob(newJob.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Check pipeline exist failed: some error")
+	assert.Contains(t, err.Error(), "Check job exist failed: some error")
 }
 
-func TestDeletePipeline_DbFailure(t *testing.T) {
+func TestDeleteJob_DbFailure(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PackageFolder, "1")
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
 	store.DB().Close()
-	err = manager.DeletePipeline(newPipeline.UUID)
+	err = manager.DeleteJob(newJob.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -471,17 +472,17 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	// Create package
-	workflowForPackage := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPackage, storage.PackageFolder, "1")
-
 	// Create pipeline
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.JobFolder, "1")
+
+	// Create job
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
 	// report workflow
@@ -494,7 +495,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 				APIVersion: "kubeflow.org/v1alpha1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(newPipeline.UUID),
+				UID:        types.UID(newJob.UUID),
 			}},
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
@@ -502,15 +503,15 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 	err = manager.ReportWorkflowResource(workflow.ToStringForStore())
 	assert.Nil(t, err)
 
-	jobDetail, err := manager.GetJob(newPipeline.UUID, "MY_JOB_ID")
+	runDetail, err := manager.GetRun(newJob.UUID, "MY_JOB_ID")
 	assert.Nil(t, err)
 
-	expectedJobDetail := &model.JobDetail{
-		Job: model.Job{
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
 			UUID:             "MY_JOB_ID",
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
-			PipelineID:       "123",
+			JobID:            "123",
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 0,
 			Conditions:       ":",
@@ -518,7 +519,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 		Workflow: workflow.ToStringForStore(),
 	}
 
-	assert.Equal(t, expectedJobDetail, jobDetail)
+	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
 func TestReportWorkflowResource_UnmarshalError(t *testing.T) {
@@ -537,17 +538,17 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	// Create package
-	workflowForPackage := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPackage, storage.PackageFolder, "1")
-
 	// Create pipeline
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.JobFolder, "1")
+
+	// Create job
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
 	store.Close()
@@ -562,7 +563,7 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 				APIVersion: "kubeflow.org/v1alpha1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(newPipeline.UUID),
+				UID:        types.UID(newJob.UUID),
 			}},
 		},
 	})
@@ -577,17 +578,17 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	// Create package
-	workflowForPackage := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPackage, storage.PackageFolder, "1")
-
 	// Create pipeline
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.JobFolder, "1")
+
+	// Create job
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
 	// report scheduled workflow
@@ -595,21 +596,21 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
-			UID:       types.UID(newPipeline.UUID),
+			UID:       types.UID(newJob.UUID),
 		},
 	})
 	err = manager.ReportScheduledWorkflowResource(swf.ToStringForStore())
 	assert.Nil(t, err)
 
-	jobDetail, err := manager.GetPipeline(newPipeline.UUID)
+	runDetail, err := manager.GetJob(newJob.UUID)
 	assert.Nil(t, err)
 
-	expectedPipeline := &model.Pipeline{
+	expectedJob := &model.Job{
 		Name:       "MY_NAME",
 		Namespace:  "MY_NAMESPACE",
-		PackageId:  "1",
+		PipelineId: "1",
 		Enabled:    false,
-		UUID:       newPipeline.UUID,
+		UUID:       newJob.UUID,
 		Conditions: "NO_STATUS:",
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
@@ -623,7 +624,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 2,
 	}
-	assert.Equal(t, expectedPipeline, jobDetail)
+	assert.Equal(t, expectedJob, runDetail)
 }
 
 func TestReportScheduledWorkflowResource_UnmarshalError(t *testing.T) {
@@ -642,17 +643,17 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	// Create package
-	workflowForPackage := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPackage, storage.PackageFolder, "1")
-
 	// Create pipeline
-	pipeline := &model.Pipeline{
-		Name:      "pp1",
-		PackageId: "1",
-		Enabled:   true,
+	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.JobFolder, "1")
+
+	// Create job
+	job := &model.Job{
+		Name:       "pp1",
+		PipelineId: "1",
+		Enabled:    true,
 	}
-	newPipeline, err := manager.CreatePipeline(pipeline)
+	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
 	store.Close()
@@ -662,7 +663,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
-			UID:       types.UID(newPipeline.UUID),
+			UID:       types.UID(newJob.UUID),
 		},
 	})
 	err = manager.ReportScheduledWorkflowResource(swf.ToStringForStore())
@@ -672,9 +673,9 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 }
 
 func TestToScheduledWorkflowName_SpecialCharsAndSpace(t *testing.T) {
-	assert.Equal(t, toScheduledWorkflowName("! HaVe ä £unky name"), "pipeline-haveunkyname")
+	assert.Equal(t, toScheduledWorkflowName("! HaVe ä £unky name"), "job-haveunkyname")
 }
 
 func TestToScheduledWorkflowName_TruncateLongName(t *testing.T) {
-	assert.Equal(t, toScheduledWorkflowName("AloooooooooooooooooongName"), "pipeline-aloooooooooooooo")
+	assert.Equal(t, toScheduledWorkflowName("AloooooooooooooooooongName"), "job-aloooooooooooooooooon")
 }

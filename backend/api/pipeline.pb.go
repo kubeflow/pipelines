@@ -27,44 +27,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type CreatePipelineRequest struct {
-	Pipeline             *Pipeline `protobuf:"bytes,1,opt,name=pipeline,proto3" json:"pipeline,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
-	XXX_unrecognized     []byte    `json:"-"`
-	XXX_sizecache        int32     `json:"-"`
-}
-
-func (m *CreatePipelineRequest) Reset()         { *m = CreatePipelineRequest{} }
-func (m *CreatePipelineRequest) String() string { return proto.CompactTextString(m) }
-func (*CreatePipelineRequest) ProtoMessage()    {}
-func (*CreatePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{0}
-}
-func (m *CreatePipelineRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CreatePipelineRequest.Unmarshal(m, b)
-}
-func (m *CreatePipelineRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CreatePipelineRequest.Marshal(b, m, deterministic)
-}
-func (dst *CreatePipelineRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CreatePipelineRequest.Merge(dst, src)
-}
-func (m *CreatePipelineRequest) XXX_Size() int {
-	return xxx_messageInfo_CreatePipelineRequest.Size(m)
-}
-func (m *CreatePipelineRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_CreatePipelineRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CreatePipelineRequest proto.InternalMessageInfo
-
-func (m *CreatePipelineRequest) GetPipeline() *Pipeline {
-	if m != nil {
-		return m.Pipeline
-	}
-	return nil
-}
-
 type GetPipelineRequest struct {
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -76,7 +38,7 @@ func (m *GetPipelineRequest) Reset()         { *m = GetPipelineRequest{} }
 func (m *GetPipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*GetPipelineRequest) ProtoMessage()    {}
 func (*GetPipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{1}
+	return fileDescriptor_pipeline_3ed180b6f4844ed9, []int{0}
 }
 func (m *GetPipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetPipelineRequest.Unmarshal(m, b)
@@ -116,7 +78,7 @@ func (m *ListPipelinesRequest) Reset()         { *m = ListPipelinesRequest{} }
 func (m *ListPipelinesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesRequest) ProtoMessage()    {}
 func (*ListPipelinesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{2}
+	return fileDescriptor_pipeline_3ed180b6f4844ed9, []int{1}
 }
 func (m *ListPipelinesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesRequest.Unmarshal(m, b)
@@ -169,7 +131,7 @@ func (m *ListPipelinesResponse) Reset()         { *m = ListPipelinesResponse{} }
 func (m *ListPipelinesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesResponse) ProtoMessage()    {}
 func (*ListPipelinesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{3}
+	return fileDescriptor_pipeline_3ed180b6f4844ed9, []int{2}
 }
 func (m *ListPipelinesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesResponse.Unmarshal(m, b)
@@ -214,7 +176,7 @@ func (m *DeletePipelineRequest) Reset()         { *m = DeletePipelineRequest{} }
 func (m *DeletePipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*DeletePipelineRequest) ProtoMessage()    {}
 func (*DeletePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{4}
+	return fileDescriptor_pipeline_3ed180b6f4844ed9, []int{3}
 }
 func (m *DeletePipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePipelineRequest.Unmarshal(m, b)
@@ -241,353 +203,88 @@ func (m *DeletePipelineRequest) GetId() string {
 	return ""
 }
 
-type EnablePipelineRequest struct {
+type GetTemplateRequest struct {
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *EnablePipelineRequest) Reset()         { *m = EnablePipelineRequest{} }
-func (m *EnablePipelineRequest) String() string { return proto.CompactTextString(m) }
-func (*EnablePipelineRequest) ProtoMessage()    {}
-func (*EnablePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{5}
+func (m *GetTemplateRequest) Reset()         { *m = GetTemplateRequest{} }
+func (m *GetTemplateRequest) String() string { return proto.CompactTextString(m) }
+func (*GetTemplateRequest) ProtoMessage()    {}
+func (*GetTemplateRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pipeline_3ed180b6f4844ed9, []int{4}
 }
-func (m *EnablePipelineRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EnablePipelineRequest.Unmarshal(m, b)
+func (m *GetTemplateRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetTemplateRequest.Unmarshal(m, b)
 }
-func (m *EnablePipelineRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EnablePipelineRequest.Marshal(b, m, deterministic)
+func (m *GetTemplateRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetTemplateRequest.Marshal(b, m, deterministic)
 }
-func (dst *EnablePipelineRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EnablePipelineRequest.Merge(dst, src)
+func (dst *GetTemplateRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetTemplateRequest.Merge(dst, src)
 }
-func (m *EnablePipelineRequest) XXX_Size() int {
-	return xxx_messageInfo_EnablePipelineRequest.Size(m)
+func (m *GetTemplateRequest) XXX_Size() int {
+	return xxx_messageInfo_GetTemplateRequest.Size(m)
 }
-func (m *EnablePipelineRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_EnablePipelineRequest.DiscardUnknown(m)
+func (m *GetTemplateRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetTemplateRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_EnablePipelineRequest proto.InternalMessageInfo
+var xxx_messageInfo_GetTemplateRequest proto.InternalMessageInfo
 
-func (m *EnablePipelineRequest) GetId() string {
+func (m *GetTemplateRequest) GetId() string {
 	if m != nil {
 		return m.Id
 	}
 	return ""
 }
 
-type DisablePipelineRequest struct {
-	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+type GetTemplateResponse struct {
+	Template             string   `protobuf:"bytes,1,opt,name=template,proto3" json:"template,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DisablePipelineRequest) Reset()         { *m = DisablePipelineRequest{} }
-func (m *DisablePipelineRequest) String() string { return proto.CompactTextString(m) }
-func (*DisablePipelineRequest) ProtoMessage()    {}
-func (*DisablePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{6}
+func (m *GetTemplateResponse) Reset()         { *m = GetTemplateResponse{} }
+func (m *GetTemplateResponse) String() string { return proto.CompactTextString(m) }
+func (*GetTemplateResponse) ProtoMessage()    {}
+func (*GetTemplateResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_pipeline_3ed180b6f4844ed9, []int{5}
 }
-func (m *DisablePipelineRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DisablePipelineRequest.Unmarshal(m, b)
+func (m *GetTemplateResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetTemplateResponse.Unmarshal(m, b)
 }
-func (m *DisablePipelineRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DisablePipelineRequest.Marshal(b, m, deterministic)
+func (m *GetTemplateResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetTemplateResponse.Marshal(b, m, deterministic)
 }
-func (dst *DisablePipelineRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DisablePipelineRequest.Merge(dst, src)
+func (dst *GetTemplateResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetTemplateResponse.Merge(dst, src)
 }
-func (m *DisablePipelineRequest) XXX_Size() int {
-	return xxx_messageInfo_DisablePipelineRequest.Size(m)
+func (m *GetTemplateResponse) XXX_Size() int {
+	return xxx_messageInfo_GetTemplateResponse.Size(m)
 }
-func (m *DisablePipelineRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_DisablePipelineRequest.DiscardUnknown(m)
+func (m *GetTemplateResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetTemplateResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_DisablePipelineRequest proto.InternalMessageInfo
+var xxx_messageInfo_GetTemplateResponse proto.InternalMessageInfo
 
-func (m *DisablePipelineRequest) GetId() string {
+func (m *GetTemplateResponse) GetTemplate() string {
 	if m != nil {
-		return m.Id
+		return m.Template
 	}
 	return ""
-}
-
-type CronSchedule struct {
-	StartTime            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime              *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	Cron                 string               `protobuf:"bytes,3,opt,name=cron,proto3" json:"cron,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
-}
-
-func (m *CronSchedule) Reset()         { *m = CronSchedule{} }
-func (m *CronSchedule) String() string { return proto.CompactTextString(m) }
-func (*CronSchedule) ProtoMessage()    {}
-func (*CronSchedule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{7}
-}
-func (m *CronSchedule) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CronSchedule.Unmarshal(m, b)
-}
-func (m *CronSchedule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CronSchedule.Marshal(b, m, deterministic)
-}
-func (dst *CronSchedule) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CronSchedule.Merge(dst, src)
-}
-func (m *CronSchedule) XXX_Size() int {
-	return xxx_messageInfo_CronSchedule.Size(m)
-}
-func (m *CronSchedule) XXX_DiscardUnknown() {
-	xxx_messageInfo_CronSchedule.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CronSchedule proto.InternalMessageInfo
-
-func (m *CronSchedule) GetStartTime() *timestamp.Timestamp {
-	if m != nil {
-		return m.StartTime
-	}
-	return nil
-}
-
-func (m *CronSchedule) GetEndTime() *timestamp.Timestamp {
-	if m != nil {
-		return m.EndTime
-	}
-	return nil
-}
-
-func (m *CronSchedule) GetCron() string {
-	if m != nil {
-		return m.Cron
-	}
-	return ""
-}
-
-type PeriodicSchedule struct {
-	StartTime            *timestamp.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime              *timestamp.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	IntervalSecond       int64                `protobuf:"varint,3,opt,name=interval_second,json=intervalSecond,proto3" json:"interval_second,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
-	XXX_unrecognized     []byte               `json:"-"`
-	XXX_sizecache        int32                `json:"-"`
-}
-
-func (m *PeriodicSchedule) Reset()         { *m = PeriodicSchedule{} }
-func (m *PeriodicSchedule) String() string { return proto.CompactTextString(m) }
-func (*PeriodicSchedule) ProtoMessage()    {}
-func (*PeriodicSchedule) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{8}
-}
-func (m *PeriodicSchedule) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_PeriodicSchedule.Unmarshal(m, b)
-}
-func (m *PeriodicSchedule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_PeriodicSchedule.Marshal(b, m, deterministic)
-}
-func (dst *PeriodicSchedule) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PeriodicSchedule.Merge(dst, src)
-}
-func (m *PeriodicSchedule) XXX_Size() int {
-	return xxx_messageInfo_PeriodicSchedule.Size(m)
-}
-func (m *PeriodicSchedule) XXX_DiscardUnknown() {
-	xxx_messageInfo_PeriodicSchedule.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_PeriodicSchedule proto.InternalMessageInfo
-
-func (m *PeriodicSchedule) GetStartTime() *timestamp.Timestamp {
-	if m != nil {
-		return m.StartTime
-	}
-	return nil
-}
-
-func (m *PeriodicSchedule) GetEndTime() *timestamp.Timestamp {
-	if m != nil {
-		return m.EndTime
-	}
-	return nil
-}
-
-func (m *PeriodicSchedule) GetIntervalSecond() int64 {
-	if m != nil {
-		return m.IntervalSecond
-	}
-	return 0
-}
-
-type Trigger struct {
-	// Types that are valid to be assigned to Trigger:
-	//	*Trigger_CronSchedule
-	//	*Trigger_PeriodicSchedule
-	Trigger              isTrigger_Trigger `protobuf_oneof:"trigger"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
-}
-
-func (m *Trigger) Reset()         { *m = Trigger{} }
-func (m *Trigger) String() string { return proto.CompactTextString(m) }
-func (*Trigger) ProtoMessage()    {}
-func (*Trigger) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{9}
-}
-func (m *Trigger) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Trigger.Unmarshal(m, b)
-}
-func (m *Trigger) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Trigger.Marshal(b, m, deterministic)
-}
-func (dst *Trigger) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Trigger.Merge(dst, src)
-}
-func (m *Trigger) XXX_Size() int {
-	return xxx_messageInfo_Trigger.Size(m)
-}
-func (m *Trigger) XXX_DiscardUnknown() {
-	xxx_messageInfo_Trigger.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Trigger proto.InternalMessageInfo
-
-type isTrigger_Trigger interface {
-	isTrigger_Trigger()
-}
-
-type Trigger_CronSchedule struct {
-	CronSchedule *CronSchedule `protobuf:"bytes,1,opt,name=cron_schedule,json=cronSchedule,proto3,oneof"`
-}
-type Trigger_PeriodicSchedule struct {
-	PeriodicSchedule *PeriodicSchedule `protobuf:"bytes,2,opt,name=periodic_schedule,json=periodicSchedule,proto3,oneof"`
-}
-
-func (*Trigger_CronSchedule) isTrigger_Trigger()     {}
-func (*Trigger_PeriodicSchedule) isTrigger_Trigger() {}
-
-func (m *Trigger) GetTrigger() isTrigger_Trigger {
-	if m != nil {
-		return m.Trigger
-	}
-	return nil
-}
-
-func (m *Trigger) GetCronSchedule() *CronSchedule {
-	if x, ok := m.GetTrigger().(*Trigger_CronSchedule); ok {
-		return x.CronSchedule
-	}
-	return nil
-}
-
-func (m *Trigger) GetPeriodicSchedule() *PeriodicSchedule {
-	if x, ok := m.GetTrigger().(*Trigger_PeriodicSchedule); ok {
-		return x.PeriodicSchedule
-	}
-	return nil
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Trigger) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Trigger_OneofMarshaler, _Trigger_OneofUnmarshaler, _Trigger_OneofSizer, []interface{}{
-		(*Trigger_CronSchedule)(nil),
-		(*Trigger_PeriodicSchedule)(nil),
-	}
-}
-
-func _Trigger_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Trigger)
-	// trigger
-	switch x := m.Trigger.(type) {
-	case *Trigger_CronSchedule:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.CronSchedule); err != nil {
-			return err
-		}
-	case *Trigger_PeriodicSchedule:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.PeriodicSchedule); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Trigger.Trigger has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Trigger_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Trigger)
-	switch tag {
-	case 1: // trigger.cron_schedule
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(CronSchedule)
-		err := b.DecodeMessage(msg)
-		m.Trigger = &Trigger_CronSchedule{msg}
-		return true, err
-	case 2: // trigger.periodic_schedule
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(PeriodicSchedule)
-		err := b.DecodeMessage(msg)
-		m.Trigger = &Trigger_PeriodicSchedule{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Trigger_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Trigger)
-	// trigger
-	switch x := m.Trigger.(type) {
-	case *Trigger_CronSchedule:
-		s := proto.Size(x.CronSchedule)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Trigger_PeriodicSchedule:
-		s := proto.Size(x.PeriodicSchedule)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type Pipeline struct {
-	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name        string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	PackageId   string `protobuf:"bytes,4,opt,name=package_id,json=packageId,proto3" json:"package_id,omitempty"`
-	Enabled     bool   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	// The status is surfacing the resource condition. A resource can potentially
-	// have multiple conditions, although in most cases, it should be in one
-	// state.
-	// https://github.com/eBay/Kubernetes/blob/master/docs/devel/api-conventions.md
-	// In case of a single state, the status ends with a colon:
-	// STATUS_1:
-	// In case of multiple states, the statuses are separated by a colon.
-	// STATUS_1:STATUS_2:
-	Status               string               `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
-	MaxConcurrency       int64                `protobuf:"varint,7,opt,name=max_concurrency,json=maxConcurrency,proto3" json:"max_concurrency,omitempty"`
-	Parameters           []*Parameter         `protobuf:"bytes,8,rep,name=parameters,proto3" json:"parameters,omitempty"`
-	Trigger              *Trigger             `protobuf:"bytes,9,opt,name=trigger,proto3" json:"trigger,omitempty"`
-	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Id                   string               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Name                 string               `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Description          string               `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Parameters           []*Parameter         `protobuf:"bytes,5,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-"`
 	XXX_unrecognized     []byte               `json:"-"`
 	XXX_sizecache        int32                `json:"-"`
@@ -597,7 +294,7 @@ func (m *Pipeline) Reset()         { *m = Pipeline{} }
 func (m *Pipeline) String() string { return proto.CompactTextString(m) }
 func (*Pipeline) ProtoMessage()    {}
 func (*Pipeline) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_10cd610540ced8e9, []int{10}
+	return fileDescriptor_pipeline_3ed180b6f4844ed9, []int{6}
 }
 func (m *Pipeline) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Pipeline.Unmarshal(m, b)
@@ -624,6 +321,13 @@ func (m *Pipeline) GetId() string {
 	return ""
 }
 
+func (m *Pipeline) GetCreatedAt() *timestamp.Timestamp {
+	if m != nil {
+		return m.CreatedAt
+	}
+	return nil
+}
+
 func (m *Pipeline) GetName() string {
 	if m != nil {
 		return m.Name
@@ -638,34 +342,6 @@ func (m *Pipeline) GetDescription() string {
 	return ""
 }
 
-func (m *Pipeline) GetPackageId() string {
-	if m != nil {
-		return m.PackageId
-	}
-	return ""
-}
-
-func (m *Pipeline) GetEnabled() bool {
-	if m != nil {
-		return m.Enabled
-	}
-	return false
-}
-
-func (m *Pipeline) GetStatus() string {
-	if m != nil {
-		return m.Status
-	}
-	return ""
-}
-
-func (m *Pipeline) GetMaxConcurrency() int64 {
-	if m != nil {
-		return m.MaxConcurrency
-	}
-	return 0
-}
-
 func (m *Pipeline) GetParameters() []*Parameter {
 	if m != nil {
 		return m.Parameters
@@ -673,38 +349,13 @@ func (m *Pipeline) GetParameters() []*Parameter {
 	return nil
 }
 
-func (m *Pipeline) GetTrigger() *Trigger {
-	if m != nil {
-		return m.Trigger
-	}
-	return nil
-}
-
-func (m *Pipeline) GetCreatedAt() *timestamp.Timestamp {
-	if m != nil {
-		return m.CreatedAt
-	}
-	return nil
-}
-
-func (m *Pipeline) GetUpdatedAt() *timestamp.Timestamp {
-	if m != nil {
-		return m.UpdatedAt
-	}
-	return nil
-}
-
 func init() {
-	proto.RegisterType((*CreatePipelineRequest)(nil), "api.CreatePipelineRequest")
 	proto.RegisterType((*GetPipelineRequest)(nil), "api.GetPipelineRequest")
 	proto.RegisterType((*ListPipelinesRequest)(nil), "api.ListPipelinesRequest")
 	proto.RegisterType((*ListPipelinesResponse)(nil), "api.ListPipelinesResponse")
 	proto.RegisterType((*DeletePipelineRequest)(nil), "api.DeletePipelineRequest")
-	proto.RegisterType((*EnablePipelineRequest)(nil), "api.EnablePipelineRequest")
-	proto.RegisterType((*DisablePipelineRequest)(nil), "api.DisablePipelineRequest")
-	proto.RegisterType((*CronSchedule)(nil), "api.CronSchedule")
-	proto.RegisterType((*PeriodicSchedule)(nil), "api.PeriodicSchedule")
-	proto.RegisterType((*Trigger)(nil), "api.Trigger")
+	proto.RegisterType((*GetTemplateRequest)(nil), "api.GetTemplateRequest")
+	proto.RegisterType((*GetTemplateResponse)(nil), "api.GetTemplateResponse")
 	proto.RegisterType((*Pipeline)(nil), "api.Pipeline")
 }
 
@@ -720,12 +371,10 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type PipelineServiceClient interface {
-	CreatePipeline(ctx context.Context, in *CreatePipelineRequest, opts ...grpc.CallOption) (*Pipeline, error)
 	GetPipeline(ctx context.Context, in *GetPipelineRequest, opts ...grpc.CallOption) (*Pipeline, error)
 	ListPipelines(ctx context.Context, in *ListPipelinesRequest, opts ...grpc.CallOption) (*ListPipelinesResponse, error)
-	EnablePipeline(ctx context.Context, in *EnablePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	DisablePipeline(ctx context.Context, in *DisablePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	DeletePipeline(ctx context.Context, in *DeletePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	GetTemplate(ctx context.Context, in *GetTemplateRequest, opts ...grpc.CallOption) (*GetTemplateResponse, error)
 }
 
 type pipelineServiceClient struct {
@@ -734,15 +383,6 @@ type pipelineServiceClient struct {
 
 func NewPipelineServiceClient(cc *grpc.ClientConn) PipelineServiceClient {
 	return &pipelineServiceClient{cc}
-}
-
-func (c *pipelineServiceClient) CreatePipeline(ctx context.Context, in *CreatePipelineRequest, opts ...grpc.CallOption) (*Pipeline, error) {
-	out := new(Pipeline)
-	err := c.cc.Invoke(ctx, "/api.PipelineService/CreatePipeline", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *pipelineServiceClient) GetPipeline(ctx context.Context, in *GetPipelineRequest, opts ...grpc.CallOption) (*Pipeline, error) {
@@ -763,24 +403,6 @@ func (c *pipelineServiceClient) ListPipelines(ctx context.Context, in *ListPipel
 	return out, nil
 }
 
-func (c *pipelineServiceClient) EnablePipeline(ctx context.Context, in *EnablePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
-	err := c.cc.Invoke(ctx, "/api.PipelineService/EnablePipeline", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pipelineServiceClient) DisablePipeline(ctx context.Context, in *DisablePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
-	err := c.cc.Invoke(ctx, "/api.PipelineService/DisablePipeline", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *pipelineServiceClient) DeletePipeline(ctx context.Context, in *DeletePipelineRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/api.PipelineService/DeletePipeline", in, out, opts...)
@@ -790,36 +412,25 @@ func (c *pipelineServiceClient) DeletePipeline(ctx context.Context, in *DeletePi
 	return out, nil
 }
 
+func (c *pipelineServiceClient) GetTemplate(ctx context.Context, in *GetTemplateRequest, opts ...grpc.CallOption) (*GetTemplateResponse, error) {
+	out := new(GetTemplateResponse)
+	err := c.cc.Invoke(ctx, "/api.PipelineService/GetTemplate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PipelineServiceServer is the server API for PipelineService service.
 type PipelineServiceServer interface {
-	CreatePipeline(context.Context, *CreatePipelineRequest) (*Pipeline, error)
 	GetPipeline(context.Context, *GetPipelineRequest) (*Pipeline, error)
 	ListPipelines(context.Context, *ListPipelinesRequest) (*ListPipelinesResponse, error)
-	EnablePipeline(context.Context, *EnablePipelineRequest) (*empty.Empty, error)
-	DisablePipeline(context.Context, *DisablePipelineRequest) (*empty.Empty, error)
 	DeletePipeline(context.Context, *DeletePipelineRequest) (*empty.Empty, error)
+	GetTemplate(context.Context, *GetTemplateRequest) (*GetTemplateResponse, error)
 }
 
 func RegisterPipelineServiceServer(s *grpc.Server, srv PipelineServiceServer) {
 	s.RegisterService(&_PipelineService_serviceDesc, srv)
-}
-
-func _PipelineService_CreatePipeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreatePipelineRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PipelineServiceServer).CreatePipeline(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.PipelineService/CreatePipeline",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PipelineServiceServer).CreatePipeline(ctx, req.(*CreatePipelineRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _PipelineService_GetPipeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -858,42 +469,6 @@ func _PipelineService_ListPipelines_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PipelineService_EnablePipeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EnablePipelineRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PipelineServiceServer).EnablePipeline(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.PipelineService/EnablePipeline",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PipelineServiceServer).EnablePipeline(ctx, req.(*EnablePipelineRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PipelineService_DisablePipeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DisablePipelineRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PipelineServiceServer).DisablePipeline(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.PipelineService/DisablePipeline",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PipelineServiceServer).DisablePipeline(ctx, req.(*DisablePipelineRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _PipelineService_DeletePipeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeletePipelineRequest)
 	if err := dec(in); err != nil {
@@ -912,14 +487,28 @@ func _PipelineService_DeletePipeline_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PipelineService_GetTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PipelineServiceServer).GetTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.PipelineService/GetTemplate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PipelineServiceServer).GetTemplate(ctx, req.(*GetTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _PipelineService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "api.PipelineService",
 	HandlerType: (*PipelineServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "CreatePipeline",
-			Handler:    _PipelineService_CreatePipeline_Handler,
-		},
 		{
 			MethodName: "GetPipeline",
 			Handler:    _PipelineService_GetPipeline_Handler,
@@ -929,80 +518,57 @@ var _PipelineService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _PipelineService_ListPipelines_Handler,
 		},
 		{
-			MethodName: "EnablePipeline",
-			Handler:    _PipelineService_EnablePipeline_Handler,
-		},
-		{
-			MethodName: "DisablePipeline",
-			Handler:    _PipelineService_DisablePipeline_Handler,
-		},
-		{
 			MethodName: "DeletePipeline",
 			Handler:    _PipelineService_DeletePipeline_Handler,
+		},
+		{
+			MethodName: "GetTemplate",
+			Handler:    _PipelineService_GetTemplate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "pipeline.proto",
 }
 
-func init() { proto.RegisterFile("pipeline.proto", fileDescriptor_pipeline_10cd610540ced8e9) }
+func init() { proto.RegisterFile("pipeline.proto", fileDescriptor_pipeline_3ed180b6f4844ed9) }
 
-var fileDescriptor_pipeline_10cd610540ced8e9 = []byte{
-	// 886 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x55, 0xcd, 0x6e, 0x23, 0x45,
-	0x10, 0x5e, 0xdb, 0x9b, 0xd8, 0x2e, 0xc7, 0xf6, 0xa6, 0x85, 0xb3, 0xc3, 0x64, 0x97, 0x35, 0xa3,
-	0x6c, 0x12, 0x96, 0x8d, 0x2d, 0x82, 0x90, 0x80, 0x5b, 0x7e, 0x56, 0x2c, 0x12, 0x87, 0x68, 0x9c,
-	0x23, 0xd2, 0xa8, 0x33, 0x53, 0xeb, 0xb4, 0x32, 0xee, 0x19, 0xba, 0x7b, 0x42, 0xb2, 0x88, 0x0b,
-	0x8f, 0x00, 0x1c, 0x10, 0xef, 0xc0, 0xd3, 0xf0, 0x0a, 0x3c, 0x08, 0xea, 0x9e, 0x1e, 0xc7, 0x1e,
-	0x3b, 0x31, 0x37, 0x4e, 0x76, 0x57, 0x57, 0xf5, 0x57, 0xf5, 0x55, 0xd5, 0x37, 0xd0, 0x49, 0x59,
-	0x8a, 0x31, 0xe3, 0x38, 0x48, 0x45, 0xa2, 0x12, 0x52, 0xa3, 0x29, 0x73, 0x5b, 0x28, 0x44, 0x22,
-	0x72, 0x8b, 0xfb, 0x6c, 0x9c, 0x24, 0xe3, 0x18, 0x87, 0x34, 0x65, 0x43, 0xca, 0x79, 0xa2, 0xa8,
-	0x62, 0x09, 0x97, 0xf6, 0xf6, 0x85, 0xbd, 0x35, 0xa7, 0x8b, 0xec, 0xdd, 0x50, 0xb1, 0x09, 0x4a,
-	0x45, 0x27, 0xa9, 0x75, 0xd8, 0x2e, 0x3b, 0xe0, 0x24, 0x55, 0xb7, 0xf6, 0xb2, 0x9b, 0x52, 0x41,
-	0x27, 0xa8, 0xb0, 0x00, 0x7b, 0x6d, 0x7e, 0xc2, 0x83, 0x31, 0xf2, 0x03, 0xf9, 0x23, 0x1d, 0x8f,
-	0x51, 0x0c, 0x93, 0xd4, 0x00, 0x2e, 0x82, 0x7b, 0xc7, 0xd0, 0x3b, 0x11, 0x48, 0x15, 0x9e, 0xd9,
-	0x22, 0x7c, 0xfc, 0x21, 0x43, 0xa9, 0xc8, 0x27, 0xd0, 0x28, 0xea, 0x72, 0x2a, 0xfd, 0xca, 0x7e,
-	0xeb, 0xb0, 0x3d, 0xa0, 0x29, 0x1b, 0x4c, 0xfd, 0xa6, 0xd7, 0xde, 0x0e, 0x90, 0x6f, 0x50, 0x95,
-	0x1f, 0xe8, 0x40, 0x95, 0x45, 0x26, 0xb4, 0xe9, 0x57, 0x59, 0xe4, 0x5d, 0xc1, 0x07, 0xdf, 0x31,
-	0x39, 0x75, 0x93, 0x85, 0xdf, 0x73, 0x80, 0x94, 0x8e, 0x31, 0x50, 0xc9, 0x15, 0x72, 0xeb, 0xdf,
-	0xd4, 0x96, 0x73, 0x6d, 0x20, 0xdb, 0x60, 0x0e, 0x81, 0x64, 0xef, 0xd1, 0xa9, 0xf6, 0x2b, 0xfb,
-	0x6b, 0x7e, 0x43, 0x1b, 0x46, 0xec, 0x3d, 0x92, 0xa7, 0x50, 0x97, 0x89, 0x50, 0xc1, 0xc5, 0xad,
-	0x53, 0x33, 0x81, 0xeb, 0xfa, 0x78, 0x7c, 0xeb, 0xc5, 0xd0, 0x2b, 0x81, 0xc9, 0x34, 0xe1, 0x12,
-	0xc9, 0xa7, 0xd0, 0x2c, 0xf2, 0x96, 0x4e, 0xa5, 0x5f, 0x5b, 0xac, 0xeb, 0xee, 0x9e, 0xec, 0x42,
-	0x97, 0xe3, 0x8d, 0x0a, 0x66, 0xf2, 0xab, 0x1a, 0x98, 0xb6, 0x36, 0x9f, 0x15, 0x39, 0x7a, 0x7b,
-	0xd0, 0x3b, 0xc5, 0x18, 0x17, 0x49, 0x2c, 0x73, 0xb0, 0x07, 0xbd, 0x37, 0x9c, 0x5e, 0xc4, 0x2b,
-	0x1d, 0xf7, 0x61, 0xeb, 0x94, 0xc9, 0xff, 0xe2, 0xf9, 0x7b, 0x05, 0x36, 0x4e, 0x44, 0xc2, 0x47,
-	0xe1, 0x25, 0x46, 0x59, 0x8c, 0xe4, 0x2b, 0x00, 0xa9, 0xa8, 0x50, 0x81, 0x1e, 0x23, 0xdb, 0x3a,
-	0x77, 0x90, 0x8f, 0xd0, 0xa0, 0x18, 0xa1, 0xc1, 0x79, 0x31, 0x63, 0x7e, 0xd3, 0x78, 0xeb, 0x33,
-	0xf9, 0x02, 0x1a, 0xc8, 0xa3, 0x3c, 0xb0, 0xba, 0x32, 0xb0, 0x8e, 0x3c, 0x32, 0x61, 0x04, 0x1e,
-	0x87, 0x22, 0xe1, 0xb6, 0x05, 0xe6, 0xbf, 0xf7, 0x57, 0x05, 0x9e, 0x9c, 0xa1, 0x60, 0x49, 0xc4,
-	0xc2, 0xff, 0x31, 0xb5, 0x3d, 0xe8, 0x32, 0xae, 0x50, 0x5c, 0xd3, 0x38, 0x90, 0x18, 0x26, 0x3c,
-	0x32, 0x59, 0xd6, 0xfc, 0x4e, 0x61, 0x1e, 0x19, 0xab, 0xa6, 0xb1, 0x7e, 0x2e, 0x98, 0xde, 0x16,
-	0xf2, 0x25, 0xb4, 0x75, 0x0d, 0x81, 0xb4, 0x79, 0xdb, 0x4c, 0x37, 0xcd, 0x9c, 0xcc, 0x72, 0xfd,
-	0xf6, 0x91, 0xbf, 0x11, 0xce, 0x72, 0x7f, 0x0a, 0x9b, 0xa9, 0x2d, 0xfa, 0x2e, 0x3a, 0x4f, 0xb7,
-	0x97, 0x4f, 0x59, 0x89, 0x92, 0xb7, 0x8f, 0xfc, 0x27, 0x69, 0xc9, 0x76, 0xdc, 0x84, 0xba, 0xca,
-	0x53, 0xf1, 0xfe, 0xa8, 0x41, 0xa3, 0x98, 0x80, 0x72, 0xeb, 0x35, 0xef, 0x9c, 0x5a, 0x3e, 0x9a,
-	0xbe, 0xf9, 0x4f, 0xfa, 0xd0, 0x8a, 0x50, 0x86, 0x82, 0x99, 0x8d, 0xb7, 0x2d, 0x99, 0x35, 0xe5,
-	0xfb, 0x16, 0x5e, 0xe9, 0x91, 0x66, 0x91, 0xf3, 0xb8, 0xd8, 0x37, 0x63, 0xf9, 0x36, 0x22, 0x0e,
-	0xd4, 0xd1, 0x8c, 0x68, 0xe4, 0xac, 0xf5, 0x2b, 0xfb, 0x0d, 0xbf, 0x38, 0x92, 0x2d, 0x58, 0x97,
-	0x8a, 0xaa, 0x4c, 0x3a, 0xeb, 0x76, 0xd7, 0xcc, 0x49, 0x73, 0x3c, 0xa1, 0x37, 0x41, 0x98, 0xf0,
-	0x30, 0x13, 0x02, 0x79, 0x78, 0xeb, 0xd4, 0x73, 0x8e, 0x27, 0xf4, 0xe6, 0xe4, 0xce, 0x4a, 0x06,
-	0x1a, 0xd9, 0x8a, 0x95, 0x74, 0x1a, 0x66, 0xf9, 0x3a, 0x39, 0x2d, 0x85, 0xd9, 0x9f, 0xf1, 0x20,
-	0xbb, 0x53, 0x1e, 0x9c, 0xa6, 0xe1, 0x70, 0xc3, 0x38, 0xdb, 0x36, 0xf9, 0xc5, 0xa5, 0x1e, 0xab,
-	0xd0, 0x68, 0x58, 0x14, 0x50, 0xe5, 0xc0, 0xea, 0xb1, 0xb2, 0xde, 0x47, 0x4a, 0x87, 0x66, 0x69,
-	0x54, 0x84, 0xb6, 0x56, 0x87, 0x5a, 0xef, 0x23, 0x75, 0xf8, 0xe7, 0x1a, 0x74, 0x8b, 0xd6, 0x8c,
-	0x50, 0x5c, 0xb3, 0x10, 0xc9, 0x18, 0x3a, 0xf3, 0x6a, 0x4a, 0x5c, 0x3b, 0x34, 0x4b, 0x24, 0xd6,
-	0x9d, 0x17, 0x1e, 0xef, 0xd5, 0x2f, 0x7f, 0xff, 0xf3, 0x5b, 0x75, 0xc7, 0x73, 0xf4, 0x77, 0x42,
-	0x0e, 0xaf, 0x3f, 0xa3, 0x71, 0x7a, 0x49, 0x0f, 0x87, 0x53, 0x3d, 0xfa, 0x7a, 0x2a, 0xb9, 0xe4,
-	0x7b, 0x68, 0xcd, 0x48, 0x2e, 0x79, 0x6a, 0x5e, 0x5a, 0x14, 0xe1, 0x32, 0xc4, 0x4b, 0x03, 0xf1,
-	0x82, 0x3c, 0xbf, 0x0f, 0x62, 0xf8, 0x13, 0x8b, 0x7e, 0x26, 0x97, 0xd0, 0x9e, 0x53, 0x4f, 0xf2,
-	0xa1, 0x79, 0x66, 0x99, 0x7c, 0xbb, 0xee, 0xb2, 0xab, 0x5c, 0x6c, 0xbd, 0xbe, 0x81, 0x73, 0xc9,
-	0xbd, 0x15, 0x11, 0x01, 0x9d, 0x79, 0x41, 0xb4, 0x84, 0x2d, 0x55, 0x49, 0x77, 0x6b, 0xa1, 0x33,
-	0x6f, 0xf4, 0x97, 0xd0, 0x7b, 0x6d, 0x70, 0x76, 0xbd, 0x9d, 0x07, 0xcb, 0x1a, 0xe6, 0x83, 0x4c,
-	0x32, 0xe8, 0x96, 0xb4, 0x95, 0x6c, 0x1b, 0xd0, 0xe5, 0x8a, 0x7b, 0x2f, 0xea, 0x81, 0x41, 0xdd,
-	0xf3, 0x5e, 0x3e, 0x8c, 0x1a, 0xe5, 0xaf, 0x92, 0x2b, 0xe8, 0xcc, 0x7f, 0x24, 0x6c, 0xa9, 0x4b,
-	0xbf, 0x1c, 0xf7, 0x82, 0xda, 0x0e, 0xbe, 0x7a, 0xb8, 0x83, 0xc7, 0x1f, 0xff, 0x7a, 0xf4, 0x91,
-	0xff, 0x0c, 0xea, 0x11, 0xbe, 0xa3, 0x59, 0xac, 0xc8, 0x26, 0xe9, 0x42, 0xdb, 0x6d, 0x19, 0xc0,
-	0x91, 0x59, 0xdb, 0x8b, 0x75, 0xf3, 0xf2, 0xe7, 0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0x29, 0x61,
-	0xe2, 0xcd, 0xbf, 0x08, 0x00, 0x00,
+var fileDescriptor_pipeline_3ed180b6f4844ed9 = []byte{
+	// 581 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x53, 0xcb, 0x6e, 0xd3, 0x40,
+	0x14, 0x55, 0x92, 0xbe, 0x72, 0xad, 0x24, 0x62, 0xa0, 0xd4, 0xb8, 0x2d, 0x0d, 0x16, 0xd0, 0xf2,
+	0xa8, 0xad, 0x86, 0x15, 0xcb, 0x56, 0x20, 0x36, 0x2c, 0x2a, 0x37, 0x4b, 0xa4, 0x68, 0x12, 0xdf,
+	0xba, 0xa3, 0xf8, 0x31, 0xf5, 0x4c, 0x0a, 0x29, 0x62, 0xc3, 0x27, 0xc0, 0xd7, 0x20, 0x3e, 0x83,
+	0x5f, 0xe0, 0x43, 0x90, 0xc7, 0x33, 0x69, 0x5e, 0xa5, 0xab, 0x64, 0xce, 0x3d, 0x9e, 0x73, 0xef,
+	0xb9, 0x67, 0xa0, 0xc9, 0x19, 0xc7, 0x98, 0xa5, 0xe8, 0xf1, 0x3c, 0x93, 0x19, 0xa9, 0x51, 0xce,
+	0x1c, 0x0b, 0xf3, 0x3c, 0xcb, 0x4b, 0xc4, 0xd9, 0x89, 0xb2, 0x2c, 0x8a, 0xd1, 0xa7, 0x9c, 0xf9,
+	0x34, 0x4d, 0x33, 0x49, 0x25, 0xcb, 0x52, 0xa1, 0xab, 0x7b, 0xba, 0xaa, 0x4e, 0xfd, 0xd1, 0xb9,
+	0x2f, 0x59, 0x82, 0x42, 0xd2, 0x84, 0x6b, 0xc2, 0xf6, 0x3c, 0x01, 0x13, 0x2e, 0xc7, 0xba, 0xd8,
+	0xe2, 0x34, 0xa7, 0x09, 0x4a, 0x34, 0x62, 0xaf, 0xd5, 0xcf, 0xe0, 0x30, 0xc2, 0xf4, 0x50, 0x7c,
+	0xa6, 0x51, 0x84, 0xb9, 0x9f, 0x71, 0x25, 0xb8, 0x28, 0xee, 0x3e, 0x05, 0xf2, 0x01, 0xe5, 0xa9,
+	0x9e, 0x20, 0xc0, 0xcb, 0x11, 0x0a, 0x49, 0x9a, 0x50, 0x65, 0xa1, 0x5d, 0x69, 0x57, 0x0e, 0xea,
+	0x41, 0x95, 0x85, 0xee, 0x10, 0x1e, 0x7c, 0x64, 0x62, 0x42, 0x13, 0x86, 0xb7, 0x0b, 0xc0, 0x69,
+	0x84, 0x3d, 0x99, 0x0d, 0x31, 0xd5, 0xfc, 0x7a, 0x81, 0x74, 0x0b, 0x80, 0x6c, 0x83, 0x3a, 0xf4,
+	0x04, 0xbb, 0x46, 0xbb, 0xda, 0xae, 0x1c, 0xac, 0x06, 0x1b, 0x05, 0x70, 0xc6, 0xae, 0x91, 0x6c,
+	0xc1, 0xba, 0xc8, 0x72, 0xd9, 0xeb, 0x8f, 0xed, 0x9a, 0xfa, 0x70, 0xad, 0x38, 0x9e, 0x8c, 0xdd,
+	0x18, 0x36, 0xe7, 0xc4, 0x04, 0xcf, 0x52, 0x81, 0xe4, 0x15, 0xd4, 0x8d, 0xd5, 0xc2, 0xae, 0xb4,
+	0x6b, 0x07, 0x56, 0xa7, 0xe1, 0x51, 0xce, 0xbc, 0x49, 0xfb, 0x37, 0x75, 0xf2, 0x1c, 0x5a, 0x29,
+	0x7e, 0x91, 0xbd, 0xa9, 0xfe, 0xaa, 0x4a, 0xa6, 0x51, 0xc0, 0xa7, 0xa6, 0x47, 0x77, 0x1f, 0x36,
+	0xdf, 0x61, 0x8c, 0x12, 0xef, 0xf2, 0xa0, 0x74, 0xaa, 0x8b, 0x09, 0x8f, 0xa9, 0xbc, 0x95, 0x75,
+	0x04, 0xf7, 0x67, 0x58, 0xba, 0x75, 0x07, 0x36, 0xa4, 0xc6, 0x34, 0x79, 0x72, 0x76, 0x7f, 0x57,
+	0x60, 0xc3, 0x88, 0xcf, 0xdf, 0x47, 0xde, 0x02, 0x0c, 0x72, 0xa4, 0x12, 0xc3, 0x1e, 0x95, 0x6a,
+	0x02, 0xab, 0xe3, 0x78, 0x65, 0x20, 0x3c, 0x13, 0x08, 0xaf, 0x6b, 0x12, 0x13, 0xd4, 0x35, 0xfb,
+	0x58, 0x12, 0x02, 0x2b, 0x29, 0x4d, 0x50, 0xbb, 0xab, 0xfe, 0x93, 0x36, 0x58, 0x21, 0x8a, 0x41,
+	0xce, 0x54, 0x20, 0xec, 0x15, 0x55, 0x9a, 0x86, 0x88, 0x57, 0xac, 0x54, 0x27, 0x4a, 0xd8, 0xab,
+	0xca, 0xe5, 0x66, 0xe9, 0xb2, 0x81, 0x83, 0x29, 0x46, 0xe7, 0x57, 0x0d, 0x5a, 0xa6, 0xfb, 0x33,
+	0xcc, 0xaf, 0xd8, 0x00, 0xc9, 0x27, 0xb0, 0xa6, 0x42, 0x45, 0xb6, 0xd4, 0xe7, 0x8b, 0x31, 0x73,
+	0x66, 0xb7, 0xe7, 0x3e, 0xfb, 0xfe, 0xe7, 0xef, 0xcf, 0xea, 0x1e, 0xd9, 0x2d, 0x1e, 0x8a, 0xf0,
+	0xaf, 0x8e, 0x68, 0xcc, 0x2f, 0x68, 0xc7, 0x9f, 0x2c, 0xd5, 0xff, 0xca, 0xc2, 0x6f, 0xe4, 0x02,
+	0x1a, 0x33, 0xf9, 0x20, 0x8f, 0xd4, 0x35, 0xcb, 0x02, 0xea, 0x38, 0xcb, 0x4a, 0xe5, 0x4e, 0xdc,
+	0xb6, 0x92, 0x73, 0x88, 0x7d, 0x9b, 0x1c, 0x19, 0x42, 0x73, 0x36, 0x1b, 0xa4, 0xbc, 0x6f, 0x69,
+	0x60, 0x9c, 0x87, 0x0b, 0x6b, 0x79, 0x5f, 0xbc, 0x53, 0x33, 0xd6, 0xcb, 0x3b, 0xc6, 0xba, 0x54,
+	0xa6, 0x99, 0xe4, 0xdc, 0x98, 0x36, 0x97, 0x38, 0xc7, 0x5e, 0x2c, 0xe8, 0x81, 0x7c, 0x25, 0xf4,
+	0x82, 0xec, 0xff, 0x57, 0xc8, 0x37, 0xc1, 0x13, 0x27, 0x4f, 0x7e, 0x1c, 0x3f, 0x0e, 0x76, 0x60,
+	0x3d, 0xc4, 0x73, 0x3a, 0x8a, 0x25, 0xb9, 0x47, 0x5a, 0xd0, 0x70, 0x2c, 0x25, 0x70, 0x26, 0xa9,
+	0x1c, 0x89, 0xfe, 0x9a, 0x1a, 0xe6, 0xcd, 0xbf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xd2, 0x8a, 0x1b,
+	0xc8, 0xe5, 0x04, 0x00, 0x00,
 }

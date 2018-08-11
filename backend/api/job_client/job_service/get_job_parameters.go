@@ -62,10 +62,8 @@ for the get job operation typically these are written to a http.Request
 */
 type GetJobParams struct {
 
-	/*JobID*/
-	JobID string
-	/*PipelineID*/
-	PipelineID string
+	/*ID*/
+	ID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,26 +103,15 @@ func (o *GetJobParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithJobID adds the jobID to the get job params
-func (o *GetJobParams) WithJobID(jobID string) *GetJobParams {
-	o.SetJobID(jobID)
+// WithID adds the id to the get job params
+func (o *GetJobParams) WithID(id string) *GetJobParams {
+	o.SetID(id)
 	return o
 }
 
-// SetJobID adds the jobId to the get job params
-func (o *GetJobParams) SetJobID(jobID string) {
-	o.JobID = jobID
-}
-
-// WithPipelineID adds the pipelineID to the get job params
-func (o *GetJobParams) WithPipelineID(pipelineID string) *GetJobParams {
-	o.SetPipelineID(pipelineID)
-	return o
-}
-
-// SetPipelineID adds the pipelineId to the get job params
-func (o *GetJobParams) SetPipelineID(pipelineID string) {
-	o.PipelineID = pipelineID
+// SetID adds the id to the get job params
+func (o *GetJobParams) SetID(id string) {
+	o.ID = id
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -135,13 +122,8 @@ func (o *GetJobParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regist
 	}
 	var res []error
 
-	// path param job_id
-	if err := r.SetPathParam("job_id", o.JobID); err != nil {
-		return err
-	}
-
-	// path param pipeline_id
-	if err := r.SetPathParam("pipeline_id", o.PipelineID); err != nil {
+	// path param id
+	if err := r.SetPathParam("id", o.ID); err != nil {
 		return err
 	}
 

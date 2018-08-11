@@ -58,7 +58,7 @@ type CreatePipelineOK struct {
 }
 
 func (o *CreatePipelineOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/pipelines][%d] createPipelineOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1alpha2/jobs][%d] createPipelineOK  %+v", 200, o.Payload)
 }
 
 func (o *CreatePipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -96,7 +96,7 @@ func (o *CreatePipelineDefault) Code() int {
 }
 
 func (o *CreatePipelineDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/pipelines][%d] CreatePipeline default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1alpha2/jobs][%d] CreatePipeline default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *CreatePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

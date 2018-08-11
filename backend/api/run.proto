@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package api;
+
+import "error.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  responses: {
+    key: "default";
+    value: {
+      schema: {
+        json_schema: {
+          ref: ".api.Status";
+        }
+      }
+    }
+  }
+};
+
+service RunService {
+  rpc GetRun(GetRunRequest) returns (RunDetail) {
+    option (google.api.http) = {
+      get: "/apis/v1alpha2/jobs/{job_id}/runs/{run_id}"
+    };
+  }
+
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1alpha2/jobs/{job_id}/runs"
+    };
+  }
+}
+
+message GetRunRequest {
+  string job_id = 1;
+  string run_id = 2;
+}
+
+message ListRunsRequest {
+  string job_id = 1;
+  string page_token = 2;
+  int32 page_size = 3;
+  string sort_by = 4;
+}
+
+message ListRunsResponse {
+  repeated Run runs = 1;
+  string next_page_token = 2;
+}
+
+message Run {
+  string id = 1;
+  string name = 2;
+  string namespace = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp scheduled_at = 5;
+  string status = 6;
+}
+
+message RunDetail {
+  Run run = 1;
+  string workflow = 2;
+}

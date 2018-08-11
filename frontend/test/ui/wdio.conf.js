@@ -62,7 +62,7 @@ exports.config = {
       referenceName: getScreenshotName(path.join(process.cwd(), 'ui/visual-regression/screenshots/reference')),
       screenshotName: getScreenshotName(path.join(process.cwd(), 'ui/visual-regression/screenshots/screen')),
       diffName: getScreenshotName(path.join(process.cwd(), 'ui/visual-regression/screenshots/diff')),
-      misMatchTolerance: 0.01,
+      misMatchTolerance: 0,
     }),
     viewports: [{ width: 1024, height: 768 }],
   },

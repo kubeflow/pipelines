@@ -11,23 +11,23 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func TestToApiJobDetail(t *testing.T) {
-	modelJob := &model.JobDetail{
-		Job: model.Job{
-			UUID:             "job123",
+func TestToApiRunDetail(t *testing.T) {
+	modelRun := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "run123",
 			Name:             "name123",
 			Namespace:        "ns123",
-			PipelineID:       "pipeline123",
+			JobID:            "job123",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
 		},
 		Workflow: "workflow123",
 	}
-	apiJob := ToApiJobDetail(modelJob)
-	expectedApiJob := &api.JobDetail{
-		Job: &api.Job{
-			Id:          "job123",
+	apiRun := ToApiRunDetail(modelRun)
+	expectedApiRun := &api.RunDetail{
+		Run: &api.Run{
+			Id:          "run123",
 			Name:        "name123",
 			Namespace:   "ns123",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
@@ -36,32 +36,32 @@ func TestToApiJobDetail(t *testing.T) {
 		},
 		Workflow: "workflow123",
 	}
-	assert.Equal(t, expectedApiJob, apiJob)
+	assert.Equal(t, expectedApiRun, apiRun)
 }
 
-func TestToApiJobs(t *testing.T) {
-	modelJob1 := model.Job{
-		UUID:             "job1",
+func TestToApiRuns(t *testing.T) {
+	modelRun1 := model.Run{
+		UUID:             "run1",
 		Name:             "name1",
 		Namespace:        "ns1",
-		PipelineID:       "pipeline1",
+		JobID:            "job1",
 		CreatedAtInSec:   1,
 		ScheduledAtInSec: 1,
 		Conditions:       "running",
 	}
-	modelJob2 := model.Job{
-		UUID:             "job2",
+	modelRun2 := model.Run{
+		UUID:             "run2",
 		Name:             "name2",
 		Namespace:        "ns2",
-		PipelineID:       "pipeline2",
+		JobID:            "job2",
 		CreatedAtInSec:   2,
 		ScheduledAtInSec: 2,
 		Conditions:       "done",
 	}
-	apiJobs := ToApiJobs([]model.Job{modelJob1, modelJob2})
-	expectedApiJob := []*api.Job{
+	apiRuns := ToApiRuns([]model.Run{modelRun1, modelRun2})
+	expectedApiRun := []*api.Run{
 		{
-			Id:          "job1",
+			Id:          "run1",
 			Name:        "name1",
 			Namespace:   "ns1",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
@@ -69,7 +69,7 @@ func TestToApiJobs(t *testing.T) {
 			Status:      "running",
 		},
 		{
-			Id:          "job2",
+			Id:          "run2",
 			Name:        "name2",
 			Namespace:   "ns2",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 2},
@@ -77,15 +77,15 @@ func TestToApiJobs(t *testing.T) {
 			Status:      "done",
 		},
 	}
-	assert.Equal(t, expectedApiJob, apiJobs)
+	assert.Equal(t, expectedApiRun, apiRuns)
 }
 
-func TestCronScheduledPipelineToApiPipeline(t *testing.T) {
-	modelPipeline := model.Pipeline{
-		UUID:        "pipeline1",
+func TestCronScheduledJobToApiJob(t *testing.T) {
+	modelJob := model.Job{
+		UUID:        "job1",
 		DisplayName: "name 1",
 		Name:        "name1",
-		PackageId:   "1",
+		PipelineId:  "1",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
@@ -98,12 +98,12 @@ func TestCronScheduledPipelineToApiPipeline(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	apiPipeline, err := ToApiPipeline(&modelPipeline)
+	apiJob, err := ToApiJob(&modelJob)
 	assert.Nil(t, err)
-	expectedPipeline := &api.Pipeline{
-		Id:             "pipeline1",
+	expectedJob := &api.Job{
+		Id:             "job1",
 		Name:           "name 1",
-		PackageId:      "1",
+		PipelineId:     "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -115,15 +115,15 @@ func TestCronScheduledPipelineToApiPipeline(t *testing.T) {
 			}}},
 		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 	}
-	assert.Equal(t, expectedPipeline, apiPipeline)
+	assert.Equal(t, expectedJob, apiJob)
 }
 
-func TestPeriodicScheduledPipelineToApiPipeline(t *testing.T) {
-	modelPipeline := model.Pipeline{
-		UUID:        "pipeline1",
+func TestPeriodicScheduledJobToApiJob(t *testing.T) {
+	modelJob := model.Job{
+		UUID:        "job1",
 		DisplayName: "name 1",
 		Name:        "name1",
-		PackageId:   "1",
+		PipelineId:  "1",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
@@ -136,12 +136,12 @@ func TestPeriodicScheduledPipelineToApiPipeline(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	apiPipeline, err := ToApiPipeline(&modelPipeline)
+	apiJob, err := ToApiJob(&modelJob)
 	assert.Nil(t, err)
-	expectedPipeline := &api.Pipeline{
-		Id:             "pipeline1",
+	expectedJob := &api.Job{
+		Id:             "job1",
 		Name:           "name 1",
-		PackageId:      "1",
+		PipelineId:     "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -153,14 +153,14 @@ func TestPeriodicScheduledPipelineToApiPipeline(t *testing.T) {
 			}}},
 		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 	}
-	assert.Equal(t, expectedPipeline, apiPipeline)
+	assert.Equal(t, expectedJob, apiJob)
 }
 
-func TestNonScheduledPipelineToApiPipeline(t *testing.T) {
-	modelPipeline := model.Pipeline{
-		UUID:           "pipeline1",
+func TestNonScheduledJobToApiJob(t *testing.T) {
+	modelJob := model.Job{
+		UUID:           "job1",
 		DisplayName:    "name1",
-		PackageId:      "1",
+		PipelineId:     "1",
 		Enabled:        true,
 		Trigger:        model.Trigger{},
 		MaxConcurrency: 1,
@@ -168,12 +168,12 @@ func TestNonScheduledPipelineToApiPipeline(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	apiPipeline, err := ToApiPipeline(&modelPipeline)
+	apiJob, err := ToApiJob(&modelJob)
 	assert.Nil(t, err)
-	expectedPipeline := &api.Pipeline{
-		Id:             "pipeline1",
+	expectedJob := &api.Job{
+		Id:             "job1",
 		Name:           "name1",
-		PackageId:      "1",
+		PipelineId:     "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -181,15 +181,15 @@ func TestNonScheduledPipelineToApiPipeline(t *testing.T) {
 		Trigger:        &api.Trigger{},
 		Parameters:     []*api.Parameter{{Name: "param2", Value: "world"}},
 	}
-	assert.Equal(t, expectedPipeline, apiPipeline)
+	assert.Equal(t, expectedJob, apiJob)
 }
 
-func TestToApiPipelines(t *testing.T) {
-	modelPipeline1 := model.Pipeline{
-		UUID:        "pipeline1",
+func TestToApiJobs(t *testing.T) {
+	modelJob1 := model.Job{
+		UUID:        "job1",
 		DisplayName: "name 1",
 		Name:        "name1",
-		PackageId:   "1",
+		PipelineId:  "1",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
@@ -202,11 +202,11 @@ func TestToApiPipelines(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	modelpipeline2 := model.Pipeline{
-		UUID:        "pipeline2",
+	modeljob2 := model.Job{
+		UUID:        "job2",
 		DisplayName: "name 2",
 		Name:        "name2",
-		PackageId:   "2",
+		PipelineId:  "2",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
@@ -219,13 +219,13 @@ func TestToApiPipelines(t *testing.T) {
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
 	}
-	apiPipelines, err := ToApiPipelines([]model.Pipeline{modelPipeline1, modelpipeline2})
+	apiJobs, err := ToApiJobs([]model.Job{modelJob1, modeljob2})
 	assert.Nil(t, err)
-	expectedPipelines := []*api.Pipeline{
+	expectedJobs := []*api.Job{
 		{
-			Id:             "pipeline1",
+			Id:             "job1",
 			Name:           "name 1",
-			PackageId:      "1",
+			PipelineId:     "1",
 			Enabled:        true,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -238,9 +238,9 @@ func TestToApiPipelines(t *testing.T) {
 			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 		},
 		{
-			Id:             "pipeline2",
+			Id:             "job2",
 			Name:           "name 2",
-			PackageId:      "2",
+			PipelineId:     "2",
 			Enabled:        true,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
@@ -253,14 +253,14 @@ func TestToApiPipelines(t *testing.T) {
 			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 		},
 	}
-	assert.Equal(t, expectedPipelines, apiPipelines)
+	assert.Equal(t, expectedJobs, apiJobs)
 }
 
-func TestToModelPipeline(t *testing.T) {
-	apiPipeline := &api.Pipeline{
-		Id:             "pipeline1",
+func TestToModelJob(t *testing.T) {
+	apiJob := &api.Job{
+		Id:             "job1",
 		Name:           "name1",
-		PackageId:      "1",
+		PipelineId:     "1",
 		Enabled:        true,
 		MaxConcurrency: 1,
 		Trigger: &api.Trigger{
@@ -270,13 +270,13 @@ func TestToModelPipeline(t *testing.T) {
 			}}},
 		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 	}
-	modelPipeline, err := ToModelPipeline(apiPipeline)
+	modelJob, err := ToModelJob(apiJob)
 	assert.Nil(t, err)
 
-	expectedModelPipeline := &model.Pipeline{
-		UUID:        "pipeline1",
+	expectedModelJob := &model.Job{
+		UUID:        "job1",
 		DisplayName: "name1",
-		PackageId:   "1",
+		PipelineId:  "1",
 		Enabled:     true,
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
@@ -287,23 +287,23 @@ func TestToModelPipeline(t *testing.T) {
 		MaxConcurrency: 1,
 		Parameters:     `[{"name":"param2","value":"world"}]`,
 	}
-	assert.Equal(t, expectedModelPipeline, modelPipeline)
+	assert.Equal(t, expectedModelJob, modelJob)
 }
 
-func TestToModelPipeline_ParameterTooLong(t *testing.T) {
+func TestToModelJob_ParameterTooLong(t *testing.T) {
 	var params []*api.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
 	for i := 0; i < 10000; i++ {
 		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
 	}
-	apiPipeline := &api.Pipeline{
-		Id:             "pipeline1",
+	apiJob := &api.Job{
+		Id:             "job1",
 		Name:           "name1",
-		PackageId:      "1",
+		PipelineId:     "1",
 		Enabled:        true,
 		MaxConcurrency: 1,
 		Parameters:     params,
 	}
-	_, err := ToModelPipeline(apiPipeline)
+	_, err := ToModelJob(apiJob)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }

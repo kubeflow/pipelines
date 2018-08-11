@@ -29,9 +29,9 @@ const (
 
 type FakeClientManager struct {
 	db                          *sql.DB
-	packageStore                storage.PackageStoreInterface
 	pipelineStore               storage.PipelineStoreInterface
 	jobStore                    storage.JobStoreInterface
+	runStore                    storage.RunStoreInterface
 	objectStore                 storage.ObjectStoreInterface
 	workflowClientFake          *storage.FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
@@ -59,14 +59,14 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 
 	return &FakeClientManager{
 		db:                          db,
-		packageStore:                storage.NewPackageStore(db, time, uuid),
-		pipelineStore:               storage.NewPipelineStore(db, time),
+		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
+		runStore:                    storage.NewRunStore(db, time),
 		workflowClientFake:          workflowClient,
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
-		time: time,
-		uuid: uuid,
+		time:                        time,
+		uuid:                        uuid,
 	}, nil
 }
 
@@ -79,8 +79,8 @@ func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
 	return fakeStore
 }
 
-func (f *FakeClientManager) PackageStore() storage.PackageStoreInterface {
-	return f.packageStore
+func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
+	return f.pipelineStore
 }
 
 func (f *FakeClientManager) ObjectStore() storage.ObjectStoreInterface {
@@ -103,12 +103,12 @@ func (f *FakeClientManager) WorkflowClientFake() *storage.FakeWorkflowClient {
 	return f.workflowClientFake
 }
 
-func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
-	return f.pipelineStore
-}
-
 func (f *FakeClientManager) JobStore() storage.JobStoreInterface {
 	return f.jobStore
+}
+
+func (f *FakeClientManager) RunStore() storage.RunStoreInterface {
+	return f.runStore
 }
 
 func (f *FakeClientManager) ScheduledWorkflow() v1alpha1.ScheduledWorkflowInterface {

@@ -30,288 +30,288 @@ const (
 	fakeUUIDFour  = "123e4567-e89b-12d3-a456-426655440003"
 )
 
-func createPkg(name string) *model.Package {
-	return &model.Package{Name: name, Parameters: `[{"Name": "param1"}]`, Status: model.PackageReady}
+func createPipeline(name string) *model.Pipeline {
+	return &model.Pipeline{Name: name, Parameters: `[{"Name": "param1"}]`, Status: model.PipelineReady}
 }
 
-func TestListPackages_FilterOutNotReady(t *testing.T) {
+func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	packageStore.CreatePackage(createPkg("pkg1"))
-	packageStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
-	packageStore.CreatePackage(createPkg("pkg2"))
-	packageStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
-	packageStore.CreatePackage(&model.Package{Name: "pkg3", Status: model.PackageCreating})
-	expectedPkg1 := model.Package{
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore.CreatePipeline(createPipeline("pkg1"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.CreatePipeline(createPipeline("pkg2"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.CreatePipeline(&model.Pipeline{Name: "pkg3", Status: model.PipelineCreating})
+	expectedPipeline1 := model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	expectedPkg2 := model.Package{
+		Status:         model.PipelineReady}
+	expectedPipeline2 := model.Pipeline{
 		UUID:           fakeUUIDTwo,
 		CreatedAtInSec: 2,
 		Name:           "pkg2",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	pkgsExpected := []model.Package{expectedPkg1, expectedPkg2}
+		Status:         model.PipelineReady}
+	pkgsExpected := []model.Pipeline{expectedPipeline1, expectedPipeline2}
 
-	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 10 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/, false)
+	pkgs, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 10 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/, false)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pkgsExpected, pkgs)
 }
 
-func TestListPackages_Pagination(t *testing.T) {
+func TestListPipelines_Pagination(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	packageStore.CreatePackage(createPkg("pkg1"))
-	packageStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
-	packageStore.CreatePackage(createPkg("pkg2"))
-	packageStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
-	packageStore.CreatePackage(createPkg("pkg2"))
-	packageStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
-	packageStore.CreatePackage(createPkg("pkg1"))
-	expectedPkg1 := model.Package{
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore.CreatePipeline(createPipeline("pkg1"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.CreatePipeline(createPipeline("pkg2"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.CreatePipeline(createPipeline("pkg2"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
+	pipelineStore.CreatePipeline(createPipeline("pkg1"))
+	expectedPipeline1 := model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	expectedPkg4 := model.Package{
+		Status:         model.PipelineReady}
+	expectedPipeline4 := model.Pipeline{
 		UUID:           fakeUUIDFour,
 		CreatedAtInSec: 4,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	pkgsExpected := []model.Package{expectedPkg1, expectedPkg4}
-	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false)
+		Status:         model.PipelineReady}
+	pkgsExpected := []model.Pipeline{expectedPipeline1, expectedPipeline4}
+	pkgs, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pkgsExpected, pkgs)
 
-	expectedPkg2 := model.Package{
+	expectedPipeline2 := model.Pipeline{
 		UUID:           fakeUUIDTwo,
 		CreatedAtInSec: 2,
 		Name:           "pkg2",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	expectedPkg3 := model.Package{
+		Status:         model.PipelineReady}
+	expectedPipeline3 := model.Pipeline{
 		UUID:           fakeUUIDThree,
 		CreatedAtInSec: 3,
 		Name:           "pkg2",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	pkgsExpected2 := []model.Package{expectedPkg2, expectedPkg3}
+		Status:         model.PipelineReady}
+	pkgsExpected2 := []model.Pipeline{expectedPipeline2, expectedPipeline3}
 
-	pkgs, nextPageToken, err = packageStore.ListPackages(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false)
+	pkgs, nextPageToken, err = pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, pkgsExpected2, pkgs)
 }
 
-func TestListPackages_Pagination_Descend(t *testing.T) {
+func TestListPipelines_Pagination_Descend(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	packageStore.CreatePackage(createPkg("pkg1"))
-	packageStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
-	packageStore.CreatePackage(createPkg("pkg2"))
-	packageStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
-	packageStore.CreatePackage(createPkg("pkg2"))
-	packageStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
-	packageStore.CreatePackage(createPkg("pkg1"))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore.CreatePipeline(createPipeline("pkg1"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
+	pipelineStore.CreatePipeline(createPipeline("pkg2"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
+	pipelineStore.CreatePipeline(createPipeline("pkg2"))
+	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
+	pipelineStore.CreatePipeline(createPipeline("pkg1"))
 
-	expectedPkg2 := model.Package{
+	expectedPipeline2 := model.Pipeline{
 		UUID:           fakeUUIDTwo,
 		CreatedAtInSec: 2,
 		Name:           "pkg2",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	expectedPkg3 := model.Package{
+		Status:         model.PipelineReady}
+	expectedPipeline3 := model.Pipeline{
 		UUID:           fakeUUIDThree,
 		CreatedAtInSec: 3,
 		Name:           "pkg2",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	pkgsExpected := []model.Package{expectedPkg3, expectedPkg2}
-	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
+		Status:         model.PipelineReady}
+	pkgsExpected := []model.Pipeline{expectedPipeline3, expectedPipeline2}
+	pkgs, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pkgsExpected, pkgs)
 
-	expectedPkg1 := model.Package{
+	expectedPipeline1 := model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	expectedPkg4 := model.Package{
+		Status:         model.PipelineReady}
+	expectedPipeline4 := model.Pipeline{
 		UUID:           fakeUUIDFour,
 		CreatedAtInSec: 4,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	pkgsExpected2 := []model.Package{expectedPkg4, expectedPkg1}
-	pkgs, nextPageToken, err = packageStore.ListPackages(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
+		Status:         model.PipelineReady}
+	pkgsExpected2 := []model.Pipeline{expectedPipeline4, expectedPipeline1}
+	pkgs, nextPageToken, err = pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, pkgsExpected2, pkgs)
 }
 
-func TestListPackages_Pagination_LessThanPageSize(t *testing.T) {
+func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	packageStore.CreatePackage(createPkg("pkg1"))
-	expectedPkg1 := model.Package{
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore.CreatePipeline(createPipeline("pkg1"))
+	expectedPipeline1 := model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
-	pkgsExpected := []model.Package{expectedPkg1}
+		Status:         model.PipelineReady}
+	pkgsExpected := []model.Pipeline{expectedPipeline1}
 
-	pkgs, nextPageToken, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
+	pkgs, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pkgsExpected, pkgs)
 }
 
-func TestListPackagesError(t *testing.T) {
+func TestListPipelinesError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	db.Close()
-	_, _, err := packageStore.ListPackages("" /*pageToken*/, 2 /*pageSize*/, model.GetPackageTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
+	_, _, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
-func TestGetPackage(t *testing.T) {
+func TestGetPipeline(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	packageStore.CreatePackage(createPkg("pkg1"))
-	pkgExpected := model.Package{
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore.CreatePipeline(createPipeline("pkg1"))
+	pkgExpected := model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady,
+		Status:         model.PipelineReady,
 	}
 
-	pkg, err := packageStore.GetPackage(fakeUUID)
+	pkg, err := pipelineStore.GetPipeline(fakeUUID)
 	assert.Nil(t, err)
-	assert.Equal(t, pkgExpected, *pkg, "Got unexpected package.")
+	assert.Equal(t, pkgExpected, *pkg, "Got unexpected pipeline.")
 }
 
-func TestGetPackage_NotFound_Creating(t *testing.T) {
+func TestGetPipeline_NotFound_Creating(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	packageStore.CreatePackage(&model.Package{Name: "pkg3", Status: model.PackageCreating})
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore.CreatePipeline(&model.Pipeline{Name: "pkg3", Status: model.PipelineCreating})
 
-	_, err := packageStore.GetPackage(fakeUUID)
+	_, err := pipelineStore.GetPipeline(fakeUUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
-		"Expected get package to return not found")
+		"Expected get pipeline to return not found")
 }
 
-func TestGetPackage_NotFoundError(t *testing.T) {
+func TestGetPipeline_NotFoundError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 
-	_, err := packageStore.GetPackage(fakeUUID)
+	_, err := pipelineStore.GetPipeline(fakeUUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
-		"Expected get package to return not found")
+		"Expected get pipeline to return not found")
 }
 
-func TestGetPackage_InternalError(t *testing.T) {
+func TestGetPipeline_InternalError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	db.Close()
-	_, err := packageStore.GetPackage("123")
+	_, err := pipelineStore.GetPipeline("123")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
-		"Expected get package to return internal error")
+		"Expected get pipeline to return internal error")
 }
 
-func TestCreatePackage(t *testing.T) {
+func TestCreatePipeline(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	pkgExpected := model.Package{
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pkgExpected := model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageReady}
+		Status:         model.PipelineReady}
 
-	pkg := createPkg("pkg1")
-	pkg, err := packageStore.CreatePackage(pkg)
+	pkg := createPipeline("pkg1")
+	pkg, err := pipelineStore.CreatePipeline(pkg)
 	assert.Nil(t, err)
-	assert.Equal(t, pkgExpected, *pkg, "Got unexpected package.")
+	assert.Equal(t, pkgExpected, *pkg, "Got unexpected pipeline.")
 }
 
-func TestCreatePackageError(t *testing.T) {
-	pkg := &model.Package{Name: "Package123"}
+func TestCreatePipelineError(t *testing.T) {
+	pkg := &model.Pipeline{Name: "Pipeline123"}
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	db.Close()
 
-	_, err := packageStore.CreatePackage(pkg)
+	_, err := pipelineStore.CreatePipeline(pkg)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
-		"Expected create package to return error")
+		"Expected create pipeline to return error")
 }
 
-func TestDeletePackage(t *testing.T) {
+func TestDeletePipeline(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	packageStore.CreatePackage(createPkg("pkg1"))
-	err := packageStore.DeletePackage(fakeUUID)
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore.CreatePipeline(createPipeline("pkg1"))
+	err := pipelineStore.DeletePipeline(fakeUUID)
 	assert.Nil(t, err)
-	_, err = packageStore.GetPackage(fakeUUID)
+	_, err = pipelineStore.GetPipeline(fakeUUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
-func TestDeletePackageError(t *testing.T) {
+func TestDeletePipelineError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	db.Close()
-	err := packageStore.DeletePackage(fakeUUID)
+	err := pipelineStore.DeletePipeline(fakeUUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
-func TestUpdatePackageStatus(t *testing.T) {
+func TestUpdatePipelineStatus(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
-	pkg, err := packageStore.CreatePackage(createPkg("pkg1"))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pkg, err := pipelineStore.CreatePipeline(createPipeline("pkg1"))
 	assert.Nil(t, err)
-	pkgExpected := model.Package{
+	pkgExpected := model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pkg1",
 		Parameters:     `[{"Name": "param1"}]`,
-		Status:         model.PackageDeleting,
+		Status:         model.PipelineDeleting,
 	}
-	err = packageStore.UpdatePackageStatus(pkg.UUID, model.PackageDeleting)
+	err = pipelineStore.UpdatePipelineStatus(pkg.UUID, model.PipelineDeleting)
 	assert.Nil(t, err)
-	pkg, err = packageStore.GetPackageWithStatus(fakeUUID, model.PackageDeleting)
+	pkg, err = pipelineStore.GetPipelineWithStatus(fakeUUID, model.PipelineDeleting)
 	assert.Nil(t, err)
 	assert.Equal(t, pkgExpected, *pkg)
 }
 
-func TestUpdatePackageStatusError(t *testing.T) {
+func TestUpdatePipelineStatusError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	packageStore := NewPackageStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	db.Close()
-	err := packageStore.UpdatePackageStatus(fakeUUID, model.PackageDeleting)
+	err := pipelineStore.UpdatePipelineStatus(fakeUUID, model.PipelineDeleting)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }

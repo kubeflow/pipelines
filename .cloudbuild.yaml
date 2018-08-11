@@ -38,15 +38,15 @@ steps:
 
 # Build the Dataflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataflow/containers/predict && ./build.sh $PROJECT_ID $COMMIT_SHA']
   id: 'buildPredictComponent'
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataflow/containers/tft && ./build.sh $PROJECT_ID $COMMIT_SHA']
   id: 'buildTFTComponent'
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh $PROJECT_ID $COMMIT_SHA']
   id: 'buildTMAComponent'
 
