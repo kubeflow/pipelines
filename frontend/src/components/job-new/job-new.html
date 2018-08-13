@@ -22,10 +22,16 @@
           padding: 0 6px;
         }
         --paper-input-container-label-floating: {
+          color: #000;
+          font-size: 18px;
+          font-weight: bold;
           padding: 0 8px;
         }
         --paper-input-error: {
           padding: 0 6px;
+        }
+        --paper-menu-button-content: {
+          border-radius: 5px;
         }
 
         /* Ensure the ripple fills the whole element */
@@ -44,25 +50,25 @@
     </style>
 
     <div class="toolbar">
-      <a href="/jobs" class="unstyled toolbar-arrow-back">
-        <paper-icon-button icon="arrow-back"></paper-icon-button>
-      </a>
-      <div class="toolbar-title">
-        Configure New Job
+      <div class="flex toolbar-title">
+        <a id="allJobsLink" href="/jobs" class="faded unstyled">All Jobs</a>
+        <iron-icon icon="chevron-right"></iron-icon>
+        <span class="page-title">Create new job</span>
       </div>
     </div>
 
     <page-error id="pageErrorElement" error="[[_pageError]]"
                 details="[[_pageErrorDetails]]"></page-error>
 
-
     <div class="relative">
       <div class="overlay" hidden="[[!_busy]]">
         <paper-spinner class="absolute-spinner" active></paper-spinner>
       </div>
       <div class="scrollable padded">
+        <div class="param-header">Pipeline details</div>
+        <br>
         <div class="flex">
-          <paper-dropdown-menu id="pipelinesDropdown" class="input-field-large"
+          <paper-dropdown-menu id="pipelinesDropdown" class="shaded input-field-large"
                                label="Choose a Pipeline">
             <paper-listbox id="pipelinesListbox" slot="dropdown-content"
                            class="dropdown-content" selected="{{_pipelineIndex}}">
@@ -77,49 +83,49 @@
             </paper-listbox>
           </paper-dropdown-menu>
           <span class="or-tag">- or -</span>
-          <paper-button id="uploadBtn" class="action-button" on-click="_altUpload">
+          <paper-button id="uploadBtn" on-click="_altUpload">
             Upload New Pipeline
           </paper-button>
           <!--This is hidden but its functionality is used by the alt upload button above-->
           <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
         </div>
 
-        <paper-input id="name" class="input-field-large" label="Job Name"
+        <paper-input id="name" class="shaded input-field-large" label="Job Name"
                      autofocus required maxlength="50" spellcheck="false" value="{{_name}}"
                      auto-validate error-message="Job must have a name">
         </paper-input>
-        <paper-textarea id="description" class="input-field-large" label="Description"
+        <paper-textarea id="description" class="shaded input-field-large" label="Description"
                         spellcheck="false" value="{{_description}}">
         </paper-textarea>
 
-        <hr>
+        <br>
+
+        <div class="param-header">Pipeline trigger</div>
+        <br>
+        <!-- The schedule component is dynamically added and removed from this div -->
+        <div id="schedule"></div>
 
         <!-- Job Parameters -->
         <div id="jobParameters">
           <template is="dom-if" if="[[_parameters.length]]">
-            <div id="parametersTitle" class="param-header">Parameters</div>
+            <div id="parametersTitle" class="param-header">Input Parameters</div>
+            <br>
             <template is="dom-repeat" items="{{_parameters}}" as="param">
-              <div class="param-name">[[param.name]]</div>
-              <paper-input class="input-field-large no-shrink" no-label-float
+              <paper-input class="shaded input-field-large no-shrink" label="[[param.name]]"
                            spellcheck="false" value="{{param.value}}">
               </paper-input>
             </template>
-            <hr>
           </template>
         </div>
 
-        <!-- Job Run Schedule -->
-        <div class="param-header">Schedule</div>
         <br>
-        <!-- The schedule component is dynamically added and removed from this div -->
-        <div id="schedule"></div>
-        <hr>
-
-        <paper-button id="deployButton" class="action-button" raised
-                      disabled="[[!_inputIsValid]]" on-click="_deploy">
-          Deploy
-          <iron-icon icon="chevron-right"></iron-icon>
-        </paper-button>
+        <div class="flex">
+          <paper-button id="deployButton" class="primary" disabled="[[!_inputIsValid]]" on-click="_deploy">
+            Deploy
+            <iron-icon icon="chevron-right"></iron-icon>
+          </paper-button>
+          <a href="/jobs" class="unstyled"><paper-button>Cancel</paper-button></a>
+        </div>
       </div>
     </div>
 

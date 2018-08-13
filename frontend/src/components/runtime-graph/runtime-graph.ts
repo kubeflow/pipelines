@@ -46,10 +46,8 @@ class GraphNodeClickEvent<Model> extends MouseEvent {
   };
 }
 
-const NODE_WIDTH = 150;
-const NODE_HEIGHT = 50;
-const VIRTUAL_NODE_WIDTH = 30;
-const VIRTUAL_NODE_HEIGHT = 30;
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 70;
 
 @customElement('runtime-graph')
 export class RuntimeGraph extends Polymer.Element {
@@ -62,6 +60,9 @@ export class RuntimeGraph extends Polymer.Element {
 
   @property({ type: Array })
   protected _workflowEdges: Edge[] = [];
+
+  @property({ type: Array })
+  protected _workflowEdgeStartPoints: number[][] = [];
 
   @property({ type: Boolean })
   protected _loadingLogs = false;
@@ -77,6 +78,7 @@ export class RuntimeGraph extends Polymer.Element {
     // Ensure that we're working with empty arrays.
     this._workflowEdges = [];
     this._workflowNodes = [];
+    this._workflowEdgeStartPoints = [];
 
     this._runtimeGraph = graph;
 
@@ -116,12 +118,10 @@ export class RuntimeGraph extends Polymer.Element {
     // Create dagre graph nodes from workflow nodes.
     Object.values(workflowNodes)
       .forEach((node) => {
-        const isVirtual = this._isVirtual(node);
         g.setNode(node.id, {
-          height: isVirtual ? VIRTUAL_NODE_HEIGHT : NODE_HEIGHT,
+          height: NODE_HEIGHT,
           label: node.displayName || node.id,
-          virtual: isVirtual,
-          width: isVirtual ? VIRTUAL_NODE_WIDTH : NODE_WIDTH,
+          width: NODE_WIDTH,
           ...node,
         });
       });
@@ -190,14 +190,15 @@ export class RuntimeGraph extends Polymer.Element {
           const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
           const left = xMid - (distance / 2);
           lines.push({ x1, y1, x2, y2, distance, xMid, yMid, angle, left });
+
+          // Store the first point of the edge to draw the edge start circle
+          if (i === 1) {
+            this.push('_workflowEdgeStartPoints', [x1, y1]);
+          }
         }
       }
       this.push('_workflowEdges', { from: edgeInfo.v, to: edgeInfo.w, lines });
     });
-  }
-
-  protected _getNodeCssClass(node: NodeStatus): string {
-    return this._isVirtual(node) ? 'virtual-node' : 'job-node';
   }
 
   protected _exitNodeDetails(): void {
@@ -210,11 +211,6 @@ export class RuntimeGraph extends Polymer.Element {
   }
 
   protected async _nodeClicked(e: GraphNodeClickEvent<NodeStatus>): Promise<void> {
-    // Ignore virtual nodes
-    if (this._isVirtual(e.model.node)) {
-      return;
-    }
-
     this.$.nodeDetails.classList.add('visible');
     this._selectedNode = e.model.node;
 

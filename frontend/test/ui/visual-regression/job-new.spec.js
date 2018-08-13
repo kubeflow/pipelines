@@ -45,12 +45,15 @@ describe('create new job', () => {
   it('populates job details', () => {
     // Skip the upload pipeline button
     browser.keys('Tab');
-
     browser.keys('Tab');
     browser.keys('test job name');
 
     browser.keys('Tab');
     browser.keys('test job description');
+
+    // Skip trigger and maximum concurrent jobs inputs
+    browser.keys('Tab');
+    browser.keys('Tab');
 
     browser.keys('Tab');
     browser.keys('test x value');
@@ -65,17 +68,14 @@ describe('create new job', () => {
   });
 
   it('enables deploy button', () => {
-    const selector = 'app-shell job-new .scrollable-padded';
     browser.keys('PageDown');
-
     assertDiffs(browser.checkDocument());
   });
 
   // TODO: add visual regression tests for various ways to schedule a job.
 
   it('resets the page when the user navigates away', () => {
-    // Select a pipeline
-    const backSelector = 'app-shell job-new paper-icon-button';
+    const backSelector = 'app-shell job-new #allJobsLink';
     browser.waitForVisible(backSelector);
     browser.click(backSelector);
 

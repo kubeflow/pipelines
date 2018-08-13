@@ -48,7 +48,7 @@ describe('popup-dialog', () => {
     Polymer.Async.idlePeriod.run(() => {
       assert(isVisible(fixture.button1Element));
       // Paper buttons use all caps
-      assert.strictEqual(fixture.button1Element.innerText, 'CLOSE');
+      assert.strictEqual(fixture.button1Element.innerText, 'Close');
 
       assert(!isVisible(fixture.button2Element));
       done();
@@ -62,10 +62,10 @@ describe('popup-dialog', () => {
     Polymer.Async.idlePeriod.run(() => {
       assert(isVisible(fixture.button1Element));
       // Paper buttons use all caps
-      assert.strictEqual(fixture.button1Element.innerText, 'CLOSE');
+      assert.strictEqual(fixture.button1Element.innerText, 'Close');
 
       assert(isVisible(fixture.button2Element));
-      assert.strictEqual(fixture.button2Element.innerText, 'CANCEL');
+      assert.strictEqual(fixture.button2Element.innerText, 'Cancel');
       done();
     });
   });

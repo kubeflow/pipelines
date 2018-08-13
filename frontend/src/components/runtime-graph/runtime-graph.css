@@ -2,19 +2,20 @@
 @import '../../styles/common.css';
 
 .hide-node-details {
-  height: var(--height-xsmall);
-  width: var(--height-xsmall);
+  height: var(--height-small);
+  width: var(--height-small);
 }
 
 .line {
-  border-top: 1px solid #777;
+  border-top: 2px solid #4285f4;
   position: absolute;
 }
 
 .logs-container {
   background-color: #333;
   color: #fff;
-  font-family: monospace;
+  font-family: var(--monospace-font-family);
+  font-size: var(--font-size-medium);
 }
 
 .node-details {
@@ -40,43 +41,65 @@ paper-tab {
   position: relative;
 }
 
-/* Arrow head */
-.job-edge .line:nth-last-child(2)::after {
-  color: #777;
-  content: '\25BA';
-  font-size: 10px;
-  left: -1px;
+/* Edge start circle */
+.start-circle {
+  background-color: #fff;
+  border-radius: 7px;
+  border: 2px solid #4285f4;
+  content: '';
+  display: inline-block;
+  height: 8px;
+  left: 17px;
   position: absolute;
   top: -7px;
-  transform: rotate(180deg);
+  width: 8px;
+}
+
+/* Edge end arrow head */
+.job-edge .line:nth-last-child(2)::after {
+  border-color: #4285f4 transparent transparent transparent;
+  border-style: solid;
+  border-width: 9px 8px 0 8px;
+  clear: both;
+  content: '';
+  left: -4px;
+  position: absolute;
+  top: -6px;
+  transform: rotate(90deg);
 }
 
 .job-node {
-  background-color: #eee;
-  border: solid 1px #aaa;
-  box-sizing: border-box;
+  background-color: #f8faff;
+  border: solid 1px #aecbfa;
+  border-radius: 5px;
+  box-sizing: content-box;
+  color: #124aa4;
   cursor: pointer;
-  font-size: var(--font-size);
+  display: flex;
+  font-size: var(--font-size--large);
   margin: 10px;
-  padding: 7px;
   position: absolute;
-  text-align: center;
 }
 
 .job-node.selected {
-  background-color: #ccc;
-  @apply --shadow-elevation-4dp;
+  background-color: #e4ebff;
+  border-color: #4285f4;
 }
 
 .job-node iron-icon {
   flex-shrink: 0;
   height: var(--icon-dimension-small);
+  margin: 5px 5px 0 0;
+  padding: 0;
   width: var(--icon-dimension-small);
 }
 
 .job-node .label {
+  flex-grow: 1;
   line-height: 2em;
+  margin: auto;
   overflow: hidden;
+  padding-left: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -90,12 +113,4 @@ paper-tab {
 .job-node:hover .label {
   /* line-height: initial !important; */
   white-space: initial;
-}
-
-.virtual-node {
-  border: 1px dashed #aaa;
-  border-radius: 10px;
-  position: absolute;
-  /* TODO: Get these values programmatically */
-  transform: translate(69px, 20px);
 }

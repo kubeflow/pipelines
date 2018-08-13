@@ -1,38 +1,49 @@
 <dom-module id="job-details">
   <template>
     <link rel="stylesheet" href="./job-details.css">
+    <style>
+      paper-tabs {
+        --paper-tabs-selection-bar: {
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-bottom: 3px solid var(--theme-primary-color);
+        }
+      }
+    </style>
 
     <div class="toolbar">
-      <a href="/jobs" class="unstyled toolbar-arrow-back">
-        <paper-icon-button icon="arrow-back"></paper-icon-button>
-      </a>
-      <div class="toolbar-title">Job Details</div>
-      <paper-button id="cloneBtn" class="toolbar-button" on-click="_cloneJob"
-                    disabled="[[_disableCloneJobButton]]">
-        <iron-icon icon="content-copy"></iron-icon>
-        Clone
-      </paper-button>
-      <paper-button id="refreshBtn" class="toolbar-button" on-click="_refresh">
-        <iron-icon icon="refresh"></iron-icon>
-        Refresh
-      </paper-button>
-      <paper-button id="enableBtn" class="toolbar-button" on-click="_enableJob"
-                    disabled="[[!_allowJobEnable]]" title="Enable job schedule">
-        <iron-icon icon="av:play-circle-filled"></iron-icon>
-        Enable
-      </paper-button>
-      <paper-button id="disableBtn" class="toolbar-button" on-click="_disableJob"
-                    disabled="[[!_allowJobDisable]]" title="Disable job schedule">
-        <iron-icon icon="av:stop"></iron-icon>
-        Disable
-      </paper-button>
-      <paper-button id="deleteBtn" class="toolbar-button" on-click="_deleteJob">
-        <iron-icon icon="delete">
-        </iron-icon>
-        Delete
-      </paper-button>
+      <div class="flex toolbar-title">
+        <a id="allJobsLink" href="/jobs" class="faded unstyled">All Jobs</a>
+        <iron-icon icon="chevron-right"></iron-icon>
+        <span class="job-name">[[job.name]]</span>
+      </div>
+      <div class="toolbar-actions">
+        <paper-button id="cloneBtn" on-click="_cloneJob" disabled="[[_disableCloneJobButton]]">
+          <iron-icon icon="content-copy"></iron-icon>
+          Clone
+        </paper-button>
+        <paper-button id="refreshBtn" on-click="_refresh">
+          <iron-icon icon="refresh"></iron-icon>
+          Refresh
+        </paper-button>
+        <paper-button id="enableBtn" on-click="_enableJob"
+                      disabled="[[!_allowJobEnable]]" title="Enable job schedule">
+          <iron-icon icon="av:play-circle-filled"></iron-icon>
+          Enable
+        </paper-button>
+        <paper-button id="disableBtn" on-click="_disableJob"
+                      disabled="[[!_allowJobDisable]]" title="Disable job schedule">
+          <iron-icon icon="av:stop"></iron-icon>
+          Disable
+        </paper-button>
+        <paper-button id="deleteBtn" on-click="_deleteJob">
+          <iron-icon icon="delete">
+          </iron-icon>
+          Delete
+        </paper-button>
+      </div>
     </div>
-    <paper-progress class="loading no-shrink" indeterminate disabled="[[!_busy]]"></paper-progress>
+    <paper-progress class="loading no-shrink" indeterminate hidden="[[!_busy]]"></paper-progress>
 
     <page-error id="pageErrorElement" error="[[_pageError]]" class="no-shrink"
                 details="[[_pageErrorDetails]]"></page-error>
@@ -40,19 +51,14 @@
     <div class="relative">
       <div class="overlay" hidden="[[!_busy]]"></div>
       <div class="scrollable padded-top-left">
-        <div class="job-name">
-          <span>[[job.name]]</span>
-          <span class="faded job-id">ID: [[job.id]]</span>
-        </div>
-
         <div class="no-shrink tabs-container">
           <paper-tabs id="tabs" class="no-shrink" selected="{{selectedTab}}">
-            <paper-tab><a class="unstyled" href="#config">Basic Config</a></paper-tab>
-            <paper-tab><a class="unstyled" href="#runs">Runs</a></paper-tab>
+            <paper-tab href="#config">Config</paper-tab>
+            <paper-tab href="#runs">Runs</paper-tab>
           </paper-tabs>
         </div>
 
-        <iron-pages class="flex-column flex-grow overflow-auto" selected="{{selectedTab}}">
+        <iron-pages class="padded flex-column flex-grow overflow-auto" selected="{{selectedTab}}">
 
           <!-- iron-page tab 1 -->
           <div>

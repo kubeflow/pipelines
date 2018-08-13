@@ -25,8 +25,8 @@ the License.
                              icon="filter-list" on-click="_toggleFilter"
                              title="Filter by [[columns.0.name]]"></paper-icon-button>
         </div>
-        <template is="dom-repeat" items="{{columns}}" as="column">
-          <div class="column">
+        <template is="dom-repeat" items="{{columns}}" as="column" index-as="columnIndex">
+          <div class="column" style$="flex: [[_getColumnFlex(columnIndex)]]">
             <paper-button class="column-button" on-click="_columnButtonClicked"
                           disabled="[[!column.sortKey]]">
               [[column.name]]
@@ -57,7 +57,7 @@ the License.
             <iron-icon hidden$="{{!row._icon}}" icon$="{{row.icon}}" src$="{{row.src}}"></iron-icon>
           </div>
           <template is="dom-repeat" items="{{row.columns}}" as="column" index-as="columnIndex">
-            <div class="column">
+            <div class="column" style$="flex: [[_getColumnFlex(columnIndex)]]">
               <template is="dom-if" if="[[_isFirstColumn(columnIndex)]]">
                 <span class="link" on-click="_rowDoubleClicked">
                   [[_formatColumnValue(column, columnIndex, columns)]]
@@ -74,8 +74,8 @@ the License.
 
     <hr class="no-margin">
 
-    <div class="center-text flex padded-spacing-minus-3">
-      <span class="page-size-label font-medium">Show rows:</span>
+    <div class="flex bottom-toolbar">
+      <span class="faded page-size-label font-medium">Rows per page:</span>
       <paper-dropdown-menu class="page-size-dropdown" vertical-align="bottom"
                            horizontal-align="right" value="{{selectedPageSize}}" no-animations no-label-float>
         <paper-listbox slot="dropdown-content" class="dropdown-content">
@@ -84,12 +84,10 @@ the License.
           </template>
         </paper-listbox>
       </paper-dropdown-menu>
-      <paper-button id="previousPage" class="toolbar-button" on-click="_previousPage" disabled="[[!_currentPage]]">
-          <iron-icon icon="chevron-left"></iron-icon>
-      </paper-button>
-      <paper-button id="nextPage" class="toolbar-button" on-click="_nextPage" disabled="[[_disableNextPageButton]]">
-        <iron-icon icon="chevron-right"></iron-icon>
-      </paper-button>
+      <paper-icon-button icon="chevron-left" id="previousPage" on-click="_previousPage" disabled="[[!_currentPage]]">
+      </paper-icon-button>
+      <paper-icon-button icon="chevron-right" id="nextPage" on-click="_nextPage" disabled="[[_disableNextPageButton]]">
+      </paper-icon-button>
     </div>
 
   </template>

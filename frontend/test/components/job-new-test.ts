@@ -78,13 +78,8 @@ describe('job-new', () => {
 
     assert(fixture.$.jobParameters.querySelector('#parametersTitle'),
         'Pipeline parameters should exist after pipeline is selected');
-    Array.from(fixture.$.jobParameters.querySelectorAll('div.param-name')).forEach(
-        (name, i) => {
-          assert.strictEqual(
-              (name as HTMLElement).innerText,
-              pipelines.examplePipeline.parameters[i].name);
-        }
-    );
+    Array.from(fixture.$.jobParameters.querySelectorAll('paper-input')).forEach((input, i) =>
+        assert.strictEqual(input.label, pipelines.examplePipeline.parameters[i].name));
   });
 
   it('updates the displayed parameters when pipeline selection changes', async () => {
@@ -95,14 +90,14 @@ describe('job-new', () => {
     fixture.listBox.select(0);
     Polymer.flush();
     const oldParamNames = JSON.stringify(
-        Array.from(fixture.$.jobParameters.querySelectorAll('div.param-name'))
-            .map((name) => (name as HTMLElement).innerText));
+        Array.from(fixture.$.jobParameters.querySelectorAll('paper-input'))
+            .map((input) => input.label));
 
     fixture.listBox.select(1);
     Polymer.flush();
     const newParamNames = JSON.stringify(
-        Array.from(fixture.$.jobParameters.querySelectorAll('div.param-name'))
-            .map((name) => (name as HTMLElement).innerText));
+        Array.from(fixture.$.jobParameters.querySelectorAll('paper-input'))
+            .map((input) => input.label));
 
     assert.notStrictEqual(oldParamNames, newParamNames);
   });
@@ -114,7 +109,7 @@ describe('job-new', () => {
 
     fixture.listBox.select(0);
     Polymer.flush();
-    assert(fixture.$.jobParameters.querySelectorAll('div.param-name').length > 0,
+    assert(fixture.$.jobParameters.querySelectorAll('paper-input').length > 0,
         'This selected pipeline should have at least 1 parameter.');
 
     fixture.listBox.select(1);
@@ -129,7 +124,7 @@ describe('job-new', () => {
 
     fixture.listBox.select(0);
     Polymer.flush();
-    assert(fixture.$.jobParameters.querySelectorAll('div.param-name').length > 0,
+    assert(fixture.$.jobParameters.querySelectorAll('paper-input').length > 0,
         'This selected pipeline should have at least 1 parameter.');
 
     fixture.listBox.select(1);
@@ -255,13 +250,8 @@ describe('job-new', () => {
       assert.strictEqual(params[1], '10');
       assert.strictEqual(params[2], '5');
       assert.strictEqual(params[3], 'some/output/path');
-      Array.from(fixture.$.jobParameters.querySelectorAll('div.param-name')).forEach(
-          (name, i) => {
-            assert.strictEqual(
-                (name as HTMLElement).innerText,
-                pipelines.examplePipeline2.parameters[i].name);
-          }
-      );
+      Array.from(fixture.$.jobParameters.querySelectorAll('paper-input')).forEach((input, i) =>
+            assert.strictEqual(input.label, pipelines.examplePipeline2.parameters[i].name));
     });
   });
 
@@ -272,9 +262,9 @@ describe('job-new', () => {
 });
 
 function _paramsNotVisible(): boolean {
-  const params = fixture.$.jobParameters.querySelectorAll('div.param-name');
+  const params = fixture.$.jobParameters.querySelectorAll('paper-input');
   return params.length === 0 || Array.from(params)
-    .map((el) => _isNotVisible(el as HTMLElement))
+    .map((el) => _isNotVisible(el))
     .reduce((prev, cur) => prev && cur);
 }
 

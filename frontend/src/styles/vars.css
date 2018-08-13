@@ -1,7 +1,10 @@
 :root {
   --app-min-width: 500px;
 
-  --font-size: 12px;
+  --content-font-family: "Google Sans", "Helvetica Neue", sans-serif;
+  --monospace-font-family: "Source Code Pro", monospace;
+
+  --font-size: 13px;
   --font-size-medium: 14px;
   --font-size-large: 16px;
   --font-size-title: 18px;
@@ -39,6 +42,7 @@
   /* Background colors */
   --background-base-color: #FAFAFA;
   --background-contrast-color: #FFFFFF;
+  --input-background-color: #f8f8f8;
   --background-input-color: rgba(0, 0, 0, .04);
   --column-header-color: rgba(0, 0, 0, .04);
   --error-background-color: #FBE9E7;
@@ -58,8 +62,8 @@
   --tertiary-text-inverse-color: rgba(255, 255, 255, .3);
 
   /* Theme */
-  --theme-primary-color: #3367D6;
-  --theme-primary-inverse-color: #A1C2FA;
+  --theme-primary-color: #2979FF;
+  --theme-primary-inverse-color: #e8f0fe;
 
   /* Shelf/Product app bars */
   --api-console-color: #FFF;
@@ -69,7 +73,7 @@
   --divider-button-color: rgba(0, 0, 0, .12);
   --divider-button-inverse-color: rgba(255, 255, 255, .12);
   --divider-color: rgba(0, 0, 0, .12);
-  --divider-inverse-color: rgba(255, 255, 255, .12);
+  --divider-faded-color: rgba(0, 0, 0, .07);
   --input-underline-color: rgba(0, 0, 0, .54);
   --link-underline-color: rgba(0, 0, 0, .38);
   --link-underline-primary-color: #3367D6;
@@ -79,7 +83,8 @@
   --button-active-color: rgba(51, 103, 214, .12);
   --button-active-inverse-color: rgba(255, 255, 255, .12);
   --button-active-neutral-color: rgba(0, 0, 0, .12);
-  --flat-button-hover-color: rgba(0, 0, 0, .08);
+  --flat-button-hover-color: #e8f0fe;
+  --primary-button-hover-color: #195ed4;
   --item-focus-color: rgba(0, 0, 0, .08);
   --row-active-color: rgba(161, 194, 250, .16);
   --row-hover-color: rgba(0, 0, 0, .04);

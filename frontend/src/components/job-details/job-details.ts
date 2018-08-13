@@ -10,7 +10,7 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-import { customElement, property } from 'polymer-decorators/src/decorators';
+import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { Job, Trigger } from '../../api/job';
 import { DialogResult } from '../../components/popup-dialog/popup-dialog';
 import { RouteEvent } from '../../model/events';
@@ -72,12 +72,8 @@ export class JobDetails extends PageElement {
 
   public async load(id: string): Promise<void> {
     if (!!id) {
-      this.selectedTab = 0;
-      const anchorElement = this.tabs.querySelector(`[href="${location.hash}"]`);
-      if (anchorElement) {
-        const tabElement = anchorElement.parentElement as PaperTabElement;
-        this.selectedTab = this.tabs.indexOf(tabElement);
-      }
+      const tabElement = this.tabs.querySelector(`[href="${location.hash}"]`);
+      this.selectedTab = tabElement ? this.tabs.indexOf(tabElement) : 0;
 
       this._loadJob(id);
     }
@@ -197,5 +193,13 @@ export class JobDetails extends PageElement {
   // Job can only be enabled/disabled if there's a schedule/trigger
   protected _computeAllowJobDisable(enabled: boolean, trigger: Trigger|null): boolean {
     return !!trigger && enabled;
+  }
+
+  @observe('selectedTab')
+  protected _selectedTabChanged(): void {
+    const tab = this.tabs.selectedItem as PaperTabElement | undefined;
+    if (tab) {
+      location.href = tab.getAttribute('href') || '';
+    }
   }
 }

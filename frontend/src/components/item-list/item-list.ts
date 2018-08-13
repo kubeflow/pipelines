@@ -40,11 +40,13 @@ export class ItemListColumn {
   public name: string;
   public sortKey: string;
   public type: ColumnTypeName;
+  public flex: number;
 
-  constructor(name: string, type: ColumnTypeName, sortKey = '') {
+  constructor(name: string, type: ColumnTypeName, sortKey = '', flex = 1) {
     this.name = name;
     this.type = type;
     this.sortKey = sortKey;
+    this.flex = flex;
   }
 }
 
@@ -422,6 +424,10 @@ export class ItemListElement extends Polymer.Element {
       iconEls[this._currentSort.column].setAttribute('icon',
           this._currentSort.asc ? 'arrow-upward' : 'arrow-downward');
     }
+  }
+
+  protected _getColumnFlex(index: number): number {
+    return this.columns.length ? this.columns[index].flex : 1;
   }
 
   protected _toggleFilter(): void {

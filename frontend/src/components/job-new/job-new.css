@@ -14,3 +14,7 @@ paper-icon-button, paper-icon-button {
   min-width: 32px;
   padding: 0 var(--spacing-minus-4);
 }
+
+.page-title {
+  color: var(--primary-text-color);
+}

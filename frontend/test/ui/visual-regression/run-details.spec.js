@@ -21,7 +21,7 @@ describe('view run details', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  it('opens run details on double click', () => {
+  it('shows runtime graph on double click', () => {
     const selector = 'app-shell job-details run-list item-list paper-item';
 
     browser.waitForVisible(selector);
@@ -29,11 +29,16 @@ describe('view run details', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  // TODO: The order of the plots on the run output page is currently
-  // non-deterministic likely due to the async calls run-details.
+  it('switches to run outputs', () => {
+    const selector = 'app-shell run-details #output-tab';
 
-  it('views the runtime graph', () => {
-    const selector = 'app-shell run-details #graph-tab';
+    browser.waitForVisible(selector);
+    browser.click(selector);
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('switches to run details', () => {
+    const selector = 'app-shell run-details #info-tab';
 
     browser.waitForVisible(selector);
     browser.click(selector);
@@ -41,8 +46,14 @@ describe('view run details', () => {
   });
 
   it('clears previous run\'s graph', () => {
+    // Switch back to graph tab
+    const selector = 'app-shell run-details #graph-tab';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+
     // Return to run list
-    const backBtnSelector = 'app-shell run-details paper-icon-button';
+    const backBtnSelector = 'app-shell run-details #jobLink';
     browser.waitForVisible(backBtnSelector);
     browser.click(backBtnSelector);
 
@@ -133,13 +144,9 @@ describe('view run details', () => {
 
     it('clears previous runtime graph even if there is an error', () => {
       // Return to run list
-      const backBtnSelector = 'app-shell run-details paper-icon-button';
+      const backBtnSelector = 'app-shell run-details #jobLink';
       browser.waitForVisible(backBtnSelector);
       browser.click(backBtnSelector);
-
-      const runListTabSelector = 'app-shell job-details paper-tab:last-child';
-      browser.waitForVisible(runListTabSelector);
-      browser.click(runListTabSelector);
 
       // Select a run that succeeded.
       const successfulRunSelector = 'app-shell job-details run-list item-list paper-item';
@@ -149,8 +156,6 @@ describe('view run details', () => {
       // Return to run list
       browser.waitForVisible(backBtnSelector);
       browser.click(backBtnSelector);
-      browser.waitForVisible(runListTabSelector);
-      browser.click(runListTabSelector);
 
       // Select a run that will show an error message.
       const failedRunSelector =
@@ -167,13 +172,9 @@ describe('view run details', () => {
 
     it('clears error message for subsequent successful run pages', () => {
       // Return to run list
-      const backBtnSelector = 'app-shell run-details paper-icon-button';
+      const backBtnSelector = 'app-shell run-details #jobLink';
       browser.waitForVisible(backBtnSelector);
       browser.click(backBtnSelector);
-
-      const runListTabSelector = 'app-shell job-details paper-tab:last-child';
-      browser.waitForVisible(runListTabSelector);
-      browser.click(runListTabSelector);
 
       // Select a run that succeeded.
       const successfulRunSelector = 'app-shell job-details run-list item-list paper-item';

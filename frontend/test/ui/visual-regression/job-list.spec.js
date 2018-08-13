@@ -39,14 +39,14 @@ describe('list jobs', () => {
   });
 
   it('loads next page on "next" button press', () => {
-    const selector = 'app-shell job-list item-list paper-button#nextPage';
+    const selector = 'app-shell job-list item-list #nextPage';
 
     browser.click(selector);
     assertDiffs(browser.checkDocument());
   });
 
   it('loads previous page on "previous" button press after pressing "next"', () => {
-    const previousButtonSelector = 'app-shell job-list item-list paper-button#previousPage';
+    const previousButtonSelector = 'app-shell job-list item-list #previousPage';
     browser.click(previousButtonSelector);
 
     assertDiffs(browser.checkDocument());
@@ -54,7 +54,7 @@ describe('list jobs', () => {
 
   it('resets the pipelne list after clicking into a job', () => {
     // Navigate to second page
-    const nextButtonSelector = 'app-shell job-list item-list paper-button#nextPage';
+    const nextButtonSelector = 'app-shell job-list item-list #nextPage';
     browser.click(nextButtonSelector);
 
     // Go to a job's details page
@@ -62,7 +62,7 @@ describe('list jobs', () => {
     browser.doubleClick(jobSelector);
 
     // Return to job list page
-    const backButtonSelector = 'app-shell job-details .toolbar-arrow-back';
+    const backButtonSelector = 'app-shell job-details #allJobsLink';
     browser.waitForVisible(backButtonSelector);
     browser.click(backButtonSelector);
 

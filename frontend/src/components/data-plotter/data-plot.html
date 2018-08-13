@@ -7,13 +7,11 @@
         <template is="dom-if" if="[[_podAddress]]">
           Tensorboard is running for this output.
           <a class="unstyled" href="/apis/v1alpha2/_proxy/[[_podAddress]]" target="_blank">
-            <paper-button class="toolbar-button">
-              Open Tensorboard
-            </paper-button>
+            <paper-button>Open Tensorboard</paper-button>
           </a>
         </template>
         <template is="dom-if" if="[[!_podAddress]]">
-          <paper-button class="toolbar-button" on-click="_startTensorboard" disabled$="[[_tensorboardBusy]]">
+          <paper-button on-click="_startTensorboard" disabled$="[[_tensorboardBusy]]">
             Start Tensorboard
           </paper-button>
           <paper-spinner active$="[[_tensorboardBusy]]"></paper-spinner>

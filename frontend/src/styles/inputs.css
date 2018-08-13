@@ -2,21 +2,17 @@
 
 paper-dropdown-menu, paper-input, paper-textarea {
   --paper-input-container-focus-color: var(--theme-primary-color);
-  background-color: var(--background-contrast-color);
   border-radius: 5px;
+}
+
+paper-dropdown-menu.shaded, paper-input.shaded, paper-textarea.shaded {
+  background-color: var(--input-background-color);
 }
 
 paper-item {
   cursor: default;
   padding: 0 30px;
   white-space: nowrap; /* To avoid a flicker when items first show up */
-}
-
-paper-ripple {
-  bottom: 0px;
-  left: 0px;
-  right: 0px;
-  top: 0px;
 }
 
 .input-container {
@@ -34,10 +30,10 @@ paper-ripple {
 }
 
 .input-field-large {
-  margin-bottom: 26px;
-  max-width: 400px;
+  margin-bottom: 10px;
+  max-width: 600px;
   min-width: 220px;
-  width: 40%;
+  width: 70%;
 }
 
 .input-field-small {
@@ -52,8 +48,4 @@ paper-ripple {
 
 .input-field-width-45 {
   width: 45px;
-}
-
-.param-name {
-  margin: 15px 0 0 0;
 }

@@ -69,6 +69,10 @@ describe('deploy new job', () => {
     browser.keys('Tab');
     browser.keys(jobDescription);
 
+    // Skip trigger and maximum concurrent jobs inputs
+    browser.keys('Tab');
+    browser.keys('Tab');
+
     browser.keys('Tab');
     browser.keys('x param value');
     browser.keys('Tab');
@@ -131,7 +135,7 @@ describe('deploy new job', () => {
     const paramsSelector = 'app-shell job-details .params-table';
     assert.deepEqual(browser.getText(paramsSelector),
                      'x\nx param value\ny\ny param value\noutput\noutput param value',
-                     'parameter values are incorrect');
+                     'parameter values are incorrect: ' + browser.getText(paramsSelector));
   });
 
   it('switches to run list tab', () => {
@@ -160,7 +164,7 @@ describe('deploy new job', () => {
   });
 
   it('deletes the job', () => {
-    const backBtn = 'app-shell run-details .toolbar-arrow-back';
+    const backBtn = 'app-shell run-details #jobLink';
     browser.waitForVisible(backBtn, waitTimeout);
     browser.click(backBtn);
 

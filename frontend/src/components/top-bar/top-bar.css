@@ -2,19 +2,12 @@
 @import '../../styles/common.css';
 
 .top-bar {
-  -webkit-box-align: center;
-      -ms-flex-align: center;
-          align-items: center;
-  background-color: var(--theme-primary-color);
-  box-shadow: var(--shadow-elevation-3dp_-_box-shadow);
-  color: var(--primary-text-inverse-color);
-  display: -webkit-box;
-  display: -ms-flexbox;
+  align-items: center;
+  border-bottom: 1px solid var(--divider-color);
+  color: var(--theme-primary-color);
   display: flex;
-  font-family: "Roboto", "Helvetica Neue", sans-serif;
-  height: var(--height-large);
-  -webkit-box-pack: justify;
-      -ms-flex-pack: justify;
-          justify-content: space-between;
+  font-weight: bold;
+  height: 100%;
+  justify-content: space-between;
   padding: 0 var(--spacing-base);
 }

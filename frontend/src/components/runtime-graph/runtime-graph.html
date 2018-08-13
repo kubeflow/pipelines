@@ -1,24 +1,29 @@
 <dom-module id="runtime-graph">
   <template>
     <link rel="stylesheet" href="./runtime-graph.css">
+    <style>
+      paper-tabs {
+        --paper-tabs-selection-bar: {
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-bottom: 3px solid var(--theme-primary-color);
+        }
+      }
+    </style>
 
     <!-- TODO: No-runtime-graph (yet) experience -->
 
     <div class="flex-grow">
       <div class="job-dag flex-grow overflow-auto">
         <template is="dom-repeat" items="[[_workflowNodes]]" as="node">
-          <div class$="[[_getNodeCssClass(node)]]" on-click="_nodeClicked"
+          <div class="job-node" on-click="_nodeClicked"
                id$="node_[[node.id]]" style$="left: [[node.x]]px;
                                               top: [[node.y]]px;
                                               width: [[node.width]]px;
                                               min-height: [[node.height]]px;
                                               max-height: [[node.height]]px">
-            <template is="dom-if" if="[[!node.virtual]]">
-              <div class="flex center-text">
-                <iron-icon icon$="[[node.icon]]" class="padded-spacing-minus-5"></iron-icon>
-                <div class="label">[[node.label]]</div>
-              </div>
-            </template>
+            <div class="label">[[node.label]]</div>
+            <iron-icon icon$="[[node.icon]]" class="padded-spacing-minus-5"></iron-icon>
           </div>
         </template>
 
@@ -28,10 +33,16 @@
               <div class="line" style$="width: [[line.distance]]px;
                                         left: [[line.left]]px;
                                         top: [[line.yMid]]px;
-                                        transform: translate(85px, 35px)
+                                        transform: translate(100px, 44px)
                                         rotate([[line.angle]]deg)"></div>
             </template>
           </div>
+        </template>
+
+        <template is="dom-repeat" items="[[_workflowEdgeStartPoints]]" as="point">
+          <div class="start-circle" style$="transform: translate(100px, 44px);
+                                            left: calc([[point.0]]px - 6px);
+                                            top: calc([[point.1]]px - 3px)"></div>
         </template>
       </div>
 

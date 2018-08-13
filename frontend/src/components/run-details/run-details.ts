@@ -10,7 +10,7 @@ import * as Utils from '../../lib/utils';
 
 // @ts-ignore
 import prettyJson from 'json-pretty-html';
-import { customElement, property } from 'polymer-decorators/src/decorators';
+import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { Job } from '../../api/job';
 import { NodePhase, Workflow } from '../../model/argo_template';
 import { RouteEvent } from '../../model/events';
@@ -76,6 +76,10 @@ export class RunDetails extends PageElement {
 
   public get runtimeGraph(): RuntimeGraph {
     return this.$.runtimeGraph as RuntimeGraph;
+  }
+
+  public get configDetails(): HTMLDivElement {
+    return this.$.configDetails as HTMLDivElement;
   }
 
   public async load(_: string, queryParams: { runId?: string, jobId: string }): Promise<void> {
@@ -152,13 +156,17 @@ export class RunDetails extends PageElement {
     return Utils.nodePhaseToColor(status);
   }
 
-  private _reset(): void {
-    this.selectedTab = 0;
-    const anchorElement = this.tabs.querySelector(`[href="${location.hash}"]`);
-    if (anchorElement) {
-      const tabElement = anchorElement.parentElement as PaperTabElement;
-      this.selectedTab = this.tabs.indexOf(tabElement);
+  @observe('selectedTab')
+  protected _selectedTabChanged(): void {
+    const tab = this.tabs.selectedItem as PaperTabElement | undefined;
+    if (tab) {
+      location.href = tab.getAttribute('href') || '';
     }
+  }
+
+  private _reset(): void {
+    const tabElement = this.tabs.querySelector(`[href="${location.hash}"]`);
+    this.selectedTab = tabElement ? this.tabs.indexOf(tabElement) : 0;
 
     // Clear any preexisting page error.
     this._pageError = '';

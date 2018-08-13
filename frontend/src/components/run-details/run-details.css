@@ -13,10 +13,6 @@ paper-progress.run-progress {
 
 .plot-container,
 #runtimeGraph {
-  background-color: var(--background-base-color);
-  border: solid 1px #ddd;
-  border-radius: 0 0 5px 5px;
-  border-top: 0;
   flex-grow: 1;
   overflow: auto;
 }

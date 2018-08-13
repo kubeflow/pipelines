@@ -7,9 +7,9 @@ paper-button.toggle {
   background-color: var(--background-contrast-color);
   border-radius: 50%;
   color: var(--primary-text-color);
-  height: var(--height-xsmall);
-  min-width: var(--height-xsmall);
-  width: var(--height-xsmall);
+  height: var(--height-small);
+  min-width: var(--height-small);
+  width: var(--height-small);
 }
 
 paper-button.toggle[active] {

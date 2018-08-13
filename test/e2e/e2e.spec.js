@@ -139,7 +139,7 @@ describe('deploy new job', () => {
   });
 
   it('deletes the job', () => {
-    const backBtn = 'app-shell run-details .toolbar-arrow-back';
+    const backBtn = 'app-shell run-details #jobLink';
     browser.waitForVisible(backBtn, waitTimeout);
     browser.click(backBtn);
 

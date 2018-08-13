@@ -64,12 +64,12 @@ export class JobList extends PageElement {
   protected jobListRows: ItemListRow[] = [];
 
   protected jobListColumns: ItemListColumn[] = [
-    new ItemListColumn('Name', ColumnTypeName.STRING, JobSortKeys.NAME),
-    new ItemListColumn('Description', ColumnTypeName.STRING),
-    new ItemListColumn('Pipeline ID', ColumnTypeName.NUMBER, JobSortKeys.PIPELINE_ID),
+    new ItemListColumn('Name', ColumnTypeName.STRING, JobSortKeys.NAME, 1.2),
+    new ItemListColumn('Description', ColumnTypeName.STRING, undefined, 2),
+    new ItemListColumn('Pipeline ID', ColumnTypeName.NUMBER, JobSortKeys.PIPELINE_ID, 0.5),
     new ItemListColumn('Created at', ColumnTypeName.DATE, JobSortKeys.CREATED_AT),
     new ItemListColumn('Schedule', ColumnTypeName.STRING),
-    new ItemListColumn('Enabled', ColumnTypeName.STRING),
+    new ItemListColumn('Enabled', ColumnTypeName.STRING, undefined, 0.5),
   ];
 
   private _debouncer: Polymer.Debouncer;

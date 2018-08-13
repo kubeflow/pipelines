@@ -29,7 +29,12 @@
 }
 
 paper-button {
-  color: var(--primary-text-color);
+  color: var(--secondary-text-color);
+  font-size: 12px;
   max-height: var(--height-xsmall);
   min-width: 75px;
+}
+
+paper-button:hover {
+  background-color: #fff;
 }

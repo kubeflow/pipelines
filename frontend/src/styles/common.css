@@ -1,4 +1,4 @@
-@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:400,700|Open+Sans:400,700|Material+Icons);
+@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro|Google+Sans);
 @import './reset.css';
 @import './vars.css';
 
@@ -6,7 +6,7 @@
 :host {
   display: flex;
   flex-flow: column;
-  font-family: 'Open Sans', Helvetica, sans-serif;
+  font-family: var(--content-font-family);
 }
 
 [hidden] {
@@ -45,6 +45,8 @@ iron-icon[icon="error-outline"] {
 }
 
 paper-checkbox {
+  --paper-checkbox-checked-color: var(--theme-primary-color);
+  --paper-checkbox-checked-ink-color: var(--theme-primary-color);
   --paper-checkbox-label-color: var(--secondary-text-color);
 }
 
@@ -60,8 +62,10 @@ paper-spinner {
 }
 
 paper-tab {
-  font-size: var(--font-size-large);
-  min-width: 110px;
+  font-size: var(--font-size-medium);
+  font-weight: bold;
+  margin: 0 20px;
+  padding: 0 10px;
 }
 
 paper-tabs {
@@ -73,8 +77,8 @@ paper-tabs {
   position: absolute;
 }
 
-paper-tab:not(:first-child) {
-  border-left: 1px solid var(--divider-color);
+paper-tab.iron-selected {
+  color: var(--theme-primary-color);
 }
 
 .absolute-spinner {
@@ -83,21 +87,53 @@ paper-tab:not(:first-child) {
   top: calc(50% - 50px / 2);
 }
 
-.action-button {
-  background-color: var(--theme-primary-color);
-  color: white;
-  min-height: var(--height-xsmall);
-  margin: 0 auto 0 0;
-  padding: var(--spacing-minus-5) var(--spacing-minus-2);
+paper-icon-button {
+  border-radius: 50%;
 }
 
-.action-button:hover {
-  @apply --shadow-elevation-4dp;
+paper-button, paper-icon-button {
+  color: var(--theme-primary-color);
+  font-size: var(--font-size-medium);
+  font-weight: bold;
+  margin: auto var(--spacing-minus-4);
+  min-height: var(--height-small);
+  padding: var(--spacing-minus-4);
+  text-transform: none;
+  transition: background-color 0.3s;
 }
 
-.action-button[disabled] {
+paper-button:hover, paper-icon-button:hover {
+  background-color: var(--flat-button-hover-color);
+}
+
+paper-button[disabled], paper-icon-button[disabled] {
   background-color: transparent;
   color: var(--disabled-color);
+}
+
+paper-button iron-icon {
+  height: var(--spacing-minus-1);
+  padding-right: var(--spacing-minus-5);
+  width: var(--spacing-minus-1);
+}
+
+paper-button.primary, paper-icon-button.primary {
+  background-color: var(--theme-primary-color);
+  color: var(--primary-text-inverse-color);
+}
+
+paper-button.primary:hover, paper-icon-button.primary:hover {
+  background-color: var(--primary-button-hover-color);
+}
+
+paper-button.primary[disabled], paper-icon-button.primary[disabled] {
+  background-color: var(--disabled-button-inverse-color);
+  border: 1px solid var(--divider-color);
+  color: var(--disabled-color);
+}
+
+paper-listbox {
+  padding: 0;
 }
 
 .block {
@@ -197,11 +233,11 @@ paper-tab:not(:first-child) {
   padding: var(--spacing-base) 0 0 var(--spacing-base);
 }
 
-.padded-right {
+.margin-right {
   padding-right: var(--spacing-base);
 }
 
-.padded-right-spacing-minus-4 {
+.margin-right-spacing-minus-4 {
   padding-right: var(--spacing-minus-4);
 }
 
@@ -257,49 +293,27 @@ paper-tab:not(:first-child) {
 
 .toolbar {
   align-items: center;
-  border-bottom: solid 1px var(--divider-color);
   display: flex;
   flex-shrink: 0;
   height: var(--toolbar-height);
+  justify-content: space-between;
   padding: 0 var(--spacing-base);
-}
-
-.toolbar-arrow-back {
-  margin-left: -12px;
-}
-
-.toolbar-button {
-  color: var(--theme-primary-color);
-  font-size: var(--font-size);
-  font-weight: bold;
-  height: var(--height-xsmall);
-  margin: auto var(--spacing-minus-4);
-  padding: var(--spacing-minus-4);
-  transition: background-color 0.3s;
-}
-
-.toolbar-button iron-icon {
-  height: var(--spacing-minus-1);
-  padding-right: var(--spacing-minus-5);
-  width: var(--spacing-minus-1);
-}
-
-.toolbar-button[disabled] {
-  background-color: inherit;
-  color: var(--disabled-button-color);
-}
-
-.toolbar-button:hover {
-  background-color: var(--flat-button-hover-color);
 }
 
 .toolbar-title {
   font-size: var(--font-size-title);
-  margin: auto var(--spacing-plus-6) auto 0;
+}
+
+.toolbar-actions {
+  display: flex;
 }
 
 .unstyled {
   color: inherit;
   display: inherit;
   text-decoration: none;
+}
+
+* {
+  font-family: var(--content-font-family);
 }

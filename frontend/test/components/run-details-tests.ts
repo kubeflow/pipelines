@@ -69,6 +69,7 @@ describe('run-details', () => {
     getJobStub = sinon.stub(Apis, 'getJob');
     getJobStub.returns(testJob);
     await _resetFixture();
+    fixture.tabs.select(2);
   });
 
   afterEach(() => {
@@ -121,6 +122,7 @@ describe('run-details', () => {
     getJobStub = sinon.stub(Apis, 'getJob');
     getJobStub.returns(testJob);
     await _resetFixture();
+    fixture.tabs.select(2);
     const workflow = JSON.parse(mockRun.workflow) as Workflow;
     workflow.spec.arguments.parameters = testJob.parameters;
     workflow.spec.arguments.parameters[1].value = 'value2withplaceholder';
@@ -243,7 +245,7 @@ describe('run-details', () => {
   describe('Runtime graph', () => {
 
     beforeEach(() => {
-      fixture.tabs.select(2);
+      fixture.tabs.select(0);
     });
 
     it('switches to the runtime graph upon switching its page', () => {

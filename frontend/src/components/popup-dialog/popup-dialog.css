@@ -17,7 +17,7 @@
   text-align: right;
 }
 
-.footer > .toolbar-button {
+.footer > paper-button {
   margin: 0 var(--spacing-minus-1) var(--spacing-minus-1) var(--spacing-minus-1);
 }
 
