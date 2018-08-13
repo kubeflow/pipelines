@@ -39,7 +39,7 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 	if err != nil {
 		return nil, err
 	}
-	return ToApiPipeline(pipeline)
+	return ToApiPipeline(pipeline), nil
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
@@ -51,10 +51,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 	if err != nil {
 		return nil, err
 	}
-	apiPipelines, err := ToApiPipelines(pipelines)
-	if err != nil {
-		return nil, err
-	}
+	apiPipelines := ToApiPipelines(pipelines)
 	return &api.ListPipelinesResponse{Pipelines: apiPipelines, NextPageToken: nextPageToken}, nil
 }
 

@@ -138,6 +138,10 @@
         },
         "status": {
           "type": "string"
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a run field, only run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
         }
       }
     },

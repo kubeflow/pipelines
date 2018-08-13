@@ -202,6 +202,10 @@
           "items": {
             "$ref": "#/definitions/apiParameter"
           }
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a pipeline field, only pipeline ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
         }
       }
     },

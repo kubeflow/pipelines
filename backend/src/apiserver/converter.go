@@ -24,10 +24,13 @@ import (
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
-func ToApiPipeline(pipeline *model.Pipeline) (*api.Pipeline, error) {
+func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 	params, err := toApiParameters(pipeline.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Error convert pipeline DB model to API model.")
+		return &api.Pipeline{
+			Id:    pipeline.UUID,
+			Error: err.Error(),
+		}
 	}
 	return &api.Pipeline{
 		Id:          pipeline.UUID,
@@ -35,19 +38,15 @@ func ToApiPipeline(pipeline *model.Pipeline) (*api.Pipeline, error) {
 		Name:        pipeline.Name,
 		Description: pipeline.Description,
 		Parameters:  params,
-	}, nil
+	}
 }
 
-func ToApiPipelines(pipelines []model.Pipeline) ([]*api.Pipeline, error) {
+func ToApiPipelines(pipelines []model.Pipeline) []*api.Pipeline {
 	apiPipelines := make([]*api.Pipeline, 0)
 	for _, pipeline := range pipelines {
-		apiPipeline, err := ToApiPipeline(&pipeline)
-		if err != nil {
-			return nil, util.Wrap(err, "Error convert pipelines DB model to API model.")
-		}
-		apiPipelines = append(apiPipelines, apiPipeline)
+		apiPipelines = append(apiPipelines, ToApiPipeline(&pipeline))
 	}
-	return apiPipelines, nil
+	return apiPipelines
 }
 
 func toApiParameters(paramsString string) ([]*api.Parameter, error) {
@@ -55,7 +54,7 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	var params []v1alpha1.Parameter
 	err := json.Unmarshal([]byte(paramsString), &params)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored.")
+		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored")
 	}
 	for _, param := range params {
 		var value string
@@ -116,10 +115,13 @@ func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
 	}
 }
 
-func ToApiJob(job *model.Job) (*api.Job, error) {
+func ToApiJob(job *model.Job) *api.Job {
 	params, err := toApiParameters(job.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Error convert job DB model to API model.")
+		return &api.Job{
+			Id:    job.UUID,
+			Error: err.Error(),
+		}
 	}
 	return &api.Job{
 		Id:             job.UUID,
@@ -133,17 +135,13 @@ func ToApiJob(job *model.Job) (*api.Job, error) {
 		MaxConcurrency: job.MaxConcurrency,
 		Trigger:        toApiTrigger(job.Trigger),
 		Parameters:     params,
-	}, nil
+	}
 }
 
 func ToApiJobs(jobs []model.Job) ([]*api.Job, error) {
 	apiJobs := make([]*api.Job, 0)
 	for _, job := range jobs {
-		apiJob, err := ToApiJob(&job)
-		if err != nil {
-			return nil, util.Wrap(err, "Error convert jobs DB model to API model.")
-		}
-		apiJobs = append(apiJobs, apiJob)
+		apiJobs = append(apiJobs, ToApiJob(&job))
 	}
 	return apiJobs, nil
 }

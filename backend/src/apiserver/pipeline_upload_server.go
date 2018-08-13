@@ -24,7 +24,6 @@ import (
 	"github.com/googleprivate/ml/backend/api"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/pkg/errors"
 )
 
 type PipelineUploadServer struct {
@@ -52,11 +51,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
-	apiPkg, err := ToApiPipeline(newPkg)
-	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.Wrap(err, "Error creating pipeline"))
-		return
-	}
+	apiPkg := ToApiPipeline(newPkg)
 	pkgJson, err := json.Marshal(apiPkg)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))

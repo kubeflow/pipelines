@@ -11,6 +11,35 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+func TestToApiPipeline(t *testing.T) {
+	modelPipeline := &model.Pipeline{
+		UUID:           "pipeline1",
+		CreatedAtInSec: 1,
+		Parameters:     "[]",
+	}
+	apiPipeline := ToApiPipeline(modelPipeline)
+	expectedApiPipeline := &api.Pipeline{
+		Id:         "pipeline1",
+		CreatedAt:  &timestamp.Timestamp{Seconds: 1},
+		Parameters: []*api.Parameter{},
+	}
+	assert.Equal(t, expectedApiPipeline, apiPipeline)
+}
+
+func TestToApiPipeline_ErrorParsingField(t *testing.T) {
+	modelPipeline := &model.Pipeline{
+		UUID:           "pipeline1",
+		CreatedAtInSec: 1,
+		Parameters:     "[invalid parameter",
+	}
+	apiPipeline := ToApiPipeline(modelPipeline)
+	expectedApiPipeline := &api.Pipeline{
+		Id:    "pipeline1",
+		Error: "InternalServerError: Parameter with wrong format is stored: invalid character 'i' looking for beginning of value",
+	}
+	assert.Equal(t, expectedApiPipeline, apiPipeline)
+}
+
 func TestToApiRunDetail(t *testing.T) {
 	modelRun := &model.RunDetail{
 		Run: model.Run{
@@ -98,8 +127,7 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	apiJob, err := ToApiJob(&modelJob)
-	assert.Nil(t, err)
+	apiJob := ToApiJob(&modelJob)
 	expectedJob := &api.Job{
 		Id:             "job1",
 		Name:           "name 1",
@@ -136,8 +164,7 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	apiJob, err := ToApiJob(&modelJob)
-	assert.Nil(t, err)
+	apiJob := ToApiJob(&modelJob)
 	expectedJob := &api.Job{
 		Id:             "job1",
 		Name:           "name 1",
@@ -168,8 +195,7 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
-	apiJob, err := ToApiJob(&modelJob)
-	assert.Nil(t, err)
+	apiJob := ToApiJob(&modelJob)
 	expectedJob := &api.Job{
 		Id:             "job1",
 		Name:           "name1",
@@ -182,6 +208,27 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 		Parameters:     []*api.Parameter{{Name: "param2", Value: "world"}},
 	}
 	assert.Equal(t, expectedJob, apiJob)
+}
+
+func TestToApiJob_ErrorParsingField(t *testing.T) {
+	modelJob := &model.Job{
+		UUID:           "job1",
+		DisplayName:    "name1",
+		PipelineId:     "1",
+		Enabled:        true,
+		Trigger:        model.Trigger{},
+		MaxConcurrency: 1,
+		Parameters:     `invalid parameter format`,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+	}
+
+	apiJob := ToApiJob(modelJob)
+	expectedApiJob := &api.Job{
+		Id:    "job1",
+		Error: "InternalServerError: Parameter with wrong format is stored: invalid character 'i' looking for beginning of value",
+	}
+	assert.Equal(t, expectedApiJob, apiJob)
 }
 
 func TestToApiJobs(t *testing.T) {

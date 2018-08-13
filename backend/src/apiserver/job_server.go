@@ -30,7 +30,7 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 	if err != nil {
 		return nil, err
 	}
-	return ToApiJob(newJob)
+	return ToApiJob(newJob), nil
 }
 
 func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*api.Job, error) {
@@ -38,7 +38,7 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 	if err != nil {
 		return nil, err
 	}
-	return ToApiJob(job)
+	return ToApiJob(job), nil
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {

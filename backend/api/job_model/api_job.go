@@ -29,6 +29,11 @@ type APIJob struct {
 	// enabled
 	Enabled bool `json:"enabled,omitempty"`
 
+	// In case any error happens retrieving a job field, only job ID
+	// and the error message is returned. Client has the flexibility of choosing
+	// how to handle error. This is especially useful during listing call.
+	Error string `json:"error,omitempty"`
+
 	// id
 	ID string `json:"id,omitempty"`
 

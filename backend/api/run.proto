@@ -58,6 +58,11 @@ message Run {
   google.protobuf.Timestamp created_at = 4;
   google.protobuf.Timestamp scheduled_at = 5;
   string status = 6;
+
+  // In case any error happens retrieving a run field, only run ID
+  // and the error message is returned. Client has the flexibility of choosing
+  // how to handle error. This is especially useful during listing call.
+  string error = 7;
 }
 
 message RunDetail {

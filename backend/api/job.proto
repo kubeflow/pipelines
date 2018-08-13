@@ -131,4 +131,9 @@ message Job{
   Trigger trigger = 9;
   google.protobuf.Timestamp created_at =10;
   google.protobuf.Timestamp updated_at =11;
+
+  // In case any error happens retrieving a job field, only job ID
+  // and the error message is returned. Client has the flexibility of choosing
+  // how to handle error. This is especially useful during listing call.
+  string error = 12;
 }
