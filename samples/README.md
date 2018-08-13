@@ -61,7 +61,7 @@ In the future, we will build the compiler into the pipeline system such that the
 --->
 
 ```bash
-dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]`
+dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
 ```
 
 
@@ -72,12 +72,13 @@ dsl-compile --py ./samples/basic/sequential.py --output ~/Desktop/sequential.yam
 ```
 
 
-**Note: tfma/ and xgboost-spark/ are under testing.**
+**Note: [tfma](https://github.com/googleprivate/ml/blob/master/samples/tfma/) has not been converted to DSL yet.**
 
 ## Deploy the samples
 Upload the generated yaml file through the ML pipeline web console.
-Follow the links to run samples: [Basic](https://github.com/googleprivate/ml/blob/master/samples/basic/README.md) and
-[kubeflow](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md).
+Follow the links to run samples: [Basic](https://github.com/googleprivate/ml/blob/master/samples/basic/README.md),
+[kubeflow](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md), 
+and [xgboost](https://github.com/googleprivate/ml/blob/master/samples/xgboost-spark/README.md)
 
 ## Optional for advanced users: design customized DSL
 
