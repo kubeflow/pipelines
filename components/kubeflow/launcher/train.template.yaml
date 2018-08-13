@@ -2,6 +2,7 @@ apiVersion: kubeflow.org/v1alpha2
 kind: TFJob
 metadata:
   generateName: tfjob
+  namespace: default
 spec:
   tfReplicaSpecs:
     PS:

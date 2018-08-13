@@ -40,12 +40,13 @@ from kubernetes import client as k8s_client
 from kubernetes import config
 
 
-def _generate_train_yaml(src_filename, workers, pss, args_list):
+def _generate_train_yaml(src_filename, tfjob_ns, workers, pss, args_list):
   """_generate_train_yaml  generates train yaml files based on train.template.yaml"""
   with open(src_filename, 'r') as f:
     content = yaml.load(f)
 
   content['metadata']['generateName'] = 'trainer-'
+  content['metadata']['namespace'] = tfjob_ns
 
   if workers and pss:
     content['spec']['tfReplicaSpecs']['PS']['replicas'] = pss
@@ -117,6 +118,10 @@ def main(argv=None):
                       default='v1alpha2',
                       help='The version of the deployed kubeflow. ' +
                            'If not set, the default version is v1alpha2')
+  parser.add_argument('--tfjob-ns', type=str,
+                      default='default',
+                      help='The namespace where the tfjob is submitted' +
+                           'If not set, the default namespace is default')
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
@@ -140,11 +145,12 @@ def main(argv=None):
   workers = args_dict.pop('workers')
   pss = args_dict.pop('pss')
   kf_version = args_dict.pop('kfversion')
+  tfjob_ns = args_dict.pop('tfjob_ns')
   args_list = ['--%s=%s' % (k.replace('_', '-'),v)
                for k,v in six.iteritems(args_dict) if v is not None]
   logging.info('Generating training template.')
   template_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'train.template.yaml')
-  content_yaml = _generate_train_yaml(template_file, workers, pss, args_list)
+  content_yaml = _generate_train_yaml(template_file, tfjob_ns, workers, pss, args_list)
   
   logging.info('Start training.')
   # Set up handler for k8s clients
@@ -163,7 +169,7 @@ def main(argv=None):
   with file_io.FileIO(os.path.join(args.job_dir, 'metadata.json'), 'w') as f:
     json.dump(metadata, f)
 
-  wait_response = tf_job_client.wait_for_job(api_client, 'default', job_name, kf_version)
+  wait_response = tf_job_client.wait_for_job(api_client, tfjob_ns, job_name, kf_version)
   succ = True
   #TODO: update this failure checking after tf-operator has the condition checking function.
   if 'Worker' in wait_response['status']['tfReplicaStatuses']:
@@ -181,7 +187,7 @@ def main(argv=None):
   if succ:
     logging.info('Training success.')
 
-  tf_job_client.delete_tf_job(api_client, 'default', job_name, version=kf_version)
+  tf_job_client.delete_tf_job(api_client, tfjob_ns, job_name, version=kf_version)
   with open('/output.txt', 'w') as f:
     f.write(args.job_dir)
 
