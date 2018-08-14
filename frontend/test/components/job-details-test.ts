@@ -1,11 +1,13 @@
 import * as sinon from 'sinon';
+// @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
-import * as assert from '../../node_modules/assert/assert';
 import * as Apis from '../../src/lib/apis';
 import * as Utils from '../../src/lib/utils';
 
+import { assert } from 'chai';
 import { CronSchedule, Job, Trigger } from '../../src/api/job';
 import { ListRunsResponse } from '../../src/api/list_runs_response';
+import { Run } from '../../src/api/run';
 import { JobDetails } from '../../src/components/job-details/job-details';
 import { PageError } from '../../src/components/page-error/page-error';
 import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
@@ -21,7 +23,7 @@ let enableJobsStub: sinon.SinonStub;
 let disableJobsStub: sinon.SinonStub;
 
 async function _resetFixture(): Promise<void> {
-  return resetFixture('job-details', null, (f: JobDetails) => {
+  return resetFixture('job-details', undefined, (f: JobDetails) => {
     fixture = f;
     f.load('test-job-id');
   });
@@ -44,7 +46,7 @@ testJob.name = 'test job name';
 testJob.pipeline_id = 2000;
 testJob.parameters = [];
 testJob.status = '';
-testJob.trigger = null;
+testJob.trigger = undefined;
 testJob.updated_at = '';
 
 describe('job-details', () => {
@@ -55,7 +57,7 @@ describe('job-details', () => {
 
     const listRunsResponse: ListRunsResponse = {
       next_page_token: '',
-      runs: fixedData.data.runs.map((j) => j.run),
+      runs: fixedData.data.runs.map((r: Run) => r.run),
     };
     listRunsStub = sinon.stub(Apis, 'listRuns');
     listRunsStub.returns(listRunsResponse);
@@ -66,30 +68,31 @@ describe('job-details', () => {
   });
 
   it('shows the basic details of the job without schedule', () => {
-    const pipelineIdDiv = fixture.shadowRoot.querySelector('.pipeline-id.value') as HTMLDivElement;
+    const pipelineIdDiv = fixture.shadowRoot!.querySelector('.pipeline-id.value') as HTMLDivElement;
     assert(isVisible(pipelineIdDiv), 'cannot find pipeline id div');
     assert.strictEqual(pipelineIdDiv.innerText, testJob.pipeline_id.toString(),
         'displayed pipeline id does not match test data');
 
-    const descriptionDiv = fixture.shadowRoot.querySelector('.description.value') as HTMLDivElement;
+    const descriptionDiv =
+        fixture.shadowRoot!.querySelector('.description.value') as HTMLDivElement;
     assert(isVisible(descriptionDiv), 'cannot find description div');
     assert.strictEqual(descriptionDiv.innerText, testJob.description,
         'displayed description does not match test data');
 
-    const createdAtDiv = fixture.shadowRoot.querySelector('.created-at.value') as HTMLDivElement;
+    const createdAtDiv = fixture.shadowRoot!.querySelector('.created-at.value') as HTMLDivElement;
     assert(isVisible(createdAtDiv), 'cannot find createdAt div');
     assert.strictEqual(
         createdAtDiv.innerText,
         Utils.formatDateString(testJob.created_at),
         'displayed createdAt does not match test data');
 
-    const scheduleDiv = fixture.shadowRoot.querySelector('.schedule.value') as HTMLDivElement;
+    const scheduleDiv = fixture.shadowRoot!.querySelector('.schedule.value') as HTMLDivElement;
     assert(!isVisible(scheduleDiv), 'should not show schedule div');
 
-    const enabledDiv = fixture.shadowRoot.querySelector('.enabled.value') as HTMLDivElement;
+    const enabledDiv = fixture.shadowRoot!.querySelector('.enabled.value') as HTMLDivElement;
     assert(!isVisible(enabledDiv), 'should not show enabled div');
 
-    const paramsTable = fixture.shadowRoot.querySelector('.params-table') as HTMLDivElement;
+    const paramsTable = fixture.shadowRoot!.querySelector('.params-table') as HTMLDivElement;
     assert(!isVisible(paramsTable),
         'should not show params table for test job with no params');
   });
@@ -99,12 +102,12 @@ describe('job-details', () => {
     testJob.enabled = true;
     await _resetFixture();
 
-    const scheduleDiv = fixture.shadowRoot.querySelector('.schedule.value') as HTMLDivElement;
+    const scheduleDiv = fixture.shadowRoot!.querySelector('.schedule.value') as HTMLDivElement;
     assert(isVisible(scheduleDiv), 'should find schedule div');
     assert.strictEqual(scheduleDiv.innerText, testJob.trigger.cronExpression,
         'displayed schedule does not match test data');
 
-    const enabledDiv = fixture.shadowRoot.querySelector('.enabled.value') as HTMLDivElement;
+    const enabledDiv = fixture.shadowRoot!.querySelector('.enabled.value') as HTMLDivElement;
     assert(isVisible(enabledDiv), 'should find enabled div');
     assert.strictEqual(enabledDiv.innerText,
         Utils.enabledDisplayString(testJob.trigger, testJob.enabled),
@@ -118,7 +121,7 @@ describe('job-details', () => {
     ];
     await _resetFixture();
 
-    const paramsTable = fixture.shadowRoot.querySelector('.params-table') as HTMLDivElement;
+    const paramsTable = fixture.shadowRoot!.querySelector('.params-table') as HTMLDivElement;
     assert(isVisible(paramsTable), 'should show params table');
     const paramRows = paramsTable.querySelectorAll('div');
     assert.strictEqual(paramRows.length, 2, 'there should be two rows of parameters');
@@ -131,22 +134,22 @@ describe('job-details', () => {
   });
 
   it('shows the list of runs upon switching to Runs tab', () => {
-    const runList = fixture.shadowRoot.querySelector('run-list') as RunList;
+    const runList = fixture.shadowRoot!.querySelector('run-list') as RunList;
     assert(!isVisible(runList), 'should not show runs div by default');
 
     fixture.tabs.select(1);
     Polymer.flush();
 
     assert(isVisible(runList), 'should now show runs div');
-    assert.deepStrictEqual(runList.runsMetadata, fixedData.data.runs.map((j) => j.run),
+    assert.deepStrictEqual(runList.runsMetadata, fixedData.data.runs.map((r: Run) => r.run),
         'jost list does not match test data');
   });
 
   it('refreshes the list of runs', (done) => {
     fixture.tabs.select(1);
-    const runList = fixture.shadowRoot.querySelector('run-list') as RunList;
+    const runList = fixture.shadowRoot!.querySelector('run-list') as RunList;
 
-    assert.deepStrictEqual(runList.runsMetadata, fixedData.data.runs.map((j) => j.run),
+    assert.deepStrictEqual(runList.runsMetadata, fixedData.data.runs.map((r: Run) => r.run),
         'jost list does not match test data');
 
     listRunsStub.returns({ nextPageToken: '', jobs: [fixedData.data.jobs[0]] });
@@ -154,7 +157,7 @@ describe('job-details', () => {
 
     listRunsStub.returns({
       nextPageToken: '',
-      runs: [fixedData.data.runs.map((j) => j.run)[0]],
+      runs: [fixedData.data.runs.map((r: Run) => r.run)[0]],
     });
     fixture.refreshButton.click();
 
@@ -166,9 +169,10 @@ describe('job-details', () => {
   });
 
   it('clones the job', (done) => {
-    const listener = (e: RouteEvent) => {
-      assert.strictEqual(e.detail.path, '/jobs/new');
-      assert.deepStrictEqual(e.detail.data, {
+    const listener = (e: Event) => {
+      const detail = (e as RouteEvent).detail;
+      assert.strictEqual(detail.path, '/jobs/new');
+      assert.deepStrictEqual(detail.data, {
         parameters: testJob.parameters,
         pipelineId: testJob.pipeline_id,
       }, 'parameters should be passed when cloning the job');
@@ -198,7 +202,7 @@ describe('job-details', () => {
   });
 
   it('should set status of enable/disable buttons according to job schedule', async () => {
-    testJob.trigger = null;
+    testJob.trigger = undefined;
     await _resetFixture();
     assert(fixture.enableButton.disabled, 'both enable and disable buttons should be disabled');
     assert(fixture.disableButton.disabled, 'both enable and disable buttons should be disabled');

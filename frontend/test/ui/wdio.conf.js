@@ -2,6 +2,8 @@ const path = require('path');
 const VisualRegressionCompare = require('wdio-visual-regression-service/compare');
 
 const headless = process.env.HEADLESS_UI_TESTS == '1' || process.env.HEADLESS_UI_TESTS == 'true';
+// If you want to run a single suite, using the following:
+// SINGLE_SUITE=./ui/visual-regression/[some-suite].spec.js ./node_modules/.bin/wdio ui/wdio.conf.js
 const singleSuite = process.env.SINGLE_SUITE;
 
 function getScreenshotName(basePath) {
@@ -30,9 +32,9 @@ exports.config = {
   connectionRetryCount: 3,
   connectionRetryTimeout: 90000,
   deprecationWarnings: false,
-  framework: 'jasmine',
-  jasmineNodeOpts: {
-    defaultTimeoutInterval: 10000,
+  framework: 'mocha',
+  mochaOpts: {
+    timeout: 10000,
   },
   logLevel: 'silent',
   plugins: {

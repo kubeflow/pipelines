@@ -1,4 +1,4 @@
-const assert = require('assert');
+const chai = require('chai');
 
 /**
  * This file navigates to the component tests page, and waits until the test
@@ -12,7 +12,7 @@ describe('component tests', () => {
     const failures = browser.getText('#testFailures');
     const failuresText =
         JSON.parse(failures).map(f => '- ' + f.title + ':\n  ' + f.error + '\n').join('\n');
-    assert(failures === '[]',
+    chai.assert(failures === '[]',
         'component tests failed with the following errors:\n' + failuresText);
   });
 });

@@ -3,8 +3,8 @@ import * as webpack from 'webpack';
 import * as merge from 'webpack-merge';
 import common from './webpack.common';
 
-// tslint:disable-next-line:no-default-export
-export default merge(common, {
+const config: webpack.Configuration = merge(common, {
+  mode: 'production',
   plugins: [
     new MinifyPlugin(),
     new webpack.DefinePlugin({
@@ -13,3 +13,6 @@ export default merge(common, {
     new webpack.optimize.AggressiveMergingPlugin(),
   ],
 });
+
+// tslint:disable-next-line:no-default-export
+export default config;

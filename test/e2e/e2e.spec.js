@@ -7,7 +7,7 @@ const waitTimeout = 5000;
 
 describe('deploy new job', () => {
 
-  beforeAll(() => {
+  before(() => {
     browser.url('/');
   });
 

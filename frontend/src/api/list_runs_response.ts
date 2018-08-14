@@ -9,7 +9,7 @@ export class ListRunsResponse {
     newListRunsResponse.next_page_token = listRunsResponse.next_page_token;
     if (listRunsResponse.runs && listRunsResponse.runs.length > 0) {
       newListRunsResponse.runs =
-          listRunsResponse.runs.map((j: any) => RunMetadata.buildFromObject(j));
+          listRunsResponse.runs.map((r: any) => RunMetadata.buildFromObject(r));
     }
     return newListRunsResponse;
   }

@@ -258,7 +258,7 @@ function generateNJobs() {
       name: 'Job#' + i,
       pipeline_id: (i % 6) + 1,
       status: 'Succeeded',
-      trigger: null,
+      trigger: undefined,
       enabled: false,
       updated_at: '2018-04-01T20:' + i.toString().padStart(2, '0') + ':23.000Z',
       max_concurrency: 10,

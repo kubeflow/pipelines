@@ -1,5 +1,4 @@
-import * as assert from '../../node_modules/assert/assert';
-
+import { assert } from 'chai';
 import {
   ColumnTypeName,
   ItemListColumn,
@@ -96,7 +95,6 @@ describe('item-list', () => {
     const emptyMessage = 'test empty message';
     fixture.emptyMessage = emptyMessage;
     assert.strictEqual(fixture.emptyMessageSpan.innerText, '', 'No empty message should show');
-    const saveRows = fixture.rows;
     fixture.rows = [];
     Polymer.flush();
     assert.strictEqual(fixture.emptyMessageSpan.innerText, emptyMessage,
@@ -338,15 +336,16 @@ describe('item-list', () => {
       }
     ];
 
-    const loadNewPage = (ev: NewListPageEvent) => {
-      fixture.updateNextPageToken(pageResponses[ev.detail.pageNumber].nextPageToken);
-      fixture.rows = pageResponses[ev.detail.pageNumber].rows;
+    const loadNewPage = (ev: Event) => {
+      const detail = (ev as NewListPageEvent).detail;
+      fixture.updateNextPageToken(pageResponses[detail.pageNumber].nextPageToken);
+      fixture.rows = pageResponses[detail.pageNumber].rows;
       fixture.list.render();
     };
 
     beforeEach(async () => {
       _resetFixture();
-      fixture.addEventListener(NewListPageEvent.name, loadNewPage.bind(this));
+      fixture.addEventListener(NewListPageEvent.name, loadNewPage);
       fixture.columns = [
         new ItemListColumn('col1', ColumnTypeName.STRING),
         new ItemListColumn('col2', ColumnTypeName.DATE),
@@ -503,7 +502,7 @@ describe('item-list', () => {
       Polymer.flush();
       const rows = fixture.listContainer.querySelectorAll('.row');
       assert.strictEqual(rows.length, 1, 'only one item has "3" in its name');
-      assert.strictEqual(rows[0].children[1].textContent.trim(), 'first column 3',
+      assert.strictEqual(rows[0].children[1].textContent!.trim(), 'first column 3',
           'filter should only return the third item');
     });
 
@@ -533,7 +532,7 @@ describe('item-list', () => {
       const rows = fixture.listContainer.querySelectorAll('.row');
       assert.strictEqual(rows.length, 1,
           'should show one row containing "column 4", since filtering is case insensitive');
-      assert.strictEqual(rows[0].children[1].textContent.trim(), 'first column 4',
+      assert.strictEqual(rows[0].children[1].textContent!.trim(), 'first column 4',
           'filter should return the fourth item');
     });
 
@@ -634,10 +633,10 @@ describe('item-list', () => {
       for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
         const sortedColumns = fixture.rows[col0SortedOrder[i]].columns;
-        assert.strictEqual(columns[0].textContent.trim(), sortedColumns[0]);
+        assert.strictEqual(columns[0].textContent!.trim(), sortedColumns[0]);
         assert.strictEqual(
-            columns[1].textContent.trim(),
-            new Date(sortedColumns[1].toString()).toLocaleString());
+            columns[1].textContent!.trim(),
+            new Date(sortedColumns[1]!.toString()).toLocaleString());
       }
     });
 
@@ -648,10 +647,10 @@ describe('item-list', () => {
       for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
         const sortedColumns = fixture.rows[col0ReverseOrder[i]].columns;
-        assert.strictEqual(columns[0].textContent.trim(), sortedColumns[0]);
+        assert.strictEqual(columns[0].textContent!.trim(), sortedColumns[0]);
         assert.strictEqual(
-            columns[1].textContent.trim(),
-            new Date(sortedColumns[1].toString()).toLocaleString());
+            columns[1].textContent!.trim(),
+            new Date(sortedColumns[1]!.toString()).toLocaleString());
       }
     });
 
@@ -662,10 +661,10 @@ describe('item-list', () => {
       for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
         const sortedColumns = fixture.rows[col1SortedOrder[i]].columns;
-        assert.strictEqual(columns[0].textContent.trim(), sortedColumns[0]);
+        assert.strictEqual(columns[0].textContent!.trim(), sortedColumns[0]);
         assert.strictEqual(
-            columns[1].textContent.trim(),
-            new Date(sortedColumns[1].toString()).toLocaleString());
+            columns[1].textContent!.trim(),
+            new Date(sortedColumns[1]!.toString()).toLocaleString());
       }
     });
 
@@ -718,8 +717,8 @@ describe('item-list', () => {
       for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
         assert.strictEqual(
-            columns[0].textContent.trim(),
-            fixture.rows[sortedOrder[i]].columns[0].toString());
+            columns[0].textContent!.trim(),
+            fixture.rows[sortedOrder[i]].columns[0]!.toString());
       }
     });
 
@@ -739,8 +738,8 @@ describe('item-list', () => {
       for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
         assert.strictEqual(
-            columns[0].textContent.trim(),
-            fixture.rows[sortedOrder[i]].columns[0].toString());
+            columns[0].textContent!.trim(),
+            fixture.rows[sortedOrder[i]].columns[0]!.toString());
       }
     });
 
@@ -777,7 +776,7 @@ describe('item-list', () => {
       const renderedRows = fixture.listContainer.querySelectorAll('.row');
       for (let i = 0; i < fixture.rows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
-        assert.strictEqual(columns[0].textContent.trim(), unsortedValues[i].toString());
+        assert.strictEqual(columns[0].textContent!.trim(), unsortedValues[i].toString());
       }
     });
 
@@ -807,7 +806,7 @@ describe('item-list', () => {
       const renderedRows = fixture.listContainer.querySelectorAll('.row');
       for (let i = 0; i < renderedRows.length; i++) {
         const columns = renderedRows[i].querySelectorAll('.column');
-        assert.strictEqual(columns[1].textContent.trim(), expectedColumnValues[i]);
+        assert.strictEqual(columns[1].textContent!.trim(), expectedColumnValues[i]);
       }
     });
   });

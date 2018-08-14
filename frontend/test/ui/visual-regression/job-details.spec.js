@@ -6,7 +6,7 @@ function assertDiffs(results) {
 
 describe('view job details', () => {
 
-  beforeAll(() => {
+  before(() => {
     browser.url('/');
   });
 

@@ -1,19 +1,17 @@
 import * as sinon from 'sinon';
-import * as assert from '../../node_modules/assert/assert';
 import * as Apis from '../../src/lib/apis';
 
+import { assert } from 'chai';
 import { Job } from '../../src/api/job';
 import { ListJobsResponse } from '../../src/api/list_jobs_response';
 import { JobList } from '../../src/components/job-list/job-list';
 import { PageError } from '../../src/components/page-error/page-error';
+import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
 import { RouteEvent } from '../../src/model/events';
 import { dialogStub, notificationStub, resetFixture } from './test-utils';
 
+// @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
-import { ItemListElement } from '../../src/components/item-list/item-list';
-import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
-
-const pipelines = fixedData.namedPipelines;
 
 let fixture: JobList;
 let deleteJobStub: sinon.SinonStub;
@@ -25,7 +23,7 @@ allJobsResponse.jobs =
     fixedData.data.jobs.map((p: any) => Job.buildFromObject(p));
 
 async function _resetFixture(): Promise<void> {
-  return resetFixture('job-list', null, (f: JobList) => {
+  return resetFixture('job-list', undefined, (f: JobList) => {
     fixture = f;
     return f.load('');
   });
@@ -45,13 +43,13 @@ describe('job-list', () => {
   it('shows the list of jobs', () => {
     assert.deepStrictEqual(
         fixture.jobs.map((job) => job.id),
-        fixedData.data.jobs.map((job) => job.id));
+        fixedData.data.jobs.map((job: any) => job.id));
   });
 
   it('refreshes the list of jobs', (done) => {
     assert.deepStrictEqual(
         fixture.jobs.map((job) => job.id),
-        fixedData.data.jobs.map((job) => job.id));
+        fixedData.data.jobs.map((job: any) => job.id));
 
     listJobsStub.returns({ nextPageToken: '', jobs: [fixedData.data.jobs[0]] });
     fixture.refreshButton.click();
@@ -67,25 +65,27 @@ describe('job-list', () => {
     fixture.itemList._selectItemByDisplayIndex(0);
     const index = fixture.itemList.selectedIndices[0];
     const id = fixedData.data.jobs[index].id;
-    const listener = (e: RouteEvent) => {
-      assert.strictEqual(e.detail.path, '/jobs/details/' + id);
-      assert.deepStrictEqual(e.detail.data, undefined,
+    const listener = (e: Event) => {
+      const detail = (e as RouteEvent).detail;
+      assert.strictEqual(detail.path, '/jobs/details/' + id);
+      assert.deepStrictEqual(detail.data, undefined,
           'no parameters should be passed when opening the job details');
       document.removeEventListener(RouteEvent.name, listener);
       done();
     };
     document.addEventListener(RouteEvent.name, listener);
 
-    const firstItem = fixture.itemList.shadowRoot.querySelector('paper-item') as PaperItemElement;
+    const firstItem = fixture.itemList.shadowRoot!.querySelector('paper-item') as PaperItemElement;
     firstItem.dispatchEvent(new MouseEvent('dblclick'));
   });
 
   it('navigates to new job page with cloned job data', (done) => {
     fixture.itemList._selectItemByRealIndex(0);
 
-    const listener = (e: RouteEvent) => {
-      assert.strictEqual(e.detail.path, '/jobs/new');
-      assert.deepStrictEqual(e.detail.data, {
+    const listener = (e: Event) => {
+      const detail = (e as RouteEvent).detail;
+      assert.strictEqual(detail.path, '/jobs/new');
+      assert.deepStrictEqual(detail.data, {
         parameters: fixedData.data.jobs[0].parameters,
         pipelineId: fixedData.data.jobs[0].pipeline_id,
       }, 'parameters should be passed when cloning the job');
@@ -97,9 +97,10 @@ describe('job-list', () => {
   });
 
   it('navigates to new job page when New Job button clicked', (done) => {
-    const listener = (e: RouteEvent) => {
-      assert.strictEqual(e.detail.path, '/jobs/new');
-      assert.deepStrictEqual(e.detail.data, undefined,
+    const listener = (e: Event) => {
+      const detail = (e as RouteEvent).detail;
+      assert.strictEqual(detail.path, '/jobs/new');
+      assert.deepStrictEqual(detail.data, undefined,
           'no parameters should be passed when creating a new job');
       document.removeEventListener(RouteEvent.name, listener);
       done();

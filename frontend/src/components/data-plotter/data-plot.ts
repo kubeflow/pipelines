@@ -107,7 +107,7 @@ export class DataPlot extends Polymer.Element {
     data.forEach(([target, predicted, count]) => {
       const i = labelIndex[target];
       const j = labelIndex[predicted];
-      matrix[i][j] = Number.parseInt(count);
+      matrix[i][j] = Number.parseInt(count, 10);
     });
 
     const axisLabels = metadata.schema.map((r) => r.name);

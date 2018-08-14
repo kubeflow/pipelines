@@ -192,8 +192,8 @@ export function drawMatrix(options: MatrixOptions): void {
 }
 
 export function cellMouse(container: HTMLElement, cell: any, mouseIn: boolean): void {
-  const row = Number.parseInt(cell.parentElement.getAttribute('row'));
-  const col = Number.parseInt(cell.getAttribute('column'));
+  const row = Number.parseInt(cell.parentElement.getAttribute('row'), 10);
+  const col = Number.parseInt(cell.getAttribute('column'), 10);
   const rowLabel = container.querySelector(`.row-label.row-${row}`) as HTMLElement;
   const colLabel = container.querySelector(`.column-label.column-${col}`) as HTMLElement;
 

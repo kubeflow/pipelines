@@ -8,11 +8,11 @@ exports.config = {
       args: ['--headless', '--disable-gpu', '--window-size=1024,800'],
     },
   }],
-  framework: 'jasmine',
-  jasmineNodeOpts: {
-    defaultTimeoutInterval: 60000,
-  },
+  framework: 'mocha',
   logLevel: 'silent',
+  mochaOpts: {
+    timeout: 60000,
+  },
   services: ['selenium-standalone'],
   specs: [
     './components/test.js',

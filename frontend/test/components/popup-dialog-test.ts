@@ -1,12 +1,11 @@
-import * as assert from '../../node_modules/assert/assert';
-
+import { assert } from 'chai';
 import { DialogResult, PopupDialog } from '../../src/components/popup-dialog/popup-dialog';
 import { isVisible, resetFixture } from './test-utils';
 
 let fixture: PopupDialog;
 
 async function _resetFixture(): Promise<void> {
-  return resetFixture('popup-dialog', null, (f: PopupDialog) => {
+  return resetFixture('popup-dialog', undefined, (f: PopupDialog) => {
     fixture = f;
   });
 }

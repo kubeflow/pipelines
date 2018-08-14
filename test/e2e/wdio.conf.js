@@ -14,11 +14,11 @@ exports.config = {
   connectionRetryCount: 3,
   connectionRetryTimeout: 90000,
   deprecationWarnings: false,
-  framework: 'jasmine',
+  framework: 'mocha',
   host: '127.0.01',
   port: 4444,
-  jasmineNodeOpts: {
-    defaultTimeoutInterval: 100000,
+  mochaOpts: {
+    timeout: 100000,
   },
   logLevel: 'silent',
   plugins: {

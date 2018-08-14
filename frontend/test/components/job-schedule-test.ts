@@ -1,9 +1,7 @@
-import * as assert from '../../node_modules/assert/assert';
-import * as Utils from '../../src/lib/utils';
-
-import { CronSchedule, Job, PeriodicSchedule, Trigger } from '../../src/api/job';
+import { assert } from 'chai';
+import { CronSchedule, PeriodicSchedule, Trigger } from '../../src/api/job';
 import { JobSchedule } from '../../src/components/job-schedule/job-schedule';
-import { dialogStub, isVisible, notificationStub, resetFixture } from './test-utils';
+import { resetFixture } from './test-utils';
 
 let fixture: JobSchedule;
 
@@ -51,9 +49,9 @@ describe('job-schedule', () => {
     });
 
     it('shows start/end date/time checkboxes unchecked by default', () => {
-      assert.strictEqual(fixture.startDateTimePicker.useDateTimeCheckbox.checked, false,
+      assert.strictEqual(fixture.startDateTimePicker!.useDateTimeCheckbox.checked, false,
           '"Has start date" checkbox should be unchecked by default');
-      assert.strictEqual(fixture.endDateTimePicker.useDateTimeCheckbox.checked, false,
+      assert.strictEqual(fixture.endDateTimePicker!.useDateTimeCheckbox.checked, false,
           '"Has end date" checkbox should be unchecked by default');
     });
 
@@ -63,7 +61,7 @@ describe('job-schedule', () => {
       // Wrapper here because the element doesn't immediately render otherwise,
       // even with Polymer.flush()
       Polymer.Async.idlePeriod.run(() => {
-        assert.strictEqual(fixture.periodicIntervalDropdown.value, 'hours');
+        assert.strictEqual(fixture.periodicIntervalDropdown!.value, 'hours');
         // Default interval is 1 hour (3600 seconds)
         assert.deepStrictEqual(fixture.toTrigger(), new Trigger(new PeriodicSchedule(3600)));
         done();
@@ -80,10 +78,10 @@ describe('job-schedule', () => {
       ];
       const frequency = 3;
       Polymer.Async.idlePeriod.run(() => {
-        fixture.periodFrequencyInput.value = frequency + '';
+        fixture.periodFrequencyInput!.value = frequency + '';
         fixture._periodicIntervals.forEach((v, i) => {
-          fixture.periodicIntervalListbox.select(i);
-          assert.strictEqual(fixture.periodicIntervalDropdown.value, v);
+          fixture.periodicIntervalListbox!.select(i);
+          assert.strictEqual(fixture.periodicIntervalDropdown!.value, v);
           assert.deepStrictEqual(
               fixture.toTrigger(), new Trigger(new PeriodicSchedule(periods[i] * frequency)));
         });
@@ -111,9 +109,9 @@ describe('job-schedule', () => {
     });
 
     it('shows start/end date/time checkboxes unchecked by default', () => {
-      assert.strictEqual(fixture.startDateTimePicker.useDateTimeCheckbox.checked, false,
+      assert.strictEqual(fixture.startDateTimePicker!.useDateTimeCheckbox.checked, false,
           '"Has start date" checkbox should be unchecked by default');
-      assert.strictEqual(fixture.endDateTimePicker.useDateTimeCheckbox.checked, false,
+      assert.strictEqual(fixture.endDateTimePicker!.useDateTimeCheckbox.checked, false,
           '"Has end date" checkbox should be unchecked by default');
     });
 
@@ -123,15 +121,15 @@ describe('job-schedule', () => {
       // Wrapper here because the element doesn't immediately render otherwise,
       // even with Polymer.flush()
       Polymer.Async.idlePeriod.run(() => {
-        assert.strictEqual(fixture.cronIntervalDropdown.value, 'hourly');
+        assert.strictEqual(fixture.cronIntervalDropdown!.value, 'hourly');
         assert.deepStrictEqual(fixture.toTrigger(), new Trigger(new CronSchedule('0 0 * * * ?')));
         done();
       });
     });
 
     it('shows "all weekdays" checkbox checked and disabled by default', () => {
-      assert.strictEqual(fixture.allWeekdaysCheckbox.checked, true);
-      assert.strictEqual(fixture.allWeekdaysCheckbox.disabled, true);
+      assert.strictEqual(fixture.allWeekdaysCheckbox!.checked, true);
+      assert.strictEqual(fixture.allWeekdaysCheckbox!.disabled, true);
     });
 
     it('updates the cron expression when the recurrence interval is changed', (done) => {
@@ -144,13 +142,13 @@ describe('job-schedule', () => {
       ];
       Polymer.Async.idlePeriod.run(() => {
         fixture._cronIntervals.forEach((v, i) => {
-          fixture.cronIntervalListbox.select(i);
-          assert.strictEqual(fixture.cronIntervalDropdown.value, v);
+          fixture.cronIntervalListbox!.select(i);
+          assert.strictEqual(fixture.cronIntervalDropdown!.value, v);
           assert.deepStrictEqual(
               fixture.toTrigger(),
               new Trigger(new CronSchedule(cronExpressions[i])));
-          assert.strictEqual(fixture.allWeekdaysCheckbox.checked, true);
-          assert.strictEqual(fixture.allWeekdaysCheckbox.disabled, v !== 'weekly');
+          assert.strictEqual(fixture.allWeekdaysCheckbox!.checked, true);
+          assert.strictEqual(fixture.allWeekdaysCheckbox!.disabled, v !== 'weekly');
         });
         done();
       });
@@ -159,12 +157,12 @@ describe('job-schedule', () => {
     it('enables the weekday checkbox and buttons when the interval is "weekly"', (done) => {
       Polymer.Async.idlePeriod.run(() => {
         // Set interval to "weekly"
-        fixture.cronIntervalListbox.select(3);
-        assert.strictEqual(fixture.cronIntervalDropdown.value, 'weekly');
-        assert.strictEqual(fixture.allWeekdaysCheckbox.checked, true);
-        assert.strictEqual(fixture.allWeekdaysCheckbox.disabled, false);
+        fixture.cronIntervalListbox!.select(3);
+        assert.strictEqual(fixture.cronIntervalDropdown!.value, 'weekly');
+        assert.strictEqual(fixture.allWeekdaysCheckbox!.checked, true);
+        assert.strictEqual(fixture.allWeekdaysCheckbox!.disabled, false);
         const sundayButton =
-        fixture.shadowRoot.querySelector('#weekdayButtons paper-button') as PaperButtonElement;
+        fixture.shadowRoot!.querySelector('#weekdayButtons paper-button') as PaperButtonElement;
         sundayButton.click();
         assert.strictEqual(sundayButton.active, false);
         // 1-6 correspond to Monday - Saturday, Sunday isn't included because we clicked it.
@@ -183,14 +181,14 @@ describe('job-schedule', () => {
     it('returns manually entered cron expression when toTrigger is called', () => {
       // We use the CSS class rather than the element property because of an issue with Polymer
       // inputs and tabindex. See: https://github.com/PolymerElements/iron-behaviors/pull/83
-      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
+      assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), true);
 
       // Because we set the cron expression directly, checking this checkbox isn't actually
       // necessary. Thus we just check that the input field went from disabled to enabled.
-      fixture.allowEditingCronCheckbox.checked = true;
-      fixture.cronExpressionInput.value = '1 2 3 4 5 ?';
+      fixture.allowEditingCronCheckbox!.checked = true;
+      fixture.cronExpressionInput!.value = '1 2 3 4 5 ?';
 
-      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), false);
+      assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), false);
       const expectedCronTrigger = new Trigger(new CronSchedule('1 2 3 4 5 ?'));
       assert.deepStrictEqual(fixture.toTrigger(), expectedCronTrigger);
     });
@@ -199,35 +197,35 @@ describe('job-schedule', () => {
       // Default cron schedule corresponds to "hourly"
       const originalCronTrigger = new Trigger(new CronSchedule('0 0 * * * ?'));
       assert.deepStrictEqual(fixture.toTrigger(), originalCronTrigger);
-      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
+      assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), true);
 
       // Enable editing and change the cron expression
-      fixture.allowEditingCronCheckbox.checked = true;
-      fixture.cronExpressionInput.value = '1 2 3 4 5 ?';
+      fixture.allowEditingCronCheckbox!.checked = true;
+      fixture.cronExpressionInput!.value = '1 2 3 4 5 ?';
       const newCronTrigger = new Trigger(new CronSchedule('1 2 3 4 5 ?'));
       assert.deepStrictEqual(fixture.toTrigger(), newCronTrigger);
-      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), false);
+      assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), false);
 
       // Redisable editing of cron expression. Cron expression should revert to original
-      fixture.allowEditingCronCheckbox.checked = false;
+      fixture.allowEditingCronCheckbox!.checked = false;
       assert.deepStrictEqual(fixture.toTrigger(), originalCronTrigger);
-      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
+      assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), true);
     });
 
     it('allows/disallows tabbing to the cron expression field depending on disabled state', () => {
       // Should initially forbid tabbing as the field is disabled by default
-      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
-      assert.strictEqual(fixture.cronExpressionInput.getAttribute('tabindex'), '-1');
+      assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), true);
+      assert.strictEqual(fixture.cronExpressionInput!.getAttribute('tabindex'), '-1');
 
       // Should allow tabbing when the cron field is editable
-      fixture.allowEditingCronCheckbox.checked = true;
-      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), false);
-      assert.strictEqual(fixture.cronExpressionInput.getAttribute('tabindex'), '0');
+      fixture.allowEditingCronCheckbox!.checked = true;
+      assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), false);
+      assert.strictEqual(fixture.cronExpressionInput!.getAttribute('tabindex'), '0');
 
       // Should not allow tabbing when the cron field is once again disabled
-      fixture.allowEditingCronCheckbox.checked = false;
-      assert.strictEqual(fixture.cronExpressionInput.classList.contains('disabled'), true);
-      assert.strictEqual(fixture.cronExpressionInput.getAttribute('tabindex'), '-1');
+      fixture.allowEditingCronCheckbox!.checked = false;
+      assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), true);
+      assert.strictEqual(fixture.cronExpressionInput!.getAttribute('tabindex'), '-1');
     });
 
   });

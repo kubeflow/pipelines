@@ -150,12 +150,12 @@ export default (app) => {
     };
 
     let runs: RunMetadata[] =
-        fixedData.jobs.find((p) => p.id === req.params.pid).runs.map((j) => j.run);
+        fixedData.jobs.find((j) => j.id === req.params.pid).runs.map((r) => r.run);
 
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
-      runs = runs.filter((j) => j.name.toLocaleLowerCase().indexOf(
+      runs = runs.filter((r) => r.name.toLocaleLowerCase().indexOf(
           decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
     }
 
@@ -207,7 +207,7 @@ export default (app) => {
 
   app.get(v1alpha2Prefix + '/jobs/:pid/runs/:jid', (req, res) => {
     const jid = req.params.jid;
-    const run = fixedData.runs.find((j) => j.run.id === jid);
+    const run = fixedData.runs.find((r) => r.run.id === jid);
     if (!run) {
       res.status(404).send('Cannot find a run with id: ' + jid);
       return;

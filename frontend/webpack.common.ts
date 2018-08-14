@@ -1,11 +1,11 @@
 import * as CleanWebpackPlugin from 'clean-webpack-plugin';
 import * as CopyWebpackPlugin from 'copy-webpack-plugin';
-import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
 import * as HtmlWebpackPlugin from 'html-webpack-plugin';
+import * as MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import * as path from 'path';
+import * as webpack from 'webpack';
 
-// tslint:disable-next-line:no-default-export
-export default {
+const config: webpack.Configuration = {
   entry: {
     index: path.resolve(__dirname, 'src/index.ts'),
   },
@@ -30,19 +30,20 @@ export default {
       {
         exclude: [path.resolve(__dirname, 'src/components')],
         test: /\.css$/,
-        use: ExtractTextPlugin.extract({
-          use: [{
-            loader: 'css-loader',
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
             options: {
               minimize: true,
               sourceMap: true,
             },
-          }],
-        }),
+          },
+          'css-loader',
+        ],
       },
       {
         enforce: 'pre',
-        exclude: /bower_components/,
+        exclude: path.resolve(__dirname, 'bower_components'),
         loader: 'tslint-loader',
         options: {
           emitErrors: true,
@@ -50,7 +51,12 @@ export default {
         test: /\.ts$/,
       },
       {
+        include: path.resolve(__dirname),
         loader: 'ts-loader',
+        options: {
+          configFile: path.resolve(__dirname, 'tsconfig.json'),
+          instance: 'src',
+        },
         test: /\.ts$/,
       },
     ]
@@ -68,7 +74,7 @@ export default {
       to: 'index.html',
     }]),
     new CleanWebpackPlugin(['dist']),
-    new ExtractTextPlugin('styles.css'),
+    new MiniCssExtractPlugin({filename: 'styles.css'}),
   ],
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.html'],
@@ -78,3 +84,6 @@ export default {
     ],
   },
 };
+
+// tslint:disable-next-line:no-default-export
+export default config;

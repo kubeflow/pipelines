@@ -1,6 +1,6 @@
-import * as assert from 'assert';
 import * as express from 'express';
-import 'jasmine';
+
+import { assert } from 'chai';
 import {
   _extractUrlFromReferer,
   _rewritePath,

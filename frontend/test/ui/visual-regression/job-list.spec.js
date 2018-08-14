@@ -6,7 +6,7 @@ function assertDiffs(results) {
 
 describe('list jobs', () => {
 
-  beforeAll(() => {
+  before(() => {
     browser.url('/');
   });
 
@@ -138,9 +138,11 @@ describe('list jobs', () => {
     // Find a job with pipeline ID of 1 so it can be cloned.
     // TODO: Explore making this more reliable
     const selector = 'app-shell job-list item-list #listContainer paper-item';
-    browser.doubleClick(selector);
+    browser.waitForVisible(selector);
+    browser.click(selector);
 
     const cloneBtnSelector = 'app-shell job-list paper-button#cloneBtn';
+    browser.waitForEnabled(cloneBtnSelector);
     browser.click(cloneBtnSelector);
 
     assertDiffs(browser.checkDocument());

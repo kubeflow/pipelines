@@ -1,18 +1,19 @@
 import * as sinon from 'sinon';
+// @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
 // tslint:disable-next-line:no-var-requires
 const coinflipRun = require('../../mock-backend/mock-coinflip-runtime.json');
-import * as assert from '../../node_modules/assert/assert';
 import * as Apis from '../../src/lib/apis';
 import * as Utils from '../../src/lib/utils';
 
+import { assert } from 'chai';
 import { Job } from '../../src/api/job';
 import { Run } from '../../src/api/run';
 import { DataPlot } from '../../src/components/data-plotter/data-plot';
 import { PageError } from '../../src/components/page-error/page-error';
 import { RunDetails } from '../../src/components/run-details/run-details';
 import { RuntimeGraph } from '../../src/components/runtime-graph/runtime-graph';
-import { NODE_PHASE, NodePhase, Workflow } from '../../src/model/argo_template';
+import { NodePhase, Workflow } from '../../src/model/argo_template';
 import { RouteEvent } from '../../src/model/events';
 import { OutputMetadata, PlotType } from '../../src/model/output_metadata';
 import * as testUtils from './test-utils';
@@ -35,7 +36,7 @@ const mockRun: Run = {
 };
 
 async function _resetFixture(): Promise<void> {
-  return testUtils.resetFixture('run-details', null, (f: RunDetails) => {
+  return testUtils.resetFixture('run-details', undefined, (f: RunDetails) => {
     fixture = f;
     return f.load('', { runId: 'test-run', jobId: '1000' });
   });
@@ -44,7 +45,7 @@ async function _resetFixture(): Promise<void> {
 const testRun = fixedData.data.runs[0];
 const testWorkflow = JSON.parse(testRun.workflow);
 
-const testJob: Job = {
+const testJob = Job.buildFromObject({
   created_at: new Date().toISOString(),
   description: 'test job description',
   enabled: false,
@@ -56,7 +57,7 @@ const testJob: Job = {
   status: '',
   trigger: null,
   updated_at: new Date().toISOString(),
-};
+});
 
 describe('run-details', () => {
 
@@ -82,30 +83,31 @@ describe('run-details', () => {
     assert(!testUtils.isVisible(fixture.outputList), 'should not show output list div');
     assert(!testUtils.isVisible(fixture.runtimeGraph), 'should not show runtime graph');
 
-    const statusDiv = fixture.shadowRoot.querySelector('.status.value') as HTMLDivElement;
+    const statusDiv = fixture.shadowRoot!.querySelector('.status.value') as HTMLDivElement;
     assert(testUtils.isVisible(statusDiv), 'cannot find status div');
     assert.strictEqual(statusDiv.innerText, testWorkflow.status.phase,
         'displayed status does not match test data');
 
-    const createdAtDivDiv = fixture.shadowRoot.querySelector('.created-at.value') as HTMLDivElement;
+    const createdAtDivDiv =
+        fixture.shadowRoot!.querySelector('.created-at.value') as HTMLDivElement;
     assert(testUtils.isVisible(createdAtDivDiv), 'cannot find createdAt div');
     assert.strictEqual(createdAtDivDiv.innerText,
         Utils.formatDateString(testWorkflow.metadata.creationTimestamp),
         'displayed createdAt does not match test data');
 
-    const startedAtDiv = fixture.shadowRoot.querySelector('.started-at.value') as HTMLDivElement;
+    const startedAtDiv = fixture.shadowRoot!.querySelector('.started-at.value') as HTMLDivElement;
     assert(testUtils.isVisible(startedAtDiv), 'cannot find startedAt div');
     assert.strictEqual(startedAtDiv.innerText,
         Utils.formatDateString(testWorkflow.status.startedAt),
         'displayed startedAt does not match test data');
 
-    const finishedAtDiv = fixture.shadowRoot.querySelector('.finished-at.value') as HTMLDivElement;
+    const finishedAtDiv = fixture.shadowRoot!.querySelector('.finished-at.value') as HTMLDivElement;
     assert(testUtils.isVisible(finishedAtDiv), 'cannot find finishedAt div');
     assert.strictEqual(finishedAtDiv.innerText,
         Utils.formatDateString(testWorkflow.status.finishedAt),
         'displayed finishedAt does not match test data');
 
-    const durationDiv = fixture.shadowRoot.querySelector('.duration.value') as HTMLDivElement;
+    const durationDiv = fixture.shadowRoot!.querySelector('.duration.value') as HTMLDivElement;
     assert(testUtils.isVisible(durationDiv), 'cannot find duration div');
     assert.strictEqual(durationDiv.innerText,
         Utils.getRunTime(testWorkflow.status.startedAt, testWorkflow.status.finishedAt,
@@ -124,33 +126,34 @@ describe('run-details', () => {
     await _resetFixture();
     fixture.tabs.select(2);
     const workflow = JSON.parse(mockRun.workflow) as Workflow;
-    workflow.spec.arguments.parameters = testJob.parameters;
-    workflow.spec.arguments.parameters[1].value = 'value2withplaceholder';
+    workflow.spec.arguments!.parameters = testJob.parameters;
+    workflow.spec.arguments!.parameters![1].value = 'value2withplaceholder';
     fixture.workflow = workflow;
     Polymer.flush();
 
-    const paramsTable = fixture.shadowRoot.querySelector('.params-table') as HTMLDivElement;
+    const paramsTable = fixture.shadowRoot!.querySelector('.params-table') as HTMLDivElement;
     assert(testUtils.isVisible(paramsTable), 'should show params table');
     const paramRows = paramsTable.querySelectorAll('div');
     assert.strictEqual(paramRows.length, 2, 'there should be two rows of parameters');
     paramRows.forEach((row, i) => {
       const key = row.querySelector('.key') as HTMLDivElement;
       const value = row.querySelector('.value') as HTMLDivElement;
-      assert.strictEqual(key.innerText, fixture.workflow.spec.arguments.parameters[i].name);
-      assert.strictEqual(value.innerText, fixture.workflow.spec.arguments.parameters[i].value);
+      assert.strictEqual(key.innerText, fixture.workflow.spec.arguments!.parameters![i].name);
+      assert.strictEqual(value.innerText, fixture.workflow.spec.arguments!.parameters![i].value);
     });
   });
 
   it('clones the run into a new job', (done) => {
     const workflow = JSON.parse(mockRun.workflow) as Workflow;
     const params = [{ name: 'param1', value: 'value2withplaceholder' }];
-    workflow.spec.arguments.parameters = params;
+    workflow.spec.arguments!.parameters = params;
     fixture.workflow = workflow;
     Polymer.flush();
 
-    const listener = (e: RouteEvent) => {
-      assert.strictEqual(e.detail.path, '/jobs/new');
-      assert.deepStrictEqual(e.detail.data, {
+    const listener = (e: Event) => {
+      const detail = (e as RouteEvent).detail;
+      assert.strictEqual(detail.path, '/jobs/new');
+      assert.deepStrictEqual(detail.data, {
         parameters: params,
         pipelineId: testJob.pipeline_id,
       }, 'parameters should be passed when cloning the job');
@@ -236,8 +239,8 @@ describe('run-details', () => {
       assert.strictEqual(fixture.outputPlots.length, 4);
       const plots: DataPlot[] = fixture.plotContainer.querySelectorAll('div') as any;
       assert.strictEqual(plots.length, 4);
-      assert.strictEqual(plots[0].plotMetadata.type, PlotType.CONFUSION_MATRIX);
-      assert.strictEqual(plots[1].plotMetadata.type, PlotType.ROC);
+      assert.strictEqual(plots[0].plotMetadata!.type, PlotType.CONFUSION_MATRIX);
+      assert.strictEqual(plots[1].plotMetadata!.type, PlotType.ROC);
     });
 
   });

@@ -10,7 +10,7 @@ const mockJobsLength = fixedData.jobs.length;
 
 describe('deploy new job', () => {
 
-  beforeAll(() => {
+  before(() => {
     browser.url('/');
   });
 

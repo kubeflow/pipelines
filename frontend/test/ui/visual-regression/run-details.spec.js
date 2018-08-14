@@ -8,7 +8,7 @@ function assertDiffs(results) {
 
 describe('view run details', () => {
 
-  beforeAll(() => {
+  before(() => {
     // This job has runs.
     browser.url(`/jobs/details/${fixedData.jobs[1].id}`);
   });
@@ -121,7 +121,7 @@ describe('view run details', () => {
 
   describe('error handling', () => {
 
-    beforeAll(() => {
+    before(() => {
       // This job has runs.
       browser.url(`/jobs/details/${fixedData.jobs[1].id}`);
 

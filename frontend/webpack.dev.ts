@@ -5,8 +5,7 @@ import * as merge from 'webpack-merge';
 import mockApiMiddleware from './mock-backend/mock-api-middleware';
 import common from './webpack.common';
 
-// tslint:disable-next-line:no-default-export
-export default merge(common, {
+const config: webpack.Configuration = merge(common, {
   devServer: {
     before: mockApiMiddleware,
     compress: true,
@@ -15,11 +14,17 @@ export default merge(common, {
     historyApiFallback: true,
     overlay: true,
     port: 3000,
+    stats: {
+      errorDetails: true,
+      errors: true,
+      warnings: true,
+    }
   },
   devtool: 'inline-source-map',
   entry: {
     index: path.resolve(__dirname, 'test/components/index.ts'),
   },
+  mode: 'development',
   plugins: [
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify('dev'),
@@ -33,3 +38,6 @@ export default merge(common, {
     }]),
   ],
 });
+
+// tslint:disable-next-line:no-default-export
+export default config;

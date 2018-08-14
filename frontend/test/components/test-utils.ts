@@ -3,7 +3,7 @@
 /// <reference path="../../bower_components/paper-item/paper-item.d.ts" />
 /// <reference path="../../bower_components/paper-listbox/paper-listbox.d.ts" />
 /// <reference path="../../bower_components/paper-tabs/paper-tabs.d.ts" />
-/// <reference path="../../node_modules/@types/mocha/index.d.ts" />
+/// <reference path="../node_modules/@types/mocha/index.d.ts" />
 
 import * as sinon from 'sinon';
 import * as Utils from '../../src/lib/utils';
@@ -20,7 +20,7 @@ export function isVisible(el: HTMLElement): boolean {
 // Recreates the fixture test element with the given tag, and optionally calls
 // callback functions before and after attaching the new node, and waits on them.
 export async function resetFixture(testTag: string,
-    beforeAttach?: (el: Element) => void, afterAttach?: (el: Element) => void): Promise<void> {
+    beforeAttach?: (el: any) => void, afterAttach?: (el: any) => void): Promise<void> {
   const old = document.querySelector(testTag);
   if (old) {
     document.body.removeChild(old);
@@ -76,7 +76,7 @@ export function stubTag(oldTagName: string, tagName: string): any {
 
       if (stubMap.has(currentTagName)) {
         // Create a replacement
-        const replacement = document.createElement(stubMap.get(currentTagName));
+        const replacement = document.createElement(stubMap.get(currentTagName)!);
 
         // For all attributes in the original node, set that attribute on the replacement
         for (const attr of Array.from(node.attributes)) {
@@ -84,7 +84,7 @@ export function stubTag(oldTagName: string, tagName: string): any {
         }
 
         // Replace the original node with the replacement node:
-        node.parentNode.replaceChild(replacement, node);
+        node.parentNode!.replaceChild(replacement, node);
       }
       node = nodeIterator.nextNode() as Element;
     }

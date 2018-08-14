@@ -1,12 +1,11 @@
-import * as assert from '../../node_modules/assert/assert';
-
+import { assert } from 'chai';
 import { TableViewer } from '../../src/components/table-viewer/table-viewer';
-import { isVisible, resetFixture } from './test-utils';
+import { resetFixture } from './test-utils';
 
 let fixture: TableViewer;
 
 async function _resetFixture(): Promise<void> {
-  return resetFixture('table-viewer', null, (f: TableViewer) => {
+  return resetFixture('table-viewer', undefined, (f: TableViewer) => {
     fixture = f;
   });
 }

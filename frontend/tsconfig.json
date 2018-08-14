@@ -12,7 +12,8 @@
     "paths": {
       "*": [
         "*",
-        "bower_components/*"
+        "bower_components/*",
+        "node_modules/*"
       ]
     },
     "strict": true,
@@ -20,7 +21,7 @@
     "target": "es2015"
   },
   "include": [
-    "./src",
+    "./src/**/*",
     "./bower_components/**/*.d.ts",
   ]
 }

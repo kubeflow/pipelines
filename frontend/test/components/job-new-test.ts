@@ -1,25 +1,21 @@
 import * as sinon from 'sinon';
-import * as assert from '../../node_modules/assert/assert';
 import * as APIs from '../../src/lib/apis';
 
+import { assert } from 'chai';
 import { Job } from '../../src/api/job';
-import { Parameter } from '../../src/api/parameter';
-import { Pipeline} from '../../src/api/pipeline';
 import { JobNew } from '../../src/components/job-new/job-new';
-import { JobSchedule } from '../../src/components/job-schedule/job-schedule';
 import { resetFixture } from './test-utils';
 
+// @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
 
 const pipelines = fixedData.namedPipelines;
-
-const TEST_TAG = 'job-new';
 
 let fixture: JobNew;
 let listPipelinesStub: sinon.SinonStub;
 
 async function _resetFixture(): Promise<void> {
-  return resetFixture('job-new', null, (f: JobNew) => {
+  return resetFixture('job-new', undefined, (f: JobNew) => {
     fixture = f;
     return f.load('', {});
   });
@@ -65,7 +61,7 @@ describe('job-new', () => {
 
   it('pipeline selector should contain all pipelines', () => {
     assert.deepStrictEqual(
-        fixture.listBox.items.map((item) => item.pipelineId),
+        fixture.listBox.items!.map((item) => item.pipelineId),
         fixture.pipelines.map((pkg) => pkg.id));
   });
 
@@ -200,7 +196,7 @@ describe('job-new', () => {
           actualJob.parameters[i].value, (parameterInputs[i] as PaperInputElement).value);
     }
     // "0 0 * * * ?" is the default schedule. It means "run every hour".
-    assert.strictEqual(actualJob.trigger.cronExpression, '0 0 * * * ?');
+    assert.strictEqual(actualJob.trigger!.cronExpression, '0 0 * * * ?');
 
     deployJobStub.restore();
   });
