@@ -73,7 +73,7 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) (pkgs []model.Pipeline, nextPageToken string, err error) {
+func (r *ResourceManager) ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) (pipelines []model.Pipeline, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(pageToken, pageSize, sortByFieldName, isDesc)
 }
 
@@ -108,22 +108,22 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	return nil
 }
 
-func (r *ResourceManager) CreatePipeline(name string, pkgFile []byte) (*model.Pipeline, error) {
+func (r *ResourceManager) CreatePipeline(name string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
-	params, err := util.GetParameters(pkgFile)
+	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
 	// Create an entry with status of creating the pipeline
-	pkg := &model.Pipeline{Name: name, Parameters: params, Status: model.PipelineCreating}
-	newPipeline, err := r.pipelineStore.CreatePipeline(pkg)
+	pipeline := &model.Pipeline{Name: name, Parameters: params, Status: model.PipelineCreating}
+	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(pkgFile, storage.JobFolder, fmt.Sprint(newPipeline.UUID))
+	err = r.objectStore.AddFile(pipelineFile, storage.JobFolder, fmt.Sprint(newPipeline.UUID))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -155,12 +155,12 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	return template, nil
 }
 
-func (r *ResourceManager) GetRun(jobId string, runId string) (*model.RunDetail, error) {
-	_, err := r.jobStore.GetJob(jobId)
-	if err != nil {
-		return nil, util.Wrap(err, "Get run failed")
-	}
-	return r.runStore.GetRun(jobId, runId)
+func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
+	return r.runStore.GetRun(runId)
+}
+
+func (r *ResourceManager) ListRunsV2(pageToken string, pageSize int, sortByFieldName string, isDesc bool) (runs []model.Run, nextPageToken string, err error) {
+	return r.runStore.ListRuns(nil, pageToken, pageSize, sortByFieldName, isDesc)
 }
 
 func (r *ResourceManager) ListRuns(jobId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) (runs []model.Run, nextPageToken string, err error) {
@@ -168,7 +168,7 @@ func (r *ResourceManager) ListRuns(jobId string, pageToken string, pageSize int,
 	if err != nil {
 		return nil, "", util.Wrap(err, "List runs failed")
 	}
-	return r.runStore.ListRuns(jobId, pageToken, pageSize, sortByFieldName, isDesc)
+	return r.runStore.ListRuns(util.StringPointer(jobId), pageToken, pageSize, sortByFieldName, isDesc)
 }
 
 func (r *ResourceManager) ListJobs(pageToken string, pageSize int, sortByFieldName string, isDesc bool) (jobs []model.Job, nextPageToken string, err error) {

@@ -7,19 +7,20 @@ import (
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 )
 
-var runModelFieldsBySortableAPIFields = map[string]string{
-	// Sort by CreatedAtInSec by default
-	"":           "CreatedAtInSec",
-	"name":       "Name",
-	"created_at": "CreatedAtInSec",
-}
-
 type RunServer struct {
 	resourceManager *resource.ResourceManager
 }
 
+func (s *RunServer) GetRunV2(ctx context.Context, request *api.GetRunV2Request) (*api.RunDetail, error) {
+	run, err := s.resourceManager.GetRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return ToApiRunDetail(run), nil
+}
+
 func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*api.RunDetail, error) {
-	run, err := s.resourceManager.GetRun(request.JobId, request.RunId)
+	run, err := s.resourceManager.GetRun(request.RunId)
 	if err != nil {
 		return nil, err
 	}
@@ -31,8 +32,7 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	if err != nil {
 		return nil, err
 	}
-	runs, nextPageToken, err := s.resourceManager.ListRuns(
-		request.JobId, request.PageToken, int(request.PageSize), sortByModelField, isDesc)
+	runs, nextPageToken, err := s.resourceManager.ListRunsV2(request.PageToken, int(request.PageSize), sortByModelField, isDesc)
 	if err != nil {
 		return nil, err
 	}

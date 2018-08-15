@@ -165,6 +165,34 @@ func (a *Client) GetJob(params *GetJobParams) (*GetJobOK, error) {
 }
 
 /*
+ListJobRuns list job runs API
+*/
+func (a *Client) ListJobRuns(params *ListJobRunsParams) (*ListJobRunsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListJobRunsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListJobRuns",
+		Method:             "GET",
+		PathPattern:        "/apis/v1alpha2/jobs/{job_id}/runs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ListJobRunsReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListJobRunsOK), nil
+
+}
+
+/*
 ListJobs list jobs API
 */
 func (a *Client) ListJobs(params *ListJobsParams) (*ListJobsOK, error) {

@@ -16,6 +16,9 @@
 
 set -xe
 
+# K8s Namespace that all resources deployed to
+NAMESPACE=default
+
 usage()
 {
     echo "usage: run_test.sh

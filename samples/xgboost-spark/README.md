@@ -1,5 +1,5 @@
 ## The requirements:
-* Preprocessing uses Google Cloud DataFlow. So [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project.
+* Preprocessing uses Google Cloud DataFlow. So the [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project.
 
 ## Compile
 Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 

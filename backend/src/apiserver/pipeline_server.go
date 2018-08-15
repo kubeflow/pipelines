@@ -22,14 +22,6 @@ import (
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 )
 
-var pipelineModelFieldsBySortableAPIFields = map[string]string{
-	// Sort by CreatedAtInSec by default
-	"":           "CreatedAtInSec",
-	"id":         "UUID",
-	"name":       "Name",
-	"created_at": "CreatedAtInSec",
-}
-
 type PipelineServer struct {
 	resourceManager *resource.ResourceManager
 }

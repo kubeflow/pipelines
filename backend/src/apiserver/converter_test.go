@@ -62,6 +62,7 @@ func TestToApiRunDetail(t *testing.T) {
 			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
 			Status:      "running",
+			JobId:       "job123",
 		},
 		Workflow: "workflow123",
 	}
@@ -96,6 +97,7 @@ func TestToApiRuns(t *testing.T) {
 			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
 			Status:      "running",
+			JobId:       "job1",
 		},
 		{
 			Id:          "run2",
@@ -104,6 +106,7 @@ func TestToApiRuns(t *testing.T) {
 			CreatedAt:   &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 2},
 			Status:      "done",
+			JobId:       "job2",
 		},
 	}
 	assert.Equal(t, expectedApiRun, apiRuns)

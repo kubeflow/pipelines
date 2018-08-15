@@ -48,6 +48,7 @@
           },
           {
             "name": "sort_by",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
             "in": "query",
             "required": false,
             "type": "string"
@@ -205,6 +206,56 @@
           "JobService"
         ]
       }
+    },
+    "/apis/v1alpha2/jobs/{job_id}/runs": {
+      "get": {
+        "operationId": "ListJobRuns",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiListJobRunsResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page_token",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -274,6 +325,20 @@
         }
       }
     },
+    "apiListJobRunsResponse": {
+      "type": "object",
+      "properties": {
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiRun"
+          }
+        },
+        "next_page_token": {
+          "type": "string"
+        }
+      }
+    },
     "apiListJobsResponse": {
       "type": "object",
       "properties": {
@@ -313,6 +378,38 @@
         "interval_second": {
           "type": "string",
           "format": "int64"
+        }
+      }
+    },
+    "apiRun": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scheduled_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string"
+        },
+        "job_id": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a run field, only run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
         }
       }
     },

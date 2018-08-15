@@ -87,7 +87,7 @@ ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} -p commit-sha="${PULL_
 echo argo workflow submitted successfully
 
 echo "check status of argo workflow $ARGO_WORKFLOW...."
-# probing the argo workflow status until it completed. Timeout after 20 minutes
+# probing the argo workflow status until it completed. Timeout after 30 minutes
 for i in $(seq 1 ${PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT})
 do
   WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW --show-labels`

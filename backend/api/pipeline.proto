@@ -55,6 +55,8 @@ message GetPipelineRequest {
 message ListPipelinesRequest {
   string page_token = 1;
   int32 page_size = 2;
+  // Can be format of "field_name", "field_name asc" or "field_name des"
+  // Ascending by default.
   string sort_by = 3;
 }
 

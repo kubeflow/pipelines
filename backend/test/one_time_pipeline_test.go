@@ -144,9 +144,9 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 	time.Sleep(40 * time.Second)
 
 	/* ---------- Verify list run works ---------- */
-	listRunsResponse, err := s.runClient.ListRuns(ctx, &api.ListRunsRequest{JobId: jobId})
-	checkListRunsResponse(t, listRunsResponse, err, requestStartTime)
-	runId := listRunsResponse.Runs[0].Id
+	listJobRunsResponse, err := s.jobClient.ListJobRuns(ctx, &api.ListJobRunsRequest{JobId: jobId})
+	checkListRunsResponse(t, listJobRunsResponse, err, jobId)
+	runId := listJobRunsResponse.Runs[0].Id
 
 	/* ---------- Verify run complete successfully ---------- */
 	err = s.checkRunSucceed(clientSet, s.namespace, jobId, runId)
@@ -155,8 +155,8 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 	}
 
 	/* ---------- Verify get run works ---------- */
-	getRunResponse, err := s.runClient.GetRun(ctx, &api.GetRunRequest{JobId: jobId, RunId: runId})
-	checkGetRunResponse(t, getRunResponse, err, requestStartTime)
+	getRunResponse, err := s.runClient.GetRun(ctx, &api.GetRunRequest{RunId: runId})
+	checkGetRunResponse(t, getRunResponse, err, jobId)
 
 	/* ---------- Verify delete job works ---------- */
 	_, err = s.jobClient.DeleteJob(ctx, &api.DeleteJobRequest{Id: jobId})
@@ -167,7 +167,7 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 	checkNoJobExists(t, listPipResponse, err)
 
 	/* ---------- Verify can't retrieve the run ---------- */
-	_, err = s.runClient.GetRun(ctx, &api.GetRunRequest{JobId: jobId, RunId: runId})
+	_, err = s.runClient.GetRun(ctx, &api.GetRunRequest{RunId: runId})
 	assert.NotNil(t, err)
 
 	/* ---------- Verify delete pipeline works ---------- */
@@ -183,7 +183,7 @@ func (s *OneTimeJobTestSuite) checkRunSucceed(clientSet *kubernetes.Clientset, n
 	var waitForRunSucceed = func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		getRunResponse, err := s.runClient.GetRun(ctx, &api.GetRunRequest{JobId: jobId, RunId: runId})
+		getRunResponse, err := s.runClient.GetRun(ctx, &api.GetRunRequest{RunId: runId})
 		if err != nil {
 			return errors.New("Can't get run.")
 		}
@@ -264,16 +264,16 @@ func checkGetJobResponse(t *testing.T, response *api.Job, err error, requestStar
 	verifyJob(t, response, requestStartTime, expectPipelineId)
 }
 
-func checkListRunsResponse(t *testing.T, response *api.ListRunsResponse, err error, requestStartTime int64) {
+func checkListRunsResponse(t *testing.T, response *api.ListJobRunsResponse, err error, jobId string) {
 	assert.Nil(t, err)
 	assert.NotNil(t, response)
 	assert.Equal(t, 1, len(response.Runs))
-	verifyRun(t, response.Runs[0], requestStartTime)
+	assert.Equal(t, jobId, response.Runs[0].JobId)
 }
 
-func checkGetRunResponse(t *testing.T, response *api.RunDetail, err error, requestStartTime int64) {
+func checkGetRunResponse(t *testing.T, response *api.RunDetail, err error, jobId string) {
 	assert.Nil(t, err)
-	verifyRun(t, response.Run, requestStartTime)
+	assert.Equal(t, jobId, response.Run.JobId)
 
 	// The Argo workflow might not be created. Only verify if it's created.
 	if response.Workflow != "" {
@@ -323,12 +323,6 @@ func verifyJob(t *testing.T, job *api.Job, requestStartTime int64, expectedPipel
 		Trigger: &api.Trigger{},
 	}
 	assert.Equal(t, expected, *job)
-}
-
-func verifyRun(t *testing.T, actual *api.Run, requestStartTime int64) {
-	// Only verify the time fields have valid value and in the right range.
-	assert.True(t, actual.CreatedAt.Seconds >= requestStartTime)
-	assert.True(t, actual.ScheduledAt.Seconds >= requestStartTime)
 }
 
 func TestOneTimeJob(t *testing.T) {

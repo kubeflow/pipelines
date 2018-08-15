@@ -52,7 +52,7 @@ func (s *PipelineStore) ListPipelines(pageToken string, pageSize int, sortByFiel
 
 func (s *PipelineStore) queryPipelineTable(context *PaginationContext) ([]model.ListableDataModel, error) {
 	var query bytes.Buffer
-	query.WriteString(fmt.Sprintf("SELECT * FROM pipelines WHERE Status = '%v'", model.PipelineReady))
+	query.WriteString(fmt.Sprintf("SELECT * FROM pipelines WHERE Status = '%v' ", model.PipelineReady))
 	toPaginationQuery("AND", &query, context)
 	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
 	r, err := s.db.Query(query.String())
@@ -155,20 +155,20 @@ func (s *PipelineStore) UpdatePipelineStatus(id string, status model.PipelineSta
 	return nil
 }
 
-func (s *PipelineStore) toListablePipelines(pkgs []model.Pipeline) []model.ListableDataModel {
-	models := make([]model.ListableDataModel, len(pkgs))
+func (s *PipelineStore) toListablePipelines(pipelines []model.Pipeline) []model.ListableDataModel {
+	models := make([]model.ListableDataModel, len(pipelines))
 	for i := range models {
-		models[i] = pkgs[i]
+		models[i] = pipelines[i]
 	}
 	return models
 }
 
 func (s *PipelineStore) toPipelines(models []model.ListableDataModel) []model.Pipeline {
-	pkgs := make([]model.Pipeline, len(models))
+	pipelines := make([]model.Pipeline, len(models))
 	for i := range models {
-		pkgs[i] = models[i].(model.Pipeline)
+		pipelines[i] = models[i].(model.Pipeline)
 	}
-	return pkgs
+	return pipelines
 }
 
 // factory function for pipeline store

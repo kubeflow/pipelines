@@ -11,8 +11,9 @@ import (
 )
 
 type RunStoreInterface interface {
-	GetRun(jobId string, runId string) (*model.RunDetail, error)
-	ListRuns(jobId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Run, string, error)
+	GetRun(runId string) (*model.RunDetail, error)
+	// TODO(yangpa) support filtering and remove (jobId *string) parameter.
+	ListRuns(jobId *string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Run, string, error)
 	CreateOrUpdateRun(workflow *util.Workflow) (err error)
 }
 
@@ -22,7 +23,7 @@ type RunStore struct {
 }
 
 // ListRuns list the run metadata for a job from DB
-func (s *RunStore) ListRuns(jobId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Run, string, error) {
+func (s *RunStore) ListRuns(jobId *string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Run, string, error) {
 	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetRunTablePrimaryKeyColumn(), isDesc)
 	if err != nil {
 		return nil, "", err
@@ -37,10 +38,15 @@ func (s *RunStore) ListRuns(jobId string, pageToken string, pageSize int, sortBy
 	return s.toRunMetadatas(models), pageToken, err
 }
 
-func (s *RunStore) queryRunTable(jobId string, context *PaginationContext) ([]model.ListableDataModel, error) {
+func (s *RunStore) queryRunTable(jobId *string, context *PaginationContext) ([]model.ListableDataModel, error) {
 	var query bytes.Buffer
-	query.WriteString(fmt.Sprintf("SELECT * FROM run_details WHERE JobID = '%s'", jobId))
-	toPaginationQuery("AND", &query, context)
+	query.WriteString("SELECT * FROM run_details ")
+	if jobId != nil {
+		query.WriteString("WHERE " + fmt.Sprintf("JobID = '%s' ", *jobId))
+		toPaginationQuery("AND", &query, context)
+	} else {
+		toPaginationQuery("WHERE", &query, context)
+	}
 	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
 	r, err := s.db.Query(query.String())
 	if err != nil {
@@ -56,8 +62,8 @@ func (s *RunStore) queryRunTable(jobId string, context *PaginationContext) ([]mo
 }
 
 // GetRun Get the run manifest from Workflow CRD
-func (s *RunStore) GetRun(jobId string, runId string) (*model.RunDetail, error) {
-	r, err := s.db.Query(`SELECT * FROM run_details WHERE JobId=? AND uuid=? LIMIT 1`, jobId, runId)
+func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
+	r, err := s.db.Query(`SELECT * FROM run_details WHERE uuid=? LIMIT 1`, runId)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}

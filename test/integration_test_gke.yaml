@@ -24,9 +24,6 @@ spec:
       value: api_integration_test
     - name: e2e-tests-image-suffix
       value: e2e-tests
-    - name: wait-ml-pipeline-ready-image-suffix
-      value: wait_mlp_ready
-  onExit: clean-up
   templates:
   - name: integration-test
     inputs:
@@ -39,10 +36,7 @@ spec:
       - name: persistenceagent-image-suffix
       - name: api-integration-test-image-suffix
       - name: e2e-tests-image-suffix
-      - name: wait-ml-pipeline-ready-image-suffix
     steps:
-    - - name: create-namespace
-        template: create-namespace
     - - name: get-project
         template: get-project
     - - name: build-bootstrapper-image
@@ -133,18 +127,6 @@ spec:
             value: test/e2e
           - name: image-suffix
             value: "{{inputs.parameters.e2e-tests-image-suffix}}"
-      - name: build-wait-ml-pipeline-ready-image
-        template: build-image
-        arguments:
-          parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: docker-path
-            value: test/wait-ml-pipeline-ready
-          - name: image-suffix
-            value: "{{inputs.parameters.wait-ml-pipeline-ready-image-suffix}}"
     - - name: deploy-ml-pipeline
         template: deploy-ml-pipeline
         arguments:
@@ -163,16 +145,6 @@ spec:
             value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
           - name: persistenceagent-image-suffix
             value: "{{inputs.parameters.persistenceagent-image-suffix}}"
-    - - name: wait-ml-pipeline-ready
-        template: wait-ml-pipeline-ready
-        arguments:
-          parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: wait-ml-pipeline-ready-image-suffix
-            value: "{{inputs.parameters.wait-ml-pipeline-ready-image-suffix}}"
     - - name: run-api-integration-tests
         template: run-api-integration-tests
         arguments:
@@ -200,12 +172,6 @@ spec:
       command: [bash]
       source: |
         gcloud config config-helper --format "value(configuration.properties.core.project)"
-
-  - name: create-namespace
-    container:
-      image: gcr.io/ml-pipeline/bootstrapper
-      command: [kubectl]
-      args: ["create", "ns", "{{workflow.name}}"]
 
   # Build image and upload to GCR in the specified project
   - name: build-image
@@ -259,23 +225,12 @@ spec:
     container:
       image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.bootstrapper-image-suffix}}
       args: [
-        "--namespace", "{{workflow.name}}",
         "--api_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-image-suffix}}",
         "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-image-suffix}}",
         "--scheduled_workflow_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.scheduledworkflow-image-suffix}}",
         "--persistence_agent_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.persistenceagent-image-suffix}}",
         "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
       ]
-
-  - name: wait-ml-pipeline-ready
-    inputs:
-      parameters:
-      - name: project
-      - name: commit-sha
-      - name: wait-ml-pipeline-ready-image-suffix
-    container:
-      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.wait-ml-pipeline-ready-image-suffix}}
-      args: ["--namespace", "{{workflow.name}}"]
 
   - name: run-api-integration-tests
     inputs:
@@ -286,7 +241,6 @@ spec:
     container:
       image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-integration-test-image-suffix}}
       args: [
-        "--namespace", "{{workflow.name}}",
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
       volumeMounts:
@@ -302,24 +256,8 @@ spec:
     container:
       image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.e2e-tests-image-suffix}}
       args: [
-        "--namespace", "{{workflow.name}}",
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
-
-  - name: clean-up
-    inputs:
-      parameters:
-      - name: cleanup
-    steps:
-    - - name: delete-namespace
-        template: delete-namespace
-        when: "{{inputs.parameters.cleanup}} == true"
-
-  - name: delete-namespace
-    container:
-      image: gcr.io/ml-pipeline/bootstrapper
-      command: [kubectl]
-      args: ["delete", "ns", "{{workflow.name}}"]
 
   volumes:
   - name: secret-volume

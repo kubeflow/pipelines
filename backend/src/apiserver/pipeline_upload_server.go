@@ -40,24 +40,24 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	defer file.Close()
 
 	// Read file to byte array
-	pkgFile, err := ioutil.ReadAll(file)
+	pipelineFile, err := ioutil.ReadAll(file)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline bytes"))
 		return
 	}
 
-	newPkg, err := s.resourceManager.CreatePipeline(header.Filename, pkgFile)
+	newPipeline, err := s.resourceManager.CreatePipeline(header.Filename, pipelineFile)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
-	apiPkg := ToApiPipeline(newPkg)
-	pkgJson, err := json.Marshal(apiPkg)
+	apiPipeline := ToApiPipeline(newPipeline)
+	pipelineJson, err := json.Marshal(apiPipeline)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
-	w.Write(pkgJson)
+	w.Write(pipelineJson)
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {

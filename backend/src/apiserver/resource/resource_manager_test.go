@@ -30,7 +30,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -64,8 +63,8 @@ func TestCreatePipeline(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	pkg, err := manager.CreatePipeline("pipeline1", []byte(""))
-	pkgExpected := &model.Pipeline{
+	pipeline, err := manager.CreatePipeline("pipeline1", []byte(""))
+	pipelineExpected := &model.Pipeline{
 		UUID:           DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pipeline1",
@@ -73,7 +72,7 @@ func TestCreatePipeline(t *testing.T) {
 		Status:         model.PipelineReady,
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, pkgExpected, pkg)
+	assert.Equal(t, pipelineExpected, pipeline)
 }
 
 func TestCreatePipeline_GetParametersError(t *testing.T) {
@@ -105,19 +104,19 @@ func TestCreatePipeline_CreatePipelineFileError(t *testing.T) {
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "bad object store")
 	// Verify there is a pipeline in DB with status PipelineCreating.
-	pkg, err := manager.pipelineStore.GetPipelineWithStatus(DefaultFakeUUID, model.PipelineCreating)
+	pipeline, err := manager.pipelineStore.GetPipelineWithStatus(DefaultFakeUUID, model.PipelineCreating)
 	assert.Nil(t, err)
-	assert.NotNil(t, pkg)
+	assert.NotNil(t, pipeline)
 }
 
 func TestGetPipelineTemplate(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	pkg, _ := store.PipelineStore().CreatePipeline(createPipeline("pkg1"))
+	pipeline, _ := store.PipelineStore().CreatePipeline(createPipeline("pipeline1"))
 	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.JobFolder, fmt.Sprint(pkg.UUID))
+	store.ObjectStore().AddFile(template, storage.JobFolder, fmt.Sprint(pipeline.UUID))
 	manager := NewResourceManager(store)
-	actualTemplate, err := manager.GetPipelineTemplate(pkg.UUID)
+	actualTemplate, err := manager.GetPipelineTemplate(pipeline.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, template, actualTemplate)
 }
@@ -136,9 +135,9 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
-	pkg, _ := store.PipelineStore().CreatePipeline(createPipeline("pkg1"))
+	pipeline, _ := store.PipelineStore().CreatePipeline(createPipeline("pipeline1"))
 	manager := NewResourceManager(store)
-	_, err := manager.GetPipelineTemplate(pkg.UUID)
+	_, err := manager.GetPipelineTemplate(pipeline.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "object not found")
 }
@@ -161,12 +160,12 @@ func TestListRun(t *testing.T) {
 	_, err := manager.jobStore.CreateJob(job1)
 	assert.Nil(t, err)
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: v1.ObjectMeta{
 			Name:              "run1",
 			Namespace:         "n1",
 			UID:               "1",
-			CreationTimestamp: metav1.Time{Time: time.Unix(1, 0)},
-			OwnerReferences: []metav1.OwnerReference{{
+			CreationTimestamp: v1.Time{Time: time.Unix(1, 0)},
+			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1alpha1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
@@ -215,12 +214,12 @@ func TestGetRun(t *testing.T) {
 	_, err := manager.jobStore.CreateJob(job1)
 	assert.Nil(t, err)
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: v1.ObjectMeta{
 			Name:              "run1",
 			Namespace:         "n1",
 			UID:               "1",
-			CreationTimestamp: metav1.Time{Time: time.Unix(1, 0)},
-			OwnerReferences: []metav1.OwnerReference{{
+			CreationTimestamp: v1.Time{Time: time.Unix(1, 0)},
+			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1alpha1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
@@ -229,7 +228,7 @@ func TestGetRun(t *testing.T) {
 		},
 	})
 	err = manager.runStore.CreateOrUpdateRun(workflow)
-	run, err := manager.GetRun("1", "1")
+	run, err := manager.GetRun("1")
 	workflowBytes, _ := json.Marshal(workflow)
 	runExpected := &model.RunDetail{
 		Run: model.Run{
@@ -244,15 +243,6 @@ func TestGetRun(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, runExpected, run)
-}
-
-func TestGetRun_JobNotFoundError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	_, err := manager.GetRun("1", "foo")
-	assert.Contains(t, err.Error(), "Job 1 not found")
 }
 
 func TestCreateJob(t *testing.T) {
@@ -503,7 +493,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 	err = manager.ReportWorkflowResource(workflow.ToStringForStore())
 	assert.Nil(t, err)
 
-	runDetail, err := manager.GetRun(newJob.UUID, "MY_JOB_ID")
+	runDetail, err := manager.GetRun("MY_JOB_ID")
 	assert.Nil(t, err)
 
 	expectedRunDetail := &model.RunDetail{

@@ -53,6 +53,34 @@ func (a *Client) GetRun(params *GetRunParams) (*GetRunOK, error) {
 }
 
 /*
+GetRunV2 get run v2 API
+*/
+func (a *Client) GetRunV2(params *GetRunV2Params) (*GetRunV2OK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewGetRunV2Params()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetRunV2",
+		Method:             "GET",
+		PathPattern:        "/apis/v1alpha2/runs/{run_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetRunV2Reader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetRunV2OK), nil
+
+}
+
+/*
 ListRuns list runs API
 */
 func (a *Client) ListRuns(params *ListRunsParams) (*ListRunsOK, error) {
@@ -64,7 +92,7 @@ func (a *Client) ListRuns(params *ListRunsParams) (*ListRunsOK, error) {
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListRuns",
 		Method:             "GET",
-		PathPattern:        "/apis/v1alpha2/jobs/{job_id}/runs",
+		PathPattern:        "/apis/v1alpha2/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

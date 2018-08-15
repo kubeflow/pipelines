@@ -67,7 +67,11 @@ type ListPipelinesParams struct {
 	PageSize *int32
 	/*PageToken*/
 	PageToken *string
-	/*SortBy*/
+	/*SortBy
+	  Can be format of "field_name", "field_name asc" or "field_name des"
+	Ascending by default.
+
+	*/
 	SortBy *string
 
 	timeout    time.Duration

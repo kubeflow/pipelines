@@ -60,12 +60,12 @@ func TestListRuns_Pagination(t *testing.T) {
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
 		}}
-	runs, nextPageToken, err := runStore.ListRuns("1", "", 1, model.GetRunTablePrimaryKeyColumn(), false)
+	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), "", 1, model.GetRunTablePrimaryKeyColumn(), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
-	runs, nextPageToken, err = runStore.ListRuns("1", nextPageToken, 1, model.GetRunTablePrimaryKeyColumn(), false)
+	runs, nextPageToken, err = runStore.ListRuns(util.StringPointer("1"), nextPageToken, 1, model.GetRunTablePrimaryKeyColumn(), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -97,12 +97,12 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
 		}}
-	runs, nextPageToken, err := runStore.ListRuns("1", "", 1, model.GetRunTablePrimaryKeyColumn(), true)
+	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), "", 1, model.GetRunTablePrimaryKeyColumn(), true)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
-	runs, nextPageToken, err = runStore.ListRuns("1", nextPageToken, 1, model.GetRunTablePrimaryKeyColumn(), true)
+	runs, nextPageToken, err = runStore.ListRuns(util.StringPointer("1"), nextPageToken, 1, model.GetRunTablePrimaryKeyColumn(), true)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -133,7 +133,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
 		}}
-	runs, nextPageToken, err := runStore.ListRuns("1", "", 10, model.GetRunTablePrimaryKeyColumn(), false)
+	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), "", 10, model.GetRunTablePrimaryKeyColumn(), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -146,7 +146,7 @@ func TestListRunsError(t *testing.T) {
 	initializePrepopulatedDB(runStore)
 
 	db.Close()
-	_, _, err := runStore.ListRuns("1", "", 10, model.GetRunTablePrimaryKeyColumn(), false)
+	_, _, err := runStore.ListRuns(util.StringPointer("1"), "", 10, model.GetRunTablePrimaryKeyColumn(), false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }
@@ -170,7 +170,7 @@ func TestGetRun(t *testing.T) {
 		Workflow: "workflow1",
 	}
 
-	runDetail, err := runStore.GetRun("1", "1")
+	runDetail, err := runStore.GetRun("1")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun, runDetail)
 }
@@ -181,7 +181,7 @@ func TestGetRun_NotFoundError(t *testing.T) {
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
-	_, err := runStore.GetRun("1", "notfound")
+	_, err := runStore.GetRun("notfound")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(),
 		"Expected not to find the run")
 }
@@ -193,7 +193,7 @@ func TestGetRun_InternalError(t *testing.T) {
 	initializePrepopulatedDB(runStore)
 	db.Close()
 
-	_, err := runStore.GetRun("1", "1")
+	_, err := runStore.GetRun("1")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get run to return internal error")
 }
@@ -217,7 +217,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 		Workflow: "workflow1",
 	}
 
-	runDetail, err := runStore.GetRun("1", "1")
+	runDetail, err := runStore.GetRun("1")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun, runDetail)
 
@@ -258,7 +258,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 		Workflow: workflow.ToStringForStore(),
 	}
 
-	runDetail, err = runStore.GetRun("1", "1")
+	runDetail, err = runStore.GetRun("1")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun, runDetail)
 }
@@ -270,7 +270,7 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 	initializePrepopulatedDB(runStore)
 
 	// Checking that the run is not yet in the DB
-	runDetail, err := runStore.GetRun("3000", "2000")
+	runDetail, err := runStore.GetRun("2000")
 	assert.NotNil(t, err)
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
@@ -310,7 +310,7 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 		Workflow: workflow.ToStringForStore(),
 	}
 
-	runDetail, err = runStore.GetRun("3000", "2000")
+	runDetail, err = runStore.GetRun("2000")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun, runDetail)
 }
@@ -384,7 +384,7 @@ func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 		Workflow: workflow.ToStringForStore(),
 	}
 
-	runDetail, err := runStore.GetRun("1", "1")
+	runDetail, err := runStore.GetRun("1")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun, runDetail)
 }

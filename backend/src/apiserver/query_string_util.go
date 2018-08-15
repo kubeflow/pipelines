@@ -6,6 +6,30 @@ import (
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
+var pipelineModelFieldsBySortableAPIFields = map[string]string{
+	// Sort by CreatedAtInSec by default
+	"":           "CreatedAtInSec",
+	"id":         "UUID",
+	"name":       "Name",
+	"created_at": "CreatedAtInSec",
+}
+
+var jobModelFieldsBySortableAPIFields = map[string]string{
+	// Sort by CreatedAtInSec by default
+	"":           "CreatedAtInSec",
+	"id":         "UUID",
+	"name":       "Name",
+	"created_at": "CreatedAtInSec",
+	"package_id": "PipelineId",
+}
+
+var runModelFieldsBySortableAPIFields = map[string]string{
+	// Sort by CreatedAtInSec by default
+	"":           "CreatedAtInSec",
+	"name":       "Name",
+	"created_at": "CreatedAtInSec",
+}
+
 func parseSortByQueryString(queryString string, modelFieldByApiFieldMapping map[string]string) (string, bool, error) {
 	// ignore the case of the letter. Split query string by space
 	queryList := strings.Fields(strings.ToLower(queryString))

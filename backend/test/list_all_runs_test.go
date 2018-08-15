@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-type PaginationTestSuit struct {
+type ListAllRunsTestSuit struct {
 	suite.Suite
 	namespace      string
 	conn           *grpc.ClientConn
@@ -23,7 +23,7 @@ type PaginationTestSuit struct {
 }
 
 // Check the namespace have ML job installed and ready
-func (s *PaginationTestSuit) SetupTest() {
+func (s *ListAllRunsTestSuit) SetupTest() {
 	err := waitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exit("Failed to initialize test. Error: %s", err.Error())
@@ -38,11 +38,11 @@ func (s *PaginationTestSuit) SetupTest() {
 	s.runClient = api.NewRunServiceClient(s.conn)
 }
 
-func (s *PaginationTestSuit) TearDownTest() {
+func (s *ListAllRunsTestSuit) TearDownTest() {
 	s.conn.Close()
 }
 
-func (s *PaginationTestSuit) TestPagination_E2E() {
+func (s *ListAllRunsTestSuit) TestListAllRuns() {
 	t := s.T()
 	clientSet, err := getKubernetesClient()
 	if err != nil {
@@ -91,25 +91,6 @@ func (s *PaginationTestSuit) TestPagination_E2E() {
 	helloWorldPipelineId := listFirstPagePipelineResponse.Pipelines[1].Id
 	loopsPipelineId := listSecondPagePipelineResponse.Pipelines[0].Id
 
-	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
-	_, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "description"})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "InvalidArgument")
-
-	/* ---------- List pipelines sorted by names descend order ---------- */
-	listFirstPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "name desc"})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
-	assert.Equal(t, "loops.yaml", listFirstPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "hello-world.yaml", listFirstPagePipelineResponse.Pipelines[1].Name)
-	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
-
-	listSecondPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "name desc"})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(listSecondPagePipelineResponse.Pipelines))
-	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelineResponse.Pipelines[0].Name)
-	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
-
 	/* ---------- Instantiate 3 job using the pipelines ---------- */
 	loopsJob := &api.Job{
 		Name:       "loops",
@@ -132,46 +113,27 @@ func (s *PaginationTestSuit) TestPagination_E2E() {
 
 	helloWorldJob := &api.Job{
 		Name:       "hello-world",
-		Enabled:    true,
 		PipelineId: helloWorldPipelineId,
+		Enabled:    true,
 	}
 	helloWorldJob, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: helloWorldJob})
 	assert.Nil(t, err)
 
-	/* ---------- List jobs sorted by names ---------- */
-	listFirstPageJobResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageSize: 2, SortBy: "created_at"})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPageJobResponse.Jobs))
-	assert.Equal(t, "loops", listFirstPageJobResponse.Jobs[0].Name)
-	assert.Equal(t, "arguments-parameters", listFirstPageJobResponse.Jobs[1].Name)
-	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
+	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
+	// This could take a few seconds to finish.
+	// TODO: Retry list run every 5 seconds instead of sleeping for 40 seconds.
+	time.Sleep(40 * time.Second)
 
-	listSecondPageJobResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageToken: listFirstPageJobResponse.NextPageToken, PageSize: 2, SortBy: "created_at"})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(listSecondPageJobResponse.Jobs))
-	assert.Equal(t, "hello-world", listSecondPageJobResponse.Jobs[0].Name)
-	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
+	/* ---------- Verify three runs listed ---------- */
+	listRunsResponse, err := s.runClient.ListRuns(ctx, &api.ListRunsRequest{})
+	assert.Equal(t, 3, len(listRunsResponse.Runs))
 
-	/* ---------- List jobs sort by unsupported description field. Should fail. ---------- */
-	_, err = s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageSize: 2, SortBy: "description"})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "InvalidArgument")
-
-	/* ---------- List jobs sorted by names ---------- */
-	listFirstPageJobResponse, err = s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageSize: 2, SortBy: "created_at desc"})
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPageJobResponse.Jobs))
-	assert.Equal(t, "hello-world", listFirstPageJobResponse.Jobs[0].Name)
-	assert.Equal(t, "arguments-parameters", listFirstPageJobResponse.Jobs[1].Name)
-	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
-
-	listSecondPageJobResponse, err = s.jobClient.ListJobs(ctx, &api.ListJobsRequest{PageToken: listFirstPageJobResponse.NextPageToken, PageSize: 2, SortBy: "created_at desc"})
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(listSecondPageJobResponse.Jobs))
-	assert.Equal(t, "loops", listSecondPageJobResponse.Jobs[0].Name)
-	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
-
-	// TODO(https://github.com/googleprivate/ml/issues/473): Add tests for list runs.
+	pipelineIds := []string{argumentsParametersJob.Id, helloWorldJob.Id, loopsJob.Id}
+	// Assert the each job has one run associated with it
+	assert.ElementsMatch(t, pipelineIds, []string{
+		listRunsResponse.Runs[0].JobId,
+		listRunsResponse.Runs[1].JobId,
+		listRunsResponse.Runs[2].JobId})
 
 	/* ---------- Clean up ---------- */
 	_, err = s.jobClient.DeleteJob(ctx, &api.DeleteJobRequest{Id: argumentsParametersJob.Id})
@@ -187,9 +149,8 @@ func (s *PaginationTestSuit) TestPagination_E2E() {
 	assert.Nil(t, err)
 	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: loopsPipelineId})
 	assert.Nil(t, err)
-
 }
 
-func TestPagination(t *testing.T) {
-	suite.Run(t, new(PaginationTestSuit))
+func TestListAllRuns(t *testing.T) {
+	suite.Run(t, new(ListAllRunsTestSuit))
 }

@@ -8,15 +8,6 @@ import (
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 )
 
-var jobModelFieldsBySortableAPIFields = map[string]string{
-	// Sort by CreatedAtInSec by default
-	"":           "CreatedAtInSec",
-	"id":         "UUID",
-	"name":       "Name",
-	"created_at": "CreatedAtInSec",
-	"package_id": "PipelineId",
-}
-
 type JobServer struct {
 	resourceManager *resource.ResourceManager
 }
@@ -55,6 +46,19 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 		return nil, err
 	}
 	return &api.ListJobsResponse{Jobs: apiJobs, NextPageToken: nextPageToken}, nil
+}
+
+func (s *JobServer) ListJobRuns(ctx context.Context, request *api.ListJobRunsRequest) (*api.ListJobRunsResponse, error) {
+	sortByModelField, isDesc, err := parseSortByQueryString(request.SortBy, runModelFieldsBySortableAPIFields)
+	if err != nil {
+		return nil, err
+	}
+	runs, nextPageToken, err := s.resourceManager.ListRuns(
+		request.JobId, request.PageToken, int(request.PageSize), sortByModelField, isDesc)
+	if err != nil {
+		return nil, err
+	}
+	return &api.ListJobRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {

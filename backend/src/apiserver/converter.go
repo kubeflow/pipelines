@@ -97,6 +97,7 @@ func toApiRun(run *model.Run) *api.Run {
 		CreatedAt:   &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
 		ScheduledAt: &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
 		Status:      run.Conditions,
+		JobId:       run.JobID,
 	}
 }
 

@@ -38,7 +38,7 @@ func (m *GetPipelineRequest) Reset()         { *m = GetPipelineRequest{} }
 func (m *GetPipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*GetPipelineRequest) ProtoMessage()    {}
 func (*GetPipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_3f5d6b0f10ce7196, []int{0}
+	return fileDescriptor_pipeline_f9e0b1a0bad70202, []int{0}
 }
 func (m *GetPipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetPipelineRequest.Unmarshal(m, b)
@@ -66,8 +66,10 @@ func (m *GetPipelineRequest) GetId() string {
 }
 
 type ListPipelinesRequest struct {
-	PageToken            string   `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize             int32    `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize  int32  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// Can be format of "field_name", "field_name asc" or "field_name des"
+	// Ascending by default.
 	SortBy               string   `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -78,7 +80,7 @@ func (m *ListPipelinesRequest) Reset()         { *m = ListPipelinesRequest{} }
 func (m *ListPipelinesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesRequest) ProtoMessage()    {}
 func (*ListPipelinesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_3f5d6b0f10ce7196, []int{1}
+	return fileDescriptor_pipeline_f9e0b1a0bad70202, []int{1}
 }
 func (m *ListPipelinesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesRequest.Unmarshal(m, b)
@@ -131,7 +133,7 @@ func (m *ListPipelinesResponse) Reset()         { *m = ListPipelinesResponse{} }
 func (m *ListPipelinesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesResponse) ProtoMessage()    {}
 func (*ListPipelinesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_3f5d6b0f10ce7196, []int{2}
+	return fileDescriptor_pipeline_f9e0b1a0bad70202, []int{2}
 }
 func (m *ListPipelinesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesResponse.Unmarshal(m, b)
@@ -176,7 +178,7 @@ func (m *DeletePipelineRequest) Reset()         { *m = DeletePipelineRequest{} }
 func (m *DeletePipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*DeletePipelineRequest) ProtoMessage()    {}
 func (*DeletePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_3f5d6b0f10ce7196, []int{3}
+	return fileDescriptor_pipeline_f9e0b1a0bad70202, []int{3}
 }
 func (m *DeletePipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePipelineRequest.Unmarshal(m, b)
@@ -214,7 +216,7 @@ func (m *GetTemplateRequest) Reset()         { *m = GetTemplateRequest{} }
 func (m *GetTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTemplateRequest) ProtoMessage()    {}
 func (*GetTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_3f5d6b0f10ce7196, []int{4}
+	return fileDescriptor_pipeline_f9e0b1a0bad70202, []int{4}
 }
 func (m *GetTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTemplateRequest.Unmarshal(m, b)
@@ -252,7 +254,7 @@ func (m *GetTemplateResponse) Reset()         { *m = GetTemplateResponse{} }
 func (m *GetTemplateResponse) String() string { return proto.CompactTextString(m) }
 func (*GetTemplateResponse) ProtoMessage()    {}
 func (*GetTemplateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_3f5d6b0f10ce7196, []int{5}
+	return fileDescriptor_pipeline_f9e0b1a0bad70202, []int{5}
 }
 func (m *GetTemplateResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTemplateResponse.Unmarshal(m, b)
@@ -298,7 +300,7 @@ func (m *Pipeline) Reset()         { *m = Pipeline{} }
 func (m *Pipeline) String() string { return proto.CompactTextString(m) }
 func (*Pipeline) ProtoMessage()    {}
 func (*Pipeline) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_3f5d6b0f10ce7196, []int{6}
+	return fileDescriptor_pipeline_f9e0b1a0bad70202, []int{6}
 }
 func (m *Pipeline) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Pipeline.Unmarshal(m, b)
@@ -541,9 +543,9 @@ var _PipelineService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "pipeline.proto",
 }
 
-func init() { proto.RegisterFile("pipeline.proto", fileDescriptor_pipeline_3f5d6b0f10ce7196) }
+func init() { proto.RegisterFile("pipeline.proto", fileDescriptor_pipeline_f9e0b1a0bad70202) }
 
-var fileDescriptor_pipeline_3f5d6b0f10ce7196 = []byte{
+var fileDescriptor_pipeline_f9e0b1a0bad70202 = []byte{
 	// 592 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x53, 0xdb, 0x52, 0x13, 0x4d,
 	0x10, 0xae, 0x24, 0x9c, 0xd2, 0xa9, 0x24, 0xf5, 0xf7, 0x0f, 0xb2, 0x2e, 0x20, 0x71, 0x4b, 0x05,
