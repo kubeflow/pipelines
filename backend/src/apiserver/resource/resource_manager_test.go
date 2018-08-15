@@ -250,12 +250,21 @@ func TestCreateJob(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		}}
 	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
 	job := &model.Job{
 		DisplayName: "pp 1",
 		PipelineId:  "1",
 		Enabled:     true,
+		Parameters:  "[{\"name\":\"param1\",\"value\":\"world\"}]",
 	}
 	newJob, err := manager.CreateJob(job)
 	expectedJob := &model.Job{
@@ -268,9 +277,63 @@ func TestCreateJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		Conditions:     "NO_STATUS:",
+		Parameters:     "[{\"name\":\"param1\",\"value\":\"world\"}]",
 	}
+
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJob, newJob)
+}
+
+func TestCreateJob_ExtraInputParameter(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		}}
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
+		DisplayName: "pp 1",
+		PipelineId:  "1",
+		Enabled:     true,
+		Parameters:  "[{\"name\":\"param2\",\"value\":\"world\"}]",
+	}
+	_, err := manager.CreateJob(job)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Unrecognized input parameter: param2")
+}
+
+func TestCreateJob_InvalidParameterFormat(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		}}
+	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	job := &model.Job{
+		DisplayName: "pp 1",
+		PipelineId:  "1",
+		Enabled:     true,
+		Parameters:  "[I am invalid parameter format]",
+	}
+	_, err := manager.CreateJob(job)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Failed to parse the parameter CRD")
 }
 
 func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
@@ -285,6 +348,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	_, err := manager.CreateJob(job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
@@ -317,6 +381,7 @@ func TestEnableJob(t *testing.T) {
 		DisplayName: "pp 1",
 		PipelineId:  "1",
 		Enabled:     true,
+		Parameters:  "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -333,6 +398,7 @@ func TestEnableJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 2,
 		Conditions:     "NO_STATUS:",
+		Parameters:     "[]",
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJob, newJob)
@@ -357,6 +423,7 @@ func TestEnableJob_CrdFailure(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -377,6 +444,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -396,6 +464,7 @@ func TestDeleteJob(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -427,6 +496,7 @@ func TestDeleteJob_CrdFailure(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -447,6 +517,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -471,6 +542,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -537,6 +609,7 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -577,6 +650,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -642,6 +716,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
+		Parameters: "[]",
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)

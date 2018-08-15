@@ -186,6 +186,15 @@ func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
 		return nil, util.Wrap(err, "Create job failed")
 	}
 
+	inputParams, err := toCrdParameter(job.Parameters)
+	if err != nil {
+		return nil, util.Wrap(err, "Create job failed")
+	}
+	// Verify no additional parameter provided
+	if err = verifyParameters(inputParams, workflow.Spec.Arguments.Parameters); err != nil {
+		return nil, util.Wrap(err, "Create job failed")
+	}
+
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: toScheduledWorkflowName(job.DisplayName)},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
@@ -196,7 +205,7 @@ func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
 				PeriodicSchedule: toCrdPeriodicSchedule(job.PeriodicSchedule),
 			},
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: toCrdParameter(job.Parameters),
+				Parameters: inputParams,
 				Spec:       workflow.Spec,
 			},
 		},
@@ -211,6 +220,20 @@ func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
 	job.Namespace = newScheduledWorkflow.Namespace
 	job.Conditions = util.NewScheduledWorkflow(newScheduledWorkflow).ConditionSummary()
 	return r.jobStore.CreateJob(job)
+}
+
+func verifyParameters(inputParams []scheduledworkflow.Parameter, templateParams []workflow.Parameter) error {
+	templateParamsMap := make(map[string]*string)
+	for _, param := range templateParams {
+		templateParamsMap[param.Name] = param.Value
+	}
+	for _, params := range inputParams {
+		_, ok := templateParamsMap[params.Name]
+		if !ok {
+			return util.NewInvalidInputError("Unrecognized input parameter: %v", params.Name)
+		}
+	}
+	return nil
 }
 
 func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
@@ -305,10 +328,15 @@ func toCrdPeriodicSchedule(periodicSchedule model.PeriodicSchedule) *scheduledwo
 	return &crdPeriodicSchedule
 }
 
-func toCrdParameter(paramsString string) []scheduledworkflow.Parameter {
+func toCrdParameter(paramsString string) ([]scheduledworkflow.Parameter, error) {
 	swParams := make([]scheduledworkflow.Parameter, 0)
 	var params []workflow.Parameter
-	json.Unmarshal([]byte(paramsString), &params)
+	err := json.Unmarshal([]byte(paramsString), &params)
+	if err != nil {
+		// The parameter string is from the marshaled job parameter field.
+		// Unmarshalling it should never get error. Return internal exception if failed.
+		return swParams, util.NewInternalServerError(err, "Failed to parse the parameter CRD")
+	}
 	for _, param := range params {
 		swParam := scheduledworkflow.Parameter{
 			Name:  param.Name,
@@ -316,7 +344,7 @@ func toCrdParameter(paramsString string) []scheduledworkflow.Parameter {
 		}
 		swParams = append(swParams, swParam)
 	}
-	return swParams
+	return swParams, nil
 }
 
 // Process the job name to remove special char, prepend with "job-" prefix, and
