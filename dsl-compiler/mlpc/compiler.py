@@ -56,7 +56,6 @@ class Compiler(object):
             full_name = self._param_full_name(param)
             processed_args[i] = re.sub(str(param), '{{inputs.parameters.%s}}' % full_name,
                                        processed_args[i])
-
     input_parameters = []
     for param in op.inputs:
       one_parameter = {'name': self._param_full_name(param)}
@@ -85,8 +84,37 @@ class Compiler(object):
       template['container']['args'] = processed_args
     if input_parameters:
       template['inputs'] = {'parameters': input_parameters}
+
+    template['outputs'] = {}
     if output_parameters:
       template['outputs'] = {'parameters': output_parameters}
+
+    # Generate artifact for metadata output
+    # The motivation of appending the minio info in the yaml
+    # is to specify a unique path for the metadata.
+    # TODO: after argo addresses the issue that configures a unique path
+    # for the artifact output when default artifact repository is configured,
+    # this part needs to be updated to use the default artifact repository.
+    output_artifacts = []
+    output_artifacts.append({
+      'name': 'metadata',
+      'path': '/metadata.json',
+      's3': {
+        'endpoint': 'minio-service.default:9000',
+        'bucket': 'mlpipeline',
+        'key': 'runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz',
+        'insecure': True,
+        'accessKeySecret': {
+          'name': 'mlpipeline-minio-artifact',
+          'key': 'accesskey',
+        },
+        'secretKeySecret': {
+          'name': 'mlpipeline-minio-artifact',
+          'key': 'secretkey'
+        }
+      },
+    })
+    template['outputs']['artifacts'] = output_artifacts
     return template
 
   def _get_groups_for_ops(self, root_group):

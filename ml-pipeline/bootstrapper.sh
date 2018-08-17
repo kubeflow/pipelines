@@ -43,3 +43,23 @@ users:
     token: ${KUBERNETES_TOKEN}
 EOF
 
+
+# Secrets for minio
+# The motivation behind the minio secret creation is that argo workflows depend on this secret to
+# store the artifact in minio.
+#   accesskey is the base64 encoded of the plain key "minio"
+#   secretkey is the base64 encoded of the plain key "minio123"
+#     to encode a plain key with based64, one runs "echo plain_key | base64"
+#     to decode a base64 key, run "echo 'base64_key' | base64 --decode"
+cat >/root/mlpipeline-minio-artifact <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mlpipeline-minio-artifact
+type: Opaque
+data:
+  accesskey: bWluaW8=
+  secretkey: bWluaW8xMjM=
+EOF
+kubectl create -f /root/mlpipeline-minio-artifact
+rm /root/mlpipeline-minio-artifact

@@ -70,7 +70,7 @@ def main(argv=None):
       'labels': vocab,
     }]
   }
-  with file_io.FileIO(os.path.join(args.output, 'metadata.json'), 'w') as f:
+  with file_io.FileIO('/metadata.json', 'w') as f:
     json.dump(metadata, f)
 
 
