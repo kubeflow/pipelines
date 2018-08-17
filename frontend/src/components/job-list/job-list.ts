@@ -18,6 +18,7 @@ import {
 } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import {
+  ColumnType,
   ColumnTypeName,
   ItemListColumn,
   ItemListElement,
@@ -81,6 +82,21 @@ export class JobList extends PageElement {
     this.itemList.addEventListener('selected-indices-changed',
         this._selectedItemsChanged.bind(this));
     this.itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
+
+    this.itemList.renderColumn = (value: ColumnType, colIndex: number, rowIndex: number) => {
+      let text = '-';
+      if (this.itemList.columns[colIndex] && value) {
+        if (this.itemList.columns[colIndex].type === ColumnTypeName.DATE) {
+          text = (value as Date).toLocaleString();
+        } else {
+          text = value.toString();
+        }
+      }
+      return colIndex ? `<span>${text}</span>` :
+          `<a class="link" href="/jobs/details/${this.jobs[rowIndex].id}">
+            ${text}
+          </span>`;
+    };
   }
 
   public load(_: string): void {

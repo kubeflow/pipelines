@@ -47,7 +47,7 @@ the License.
       <template is="dom-if" if="[[!rows.length]]">
         <span class="empty-message">[[emptyMessage]]</span>
       </template>
-      <template is="dom-repeat" id="list" items="{{rows}}" as="row"
+      <template is="dom-repeat" id="list" items="{{rows}}" as="row" index-as="rowIndex"
                 filter="{{_computeFilter(filterString)}}" initial-count="100">
         <paper-item class="row" selected$={{row.selected}} on-click="_rowClicked"
                     on-dblclick="_rowDoubleClicked">
@@ -58,14 +58,7 @@ the License.
           </div>
           <template is="dom-repeat" items="{{row.columns}}" as="column" index-as="columnIndex">
             <div class="column" style$="flex: [[_getColumnFlex(columnIndex)]]">
-              <template is="dom-if" if="[[_isFirstColumn(columnIndex)]]">
-                <span class="link" on-click="_rowDoubleClicked">
-                  [[_formatColumnValue(column, columnIndex, columns)]]
-                </span>
-              </template>
-              <template is="dom-if" if="[[!_isFirstColumn(columnIndex)]]">
-                <span>[[_formatColumnValue(column, columnIndex, columns)]]</span>
-              </template>
+              <span inner-h-t-m-l="[[renderColumn(column, columnIndex, rowIndex)]]"></span>
             </div>
           </template>
         </paper-item>

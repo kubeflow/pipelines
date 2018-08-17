@@ -14,6 +14,7 @@ import {
   RouteEvent,
 } from '../../model/events';
 import {
+  ColumnType,
   ColumnTypeName,
   ItemListColumn,
   ItemListElement,
@@ -27,6 +28,10 @@ export class RunList extends Polymer.Element {
 
   @property({ type: Array })
   public runsMetadata: RunMetadata[] = [];
+
+  public get itemList(): ItemListElement {
+    return this.$.runsItemList as ItemListElement;
+  }
 
   protected runListRows: ItemListRow[] = [];
 
@@ -42,17 +47,31 @@ export class RunList extends Polymer.Element {
 
   public ready(): void {
     super.ready();
-    const itemList = this.$.runsItemList as ItemListElement;
-    itemList.addEventListener(ListFormatChangeEvent.name, this._listFormatChanged.bind(this));
-    itemList.addEventListener(NewListPageEvent.name, this._loadNewListPage.bind(this));
-    itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
+    this.itemList.addEventListener(ListFormatChangeEvent.name, this._listFormatChanged.bind(this));
+    this.itemList.addEventListener(NewListPageEvent.name, this._loadNewListPage.bind(this));
+    this.itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
+
+    this.itemList.renderColumn = (value: ColumnType, colIndex: number, rowIndex: number) => {
+      let text = '-';
+      if (this.itemList.columns[colIndex] && value) {
+        if (this.itemList.columns[colIndex].type === ColumnTypeName.DATE) {
+          text = (value as Date).toLocaleString();
+        } else {
+          text = value.toString();
+        }
+      }
+      return colIndex ? `<span>${text}</span>` :
+          `<a class="link"
+              href="/jobRun?jobId=${this._jobId}&runId=${this.runsMetadata[rowIndex].id}">
+            ${text}
+          </span>`;
+    };
   }
 
   public loadRuns(jobId: string): void {
     this._jobId = jobId;
-    const itemList = this.$.runsItemList as ItemListElement;
-    itemList.reset();
-    this._loadRunsInternal(new ListRunsRequest(jobId, itemList.selectedPageSize));
+    this.itemList.reset();
+    this._loadRunsInternal(new ListRunsRequest(jobId, this.itemList.selectedPageSize));
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
@@ -79,8 +98,7 @@ export class RunList extends Polymer.Element {
       const listRunsResponse = await Apis.listRuns(request);
       this.runsMetadata = listRunsResponse.runs || [];
 
-      const itemList = this.$.runsItemList as ItemListElement;
-      itemList.updateNextPageToken(listRunsResponse.next_page_token || '');
+      this.itemList.updateNextPageToken(listRunsResponse.next_page_token || '');
     } catch (err) {
       // TODO: This error should be bubbled up to job-details to be shown as a page error.
       Utils.showDialog('There was an error while loading the run list', err);

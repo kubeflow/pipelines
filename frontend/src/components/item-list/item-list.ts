@@ -28,7 +28,7 @@ import {
 
 import './item-list.html';
 
-type ColumnType = Date|number|string|undefined;
+export type ColumnType = Date|number|string|undefined;
 
 export enum ColumnTypeName {
   DATE,
@@ -397,9 +397,21 @@ export class ItemListElement extends Polymer.Element {
     this._unselectItemByRealIndex(realIndex, single);
   }
 
-  protected _formatColumnValue(value: ColumnType, i: number, columns: ItemListColumn[]): string {
-    if (columns[i] && value) {
-      if (columns[i].type === ColumnTypeName.DATE) {
+  /**
+   * Custom render function to paint custom HTML, will be called for each cell
+   * in the item list.
+   * Note: The output of this function is inlined as innerHTML in the
+   * dom-repeat template, so all user data must be sanitized before used in any
+   * HTML passed in here.
+   * @param value column value passed in from the dom-repeat template
+   * @param colIndex index of column
+   * @param rowIndex index of row. This isn't used in this default
+   *    implementation, but is there to allow overloading functions to customize
+   *    rendering per row.
+   */
+  public renderColumn(value: ColumnType, colIndex: number, rowIndex: number): string {
+    if (this.columns[colIndex] && value) {
+      if (this.columns[colIndex].type === ColumnTypeName.DATE) {
         return (value as Date).toLocaleString();
       } else {
         return value.toString();
@@ -450,7 +462,7 @@ export class ItemListElement extends Polymer.Element {
       // return a filter function for the current search string
       filterString = filterString.toLowerCase();
       return (item: ItemListRow) => {
-        const strVal = this._formatColumnValue(item.columns[0], 0, this.columns);
+        const strVal = this.renderColumn(item.columns[0], 0, -1);
         return strVal.toLowerCase().indexOf(filterString) > -1;
       };
     }
@@ -606,10 +618,6 @@ export class ItemListElement extends Polymer.Element {
         new ListFormatChangeEvent(
             this.filterString, this._currentSort.asc, this.selectedPageSize, this._sortByColumn)
     );
-  }
-
-  protected _isFirstColumn(i: number): boolean {
-    return i === 0;
   }
 
   protected _previousPage(): void {

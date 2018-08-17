@@ -136,10 +136,13 @@ div {
 }
 
 .link {
+  color: inherit;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .link:hover {
+  color: var(--theme-primary-color);
   text-decoration: underline;
 }
 
