@@ -24,7 +24,9 @@ export const log = {
 
 export function listenOnce(element: Node, eventName: string, cb: Function): void {
   const listener = (e: Event) => {
-    e.target.removeEventListener(e.type, listener);
+    if (e.target) {
+      e.target.removeEventListener(e.type, listener);
+    }
     return cb(e);
   };
   element.addEventListener(eventName, listener);
@@ -37,7 +39,7 @@ export function enabledDisplayString(trigger: Trigger|undefined, enabled: boolea
   return '-';
 }
 
-export function formatDateString(date: string): string {
+export function formatDateString(date: string | undefined): string {
   return date ? new Date(date).toLocaleString() : '-';
 }
 

@@ -10,10 +10,7 @@ import { ListPipelinesResponse } from '../src/api/list_pipelines_response';
 import { RunSortKeys } from '../src/api/list_runs_request';
 import { ListRunsResponse } from '../src/api/list_runs_response';
 import { RunMetadata } from '../src/api/run';
-
-const prefix = __dirname + '/job-data';
-
-const fixedData = require('./fixed-data').data;
+import { data as fixedData } from './fixed-data';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocDataPath = './eval-output/roc.csv';
@@ -41,7 +38,7 @@ function isValidSortKey(sortKeyEnumType: any, key: string): boolean {
   return !!findResult;
 }
 
-export default (app) => {
+export default (app: express.Application) => {
 
   app.set('json spaces', 2);
   app.use(express.json());
@@ -78,7 +75,7 @@ export default (app) => {
     }
 
     // The backend sorts by created_at by default.
-    const sortKey = req.query.sortBy || JobSortKeys.CREATED_AT;
+    const sortKey: (keyof Job) = req.query.sortBy || JobSortKeys.CREATED_AT;
 
     if (!isValidSortKey(JobSortKeys, sortKey)) {
       res.status(405).send(`Unsupported sort string: ${sortKey}`);
@@ -87,10 +84,10 @@ export default (app) => {
 
     jobs.sort((a, b) => {
       let result = 1;
-      if (a[sortKey] < b[sortKey]) {
+      if (a[sortKey]! < b[sortKey]!) {
         result = -1;
       }
-      if (a[sortKey] === b[sortKey]) {
+      if (a[sortKey]! === b[sortKey]!) {
         result = 0;
       }
       return result * ((req.query.ascending === 'true') ? 1 : -1);
@@ -109,7 +106,7 @@ export default (app) => {
 
   app.post(v1alpha2Prefix + '/jobs', (req, res) => {
     const job = req.body;
-    job.id = (fixedData.jobs.length + 1) + '';
+    job.id = 'new-job-' + (fixedData.jobs.length + 1);
     job.created_at = new Date().toISOString();
     job.updated_at = new Date().toISOString();
     job.runs = [fixedData.runs[0]];
@@ -137,11 +134,11 @@ export default (app) => {
         res.json(fixedData.jobs.find((p) => p.id === req.params.pid));
         break;
       default:
-        res.status(405).send('Unsupported request type: ' + res.method);
+        res.status(405).send('Unsupported request type: ' + req.method);
     }
   });
 
-  app.get(v1alpha2Prefix + '/jobs/:pid/runs', (req, res) => {
+  app.get(v1alpha2Prefix + '/jobs/:jid/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
     const response: ListRunsResponse = {
@@ -149,8 +146,16 @@ export default (app) => {
       runs: [],
     };
 
-    let runs: RunMetadata[] =
-        fixedData.jobs.find((j) => j.id === req.params.pid).runs.map((r) => r.run);
+    let runs: RunMetadata[] = fixedData.runs.map((r) => r.run);
+
+    if (req.params.jid.startsWith('new-job-')) {
+      response.runs = runs.slice(0, 1);
+      res.json(response);
+      return;
+    } else if (req.params.jid === '7fc01714-4a13-4c05-5902-a8a72c14253b') { // No runs job
+      res.json(response);
+      return;
+    }
 
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
@@ -160,7 +165,7 @@ export default (app) => {
     }
 
     // The backend sorts by created_at by default.
-    const sortKey = req.query.sortBy || RunSortKeys.CREATED_AT;
+    const sortKey: (keyof RunMetadata) = req.query.sortBy || RunSortKeys.CREATED_AT;
 
     if (!isValidSortKey(RunSortKeys, sortKey)) {
       res.status(405).send(`Unsupported sort string: ${sortKey}`);
@@ -169,10 +174,10 @@ export default (app) => {
 
     runs.sort((a, b) => {
       let result = 1;
-      if (a[sortKey] < b[sortKey]) {
+      if (a[sortKey]! < b[sortKey]!) {
         result = -1;
       }
-      if (a[sortKey] === b[sortKey]) {
+      if (a[sortKey]! === b[sortKey]!) {
         result = 0;
       }
       return result * ((req.query.ascending === 'true') ? 1 : -1);
@@ -192,16 +197,24 @@ export default (app) => {
   app.post(v1alpha2Prefix + '/jobs/:pid/enable', (req, res) => {
     setTimeout(() => {
       const job = fixedData.jobs.find((p) => p.id === req.params.pid);
-      job.enabled = true;
-      res.send('ok');
+      if (job) {
+        job.enabled = true;
+        res.send('ok');
+      } else {
+        res.status(500).send('Cannot find a job with id ' + req.params.pid);
+      }
     }, 1000);
   });
 
   app.post(v1alpha2Prefix + '/jobs/:pid/disable', (req, res) => {
     setTimeout(() => {
       const job = fixedData.jobs.find((p) => p.id === req.params.pid);
-      job.enabled = false;
-      res.send('ok');
+      if (job) {
+        job.enabled = false;
+        res.send('ok');
+      } else {
+        res.status(500).send('Cannot find a job with id ' + req.params.pid);
+      }
     }, 1000);
   });
 
@@ -318,6 +331,6 @@ export default (app) => {
     res.status(404).send('Bad request endpoint.');
   });
 
-  proxyMiddleware(app, v1alpha2Prefix);
+  proxyMiddleware(app as any, v1alpha2Prefix);
 
 };

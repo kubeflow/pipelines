@@ -59,7 +59,7 @@ export function stubTag(oldTagName: string, tagName: string): any {
   const originalImportNode = document.importNode;
 
   // Use Sinon to stub `document.ImportNode`
-  sinon.stub(document, 'importNode', (origContent: any, deep: boolean) => {
+  const fake = (origContent: any, deep: boolean) => {
     const templateClone = document.createElement('template');
     const content = templateClone.content;
     const inertDoc = content.ownerDocument;
@@ -90,7 +90,9 @@ export function stubTag(oldTagName: string, tagName: string): any {
     }
 
     return originalImportNode.call(document, content, deep);
-  });
+  };
+
+  sinon.stub(document, 'importNode').callsFake(fake);
 }
 
 export function restoreTag(tagName: string): void {

@@ -6,7 +6,6 @@ import { Job } from '../../src/api/job';
 import { JobNew } from '../../src/components/job-new/job-new';
 import { resetFixture } from './test-utils';
 
-// @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
 
 const pipelines = fixedData.namedPipelines;
@@ -175,9 +174,9 @@ describe('job-new', () => {
     fixture.descriptionInput.value = 'The Job description';
     const parameterInputs = fixture.$.jobParameters.querySelectorAll('paper-input');
     parameterInputs.forEach((input, index) => (input as PaperInputElement).value = index + '');
-    fixture.schedule.maxConcurrentRunsInput.value = '50';
+    fixture.schedule!.maxConcurrentRunsInput.value = '50';
     // Include default cron schedule
-    fixture.schedule.scheduleTypeListbox.select(2);
+    fixture.schedule!.scheduleTypeListbox.select(2);
     Polymer.flush();
 
     fixture.deployButton.click();
@@ -186,7 +185,7 @@ describe('job-new', () => {
     const actualJob = deployJobStub.firstCall.args[0] as Job;
     assert.strictEqual(actualJob.name, fixture.nameInput.value);
     assert.strictEqual(actualJob.description, fixture.descriptionInput.value);
-    assert.strictEqual(actualJob.max_concurrency, fixture.schedule.maxConcurrentRuns);
+    assert.strictEqual(actualJob.max_concurrency, fixture.schedule!.maxConcurrentRuns);
 
     // TODO: mock time and test format.
     assert.strictEqual(actualJob.pipeline_id, (fixture.listBox.selectedItem as any).pipelineId);

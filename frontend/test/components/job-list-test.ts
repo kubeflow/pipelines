@@ -10,7 +10,6 @@ import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
 import { RouteEvent } from '../../src/model/events';
 import { dialogStub, notificationStub, resetFixture } from './test-utils';
 
-// @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
 
 let fixture: JobList;

@@ -169,16 +169,16 @@ proxyMiddleware(app, v1alpha2Prefix);
 
 app.all(v1alpha2Prefix + '/*', proxy({
   changeOrigin: true,
-  onProxyReq: (proxyReq, req, res) => {
-    console.log('Proxied request: ', proxyReq.path);
+  onProxyReq: (proxyReq) => {
+    console.log('Proxied request: ', (proxyReq as any).path);
   },
   target: apiServerAddress,
 }));
 
 app.all(v1alpha2Prefix + '/*', proxy({
   changeOrigin: true,
-  onProxyReq: (proxyReq, req, res) => {
-    console.log('Proxied request: ', proxyReq.path);
+  onProxyReq: (proxyReq) => {
+    console.log('Proxied request: ', (proxyReq as any).path);
   },
   target: apiServerAddress,
 }));

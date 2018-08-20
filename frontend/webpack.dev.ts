@@ -1,6 +1,7 @@
 import * as CopyWebpackPlugin from 'copy-webpack-plugin';
 import * as path from 'path';
 import * as webpack from 'webpack';
+import 'webpack-dev-server';
 import * as merge from 'webpack-merge';
 import mockApiMiddleware from './mock-backend/mock-api-middleware';
 import common from './webpack.common';
@@ -18,7 +19,7 @@ const config: webpack.Configuration = merge(common, {
       errorDetails: true,
       errors: true,
       warnings: true,
-    }
+    } as any,
   },
   devtool: 'inline-source-map',
   entry: {
@@ -26,10 +27,7 @@ const config: webpack.Configuration = merge(common, {
   },
   mode: 'development',
   plugins: [
-    new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify('dev'),
-    }),
-    CopyWebpackPlugin([{
+    new CopyWebpackPlugin([{
       from: path.resolve(__dirname, 'index.html'),
       to: 'index.html',
     }, {

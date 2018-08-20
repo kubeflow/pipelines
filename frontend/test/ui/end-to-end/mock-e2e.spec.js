@@ -1,12 +1,11 @@
 const assert = require('assert');
 const URL = require('url').URL;
-const fixedData = require('../../../mock-backend/fixed-data').data;
 
 const jobName = 'helloworld-' + Date.now();
 const jobDescription = 'test job description ' + jobName;
 const waitTimeout = 5000;
 const listSelector = 'app-shell job-list item-list';
-const mockJobsLength = fixedData.jobs.length;
+const mockJobsLength = 23;
 
 describe('deploy new job', () => {
 
@@ -149,7 +148,7 @@ describe('deploy new job', () => {
 
     assert(!Array.isArray(runsText) && typeof runsText === 'string',
         'only one run should show up');
-    assert(runsText.startsWith(fixedData.runs[0].run.name), 'run name is incorrect');
+    assert(runsText.startsWith('coinflip-recursive-run-lknlfs3'), 'run name is incorrect');
   });
 
   it('opens run details on double click', () => {
@@ -198,7 +197,7 @@ describe('deploy new job', () => {
   });
 
   it('can use hash navigation to show the jobs page directly', () => {
-    browser.url(`/jobs/details/${fixedData.jobs[1].id}#runs`);
+    browser.url('/jobs/details/7fc01714-4a13-4c05-7186-a8a72c14253b#runs');
     const selector = 'app-shell job-details run-list item-list #listContainer paper-item';
      // Should find a page full of jobs
     browser.waitForVisible(selector, waitTimeout);

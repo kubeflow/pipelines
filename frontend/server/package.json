@@ -5,7 +5,7 @@
   "main": "server.js",
   "dependencies": {
     "@google-cloud/storage": "^1.6.0",
-    "@kubernetes/client-node": "^0.3.0",
+    "@kubernetes/client-node": "^0.5.2",
     "express": "^4.16.3",
     "http-proxy-middleware": "^0.18.0",
     "node-fetch": "^2.1.2",
@@ -15,10 +15,10 @@
     "@types/express": "^4.11.1",
     "@types/google-cloud__storage": "^1.1.7",
     "@types/tmp": "0.0.33",
-    "typescript": "2.6.2"
+    "typescript": "3.0.1"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types *.ts"
   },
   "repository": {
     "type": "git",

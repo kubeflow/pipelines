@@ -1,3 +1,4 @@
+import * as express from 'express';
 import * as proxy from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 
@@ -29,18 +30,18 @@ export function _rewritePath(proxyPrefix: string, path: string, query: string): 
   return _trimProxyPrefix(proxyPrefix, decodedPath) + (querystring && '?' + querystring);
 }
 
-export default (app, apisPrefix) => {
+export default (app: express.Application, apisPrefix: string) => {
 
   const proxyPrefix = apisPrefix + '/_proxy/';
 
-  app.use((req, res, next) => {
+  app.use((req, _, next) => {
     // For any request that has a proxy referer header but no proxy prefix,
     // prepend the proxy prefix to it and redirect.
     if (req.headers.referer) {
-      const refererUrl = _extractUrlFromReferer(proxyPrefix, req.headers.referer);
+      const refererUrl = _extractUrlFromReferer(proxyPrefix, req.headers.referer as string);
       if (refererUrl && req.url.indexOf(proxyPrefix) !== 0) {
         const proxiedUrl = decodeURIComponent(
-            _extractUrlFromReferer(proxyPrefix, req.headers.referer));
+            _extractUrlFromReferer(proxyPrefix, req.headers.referer as string));
         const proxiedOrigin = new URL(proxiedUrl).origin;
         req.url = proxyPrefix + encodeURIComponent(proxiedOrigin + req.url);
       }
@@ -53,11 +54,11 @@ export default (app, apisPrefix) => {
     logLevel: 'debug',
     target: 'http://127.0.0.1',
 
-    router: (req) => {
-      return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer);
+    router: (req: any) => {
+      return _routePathWithReferer(proxyPrefix, req.path, req.headers.referer as string);
     },
 
-    pathRewrite: (_, req) => {
+    pathRewrite: (_, req: any) => {
       return _rewritePath(proxyPrefix, req.path, req.query);
     },
   }));

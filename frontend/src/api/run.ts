@@ -1,10 +1,10 @@
 export class RunMetadata {
-  public id: string;
-  public name: string;
-  public namespace: string;
-  public created_at: string;
-  public scheduled_at: string;
-  public status: string;
+  public id = '';
+  public name = '';
+  public namespace = '';
+  public created_at = '';
+  public scheduled_at = '';
+  public status = '';
 
   public static buildFromObject(run: any): RunMetadata {
     const newRunMetadata = new RunMetadata();
@@ -19,8 +19,8 @@ export class RunMetadata {
 }
 
 export class Run {
-  public run: RunMetadata;
-  public workflow: string;
+  public run = RunMetadata.buildFromObject({});
+  public workflow = '';
 
   public static buildFromObject(oldRun: any): Run {
     const newRun = new Run();

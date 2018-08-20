@@ -35,10 +35,10 @@ export class RunDetails extends PageElement {
   public outputPlots: PlotMetadata[] = [];
 
   @property({ type: Object })
-  public workflow: Workflow;
+  public workflow: Workflow | undefined = undefined;
 
   @property({ type: Object })
-  public job: Job;
+  public job: Job | undefined = undefined;
 
   @property({ type: Number })
   public selectedTab = 0;
@@ -97,7 +97,7 @@ export class RunDetails extends PageElement {
     this._loadingRun = true;
     try {
       const response = await Apis.getRun(this._jobId, this._runId);
-      this.workflow = JSON.parse(response.workflow);
+      this.workflow = JSON.parse(response.workflow) as Workflow;
       this.job = await Apis.getJob(this._jobId);
     } catch (err) {
       this.showPageError(
@@ -131,6 +131,9 @@ export class RunDetails extends PageElement {
   }
 
   protected _clone(): void {
+    if (!this.workflow || !this.job) {
+      return;
+    }
     this.dispatchEvent(
         new RouteEvent('/jobs/new',
           {
@@ -183,7 +186,7 @@ export class RunDetails extends PageElement {
 
     const outputPaths: OutputInfo[] = [];
     Object.keys(this.workflow.status.nodes || []).forEach((id) => {
-      const node = this.workflow.status.nodes[id];
+      const node = this.workflow!.status.nodes[id];
       if (!node.inputs) {
         return;
       }

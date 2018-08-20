@@ -41,7 +41,7 @@ interface DisplayNode extends dagre.Node {
 }
 
 class GraphNodeClickEvent<Model> extends MouseEvent {
-  public model: {
+  public model!: {
     node: Model,
   };
 }

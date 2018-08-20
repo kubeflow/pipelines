@@ -1,22 +1,17 @@
-abstract class BaseCustomEvent extends CustomEvent {
+abstract class BaseCustomEvent extends CustomEvent<any> {
   public abstract detail: any;
 
   constructor(eventType: string, detail: any) {
-    const eventInit = {
+    super(eventType, {
       bubbles: true,
-      detail
-    };
-    Object.defineProperty(eventInit, 'composed', {
-      value: true,
-      writable: false,
+      composed: true,
+      detail,
     });
-
-    super(eventType, eventInit);
   }
 }
 
 export class ItemDblClickEvent extends BaseCustomEvent {
-  public detail: {
+  public detail!: {
     index: number,
   };
 
@@ -26,7 +21,7 @@ export class ItemDblClickEvent extends BaseCustomEvent {
 }
 
 export class ListFormatChangeEvent extends BaseCustomEvent {
-  public detail: {
+  public detail!: {
     filterString: string,
     orderAscending: boolean,
     pageSize: number,
@@ -39,7 +34,7 @@ export class ListFormatChangeEvent extends BaseCustomEvent {
 }
 
 export class NewListPageEvent extends BaseCustomEvent {
-  public detail: {
+  public detail!: {
     filterBy: string,
     pageNumber: number,
     pageSize: number,
@@ -58,7 +53,7 @@ export class NewListPageEvent extends BaseCustomEvent {
 }
 
 export class RouteEvent extends BaseCustomEvent {
-  public detail: {
+  public detail!: {
     path: string,
     data?: {},
   };

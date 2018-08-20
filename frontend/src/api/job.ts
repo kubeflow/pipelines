@@ -180,16 +180,20 @@ export class Job {
   public max_concurrency: number;
   public parameters: Parameter[];
   public trigger?: Trigger;
-  public created_at: string;
-  public updated_at: string;
+  public created_at: string | undefined;
+  public updated_at: string | undefined;
 
   constructor() {
+    this.id = '';
     this.name = '';
     this.description = '';
     this.pipeline_id = '';
     this.enabled = false;
     this.max_concurrency = 10;
     this.parameters = [];
+    this.status = '';
+    this.created_at = undefined;
+    this.updated_at = undefined;
   }
 
   public static buildFromObject(job: any): Job {

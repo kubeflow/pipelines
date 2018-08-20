@@ -1,5 +1,3 @@
-
-const fixedData = require('../../../mock-backend/fixed-data').data;
 const assert = require('assert');
 
 function assertDiffs(results) {
@@ -10,7 +8,7 @@ describe('view run details', () => {
 
   before(() => {
     // This job has runs.
-    browser.url(`/jobs/details/${fixedData.jobs[1].id}`);
+    browser.url('/jobs/details/7fc01714-4a13-4c05-7186-a8a72c14253b');
   });
 
   it('navigates to run list', () => {
@@ -123,7 +121,7 @@ describe('view run details', () => {
 
     before(() => {
       // This job has runs.
-      browser.url(`/jobs/details/${fixedData.jobs[1].id}`);
+      browser.url('/jobs/details/7fc01714-4a13-4c05-7186-a8a72c14253b');
 
       // Navigate to Run list
       const selector = 'app-shell job-details paper-tab:last-child';

@@ -26,8 +26,6 @@ export class PopupDialog extends Polymer.Element {
   @property({ type: String })
   public button2 = '';
 
-  private _closeCallback: (result: DialogResult) => void;
-
   public get bodyElement(): HTMLDivElement {
     return this.shadowRoot!.querySelector('.body') as HTMLDivElement;
   }
@@ -80,6 +78,8 @@ export class PopupDialog extends Polymer.Element {
   protected _closedWithButton2(): void {
     this._closeDialog(DialogResult.BUTTON2);
   }
+
+  private _closeCallback = (result: DialogResult) => { /* override */ };
 
   private _closeDialog(result: DialogResult): void {
     if (this._closeCallback) {

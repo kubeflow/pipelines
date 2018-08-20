@@ -1,6 +1,5 @@
 import * as CleanWebpackPlugin from 'clean-webpack-plugin';
 import * as CopyWebpackPlugin from 'copy-webpack-plugin';
-import * as HtmlWebpackPlugin from 'html-webpack-plugin';
 import * as MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import * as path from 'path';
 import * as webpack from 'webpack';
@@ -32,7 +31,7 @@ const config: webpack.Configuration = {
         test: /\.css$/,
         use: [
           {
-            loader: MiniCssExtractPlugin.loader,
+            loader: MiniCssExtractPlugin.loader as any,
             options: {
               minimize: true,
               sourceMap: true,
@@ -66,7 +65,7 @@ const config: webpack.Configuration = {
     path: path.resolve(__dirname, 'dist')
   },
   plugins: [
-    CopyWebpackPlugin([{
+    new CopyWebpackPlugin([{
       from: path.resolve(__dirname, 'bower_components/webcomponentsjs/*.js'),
       to: 'bower_components/webcomponentsjs/[name].[ext]'
     }, {

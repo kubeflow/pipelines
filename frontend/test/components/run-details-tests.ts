@@ -1,8 +1,6 @@
 import * as sinon from 'sinon';
-// @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
-// tslint:disable-next-line:no-var-requires
-const coinflipRun = require('../../mock-backend/mock-coinflip-runtime.json');
+import coinflipRun from '../../mock-backend/mock-coinflip-runtime';
 import * as Apis from '../../src/lib/apis';
 import * as Utils from '../../src/lib/utils';
 
@@ -138,8 +136,8 @@ describe('run-details', () => {
     paramRows.forEach((row, i) => {
       const key = row.querySelector('.key') as HTMLDivElement;
       const value = row.querySelector('.value') as HTMLDivElement;
-      assert.strictEqual(key.innerText, fixture.workflow.spec.arguments!.parameters![i].name);
-      assert.strictEqual(value.innerText, fixture.workflow.spec.arguments!.parameters![i].value);
+      assert.strictEqual(key.innerText, fixture.workflow!.spec.arguments!.parameters![i].name);
+      assert.strictEqual(value.innerText, fixture.workflow!.spec.arguments!.parameters![i].value);
     });
   });
 

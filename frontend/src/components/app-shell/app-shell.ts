@@ -31,12 +31,12 @@ export class AppShell extends Polymer.Element {
   public page = '';
 
   @property({ type: Object })
-  public route: object | null = null;
+  public route: object | undefined = undefined;
 
   @property({ type: Boolean })
   protected _serverNotReady = false;
 
-  private _debouncer: Polymer.Debouncer;
+  private _debouncer: Polymer.Debouncer | undefined = undefined;
 
   static get observers(): string[] {
     return ['_routePathChanged(route.path)'];
@@ -52,7 +52,7 @@ export class AppShell extends Polymer.Element {
     // Workaround for https://github.com/PolymerElements/app-route/issues/173
     // to handle navigation events only once.
     this._debouncer = Polymer.Debouncer.debounce(
-        this._debouncer,
+        this._debouncer || null,
         Polymer.Async.timeOut.after(100),
         async () => {
 

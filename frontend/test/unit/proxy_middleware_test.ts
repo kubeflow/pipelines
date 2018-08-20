@@ -1,6 +1,5 @@
-import * as express from 'express';
-
 import { assert } from 'chai';
+import 'mocha';
 import {
   _extractUrlFromReferer,
   _rewritePath,
@@ -18,7 +17,6 @@ describe('proxy middleware', () => {
   });
 
   it('extracts nothing when there is no referer header', () => {
-    const referer = 'http://path/with/no/proxy';
     assert.equal(_extractUrlFromReferer(proxyPrefix, ''), '');
   });
 
@@ -40,13 +38,11 @@ describe('proxy middleware', () => {
 
   it('extracts referer urls with querystring', () => {
     const url = 'http://someurl.com?q1=one&q2=two';
-    const referer = 'http://path/with/proxy/apis/vtest/_proxy/' + url;
     assert.equal(_extractUrlFromReferer(proxyPrefix, url), '');
   });
 
   it('extracts referer urls with querystring and hash', () => {
     const url = 'http://someurl.com?q1=one&q2=two#hash';
-    const referer = 'http://path/with/proxy/apis/vtest/_proxy/' + url;
     assert.equal(_extractUrlFromReferer(proxyPrefix, url), '');
   });
 

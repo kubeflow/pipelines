@@ -83,7 +83,7 @@ describe('job-details', () => {
     assert(isVisible(createdAtDiv), 'cannot find createdAt div');
     assert.strictEqual(
         createdAtDiv.innerText,
-        Utils.formatDateString(testJob.created_at),
+        Utils.formatDateString(testJob.created_at!),
         'displayed createdAt does not match test data');
 
     const scheduleDiv = fixture.shadowRoot!.querySelector('.schedule.value') as HTMLDivElement;

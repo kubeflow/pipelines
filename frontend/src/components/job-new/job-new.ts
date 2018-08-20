@@ -67,9 +67,9 @@ export class JobNew extends PageElement {
 
   protected _overwriteData?: NewJobData;
 
-  private _schedule: JobSchedule;
+  private _schedule: JobSchedule | undefined = undefined;
 
-  public get schedule(): JobSchedule {
+  public get schedule(): JobSchedule | undefined {
     return this._schedule;
   }
 
@@ -140,7 +140,9 @@ export class JobNew extends PageElement {
   }
 
   protected _scheduleValidationUpdated(): void {
-    this._scheduleIsValid = this._schedule.scheduleIsValid;
+    if (this._schedule) {
+      this._scheduleIsValid = this._schedule.scheduleIsValid;
+    }
   }
 
   // Sets Disabled attribute. true === enabled, false === disabled
@@ -191,10 +193,12 @@ export class JobNew extends PageElement {
     newJob.enabled = true;
     newJob.pipeline_id = this._pipelineId;
     newJob.parameters = this._parameters;
-    newJob.max_concurrency = this._schedule.maxConcurrentRuns;
-    const trigger = this._schedule.toTrigger();
-    if (trigger) {
-      newJob.trigger = trigger;
+    if (this._schedule) {
+      newJob.max_concurrency = this._schedule.maxConcurrentRuns;
+      const trigger = this._schedule.toTrigger();
+      if (trigger) {
+        newJob.trigger = trigger;
+      }
     }
     this._busy = true;
     try {

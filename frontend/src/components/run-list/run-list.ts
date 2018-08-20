@@ -42,7 +42,7 @@ export class RunList extends Polymer.Element {
     new ItemListColumn('Scheduled at', ColumnTypeName.DATE),
   ];
 
-  private _debouncer: Polymer.Debouncer;
+  private _debouncer: Polymer.Debouncer | undefined = undefined;
 
   private _jobId = '';
 
@@ -130,7 +130,7 @@ export class RunList extends Polymer.Element {
   private _listFormatChanged(ev: ListFormatChangeEvent): void {
     // This function will wait 300ms after last time it is called before listRuns() is called.
     this._debouncer = Polymer.Debouncer.debounce(
-        this._debouncer,
+        this._debouncer || null,
         Polymer.Async.timeOut.after(300),
         async () => {
           const request = new ListRunsRequest(this._jobId, ev.detail.pageSize);

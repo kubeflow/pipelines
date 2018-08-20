@@ -75,7 +75,7 @@ export class JobList extends PageElement {
     new ItemListColumn('Enabled', ColumnTypeName.STRING, undefined, 0.5),
   ];
 
-  private _debouncer: Polymer.Debouncer;
+  private _debouncer: Polymer.Debouncer | undefined = undefined;
 
   public ready(): void {
     super.ready();
@@ -210,7 +210,7 @@ export class JobList extends PageElement {
   private _listFormatChanged(ev: ListFormatChangeEvent): void {
     // This function will wait 300ms after last time it is called before listJobs() is called.
     this._debouncer = Polymer.Debouncer.debounce(
-        this._debouncer,
+        this._debouncer || null,
         Polymer.Async.timeOut.after(300),
         async () => {
           const request = new ListJobsRequest(ev.detail.pageSize);

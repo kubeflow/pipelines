@@ -24,7 +24,7 @@ export class DateTimePicker extends Polymer.Element {
   public valid = true;
 
   @property({ notify: true, type: Object })
-  public datetime: Date|null;
+  public datetime: Date | undefined = undefined;
 
   @property({ type: String })
   protected _minDate = new Date().toLocaleDateString();
@@ -89,7 +89,7 @@ export class DateTimePicker extends Polymer.Element {
     // checkbox. This element's datetime is then still considered "valid" so that there is a way to
     // indicate that the element is hidden.
     if (!hasDate) {
-      this.datetime = null;
+      this.datetime = undefined;
       return true;
     }
 
