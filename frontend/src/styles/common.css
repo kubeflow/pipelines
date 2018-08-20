@@ -37,11 +37,17 @@ iron-icon[icon="check-circle"] {
 }
 
 iron-icon[icon="av:skip-next"] {
-  color: var(--inactive-color);
+  color: var(--grey-color);
 }
 
 iron-icon[icon="error-outline"] {
   color: var(--danger-color);
+}
+
+iron-icon[icon="av:fiber-manual-record"] {
+  color: var(--disabled-button-inverse-color);
+  height: 10px !important;
+  min-height: 10px !important;
 }
 
 paper-checkbox {
@@ -259,6 +265,10 @@ paper-listbox {
 
 .padded-spacing-minus-5 {
   padding: var(--spacing-minus-5);
+}
+
+.padded-spacing-minus-6 {
+  padding: var(--spacing-minus-6);
 }
 
 .param-header {

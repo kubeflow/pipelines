@@ -106,6 +106,47 @@ describe('item-list', () => {
     assert.strictEqual(rows.length, 5, 'five rows should appear');
   });
 
+  it('returns the right cell at row and column indexes', () => {
+    for (let i = 0; i < 4; ++i) {
+      const [row, col] = [Math.round(i / 2), i % 2];
+      const el = fixture.getCellElement(row + 1, col + 1);
+      assert.strictEqual(el.innerText, fixture.rows[row].columns[col]);
+    }
+  });
+
+  it('throws an error if bad row/column index specified to get cell element', () => {
+    assert.throws(() => fixture.getCellElement(0, 0), 'Could not find row 0');
+    assert.throws(() => fixture.getCellElement(1, 0), 'Could not find column 0');
+    assert.throws(() => fixture.getCellElement(-1, 0), 'Could not find row -1');
+  });
+
+  it('uses custom render method if provided', () => {
+    fixture.renderColumn = (value: any, colIndex: number, rowIndex: number) => {
+      if (!rowIndex && !colIndex) {
+        return 'custom text';
+      } else if (rowIndex && colIndex) {
+        return '<p class="strong">bold!</p>';
+      } else {
+        return value;
+      }
+    };
+    fixture.rows = [
+      new ItemListRow({
+        columns: ['col1', 'col2'],
+      }),
+      new ItemListRow({
+        columns: ['col1', 'col2'],
+      }),
+    ];
+    Polymer.flush();
+
+    const [row1, row2] = [getRow(0), getRow(1)];
+    assert.strictEqual(row1.children[1].innerHTML.trim(), 'custom text');
+    assert.strictEqual(row1.children[2].innerHTML.trim(), 'col2');
+    assert.strictEqual(row2.children[1].innerHTML.trim(), 'col1');
+    assert.strictEqual(row2.children[2].innerHTML.trim(), '<p class="strong">bold!</p>');
+  });
+
   it('starts out with all items unselected', () => {
     assert.strictEqual(JSON.stringify(fixture.selectedIndices), '[]',
         'all items should be unselected');

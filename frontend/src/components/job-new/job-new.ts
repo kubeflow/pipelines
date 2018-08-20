@@ -24,11 +24,11 @@ import { JobSchedule } from '../job-schedule/job-schedule';
 import './job-new.html';
 
 interface NewJobQueryParams {
-  pipelineId?: number;
+  pipelineId?: string;
 }
 
 interface NewJobData {
-  pipelineId?: number;
+  pipelineId?: string;
   parameters?: Parameter[];
 }
 
@@ -42,7 +42,7 @@ export class JobNew extends PageElement {
   protected _pipelineIndex = -1;
 
   @property({ type: Number })
-  protected _pipelineId = -1;
+  protected _pipelineId = '';
 
   @property({ type: String })
   protected _description = '';
@@ -97,7 +97,7 @@ export class JobNew extends PageElement {
     this._reset();
 
     this._overwriteData = jobData;
-    this._pipelineId = -1;
+    this._pipelineId = '';
     if (queryParams.pipelineId !== undefined) {
       this._pipelineId = queryParams.pipelineId;
     }
@@ -109,10 +109,10 @@ export class JobNew extends PageElement {
       const response = await Apis.listPipelines(new ListPipelinesRequest());
       this.pipelines = response.pipelines || [];
 
-      if (this._pipelineId > -1) {
+      if (this._pipelineId) {
         // Try to match incoming job's pipeline to known pipeline.
         this.pipelines.forEach((p, i) => {
-          if (p.id === +this._pipelineId) {
+          if (p.id === this._pipelineId) {
             // This will cause the observer below to fire before continuing to overwrite the data
             // below.
             this._pipelineIndex = i;
@@ -217,7 +217,7 @@ export class JobNew extends PageElement {
     const pipelineList = this.$.pipelinesListbox as PaperListboxElement;
     pipelineList.select(-1);
     this._parameters = [];
-    this._pipelineId = -1;
+    this._pipelineId = '';
 
     // Initialize input to valid to avoid error messages on page load.
     (this.$.name as PaperInputElement).invalid = false;

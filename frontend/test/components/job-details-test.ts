@@ -43,7 +43,7 @@ testJob.enabled = false;
 testJob.id = 'test-job-id';
 testJob.max_concurrency = 10;
 testJob.name = 'test job name';
-testJob.pipeline_id = 2000;
+testJob.pipeline_id = '2000';
 testJob.parameters = [];
 testJob.status = '';
 testJob.trigger = undefined;
@@ -70,7 +70,7 @@ describe('job-details', () => {
   it('shows the basic details of the job without schedule', () => {
     const pipelineIdDiv = fixture.shadowRoot!.querySelector('.pipeline-id.value') as HTMLDivElement;
     assert(isVisible(pipelineIdDiv), 'cannot find pipeline id div');
-    assert.strictEqual(pipelineIdDiv.innerText, testJob.pipeline_id.toString(),
+    assert.strictEqual(pipelineIdDiv.innerText, testJob.pipeline_id,
         'displayed pipeline id does not match test data');
 
     const descriptionDiv =
@@ -326,6 +326,7 @@ describe('job-details', () => {
 
   after(() => {
     getJobStub.restore();
+    listRunsStub.restore();
     document.body.removeChild(fixture);
   });
 

@@ -69,13 +69,14 @@ export function getAncestorElementWithClass(element: HTMLElement, className: str
   return element;
 }
 
-export function nodePhaseToIcon(status: NodePhase): string {
+export function nodePhaseToIcon(status: NodePhase|string): string {
   switch (status) {
     case NODE_PHASE.RUNNING: return 'device:access-time';
     case NODE_PHASE.SUCCEEDED: return 'check-circle';
     case NODE_PHASE.SKIPPED: return 'av:skip-next';
     case NODE_PHASE.FAILED: return 'error-outline';
     case NODE_PHASE.ERROR: return 'error-outline';
+    case 'NONE': return 'av:fiber-manual-record';
     default:
       log.error('Unknown status:', status);
       return 'help-outline';

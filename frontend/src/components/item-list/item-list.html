@@ -57,8 +57,8 @@ the License.
             <iron-icon hidden$="{{!row._icon}}" icon$="{{row.icon}}" src$="{{row.src}}"></iron-icon>
           </div>
           <template is="dom-repeat" items="{{row.columns}}" as="column" index-as="columnIndex">
-            <div class="column" style$="flex: [[_getColumnFlex(columnIndex)]]">
-              <span inner-h-t-m-l="[[renderColumn(column, columnIndex, rowIndex)]]"></span>
+            <div class="column" style$="flex: [[_getColumnFlex(columnIndex)]]"
+                 inner-h-t-m-l="[[renderColumn(column, columnIndex, rowIndex)]]">
             </div>
           </template>
         </paper-item>

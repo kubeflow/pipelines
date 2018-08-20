@@ -38,7 +38,7 @@ const runs = [
       name: 'hello-world-7sm94',
       namespace: 'namespace',
       scheduled_at: "2017-05-17T21:58:23.000Z",
-      status: 'Succeeded',
+      status: 'Running',
     },
     workflow: JSON.stringify(helloWorldRun),
   },
@@ -49,7 +49,7 @@ const runs = [
       name: 'hello-world-with-steps-kajnkv4',
       namespace: 'namespace',
       scheduled_at: "2017-06-17T22:58:23.000Z",
-      status: 'Succeeded',
+      status: 'Failed',
     },
     workflow: JSON.stringify(helloWorldWithStepsRun),
   },
@@ -80,7 +80,7 @@ const runs = [
 runs.push(...generateNRuns());
 
 const examplePipeline = {
-  id: 1,
+  id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
   created_at: "2018-04-01T20:58:23.000Z",
   name: 'Unstructured text',
   description: 'An awesome unstructured text pipeline.',
@@ -98,7 +98,7 @@ const examplePipeline = {
 };
 
 const examplePipeline2 = {
-  id: 2,
+  id: '8fbe3f78-a01f-11e8-98d0-529269fb1459',
   created_at: "2018-04-02T20:58:23.000Z",
   name: 'Image classification',
   description: 'An awesome image classification pipeline.',
@@ -119,7 +119,7 @@ const examplePipeline2 = {
 };
 
 const noParamsPipeline = {
-  id: 3,
+  id: '8fbe41b2-a01f-11e8-98d0-529269fb1459',
   created_at: "2018-04-03T20:58:23.000Z",
   name: 'No parameters',
   description: 'This pipeline has no parameters',
@@ -127,12 +127,19 @@ const noParamsPipeline = {
 };
 
 const undefinedParamsPipeline = {
-  id: 4,
+  id: '8fbe42f2-a01f-11e8-98d0-529269fb1459',
   created_at: "2018-04-04T20:58:23.000Z",
   name: 'Undefined parameters',
   description: 'This pipeline has undefined parameters',
   parameters: undefined
 }
+
+const namedPipelinesArray = [
+  examplePipeline,
+  examplePipeline2,
+  noParamsPipeline,
+  undefinedParamsPipeline
+];
 
 const data = {
   runs,
@@ -143,7 +150,7 @@ const data = {
       created_at: "2018-03-01T21:58:23.000Z",
       name: 'No Runs',
       description: 'This job has no runs',
-      pipeline_id: 2,
+      pipeline_id: examplePipeline.id,
       status: 'Succeeded',
       trigger: { cron_schedule: { cron: '30 1 * * * ?' } },
       enabled: true,
@@ -174,7 +181,7 @@ const data = {
       created_at: "2018-03-02T22:58:23.000Z",
       name: 'Cannot be deleted - 1',
       description: 'This job cannot be deleted',
-      pipeline_id: 1,
+      pipeline_id: examplePipeline2.id,
       status: 'Succeeded',
       trigger: { cron_schedule: { cron: '0 0 * * * ?' }, },
       enabled: false,
@@ -201,7 +208,7 @@ const data = {
       created_at: "2018-03-03T23:58:23.000Z",
       name: 'Cannot be deleted - 2',
       description: 'This job cannot be deleted',
-      pipeline_id: 2,
+      pipeline_id: noParamsPipeline.id,
       status: 'Succeeded',
       trigger: { periodic_schedule: { interval_second: 439652 } },
       enabled: true,
@@ -256,7 +263,7 @@ function generateNJobs() {
       created_at: '2018-04-01T20:' + i.toString().padStart(2, '0') + ':23.000Z',
       description: 'Some description',
       name: 'Job#' + i,
-      pipeline_id: (i % 6) + 1,
+      pipeline_id: namedPipelinesArray[i % namedPipelinesArray.length].id,
       status: 'Succeeded',
       trigger: undefined,
       enabled: false,

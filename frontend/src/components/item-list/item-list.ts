@@ -12,6 +12,7 @@
  * the License.
  */
 
+import 'iron-icons/av-icons.html';
 import 'iron-icons/device-icons.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
@@ -278,6 +279,22 @@ export class ItemListElement extends Polymer.Element {
     if (this.sortLocally) {
       this._sortBy(0);
     }
+  }
+
+  /**
+   * Returns the cell Div element at the specified row and column indexes, 1-based.
+   */
+  public getCellElement(rowIndex: number, colIndex: number): HTMLDivElement {
+    const rowEl = this.$.listContainer.querySelector(`.row:nth-of-type(${rowIndex})`);
+    if (!rowEl) {
+      throw new Error('Could not find row ' + rowIndex);
+    }
+    // First column is taken up by the checkbox
+    const colEl = rowEl.querySelector(`.column:nth-of-type(${colIndex + 1})`);
+    if (!colEl) {
+      throw new Error('Could not find column ' + colIndex);
+    }
+    return colEl as HTMLDivElement;
   }
 
   /**

@@ -169,7 +169,7 @@ export class Job {
   public id: string;
   public name: string;
   public description: string;
-  public pipeline_id: number;
+  public pipeline_id: string;
   public enabled: boolean;
   // The status is surfacing the CRD's condition. A CRD can potentially have
   // multiple conditions, although in most cases, it should be in one state.
@@ -186,7 +186,7 @@ export class Job {
   constructor() {
     this.name = '';
     this.description = '';
-    this.pipeline_id = -1;
+    this.pipeline_id = '';
     this.enabled = false;
     this.max_concurrency = 10;
     this.parameters = [];

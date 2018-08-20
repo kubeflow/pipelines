@@ -44,7 +44,7 @@ export async function listPipelines(request: ListPipelinesRequest): Promise<List
 /**
  * Gets the details of a certain pipeline given its id.
  */
-export async function getPipeline(id: number): Promise<Pipeline> {
+export async function getPipeline(id: string): Promise<Pipeline> {
   return JSON.parse(await _fetch(`/pipelines/${id}`, v1alpha2Prefix));
 }
 

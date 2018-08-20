@@ -122,6 +122,13 @@ div {
   padding-left: var(--spacing-minus-2);
 }
 
+.column iron-icon {
+  height: var(--icon-dimension-small);
+  min-height: var(--icon-dimension-small);
+  min-width: var(--icon-dimension-small);
+  width: var(--icon-dimension-small);
+}
+
 .empty-message {
   margin: var(--spacing-minus-1) auto;
   color: var(--secondary-text-color);

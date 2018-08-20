@@ -35,6 +35,7 @@
   --height-jumbo: 64px;
   --height-auto: auto;
 
+  --icon-dimension-xsmall: 14px;
   --icon-dimension-small: 16px;
   --icon-dimension: 18px;
   --icon-dimension-large: 20px;
@@ -91,7 +92,7 @@
 
   /* Buttons & icons */
   --disabled-button-color: rgba(0, 0, 0, .38);
-  --disabled-button-inverse-color: rgba(255, 255, 255, .3);
+  --disabled-button-inverse-color: #ddd;
   --disabled-button-raised-color: rgba(0, 0, 0, .12);
   --primary-button-color: #3367D6;
   --primary-button-inverse-color: #A1C2FA;
@@ -108,13 +109,13 @@
   --inactive-inverse-color: rgba(255, 255, 255, .72);
 
   /* Status/messaging */
-  --danger-color: #D50000;
+  --danger-color: #e94235;
   --danger-soft-color: #FBE9E7;
-  --good-color: #0F9D58;
+  --good-color: #34a853;
   --info-color: rgba(0, 0, 0, .38);
   --info-strong-color: #3367D6;
-  --resource-color: #455A64;
-  --warning-color: #F2A600;
+  --grey-color: #80868b;
+  --warning-color: #f9ab00;
 
   /* Progress */
   --danger-fill-color: #FF6E40;

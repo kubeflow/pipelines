@@ -5,7 +5,8 @@
   "dependencies": {
     "d3": "^4.13.0",
     "dagre": "^0.8.2",
-    "js-yaml": "^3.11.0"
+    "js-yaml": "^3.11.0",
+    "xss": "^1.0.3"
   },
   "devDependencies": {
     "@types/chai": "^4.1.4",

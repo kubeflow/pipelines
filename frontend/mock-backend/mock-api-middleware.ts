@@ -3,12 +3,12 @@ import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
 
-import { ListPipelinesResponse } from '../src/api/list_pipelines_response';
+import { Job } from '../src/api/job';
 import { JobSortKeys } from '../src/api/list_jobs_request';
 import { ListJobsResponse } from '../src/api/list_jobs_response';
+import { ListPipelinesResponse } from '../src/api/list_pipelines_response';
 import { RunSortKeys } from '../src/api/list_runs_request';
 import { ListRunsResponse } from '../src/api/list_runs_response';
-import { Job } from '../src/api/job';
 import { RunMetadata } from '../src/api/run';
 
 const prefix = __dirname + '/job-data';
@@ -222,6 +222,16 @@ export default (app) => {
       pipelines: fixedData.pipelines,
     };
     res.json(response);
+  });
+
+  app.get(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
+    const pid = req.params.pid;
+    const pipeline = fixedData.pipelines.find((p) => p.id === pid);
+    if (!pipeline) {
+      res.status(404).send('Cannot find a pipeline with id: ' + pid);
+      return;
+    }
+    res.json(pipeline);
   });
 
   app.get(v1alpha2Prefix + '/pipelines/:pid/templates', (req, res) => {

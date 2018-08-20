@@ -16,6 +16,7 @@ import * as fixedData from '../../mock-backend/fixed-data';
 let fixture: JobList;
 let deleteJobStub: sinon.SinonStub;
 let listJobsStub: sinon.SinonStub;
+let listRunsStub: sinon.SinonStub;
 
 const allJobsResponse = new ListJobsResponse();
 allJobsResponse.next_page_token = '';
@@ -44,6 +45,30 @@ describe('job-list', () => {
     assert.deepStrictEqual(
         fixture.jobs.map((job) => job.id),
         fixedData.data.jobs.map((job: any) => job.id));
+  });
+
+  it('shows last 5 runs status', (done) => {
+    listRunsStub = sinon.stub(Apis, 'listRuns');
+    const successRun = fixedData.data.runs[0];
+    successRun.run.status = 'Succeeded';
+    const failureRun = fixedData.data.runs[1];
+    failureRun.run.status = 'Failed';
+    listRunsStub.returns({ runs: [] });
+    listRunsStub.onFirstCall().returns({ runs: [successRun.run, failureRun.run] });
+
+    _resetFixture()
+      .then(() => Polymer.Async.idlePeriod.run(() => {
+        assert.strictEqual(fixture.itemList.rows[0].columns[1], 'Succeeded,Failed');
+        assert.strictEqual(fixture.itemList.rows[1].columns[1], '');
+        listRunsStub.restore();
+        done();
+      }));
+  });
+
+  it('displays the job name as a link to the job\'s details page', () => {
+    const link = fixture.itemList.getCellElement(1, 1).children[0];
+    assert.strictEqual(link.tagName, 'A');
+    assert.strictEqual(link.getAttribute('href'), `/jobs/details/${fixture.jobs[0].id}`);
   });
 
   it('refreshes the list of jobs', (done) => {
@@ -162,6 +187,23 @@ describe('job-list', () => {
         });
     });
 
+  });
+
+  describe('sanitizing HTML', () => {
+    before(() => {
+      const mockJob = fixedData.data.jobs[0];
+      mockJob.name = '<script>alert("surprise!")</script>';
+      listJobsStub.returns({ jobs: [mockJob] });
+    });
+
+    it('sanitizes user data before inlining as HTML', () => {
+      const link = fixture.itemList.getCellElement(1, 1).children[0];
+      assert(link.innerHTML.trim(), '&lt;script&gt;alert("surprise!")&lt;/script&gt;');
+    });
+
+    after(() => {
+      listJobsStub.returns(allJobsResponse);
+    });
   });
 
   after(() => {

@@ -4,6 +4,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
+import * as xss from 'xss';
 import { ListRunsRequest, RunSortKeys } from '../../api/list_runs_request';
 import { RunMetadata } from '../../api/run';
 import { NodePhase } from '../../model/argo_template';
@@ -60,11 +61,12 @@ export class RunList extends Polymer.Element {
           text = value.toString();
         }
       }
+      text = xss(text);
       return colIndex ? `<span>${text}</span>` :
           `<a class="link"
               href="/jobRun?jobId=${this._jobId}&runId=${this.runsMetadata[rowIndex].id}">
             ${text}
-          </span>`;
+          </a>`;
     };
   }
 
