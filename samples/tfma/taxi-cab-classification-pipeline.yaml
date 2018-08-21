@@ -1,0 +1,343 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: tfmataxicabclassificationpipelineexample-
+spec:
+  arguments:
+    parameters:
+    - name: output
+    - name: project
+    - name: schema
+      value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json
+    - name: train
+      value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv
+    - name: evaluation
+      value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv
+    - name: preprocessmode
+      value: local
+    - name: preprocessmodule
+      value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py
+    - name: target
+      value: tips
+    - name: learningrate
+      value: '0.1'
+    - name: hiddenlayersize
+      value: '1500'
+    - name: steps
+      value: '3000'
+    - name: workers
+      value: '0'
+    - name: pss
+      value: '0'
+    - name: predictmode
+      value: local
+    - name: analyzemode
+      value: local
+    - name: analyzeslicecolumn
+      value: trip_start_hour
+  entrypoint: tfmataxicabclassificationpipelineexample
+  templates:
+  - container:
+      args:
+      - --output
+      - '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
+      - --model
+      - '{{inputs.parameters.training-train}}'
+      - --eval
+      - '{{inputs.parameters.evaluation}}'
+      - --schema
+      - '{{inputs.parameters.schema}}'
+      - --project
+      - '{{inputs.parameters.project}}'
+      - --mode
+      - '{{inputs.parameters.analyzemode}}'
+      - --slice-columns
+      - '{{inputs.parameters.analyzeslicecolumn}}'
+      command: null
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma
+    inputs:
+      parameters:
+      - name: analyzemode
+      - name: analyzeslicecolumn
+      - name: evaluation
+      - name: output
+      - name: project
+      - name: schema
+      - name: training-train
+    name: analysis
+    outputs:
+      artifacts:
+      - name: metadata
+        path: /metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: analysis-analysis
+        valueFrom:
+          path: /output.txt
+  - container:
+      args:
+      - --output
+      - '{{inputs.parameters.output}}/{{workflow.name}}/predict'
+      - --data
+      - '{{inputs.parameters.evaluation}}'
+      - --schema
+      - '{{inputs.parameters.schema}}'
+      - --target
+      - '{{inputs.parameters.target}}'
+      - --model
+      - '{{inputs.parameters.training-train}}'
+      - --mode
+      - '{{inputs.parameters.predictmode}}'
+      - --project
+      - '{{inputs.parameters.project}}'
+      command: null
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict
+    inputs:
+      parameters:
+      - name: evaluation
+      - name: output
+      - name: predictmode
+      - name: project
+      - name: schema
+      - name: target
+      - name: training-train
+    name: prediction
+    outputs:
+      artifacts:
+      - name: metadata
+        path: /metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: prediction-predict
+        valueFrom:
+          path: /output.txt
+  - container:
+      args:
+      - --train
+      - '{{inputs.parameters.train}}'
+      - --eval
+      - '{{inputs.parameters.evaluation}}'
+      - --schema
+      - '{{inputs.parameters.schema}}'
+      - --output
+      - '{{inputs.parameters.output}}/{{workflow.name}}/transformed'
+      - --project
+      - '{{inputs.parameters.project}}'
+      - --mode
+      - '{{inputs.parameters.preprocessmode}}'
+      - --preprocessing-module
+      - '{{inputs.parameters.preprocessmodule}}'
+      command: null
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft
+    inputs:
+      parameters:
+      - name: evaluation
+      - name: output
+      - name: preprocessmode
+      - name: preprocessmodule
+      - name: project
+      - name: schema
+      - name: train
+    name: preprocess
+    outputs:
+      artifacts:
+      - name: metadata
+        path: /metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: preprocess-transformed
+        valueFrom:
+          path: /output.txt
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: analyzemode
+            value: '{{inputs.parameters.analyzemode}}'
+          - name: analyzeslicecolumn
+            value: '{{inputs.parameters.analyzeslicecolumn}}'
+          - name: evaluation
+            value: '{{inputs.parameters.evaluation}}'
+          - name: output
+            value: '{{inputs.parameters.output}}'
+          - name: project
+            value: '{{inputs.parameters.project}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: training-train
+            value: '{{tasks.training.outputs.parameters.training-train}}'
+        dependencies:
+        - training
+        name: analysis
+        template: analysis
+      - arguments:
+          parameters:
+          - name: evaluation
+            value: '{{inputs.parameters.evaluation}}'
+          - name: output
+            value: '{{inputs.parameters.output}}'
+          - name: predictmode
+            value: '{{inputs.parameters.predictmode}}'
+          - name: project
+            value: '{{inputs.parameters.project}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: target
+            value: '{{inputs.parameters.target}}'
+          - name: training-train
+            value: '{{tasks.training.outputs.parameters.training-train}}'
+        dependencies:
+        - training
+        name: prediction
+        template: prediction
+      - arguments:
+          parameters:
+          - name: evaluation
+            value: '{{inputs.parameters.evaluation}}'
+          - name: output
+            value: '{{inputs.parameters.output}}'
+          - name: preprocessmode
+            value: '{{inputs.parameters.preprocessmode}}'
+          - name: preprocessmodule
+            value: '{{inputs.parameters.preprocessmodule}}'
+          - name: project
+            value: '{{inputs.parameters.project}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: train
+            value: '{{inputs.parameters.train}}'
+        name: preprocess
+        template: preprocess
+      - arguments:
+          parameters:
+          - name: hiddenlayersize
+            value: '{{inputs.parameters.hiddenlayersize}}'
+          - name: learningrate
+            value: '{{inputs.parameters.learningrate}}'
+          - name: output
+            value: '{{inputs.parameters.output}}'
+          - name: preprocess-transformed
+            value: '{{tasks.preprocess.outputs.parameters.preprocess-transformed}}'
+          - name: preprocessmodule
+            value: '{{inputs.parameters.preprocessmodule}}'
+          - name: pss
+            value: '{{inputs.parameters.pss}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: steps
+            value: '{{inputs.parameters.steps}}'
+          - name: target
+            value: '{{inputs.parameters.target}}'
+          - name: workers
+            value: '{{inputs.parameters.workers}}'
+        dependencies:
+        - preprocess
+        name: training
+        template: training
+    inputs:
+      parameters:
+      - name: analyzemode
+      - name: analyzeslicecolumn
+      - name: evaluation
+      - name: hiddenlayersize
+      - name: learningrate
+      - name: output
+      - name: predictmode
+      - name: preprocessmode
+      - name: preprocessmodule
+      - name: project
+      - name: pss
+      - name: schema
+      - name: steps
+      - name: target
+      - name: train
+      - name: workers
+    name: tfmataxicabclassificationpipelineexample
+  - container:
+      args:
+      - --job-dir
+      - '{{inputs.parameters.output}}/{{workflow.name}}/train'
+      - --transformed-data-dir
+      - '{{inputs.parameters.preprocess-transformed}}'
+      - --schema
+      - '{{inputs.parameters.schema}}'
+      - --learning-rate
+      - '{{inputs.parameters.learningrate}}'
+      - --hidden-layer-size
+      - '{{inputs.parameters.hiddenlayersize}}'
+      - --steps
+      - '{{inputs.parameters.steps}}'
+      - --target
+      - '{{inputs.parameters.target}}'
+      - --workers
+      - '{{inputs.parameters.workers}}'
+      - --pss
+      - '{{inputs.parameters.pss}}'
+      - --preprocessing-module
+      - '{{inputs.parameters.preprocessmodule}}'
+      - --tfjob-timeout-minutes
+      - '60'
+      command: null
+      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
+    inputs:
+      parameters:
+      - name: hiddenlayersize
+      - name: learningrate
+      - name: output
+      - name: preprocess-transformed
+      - name: preprocessmodule
+      - name: pss
+      - name: schema
+      - name: steps
+      - name: target
+      - name: workers
+    name: training
+    outputs:
+      artifacts:
+      - name: metadata
+        path: /metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: training-train
+        valueFrom:
+          path: /output.txt

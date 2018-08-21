@@ -1,36 +1,6 @@
-## Disclaimer: 
-**TFMA DSL is under testing.**
-
-## The requirements:
-Preprocessing uses Google Cloud DataFlow. So [DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project.
-
-## Compile
-<!---
-Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
-compile your sample python into workflow yaml.
---->
-Currently, the DSL python file is not generated for TFMA yet. You can submit the yaml file directly to the Web UI.
-
-## Deploy
 This sample runs a pipeline with tensorflow transform and model-analysis components.
-* Prepare output directory  
-Create a GCS bucket to store the generated model. Make sure it's in the same project as the ML pipeline deployed above.
 
-```bash
-gsutil mb gs://[YOUR_GCS_BUCKET]
-```
-
-* Deploy  
-Open the ML pipeline UI.  
-Kubeflow-training-classification requires two argument:
-
-```
-project: MY_GCP_PROJECT
-output: gs://[YOUR_GCS_BUCKET]
-```
-
-
-### The dataset
+## The dataset
 
 This sample is based on the model-analysis example [here](https://github.com/tensorflow/model-analysis/tree/master/examples/chicago_taxi).
 
@@ -49,13 +19,29 @@ dataset in [Google BigQuery](https://cloud.google.com/bigquery/). Explore the
 full dataset in the
 [BigQuery UI](https://bigquery.cloud.google.com/dataset/bigquery-public-data:chicago_taxi_trips).
 
-<!---
-## Running the sample
+## Requirements
 
-```sh
-argo submit taxi-cab-classification/pipeline.yaml \
-     -p project=MY_GCP_PROJECT \
-     -p output="gs://my-bucket/taximodel" \
-     --entrypoint kubeflow-training
+Preprocessing and model analysis use [Apache Beam](https://beam.apache.org/).
+
+When run with the `cloud` mode (instead of the `local` mode), those steps use [Google Cloud DataFlow](https://beam.apache.org/) for running the Beam pipelines.
+
+As such, the DataFlow API needs to be enabled for the given project if you want to use `cloud` as the mode for either preprocessing or analysis.
+
+Instructions for enabling that can be found [here](https://cloud.google.com/endpoints/docs/openapi/enable-api).
+
+## Compiling the pipeline template
+
+Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and then run the following to compile the pipeline:
+
+```bash
+dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.yaml
 ```
---->
+
+## Deploying a pipeline
+
+Open the ML pipeline UI. Create a new pipeline, and then upload the compiled YAML file as a new pipeline template.
+
+The pipeline will require two arguments:
+
+1. The name of a GCP project.
+1. An output directory in a GCS bucket, of the form `gs://<BUCKET>/<PATH>`.
