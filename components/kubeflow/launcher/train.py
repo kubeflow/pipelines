@@ -122,6 +122,9 @@ def main(argv=None):
                       default='default',
                       help='The namespace where the tfjob is submitted' +
                            'If not set, the default namespace is default')
+  parser.add_argument('--tfjob-timeout-minutes', type=int,
+                      default=10,
+                      help='Time in minutes to wait for the TFJob to complete')
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
@@ -151,7 +154,7 @@ def main(argv=None):
   logging.info('Generating training template.')
   template_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'train.template.yaml')
   content_yaml = _generate_train_yaml(template_file, tfjob_ns, workers, pss, args_list)
-  
+
   logging.info('Start training.')
   # Set up handler for k8s clients
   config.load_incluster_config()
@@ -169,7 +172,9 @@ def main(argv=None):
   with file_io.FileIO(os.path.join(args.job_dir, 'metadata.json'), 'w') as f:
     json.dump(metadata, f)
 
-  wait_response = tf_job_client.wait_for_job(api_client, tfjob_ns, job_name, kf_version)
+  wait_response = tf_job_client.wait_for_job(
+      api_client, tfjob_ns, job_name, kf_version,
+      timeout=datetime.timedelta(minutes=args.tfjob_timeout_minutes))
   succ = True
   #TODO: update this failure checking after tf-operator has the condition checking function.
   if 'Worker' in wait_response['status']['tfReplicaStatuses']:
