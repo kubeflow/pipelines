@@ -96,12 +96,12 @@ class Compiler(object):
     # this part needs to be updated to use the default artifact repository.
     output_artifacts = []
     output_artifacts.append({
-      'name': 'metadata',
-      'path': '/metadata.json',
+      'name': 'mlpipeline-ui-metadata',
+      'path': '/mlpipeline-ui-metadata.json',
       's3': {
         'endpoint': 'minio-service.default:9000',
         'bucket': 'mlpipeline',
-        'key': 'runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz',
+        'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
         'insecure': True,
         'accessKeySecret': {
           'name': 'mlpipeline-minio-artifact',

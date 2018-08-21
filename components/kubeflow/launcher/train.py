@@ -169,7 +169,7 @@ def main(argv=None):
       'source': args.job_dir,
     }]
   }
-  with file_io.FileIO(os.path.join(args.job_dir, 'metadata.json'), 'w') as f:
+  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
   wait_response = tf_job_client.wait_for_job(

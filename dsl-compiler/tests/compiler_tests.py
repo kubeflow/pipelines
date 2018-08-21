@@ -55,8 +55,8 @@ class TestCompiler(unittest.TestCase):
            'valueFrom': {'path': '/tmp/message.txt'}
           }],
         'artifacts': [{
-          'name': 'metadata',
-          'path': '/metadata.json',
+          'name': 'mlpipeline-ui-metadata',
+          'path': '/mlpipeline-ui-metadata.json',
           's3': {
             'accessKeySecret': {
               'key': 'accesskey',
@@ -65,7 +65,7 @@ class TestCompiler(unittest.TestCase):
             'bucket': 'mlpipeline',
             'endpoint': 'minio-service.default:9000',
             'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz',
+            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
             'secretKeySecret': {
               'key': 'secretkey',
               'name': 'mlpipeline-minio-artifact',

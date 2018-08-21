@@ -42,8 +42,8 @@ spec:
     name: download
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -51,7 +51,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact
@@ -72,8 +72,8 @@ spec:
     name: echo
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -81,7 +81,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact

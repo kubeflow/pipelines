@@ -64,7 +64,7 @@ def main(argv=None):
       'source': roc_file
     }]
   }
-  with file_io.FileIO(os.path.join(args.output, 'metadata.json'), 'w') as f:
+  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
 
