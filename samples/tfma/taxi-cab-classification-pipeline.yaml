@@ -13,15 +13,15 @@ spec:
       value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv
     - name: evaluation
       value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv
-    - name: preprocessmode
+    - name: preprocess-mode
       value: local
-    - name: preprocessmodule
+    - name: preprocess-module
       value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py
     - name: target
       value: tips
-    - name: learningrate
+    - name: learning-rate
       value: '0.1'
-    - name: hiddenlayersize
+    - name: hidden-layer-size
       value: '1500'
     - name: steps
       value: '3000'
@@ -29,11 +29,11 @@ spec:
       value: '0'
     - name: pss
       value: '0'
-    - name: predictmode
+    - name: predict-mode
       value: local
-    - name: analyzemode
+    - name: analyze-mode
       value: local
-    - name: analyzeslicecolumn
+    - name: analyze-slice-column
       value: trip_start_hour
   entrypoint: tfmataxicabclassificationpipelineexample
   templates:
@@ -50,15 +50,14 @@ spec:
       - --project
       - '{{inputs.parameters.project}}'
       - --mode
-      - '{{inputs.parameters.analyzemode}}'
+      - '{{inputs.parameters.analyze-mode}}'
       - --slice-columns
-      - '{{inputs.parameters.analyzeslicecolumn}}'
-      command: null
+      - '{{inputs.parameters.analyze-slice-column}}'
       image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma
     inputs:
       parameters:
-      - name: analyzemode
-      - name: analyzeslicecolumn
+      - name: analyze-mode
+      - name: analyze-slice-column
       - name: evaluation
       - name: output
       - name: project
@@ -67,8 +66,8 @@ spec:
     name: analysis
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -76,7 +75,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact
@@ -97,16 +96,15 @@ spec:
       - --model
       - '{{inputs.parameters.training-train}}'
       - --mode
-      - '{{inputs.parameters.predictmode}}'
+      - '{{inputs.parameters.predict-mode}}'
       - --project
       - '{{inputs.parameters.project}}'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict
     inputs:
       parameters:
       - name: evaluation
       - name: output
-      - name: predictmode
+      - name: predict-mode
       - name: project
       - name: schema
       - name: target
@@ -114,8 +112,8 @@ spec:
     name: prediction
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -123,7 +121,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact
@@ -144,25 +142,24 @@ spec:
       - --project
       - '{{inputs.parameters.project}}'
       - --mode
-      - '{{inputs.parameters.preprocessmode}}'
+      - '{{inputs.parameters.preprocess-mode}}'
       - --preprocessing-module
-      - '{{inputs.parameters.preprocessmodule}}'
-      command: null
+      - '{{inputs.parameters.preprocess-module}}'
       image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft
     inputs:
       parameters:
       - name: evaluation
       - name: output
-      - name: preprocessmode
-      - name: preprocessmodule
+      - name: preprocess-mode
+      - name: preprocess-module
       - name: project
       - name: schema
       - name: train
     name: preprocess
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -170,7 +167,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact
@@ -182,10 +179,10 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: analyzemode
-            value: '{{inputs.parameters.analyzemode}}'
-          - name: analyzeslicecolumn
-            value: '{{inputs.parameters.analyzeslicecolumn}}'
+          - name: analyze-mode
+            value: '{{inputs.parameters.analyze-mode}}'
+          - name: analyze-slice-column
+            value: '{{inputs.parameters.analyze-slice-column}}'
           - name: evaluation
             value: '{{inputs.parameters.evaluation}}'
           - name: output
@@ -206,8 +203,8 @@ spec:
             value: '{{inputs.parameters.evaluation}}'
           - name: output
             value: '{{inputs.parameters.output}}'
-          - name: predictmode
-            value: '{{inputs.parameters.predictmode}}'
+          - name: predict-mode
+            value: '{{inputs.parameters.predict-mode}}'
           - name: project
             value: '{{inputs.parameters.project}}'
           - name: schema
@@ -226,10 +223,10 @@ spec:
             value: '{{inputs.parameters.evaluation}}'
           - name: output
             value: '{{inputs.parameters.output}}'
-          - name: preprocessmode
-            value: '{{inputs.parameters.preprocessmode}}'
-          - name: preprocessmodule
-            value: '{{inputs.parameters.preprocessmodule}}'
+          - name: preprocess-mode
+            value: '{{inputs.parameters.preprocess-mode}}'
+          - name: preprocess-module
+            value: '{{inputs.parameters.preprocess-module}}'
           - name: project
             value: '{{inputs.parameters.project}}'
           - name: schema
@@ -240,16 +237,16 @@ spec:
         template: preprocess
       - arguments:
           parameters:
-          - name: hiddenlayersize
-            value: '{{inputs.parameters.hiddenlayersize}}'
-          - name: learningrate
-            value: '{{inputs.parameters.learningrate}}'
+          - name: hidden-layer-size
+            value: '{{inputs.parameters.hidden-layer-size}}'
+          - name: learning-rate
+            value: '{{inputs.parameters.learning-rate}}'
           - name: output
             value: '{{inputs.parameters.output}}'
+          - name: preprocess-module
+            value: '{{inputs.parameters.preprocess-module}}'
           - name: preprocess-transformed
             value: '{{tasks.preprocess.outputs.parameters.preprocess-transformed}}'
-          - name: preprocessmodule
-            value: '{{inputs.parameters.preprocessmodule}}'
           - name: pss
             value: '{{inputs.parameters.pss}}'
           - name: schema
@@ -266,15 +263,15 @@ spec:
         template: training
     inputs:
       parameters:
-      - name: analyzemode
-      - name: analyzeslicecolumn
+      - name: analyze-mode
+      - name: analyze-slice-column
       - name: evaluation
-      - name: hiddenlayersize
-      - name: learningrate
+      - name: hidden-layer-size
+      - name: learning-rate
       - name: output
-      - name: predictmode
-      - name: preprocessmode
-      - name: preprocessmodule
+      - name: predict-mode
+      - name: preprocess-mode
+      - name: preprocess-module
       - name: project
       - name: pss
       - name: schema
@@ -292,9 +289,9 @@ spec:
       - --schema
       - '{{inputs.parameters.schema}}'
       - --learning-rate
-      - '{{inputs.parameters.learningrate}}'
+      - '{{inputs.parameters.learning-rate}}'
       - --hidden-layer-size
-      - '{{inputs.parameters.hiddenlayersize}}'
+      - '{{inputs.parameters.hidden-layer-size}}'
       - --steps
       - '{{inputs.parameters.steps}}'
       - --target
@@ -304,18 +301,17 @@ spec:
       - --pss
       - '{{inputs.parameters.pss}}'
       - --preprocessing-module
-      - '{{inputs.parameters.preprocessmodule}}'
+      - '{{inputs.parameters.preprocess-module}}'
       - --tfjob-timeout-minutes
       - '60'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
     inputs:
       parameters:
-      - name: hiddenlayersize
-      - name: learningrate
+      - name: hidden-layer-size
+      - name: learning-rate
       - name: output
+      - name: preprocess-module
       - name: preprocess-transformed
-      - name: preprocessmodule
       - name: pss
       - name: schema
       - name: steps
@@ -324,8 +320,8 @@ spec:
     name: training
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -333,7 +329,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact

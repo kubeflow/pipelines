@@ -35,21 +35,21 @@ def taxi_cab_classification(
         name='evaluation',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv'),
     preprocess_mode: mlp.PipelineParam=mlp.PipelineParam(
-        name='preprocessmode', value='local'),
+        name='preprocess-mode', value='local'),
     preprocess_module: mlp.PipelineParam=mlp.PipelineParam(
-        name='preprocessmodule',
+        name='preprocess-module',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py'),
     target: mlp.PipelineParam=mlp.PipelineParam(
         name='target', value='tips'),
-    learning_rate: mlp.PipelineParam=mlp.PipelineParam(name='learningrate', value=0.1),
-    hidden_layer_size: mlp.PipelineParam=mlp.PipelineParam(name='hiddenlayersize', value='1500'),
+    learning_rate: mlp.PipelineParam=mlp.PipelineParam(name='learning-rate', value=0.1),
+    hidden_layer_size: mlp.PipelineParam=mlp.PipelineParam(name='hidden-layer-size', value='1500'),
     steps: mlp.PipelineParam=mlp.PipelineParam(name='steps', value=3000),
     workers: mlp.PipelineParam=mlp.PipelineParam(name='workers', value=0),
     pss: mlp.PipelineParam=mlp.PipelineParam(name='pss', value=0),
-    predict_mode: mlp.PipelineParam=mlp.PipelineParam(name='predictmode', value='local'),
-    analyze_mode: mlp.PipelineParam=mlp.PipelineParam(name='analyzemode', value='local'),
+    predict_mode: mlp.PipelineParam=mlp.PipelineParam(name='predict-mode', value='local'),
+    analyze_mode: mlp.PipelineParam=mlp.PipelineParam(name='analyze-mode', value='local'),
     analyze_slice_column: mlp.PipelineParam=mlp.PipelineParam(
-        name='analyzeslicecolumn', value='trip_start_hour')):
+        name='analyze-slice-column', value='trip_start_hour')):
   transform_output = '%s/{{workflow.name}}/transformed' % output
   training_output = '%s/{{workflow.name}}/train' % output
   analysis_output = '%s/{{workflow.name}}/analysis' % output
