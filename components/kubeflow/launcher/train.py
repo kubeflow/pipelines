@@ -149,6 +149,7 @@ def main(argv=None):
   pss = args_dict.pop('pss')
   kf_version = args_dict.pop('kfversion')
   tfjob_ns = args_dict.pop('tfjob_ns')
+  tfjob_timeout_minutes = args_dict.pop('tfjob_timeout_minutes')
   args_list = ['--%s=%s' % (k.replace('_', '-'),v)
                for k,v in six.iteritems(args_dict) if v is not None]
   logging.info('Generating training template.')
@@ -174,7 +175,7 @@ def main(argv=None):
 
   wait_response = tf_job_client.wait_for_job(
       api_client, tfjob_ns, job_name, kf_version,
-      timeout=datetime.timedelta(minutes=args.tfjob_timeout_minutes))
+      timeout=datetime.timedelta(minutes=tfjob_timeout_minutes))
   succ = True
   #TODO: update this failure checking after tf-operator has the condition checking function.
   if 'Worker' in wait_response['status']['tfReplicaStatuses']:
