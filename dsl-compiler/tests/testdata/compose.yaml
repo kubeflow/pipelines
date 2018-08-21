@@ -21,6 +21,20 @@ spec:
       - name: url
     name: download
     outputs:
+      artifacts:
+      - name: metadata
+        path: /metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -69,6 +83,20 @@ spec:
       - name: download-downloaded
     name: get-Frequent
     outputs:
+      artifacts:
+      - name: metadata
+        path: /metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: get-Frequent-word
         valueFrom:
@@ -86,3 +114,18 @@ spec:
       - name: get-Frequent-word
       - name: outputpath
     name: save
+    outputs:
+      artifacts:
+      - name: metadata
+        path: /metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact

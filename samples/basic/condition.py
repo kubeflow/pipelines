@@ -16,25 +16,39 @@
 import mlp
 
 
-@mlp.pipeline(
-  name='pipeline flip coin',
-  description='shows how to use mlp.Condition.'
-)
-def flipcoin():
-  flip = mlp.ContainerOp(
-      name='flip',
+class FlipCoinOp(mlp.ContainerOp):
+
+  def __init__(self, name):
+    super(FlipCoinOp, self).__init__(
+      name=name,
       image='python:alpine3.6',
       command=['sh', '-c'],
       arguments=['python -c "import random; result = \'heads\' if random.randint(0,1) == 0 '
                  'else \'tails\'; print(result)" | tee /tmp/output'],
       file_outputs={'output': '/tmp/output'})
 
-  with mlp.Condition(flip.output=='heads'):
-    flip_again = flip.clone('flip-again')
 
-    with mlp.Condition(flip_again.output=='tails'):
-      print_tail = mlp.ContainerOp(
-          name='print-tail', image='alpine:3.6', command=['echo', '"it was tail"'])
+class PrintOp(mlp.ContainerOp):
+  
+  def __init__(self, name):
+    super(PrintOp, self).__init__(
+      name=name,
+      image='alpine:3.6',
+      command=['echo', '"it was tail"'])
+    
+
+@mlp.pipeline(
+  name='pipeline flip coin',
+  description='shows how to use mlp.Condition.'
+)
+def flipcoin():
+  flip = FlipCoinOp('flip')
+
+  with mlp.Condition(flip.output=='heads'):
+    flip2 = FlipCoinOp('flip-again')
+
+    with mlp.Condition(flip2.output=='tails'):
+      PrintOp('print1')
 
   with mlp.Condition(flip.output=='tails'):
-      print_tail.clone(name='print-tail1')
+      PrintOp('print2')

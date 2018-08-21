@@ -31,30 +31,49 @@ class TestCompiler(unittest.TestCase):
 
     with mlp.Pipeline('somename') as p:
       msg1 = mlp.PipelineParam('msg1')
-      msg2 = mlp.PipelineParam('msg2')
+      msg2 = mlp.PipelineParam('msg2', value='value2')
       op = mlp.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
                            file_outputs={'merged': '/tmp/message.txt'})
-    # TODO: param with default values doesn't work. Add default value when it is fixed.
     golden_output = {
       'container': {
+        'image': 'image',
         'args': [
           'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
         ],
         'command': ['sh', '-c'],
-        'image': 'image'},
-        'inputs': {'parameters':
-          [
-            {'name': 'msg1'},
-            {'name': 'msg2'}
-          ]},
-        'name': 'echo',
-        'outputs': {
-          'parameters': [
-            {'name': 'echo-merged',
-             'valueFrom': {'path': '/tmp/message.txt'}
-            }]
-       }}
+      },
+      'inputs': {'parameters':
+        [
+          {'name': 'msg1'},
+          {'name': 'msg2', 'value': 'value2'},
+        ]},
+      'name': 'echo',
+      'outputs': {
+        'parameters': [
+          {'name': 'echo-merged',
+           'valueFrom': {'path': '/tmp/message.txt'}
+          }],
+        'artifacts': [{
+          'name': 'metadata',
+          'path': '/metadata.json',
+          's3': {
+            'accessKeySecret': {
+              'key': 'accesskey',
+              'name': 'mlpipeline-minio-artifact',
+            },
+            'bucket': 'mlpipeline',
+            'endpoint': 'minio-service.default:9000',
+            'insecure': True,
+            'key': 'runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz',
+            'secretKeySecret': {
+              'key': 'secretkey',
+              'name': 'mlpipeline-minio-artifact',
+            }
+          }
+        }]
+      }
+    }
 
     self.maxDiff = None
     self.assertEqual(golden_output, mlpc.Compiler()._op_to_template(op))
@@ -174,10 +193,17 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
     
   def test_py_compile_basic(self):
-    """Test compiling python files."""
+    """Test basic sequential pipeline."""
     self._test_py_compile('basic')
 
   def test_py_compile_condition(self):
-    """Test compiling python files."""
+    """Test a pipeline with conditions."""
     self._test_py_compile('coin')
 
+  def test_py_compile_immediate_value(self):
+    """Test a pipeline with immediate value parameter."""
+    self._test_py_compile('immediate_value')
+
+  def test_py_compile_default_value(self):
+    """Test a pipeline with a parameter with default value."""
+    self._test_py_compile('default_value')

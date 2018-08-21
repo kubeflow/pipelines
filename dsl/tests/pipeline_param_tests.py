@@ -31,10 +31,10 @@ class TestPipelineParam(unittest.TestCase):
     """Test string representation."""
 
     p = mlp.PipelineParam(name='param1', op_name='op1')
-    self.assertEqual('{{pipelineparam:op=op1;name=param1}}', str(p))
+    self.assertEqual('{{pipelineparam:op=op1;name=param1;value=}}', str(p))
 
     p = mlp.PipelineParam(name='param2')
-    self.assertEqual('{{pipelineparam:op=;name=param2}}', str(p))
+    self.assertEqual('{{pipelineparam:op=;name=param2;value=}}', str(p))
 
     p = mlp.PipelineParam(name='param3', value='value3')
-    self.assertEqual('{{pipelineparam:op=;name=param3}}', str(p))
+    self.assertEqual('{{pipelineparam:op=;name=param3;value=value3}}', str(p))

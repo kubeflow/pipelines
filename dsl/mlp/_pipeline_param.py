@@ -73,8 +73,8 @@ class PipelineParam(object):
     #  return str(self.value)
 
     op_name = self.op_name if self.op_name else ''
-
-    return '{{pipelineparam:op=%s;name=%s}}' % (op_name, self.name)
+    value = self.value if self.value else ''
+    return '{{pipelineparam:op=%s;name=%s;value=%s}}' % (op_name, self.name, value)
 
   def __eq__(self, other):
     return ConditionOperator('==', self, other)

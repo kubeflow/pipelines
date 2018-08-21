@@ -22,12 +22,13 @@ class TestContainerOp(unittest.TestCase):
   def test_basic(self):
     """Test basic usage."""
     with mlp.Pipeline('somename') as p:
+      param1 = mlp.PipelineParam('param1')
+      param2 = mlp.PipelineParam('param2')
       op1 = mlp.ContainerOp(name='op1', image='image',
-          file_inputs={mlp.PipelineParam('param1'): '/tmp/a'},
-          argument_inputs=[mlp.PipelineParam('param2'), mlp.PipelineParam('param3')],
+          arguments=['%s hello %s' % (param1, param2)],
           file_outputs={'out1': '/tmp/b'})
       
-    self.assertCountEqual([x.name for x in op1.inputs], ['param1', 'param2', 'param3'])
+    self.assertCountEqual([x.name for x in op1.inputs], ['param1', 'param2'])
     self.assertCountEqual(list(op1.outputs.keys()), ['out1'])
     self.assertCountEqual([x.op_name for x in op1.outputs.values()], ['op1'])
     self.assertEqual(op1.output.name, 'out1')

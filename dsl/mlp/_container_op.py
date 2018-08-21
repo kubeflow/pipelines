@@ -56,10 +56,10 @@ class ContainerOp(object):
     matches = []
     if arguments:
       for arg in arguments:
-        match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+)}}', str(arg))
+        match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(arg))
         matches += match
 
-    self.argument_inputs = [mlp.PipelineParam(x[1], x[0]) for x in matches]
+    self.argument_inputs = [mlp.PipelineParam(x[1], x[0], x[2]) for x in matches]
     self.file_inputs = file_inputs
     self.file_outputs = file_outputs
     self.dependent_op_names = []
@@ -85,7 +85,3 @@ class ContainerOp(object):
   def after(self, op):
     """Specify explicit dependency on another op."""
     self.dependent_op_names.append(op.name)
-
-  def clone(self, name):
-    """Clone an operator with a new name."""
-    return ContainerOp(name, self.image, self.command, self.arguments, self.file_inputs, self.file_outputs)

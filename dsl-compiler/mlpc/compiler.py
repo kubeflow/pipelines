@@ -77,7 +77,6 @@ class Compiler(object):
       'name': op.name,
       'container': {
         'image': op.image,
-        'command': op.command
       }
     }
     if processed_args:
@@ -115,6 +114,8 @@ class Compiler(object):
       },
     })
     template['outputs']['artifacts'] = output_artifacts
+    if op.command:
+      template['container']['command'] = op.command
     return template
 
   def _get_groups_for_ops(self, root_group):
@@ -181,6 +182,11 @@ class Compiler(object):
     for op in pipeline.ops.values():
       # op's inputs and all params used in conditions for that op are both considered.
       for param in op.inputs + list(condition_params[op.name]):
+        # if the value is already provided (immediate value), then no need to expose
+        # it as input for its parent groups. 
+        if param.value:
+          continue
+
         full_name = self._param_full_name(param)
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
@@ -456,28 +462,31 @@ class Compiler(object):
     argspec = inspect.getfullargspec(pipeline_func)
     self._validate_args(argspec)
 
-    args_list = [mlp.PipelineParam(self._sanitize_name(arg_name))
-                 for arg_name in argspec.args]
-
-    if argspec.defaults:
-      # Set default values
-      for arg, default in zip(reversed(args_list), reversed(argspec.defaults)):
-        arg.value = default.value
-        arg.name = default.name
-
     registered_pipeline_functions = mlp.Pipeline.get_pipeline_functions()
     if pipeline_func not in registered_pipeline_functions:
       raise ValueError('Please use a function with @mlp.pipeline decorator.')
 
     pipeline_name, _ = mlp.Pipeline.get_pipeline_functions()[pipeline_func]
     pipeline_name = self._sanitize_name(pipeline_name)
+
+    # Create the arg list with no default values and call pipeline function.
+    args_list = [mlp.PipelineParam(self._sanitize_name(arg_name))
+                 for arg_name in argspec.args]
     with mlp.Pipeline(pipeline_name) as p:
       pipeline_func(*args_list)
 
     # Remove when argo supports local exit handler.    
     self._validate_exit_handler(p)
 
-    workflow = self._create_pipeline_workflow(args_list, p)
+    # Fill in the default values.
+    args_list_with_defaults = [mlp.PipelineParam(self._sanitize_name(arg_name))
+                               for arg_name in argspec.args]
+    if argspec.defaults:
+      for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
+        arg.value = default.value
+        arg.name = default.name
+
+    workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
   def compile(self, pipeline_func, package_path):
