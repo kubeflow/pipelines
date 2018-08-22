@@ -96,7 +96,7 @@ export class JobList extends PageElement {
                     ${text}
                   </a>`;
         case 1:
-          const statuses = text.split(',').filter((s) => !!s);
+          const statuses = text.split(':').filter((s) => !!s);
           while (statuses.length < 5) {
             statuses.push('NONE');
           }

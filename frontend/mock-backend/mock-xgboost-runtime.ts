@@ -873,10 +873,6 @@ export default {
         inputs: {
           parameters: [
             {
-              name: 'output',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/confusionmatrix'
-            },
-            {
               name: 'analysis',
               value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis'
             },
@@ -889,7 +885,16 @@ export default {
               value: 'news_label'
             }
           ]
-        }
+        },
+        outputs: {
+          artifacts: [{
+            name: 'mlpipeline-ui-metadata',
+            s3: {
+              bucket: 'somebucket',
+              key: 'confusionmatrix',
+            },
+          }],
+        },
       },
       'xgboost-training-gzkm9-2365787662': {
         id: 'xgboost-training-gzkm9-2365787662',
@@ -914,10 +919,6 @@ export default {
             {
               name: 'cluster',
               value: 'xgboost-spark-xgboost-training-gzkm9'
-            },
-            {
-              name: 'output',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/model'
             },
             {
               name: 'train',
@@ -953,6 +954,15 @@ export default {
               value: 'gs://ml-pipeline-playground/trainconfcla.json '
             }
           ]
+        },
+        outputs: {
+          artifacts: [{
+            name: 'mlpipeline-ui-metadata',
+            s3: {
+              bucket: 'somebucket',
+              key: 'model',
+            },
+          }],
         },
         children: [
           'xgboost-training-gzkm9-4204798981'
@@ -1017,10 +1027,6 @@ export default {
               value: 'xgboost-spark-xgboost-training-gzkm9'
             },
             {
-              name: 'output',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/transform'
-            },
-            {
               name: 'train',
               value: 'gs://ml-pipeline-playground/newsgroup/train.csv'
             },
@@ -1037,6 +1043,15 @@ export default {
               value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis'
             }
           ]
+        },
+        outputs: {
+          artifacts: [{
+            name: 'mlpipeline-ui-metadata',
+            s3: {
+              bucket: 'somebucket',
+              key: 'transform',
+            },
+          }],
         },
         children: [
           'xgboost-training-gzkm9-982760658'
@@ -1080,10 +1095,6 @@ export default {
               value: 'xgboost-spark-xgboost-training-gzkm9'
             },
             {
-              name: 'output',
-              value: 'gs://sample-xgbbost-cm-output/xgboost-training-gzkm9/analysis'
-            },
-            {
               name: 'train',
               value: 'gs://ml-pipeline-playground/newsgroup/train.csv'
             },
@@ -1092,6 +1103,15 @@ export default {
               value: 'gs://ml-pipeline-playground/newsgroup/schema.json'
             }
           ]
+        },
+        outputs: {
+          artifacts: [{
+            name: 'mlpipeline-ui-metadata',
+            s3: {
+              bucket: 'somebucket',
+              key: 'analysis',
+            },
+          }],
         },
         children: [
           'xgboost-training-gzkm9-915503087'

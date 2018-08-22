@@ -7,6 +7,7 @@ import { ListRunsRequest } from '../api/list_runs_request';
 import { ListRunsResponse } from '../api/list_runs_response';
 import { Pipeline, PipelineTemplate } from '../api/pipeline';
 import { Run } from '../api/run';
+import { StoragePath } from '../model/storage';
 
 const v1alpha2Prefix = '/apis/v1alpha2';
 
@@ -157,17 +158,11 @@ export async function getRun(jobId: string, runId: string): Promise<Run> {
 }
 
 /**
- * Lists files at a given path from content service using server.
- */
-export async function listFiles(path: string): Promise<string[]> {
-  return JSON.parse(await _fetch(`/artifacts/list/${encodeURIComponent(path)}`));
-}
-
-/**
  * Reads file from storage using server.
  */
-export function readFile(path: string): Promise<string> {
-  return _fetch(`/artifacts/get/${encodeURIComponent(path)}`);
+export function readFile(path: StoragePath): Promise<string> {
+  return _fetch('/artifacts/get' +
+      `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}`);
 }
 
 /**

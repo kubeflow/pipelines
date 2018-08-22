@@ -164,7 +164,6 @@ describe('run-details', () => {
 
   describe('Output list', () => {
 
-    let listFilesStub: sinon.SinonStub;
     let readFileStub: sinon.SinonStub;
 
     const metadata1: OutputMetadata = {
@@ -192,10 +191,8 @@ describe('run-details', () => {
         { name: 'output', value: 'gs://test/base/output/path' },
       ];
 
-      listFilesStub = sinon.stub(Apis, 'listFiles');
       readFileStub = sinon.stub(Apis, 'readFile');
 
-      listFilesStub.returns(['gs://test/bucket/path/metadata.json']);
       readFileStub.onFirstCall().returns(JSON.stringify(metadata1));
       readFileStub.returns(JSON.stringify(metadata2));
       getJobStub.returns(testJob);
@@ -209,7 +206,6 @@ describe('run-details', () => {
     });
 
     afterEach(() => {
-      listFilesStub.restore();
       readFileStub.restore();
     });
 

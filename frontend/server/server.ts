@@ -8,7 +8,18 @@ import process = require('process');
 import tmp = require('tmp');
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
-import * as Utils from './utils';
+import { Client as MinioClient } from 'minio';
+import * as tar from 'tar';
+
+// The minio endpoint, port, access and secret keys are hardcoded to the same
+// values used in the deployment.
+const minioClient = new MinioClient({
+  accessKey: 'minio',
+  endPoint: 'minio-service.default',
+  port: 9000,
+  secretKey: 'minio123',
+  useSSL: false,
+} as any);
 
 const app = express() as express.Application;
 
@@ -52,59 +63,69 @@ app.get(v1alpha2Prefix + '/healthz', (req, res) => {
     .then(() => res.json(healthzStats));
 });
 
-app.get('/artifacts/list/*', async (req, res) => {
-  const decodedPath = decodeURIComponent(req.params[0]);
-
-  if (decodedPath.match('^gs://')) {
-    const reqPath = decodedPath.substr('gs://'.length).split('/');
-    const bucket = reqPath[0];
-    const filepath = reqPath.slice(1).join('/');
-
-    try {
-      const storage = Storage();
-      const results = await storage.bucket(bucket).getFiles({ prefix: filepath });
-      res.send(results[0].map((f) => `gs://${bucket}/${f.name}`));
-    } catch (err) {
-      console.error('Error listing files:', err);
-      res.status(500).send('Error: ' + err);
-    }
-  } else {
-    res.status(404).send('Unsupported path.');
+app.get('/artifacts/get', async (req, res) => {
+  const [source, bucket, encodedKey] = [req.query.source, req.query.bucket, req.query.key];
+  if (!source) {
+    res.status(500).send('Storage source is missing from artifact request');
+    return;
   }
-});
-
-app.get('/artifacts/get/*', async (req, res, next) => {
-  const decodedPath = decodeURIComponent(req.params[0]);
-
-  if (decodedPath.match('^gs://')) {
-    const reqPath = decodedPath.substr('gs://'.length).split('/');
-    const bucket = reqPath[0];
-    const filename = reqPath.slice(1).join('/');
-    const destFilename = tmp.tmpNameSync();
-
-    try {
-      const storage = Storage();
-      await storage.bucket(bucket).file(filename).download({ destination: destFilename });
-      console.log(`gs://${bucket}/${filename} downloaded to ${destFilename}.`);
-      res.sendFile(destFilename, undefined, (err) => {
+  if (!bucket) {
+    res.status(500).send('Storage bucket is missing from artifact request');
+    return;
+  }
+  if (!encodedKey) {
+    res.status(500).send('Storage key is missing from artifact request');
+    return;
+  }
+  const key = decodeURIComponent(encodedKey);
+  console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
+  switch (source) {
+    case 'gcs':
+      try {
+        const storage = new Storage();
+        const destFilename = tmp.tmpNameSync();
+        await storage.bucket(bucket).file(key).download({ destination: destFilename });
+        console.log(`gs://${bucket}/${key} downloaded to ${destFilename}.`);
+        res.sendFile(destFilename, undefined, (err) => {
+          if (err) {
+            console.log('Error sending file: ' + err);
+          } else {
+            fs.unlink(destFilename, (unlinkErr) => {
+              if (unlinkErr) {
+                console.error('Error deleting downloaded file: ' + unlinkErr);
+              }
+            });
+          }
+        });
+      } catch (err) {
+        res.status(500).send('Failed to download GCS file. Error: ' + err);
+      }
+      break;
+    case 'minio':
+      minioClient.getObject(bucket, key, (err, stream) => {
         if (err) {
-          next(err);
-        } else {
-          fs.unlink(destFilename, (unlinkErr) => {
-            if (unlinkErr) {
-              console.error('Error deleting downloaded file: ' + unlinkErr);
-            }
+          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
+          return;
+        }
+
+        try {
+          let contents = '';
+          stream.pipe(new tar.Parse()).on('entry', (entry) => {
+            entry.on('data', (buffer) => contents += buffer.toString());
           });
+
+          stream.on('end', () => {
+            res.send(contents);
+          });
+        } catch (err) {
+          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
         }
       });
-    } catch (err) {
-      console.error('Error getting file:', err);
-      res.status(500).send('Failed to download file: ' + err);
-    }
-  } else {
-    res.status(404).send('Unsupported path.');
+      break;
+    default:
+      res.status(500).send('Unknown storage source: ' + source);
+      return;
   }
-
 });
 
 app.get('/apps/tensorboard', async (req, res) => {

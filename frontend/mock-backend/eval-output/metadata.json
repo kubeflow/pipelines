@@ -3,7 +3,7 @@
     {
       "type": "roc",
       "format": "csv",
-      "source": "./roc/roc.csv",
+      "source": "gs://bucket/roc/roc.csv",
       "schema": [],
       "predicted_col": "column1",
       "target_col": "column2"
@@ -26,7 +26,7 @@
         "weekday",
         "dayinyear"
       ],
-      "source": "./table.csv",
+      "source": "gs://bucket/table.csv",
       "type": "table"
     }
   ]

@@ -16,6 +16,7 @@ import { NodePhase, Workflow } from '../../model/argo_template';
 import { RouteEvent } from '../../model/events';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
+import { StoragePath, StorageService } from '../../model/storage';
 import { RuntimeGraph } from '../runtime-graph/runtime-graph';
 
 import '../data-plotter/data-plot';
@@ -24,7 +25,7 @@ import './run-details.html';
 
 export interface OutputInfo {
   index?: number;
-  path: string;
+  path: StoragePath;
   step: string;
 }
 
@@ -187,14 +188,17 @@ export class RunDetails extends PageElement {
     const outputPaths: OutputInfo[] = [];
     Object.keys(this.workflow.status.nodes || []).forEach((id) => {
       const node = this.workflow!.status.nodes[id];
-      if (!node.inputs) {
+      if (!node.outputs) {
         return;
       }
-      (node.inputs.parameters || []).filter((p) => p.name === 'output').forEach((p) =>
+      (node.outputs.artifacts || [])
+        .filter((p) => p.name === 'mlpipeline-ui-metadata' && !!p.s3)
+        .forEach((p) =>
           outputPaths.push({
-            path: p.value!,
+            path: { source: StorageService.MINIO, bucket: p.s3!.bucket, key: p.s3!.key },
             step: node.displayName,
-          }));
+          })
+        );
     });
 
     this._loadingOutputs = true;
@@ -206,12 +210,15 @@ export class RunDetails extends PageElement {
       const outputsMap = new Map<PlotMetadata[], OutputInfo>();
       await Promise.all(outputPaths.map(async (outputInfo, outputIndex) => {
         outputInfo.index = outputIndex;
-        const fileList = await Apis.listFiles(outputInfo.path);
-        const metadataFile = fileList.find((f) => f.endsWith('/metadata.json'));
+        const metadataFile = await Apis.readFile(outputInfo.path);
         if (metadataFile) {
-          const metadataJson = await Apis.readFile(metadataFile);
-          const metadata = JSON.parse(metadataJson) as OutputMetadata;
-          outputsMap.set(metadata.outputs, outputInfo);
+          try {
+            const metadata = JSON.parse(metadataFile) as OutputMetadata;
+            outputsMap.set(metadata.outputs, outputInfo);
+          } catch (e) {
+            Utils.log.verbose('Could not parse metadata file for path: ' +
+                JSON.stringify(outputInfo.path));
+          }
         }
       }));
 

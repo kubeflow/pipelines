@@ -7,6 +7,7 @@ import * as Utils from '../../lib/utils';
 import { csvParseRows } from 'd3';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { PlotMetadata, PlotType } from '../../model/output_metadata';
+import { StoragePath, StorageService } from '../../model/storage';
 import { TableViewer } from '../table-viewer/table-viewer';
 import { drawMatrix } from './confusion-matrix';
 import { drawROC } from './roc-plot';
@@ -85,6 +86,19 @@ export class DataPlot extends Polymer.Element {
     this._addTensorboardControls();
   }
 
+  private _parseStoragePath(strPath: string): StoragePath {
+    if (strPath.startsWith('gs://')) {
+      const pathParts = strPath.substr('gs://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.GCS,
+      };
+    } else {
+      throw new Error('Could not understand path: ' + strPath);
+    }
+  }
+
   private async _plotConfusionMatrix(metadata: PlotMetadata): Promise<void> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
@@ -95,7 +109,8 @@ export class DataPlot extends Polymer.Element {
     if (!metadata.schema) {
       throw new Error('Malformed metadata, property "schema" missing.');
     }
-    const data = csvParseRows(await Apis.readFile(metadata.source));
+    const path = this._parseStoragePath(metadata.source);
+    const data = csvParseRows(await Apis.readFile(path));
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
     let index = 0;
@@ -129,10 +144,11 @@ export class DataPlot extends Polymer.Element {
   private async _plotRocCurve(metadata: PlotMetadata): Promise<void> {
     this.plotTitle = 'ROC curve from file: ' + metadata.source;
 
+    const path = this._parseStoragePath(metadata.source);
     // Render the ROC plot
     drawROC({
       container: this.$.container as HTMLElement,
-      data: csvParseRows(await Apis.readFile(metadata.source)),
+      data: csvParseRows(await Apis.readFile(path)),
       height: 450,
       lineColor: getComputedStyle(this).getPropertyValue('--theme-primary-color'),
       margin: 50,
@@ -155,7 +171,8 @@ export class DataPlot extends Polymer.Element {
     this.plotTitle = 'Table viewer from file: ' + metadata.source;
     switch (metadata.format) {
       case 'csv':
-        const data = csvParseRows(await Apis.readFile(metadata.source));
+        const path = this._parseStoragePath(metadata.source);
+        const data = csvParseRows(await Apis.readFile(path));
         const tableViewer = this.shadowRoot!.querySelector('table-viewer') as TableViewer;
         tableViewer.header = metadata.header;
         tableViewer.rows = data;
@@ -168,7 +185,8 @@ export class DataPlot extends Polymer.Element {
   private async _renderStaticWebApp(metadata: PlotMetadata): Promise<void> {
     this.plotTitle = 'HTML from file: ' + metadata.source;
     this._renderHtmlApp = true;
-    const htmlContent = await Apis.readFile(metadata.source);
+    const path = this._parseStoragePath(metadata.source);
+    const htmlContent = await Apis.readFile(path);
     // TODO: iframe.srcdoc doesn't work on Edge yet. It's been added, but not
     // yet rolled out as of the time of writing this (6/14/18):
     // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/12375527/

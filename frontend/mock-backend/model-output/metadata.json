@@ -24,7 +24,7 @@
         "talk.religion.misc"
       ],
       "storage": "gcs",
-      "source": "./confusionmatrix/confusion_matrix.csv",
+      "source": "gs://bucket/confusionmatrix/confusion_matrix.csv",
       "type": "confusion_matrix",
       "schema": [
         {

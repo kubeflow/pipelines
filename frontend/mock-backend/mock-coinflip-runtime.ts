@@ -119,13 +119,14 @@ export default {
         id: 'coinflip-recursive-q7dqb-1720466287',
         name: 'coinflip-recursive-q7dqb[1]',
         displayName: '[1]',
-        inputs: {
-          parameters: [
-            {
-              name: 'output',
-              value: 'gs://somepath/staging'
-            }
-          ]
+        outputs: {
+          artifacts: [{
+            name: 'mlpipeline-ui-metadata',
+            s3: {
+              bucket: 'somebucket',
+              key: 'staging',
+            },
+          }],
         },
         type: 'StepGroup',
         phase: 'Succeeded',
@@ -141,13 +142,14 @@ export default {
         id: 'coinflip-recursive-q7dqb-1787723858',
         name: 'coinflip-recursive-q7dqb[0]',
         displayName: '[0]',
-        inputs: {
-          parameters: [
-            {
-              name: 'output',
-              value: 'gs://somepath/analysis'
-            }
-          ]
+        outputs: {
+          artifacts: [{
+            name: 'mlpipeline-ui-metadata',
+            s3: {
+              bucket: 'somebucket',
+              key: 'analysis',
+            },
+          }],
         },
         type: 'StepGroup',
         phase: 'Succeeded',
@@ -162,13 +164,14 @@ export default {
         id: 'coinflip-recursive-q7dqb-2934726852',
         name: 'coinflip-recursive-q7dqb[1].tails[1].tails',
         displayName: 'tails',
-        inputs: {
-          parameters: [
-            {
-              name: 'output',
-              value: 'gs://somepath/transform'
-            }
-          ]
+        outputs: {
+          artifacts: [{
+            name: 'mlpipeline-ui-metadata',
+            s3: {
+              bucket: 'somebucket',
+              key: 'transform',
+            },
+          }],
         },
         type: 'Skipped',
         phase: 'Skipped',
@@ -181,14 +184,6 @@ export default {
         id: 'coinflip-recursive-q7dqb-311338607',
         name: 'coinflip-recursive-q7dqb[0].flip-coin',
         displayName: 'flip-coin',
-        inputs: {
-          parameters: [
-            {
-              name: 'output',
-              value: 'gs://somepath/model'
-            }
-          ]
-        },
         type: 'Pod',
         templateName: 'flip-coin',
         phase: 'Succeeded',
@@ -196,6 +191,13 @@ export default {
         startedAt: '2018-04-17T20:58:23Z',
         finishedAt: '2018-04-17T20:58:28Z',
         outputs: {
+          artifacts: [{
+            name: 'mlpipeline-ui-metadata',
+            s3: {
+              bucket: 'somebucket',
+              key: 'model',
+            },
+          }],
           parameters: [
             {
               name: 'result',

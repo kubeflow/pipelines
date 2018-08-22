@@ -258,35 +258,23 @@ export default (app: express.Application) => {
     res.json(fixedData.pipelines[0]);
   });
 
-  app.get('/artifacts/list/:path', (req, res) => {
-
-    const path = decodeURIComponent(req.params.path);
-
+  app.get('/artifacts/get', (req, res) => {
+    const key = decodeURIComponent(req.query.key);
     res.header('Content-Type', 'application/json');
-    res.json([
-      path + '/file1',
-      path + '/file2',
-      path + (path.match('analysis$|model$') ? '/metadata.json' : '/file3'),
-    ]);
-  });
-
-  app.get('/artifacts/get/:path', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    const path = decodeURIComponent(req.params.path);
-    if (path.endsWith('roc.csv')) {
+    if (key.endsWith('roc.csv')) {
       res.sendFile(_path.resolve(__dirname, rocDataPath));
-    } else if (path.endsWith('confusion_matrix.csv')) {
+    } else if (key.endsWith('confusion_matrix.csv')) {
       res.sendFile(_path.resolve(__dirname, confusionMatrixPath));
-    } else if (path.endsWith('table.csv')) {
+    } else if (key.endsWith('table.csv')) {
       res.sendFile(_path.resolve(__dirname, tableDataPath));
-    } else if (path.endsWith('hello-world.html')) {
+    } else if (key.endsWith('hello-world.html')) {
       res.sendFile(_path.resolve(__dirname, staticHtmlPath));
-    } else if (path.endsWith('analysis/metadata.json')) {
+    } else if (key === 'analysis') {
       res.sendFile(_path.resolve(__dirname, confusionMatrixMetadataJsonPath));
-    } else if (path.endsWith('model/metadata.json')) {
+    } else if (key === 'model') {
       res.sendFile(_path.resolve(__dirname, rocMetadataJsonPath));
     } else {
-      res.send('dummy file');
+      res.send('dummy file for key: ' + key);
     }
   });
 
