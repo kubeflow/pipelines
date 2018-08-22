@@ -192,7 +192,7 @@ echo "Waiting for ML pipeline to be ready..."
 for i in $(seq 1 ${MAX_ATTEMPT})
 do
   echo -n .
-  UI_STATUS=`curl --cacert $CA_CERT -H "Authorization: Bearer $TOKEN" https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}/api/v1/proxy/namespaces/${NAMESPACE}/services/ml-pipeline-ui:80/apis/v1alpha2/healthz`
+  UI_STATUS=`curl --cacert $CA_CERT -H "Authorization: Bearer $TOKEN" https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}/api/v1/namespaces/${NAMESPACE}/services/ml-pipeline-ui:80/proxy/apis/v1alpha2/healthz`
   echo $UI_STATUS | grep -q ${READY_KEYWORD} && s=0 && break || s=$? && sleep 4
 done
 

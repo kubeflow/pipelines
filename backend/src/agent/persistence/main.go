@@ -113,6 +113,6 @@ func init() {
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineAPIServerPort, mlPipelineAPIServerPortFlagName, "8887", "Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
-		"/api/v1/proxy/namespaces/%s/services/ml-pipeline:8888/apis/v1alpha2/%s",
+		"/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1alpha2/%s",
 		"The base path for the ML pipeline API server.")
 }

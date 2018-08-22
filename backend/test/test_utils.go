@@ -34,7 +34,7 @@ import (
 
 const (
 	// ML pipeline API server root URL
-	mlPipelineAPIServerBase = "/api/v1/proxy/namespaces/%s/services/ml-pipeline:8888/apis/v1alpha2/%s"
+	mlPipelineAPIServerBase = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1alpha2/%s"
 )
 
 func getKubernetesClient() (*kubernetes.Clientset, error) {
