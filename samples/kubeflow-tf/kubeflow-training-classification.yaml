@@ -26,9 +26,9 @@ spec:
       value: gs://ml-pipeline-playground/flower/train200.csv
     - name: schema
       value: gs://ml-pipeline-playground/flower/schema.json
-    - name: learningrate
+    - name: learning-rate
       value: '0.1'
-    - name: hiddenlayersize
+    - name: hidden-layer-size
       value: 100,50
     - name: steps
       value: '2000'
@@ -38,19 +38,18 @@ spec:
       value: '0'
     - name: pss
       value: '0'
-    - name: preprocessmode
+    - name: preprocess-mode
       value: local
-    - name: predictmode
+    - name: predict-mode
       value: local
   entrypoint: pipelinetfjob
   templates:
   - container:
       args:
       - --output
-      - '{{inputs.parameters.output}}/kubeflow-training-dsl-180816-173548/confusionmatrix'
+      - '{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix'
       - --predictions
       - '{{inputs.parameters.prediction-prediction}}'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix
     inputs:
       parameters:
@@ -59,8 +58,8 @@ spec:
     name: confusionmatrix
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -68,7 +67,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact
@@ -90,8 +89,8 @@ spec:
             value: '{{inputs.parameters.evaluation}}'
           - name: output
             value: '{{inputs.parameters.output}}'
-          - name: predictmode
-            value: '{{inputs.parameters.predictmode}}'
+          - name: predict-mode
+            value: '{{inputs.parameters.predict-mode}}'
           - name: project
             value: '{{inputs.parameters.project}}'
           - name: schema
@@ -110,8 +109,8 @@ spec:
             value: '{{inputs.parameters.evaluation}}'
           - name: output
             value: '{{inputs.parameters.output}}'
-          - name: preprocessmode
-            value: '{{inputs.parameters.preprocessmode}}'
+          - name: preprocess-mode
+            value: '{{inputs.parameters.preprocess-mode}}'
           - name: project
             value: '{{inputs.parameters.project}}'
           - name: schema
@@ -122,10 +121,10 @@ spec:
         template: preprocess
       - arguments:
           parameters:
-          - name: hiddenlayersize
-            value: '{{inputs.parameters.hiddenlayersize}}'
-          - name: learningrate
-            value: '{{inputs.parameters.learningrate}}'
+          - name: hidden-layer-size
+            value: '{{inputs.parameters.hidden-layer-size}}'
+          - name: learning-rate
+            value: '{{inputs.parameters.learning-rate}}'
           - name: output
             value: '{{inputs.parameters.output}}'
           - name: preprocess-transformed
@@ -147,11 +146,11 @@ spec:
     inputs:
       parameters:
       - name: evaluation
-      - name: hiddenlayersize
-      - name: learningrate
+      - name: hidden-layer-size
+      - name: learning-rate
       - name: output
-      - name: predictmode
-      - name: preprocessmode
+      - name: predict-mode
+      - name: preprocess-mode
       - name: project
       - name: pss
       - name: schema
@@ -163,7 +162,7 @@ spec:
   - container:
       args:
       - --output
-      - '{{inputs.parameters.output}}/kubeflow-training-dsl-180816-173548/predict'
+      - '{{inputs.parameters.output}}/{{workflow.name}}/predict'
       - --data
       - '{{inputs.parameters.evaluation}}'
       - --schema
@@ -173,16 +172,15 @@ spec:
       - --model
       - '{{inputs.parameters.training-trained}}'
       - --mode
-      - '{{inputs.parameters.predictmode}}'
+      - '{{inputs.parameters.predict-mode}}'
       - --project
       - '{{inputs.parameters.project}}'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict
     inputs:
       parameters:
       - name: evaluation
       - name: output
-      - name: predictmode
+      - name: predict-mode
       - name: project
       - name: schema
       - name: target
@@ -190,8 +188,8 @@ spec:
     name: prediction
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -199,7 +197,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact
@@ -216,26 +214,25 @@ spec:
       - --schema
       - '{{inputs.parameters.schema}}'
       - --output
-      - '{{inputs.parameters.output}}/kubeflow-training-dsl-180816-173548/transformed'
+      - '{{inputs.parameters.output}}/{{workflow.name}}/transformed'
       - --project
       - '{{inputs.parameters.project}}'
       - --mode
-      - '{{inputs.parameters.preprocessmode}}'
-      command: null
+      - '{{inputs.parameters.preprocess-mode}}'
       image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft
     inputs:
       parameters:
       - name: evaluation
       - name: output
-      - name: preprocessmode
+      - name: preprocess-mode
       - name: project
       - name: schema
       - name: train
     name: preprocess
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -243,7 +240,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact
@@ -254,15 +251,15 @@ spec:
   - container:
       args:
       - --job-dir
-      - '{{inputs.parameters.output}}/kubeflow-training-dsl-180816-173548/train'
+      - '{{inputs.parameters.output}}/{{workflow.name}}/train'
       - --transformed-data-dir
       - '{{inputs.parameters.preprocess-transformed}}'
       - --schema
       - '{{inputs.parameters.schema}}'
       - --learning-rate
-      - '{{inputs.parameters.learningrate}}'
+      - '{{inputs.parameters.learning-rate}}'
       - --hidden-layer-size
-      - '{{inputs.parameters.hiddenlayersize}}'
+      - '{{inputs.parameters.hidden-layer-size}}'
       - --steps
       - '{{inputs.parameters.steps}}'
       - --target
@@ -271,12 +268,11 @@ spec:
       - '{{inputs.parameters.workers}}'
       - --pss
       - '{{inputs.parameters.pss}}'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
     inputs:
       parameters:
-      - name: hiddenlayersize
-      - name: learningrate
+      - name: hidden-layer-size
+      - name: learning-rate
       - name: output
       - name: preprocess-transformed
       - name: pss
@@ -287,8 +283,8 @@ spec:
     name: training
     outputs:
       artifacts:
-      - name: metadata
-        path: /metadata.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey
@@ -296,7 +292,7 @@ spec:
           bucket: mlpipeline
           endpoint: minio-service.default:9000
           insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/metadata.tgz
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
             key: secretkey
             name: mlpipeline-minio-artifact

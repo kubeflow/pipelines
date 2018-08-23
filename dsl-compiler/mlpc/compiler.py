@@ -486,7 +486,6 @@ class Compiler(object):
     if argspec.defaults:
       for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
         arg.value = default.value
-        arg.name = default.name
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow

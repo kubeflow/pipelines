@@ -34,7 +34,7 @@ def kubeflow_training( output: mlp.PipelineParam, project: mlp.PipelineParam,
   preprocess_mode: mlp.PipelineParam=mlp.PipelineParam(name='preprocessmode', value='local'),
   predict_mode: mlp.PipelineParam=mlp.PipelineParam(name='predictmode', value='local')):
   # TODO: use the argo job name as the workflow
-  workflow = 'kubeflow-training-dsl-' + datetime.datetime.now().strftime('%y%m%d-%H%M%S')
+  workflow = '{{workflow.name}}'
   preprocess = mlp.ContainerOp( 
       name = 'preprocess', 
       image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft', 
