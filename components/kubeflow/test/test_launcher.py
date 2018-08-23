@@ -26,49 +26,35 @@ import yaml
 
 class TestLauncher(unittest.TestCase):
 
-  def test_yaml_generation_one(self):
+  def test_yaml_generation_basic(self):
     """Test generating train yaml from templates"""
 
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     train_template_file = os.path.join(test_data_dir, 'train.template.yaml')
-    tmpdir = tempfile.mkdtemp()
-    train_dst_file = os.path.join(tmpdir, 'train.yaml')
-    try:
-      worker = 2
-      pss = 1
-      args_list = []
-      args_list.append('--learning-rate=0.1')
-      train._generate_train_yaml(train_template_file, train_dst_file, worker, pss, args_list)
-      with open(os.path.join(test_data_dir, 'train.yaml'), 'r') as f:
-        golden = yaml.load(f)
-      with open(train_dst_file, 'r') as f:
-        train_yaml = yaml.load(f)
-      self.assertEqual(golden, train_yaml)
+    tfjob_ns = 'default'
+    worker = 2
+    pss = 1
+    args_list = []
+    args_list.append('--learning-rate=0.1')
+    generated_yaml = train._generate_train_yaml(train_template_file, tfjob_ns, worker, pss, args_list)
+    with open(os.path.join(test_data_dir, 'train_basic.yaml'), 'r') as f:
+      golden = yaml.load(f)
+    self.assertEqual(golden, generated_yaml)
 
-    finally:
-      shutil.rmtree(tmpdir)
-
-  def test_yaml_generation_two(self):
-    """Test generating train yaml from templates"""
+  def test_yaml_generation_advanced(self):
+    """Test generating train yaml with zero worker and specified tfjob namespace"""
 
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     train_template_file = os.path.join(test_data_dir, 'train.template.yaml')
-    tmpdir = tempfile.mkdtemp()
-    train_dst_file = os.path.join(tmpdir, 'train.yaml')
-    try:
-      worker = 0
-      pss = 0
-      args_list = []
-      args_list.append('--learning-rate=0.1')
-      train._generate_train_yaml(train_template_file, train_dst_file, worker, pss, args_list)
-      with open(os.path.join(test_data_dir, 'train2.yaml'), 'r') as f:
-        golden = yaml.load(f)
-      with open(train_dst_file, 'r') as f:
-        train_yaml = yaml.load(f)
-      self.assertEqual(golden, train_yaml)
-
-    finally:
-      shutil.rmtree(tmpdir)
+    worker = 0
+    pss = 0
+    args_list = []
+    tfjob_ns = 'kubeflow'
+    args_list.append('--learning-rate=0.1')
+    generated_yaml = train._generate_train_yaml(train_template_file, tfjob_ns, worker, pss, args_list)
+    with open(os.path.join(test_data_dir, 'train_zero_worker.yaml'), 'r') as f:
+      golden = yaml.load(f)
+    self.assertEqual(golden, generated_yaml)
 
 if __name__ == '__main__':
   unittest.main()

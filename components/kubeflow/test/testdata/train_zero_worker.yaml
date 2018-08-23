@@ -15,6 +15,7 @@ apiVersion: kubeflow.org/v1alpha2
 kind: TFJob
 metadata:
   generateName: trainer-
+  namespace: kubeflow
 spec:
   tfReplicaSpecs:
     PS:
