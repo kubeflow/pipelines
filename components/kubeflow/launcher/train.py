@@ -192,6 +192,19 @@ def main(argv=None):
     if 'Failed' in wait_response['status']['tfReplicaStatuses']['MASTER']:
       logging.error('Training failed since MASTER failed.')
       succ = False
+
+  #TODO: remove this after kubeflow fixes the wait_for_job issue
+  # because the wait_for_job returns when the worker finishes but the master might not be complete yet.
+  if 'MASTER' in wait_response['status']['tfReplicaStatuses'] and 'active' in wait_response['status']['tfReplicaStatuses']['MASTER']:
+    master_active = True
+    while master_active:
+      # Wait for master to finish
+      time.sleep(2)
+      wait_response = tf_job_client.wait_for_job(api_client, tfjob_ns, job_name, kf_version,
+                                             timeout=datetime.timedelta(minutes=tfjob_timeout_minutes))
+      if 'active' not in wait_response['status']['tfReplicaStatuses']['MASTER']:
+        master_active = False
+
   if succ:
     logging.info('Training success.')
 
