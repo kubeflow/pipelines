@@ -20,17 +20,14 @@
     <!--Router-->
     <app-location route="{{route}}"></app-location>
 
-    <template is="dom-if" if="[[_serverNotReady]]">
-      <page-error error="Could not reach the backend server. Retrying..">
-      </page-error>
-      <paper-progress indeterminate class="loading"></paper-progress>
-    </template>
+    <page-error id="errorEl"></page-error>
+    <paper-progress hidden$="![[_serverNotReady]]" indeterminate class="loading"></paper-progress>
 
     <iron-pages id="pages" selected="{{page}}" attr-for-selected="path">
-      <job-details path="jobs/details"></job-details>
-      <job-list path="jobs"></job-list>
-      <job-new path="jobs/new"></job-new>
-      <run-details path="jobRun"></run-details>
+      <job-details path="/jobs/details"></job-details>
+      <job-list path="/jobs"></job-list>
+      <job-new path="/jobs/new"></job-new>
+      <run-details path="/jobRun"></run-details>
     </iron-pages>
   </template>
 </dom-module>

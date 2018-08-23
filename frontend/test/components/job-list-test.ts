@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import '../../src/components/job-list/job-list';
+
 import * as sinon from 'sinon';
 import * as Apis from '../../src/lib/apis';
 
@@ -71,7 +73,7 @@ describe('job-list', () => {
 
     _resetFixture()
       .then(() => Polymer.Async.idlePeriod.run(() => {
-        assert.strictEqual(fixture.itemList.rows[0].columns[1], 'Succeeded,Failed');
+        assert.strictEqual(fixture.itemList.rows[0].columns[1], 'Succeeded:Failed');
         assert.strictEqual(fixture.itemList.rows[1].columns[1], '');
         listRunsStub.restore();
         done();

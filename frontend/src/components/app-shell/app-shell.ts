@@ -14,6 +14,7 @@
 
 import 'app-route/app-location.html';
 import 'app-route/app-route.html';
+import 'iron-icons/iron-icons.html';
 import 'iron-pages/iron-pages.html';
 import 'paper-progress/paper-progress.html';
 import 'paper-styles/paper-styles.html';
@@ -25,18 +26,10 @@ import * as Utils from '../../lib/utils';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
+import { PageError } from '../page-error/page-error';
 
-import '../date-time-picker/date-time-picker';
-import '../job-details/job-details';
-import '../job-list/job-list';
-import '../job-new/job-new';
-import '../job-schedule/job-schedule';
 import '../page-error/page-error';
-import '../run-details/run-details';
-import '../run-list/run-list';
 import './app-shell.html';
-
-const defaultPage = 'jobs';
 
 @customElement('app-shell')
 export class AppShell extends Polymer.Element {
@@ -45,15 +38,29 @@ export class AppShell extends Polymer.Element {
   public page = '';
 
   @property({ type: Object })
-  public route: object | undefined = undefined;
-
-  @property({ type: Boolean })
-  protected _serverNotReady = false;
+  public route?: {
+    prefix: string,
+    path: string,
+    __queryParams: { [k: string]: string },
+    __data: any,
+  } = undefined;
 
   private _debouncer: Polymer.Debouncer | undefined = undefined;
 
+  private _ROUTES: { [route: string]: string } = {
+    '/': 'job-list',
+    '/jobRun': 'run-details',
+    '/jobs': 'job-list',
+    '/jobs/details': 'job-details',
+    '/jobs/new': 'job-new',
+  };
+
   static get observers(): string[] {
     return ['_routePathChanged(route.path)'];
+  }
+
+  public get errorElement(): PageError {
+    return this.$.errorEl as PageError;
   }
 
   public ready(): void {
@@ -72,30 +79,27 @@ export class AppShell extends Polymer.Element {
 
           // TODO: Add exponential backoff
           while (!await Apis.isApiServerReady()) {
-            this._serverNotReady = true;
+            this.errorElement.error = 'Could not reach the backend server. Retrying..';
             await Utils.wait(2000);
           }
-          this._serverNotReady = false;
+          this.errorElement.error = '';
 
-          if (newPath !== undefined) {
-            const parts = newPath.substr(1).split('/');
-            if (parts.length) {
-              // If there's only one part, that's the page name. If there's more,
-              // the page name is the first two, to allow for things like jobs/details
-              // and run/details. The rest are the argument to that page.
-              const args = parts.splice(2).join('/');
-              let pageName = `${parts.join('/')}`;
-              // For root '/', return the default page
-              if (!pageName) {
-                pageName = defaultPage;
-              }
-              const pageEl = this._getPageElement(pageName);
-              pageEl.load(args, (this.route as any).__queryParams, (this.route as any).__data);
-              this.page = pageName;
-            } else {
-              Utils.log.error(`Bad path: ${newPath}`);
-            }
+          const parts = newPath.substr(1).split('/');
+          const args = parts.splice(2).join('/');
+          let pageName = `/${parts.join('/')}`;
+          if (pageName === '/') {
+            pageName = '/jobs';
           }
+
+          const elementName = this._ROUTES[pageName];
+          if (!elementName) {
+            this.errorElement.error = 'Cannot find page: ' + pageName;
+            throw new Error('Cannot find page: ' + pageName);
+          }
+          await import (`../${elementName}/${elementName}`);
+          const el = this.$.pages.querySelector(elementName) as PageElement;
+          el.load(args, this.route!.__queryParams, this.route!.__data);
+          this.page = pageName;
         }
     );
   }
@@ -109,15 +113,5 @@ export class AppShell extends Polymer.Element {
     }
     this.set('route.__queryParams', queryParams);
     this.set('route.__data', e.detail.data);
-  }
-
-  private _getPageElement(pageName: string): PageElement {
-    const el = this.$.pages.querySelector(`[path="${pageName}"]`);
-    if (!el) {
-      throw new Error(`Cannot find page element: ${pageName}`);
-    } else {
-      // Temporary workaround for https://github.com/Polymer/polymer/issues/5074
-      return (el as any);
-    }
   }
 }

@@ -105,9 +105,8 @@
           <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
         </div>
 
-        <paper-input id="name" class="shaded input-field-large" label="Job Name"
-                     autofocus required maxlength="50" spellcheck="false" value="{{_name}}"
-                     auto-validate error-message="Job must have a name">
+        <paper-input id="name" class="shaded input-field-large" label="Job Name" auto-validate
+                     autofocus required maxlength="50" spellcheck="false" value="{{_name}}">
         </paper-input>
         <paper-textarea id="description" class="shaded input-field-large" label="Description"
                         spellcheck="false" value="{{_description}}">

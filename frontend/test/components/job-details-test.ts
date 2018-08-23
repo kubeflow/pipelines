@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import '../../src/components/job-details/job-details';
+
 import * as sinon from 'sinon';
 // @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
@@ -37,9 +39,10 @@ let enableJobsStub: sinon.SinonStub;
 let disableJobsStub: sinon.SinonStub;
 
 async function _resetFixture(): Promise<void> {
-  return resetFixture('job-details', undefined, (f: JobDetails) => {
+  location.hash = '';
+  return resetFixture('job-details', undefined, async (f: JobDetails) => {
     fixture = f;
-    f.load('test-job-id');
+    await f.load('test-job-id');
   });
 }
 

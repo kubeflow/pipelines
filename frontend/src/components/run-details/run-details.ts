@@ -22,8 +22,6 @@ import 'polymer/polymer.html';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-// @ts-ignore
-import prettyJson from 'json-pretty-html';
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { Job } from '../../api/job';
 import { NodePhase, Workflow } from '../../model/argo_template';
@@ -56,7 +54,7 @@ export class RunDetails extends PageElement {
   public job: Job | undefined = undefined;
 
   @property({ type: Number })
-  public selectedTab = 0;
+  public selectedTab = -1;
 
   @property({ type: Boolean })
   protected _loadingRun = false;
@@ -176,9 +174,12 @@ export class RunDetails extends PageElement {
 
   @observe('selectedTab')
   protected _selectedTabChanged(): void {
-    const tab = this.tabs.selectedItem as PaperTabElement | undefined;
+    const tab = (this.tabs.selectedItem || this.tabs.children[0]) as PaperTabElement | undefined;
+    if (this.selectedTab === -1) {
+      return;
+    }
     if (tab) {
-      location.href = tab.getAttribute('href') || '';
+      location.hash = tab.getAttribute('href') || '';
     }
   }
 

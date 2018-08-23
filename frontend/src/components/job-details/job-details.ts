@@ -16,6 +16,7 @@ import 'iron-icons/av-icons.html';
 import 'iron-icons/iron-icons.html';
 import 'iron-icons/maps-icons.html';
 import 'paper-button/paper-button.html';
+import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-progress/paper-progress.html';
 import 'paper-tabs/paper-tab.html';
 import 'paper-tabs/paper-tabs.html';
@@ -31,6 +32,8 @@ import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { RunList } from '../run-list/run-list';
 
+import '../job-schedule/job-schedule';
+import '../run-list/run-list';
 import './job-details.html';
 
 @customElement('job-details')
@@ -40,7 +43,7 @@ export class JobDetails extends PageElement {
   public job: Job | null = null;
 
   @property({ type: Number })
-  public selectedTab = 0;
+  public selectedTab = -1;
 
   @property({ type: Boolean })
   protected _disableCloneJobButton = true;
@@ -89,7 +92,7 @@ export class JobDetails extends PageElement {
       const tabElement = this.tabs.querySelector(`[href="${location.hash}"]`);
       this.selectedTab = tabElement ? this.tabs.indexOf(tabElement) : 0;
 
-      this._loadJob(id);
+      await this._loadJob(id);
     }
   }
 
@@ -210,10 +213,13 @@ export class JobDetails extends PageElement {
   }
 
   @observe('selectedTab')
-  protected _selectedTabChanged(): void {
-    const tab = this.tabs.selectedItem as PaperTabElement | undefined;
+  protected _selectedTabChanged(newTab: number): void {
+    if (this.selectedTab === -1) {
+      return;
+    }
+    const tab = (this.tabs.selectedItem || this.tabs.children[0]) as PaperTabElement | undefined;
     if (tab) {
-      location.href = tab.getAttribute('href') || '';
+      location.hash = tab.getAttribute('href') || '';
     }
   }
 }

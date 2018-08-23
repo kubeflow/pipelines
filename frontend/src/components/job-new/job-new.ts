@@ -35,6 +35,8 @@ import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { JobSchedule } from '../job-schedule/job-schedule';
 
+import '../date-time-picker/date-time-picker';
+
 import './job-new.html';
 
 interface NewJobQueryParams {

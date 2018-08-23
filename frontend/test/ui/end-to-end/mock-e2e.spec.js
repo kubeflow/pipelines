@@ -218,4 +218,11 @@ describe('deploy new job', () => {
     assert.equal($$(selector).length, 20, 'should show a full page of jobs ');
   });
 
+  it('shows error if user navigates to a bad path', () => {
+    browser.url('/jobz');
+    const selector = 'app-shell #errorEl .error-message';
+    browser.waitForVisible(selector, waitTimeout);
+    assert.equal(browser.getText(selector), 'Cannot find page: /jobz');
+  });
+
 });

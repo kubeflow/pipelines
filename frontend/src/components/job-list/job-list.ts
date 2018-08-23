@@ -14,6 +14,7 @@
 
 import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
+import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
@@ -274,7 +275,7 @@ export class JobList extends PageElement {
     this.jobs.forEach(async (job, i) => {
       const listRunsResponse = await Apis.listRuns(new ListRunsRequest(job.id, 5));
       this.set(`jobListRows.${i}.columns.1`,
-          (listRunsResponse.runs || []).map((r) => r.status).join(','));
+          (listRunsResponse.runs || []).map((r) => r.status).join(':'));
     });
 
     // Fetch and set pipeline name for each job

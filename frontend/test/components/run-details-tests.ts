@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import '../../src/components/run-details/run-details';
+
 import * as sinon from 'sinon';
 import * as fixedData from '../../mock-backend/fixed-data';
 import coinflipRun from '../../mock-backend/mock-coinflip-runtime';
