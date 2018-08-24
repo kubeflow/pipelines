@@ -23,11 +23,14 @@
     <page-error id="errorEl"></page-error>
     <paper-progress hidden$="![[_serverNotReady]]" indeterminate class="loading"></paper-progress>
 
-    <iron-pages id="pages" selected="{{page}}" attr-for-selected="path">
-      <job-details path="/jobs/details"></job-details>
-      <job-list path="/jobs"></job-list>
-      <job-new path="/jobs/new"></job-new>
-      <run-details path="/jobRun"></run-details>
-    </iron-pages>
+    <div class="flex-grow">
+      <side-nav page="[[page]]"></side-nav>
+      <iron-pages id="pages" selected="{{page}}" attr-for-selected="path">
+        <job-details path="/jobs/details"></job-details>
+        <job-list path="/jobs"></job-list>
+        <job-new path="/jobs/new"></job-new>
+        <run-details path="/jobRun"></run-details>
+      </iron-pages>
+    </div>
   </template>
 </dom-module>

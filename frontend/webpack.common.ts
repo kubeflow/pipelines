@@ -32,6 +32,12 @@ const config: webpack.Configuration = {
         },
         test: /\.html$/,
       },
+      {
+        test: /\.svg/,
+        use: {
+          loader: 'svg-url-loader',
+        }
+      },
       // This is for web component styles, which is needed by the polymer
       // loader above, in order to inline styles in their element templates.
       {

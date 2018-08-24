@@ -41,6 +41,24 @@ describe('view job details', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('expands the left nav panel', () => {
+    const selector = 'app-shell side-nav paper-icon-button';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('collapses the left nav panel', () => {
+    const selector = 'app-shell side-nav paper-icon-button';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
   it('loads next page on "next" button press', () => {
     const nextButtonselector =
         'app-shell job-details run-list item-list #nextPage';

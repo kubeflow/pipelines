@@ -112,7 +112,7 @@
   --disabled-button-raised-color: rgba(0, 0, 0, .12);
   --primary-button-color: #3367D6;
   --primary-button-inverse-color: #A1C2FA;
-  --primary-button-inverse-hover-color: #BBDEFB;
+  --primary-button-inverse-hover-color: #EAF1FD;
   --secondary-button-color: #FFF;
   --secondary-button-inverse-color: #FFF;
 
@@ -145,6 +145,9 @@
   --code-base-light-color: #F7F7F7;
   --deep-orange-600-color: #F4511E;
   --google-blue-700-color: #3367D6;
+  --google-grey-100-color: #F5F5F5;
+  --google-grey-500-color: #9E9E9E;
+  --google-grey-700-color: #616161;
   --google-green-600-color: #0D904F;
   --pink-600-color: #D81B60;
   --purple-500-color: #9C27B0;

@@ -225,6 +225,14 @@ paper-listbox {
   display: inline;
 }
 
+.margin-top {
+  margin-top: var(--spacing-base);
+}
+
+.margin-bottom-spacing-minus-5 {
+  margin-bottom: var(--spacing-minus-5);
+}
+
 .no-margin {
   margin: 0;
 }
@@ -255,11 +263,11 @@ paper-listbox {
   padding: var(--spacing-base) 0 0 var(--spacing-base);
 }
 
-.margin-right {
+.padded-right {
   padding-right: var(--spacing-base);
 }
 
-.margin-right-spacing-minus-4 {
+.padded-right-spacing-minus-4 {
   padding-right: var(--spacing-minus-4);
 }
 

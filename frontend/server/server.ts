@@ -16,14 +16,14 @@ import Storage = require('@google-cloud/storage');
 import express = require('express');
 import fs = require('fs');
 import proxy = require('http-proxy-middleware');
+import { Client as MinioClient } from 'minio';
 import fetch from 'node-fetch';
 import path = require('path');
 import process = require('process');
+import * as tar from 'tar';
 import tmp = require('tmp');
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
-import { Client as MinioClient } from 'minio';
-import * as tar from 'tar';
 
 // The minio endpoint, port, access and secret keys are hardcoded to the same
 // values used in the deployment.
@@ -96,7 +96,7 @@ app.get('/artifacts/get', async (req, res) => {
   switch (source) {
     case 'gcs':
       try {
-        const storage = new Storage();
+        const storage = Storage();
         const destFilename = tmp.tmpNameSync();
         await storage.bucket(bucket).file(key).download({ destination: destFilename });
         console.log(`gs://${bucket}/${key} downloaded to ${destFilename}.`);

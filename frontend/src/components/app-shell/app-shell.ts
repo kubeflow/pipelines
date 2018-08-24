@@ -29,6 +29,8 @@ import { PageElement } from '../../model/page_element';
 import { PageError } from '../page-error/page-error';
 
 import '../page-error/page-error';
+import '../side-nav/side-nav';
+
 import './app-shell.html';
 
 @customElement('app-shell')
