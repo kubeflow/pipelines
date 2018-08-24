@@ -27,7 +27,6 @@ import { DataPlot } from '../../src/components/data-plotter/data-plot';
 import { PageError } from '../../src/components/page-error/page-error';
 import { RunDetails } from '../../src/components/run-details/run-details';
 import { RuntimeGraph } from '../../src/components/runtime-graph/runtime-graph';
-import { NodePhase, Workflow } from '../../src/model/argo_template';
 import { RouteEvent } from '../../src/model/events';
 import { OutputMetadata, PlotType } from '../../src/model/output_metadata';
 import * as testUtils from './test-utils';
@@ -125,7 +124,7 @@ describe('run-details', () => {
     assert(testUtils.isVisible(durationDiv), 'cannot find duration div');
     assert.strictEqual(durationDiv.innerText,
         Utils.getRunTime(testWorkflow.status.startedAt, testWorkflow.status.finishedAt,
-            testWorkflow.status.phase as NodePhase),
+            testWorkflow.status.phase as any),
         'displayed duration does not match test data');
   });
 
@@ -139,7 +138,7 @@ describe('run-details', () => {
     getJobStub.returns(testJob);
     await _resetFixture();
     fixture.tabs.select(2);
-    const workflow = JSON.parse(mockRun.workflow) as Workflow;
+    const workflow = JSON.parse(mockRun.workflow) as any;
     workflow.spec.arguments!.parameters = testJob.parameters;
     workflow.spec.arguments!.parameters![1].value = 'value2withplaceholder';
     fixture.workflow = workflow;
@@ -158,7 +157,7 @@ describe('run-details', () => {
   });
 
   it('clones the run into a new job', (done) => {
-    const workflow = JSON.parse(mockRun.workflow) as Workflow;
+    const workflow = JSON.parse(mockRun.workflow) as any;
     const params = [{ name: 'param1', value: 'value2withplaceholder' }];
     workflow.spec.arguments!.parameters = params;
     fixture.workflow = workflow;

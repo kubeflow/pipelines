@@ -24,7 +24,6 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import { Job } from '../../api/job';
-import { NodePhase, Workflow } from '../../model/argo_template';
 import { RouteEvent } from '../../model/events';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { PageElement } from '../../model/page_element';
@@ -48,7 +47,7 @@ export class RunDetails extends PageElement {
   public outputPlots: PlotMetadata[] = [];
 
   @property({ type: Object })
-  public workflow: Workflow | undefined = undefined;
+  public workflow: any = undefined;
 
   @property({ type: Object })
   public job: Job | undefined = undefined;
@@ -110,7 +109,7 @@ export class RunDetails extends PageElement {
     this._loadingRun = true;
     try {
       const response = await Apis.getRun(this._jobId, this._runId);
-      this.workflow = JSON.parse(response.workflow) as Workflow;
+      this.workflow = JSON.parse(response.workflow) as any;
       this.job = await Apis.getJob(this._jobId);
     } catch (err) {
       this.showPageError(
@@ -160,15 +159,15 @@ export class RunDetails extends PageElement {
     return Utils.formatDateString(date);
   }
 
-  protected _getStatusIcon(status: NodePhase): string {
+  protected _getStatusIcon(status: any): string {
     return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRunTime(start: string, end: string, status: NodePhase): string {
+  protected _getRunTime(start: string, end: string, status: any): string {
     return Utils.getRunTime(start, end, status);
   }
 
-  protected _getProgressColor(status: NodePhase): string {
+  protected _getProgressColor(status: any): string {
     return Utils.nodePhaseToColor(status);
   }
 
@@ -207,8 +206,8 @@ export class RunDetails extends PageElement {
         return;
       }
       (node.outputs.artifacts || [])
-        .filter((p) => p.name === 'mlpipeline-ui-metadata' && !!p.s3)
-        .forEach((p) =>
+        .filter((p: any) => p.name === 'mlpipeline-ui-metadata' && !!p.s3)
+        .forEach((p: any) =>
           outputPaths.push({
             path: { source: StorageService.MINIO, bucket: p.s3!.bucket, key: p.s3!.key },
             step: node.displayName,

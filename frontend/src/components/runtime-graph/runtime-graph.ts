@@ -23,7 +23,6 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { nodePhaseToIcon } from '../../lib/utils';
-import { NodeStatus, Workflow as ArgoTemplate } from '../../model/argo_template';
 
 import './runtime-graph.html';
 
@@ -82,11 +81,11 @@ export class RuntimeGraph extends Polymer.Element {
   protected _loadingLogs = false;
 
   @property({ type: Object })
-  protected _selectedNode: NodeStatus | null = null;
+  protected _selectedNode: any = null;
 
-  private _runtimeGraph: ArgoTemplate | null = null;
+  private _runtimeGraph: any = null;
 
-  public refresh(graph: ArgoTemplate): void {
+  public refresh(graph: any): void {
     this._exitNodeDetails();
     this._selectedTab = 0;
     // Ensure that we're working with empty arrays.
@@ -131,7 +130,7 @@ export class RuntimeGraph extends Polymer.Element {
 
     // Create dagre graph nodes from workflow nodes.
     Object.values(workflowNodes)
-      .forEach((node) => {
+      .forEach((node: any) => {
         g.setNode(node.id, {
           height: NODE_HEIGHT,
           label: node.displayName || node.id,
@@ -144,7 +143,7 @@ export class RuntimeGraph extends Polymer.Element {
     Object.keys(workflowNodes)
       .forEach((nodeId) => {
         if (workflowNodes[nodeId].children) {
-          workflowNodes[nodeId].children.forEach((childNodeId) =>
+          workflowNodes[nodeId].children.forEach((childNodeId: any) =>
             g.setEdge(nodeId, childNodeId));
         }
       });
@@ -224,7 +223,7 @@ export class RuntimeGraph extends Polymer.Element {
     return Utils.formatDateString(date);
   }
 
-  protected async _nodeClicked(e: GraphNodeClickEvent<NodeStatus>): Promise<void> {
+  protected async _nodeClicked(e: GraphNodeClickEvent<any>): Promise<void> {
     this.$.nodeDetails.classList.add('visible');
     this._selectedNode = e.model.node;
 
@@ -268,9 +267,9 @@ export class RuntimeGraph extends Polymer.Element {
   }
 
   // Outbound nodes are roughly those nodes which are the final step of the
-  // workflow's execution. More information can be found in the NodeStatus
+  // workflow's execution. More information can be found in the any
   // interface definition.
-  private _getOutboundNodes(graph: ArgoTemplate, nodeId: string): string[] {
+  private _getOutboundNodes(graph: any, nodeId: string): string[] {
     const node = graph.status.nodes[nodeId];
     if (node.type === 'Pod') {
       return [node.id];
@@ -290,7 +289,7 @@ export class RuntimeGraph extends Polymer.Element {
   // Returns whether or not the given node is one of the intermediate nodes used
   // by Argo to orchestrate the workflow. Such nodes are not generally
   // meaningful from a user's perspective.
-  private _isVirtual(node: NodeStatus): boolean {
+  private _isVirtual(node: any): boolean {
     return (node.type === 'StepGroup' || node.type === 'DAG') && !!node.boundaryID;
   }
 }

@@ -21,7 +21,6 @@ import { customElement, property } from 'polymer-decorators/src/decorators';
 import * as xss from 'xss';
 import { ListRunsRequest, RunSortKeys } from '../../api/list_runs_request';
 import { RunMetadata } from '../../api/run';
-import { NodePhase } from '../../model/argo_template';
 import {
   ItemDblClickEvent,
   ListFormatChangeEvent,
@@ -96,11 +95,11 @@ export class RunList extends Polymer.Element {
         new RouteEvent(`/jobRun?jobId=${this._jobId}&runId=${runId}`));
   }
 
-  protected _getStatusIcon(status: NodePhase): string {
+  protected _getStatusIcon(status: any): string {
     return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRuntime(start: string, end: string, status: NodePhase): string {
+  protected _getRuntime(start: string, end: string, status: any): string {
     if (!status) {
       return '-';
     }

@@ -13,11 +13,18 @@
 // limitations under the License.
 
 import { DialogResult, PopupDialog } from '../components/popup-dialog/popup-dialog';
-import { NODE_PHASE, NodePhase } from '../model/argo_template';
 
 import 'paper-toast/paper-toast';
 import { Trigger } from '../api/job';
 import '../components/popup-dialog/popup-dialog';
+
+export const NODE_PHASE = {
+  ERROR: 'Error',
+  FAILED: 'Failed',
+  RUNNING: 'Running',
+  SKIPPED: 'Skipped',
+  SUCCEEDED: 'Succeeded',
+};
 
 export function deleteAllChildren(parent: HTMLElement): void {
   while (parent.firstChild) {
@@ -57,7 +64,7 @@ export function formatDateString(date: string | undefined): string {
   return date ? new Date(date).toLocaleString() : '-';
 }
 
-export function getRunTime(start: string, end: string, status: NodePhase): string {
+export function getRunTime(start: string, end: string, status: any): string {
   if (!status) {
     return '-';
   }
@@ -85,7 +92,7 @@ export function getAncestorElementWithClass(element: HTMLElement, className: str
   return element;
 }
 
-export function nodePhaseToIcon(status: NodePhase|string): string {
+export function nodePhaseToIcon(status: any|string): string {
   switch (status) {
     case NODE_PHASE.RUNNING: return 'device:access-time';
     case NODE_PHASE.SUCCEEDED: return 'check-circle';
@@ -99,7 +106,7 @@ export function nodePhaseToIcon(status: NodePhase|string): string {
   }
 }
 
-export function nodePhaseToColor(status: NodePhase): string {
+export function nodePhaseToColor(status: any): string {
   switch (status) {
     case NODE_PHASE.SUCCEEDED: return '--good-color';
     case NODE_PHASE.ERROR: return '--danger-color';
