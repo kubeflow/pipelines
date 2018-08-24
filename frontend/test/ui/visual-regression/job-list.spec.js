@@ -147,6 +147,24 @@ describe('list jobs', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('shows confirmation dialog when trying to delete a job', () => {
+    // The list is now filtered to show jobs that cannot be deleted
+    const selector = 'app-shell job-list item-list #listContainer paper-item';
+    browser.click(selector);
+
+    const deleteBtnSelector = 'app-shell job-list paper-button#deleteBtn';
+    browser.waitForEnabled(deleteBtnSelector);
+    browser.click(deleteBtnSelector);
+
+    browser.waitForExist('popup-dialog');
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('can dismiss the confirmation dialog by canceling', () => {
+    browser.click('popup-dialog paper-button:nth-of-type(2)');
+    assertDiffs(browser.checkDocument());
+  });
+
   it('allows the list to be filtered and sorted', () => {
     // List is already filtered from previous test
     // Sort by job name column, click twice to invert ordering.
