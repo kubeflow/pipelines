@@ -30,10 +30,12 @@
 
 
 import argparse
+import json
 import os
 
 from common import _utils
 import logging
+from tensorflow.python.lib.io import file_io
 
 
 def main(argv=None):
@@ -59,8 +61,24 @@ def main(argv=None):
       'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor', spark_args)
   logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_job(api, args.project, args.region, job_id)
+  prediction_results = os.path.join(args.output, 'part-*.csv')
   with open('/output.txt', 'w') as f:
-    f.write(os.path.join(args.output, 'part-*.csv'))
+    f.write(prediction_results)
+
+  with file_io.FileIO(os.path.join(args.output, 'schema.json'), 'r') as f:
+    schema = json.load(f)
+
+  metadata = {
+    'outputs' : [{
+      'type': 'table',
+      'storage': 'gcs',
+      'format': 'csv',
+      'header': [x['name'] for x in schema],
+      'source': prediction_results
+    }]
+  }
+  with open('/mlpipeline-ui-metadata.json', 'w') as f:
+    json.dump(metadata, f)
   logging.info('Job completed.')
 
 

@@ -236,8 +236,24 @@ def main():
 
   run_predict(args.output, args.data, schema, args.target, model_export_dir,
               args.project, args.mode, args.batchsize)
+  prediction_results = os.path.join(args.output, 'prediction_results-*')
   with open('/output.txt', 'w') as f:
-    f.write(os.path.join(args.output, 'prediction_results-*'))
+    f.write(prediction_results)
+
+  with file_io.FileIO(os.path.join(args.output, 'schema.json'), 'r') as f:
+    schema = json.load(f)
+
+  metadata = {
+    'outputs' : [{
+      'type': 'table',
+      'storage': 'gcs',
+      'format': 'csv',
+      'header': [x['name'] for x in schema],
+      'source': prediction_results
+    }]
+  }
+  with open('/mlpipeline-ui-metadata.json', 'w') as f:
+    json.dump(metadata, f)
 
 
 if __name__== "__main__":

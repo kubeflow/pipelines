@@ -42,24 +42,40 @@ spec:
       - --project
       - '{{inputs.parameters.project}}'
       - --region
-      - us-central1
+      - '{{inputs.parameters.region}}'
       - --cluster
       - '{{inputs.parameters.create-cluster-output}}'
       - --schema
-      - gs://ml-pipeline-playground/sfpd/schema.json
+      - '{{inputs.parameters.schema}}'
       - --train
-      - gs://ml-pipeline-playground/sfpd/train.csv
+      - '{{inputs.parameters.train-data}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze
     inputs:
       parameters:
       - name: create-cluster-output
       - name: output
       - name: project
+      - name: region
+      - name: schema
+      - name: train-data
     name: analyze
     outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: analyze-output
         valueFrom:
@@ -70,31 +86,59 @@ spec:
       - '{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix'
       - --predictions
       - '{{inputs.parameters.predict-output}}'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix
     inputs:
       parameters:
       - name: output
       - name: predict-output
     name: confusion-matrix
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
   - container:
       args:
       - --project
       - '{{inputs.parameters.project}}'
       - --region
-      - us-central1
+      - '{{inputs.parameters.region}}'
       - --name
       - xgb-{{workflow.name}}
       - --staging
       - '{{inputs.parameters.output}}'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster
     inputs:
       parameters:
       - name: output
       - name: project
+      - name: region
     name: create-cluster
     outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: create-cluster-output
         valueFrom:
@@ -104,15 +148,30 @@ spec:
       - --project
       - '{{inputs.parameters.project}}'
       - --region
-      - us-central1
+      - '{{inputs.parameters.region}}'
       - --name
       - xgb-{{workflow.name}}
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster
     inputs:
       parameters:
       - name: project
+      - name: region
     name: delete-cluster
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
   - dag:
       tasks:
       - arguments:
@@ -123,6 +182,12 @@ spec:
             value: '{{inputs.parameters.output}}'
           - name: project
             value: '{{inputs.parameters.project}}'
+          - name: region
+            value: '{{inputs.parameters.region}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: train-data
+            value: '{{inputs.parameters.train-data}}'
         dependencies:
         - create-cluster
         name: analyze
@@ -143,6 +208,8 @@ spec:
             value: '{{inputs.parameters.output}}'
           - name: project
             value: '{{inputs.parameters.project}}'
+          - name: region
+            value: '{{inputs.parameters.region}}'
         name: create-cluster
         template: create-cluster
       - arguments:
@@ -155,6 +222,10 @@ spec:
             value: '{{inputs.parameters.output}}'
           - name: project
             value: '{{inputs.parameters.project}}'
+          - name: region
+            value: '{{inputs.parameters.region}}'
+          - name: target
+            value: '{{inputs.parameters.target}}'
           - name: train-output
             value: '{{tasks.train.outputs.parameters.train-output}}'
           - name: transform-eval
@@ -176,10 +247,18 @@ spec:
             value: '{{inputs.parameters.output}}'
           - name: project
             value: '{{inputs.parameters.project}}'
+          - name: region
+            value: '{{inputs.parameters.region}}'
+          - name: rounds
+            value: '{{inputs.parameters.rounds}}'
+          - name: target
+            value: '{{inputs.parameters.target}}'
           - name: transform-eval
             value: '{{tasks.transform.outputs.parameters.transform-eval}}'
           - name: transform-train
             value: '{{tasks.transform.outputs.parameters.transform-train}}'
+          - name: workers
+            value: '{{inputs.parameters.workers}}'
         dependencies:
         - analyze
         - create-cluster
@@ -192,10 +271,18 @@ spec:
             value: '{{tasks.analyze.outputs.parameters.analyze-output}}'
           - name: create-cluster-output
             value: '{{tasks.create-cluster.outputs.parameters.create-cluster-output}}'
+          - name: eval-data
+            value: '{{inputs.parameters.eval-data}}'
           - name: output
             value: '{{inputs.parameters.output}}'
           - name: project
             value: '{{inputs.parameters.project}}'
+          - name: region
+            value: '{{inputs.parameters.region}}'
+          - name: target
+            value: '{{inputs.parameters.target}}'
+          - name: train-data
+            value: '{{inputs.parameters.train-data}}'
         dependencies:
         - analyze
         - create-cluster
@@ -203,15 +290,22 @@ spec:
         template: transform
     inputs:
       parameters:
+      - name: eval-data
       - name: output
       - name: project
+      - name: region
+      - name: rounds
+      - name: schema
+      - name: target
+      - name: train-data
+      - name: workers
     name: exit-handler-1
   - container:
       args:
       - --project
       - '{{inputs.parameters.project}}'
       - --region
-      - us-central1
+      - '{{inputs.parameters.region}}'
       - --cluster
       - '{{inputs.parameters.create-cluster-output}}'
       - --predict
@@ -219,14 +313,13 @@ spec:
       - --analysis
       - '{{inputs.parameters.analyze-output}}'
       - --target
-      - resolution
+      - '{{inputs.parameters.target}}'
       - --package
       - gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar
       - --model
       - '{{inputs.parameters.train-output}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/predict'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-dataproc-predict
     inputs:
       parameters:
@@ -234,10 +327,26 @@ spec:
       - name: create-cluster-output
       - name: output
       - name: project
+      - name: region
+      - name: target
       - name: train-output
       - name: transform-eval
     name: predict
     outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: predict-output
         valueFrom:
@@ -247,7 +356,7 @@ spec:
       - --project
       - '{{inputs.parameters.project}}'
       - --region
-      - us-central1
+      - '{{inputs.parameters.region}}'
       - --cluster
       - '{{inputs.parameters.create-cluster-output}}'
       - --train
@@ -257,18 +366,17 @@ spec:
       - --analysis
       - '{{inputs.parameters.analyze-output}}'
       - --target
-      - resolution
+      - '{{inputs.parameters.target}}'
       - --package
       - gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar
       - --workers
-      - '2'
+      - '{{inputs.parameters.workers}}'
       - --rounds
-      - '200'
+      - '{{inputs.parameters.rounds}}'
       - --conf
       - gs://ml-pipeline-playground/trainconfcla.json
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/model'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-dataproc-train
     inputs:
       parameters:
@@ -276,10 +384,28 @@ spec:
       - name: create-cluster-output
       - name: output
       - name: project
+      - name: region
+      - name: rounds
+      - name: target
       - name: transform-eval
       - name: transform-train
+      - name: workers
     name: train
     outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: train-output
         valueFrom:
@@ -289,29 +415,46 @@ spec:
       - --project
       - '{{inputs.parameters.project}}'
       - --region
-      - us-central1
+      - '{{inputs.parameters.region}}'
       - --cluster
       - '{{inputs.parameters.create-cluster-output}}'
       - --train
-      - gs://ml-pipeline-playground/sfpd/train.csv
+      - '{{inputs.parameters.train-data}}'
       - --eval
-      - gs://ml-pipeline-playground/sfpd/eval.csv
+      - '{{inputs.parameters.eval-data}}'
       - --analysis
       - '{{inputs.parameters.analyze-output}}'
       - --target
-      - resolution
+      - '{{inputs.parameters.target}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/transform'
-      command: null
       image: gcr.io/ml-pipeline/ml-pipeline-dataproc-transform
     inputs:
       parameters:
       - name: analyze-output
       - name: create-cluster-output
+      - name: eval-data
       - name: output
       - name: project
+      - name: region
+      - name: target
+      - name: train-data
     name: transform
     outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: transform-eval
         valueFrom:
@@ -323,14 +466,35 @@ spec:
       tasks:
       - arguments:
           parameters:
+          - name: eval-data
+            value: '{{inputs.parameters.eval-data}}'
           - name: output
             value: '{{inputs.parameters.output}}'
           - name: project
             value: '{{inputs.parameters.project}}'
+          - name: region
+            value: '{{inputs.parameters.region}}'
+          - name: rounds
+            value: '{{inputs.parameters.rounds}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: target
+            value: '{{inputs.parameters.target}}'
+          - name: train-data
+            value: '{{inputs.parameters.train-data}}'
+          - name: workers
+            value: '{{inputs.parameters.workers}}'
         name: exit-handler-1
         template: exit-handler-1
     inputs:
       parameters:
+      - name: eval-data
       - name: output
       - name: project
+      - name: region
+      - name: rounds
+      - name: schema
+      - name: target
+      - name: train-data
+      - name: workers
     name: xgboosttrainer
