@@ -345,6 +345,7 @@ paper-listbox {
 .unstyled {
   color: inherit;
   display: inherit;
+  outline: none;
   text-decoration: none;
 }
 
