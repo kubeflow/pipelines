@@ -29,12 +29,13 @@ const (
 )
 
 type Pipeline struct {
-	UUID           string         `gorm:"column:UUID; not null; primary_key"`
-	CreatedAtInSec int64          `gorm:"column:CreatedAtInSec; not null"`
-	Name           string         `gorm:"column:Name; not null"`
-	Description    string         `gorm:"column:Description; not null"`
-	Parameters     string         `gorm:"column:Parameters; not null size:10000"` /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */
-	Status         PipelineStatus `gorm:"column:Status; not null"`
+	UUID           string `gorm:"column:UUID; not null; primary_key"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
+	Name           string `gorm:"column:Name; not null"`
+	Description    string `gorm:"column:Description; not null"`
+	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
+	Parameters string         `gorm:"column:Parameters; not null; size:65535"`
+	Status     PipelineStatus `gorm:"column:Status; not null"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {

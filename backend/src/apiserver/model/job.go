@@ -27,8 +27,9 @@ type Job struct {
 	Conditions     string `gorm:"column:Conditions; not null"`
 	MaxConcurrency int64  `gorm:"column:MaxConcurrency;not null"`
 	Trigger        `gorm:"column:Trigger;"`
-	Parameters     string `gorm:"column:Parameters;not null; size:10000"` /* Json format argo.v1alpha1.parameter. Set max size to 10,000 */
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`        /* The time this record is stored in DB*/
+	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
+	Parameters     string `gorm:"column:Parameters;not null; size:65535"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"` /* The time this record is stored in DB*/
 	UpdatedAtInSec int64  `gorm:"column:UpdatedAtInSec; not null"`
 }
 

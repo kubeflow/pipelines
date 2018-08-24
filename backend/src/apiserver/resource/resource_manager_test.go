@@ -16,6 +16,7 @@ package resource
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,6 +74,18 @@ func TestCreatePipeline(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineExpected, pipeline)
+}
+
+func TestCreatePipeline_ComplexPipeline(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	createdPipeline, err := manager.CreatePipeline("pipeline1", []byte(strings.TrimSpace(
+		complexPipeline)))
+	assert.Nil(t, err)
+	_, err = manager.GetPipeline(createdPipeline.UUID)
+	assert.Nil(t, err)
 }
 
 func TestCreatePipeline_GetParametersError(t *testing.T) {
@@ -744,3 +757,359 @@ func TestToScheduledWorkflowName_SpecialCharsAndSpace(t *testing.T) {
 func TestToScheduledWorkflowName_TruncateLongName(t *testing.T) {
 	assert.Equal(t, toScheduledWorkflowName("AloooooooooooooooooongName"), "job-aloooooooooooooooooon")
 }
+
+const (
+	complexPipeline = `
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: tfmataxicabclassificationpipelineexample-
+spec:
+  arguments:
+    parameters:
+    - name: output
+    - name: project
+    - name: schema
+      value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json
+    - name: train
+      value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv
+    - name: evaluation
+      value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv
+    - name: preprocess-mode
+      value: local
+    - name: preprocess-module
+      value: gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py
+    - name: target
+      value: tips
+    - name: learning-rate
+      value: '0.1'
+    - name: hidden-layer-size
+      value: '1500'
+    - name: steps
+      value: '3000'
+    - name: workers
+      value: '0'
+    - name: pss
+      value: '0'
+    - name: predict-mode
+      value: local
+    - name: analyze-mode
+      value: local
+    - name: analyze-slice-column
+      value: trip_start_hour
+  entrypoint: tfmataxicabclassificationpipelineexample
+  templates:
+  - container:
+      args:
+      - --output
+      - '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
+      - --model
+      - '{{inputs.parameters.training-train}}'
+      - --eval
+      - '{{inputs.parameters.evaluation}}'
+      - --schema
+      - '{{inputs.parameters.schema}}'
+      - --project
+      - '{{inputs.parameters.project}}'
+      - --mode
+      - '{{inputs.parameters.analyze-mode}}'
+      - --slice-columns
+      - '{{inputs.parameters.analyze-slice-column}}'
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma
+    inputs:
+      parameters:
+      - name: analyze-mode
+      - name: analyze-slice-column
+      - name: evaluation
+      - name: output
+      - name: project
+      - name: schema
+      - name: training-train
+    name: analysis
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: analysis-analysis
+        valueFrom:
+          path: /output.txt
+  - container:
+      args:
+      - --output
+      - '{{inputs.parameters.output}}/{{workflow.name}}/predict'
+      - --data
+      - '{{inputs.parameters.evaluation}}'
+      - --schema
+      - '{{inputs.parameters.schema}}'
+      - --target
+      - '{{inputs.parameters.target}}'
+      - --model
+      - '{{inputs.parameters.training-train}}'
+      - --mode
+      - '{{inputs.parameters.predict-mode}}'
+      - --project
+      - '{{inputs.parameters.project}}'
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict
+    inputs:
+      parameters:
+      - name: evaluation
+      - name: output
+      - name: predict-mode
+      - name: project
+      - name: schema
+      - name: target
+      - name: training-train
+    name: prediction
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: prediction-predict
+        valueFrom:
+          path: /output.txt
+  - container:
+      args:
+      - --train
+      - '{{inputs.parameters.train}}'
+      - --eval
+      - '{{inputs.parameters.evaluation}}'
+      - --schema
+      - '{{inputs.parameters.schema}}'
+      - --output
+      - '{{inputs.parameters.output}}/{{workflow.name}}/transformed'
+      - --project
+      - '{{inputs.parameters.project}}'
+      - --mode
+      - '{{inputs.parameters.preprocess-mode}}'
+      - --preprocessing-module
+      - '{{inputs.parameters.preprocess-module}}'
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft
+    inputs:
+      parameters:
+      - name: evaluation
+      - name: output
+      - name: preprocess-mode
+      - name: preprocess-module
+      - name: project
+      - name: schema
+      - name: train
+    name: preprocess
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: preprocess-transformed
+        valueFrom:
+          path: /output.txt
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: analyze-mode
+            value: '{{inputs.parameters.analyze-mode}}'
+          - name: analyze-slice-column
+            value: '{{inputs.parameters.analyze-slice-column}}'
+          - name: evaluation
+            value: '{{inputs.parameters.evaluation}}'
+          - name: output
+            value: '{{inputs.parameters.output}}'
+          - name: project
+            value: '{{inputs.parameters.project}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: training-train
+            value: '{{tasks.training.outputs.parameters.training-train}}'
+        dependencies:
+        - training
+        name: analysis
+        template: analysis
+      - arguments:
+          parameters:
+          - name: evaluation
+            value: '{{inputs.parameters.evaluation}}'
+          - name: output
+            value: '{{inputs.parameters.output}}'
+          - name: predict-mode
+            value: '{{inputs.parameters.predict-mode}}'
+          - name: project
+            value: '{{inputs.parameters.project}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: target
+            value: '{{inputs.parameters.target}}'
+          - name: training-train
+            value: '{{tasks.training.outputs.parameters.training-train}}'
+        dependencies:
+        - training
+        name: prediction
+        template: prediction
+      - arguments:
+          parameters:
+          - name: evaluation
+            value: '{{inputs.parameters.evaluation}}'
+          - name: output
+            value: '{{inputs.parameters.output}}'
+          - name: preprocess-mode
+            value: '{{inputs.parameters.preprocess-mode}}'
+          - name: preprocess-module
+            value: '{{inputs.parameters.preprocess-module}}'
+          - name: project
+            value: '{{inputs.parameters.project}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: train
+            value: '{{inputs.parameters.train}}'
+        name: preprocess
+        template: preprocess
+      - arguments:
+          parameters:
+          - name: hidden-layer-size
+            value: '{{inputs.parameters.hidden-layer-size}}'
+          - name: learning-rate
+            value: '{{inputs.parameters.learning-rate}}'
+          - name: output
+            value: '{{inputs.parameters.output}}'
+          - name: preprocess-module
+            value: '{{inputs.parameters.preprocess-module}}'
+          - name: preprocess-transformed
+            value: '{{tasks.preprocess.outputs.parameters.preprocess-transformed}}'
+          - name: pss
+            value: '{{inputs.parameters.pss}}'
+          - name: schema
+            value: '{{inputs.parameters.schema}}'
+          - name: steps
+            value: '{{inputs.parameters.steps}}'
+          - name: target
+            value: '{{inputs.parameters.target}}'
+          - name: workers
+            value: '{{inputs.parameters.workers}}'
+        dependencies:
+        - preprocess
+        name: training
+        template: training
+    inputs:
+      parameters:
+      - name: analyze-mode
+      - name: analyze-slice-column
+      - name: evaluation
+      - name: hidden-layer-size
+      - name: learning-rate
+      - name: output
+      - name: predict-mode
+      - name: preprocess-mode
+      - name: preprocess-module
+      - name: project
+      - name: pss
+      - name: schema
+      - name: steps
+      - name: target
+      - name: train
+      - name: workers
+    name: tfmataxicabclassificationpipelineexample
+  - container:
+      args:
+      - --job-dir
+      - '{{inputs.parameters.output}}/{{workflow.name}}/train'
+      - --transformed-data-dir
+      - '{{inputs.parameters.preprocess-transformed}}'
+      - --schema
+      - '{{inputs.parameters.schema}}'
+      - --learning-rate
+      - '{{inputs.parameters.learning-rate}}'
+      - --hidden-layer-size
+      - '{{inputs.parameters.hidden-layer-size}}'
+      - --steps
+      - '{{inputs.parameters.steps}}'
+      - --target
+      - '{{inputs.parameters.target}}'
+      - --workers
+      - '{{inputs.parameters.workers}}'
+      - --pss
+      - '{{inputs.parameters.pss}}'
+      - --preprocessing-module
+      - '{{inputs.parameters.preprocess-module}}'
+      - --tfjob-timeout-minutes
+      - '60'
+      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
+    inputs:
+      parameters:
+      - name: hidden-layer-size
+      - name: learning-rate
+      - name: output
+      - name: preprocess-module
+      - name: preprocess-transformed
+      - name: pss
+      - name: schema
+      - name: steps
+      - name: target
+      - name: workers
+    name: training
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: training-train
+        valueFrom:
+          path: /output.txt`
+)
