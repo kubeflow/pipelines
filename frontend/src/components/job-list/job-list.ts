@@ -14,7 +14,6 @@
 
 import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
-import 'paper-dropdown-menu/paper-dropdown-menu.html';
 import 'paper-spinner/paper-spinner.html';
 import 'polymer/polymer.html';
 
