@@ -36,10 +36,6 @@ def parse_arguments():
                       type = str,
                       default = 'flowers_resnet',
                       help = 'Path to GCS bucket.')
-  parser.add_argument('--region',
-                      type = str,
-                      default = 'us-central1',
-                      help = 'Region to use.')
   parser.add_argument('--train_csv',
                       type = str,
                       default = 'gs://cloud-ml-data/img/flower_photos/train_set.csv',
@@ -52,31 +48,24 @@ def parse_arguments():
                       type = str,
                       default = 'gs://flowers_resnet/labels.txt',
                       help = 'Path to labels.txt.')
-  parser.add_argument('--version',
-                      type = str,
-                      default = 'resnet',
-                      help = 'Architecture used for this model')
   args = parser.parse_args()
   return args
 
 
 if __name__== "__main__":
   args = parse_arguments()
-  os.environ["PROJECT"] = args.project_id
-  os.environ["BUCKET"] = args.bucket
-  os.environ["REGION"] = args.region
 
-  output_dir = 'gs://' + args.bucket + '/tpu/' + args.version + '/data'
+  output_dir = 'gs://' + args.bucket + '/tpu/preprocessed'
 
-  with open("./output.txt", "w") as output_file:
+  with open("/output.txt", "w") as output_file:
     output_file.write(output_dir)
 
   logging.info('Removing old data from ' + output_dir)
   subprocess.call('gsutil -m rm -rf ' + output_dir, shell=True)
   logging.info('Start preprocessing data ....')
   logging.info('Copying labels to ./resnet/')
-  subprocess.call('gsutil cp ' + args.labels + ' ./resnet/', shell=True)
-  subprocess.call('python -m trainer.preprocess \
+  subprocess.check_call('gsutil cp ' + args.labels + ' ./resnet/', shell=True)
+  subprocess.check_call('python -m trainer.preprocess \
    --train_csv ' + args.train_csv + ' \
    --validation_csv ' + args.validation_csv + ' \
    --labels_file ./resnet/labels.txt \

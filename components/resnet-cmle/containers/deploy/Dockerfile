@@ -40,6 +40,6 @@ ENV PATH $PATH:/tools/node/bin:/tools/google-cloud-sdk/bin
 
 ENV PYTHONPATH ${PYTHONPATH}:/resnet/resnet_model
 
-ADD /resnet /resnet
+ADD /build /resnet
 
 ENTRYPOINT ["python", "/resnet/deploy.py"]

@@ -19,17 +19,13 @@ spec:
   arguments:
     parameters:
     - name: project-id
-      value: ''
     - name: bucket
-      value: bolts_resnet
     - name: region
       value: us-central1
     - name: model
       value: bolts
     - name: version
-      value: resnet
-    - name: model-dir
-      value: gs://bolts_resnet/tpu/resnet/trained
+      value: beta1
     - name: tf-version
       value: '1.8'
     - name: train-csv
@@ -47,7 +43,7 @@ spec:
     - name: steps-per-eval
       value: '250'
     - name: train-steps
-      value: '1000'
+      value: '10000'
     - name: num-train-images
       value: '218593'
     - name: num-eval-images
@@ -64,19 +60,15 @@ spec:
       - '{{inputs.parameters.version}}'
       - --project_id
       - '{{inputs.parameters.project-id}}'
-      - --bucket
-      - '{{inputs.parameters.bucket}}'
       - --region
       - '{{inputs.parameters.region}}'
-      - --data_dir
+      - --model_dir
       - '{{inputs.parameters.train-trained}}'
       - --TFVERSION
       - '{{inputs.parameters.tf-version}}'
-      command: null
       image: gcr.io/ml-pipeline/resnet-deploy
     inputs:
       parameters:
-      - name: bucket
       - name: model
       - name: project-id
       - name: region
@@ -84,35 +76,57 @@ spec:
       - name: train-trained
       - name: version
     name: deploy
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
   - container:
       args:
       - --project_id
       - '{{inputs.parameters.project-id}}'
       - --bucket
       - '{{inputs.parameters.bucket}}'
-      - --region
-      - '{{inputs.parameters.region}}'
       - --train_csv
       - '{{inputs.parameters.train-csv}}'
       - --validation_csv
       - '{{inputs.parameters.validation-csv}}'
       - --labels
       - '{{inputs.parameters.labels}}'
-      - --version
-      - '{{inputs.parameters.version}}'
-      command: null
       image: gcr.io/ml-pipeline/resnet-preprocess
     inputs:
       parameters:
       - name: bucket
       - name: labels
       - name: project-id
-      - name: region
       - name: train-csv
       - name: validation-csv
-      - name: version
     name: preprocess
     outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: preprocess-preprocessed
         valueFrom:
@@ -121,8 +135,6 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: bucket
-            value: '{{inputs.parameters.bucket}}'
           - name: model
             value: '{{inputs.parameters.model}}'
           - name: project-id
@@ -147,14 +159,10 @@ spec:
             value: '{{inputs.parameters.labels}}'
           - name: project-id
             value: '{{inputs.parameters.project-id}}'
-          - name: region
-            value: '{{inputs.parameters.region}}'
           - name: train-csv
             value: '{{inputs.parameters.train-csv}}'
           - name: validation-csv
             value: '{{inputs.parameters.validation-csv}}'
-          - name: version
-            value: '{{inputs.parameters.version}}'
         name: preprocess
         template: preprocess
       - arguments:
@@ -165,8 +173,6 @@ spec:
             value: '{{inputs.parameters.depth}}'
           - name: eval-batch-size
             value: '{{inputs.parameters.eval-batch-size}}'
-          - name: model-dir
-            value: '{{inputs.parameters.model-dir}}'
           - name: num-eval-images
             value: '{{inputs.parameters.num-eval-images}}'
           - name: num-label-classes
@@ -175,8 +181,6 @@ spec:
             value: '{{inputs.parameters.num-train-images}}'
           - name: preprocess-preprocessed
             value: '{{tasks.preprocess.outputs.parameters.preprocess-preprocessed}}'
-          - name: project-id
-            value: '{{inputs.parameters.project-id}}'
           - name: region
             value: '{{inputs.parameters.region}}'
           - name: steps-per-eval
@@ -198,7 +202,6 @@ spec:
       - name: eval-batch-size
       - name: labels
       - name: model
-      - name: model-dir
       - name: num-eval-images
       - name: num-label-classes
       - name: num-train-images
@@ -214,8 +217,6 @@ spec:
     name: resnet-train-pipeline
   - container:
       args:
-      - --project_id
-      - '{{inputs.parameters.project-id}}'
       - --bucket
       - '{{inputs.parameters.bucket}}'
       - --region
@@ -240,21 +241,16 @@ spec:
       - '{{inputs.parameters.preprocess-preprocessed}}'
       - --TFVERSION
       - '{{inputs.parameters.tf-version}}'
-      - --output_dir
-      - '{{inputs.parameters.model-dir}}'
-      command: null
       image: gcr.io/ml-pipeline/resnet-train
     inputs:
       parameters:
       - name: bucket
       - name: depth
       - name: eval-batch-size
-      - name: model-dir
       - name: num-eval-images
       - name: num-label-classes
       - name: num-train-images
       - name: preprocess-preprocessed
-      - name: project-id
       - name: region
       - name: steps-per-eval
       - name: tf-version
@@ -262,6 +258,20 @@ spec:
       - name: train-steps
     name: train
     outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.default:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
       parameters:
       - name: train-trained
         valueFrom:
