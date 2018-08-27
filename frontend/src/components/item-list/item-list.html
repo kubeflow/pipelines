@@ -27,7 +27,7 @@
                           checked={{_isAllSelected}} hidden$="{{_hideCheckboxes}}">
           </paper-checkbox>
           <paper-icon-button id="filterToggle" class$="filterShown--[[_showFilterBox]]"
-                             icon="filter-list" on-click="_toggleFilter"
+                             hidden$="[[hideFiltering]]" icon="filter-list" on-click="_toggleFilter"
                              title="Filter by [[columns.0.name]]"></paper-icon-button>
         </div>
         <template is="dom-repeat" items="{{columns}}" as="column" index-as="columnIndex">

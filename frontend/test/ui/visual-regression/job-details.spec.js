@@ -110,32 +110,6 @@ describe('view job details', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  it('allows the list to be filtered by Run name', () => {
-    // Open up the filter box
-    const filterButtonSelector = 'app-shell job-details run-list item-list paper-icon-button';
-    browser.click(filterButtonSelector);
-
-    const filterBoxSelector =
-        'app-shell job-details run-list item-list #headerContainer::div:nth-of-type(2)::input';
-    browser.setValue(filterBoxSelector, 'hello');
-
-    assertDiffs(browser.checkDocument());
-  });
-
-  it('allows the list to be filtered and sorted', () => {
-    // List is already filtered from previous test
-    // Sort by run creation time column.
-    const createdAtColumnButtonSelector =
-        'app-shell job-details run-list item-list #header::div:nth-of-type(3)::paper-button';
-    browser.click(createdAtColumnButtonSelector);
-
-    assertDiffs(browser.checkDocument());
-
-    // Clear filter by clicking the button again.
-    const filterButtonSelector = 'app-shell job-details run-list item-list paper-icon-button';
-    browser.click(filterButtonSelector);
-  });
-
   it('populates new job on clone', () => {
     const cloneBtnSelector = 'app-shell job-details paper-button#cloneBtn';
 

@@ -143,6 +143,12 @@ export class ItemListElement extends Polymer.Element {
   @property({ computed: '_computeSelectedIndices(rows.*)', notify: true, type: Array })
   public selectedIndices: number[] = [];
 
+  /*
+   * Whether or not this ItemListElement will hide UI for filtering.
+   */
+  @property({ type: Boolean })
+  public hideFiltering = true;
+
   @property({ type: String })
   public filterString = '';
 
