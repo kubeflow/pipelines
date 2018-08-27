@@ -214,7 +214,10 @@ export class DataPlot extends Polymer.Element {
     if (!this.plotMetadata) {
       return;
     }
-    this._podAddress = await Apis.getTensorboardApp(this.plotMetadata.source);
+    const appAddress = await Apis.getTensorboardApp(this.plotMetadata.source);
+    // Strip the protocol from the URL. This is a workaround for cloud shell incorrectly
+    // decoding the address and replacing the protocol's // with /.
+    this._podAddress = encodeURIComponent(appAddress.replace(/(^\w+:|^)\/\//, ''));
     this._showTensorboardControls = true;
     this.plotTitle = 'Tensorboard for logdir: ' + this.plotMetadata.source;
   }

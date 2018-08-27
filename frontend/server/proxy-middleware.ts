@@ -31,8 +31,11 @@ export function _routePathWithReferer(proxyPrefix: string, path: string, referer
   // If a referer header is included, extract the referer URL, otherwise
   // just trim out the /_proxy/ prefix. Use the origin of the resulting URL.
   const proxiedUrlInReferer = _extractUrlFromReferer(proxyPrefix, referer);
-  const decodedPath =
+  let decodedPath =
       decodeURIComponent(proxiedUrlInReferer || _trimProxyPrefix(proxyPrefix, path));
+  if (!decodedPath.startsWith('http://') && !decodedPath.startsWith('https://')) {
+    decodedPath = 'http://' + decodedPath;
+  }
   return new URL(decodedPath).origin;
 }
 

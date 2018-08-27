@@ -77,6 +77,13 @@ describe('proxy middleware', () => {
     assert.equal(_routePathWithReferer(proxyPrefix, path, referer), proxiedUrl);
   });
 
+  it('auto-prepends http:// if proxied URL does not have protocol', () => {
+    const path = 'path1/path2';
+    const proxiedUrl = 'proxiedurl.com';
+    const referer = 'http://someurl.com/' + proxyPrefix + encodeURIComponent(proxiedUrl);
+    assert.equal(_routePathWithReferer(proxyPrefix, path, referer), 'http://' + proxiedUrl);
+  });
+
   it('routes to origin of url if no referer included', () => {
     const path = proxyPrefix + 'http://someurl.com/path1/path2';
     assert.equal(_routePathWithReferer(proxyPrefix, path), 'http://someurl.com');

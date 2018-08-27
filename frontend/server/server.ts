@@ -154,7 +154,7 @@ app.get('/apps/tensorboard', async (req, res) => {
   }
 
   try {
-    res.send(encodeURIComponent(await k8sHelper.getTensorboardAddress(logdir)));
+    res.send(await k8sHelper.getTensorboardAddress(logdir));
   } catch (err) {
     res.status(500).send('Failed to list Tensorboard pods: ' + err);
   }

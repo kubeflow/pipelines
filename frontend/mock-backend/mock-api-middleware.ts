@@ -54,6 +54,8 @@ function isValidSortKey(sortKeyEnumType: any, key: string): boolean {
 
 export default (app: express.Application) => {
 
+  proxyMiddleware(app as any, v1alpha2Prefix);
+
   app.set('json spaces', 2);
   app.use(express.json());
 
@@ -332,7 +334,5 @@ export default (app: express.Application) => {
   app.all(v1alpha2Prefix + '*', (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
-
-  proxyMiddleware(app as any, v1alpha2Prefix);
 
 };
