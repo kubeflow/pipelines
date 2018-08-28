@@ -30,23 +30,23 @@ For example:
 dsl-compile --py ./samples/basic/sequential.py --output ~/Desktop/sequential.yaml
 ```
 
-## Deploy the samples
+## Deploy the Samples
 Upload the generated yaml file through the ML pipeline web console. Here is the 
 [instructions](https://github.com/googleprivate/ml/blob/master/README.md) to set up Pipelines System.
 
-## Optional for advanced users: design customized DSL
+## Optional for advanced users: Building Your Components and Use it in Pipelines
 
-### Requiremnt:
+### Requirement
 Install [docker](https://www.docker.com/get-docker).
 
 ### Step One: Create A Container For Each Component
 In most cases, you need to create your own container image that includes your program. You can find container 
 building examples from [here](https://github.com/googleprivate/ml/blob/master/components)(in the directory, go to any subdirectory and then go to “containers” directory).
 
-If your component creates some outputs to be feeded as inputs to the downstream components, each output has 
+If your component creates some outputs to be fed as inputs to the downstream components, each output has 
 to be a string and needs to be written to a separate local text file by the container image. 
 For example, if a trainer component needs to output the trained model path, it writes the path into a 
-local file “/output.txt”. In the python class (in step three), you have the chance to indicate how to map the contents 
+local file “/output.txt”. In the python class (in step three), you have the chance to specify how to map the content 
 of local files to component outputs.
 
 <!---[TODO]: Add how to produce UI metadata.--->
@@ -67,33 +67,28 @@ class ConfusionMatrixOp(mlp.ContainerOp):
         '--output', '%s/{{workflow.name}}/confusionmatrix' % output_path,
         '--predictions', predictions
      ],
-     file_outputs={'output': '/output.txt'})
+     file_outputs={'label': '/output.txt'})
 
 ```
 
 Note:
 * Each component needs to inherit from mlp.ContainerOp.
 * If you already defined ENTRYPOINT in the container image, you don’t have to provide “command” unless you want to override it.
-* In the init arguments, there can be python native types (such as str, int), and there can be “mlp.PipelineParam” 
-types. Each mlp.PipelineParam represents a parameter whose value is only known at run time. It might be a pipeline 
-parameter whose value is provided at pipeline run time, or it can be an output from an upstream component. 
+* In the init arguments, there can be python native types (such as str, int) and “mlp.PipelineParam” 
+types. Each mlp.PipelineParam represents a parameter whose value is usually only known at run time. It might be a pipeline 
+parameter whose value is provided at pipeline run time by user, or can be an output from an upstream component. 
 In the above case, “predictions” and “output_path” are mlp.PipelineParams.
 * Although value of each PipelineParam is only available at runtime, you can still use them inline the 
 argument (note the “%s”). It means at run time the argument will contain the value of the param inline.
-“File_outputs” lists a map between labels and local file paths. The outputs of the components will be referenced such as:  
+* “File_outputs” lists a map between labels and local file paths. In the above case, the content of '/output.txt' is gathered as a string output of the operator. To reference the output in code:
 
 ```python
 op = ConfusionMatrixOp(...)
 op.outputs['label']
 ```
 
-If there is only one output then you can do “op.output”.
+If there is only one output then you can also do “op.output”.
 
-* Inputs have to be inline arguments in entrypoints.
-* Outputs have to be saved in local text files. Can be multiple. The file paths need to be in sync with DSL code.
-* UI metadata needs to go to a GCS location by contention.
-
-<!---[TODO]: Add Sample Link--->
 
 ### Step Three: Create Your Workflow as a python function
 Each pipeline is identified as a python function. For example:
@@ -124,13 +119,10 @@ def train(
 Note:
 
 * **@mlp.pipeline** is a required decoration including “name” and "description" properties.
-* Input arguments will show up as pipeline parameters in Pipeline UI. As a python rule, positional 
+* Input arguments will show up as pipeline parameters in the Pipeline system web UI. As a python rule, positional 
 args go first and keyword args go next.
-* Each function argument is internally interpreted as mlp.PipelineParam type. The defaults values 
-should all be of that type. The default values will show up in the Pipeline UI.
+* Each function argument is of type mlp.PipelineParam. The default values 
+should all be of that type. The default values will show up in the Pipeline UI but can be overwritten.
 
-We recommend starting from simple examples. Note that in the [samples](https://github.com/googleprivate/ml/blob/master/samples), Step two (Create A Python Class For Your Component) is skipped. 
-The pipeline creates ops from mlp.ContainerOp directly. This works if you don’t expect others to reuse your component. 
-Otherwise, it is better to create python classes for a more friendly component interface.
 
-<!---[TODO: Add a link to a real world example]--->
+See an example [here](https://github.com/googleprivate/ml/blob/master/samples/xgboost-spark/xgboost-training-cm.py).
