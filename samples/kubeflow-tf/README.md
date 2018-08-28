@@ -1,46 +1,45 @@
-## The requirements:
-Preprocessing uses Google Cloud DataFlow. So [DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project. 
+## Overview
+The pipeline creates a TensorFlow model on structured data and image URLs (Google Storage). It works for both classification and regression.
+It can run everything inside the pipeline cluster (KubeFlow). The only possible dependency is DataFlow if you enable "cloud" mode for 
+preprocessing or prediction.
 
-## Compile
-Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
-compile your python sample into workflow yaml.
+## The requirements
+By default, preprocessing and prediction use local mode and runs inside the cluster. If "cloud" is supplied as the value of "preprocess_mode",
+then preprocessing uses Google Cloud DataFlow, and [DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project. 
 
-## Deploy
-To run an image classification training pipeline sample:
-### Prepare output directory  
-Create a GCS bucket to store the generated model. Make sure it's in the same project as the ML pipeline deployed above.
+The trainer relies on KubeFlow tf-job v1alpha2.
+
+## Compiling the pipeline template
+
+Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and then run the following to compile the pipeline:
 
 ```bash
-gsutil mb gs://[YOUR_GCS_BUCKET]
+dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.yaml
 ```
 
-### Deploy  
-Open the ML pipeline UI.  
-Kubeflow-training-classification requires two argument:
+## Deploying a pipeline
 
-```
-project: MY_GCP_PROJECT
-output: gs://[YOUR_GCS_BUCKET]
-```
+Open the ML pipeline UI. Create a new pipeline, and then upload the compiled YAML file as a new pipeline template.
 
-**Note that chicago taxi fare prediction training pipeline 
-[sample](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/kubeflow-training-regression.yaml) is under testing.**
+The pipeline will require two arguments:
 
-<!---
-#TODO: since this is not tested, it is commented out for now.
+1. The name of a GCP project.
+1. An output directory in a GCS bucket, of the form `gs://<BUCKET>/<PATH>`.
 
-To run a chicago taxi fare prediction training pipeline sample:
+## Components Source
 
-argo submit kubeflow-training-regression.yaml \
-     -p project=MY_GCP_PROJECT \
-     -p output="gs://my-bucket/taximodel" \
-     -p schema=gs://ml-pipeline-playground/taxi/schema.json \
-     -p train=gs://ml-pipeline-playground/taxi/train.csv \
-     -p eval=gs://ml-pipeline-playground/taxi/eval.csv \
-     -p target=fare \
-     -p analyze-slice-column=company \
-     -p hidden-layer-size="1500" \
-     -p steps=3000 \
-     -p learning-rate=0.1 \
-     --entrypoint kubeflow-training
---->
+Preprocessing:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/tft) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/tft)
+
+Training:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/kubeflow/launcher) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/kubeflow/container/launcher)
+
+Prediction:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/predict) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/predict)
+
+Confusion Matrix:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/local/evaluation) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/local/containers/confusion_matrix)

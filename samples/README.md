@@ -1,60 +1,20 @@
-## Requirement:
-* Follow [README.md](https://github.com/googleprivate/ml/blob/master/README.md) to 
-launch a GKE cluster with ML pipeline installed.
-
-* Install [Miniconda](https://conda.io/miniconda.html)   
-For example, in Debian/Ubuntu/[Cloud shell](https://console.cloud.google.com/cloudshell) environment:   
-```bash
-apt-get update; apt-get install -y wget bzip2
-wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh
-```
-In Windows environment, download the [installer](https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe) and 
-remember to select "*Add Anaconda to my PATH environment variable*" option during the installation.
-
-In Mac environment, download the [installer](https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh) and
-run the following command:
-
-```bash
-bash Miniconda3-latest-MacOSX-x86_64.sh
-```
-
-* Create a clean python3 envionrment
+## Setup
+* Create a python3 envionrment.
  
-```bash
-conda create --name mlpipeline python=3.6
-source activate mlpipeline
-```
+* Clone the repo. 
+Download the latest [release](https://github.com/googleprivate/ml/releases) and unarchive it.
  
-If `conda` command is not found, be sure to add the Miniconda path:
- 
-```bash
-export PATH=ANACONDA_PATH/bin:$PATH
-source ~/.bashrc # In Mac environment, one should call "source ~/.bash_profile"
-
-```
- 
-## Install the compiler
-* Clone the repo.  
-Download the latest [release](https://github.com/googleprivate/ml/releases) and unarchive it.  
- 
-```bash
-# If a tartall is downloaded, run tar command
-tar -zxvf ml-VERSION.tar.gz
-# If a zipfile is downloaded, run unzip command
-unzip ml-VERSION.zip
-```
- 
-* Install mlp library and DSL compiler  
+* Install mlp library and DSL compiler
  
 ```bash
 cd ML_REPO_DIRECTORY
 pip install ./dsl/ --upgrade # This is the library used to represent pipelines with Python code.
 pip install ./dsl-compiler/ --upgrade # This is the compiler to compile DSL codes into workflow yaml.
  ```
+After successful installation "dsl-compile" should be added to your PATH.
 
 ## Compile the samples
-The sample pipelines are represented as DSL codes. To run these samples, one needs to compile them into 
+The sample pipelines are represented as python code. To run these samples, one needs to compile them into 
 workflow yamls and then upload to the pipeline web console. 
 <!--- 
 In the future, we will build the compiler into the pipeline system such that these python files are immediately deployable.
@@ -64,21 +24,15 @@ In the future, we will build the compiler into the pipeline system such that the
 dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
 ```
 
-
-For example:  
+For example:
 
 ```bash
 dsl-compile --py ./samples/basic/sequential.py --output ~/Desktop/sequential.yaml
 ```
 
-
-**Note: [tfma](https://github.com/googleprivate/ml/blob/master/samples/tfma/) has not been converted to DSL yet.**
-
 ## Deploy the samples
-Upload the generated yaml file through the ML pipeline web console.
-Follow the links to run samples: [Basic](https://github.com/googleprivate/ml/blob/master/samples/basic/README.md),
-[kubeflow](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md), 
-and [xgboost](https://github.com/googleprivate/ml/blob/master/samples/xgboost-spark/README.md)
+Upload the generated yaml file through the ML pipeline web console. Here is the 
+[instructions](https://github.com/googleprivate/ml/blob/master/README.md) to set up Pipelines System.
 
 ## Optional for advanced users: design customized DSL
 
@@ -107,14 +61,13 @@ class ConfusionMatrixOp(mlp.ContainerOp):
   def __init__(self, name, predictions, output_path):
     super(ConfusionMatrixOp, self).__init__(
       name=name,
-      image='gcr.io/bradley-playground/ml-pipeline-local-confusion-matrix:v1',
+      image='gcr.io/project-id/ml-pipeline-local-confusion-matrix:v1',
       command=['python', '/ml/confusion_matrix.py'],
       arguments=[
         '--output', '%s/{{workflow.name}}/confusionmatrix' % output_path,
         '--predictions', predictions
      ],
      file_outputs={'output': '/output.txt'})
-
 
 ```
 
@@ -178,6 +131,6 @@ should all be of that type. The default values will show up in the Pipeline UI.
 
 We recommend starting from simple examples. Note that in the [samples](https://github.com/googleprivate/ml/blob/master/samples), Step two (Create A Python Class For Your Component) is skipped. 
 The pipeline creates ops from mlp.ContainerOp directly. This works if you don’t expect others to reuse your component. 
-Otherwise, it is better to create python classes for a more friendly component interface).
+Otherwise, it is better to create python classes for a more friendly component interface.
 
 <!---[TODO: Add a link to a real world example]--->

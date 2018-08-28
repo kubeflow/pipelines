@@ -58,6 +58,5 @@ def resnet_train(project_id: mlp.PipelineParam,
   deploy = mlp.ContainerOp( 
       name = 'deploy', 
       image = 'gcr.io/ml-pipeline/resnet-deploy',
-
       arguments = ['--model', model, '--version', version, '--project_id', project_id,
                    '--region', region,'--model_dir', train.output, '--TFVERSION', tf_version])

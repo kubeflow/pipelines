@@ -1,75 +1,55 @@
-## The requirements:
-* Preprocessing uses Google Cloud DataFlow. So the [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project.
+## Overview
+The pipeline creates XGBoost models on structured data with CSV format. Both classification and regression are supported.
+
+The pipeline starts by creating an Google DataProc cluster, and then run analysis, transormation, distributed training and 
+prediction in the created cluster. Then a single node confusion-matrix aggregator is used (for classification case) to
+provide frontend the confusion matrix data. At the end, a delete cluster operation runs to destroy the cluster it creates
+in the beginning. The delete cluster operation is used as an exit handler, meaning it will run regardless the pipeline fails
+or not.
+
+## Requirements
+Preprocessing uses Google Cloud DataProc. So the [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project.
 
 ## Compile
 Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
 compile your sample python into workflow yaml.
 
 ## Deploy
-To run a classification training pipeline sample with SFPD data:
-* Prepare output directory  
-Create a GCS bucket to store the generated model. Make sure it's in the same project as the ML pipeline deployed above.
+Open the ML pipeline UI. Create a new pipeline, and then upload the compiled YAML file as a new pipeline template.
 
-```bash
-gsutil mb gs://[YOUR_GCS_BUCKET]
-```
+## Run
+Most arguments come with default values. Only "output" and "project" need to be filled always. "output" is a Google Storage path which holds
+pipeline run results. Note that each pipeline run will create a unique directory under output so it will not override previous results. "project"
+is a GCP project.
 
-* Deploy  
-Open the ML pipeline UI.  
-Kubeflow-training-classification requires two argument:
+## Components Source
 
-```
-project: MY_GCP_PROJECT
-output: gs://[YOUR_GCS_BUCKET]
-train: gs://ml-pipeline-playground/sfpd/train.csv"
-eval: gs://ml-pipeline-playground/sfpd/eval.csv"
-schema: gs://ml-pipeline-playground/sfpd/schema.json"
-```
+Create Cluster:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/create_cluster) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/create_cluster)
 
-<!---
-#TODO: this will be added to the readme after testing. argo commands would mislead users from the web console.
+Analyze (step one for preprocessing):
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/analyze) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/analyze)
 
-To run a classification training pipeline sample with SFPD data:
+Transform (step two for preprocessing):
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/transform) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/transform)
 
-argo submit xgboost-training-roc.yaml \
-     -p project=MY_GCP_PROJECT \
-     -p output="gs://my-bucket/sfpdmodel" \
-     -p train="gs://ml-pipeline-playground/sfpd/train.csv" \
-     -p eval="gs://ml-pipeline-playground/sfpd/eval.csv" \
-     -p schema="gs://ml-pipeline-playground/sfpd/schema.json" \
-     -p target=resolution \
-     -p trueclass=ACTION \
-     -p workers=2 \
-     -p rounds=100 \
-     -p conf=gs://ml-pipeline-playground/trainconfcla.json \
-     --entrypoint xgboost-training
+Distributed Training:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/train) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/train)
 
-To run a classification training pipeline sample with 20NewsGroups data:
+Distributed Predictions:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/predict) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/predict)
 
-argo submit xgboost-training-cm.yaml \
-     -p project=MY_GCP_PROJECT \
-     -p output="gs://my-bucket/newsmodel" \
-     -p train="gs://ml-pipeline-playground/newsgroup/train.csv" \
-     -p eval="gs://ml-pipeline-playground/newsgroup/eval.csv" \
-     -p schema="gs://ml-pipeline-playground/newsgroup/schema.json" \
-     -p target=news_label \
-     -p workers=2 \
-     -p rounds=200 \
-     -p conf=gs://ml-pipeline-playground/trainconfcla.json \
-     --entrypoint xgboost-training
+Confusion Matrix:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/local/evaluation) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/local/containers/confusion_matrix)
 
-
-To run an evaluation pipeline sample with 20NewsGroups model & testdata:
-
-argo submit xgboost-evaluation.yaml \
-     -p project=MY_GCP_PROJECT \
-     -p output="gs://my-bucket/newsmodel" \
-     -p eval="gs://ml-pipeline-playground/newsgroup/eval.csv" \
-     -p model="gs://ml-pipeline-playground/newsgroup/model/model" \
-     -p target=news_label \
-     -p trueclass=talk.politics.mideast \
-     -p analysis=gs://ml-pipeline-playground/newsgroup/analysis/ \
-     --entrypoint xgboost-evaluation
---->
+Delete Cluster:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/delete_cluster) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/delete_cluster)
 
 

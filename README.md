@@ -84,3 +84,42 @@ Second, follow [README.md](https://github.com/googleprivate/ml/blob/master/sampl
 ## Uninstall
 To uninstall ML pipeline, create a job following the same steps as installation, with additional uninstall argument. 
 Check [bootstrapper.yaml](https://storage.googleapis.com/ml-pipeline/bootstrapper.yaml) for details.
+
+
+# ML Pipeline Services - Authoring Guideline
+
+For more details, see [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md).
+
+## Setup
+* Create a python3 envionrment.
+ 
+* Clone the repo. 
+Download the latest [release](https://github.com/googleprivate/ml/releases) and unarchive it.
+ 
+* Install mlp library and DSL compiler
+ 
+```bash
+cd ML_REPO_DIRECTORY
+pip install ./dsl/ --upgrade # This is the library used to represent pipelines with Python code.
+pip install ./dsl-compiler/ --upgrade # This is the compiler to compile DSL codes into workflow yaml.
+ ```
+After successful installation "dsl-compile" should be added to your PATH.
+
+## Compile the samples
+The sample pipelines are represented as python code. To run these samples, one needs to compile them into 
+workflow yamls and then upload to the pipeline web console. 
+<!--- 
+In the future, we will build the compiler into the pipeline system such that these python files are immediately deployable.
+--->
+
+```bash
+dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
+```
+
+For example:
+
+```bash
+dsl-compile --py ./samples/basic/sequential.py --output ~/Desktop/sequential.yaml
+
+## Deploy the samples
+Upload the generated yaml file through the ML pipeline web console.

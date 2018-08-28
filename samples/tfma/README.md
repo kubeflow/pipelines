@@ -44,4 +44,22 @@ Open the ML pipeline UI. Create a new pipeline, and then upload the compiled YAM
 The pipeline will require two arguments:
 
 1. The name of a GCP project.
-1. An output directory in a GCS bucket, of the form `gs://<BUCKET>/<PATH>`.
+2. An output directory in a GCS bucket, of the form `gs://<BUCKET>/<PATH>`.
+
+## Components Source
+
+Preprocessing:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/tft) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/tft)
+
+Training:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/kubeflow/launcher) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/kubeflow/container/launcher)
+
+Analysis:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/tfma) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/tfma)
+
+Prediction:
+  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/predict) 
+  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/predict)
