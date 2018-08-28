@@ -24,6 +24,15 @@ describe('view job details', () => {
     browser.url('/');
   });
 
+  it('navigates to job list page', () => {
+    const selector = 'app-shell side-nav #jobsBtn';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
   it('opens job details on double click', () => {
     // Find a job with runs that can also be cloned. The 3rd job is one.
     // TODO: Explore making this more reliable

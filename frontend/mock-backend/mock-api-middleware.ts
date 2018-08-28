@@ -20,9 +20,11 @@ import proxyMiddleware from '../server/proxy-middleware';
 import { Job } from '../src/api/job';
 import { JobSortKeys } from '../src/api/list_jobs_request';
 import { ListJobsResponse } from '../src/api/list_jobs_response';
+import { PipelineSortKeys } from '../src/api/list_pipelines_request';
 import { ListPipelinesResponse } from '../src/api/list_pipelines_response';
 import { RunSortKeys } from '../src/api/list_runs_request';
 import { ListRunsResponse } from '../src/api/list_runs_response';
+import { Pipeline } from '../src/api/pipeline';
 import { RunMetadata } from '../src/api/run';
 import { data as fixedData } from './fixed-data';
 
@@ -84,8 +86,8 @@ export default (app: express.Application) => {
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
-      jobs = fixedData.jobs.filter((p) =>
-          p.name.toLocaleLowerCase().indexOf(
+      jobs = fixedData.jobs.filter((j) =>
+          j.name.toLocaleLowerCase().indexOf(
               decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
 
     }
@@ -133,11 +135,11 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.all(v1alpha2Prefix + '/jobs/:pid', (req, res) => {
+  app.all(v1alpha2Prefix + '/jobs/:jid', (req, res) => {
     res.header('Content-Type', 'application/json');
     switch (req.method) {
       case 'DELETE':
-        const i = fixedData.jobs.findIndex((p) => p.id === req.params.pid);
+        const i = fixedData.jobs.findIndex((j) => j.id === req.params.jid);
         if (fixedData.jobs[i].name.startsWith('Cannot be deleted')) {
           res.status(502).send(`Deletion failed for job: '${fixedData.jobs[i].name}'`);
         } else {
@@ -147,7 +149,7 @@ export default (app: express.Application) => {
         }
         break;
       case 'GET':
-        res.json(fixedData.jobs.find((p) => p.id === req.params.pid));
+        res.json(fixedData.jobs.find((j) => j.id === req.params.jid));
         break;
       default:
         res.status(405).send('Unsupported request type: ' + req.method);
@@ -210,26 +212,26 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
-  app.post(v1alpha2Prefix + '/jobs/:pid/enable', (req, res) => {
+  app.post(v1alpha2Prefix + '/jobs/:jid/enable', (req, res) => {
     setTimeout(() => {
-      const job = fixedData.jobs.find((p) => p.id === req.params.pid);
+      const job = fixedData.jobs.find((j) => j.id === req.params.jid);
       if (job) {
         job.enabled = true;
         res.send('ok');
       } else {
-        res.status(500).send('Cannot find a job with id ' + req.params.pid);
+        res.status(500).send('Cannot find a job with id ' + req.params.jid);
       }
     }, 1000);
   });
 
-  app.post(v1alpha2Prefix + '/jobs/:pid/disable', (req, res) => {
+  app.post(v1alpha2Prefix + '/jobs/:jid/disable', (req, res) => {
     setTimeout(() => {
-      const job = fixedData.jobs.find((p) => p.id === req.params.pid);
+      const job = fixedData.jobs.find((j) => j.id === req.params.jid);
       if (job) {
         job.enabled = false;
         res.send('ok');
       } else {
-        res.status(500).send('Cannot find a job with id ' + req.params.pid);
+        res.status(500).send('Cannot find a job with id ' + req.params.jid);
       }
     }, 1000);
   });
@@ -245,22 +247,72 @@ export default (app: express.Application) => {
   });
 
   app.get(v1alpha2Prefix + '/pipelines', (req, res) => {
+    if (!apiServerReady) {
+      res.status(404).send();
+      return;
+    }
+
     res.header('Content-Type', 'application/json');
     const response: ListPipelinesResponse = {
       next_page_token: '',
-      pipelines: fixedData.pipelines,
+      pipelines: [],
     };
+
+    let pipelines: Pipeline[] = fixedData.pipelines;
+    if (req.query.filterBy) {
+      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
+      // This may need to be updated depending on how the backend implements filtering.
+      pipelines = fixedData.pipelines.filter((p) =>
+          p.name.toLocaleLowerCase().indexOf(
+              decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+
+    }
+
+    // The backend sorts by created_at by default.
+    const sortKey: (keyof Pipeline) = req.query.sortBy || PipelineSortKeys.CREATED_AT;
+
+    if (!isValidSortKey(PipelineSortKeys, sortKey)) {
+      res.status(405).send(`Unsupported sort string: ${sortKey}`);
+      return;
+    }
+
+    pipelines.sort((a, b) => {
+      let result = 1;
+      if (a[sortKey]! < b[sortKey]!) {
+        result = -1;
+      }
+      if (a[sortKey]! === b[sortKey]!) {
+        result = 0;
+      }
+      return result * ((req.query.ascending === 'true') ? 1 : -1);
+    });
+
+    const start = (req.query.pageToken ? +req.query.pageToken : 0);
+    const end = start + (+req.query.pageSize);
+    response.pipelines = pipelines.slice(start, end);
+
+    if (end < pipelines.length) {
+      response.next_page_token = end + '';
+    }
+
     res.json(response);
   });
 
-  app.get(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
-    const pid = req.params.pid;
-    const pipeline = fixedData.pipelines.find((p) => p.id === pid);
-    if (!pipeline) {
-      res.status(404).send('Cannot find a pipeline with id: ' + pid);
-      return;
+  app.delete(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    const i = fixedData.pipelines.findIndex((p) => p.id === req.params.pid);
+    if (fixedData.pipelines[i].name.startsWith('Cannot be deleted')) {
+      res.status(502).send(`Deletion failed for pipeline: '${fixedData.pipelines[i].name}'`);
+    } else {
+      // Delete the pipelines from fixedData.
+      fixedData.pipelines.splice(i, 1);
+      res.send('ok');
     }
-    res.json(pipeline);
+  });
+
+  app.get(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    res.json(fixedData.pipelines.find((p) => p.id === req.params.pid));
   });
 
   app.get(v1alpha2Prefix + '/pipelines/:pid/templates', (req, res) => {

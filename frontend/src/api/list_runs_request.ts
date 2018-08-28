@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ListJobsRequest } from './list_jobs_request';
+import { BaseListRequest } from './base_list_request';
 
-export class ListRunsRequest extends ListJobsRequest {
+export class ListRunsRequest extends BaseListRequest {
   public jobId: string;
 
   constructor(jobId: string, pageSize: number) {

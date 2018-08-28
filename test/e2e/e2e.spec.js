@@ -25,6 +25,13 @@ describe('deploy new job', () => {
     browser.url('/');
   });
 
+  it('navigates to job list page', () => {
+    const selector = 'app-shell side-nav #jobsBtn';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+  });
+
   it('starts out with no jobs', () => {
     const selector = 'app-shell job-list item-list #listContainer';
     browser.waitForVisible(selector, waitTimeout);

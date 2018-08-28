@@ -53,7 +53,7 @@ export async function isApiServerReady(): Promise<boolean> {
  * Gets a list of the pipelines defined on the backend.
  */
 export async function listPipelines(request: ListPipelinesRequest): Promise<ListPipelinesResponse> {
-  return JSON.parse(await _fetch('/pipelines', v1alpha2Prefix));
+  return JSON.parse(await _fetch('/pipelines', v1alpha2Prefix, request.toQueryParams()));
 }
 
 /**
@@ -61,6 +61,19 @@ export async function listPipelines(request: ListPipelinesRequest): Promise<List
  */
 export async function getPipeline(id: string): Promise<Pipeline> {
   return JSON.parse(await _fetch(`/pipelines/${id}`, v1alpha2Prefix));
+}
+
+/**
+ * Sends a request to the backend to delete a pipeline.
+ */
+export function deletePipeline(id: string): Promise<string> {
+  return _fetch(`/pipelines/${id}`, v1alpha2Prefix, '', {
+    cache: 'no-cache',
+    headers: {
+      'content-type': 'application/json',
+    },
+    method: 'DELETE',
+  });
 }
 
 /**

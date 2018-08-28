@@ -18,13 +18,14 @@
     <link rel="stylesheet" href="./side-nav.css">
     <div id="sideBar" class="side-nav" collapsed$="[[_navCollapsed]]">
       <a href="/pipelines" class="unstyled" tabindex="-1">
-        <paper-button id="pipelinesBtn" class="margin-top margin-bottom-spacing-minus-5">
+        <paper-button id="pipelinesBtn" class="margin-top margin-bottom-spacing-minus-5"
+                      on-click="_setActive">
           <iron-icon class="nav-icon" icon="pipelines-icons:pipelines"></iron-icon>
           <span>Pipelines</span>
         </paper-button>
       </a>
       <a href="/jobs" class="unstyled" tabindex="-1">
-        <paper-button id="jobsBtn">
+        <paper-button id="jobsBtn" on-click="_setActive">
           <iron-icon class="nav-icon" icon="pipelines-icons:jobs"></iron-icon>
           <span>Jobs</span>
         </paper-button>

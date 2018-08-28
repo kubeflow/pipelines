@@ -47,9 +47,14 @@ export class SideNav extends Polymer.Element {
     super.ready();
   }
 
+  // Needed to prevent buttons from losing 'active' state after being clicked twice.
+  protected _setActive(): void {
+    this._updateActiveNavButton();
+  }
+
   @observe('page')
   protected _updateActiveNavButton(): void {
-    this.pipelinesButton.active = this.page.startsWith('pipeline');
+    this.pipelinesButton.active = this.page.startsWith('/pipeline');
     this.jobsButton.active = !this.pipelinesButton.active;
   }
 

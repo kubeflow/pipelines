@@ -24,10 +24,12 @@ describe('list jobs', () => {
     browser.url('/');
   });
 
-  it('shows list of jobs on first page', () => {
-    const selector = 'app-shell job-list';
+  it('navigates to job list page', () => {
+    const selector = 'app-shell side-nav #jobsBtn';
 
     browser.waitForVisible(selector);
+    browser.click(selector);
+
     assertDiffs(browser.checkDocument());
   });
 
@@ -102,8 +104,44 @@ describe('list jobs', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('loads additional jobs after changing page size', () => {
+    // Default is 20, but we'll change it to 50.
+    const pageSizeDropdownSelector = 'app-shell job-list item-list paper-dropdown-menu';
+    browser.click(pageSizeDropdownSelector);
+
+    const pageSizeSelector =
+        'app-shell job-list item-list paper-dropdown-menu::paper-item:nth-of-type(2)';
+    browser.click(pageSizeSelector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('allows the list to be sorted. Defaults to ascending order', () => {
+    // Sort by Job name column (ascending)
+    const columnButtonSelector =
+        'app-shell job-list item-list #header::div:nth-of-type(2)::paper-button';
+    browser.click(columnButtonSelector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('sorts in descending order on second time a column is clicked', () => {
+    // Sort by Job name column (descending)
+    // Sort will be descending now since it has already been clicked once in the previous test.
+    const columnButtonSelector =
+        'app-shell job-list item-list #header::div:nth-of-type(2)::paper-button';
+
+    browser.click(columnButtonSelector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
   it('shows confirmation dialog when trying to delete a job', () => {
-    // The list is now filtered to show jobs that cannot be deleted
+    // Reset to default sort, which is created at, ascending
+    const createdAtColumnButtonSelector =
+        'app-shell job-list item-list #header::div:nth-of-type(5)::paper-button';
+    browser.click(createdAtColumnButtonSelector);
+
     const selector = 'app-shell job-list item-list #listContainer paper-item';
     browser.click(selector);
 
@@ -120,42 +158,26 @@ describe('list jobs', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  it('loads additional jobs after changing page size', () => {
-    // Default is 20, but we'll change it to 50.
-    const pageSizeDropdownSelector = 'app-shell job-list item-list paper-dropdown-menu';
-    browser.click(pageSizeDropdownSelector);
+  it('displays an error message dialog when deleting a job fails', () => {
+    // Second job cannot be deleted.
+    const jobSelector = 'app-shell job-list item-list #listContainer paper-item:nth-of-type(2)';
+    browser.click(jobSelector);
 
-    const pageSizeSelector =
-        'app-shell job-list item-list paper-dropdown-menu::paper-item:nth-of-type(2)';
-    browser.click(pageSizeSelector);
+    const deleteBtnSelector = 'app-shell job-list paper-button#deleteBtn';
+    browser.waitForEnabled(deleteBtnSelector);
+    browser.click(deleteBtnSelector);
 
+    browser.waitForExist('popup-dialog');
+
+    const confirmDeletionSelector = 'popup-dialog paper-button';
+    browser.click(confirmDeletionSelector);
     assertDiffs(browser.checkDocument());
   });
 
-  it('allows the list to be sorted. Defaults to ascending order', () => {
-    // Sort by Pipeline ID column (ascending)
-    const columnButtonSelector =
-        'app-shell job-list item-list #header::div:nth-of-type(4)::paper-button';
-    browser.click(columnButtonSelector);
-
+  it('can dismiss the error message dialog', () => {
+    const dismissBtnSelector = 'popup-dialog paper-button';
+    browser.click(dismissBtnSelector);
     assertDiffs(browser.checkDocument());
-  });
-
-  it('sorts in descending order on second time a column is clicked', () => {
-    // Sort by Pipeline ID column (descending)
-    // Sort will be descending now since it has already been clicked once in the previous test.
-    const pipelineIdColumnButtonSelector =
-        'app-shell job-list item-list #header::div:nth-of-type(4)::paper-button';
-
-    browser.click(pipelineIdColumnButtonSelector);
-
-    // List should be reset to first page of results
-    assertDiffs(browser.checkDocument());
-
-    // Reset to default sort, which is created at, ascending
-    const createdAtColumnButtonSelector =
-        'app-shell job-list item-list #header::div:nth-of-type(5)::paper-button';
-    browser.click(createdAtColumnButtonSelector);
   });
 
   it('populates cloned job', () => {

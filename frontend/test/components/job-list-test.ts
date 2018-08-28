@@ -41,7 +41,7 @@ allJobsResponse.jobs =
 async function _resetFixture(): Promise<void> {
   return resetFixture('job-list', undefined, (f: JobList) => {
     fixture = f;
-    return f.load('');
+    return f.load();
   });
 }
 

@@ -30,9 +30,10 @@ function padStartTwoZeroes(str: string): string {
   return padded;
 }
 
-// The number of simple, dummy Runs and Jobs that will be appended to the list.
-const NUM_DUMMY_RUNS = 20;
+// The number of simple, dummy Pipelines, Jobs, and Runs that will be appended to the list.
+const NUM_DUMMY_PIPELINES = 30;
 const NUM_DUMMY_JOBS = 20;
+const NUM_DUMMY_RUNS = 20;
 
 const runs: Run[] = [
   Run.buildFromObject({
@@ -107,7 +108,7 @@ const runs: Run[] = [
 runs.push(...generateNRuns());
 
 const pipelines: Pipeline [] = [
-  {
+  Pipeline.buildFromObject({
     created_at: '2018-04-01T20:58:23.000Z',
     description: 'An awesome unstructured text pipeline.',
     id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
@@ -123,9 +124,9 @@ const pipelines: Pipeline [] = [
         name: 'output',
       }
     ]
-  },
-  {
-    created_at: '2018-04-02T20:58:23.000Z',
+  }),
+  Pipeline.buildFromObject({
+    created_at: '2018-04-02T20:59:29.000Z',
     description: 'An awesome image classification pipeline.',
     id: '8fbe3f78-a01f-11e8-98d0-529269fb1459',
     name: 'Image classification',
@@ -143,22 +144,41 @@ const pipelines: Pipeline [] = [
         name: 'output',
       }
     ]
-  },
-  {
+  }),
+  Pipeline.buildFromObject({
     created_at: '2018-04-03T20:58:23.000Z',
     description: 'This pipeline has no parameters',
     id: '8fbe41b2-a01f-11e8-98d0-529269fb1459',
     name: 'No parameters',
     parameters: [],
-  },
-  {
+  }),
+  Pipeline.buildFromObject({
     created_at: '2018-04-04T20:58:23.000Z',
     description: 'This pipeline has undefined parameters',
     id: '8fbe42f2-a01f-11e8-98d0-529269fb1459',
     name: 'Undefined parameters',
     parameters: undefined as any,
-  },
+  }),
+  Pipeline.buildFromObject({
+    created_at: '2018-04-01T20:59:23.000Z',
+    description: 'Trying to delete this Pipeline will result in an error.',
+    id: '8fbe3bd6-a01f-11e8-98d0-529269fb1460',
+    name: 'Cannot be deleted',
+    parameters: [
+      {
+        name: 'xx',
+      },
+      {
+        name: 'yy',
+      },
+      {
+        name: 'output',
+      }
+    ]
+  }),
 ];
+
+pipelines.push(...generateNPipelines());
 
 const jobs: Job[] = [
   Job.buildFromObject({
@@ -249,11 +269,26 @@ const jobs: Job[] = [
   }),
 ];
 
-export const data = {
-  jobs,
-  pipelines,
-  runs,
-};
+jobs.push(...generateNJobs());
+
+function generateNPipelines(): Pipeline[] {
+  const dummyPipelines: Pipeline[] = [];
+  for (let i = pipelines.length + 1; i < NUM_DUMMY_PIPELINES + pipelines.length + 1; i++) {
+    dummyPipelines.push(Pipeline.buildFromObject({
+      created_at: '2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z',
+      description: `A dummy pipeline (${i})`,
+      id: 'Some-pipeline-id-' + i,
+      name: 'ML Pipeline number ' + i,
+      parameters: [
+        {
+          name: 'project',
+          value: 'my-cloud-project',
+        },
+      ],
+    }));
+  }
+  return dummyPipelines;
+}
 
 function generateNRuns(): Run[] {
   const dummyRuns: Run[] = [];
@@ -275,7 +310,7 @@ function generateNRuns(): Run[] {
 
 function generateNJobs(): Job[] {
   const dummyJobs: Job[] = [];
-  for (let i = data.jobs.length + 1; i < NUM_DUMMY_JOBS + data.jobs.length + 1; i++) {
+  for (let i = jobs.length + 1; i < NUM_DUMMY_JOBS + jobs.length + 1; i++) {
     dummyJobs.push(Job.buildFromObject({
       created_at: '2018-04-01T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z',
       description: 'Some description',
@@ -310,7 +345,11 @@ function generateNJobs(): Job[] {
   return dummyJobs;
 }
 
-data.jobs.push(...generateNJobs());
+export const data = {
+  jobs,
+  pipelines,
+  runs,
+};
 
 export const namedPipelines = {
   examplePipeline: pipelines[0],

@@ -14,12 +14,33 @@
 
 import { Parameter } from './parameter';
 
-export interface Pipeline {
-  id: string;
-  created_at: string;
-  name: string;
-  description?: string;
-  parameters: Parameter[];
+export class Pipeline {
+  public id: string;
+  // TODO: add author. Waiting for (#896)
+  // TODO: add version. Waiting for (#166)
+  // TODO: this will eventually be renamed "uploaded_on" (#983)
+  public created_at: string;
+  public name: string;
+  public description?: string;
+  public parameters: Parameter[];
+
+  constructor() {
+    this.id = '';
+    this.name = '';
+    this.description = '';
+    this.parameters = [];
+    this.created_at = '';
+  }
+
+  public static buildFromObject(pipeline: any): Pipeline {
+    const newPipeline = new Pipeline();
+    newPipeline.id = pipeline.id;
+    newPipeline.name = pipeline.name;
+    newPipeline.description = pipeline.description;
+    newPipeline.parameters = pipeline.parameters;
+    newPipeline.created_at = pipeline.created_at;
+    return newPipeline;
+  }
 }
 
 export interface PipelineTemplate {

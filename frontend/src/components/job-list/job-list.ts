@@ -83,7 +83,9 @@ export class JobList extends PageElement {
   protected jobListColumns: ItemListColumn[] = [
     new ItemListColumn('Name', ColumnTypeName.STRING, JobSortKeys.NAME, 2),
     new ItemListColumn('Last 5 runs', ColumnTypeName.STRING, undefined, 1),
-    new ItemListColumn('Pipeline', ColumnTypeName.NUMBER, JobSortKeys.PIPELINE_ID, 1.5),
+    // Sorting by Pipeline is not supported right now because we are displaying Pipeline name, but
+    // the backend giving us Pipeline IDs. See: (#903) and (#904)
+    new ItemListColumn('Pipeline', ColumnTypeName.STRING, undefined, 1.5),
     new ItemListColumn('Created at', ColumnTypeName.DATE, JobSortKeys.CREATED_AT),
     new ItemListColumn('Schedule', ColumnTypeName.STRING),
     new ItemListColumn('Enabled', ColumnTypeName.STRING, undefined, 0.5),
@@ -127,7 +129,7 @@ export class JobList extends PageElement {
     };
   }
 
-  public load(_: string): void {
+  public load(): void {
     this.itemList.reset();
     this._loadJobs(new ListJobsRequest(this.itemList.selectedPageSize));
   }
@@ -138,7 +140,7 @@ export class JobList extends PageElement {
   }
 
   protected _refresh(): void {
-    this.load('');
+    this.load();
   }
 
   protected _cloneJob(): void {
@@ -189,7 +191,7 @@ export class JobList extends PageElement {
     }
 
     if (unsuccessfulDeletes > 0) {
-      Utils.showDialog(`Failed to delete ${unsuccessfulDeletes} Jobs`, errorMessage);
+      Utils.showDialog(`Failed to delete ${unsuccessfulDeletes} Jobs`, errorMessage, 'Dismiss');
     }
 
     this._busy = false;
@@ -218,9 +220,6 @@ export class JobList extends PageElement {
     }
   }
 
-  // TODO: figure out what to set the browser cache time for these queries to so
-  // that we make use of the cache but don't use it so much that we miss updates
-  // to the actual backing database.
   private _listFormatChanged(ev: ListFormatChangeEvent): void {
     // This function will wait 300ms after last time it is called before listJobs() is called.
     this._debouncer = Polymer.Debouncer.debounce(
@@ -260,7 +259,7 @@ export class JobList extends PageElement {
         columns: [
           job.name,
           '',
-          job.pipeline_id,
+          '',
           Utils.formatDateString(job.created_at),
           schedule,
           Utils.enabledDisplayString(job.trigger, job.enabled)

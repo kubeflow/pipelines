@@ -122,7 +122,10 @@ export class JobNew extends PageElement {
     }
 
     try {
-      const response = await Apis.listPipelines(new ListPipelinesRequest());
+      // TODO: It's still being decided if this Pipeline selector will be part of the new job page,
+      // and if it is, how it will work. Using 25 as a page size here as a temporary measure until
+      // that's worked out.
+      const response = await Apis.listPipelines(new ListPipelinesRequest(25));
       this.pipelines = response.pipelines || [];
 
       if (this._pipelineId) {

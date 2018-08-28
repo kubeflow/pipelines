@@ -12,23 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { BaseListRequest } from './base_list_request';
-
-export class ListPipelinesRequest extends BaseListRequest {
+export class BaseListRequest {
+  public filterBy: string;
+  public orderAscending: boolean;
+  public pageSize: number;
+  public pageToken: string;
+  public sortBy: string;
 
   constructor(pageSize: number) {
-    super(pageSize);
+    this.filterBy = '';
+    this.pageSize = pageSize;
+    this.pageToken = '';
+    this.sortBy = '';
+    this.orderAscending = true;
   }
 
   public toQueryParams(): string {
-    return super.toQueryParams();
+    const params = [
+      `ascending=${this.orderAscending}`,
+      `pageToken=${this.pageToken}`,
+      `sortBy=${encodeURIComponent(this.sortBy)}`,
+      `pageSize=${this.pageSize}`,
+    ];
+    return params.join('&') +
+        (this.filterBy ? '&filterBy=' + encodeURIComponent(this.filterBy) : '');
   }
-}
-
-// Valid sortKeys as specified by the backend.
-export enum PipelineSortKeys {
-  AUTHOR = 'id',
-  CREATED_AT = 'created_at',
-  ID = 'id',
-  NAME = 'name',
 }

@@ -12,20 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ListPipelinesRequest } from './list_pipelines_request';
+import { BaseListRequest } from './base_list_request';
 
-export class ListJobsRequest extends ListPipelinesRequest {
-  public filterBy: string;
+export class ListJobsRequest extends BaseListRequest {
 
   constructor(pageSize: number) {
     super(pageSize);
-    this.filterBy = '';
   }
 
   public toQueryParams(): string {
-    // TODO: this isn't actually supported by the backend yet (and won't be for a while.) (5/23)
-    return super.toQueryParams() +
-        (this.filterBy ? '&filterBy=' + encodeURIComponent(this.filterBy) : '');
+    return super.toQueryParams();
   }
 }
 

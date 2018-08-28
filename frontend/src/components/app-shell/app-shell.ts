@@ -50,11 +50,12 @@ export class AppShell extends Polymer.Element {
   private _debouncer: Polymer.Debouncer | undefined = undefined;
 
   private _ROUTES: { [route: string]: string } = {
-    '/': 'job-list',
+    '/': 'pipeline-list',
     '/jobRun': 'run-details',
     '/jobs': 'job-list',
     '/jobs/details': 'job-details',
     '/jobs/new': 'job-new',
+    '/pipelines': 'pipeline-list',
   };
 
   static get observers(): string[] {
@@ -90,7 +91,7 @@ export class AppShell extends Polymer.Element {
           const args = parts.splice(2).join('/');
           let pageName = `/${parts.join('/')}`;
           if (pageName === '/') {
-            pageName = '/jobs';
+            pageName = '/pipelines';
           }
 
           const elementName = this._ROUTES[pageName];

@@ -24,6 +24,15 @@ describe('create new job', () => {
     browser.url('/');
   });
 
+  it('navigates to job list page', () => {
+    const selector = 'app-shell side-nav #jobsBtn';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
   it('opens new job page', () => {
     const selector = 'app-shell job-list paper-button';
 

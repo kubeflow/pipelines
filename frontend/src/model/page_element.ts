@@ -25,7 +25,7 @@ export class PageElement extends Polymer.Element {
   @property({type: String})
   protected _pageErrorDetails = '';
 
-  public load(path: string, queryParams: {}, data?: {}): void {
+  public load(path?: string, queryParams?: {}, data?: {}): void {
     throw new Error('No implementation in abstract class');
   }
 
