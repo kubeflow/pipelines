@@ -91,23 +91,21 @@ Check [bootstrapper.yaml](https://storage.googleapis.com/ml-pipeline/bootstrappe
 For more details, see [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md).
 
 ## Setup
-* Create a python3 envionrment.
+* Create a python3 envionronment.
  
 * Clone the repo. 
-Download the latest [release](https://github.com/googleprivate/ml/releases) and unarchive it.
- 
-* Install mlp library and DSL compiler
+
+* Install DSL library and DSL compiler
  
 ```bash
-cd ML_REPO_DIRECTORY
-pip install ./dsl/ --upgrade # This is the library used to represent pipelines with Python code.
-pip install ./dsl-compiler/ --upgrade # This is the compiler to compile DSL codes into workflow yaml.
+cd [ML_REPO_DIRECTORY]
+pip install ./dsl/ --upgrade # The library to specify pipelines with Python.
+pip install ./dsl-compiler/ --upgrade # The compiler that converts pipeline code into the form required by the pipeline system.
  ```
-After successful installation "dsl-compile" should be added to your PATH.
+After successful installation the command "dsl-compile" should be added to your PATH.
 
 ## Compile the samples
-The sample pipelines are represented as python code. To run these samples, one needs to compile them into 
-workflow yamls and then upload to the pipeline web console. 
+The sample pipelines are represented as Python code. To run these samples, you need to compile them, and then upload the output to the Pipeline system from web UI. 
 <!--- 
 In the future, we will build the compiler into the pipeline system such that these python files are immediately deployable.
 --->
@@ -119,7 +117,8 @@ dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
 For example:
 
 ```bash
-dsl-compile --py ./samples/basic/sequential.py --output ~/Desktop/sequential.yaml
+dsl-compile --py ./samples/basic/sequential.py --output ~/samples/basic/sequential.yaml
+```
 
 ## Deploy the samples
-Upload the generated yaml file through the ML pipeline web console.
+Upload the generated yaml file through the ML pipeline UI.
