@@ -77,7 +77,12 @@
   margin-left: 16px;
   min-height: 24px;
   min-width: 24px;
+  transition: transform 0.3s;
   padding: 6px;
+}
+
+.side-nav[collapsed] > paper-icon-button {
+  transform: rotate(180deg);
 }
 
 .side-nav > paper-icon-button:hover {

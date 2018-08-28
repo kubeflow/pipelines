@@ -14,6 +14,7 @@
 
 import 'iron-icon/iron-icon.html';
 import 'iron-iconset-svg/iron-iconset-svg.html';
+import 'iron-resizable-behavior/iron-resizable-behavior.html';
 import 'paper-button/paper-button.html';
 import 'paper-icon-button/paper-icon-button.html';
 import 'polymer/polymer.html';
@@ -24,7 +25,8 @@ import { customElement, observe, property } from 'polymer-decorators/src/decorat
 import './side-nav.html';
 
 @customElement('side-nav')
-export class SideNav extends Polymer.Element {
+export class SideNav extends
+    Polymer.mixinBehaviors([Polymer.IronResizableBehavior], Polymer.Element) {
 
   @property({ type: String })
   protected page = '';
@@ -32,8 +34,8 @@ export class SideNav extends Polymer.Element {
   @property({ type: Boolean })
   protected _navCollapsed = true;
 
-  @property({ type: String })
-  protected _chevronIcon = 'chevron-right';
+  private _AUTO_COLLAPSE_WIDTH = 800;
+  private _manualCollapseState = false;
 
   public get jobsButton(): PaperButtonElement {
     return this.$.jobsBtn as PaperButtonElement;
@@ -45,6 +47,11 @@ export class SideNav extends Polymer.Element {
 
   public ready(): void {
     super.ready();
+    this.addEventListener('iron-resize', () => {
+      if (!this._manualCollapseState) {
+        this._toggleNavCollapsed(document.body.offsetWidth < this._AUTO_COLLAPSE_WIDTH);
+      }
+    });
   }
 
   // Needed to prevent buttons from losing 'active' state after being clicked twice.
@@ -58,8 +65,12 @@ export class SideNav extends Polymer.Element {
     this.jobsButton.active = !this.pipelinesButton.active;
   }
 
-  protected _toggleNavExpand(): void {
-    this._chevronIcon = this._navCollapsed ? 'chevron-left' : 'chevron-right';
-    this._navCollapsed = !this._navCollapsed;
+  protected _toggleNavClicked(): void {
+    this._manualCollapseState = true;
+    this._toggleNavCollapsed();
+  }
+
+  protected _toggleNavCollapsed(shouldCollapse?: boolean): void {
+    this._navCollapsed = shouldCollapse !== undefined ? shouldCollapse : !this._navCollapsed;
   }
 }
