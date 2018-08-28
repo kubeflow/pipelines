@@ -78,8 +78,7 @@ If you are using Cloud Shell, you could view the UI by open the [web preview](ht
 If you are using local console instead of Cloud Shell, you can access the ML pipeline UI at [localhost:8080](http://localhost:8080).
 
 ## Run your first TFJob pipeline
-First, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to set up the local DSL(Domain-Specific Language) development environment.  
-Second, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
+See the following authoring guide on how to compile your python pipeline code into workflow yaml. Then, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
 
 ## Uninstall
 To uninstall ML pipeline, create a job following the same steps as installation, with additional uninstall argument. 
