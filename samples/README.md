@@ -1,4 +1,4 @@
-# ML Pipeline Services - User Guideline
+# ML Pipeline Services - Authoring Guideline
 
 ## Setup
 * Create a python3 envionronment.
