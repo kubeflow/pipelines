@@ -117,7 +117,7 @@ dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
 For example:
 
 ```bash
-dsl-compile --py ./samples/basic/sequential.py --output ~/samples/basic/sequential.yaml
+dsl-compile --py [ML_REPO_DIRECTORY]/samples/basic/sequential.py --output [ML_REPO_DIRECTORY]/samples/basic/sequential.yaml
 ```
 
 ## Deploy the samples
