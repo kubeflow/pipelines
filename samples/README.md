@@ -33,7 +33,7 @@ dsl-compile --py [ML_REPO_DIRECTORY]/samples/basic/sequential.py --output [ML_RE
 ## Deploy the samples
 Upload the generated yaml file through the ML pipeline UI.
 
-## Optional for advanced users: Building Your Components and Use it in Pipelines
+## Optional for advanced users: Building Your Own Components
 
 ### Requirement
 Install [docker](https://www.docker.com/get-docker).
