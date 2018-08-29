@@ -33,29 +33,20 @@ describe('view run details', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  it('shows runtime graph on double click', () => {
-    const selector = 'app-shell job-details run-list item-list paper-item';
-
-    browser.waitForVisible(selector);
-    browser.doubleClick(selector);
-    assertDiffs(browser.checkDocument());
-  });
-
-  it('expands the left nav panel', () => {
-    const selector = 'app-shell side-nav paper-icon-button';
-
-    browser.waitForVisible(selector);
-    browser.click(selector);
-
-    assertDiffs(browser.checkDocument());
-  });
-
   it('collapses the left nav panel', () => {
     const selector = 'app-shell side-nav paper-icon-button';
 
     browser.waitForVisible(selector);
     browser.click(selector);
 
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('shows runtime graph on double click', () => {
+    const selector = 'app-shell job-details run-list item-list paper-item';
+
+    browser.waitForVisible(selector);
+    browser.doubleClick(selector);
     assertDiffs(browser.checkDocument());
   });
 
@@ -159,6 +150,11 @@ describe('view run details', () => {
       const selector = 'app-shell job-details paper-tab:last-child';
       browser.waitForVisible(selector);
       browser.click(selector);
+
+      // Collapse nav panel.
+      const navExpanderSelector = 'app-shell side-nav paper-icon-button';
+      browser.waitForVisible(navExpanderSelector);
+      browser.click(navExpanderSelector);
     });
 
     it('displays error message', () => {

@@ -24,15 +24,6 @@ describe('list pipelines', () => {
     browser.url('/');
   });
 
-  it('expands the left nav panel', () => {
-    const selector = 'app-shell side-nav paper-icon-button';
-
-    browser.waitForVisible(selector);
-    browser.click(selector);
-
-    assertDiffs(browser.checkDocument());
-  });
-
   it('collapses the left nav panel', () => {
     const selector = 'app-shell side-nav paper-icon-button';
 
@@ -42,7 +33,20 @@ describe('list pipelines', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('expands the left nav panel', () => {
+    const selector = 'app-shell side-nav paper-icon-button';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
   it('shows hover effect on pipeline', () => {
+    const navExpanderSelector = 'app-shell side-nav paper-icon-button';
+    // Collapse again to free space
+    browser.click(navExpanderSelector);
+
     const selector = 'app-shell pipeline-list item-list #listContainer paper-item';
 
     browser.moveToObject(selector, 0, 0);

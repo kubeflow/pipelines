@@ -52,7 +52,7 @@ paper-input.disabled {
 }
 
 .align-max-concurrency {
-  padding: var(--spacing-minus-1) var(--spacing-minus-3) var(--spacing-minus-5);
+  padding: var(--spacing-minus-1) var(--spacing-minus-3) 22px;
 }
 
 .cron-note {

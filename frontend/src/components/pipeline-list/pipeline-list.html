@@ -21,8 +21,12 @@
       <div class="toolbar-title">All Pipelines</div>
       <div class="toolbar-actions">
         <paper-button id="uploadBtn" on-click="_altUpload">
-          <iron-icon icon="add"></iron-icon>
+          <iron-icon icon="file-upload"></iron-icon>
           Upload pipeline
+        </paper-button>
+        <paper-button id="createJobBtn" disabled="[[!_oneItemIsSelected]]" on-click="_createJob">
+          <iron-icon icon="add"></iron-icon>
+          Create job
         </paper-button>
         <!-- This is hidden but its functionality is used by the alt upload button above -->
         <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
@@ -52,6 +56,7 @@
         </item-list>
       </div>
     </div>
+
 
   </template>
 </dom-module>

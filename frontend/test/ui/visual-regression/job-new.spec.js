@@ -41,6 +41,15 @@ describe('create new job', () => {
     assertDiffs(browser.checkDocument());
   });
 
+  it('collapses the left nav panel', () => {
+    const selector = 'app-shell side-nav paper-icon-button';
+
+    browser.waitForVisible(selector);
+    browser.click(selector);
+
+    assertDiffs(browser.checkDocument());
+  });
+
   it('validates job input', () => {
     const selector = 'app-shell job-new #description';
 
@@ -86,24 +95,6 @@ describe('create new job', () => {
 
     browser.keys('Tab');
     browser.keys('test output value');
-
-    assertDiffs(browser.checkDocument());
-  });
-
-  it('expands the left nav panel', () => {
-    const selector = 'app-shell side-nav paper-icon-button';
-
-    browser.waitForVisible(selector);
-    browser.click(selector);
-
-    assertDiffs(browser.checkDocument());
-  });
-
-  it('collapses the left nav panel', () => {
-    const selector = 'app-shell side-nav paper-icon-button';
-
-    browser.waitForVisible(selector);
-    browser.click(selector);
 
     assertDiffs(browser.checkDocument());
   });

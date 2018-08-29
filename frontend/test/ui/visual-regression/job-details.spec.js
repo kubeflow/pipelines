@@ -43,28 +43,19 @@ describe('view job details', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  it('can switch to run list tab', () => {
-    const selector = 'app-shell job-details paper-tab:last-child';
-
-    browser.click(selector);
-    assertDiffs(browser.checkDocument());
-  });
-
-  it('expands the left nav panel', () => {
-    const selector = 'app-shell side-nav paper-icon-button';
-
-    browser.waitForVisible(selector);
-    browser.click(selector);
-
-    assertDiffs(browser.checkDocument());
-  });
-
   it('collapses the left nav panel', () => {
     const selector = 'app-shell side-nav paper-icon-button';
 
     browser.waitForVisible(selector);
     browser.click(selector);
 
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('can switch to run list tab', () => {
+    const selector = 'app-shell job-details paper-tab:last-child';
+
+    browser.click(selector);
     assertDiffs(browser.checkDocument());
   });
 

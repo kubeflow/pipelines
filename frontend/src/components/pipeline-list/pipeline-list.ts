@@ -29,6 +29,7 @@ import {
   ItemDblClickEvent,
   ListFormatChangeEvent,
   NewListPageEvent,
+  RouteEvent,
 } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import {
@@ -58,6 +59,10 @@ export class PipelineList extends PageElement {
 
   public get uploadButton(): PaperButtonElement {
     return this.$.newBtn as PaperButtonElement;
+  }
+
+  public get createJobButton(): PaperButtonElement {
+    return this.$.createJobBtn as PaperButtonElement;
   }
 
   public get refreshButton(): PaperButtonElement {
@@ -162,6 +167,17 @@ export class PipelineList extends PageElement {
     }
 
     this._busy = false;
+  }
+
+  protected _createJob(): void {
+    if (this.itemList.selectedIndices.length === 1) {
+      const selectedPipeline = this.pipelines[this.itemList.selectedIndices[0]];
+      this.dispatchEvent(new RouteEvent('/jobs/new', { pipelineId: selectedPipeline.id }));
+    } else {
+      Utils.log.error(
+          `Error: "create job" called with ${this.itemList.selectedIndices.length} ` +
+          'pipelines selected');
+    }
   }
 
   protected _altUpload(): void {

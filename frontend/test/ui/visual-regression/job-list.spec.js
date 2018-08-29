@@ -33,15 +33,6 @@ describe('list jobs', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  it('expands the left nav panel', () => {
-    const selector = 'app-shell side-nav paper-icon-button';
-
-    browser.waitForVisible(selector);
-    browser.click(selector);
-
-    assertDiffs(browser.checkDocument());
-  });
-
   it('collapses the left nav panel', () => {
     const selector = 'app-shell side-nav paper-icon-button';
 
