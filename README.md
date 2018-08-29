@@ -101,6 +101,9 @@ cd [ML_REPO_DIRECTORY]
 pip install ./dsl/ --upgrade # The library to specify pipelines with Python.
 pip install ./dsl-compiler/ --upgrade # The compiler that converts pipeline code into the form required by the pipeline system.
  ```
+ 
+Note: if you prefer adding "--user" in installation of dsl-compiler, please also run "export PATH=~/.local/bin:$PATH".
+
 After successful installation the command "dsl-compile" should be added to your PATH.
 
 ## Compile the samples
