@@ -208,14 +208,12 @@ spec:
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
         "--docker_file", "{{inputs.parameters.docker-file}}",
-        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
       ]
       volumeMounts:
       - name: secret-volume
         mountPath: "/root/.ssh/github"
       env:
-      - name: TEST_ID
-        value: "{{workflow.name}}"
       - name: DOCKER_HOST
         value: 127.0.0.1
     sidecars:
@@ -237,12 +235,12 @@ spec:
       - name: scheduledworkflow-image-suffix
       - name: persistenceagent-image-suffix
     container:
-      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.bootstrapper-image-suffix}}
+      image: gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.bootstrapper-image-suffix}}
       args: [
-        "--api_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-image-suffix}}",
-        "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-image-suffix}}",
-        "--scheduled_workflow_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.scheduledworkflow-image-suffix}}",
-        "--persistence_agent_image", "gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.persistenceagent-image-suffix}}",
+        "--api_image", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-image-suffix}}",
+        "--ui_image", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-image-suffix}}",
+        "--scheduled_workflow_image", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.scheduledworkflow-image-suffix}}",
+        "--persistence_agent_image", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.persistenceagent-image-suffix}}",
         "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
       ]
 
@@ -253,7 +251,7 @@ spec:
       - name: commit-sha
       - name: api-integration-test-image-suffix
     container:
-      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-integration-test-image-suffix}}
+      image: gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-integration-test-image-suffix}}
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
@@ -268,7 +266,7 @@ spec:
       - name: commit-sha
       - name: e2e-tests-image-suffix
     container:
-      image: gcr.io/{{inputs.parameters.project}}/{{workflow.name}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.e2e-tests-image-suffix}}
+      image: gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.e2e-tests-image-suffix}}
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
