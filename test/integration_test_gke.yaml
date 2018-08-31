@@ -22,6 +22,7 @@ spec:
     parameters:
     - name: commit-sha
       value: master
+    - name: test-results-gcs-dir
     - name: cleanup
       value: true
     - name: bootstrapper-image-suffix
@@ -43,6 +44,7 @@ spec:
     inputs:
       parameters:
       - name: commit-sha
+      - name: test-results-gcs-dir
       - name: bootstrapper-image-suffix
       - name: api-image-suffix
       - name: frontend-image-suffix
@@ -167,6 +169,8 @@ spec:
             value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: api-integration-test-image-suffix
             value: "{{inputs.parameters.api-integration-test-image-suffix}}"
     - - name: run-e2e-tests
@@ -177,6 +181,8 @@ spec:
             value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: e2e-tests-image-suffix
             value: "{{inputs.parameters.e2e-tests-image-suffix}}"
 
@@ -249,11 +255,13 @@ spec:
       parameters:
       - name: project
       - name: commit-sha
+      - name: test-results-gcs-dir
       - name: api-integration-test-image-suffix
     container:
       image: gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-integration-test-image-suffix}}
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
       volumeMounts:
       - name: secret-volume
@@ -264,11 +272,13 @@ spec:
       parameters:
       - name: project
       - name: commit-sha
+      - name: test-results-gcs-dir
       - name: e2e-tests-image-suffix
     container:
       image: gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.e2e-tests-image-suffix}}
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
 
   volumes:

@@ -22,6 +22,7 @@ NAMESPACE=default
 usage()
 {
     echo "usage: run_test.sh
+    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test/
     [--commit_sha     commit SHA to pull code from]
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
@@ -29,6 +30,9 @@ usage()
 
 while [ "$1" != "" ]; do
     case $1 in
+             --results-gcs-dir )shift
+                                RESULTS_GCS_DIR=$1
+                                ;;
              --commit_sha )     shift
                                 COMMIT_SHA=$1
                                 ;;
@@ -43,6 +47,11 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
+
+if [ -z "$RESULTS_GCS_DIR" ]; then
+    usage
+    exit 1
+fi
 
 # Setup Google Cloud SDK, and use it to install kubectl so it gets the right context
 wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip
@@ -67,10 +76,9 @@ POD=`/src/tools/google-cloud-sdk/bin/kubectl get pods -n ${NAMESPACE} -l app=ml-
 npm test
 TEST_EXIT_CODE=$?
 
-TEST_RESULT_BASE_DIR=gs://ml-pipeline-test
 JUNIT_TEST_RESULT=junit_E2eTestOutput.xml
 
-echo "Copy test result to GCS ${TEST_RESULT_BASE_DIR}/${COMMIT_SHA}/api_integration_test/${JUNIT_TEST_RESULT}"
-tools/google-cloud-sdk/bin/gsutil cp ${JUNIT_TEST_RESULT} ${TEST_RESULT_BASE_DIR}/${COMMIT_SHA}/api_integration_test/${JUNIT_TEST_RESULT}
+echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
+tools/google-cloud-sdk/bin/gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
 
 exit $TEST_EXIT_CODE

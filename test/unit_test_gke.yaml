@@ -22,11 +22,13 @@ spec:
     parameters:
     - name: commit-sha
       value: master
+    - name: test-results-gcs-dir
   templates:
   - name: unit-test
     inputs:
       parameters:
       - name: commit-sha
+      - name: test-results-gcs-dir
     steps:
     - - name: run-backend-unit-tests
         template: run-backend-unit-tests
@@ -34,15 +36,19 @@ spec:
           parameters:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
 
   - name: run-backend-unit-tests
     inputs:
       parameters:
       - name: commit-sha
+      - name: test-results-gcs-dir
     container:
-      image: gcr.io/ml-pipeline/backend-unit-test:v20180724-0.0.10-59-gba2754e-e3b0c4
+      image: gcr.io/ml-pipeline/backend-unit-test:v20180831-0.0.15-23-g8f8e7be-e3b0c4
       imagePullPolicy: 'Always'
       args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
       volumeMounts:

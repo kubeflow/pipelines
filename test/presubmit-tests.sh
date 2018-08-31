@@ -20,14 +20,20 @@ usage()
 {
     echo "usage: deploy.sh
     [--workflow_file        the file name of the argo workflow to run]
-    [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://ml-pipeline-test/[PULL_SHA]]
+    [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
+    [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [-h help]"
 }
+
+TEST_RESULT_BUCKET=ml-pipeline-test
 
 while [ "$1" != "" ]; do
     case $1 in
              --workflow_file )        shift
                                       WORKFLOW_FILE=$1
+                                      ;;
+             --test_result_bucket )   shift
+                                      TEST_RESULT_BUCKET=$1
                                       ;;
              --test_result_folder )   shift
                                       TEST_RESULT_FOLDER=$1
@@ -45,6 +51,7 @@ TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
 ZONE=us-west1-a
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=90
+TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}/
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
@@ -83,7 +90,7 @@ echo "install argo"
 argo install
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} -p commit-sha="${PULL_PULL_SHA}" | awk '/Name:/{print $NF}'`
+ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} -p commit-sha="${PULL_PULL_SHA}" -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" | awk '/Name:/{print $NF}'`
 echo argo workflow submitted successfully
 
 echo "check status of argo workflow $ARGO_WORKFLOW...."
@@ -101,7 +108,7 @@ fi
 
 echo "Argo workflow finished. Copy test result"
 mkdir -p $ARTIFACT_DIR
-gsutil cp -r gs://ml-pipeline-test/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}/* ${ARTIFACT_DIR} || true
+gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
 
 ARGO_WORKFLOW_DETAILS=`argo get ${ARGO_WORKFLOW}`
 ARGO_WORKFLOW_LOGS=`argo logs -w ${ARGO_WORKFLOW}`
