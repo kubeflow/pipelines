@@ -19,7 +19,7 @@ set -xe
 usage()
 {
     echo "usage: run_test.sh
-    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test/
+    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test
     [--commit_sha     commit SHA to pull code from]
     [-h help]"
 }
