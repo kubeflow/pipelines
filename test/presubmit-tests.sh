@@ -47,8 +47,6 @@ while [ "$1" != "" ]; do
     shift
 done
 
-TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
 ZONE=us-west1-a
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=90
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
@@ -59,6 +57,15 @@ WORKFLOW_FAILED_KEYWORD="phase=Failed"
 echo "presubmit test starts"
 
 echo "create test cluster"
+TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
+TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
+
+function delete_cluster {
+  echo "Delete cluster..."
+  gcloud container clusters delete ${TEST_CLUSTER} --async
+}
+trap delete_cluster EXIT
+
 gcloud config set project ml-pipeline-test
 gcloud config set compute/zone us-west1-a
 gcloud container clusters create ${TEST_CLUSTER} \
@@ -67,12 +74,6 @@ gcloud container clusters create ${TEST_CLUSTER} \
   --enable-cloud-monitoring \
   --machine-type n1-standard-2 \
   --num-nodes 3
-
-function delete_cluster {
-  echo "Delete cluster..."
-  gcloud container clusters delete ${TEST_CLUSTER} --async
-}
-trap delete_cluster EXIT
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
 kubectl config set-context $(kubectl config current-context) --namespace=default
