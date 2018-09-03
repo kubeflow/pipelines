@@ -109,9 +109,14 @@ if [[ $s != 0 ]]; then
  exit $s
 fi
 
-echo "Argo workflow finished. Copy test result"
-mkdir -p $ARTIFACT_DIR
-gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
+echo "Argo workflow finished."
+
+if [[ ! -z "$TEST_RESULT_FOLDER" ]]
+then
+  echo "Copy test result"
+  mkdir -p $ARTIFACT_DIR
+  gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
+fi
 
 ARGO_WORKFLOW_DETAILS=`argo get ${ARGO_WORKFLOW}`
 ARGO_WORKFLOW_LOGS=`argo logs -w ${ARGO_WORKFLOW}`
