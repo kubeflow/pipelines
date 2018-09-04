@@ -29,8 +29,8 @@
     <!-- TODO: No-runtime-graph (yet) experience -->
 
     <div class="flex-grow">
-      <div class="job-dag flex-grow overflow-auto">
-        <template is="dom-repeat" items="[[_workflowNodes]]" as="node">
+      <div id="dag" class="job-dag flex-grow overflow-auto">
+        <template is="dom-repeat" items="[[_displayNodes]]" as="node">
           <div class="job-node" on-click="_nodeClicked"
                id$="node_[[node.id]]" style$="left: [[node.x]]px;
                                               top: [[node.y]]px;
@@ -42,7 +42,7 @@
           </div>
         </template>
 
-        <template is="dom-repeat" items="[[_workflowEdges]]" as="edge">
+        <template is="dom-repeat" items="[[_displayEdges]]" as="edge">
           <div class="job-edge">
             <template is="dom-repeat" items="[[edge.lines]]" as="line">
               <div class="line" style$="width: [[line.distance]]px;
@@ -54,7 +54,7 @@
           </div>
         </template>
 
-        <template is="dom-repeat" items="[[_workflowEdgeStartPoints]]" as="point">
+        <template is="dom-repeat" items="[[_displayEdgeStartPoints]]" as="point">
           <div class="start-circle" style$="transform: translate(100px, 44px);
                                             left: calc([[point.0]]px - 6px);
                                             top: calc([[point.1]]px - 3px)"></div>
@@ -75,7 +75,8 @@
           </paper-tabs>
         </div>
 
-        <iron-pages class="scrollable" selected="{{_selectedTab}}">
+        <!-- This is relative so that the spinner overlay will only cover up to this element -->
+        <iron-pages class="scrollable relative" selected="{{_selectedTab}}">
           <div>
             <div class="padded-spacing-minus-1 details-table">
               <div>
@@ -107,7 +108,7 @@
               </div>
             </template>
 
-            <div class="strong padded-top-left">Outputs</div>
+            <div class="strong padded-top-left">Output values</div>
             <template is="dom-if" if="[[!_selectedNode.outputs.parameters]]">
               <div class="padded">_</div>
             </template>
@@ -121,6 +122,18 @@
                 </template>
               </div>
             </template>
+
+            <div class="strong padded-top-left">Output artifacts</div>
+            <div>
+              <div class="overlay" hidden="[[!_loadingOutputs]]">
+                <paper-spinner class="absolute-spinner" active></paper-spinner>
+              </div>
+              <div id="plotContainer" class="plot-container">
+                <template is="dom-repeat" items="[[_selectedNodeOutputs]]" as="plotMetadata">
+                  <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
+                </template>
+              </div>
+            </div>
           </div>
 
           <div class="scrollable">

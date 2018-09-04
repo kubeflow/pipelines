@@ -342,6 +342,7 @@ export default (app: express.Application) => {
     } else if (key === 'model') {
       res.sendFile(_path.resolve(__dirname, rocMetadataJsonPath));
     } else {
+      // TODO: what does production return here?
       res.send('dummy file for key: ' + key);
     }
   });

@@ -23,12 +23,9 @@ import * as Utils from '../../src/lib/utils';
 import { assert } from 'chai';
 import { Job } from '../../src/api/job';
 import { Run } from '../../src/api/run';
-import { DataPlot } from '../../src/components/data-plotter/data-plot';
-import { PageError } from '../../src/components/page-error/page-error';
 import { RunDetails } from '../../src/components/run-details/run-details';
 import { RuntimeGraph } from '../../src/components/runtime-graph/runtime-graph';
 import { RouteEvent } from '../../src/model/events';
-import { OutputMetadata, PlotType } from '../../src/model/output_metadata';
 import * as testUtils from './test-utils';
 
 let fixture: RunDetails;
@@ -83,7 +80,7 @@ describe('run-details', () => {
     getJobStub = sinon.stub(Apis, 'getJob');
     getJobStub.returns(testJob);
     await _resetFixture();
-    fixture.tabs.select(2);
+    fixture.tabs.select(1);
   });
 
   afterEach(() => {
@@ -93,7 +90,6 @@ describe('run-details', () => {
   });
 
   it('shows the basic details of the run without schedule', () => {
-    assert(!testUtils.isVisible(fixture.outputList), 'should not show output list div');
     assert(!testUtils.isVisible(fixture.runtimeGraph), 'should not show runtime graph');
 
     const statusDiv = fixture.shadowRoot!.querySelector('.status.value') as HTMLDivElement;
@@ -137,7 +133,7 @@ describe('run-details', () => {
     getJobStub = sinon.stub(Apis, 'getJob');
     getJobStub.returns(testJob);
     await _resetFixture();
-    fixture.tabs.select(2);
+    fixture.tabs.select(1);
     const workflow = JSON.parse(mockRun.workflow) as any;
     workflow.spec.arguments!.parameters = testJob.parameters;
     workflow.spec.arguments!.parameters![1].value = 'value2withplaceholder';
@@ -175,83 +171,6 @@ describe('run-details', () => {
     };
     document.addEventListener(RouteEvent.name, listener);
     fixture.cloneButton.click();
-  });
-
-  describe('Output list', () => {
-
-    let readFileStub: sinon.SinonStub;
-
-    const metadata1: OutputMetadata = {
-      outputs: [{
-        source: 'test/confusion/matrix/path',
-        type: PlotType.CONFUSION_MATRIX,
-      }],
-    };
-
-    const metadata2: OutputMetadata = {
-      outputs: [{
-        source: 'test/roc/curve/path',
-        type: PlotType.ROC,
-      }],
-    };
-
-    before(() => {
-      testUtils.stubTag('data-plot', 'div');
-    });
-
-    beforeEach(() => {
-      testJob.parameters = [
-        { name: 'param1', value: 'value1' },
-        { name: 'param2', value: 'value2' },
-        { name: 'output', value: 'gs://test/base/output/path' },
-      ];
-
-      readFileStub = sinon.stub(Apis, 'readFile');
-
-      readFileStub.onFirstCall().returns(JSON.stringify(metadata1));
-      readFileStub.returns(JSON.stringify(metadata2));
-      getJobStub.returns(testJob);
-      getRunStub.returns(mockRun);
-
-      fixture.tabs.select(1);
-    });
-
-    after(() => {
-      testUtils.restoreTag('data-plot');
-    });
-
-    afterEach(() => {
-      readFileStub.restore();
-    });
-
-    it('switches to the list of outputs upon switching to the outputs tab', async () => {
-      assert(testUtils.isVisible(fixture.outputList), 'should now show output list');
-    });
-
-    it('shows an error and no outputs if the runtime json is bad', async () => {
-      getRunStub.returns({ run: mockRun.run, workflow: 'bad json' });
-      await _resetFixture().catch(() => 0);
-      assert.strictEqual(fixture.outputList.innerText.trim(), '',
-          'no outputs should be rendered if runtime json is bad');
-      assert.deepStrictEqual(fixture.outputPlots, [],
-          'should not have any output plots if runtime json is bad');
-      const errorEl = fixture.$.pageErrorElement as PageError;
-      assert.deepStrictEqual(errorEl.error,
-          'There was an error while loading details for run: ' + mockRun.run.name);
-    });
-
-    it('shows the list of outputs if good runtime json is specified', async () => {
-      getRunStub.returns(mockRun);
-      await _resetFixture();
-      fixture.tabs.select(1);
-
-      assert.strictEqual(fixture.outputPlots.length, 4);
-      const plots: DataPlot[] = fixture.plotContainer.querySelectorAll('div') as any;
-      assert.strictEqual(plots.length, 4);
-      assert.strictEqual(plots[0].plotMetadata!.type, PlotType.CONFUSION_MATRIX);
-      assert.strictEqual(plots[1].plotMetadata!.type, PlotType.ROC);
-    });
-
   });
 
   describe('Runtime graph', () => {

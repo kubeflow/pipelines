@@ -17,6 +17,12 @@
 @import '../../styles/vars.css';
 @import '../../styles/common.css';
 
+.gutter {
+  @apply --shadow-elevation-3dp;
+  border-left: solid 1px var(--divider-color);
+  cursor: ew-resize;
+}
+
 .hide-node-details {
   height: var(--height-small);
   width: var(--height-small);
@@ -35,12 +41,9 @@
 }
 
 .node-details {
-  @apply --shadow-elevation-3dp;
   background-color: #fff;
-  border-left: solid 1px var(--divider-color);
   flex-basis: 0;
   min-width: 0;
-  transition: flex-basis 0.3s;
   width: 0;
   z-index: 1;
 }
@@ -127,6 +130,14 @@ paper-tab {
 }
 
 .job-node:hover .label {
-  /* line-height: initial !important; */
   white-space: initial;
+}
+
+.plot-container {
+  flex-grow: 1;
+  overflow: auto;
+}
+
+.relative {
+  position: relative;
 }

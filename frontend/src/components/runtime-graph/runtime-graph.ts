@@ -18,15 +18,18 @@ import 'paper-icon-button/paper-icon-button.html';
 import 'paper-spinner/paper-spinner.html';
 
 import * as dagre from 'dagre';
+import * as split from 'split.js';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { nodePhaseToIcon } from '../../lib/utils';
-
-import './runtime-graph.html';
-
+import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
+import { StoragePath, StorageService } from '../../model/storage';
 import { PageError } from '../page-error/page-error';
+
+import '../data-plotter/data-plot';
+import './runtime-graph.html';
 
 interface Line {
   x1: number;
@@ -69,37 +72,63 @@ export class RuntimeGraph extends Polymer.Element {
   protected _selectedTab = 0;
 
   @property({ type: Array })
-  protected _workflowNodes: DisplayNode[] = [];
+  protected _displayNodes: DisplayNode[] = [];
 
   @property({ type: Array })
-  protected _workflowEdges: Edge[] = [];
+  protected _displayEdges: Edge[] = [];
 
   @property({ type: Array })
-  protected _workflowEdgeStartPoints: number[][] = [];
+  protected _displayEdgeStartPoints: number[][] = [];
 
   @property({ type: Boolean })
   protected _loadingLogs = false;
 
+  @property({ type: Boolean })
+  protected _loadingOutputs = false;
+
   @property({ type: Object })
   protected _selectedNode: any = null;
 
-  private _runtimeGraph: any = null;
+  @property({ type: Object })
+  protected _selectedNodeOutputs: PlotMetadata[] = [];
+
+  private _workflowNodes: any = null;
+
+  private _nodeDetailsPaneSplitter: split.Instance | null = null;
+
+  public ready(): void {
+    super.ready();
+    this._nodeDetailsPaneSplitter = split(
+      [
+        this.$.dag as HTMLElement,
+        this.$.nodeDetails as HTMLElement
+      ],
+      {
+        elementStyle: (dimension, size, gutterSize) => {
+          return { 'flex-basis': `calc(${size}% - ${gutterSize}px)` };
+        },
+        gutterStyle: (dimension, gutterSize) => {
+          return { 'flex-basis':  `${gutterSize}px` };
+        },
+        minSize: 0,
+        sizes: [100, 0],
+      }
+    );
+  }
 
   public refresh(graph: any): void {
     this._exitNodeDetails();
     this._selectedTab = 0;
     // Ensure that we're working with empty arrays.
-    this._workflowEdges = [];
-    this._workflowNodes = [];
-    this._workflowEdgeStartPoints = [];
+    this._displayEdges = [];
+    this._displayNodes = [];
+    this._displayEdgeStartPoints = [];
 
-    this._runtimeGraph = graph;
-
-    if (!this._runtimeGraph) {
+    if (!graph) {
       throw new Error('Runtime graph object is null.');
-    } else if (!this._runtimeGraph.status) {
+    } else if (!graph.status) {
       throw new Error('Runtime graph object has no status component.');
-    } else if (!this._runtimeGraph.status.nodes) {
+    } else if (!graph.status.nodes) {
       throw new Error('Runtime graph has no nodes.');
     }
 
@@ -107,29 +136,29 @@ export class RuntimeGraph extends Polymer.Element {
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
 
-    const workflowNodes = this._runtimeGraph.status.nodes;
-    const workflowName = this._runtimeGraph.metadata.name || '';
+    this._workflowNodes = graph.status.nodes;
+    const workflowName = graph.metadata.name || '';
 
     // Ensure that the exit handler nodes are appended to the graph.
     // Uses the root node, so this needs to happen before we remove the root
     // node below.
     const onExitHandlerNodeId =
-        Object.keys(workflowNodes).find((id) =>
-            workflowNodes[id].name === `${workflowName}.onExit`);
+        Object.keys(this._workflowNodes).find((id) =>
+        this._workflowNodes[id].name === `${workflowName}.onExit`);
     if (onExitHandlerNodeId) {
-      this._getOutboundNodes(this._runtimeGraph, workflowName).forEach((nodeId) =>
+      this._getOutboundNodes(graph, workflowName).forEach((nodeId) =>
         g.setEdge(nodeId, onExitHandlerNodeId));
     }
 
     // If there are multiple steps, then remove the root node that Argo creates to manage the
     // workflow to simplify the graph, otherwise leave it as otherwise there will be nothing to
     // display.
-    if (Object.values(workflowNodes).length > 1) {
-      delete workflowNodes[workflowName];
+    if (Object.values(this._workflowNodes).length > 1) {
+      delete this._workflowNodes[workflowName];
     }
 
     // Create dagre graph nodes from workflow nodes.
-    Object.values(workflowNodes)
+    Object.values(this._workflowNodes)
       .forEach((node: any) => {
         g.setNode(node.id, {
           height: NODE_HEIGHT,
@@ -140,29 +169,29 @@ export class RuntimeGraph extends Polymer.Element {
       });
 
     // Connect dagre graph nodes with edges.
-    Object.keys(workflowNodes)
+    Object.keys(this._workflowNodes)
       .forEach((nodeId) => {
-        if (workflowNodes[nodeId].children) {
-          workflowNodes[nodeId].children.forEach((childNodeId: any) =>
+        if (this._workflowNodes[nodeId].children) {
+          this._workflowNodes[nodeId].children.forEach((childNodeId: any) =>
             g.setEdge(nodeId, childNodeId));
         }
       });
 
     // Add BoundaryID edges. Only add these edges to nodes that don't already have inbound edges.
-    Object.keys(workflowNodes)
+    Object.keys(this._workflowNodes)
       .forEach((nodeId) => {
         // Many nodes have the Argo root node as a boundaryID, and we can discard these.
-        if (workflowNodes[nodeId].boundaryID &&
+        if (this._workflowNodes[nodeId].boundaryID &&
             (!g.inEdges(nodeId) || !g.inEdges(nodeId)!.length) &&
-            workflowNodes[nodeId].boundaryID !== workflowName) {
+            this._workflowNodes[nodeId].boundaryID !== workflowName) {
           // BoundaryIDs point from children to parents.
-          g.setEdge(workflowNodes[nodeId].boundaryID, nodeId);
+          g.setEdge(this._workflowNodes[nodeId].boundaryID, nodeId);
         }
       });
 
     // Remove all virtual nodes
     g.nodes().forEach((nodeId) => {
-      if (this._isVirtual(workflowNodes[nodeId])) {
+      if (this._isVirtual(this._workflowNodes[nodeId])) {
         const parents = (g.inEdges(nodeId) || []).map((edge) => edge.v);
         parents.forEach((p) => g.removeEdge(p, nodeId));
         (g.outEdges(nodeId) || []).forEach((outboundEdge) => {
@@ -178,12 +207,12 @@ export class RuntimeGraph extends Polymer.Element {
 
     // Creates the array of nodes used that will be rendered and adds additional
     // metadata to them.
-    this._workflowNodes = g.nodes().map((id) => {
+    this._displayNodes = g.nodes().map((id) => {
       return Object.assign(g.node(id), {
-        finishedAt: workflowNodes[id].finishedAt,
-        icon: nodePhaseToIcon(workflowNodes[id].phase),
-        name: workflowNodes[id].displayName || id,
-        startedAt: workflowNodes[id].startedAt,
+        finishedAt: this._workflowNodes[id].finishedAt,
+        icon: nodePhaseToIcon(this._workflowNodes[id].phase),
+        name: this._workflowNodes[id].displayName || id,
+        startedAt: this._workflowNodes[id].startedAt,
       });
     });
 
@@ -206,16 +235,17 @@ export class RuntimeGraph extends Polymer.Element {
 
           // Store the first point of the edge to draw the edge start circle
           if (i === 1) {
-            this.push('_workflowEdgeStartPoints', [x1, y1]);
+            this.push('_displayEdgeStartPoints', [x1, y1]);
           }
         }
       }
-      this.push('_workflowEdges', { from: edgeInfo.v, to: edgeInfo.w, lines });
+      this.push('_displayEdges', { from: edgeInfo.v, to: edgeInfo.w, lines });
     });
   }
 
   protected _exitNodeDetails(): void {
-    this.$.nodeDetails.classList.remove('visible');
+    this._nodeDetailsPaneSplitter!.setSizes([100, 0]);
+    this.shadowRoot!.querySelector('.gutter')!.setAttribute('hidden', 'true');
     this._unselectAllNodes();
   }
 
@@ -224,7 +254,16 @@ export class RuntimeGraph extends Polymer.Element {
   }
 
   protected async _nodeClicked(e: GraphNodeClickEvent<any>): Promise<void> {
-    this.$.nodeDetails.classList.add('visible');
+    // Unhide resize element and open side panel to last-used size if present, otherwise use 50% of
+    // width.
+    this.shadowRoot!.querySelector('.gutter')!.removeAttribute('hidden');
+    const [ left, right ] = this._nodeDetailsPaneSplitter!.getSizes();
+    if (right > 0) {
+      this._nodeDetailsPaneSplitter!.setSizes([ left, right ]);
+    } else {
+      this._nodeDetailsPaneSplitter!.setSizes([ 50, 50 ]);
+    }
+
     this._selectedNode = e.model.node;
 
     const logsContainer = this.$.logsContainer as HTMLPreElement;
@@ -234,10 +273,14 @@ export class RuntimeGraph extends Polymer.Element {
     errorEl.style.display = 'none';
     logsContainer.style.display = 'none';
 
+    // Reset each time a new node is clicked
+    this._selectedNodeOutputs = [];
+
     // Apply 'selected' CSS class to just this node
     this._unselectAllNodes();
     const root = this.shadowRoot as ShadowRoot;
     const selectedNode = root.querySelector('#node_' + this._selectedNode.id);
+
     if (selectedNode) {
       selectedNode.classList.add('selected');
     } else {
@@ -246,6 +289,10 @@ export class RuntimeGraph extends Polymer.Element {
       Utils.log.verbose('Cannot find clicked node with id ' + this._selectedNode.id);
     }
 
+    // Load outputs
+    this._loadNodeOutputs(this._workflowNodes[this._selectedNode.id]);
+
+    // Load logs
     try {
       this._loadingLogs = true;
       const logs = await Apis.getPodLogs(this._selectedNode.id);
@@ -258,6 +305,43 @@ export class RuntimeGraph extends Polymer.Element {
       logsContainer.style.display = 'none';
     } finally {
       this._loadingLogs = false;
+    }
+  }
+
+  private async _loadNodeOutputs(selectedWorkflowNode: any): Promise<void> {
+    if (selectedWorkflowNode && selectedWorkflowNode.outputs) {
+      const outputPaths: StoragePath[] = [];
+      (selectedWorkflowNode.outputs.artifacts || [])
+        .filter((a: any) => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
+        .forEach((a: any) =>
+          outputPaths.push({
+            bucket: a.s3!.bucket,
+            key: a.s3!.key,
+            source: StorageService.MINIO,
+          })
+        );
+      try {
+        this._loadingOutputs = true;
+        const outputMetadata: PlotMetadata[] = [];
+        await Promise.all(outputPaths.map(async (path) => {
+          const metadataFile = await Apis.readFile(path);
+          if (metadataFile) {
+            try {
+              outputMetadata.push(...(JSON.parse(metadataFile) as OutputMetadata).outputs);
+            } catch (e) {
+              Utils.log.error('Could not parse metadata file for path: ' + JSON.stringify(path));
+            }
+          }
+        }));
+        this._selectedNodeOutputs =
+            outputMetadata.sort((metadata1, metadata2) => {
+              return metadata1.source < metadata2.source ? -1 : 1;
+            });
+      } catch (err) {
+        Utils.log.error('Error loading run outputs:', err.message);
+      } finally {
+        this._loadingOutputs = false;
+      }
     }
   }
 

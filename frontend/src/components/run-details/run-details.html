@@ -74,7 +74,6 @@
         <div class="tabs-container">
           <paper-tabs id="tabs" class="no-shrink" selected="{{selectedTab}}">
             <paper-tab id="graph-tab" href="#graph">Graph</paper-tab>
-            <paper-tab id="output-tab" href="#output">Output</paper-tab>
             <paper-tab id="info-tab" href="#config">Config</paper-tab>
           </paper-tabs>
         </div>
@@ -85,18 +84,6 @@
           <runtime-graph id="runtimeGraph"></runtime-graph>
 
           <!-- iron-page tab 2 -->
-          <div id="outputList" class="relative">
-            <div class="overlay" hidden="[[!_loadingOutputs]]">
-              <paper-spinner class="absolute-spinner" active></paper-spinner>
-            </div>
-            <div id="plotContainer" class="plot-container">
-              <template is="dom-repeat" items="[[outputPlots]]" as="plotMetadata">
-                <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
-              </template>
-            </div>
-          </div>
-
-          <!-- iron-page tab 3 -->
           <div>
             <br/>
             <div class="details-table">
