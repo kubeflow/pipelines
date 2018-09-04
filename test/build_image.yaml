@@ -15,116 +15,88 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: build-image-
+  generateName: build-images-
 spec:
-  entrypoint: build-image
+  entrypoint: build-images
   arguments:
     parameters:
     - name: commit-sha
       value: master
-    - name: cleanup
-      value: true
-    - name: bootstrapper-image-suffix
-      value: bootstrapper
-    - name: api-image-suffix
-      value: api
-    - name: frontend-image-suffix
-      value: frontend
-    - name: scheduledworkflow-image-suffix
-      value: scheduledworkflow
-    - name: persistenceagent-image-suffix
-      value: persistenceagent
+    - name: bootstrapper-image
+    - name: api-image
+    - name: frontend-image
+    - name: scheduledworkflow-image
+    - name: persistenceagent-image
   templates:
-  - name: build-image
+  - name: build-images
     inputs:
       parameters:
       - name: commit-sha
-      - name: bootstrapper-image-suffix
-      - name: api-image-suffix
-      - name: frontend-image-suffix
-      - name: scheduledworkflow-image-suffix
-      - name: persistenceagent-image-suffix
+      - name: bootstrapper-image
+      - name: api-image
+      - name: frontend-image
+      - name: scheduledworkflow-image
+      - name: persistenceagent-image
     steps:
-    - - name: get-project
-        template: get-project
     - - name: build-bootstrapper-image
         template: build-image
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: ml-pipeline
-          - name: image-suffix
-            value: "{{inputs.parameters.bootstrapper-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.bootstrapper-image}}"
       - name: build-api-server-image
         template: build-image
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: backend
-          - name: image-suffix
-            value: "{{inputs.parameters.api-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.api-image}}"
       - name: build-frontend-image
         template: build-image
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: frontend
-          - name: image-suffix
-            value: "{{inputs.parameters.frontend-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.frontend-image}}"
       - name: build-scheduledworkflow-image
         template: build-image
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: backend
-          - name: image-suffix
-            value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.scheduledworkflow-image}}"
           - name: docker-file
             value: Dockerfile.scheduledworkflow
       - name: build-persistenceagent-image
         template: build-image
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: backend
-          - name: image-suffix
-            value: "{{inputs.parameters.persistenceagent-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.persistenceagent-image}}"
           - name: docker-file
             value: Dockerfile.persistenceagent
 
-  - name: get-project
-    script:
-      image: google/cloud-sdk
-      command: [bash]
-      source: |
-        gcloud config config-helper --format "value(configuration.properties.core.project)"
-
-  # Build image and upload to GCR in the specified project
+  # Build image and upload to GCR
   - name: build-image
     inputs:
       parameters:
-      # The project that image deployed to
-      - name: project
       # The github commit-sha to pull code from
       - name: commit-sha
       # The relative code path to the Dockerfile
@@ -132,7 +104,7 @@ spec:
       # Name of the Docker file to use. "Dockerfile" by default
       - name: docker-file
         value: Dockerfile
-      - name: image-suffix
+      - name: image-name
     container:
       image: gcr.io/ml-pipeline/image-builder:v20180724-0.0.10-60-g2d7875a-e3b0c4
       imagePullPolicy: 'Always'
@@ -140,7 +112,7 @@ spec:
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
         "--docker_file", "{{inputs.parameters.docker-file}}",
-        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+        "--image_name", "{{inputs.parameters.image-name}}",
       ]
       volumeMounts:
       - name: secret-volume

@@ -27,6 +27,7 @@ usage()
 }
 
 TEST_RESULT_BUCKET=ml-pipeline-test
+GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 CLUSTER_TYPE=create-gke
 
 while [ "$1" != "" ]; do
@@ -100,7 +101,14 @@ echo "install argo"
 argo install
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} -p commit-sha="${PULL_PULL_SHA}" -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" | awk '/Name:/{print $NF}'`
+ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
+-p commit-sha="${PULL_PULL_SHA}" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p bootstrapper-image="${GCR_IMAGE_BASE_DIR}/bootstrapper" \
+-p api-image="${GCR_IMAGE_BASE_DIR}/api" \
+-p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
+-p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
+-p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" | awk '/Name:/{print $NF}'`
 echo argo workflow submitted successfully
 
 echo "check status of argo workflow $ARGO_WORKFLOW...."
