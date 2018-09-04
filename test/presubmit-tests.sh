@@ -22,10 +22,12 @@ usage()
     [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
+    [--cluster-type         the type of cluster to use for the tests. One of: create-gke,none. Default is create-gke ]
     [-h help]"
 }
 
 TEST_RESULT_BUCKET=ml-pipeline-test
+CLUSTER_TYPE=create-gke
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -37,6 +39,9 @@ while [ "$1" != "" ]; do
                                       ;;
              --test_result_folder )   shift
                                       TEST_RESULT_FOLDER=$1
+                                      ;;
+             --cluster-type )         shift
+                                      CLUSTER_TYPE=$1
                                       ;;
              -h | --help )            usage
                                       exit
@@ -56,26 +61,30 @@ WORKFLOW_FAILED_KEYWORD="phase=Failed"
 
 echo "presubmit test starts"
 
-echo "create test cluster"
-TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
+#Creating a new GKE cluster if needed
+if [ "$CLUSTER_TYPE" == "create-gke" ]; then
+  echo "create test cluster"
+  TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
+  TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
 
-function delete_cluster {
-  echo "Delete cluster..."
-  gcloud container clusters delete ${TEST_CLUSTER} --async
-}
-trap delete_cluster EXIT
+  function delete_cluster {
+    echo "Delete cluster..."
+    gcloud container clusters delete ${TEST_CLUSTER} --async
+  }
+  trap delete_cluster EXIT
 
-gcloud config set project ml-pipeline-test
-gcloud config set compute/zone us-west1-a
-gcloud container clusters create ${TEST_CLUSTER} \
-  --scopes cloud-platform \
-  --enable-cloud-logging \
-  --enable-cloud-monitoring \
-  --machine-type n1-standard-2 \
-  --num-nodes 3
+  gcloud config set project ml-pipeline-test
+  gcloud config set compute/zone us-west1-a
+  gcloud container clusters create ${TEST_CLUSTER} \
+    --scopes cloud-platform \
+    --enable-cloud-logging \
+    --enable-cloud-monitoring \
+    --machine-type n1-standard-2 \
+    --num-nodes 3
 
-gcloud container clusters get-credentials ${TEST_CLUSTER}
+  gcloud container clusters get-credentials ${TEST_CLUSTER}
+fi
+
 kubectl config set-context $(kubectl config current-context) --namespace=default
 
 echo "Add necessary cluster role bindings"
