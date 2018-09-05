@@ -60,8 +60,6 @@ git clone git@github.com:${GITHUB_REPO}.git ${BASE_DIR}
 cd ${BASE_DIR}/${TEST_DIR}
 git checkout ${COMMIT_SHA}
 
-dep ensure --vendor-only
-
 # Run test and store the exit code.
 echo "Run unit test..."
 TEST_RESULT=`go test -v ./... 2>&1`

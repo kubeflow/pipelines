@@ -76,9 +76,11 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: backend
+            value: .
           - name: image-suffix
             value: "{{inputs.parameters.api-image-suffix}}"
+          - name: docker-file
+            value: backend/Dockerfile
       - name: build-frontend-image
         template: build-image
         arguments:
@@ -100,11 +102,11 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: backend
+            value: .
           - name: image-suffix
             value: "{{inputs.parameters.scheduledworkflow-image-suffix}}"
           - name: docker-file
-            value: Dockerfile.scheduledworkflow
+            value: backend/Dockerfile.scheduledworkflow
       - name: build-persistenceagent-image
         template: build-image
         arguments:
@@ -114,11 +116,11 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: backend
+            value: .
           - name: image-suffix
             value: "{{inputs.parameters.persistenceagent-image-suffix}}"
           - name: docker-file
-            value: Dockerfile.persistenceagent
+            value: backend/Dockerfile.persistenceagent
       - name: build-api-integration-test-image
         template: build-image
         arguments:

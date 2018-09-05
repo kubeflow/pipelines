@@ -7,15 +7,12 @@ RUN curl -fsSL -o /bin/dep https://github.com/golang/dep/releases/download/v0.5.
 ADD https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 /usr/bin/dep
 RUN chmod +x /usr/bin/dep
 
-WORKDIR /go/src/github.com/googleprivate/ml/backend
+WORKDIR /go/src/github.com/googleprivate/ml
 COPY . .
-
-WORKDIR /go/src/github.com/googleprivate/ml/backend/src
-RUN /bin/dep ensure --vendor-only
 
 # Needed for github.com/mattn/go-sqlite3
 RUN apk add --update gcc musl-dev
-RUN go build -o /bin/apiserver apiserver/*.go
+RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 
 FROM alpine
 
@@ -25,7 +22,7 @@ ENV COMMIT_SHA=${COMMIT_SHA}
 WORKDIR /bin
 
 COPY --from=builder /bin/apiserver /bin/apiserver
-COPY src/apiserver/config/ /config
+COPY backend/src/apiserver/config/ /config
 
 # Expose apiserver port
 EXPOSE 8888

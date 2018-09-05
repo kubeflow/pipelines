@@ -55,9 +55,11 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: backend
+            value: .
           - name: image-name
             value: "{{inputs.parameters.api-image}}"
+          - name: docker-file
+            value: backend/Dockerfile
       - name: build-frontend-image
         template: build-image
         arguments:
@@ -75,11 +77,11 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: backend
+            value: .
           - name: image-name
             value: "{{inputs.parameters.scheduledworkflow-image}}"
           - name: docker-file
-            value: Dockerfile.scheduledworkflow
+            value: backend/Dockerfile.scheduledworkflow
       - name: build-persistenceagent-image
         template: build-image
         arguments:
@@ -87,11 +89,11 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: backend
+            value: .
           - name: image-name
             value: "{{inputs.parameters.persistenceagent-image}}"
           - name: docker-file
-            value: Dockerfile.persistenceagent
+            value: backend/Dockerfile.persistenceagent
 
   # Build image and upload to GCR
   - name: build-image

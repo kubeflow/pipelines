@@ -30,9 +30,6 @@ frontend/test/ui/visual-regression/screenshots/screen
 .idea/
 ml.iml
 
-# Vendor
-vendor/
-
 # Merge files
 *.orig
 

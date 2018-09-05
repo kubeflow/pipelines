@@ -67,8 +67,6 @@ git clone git@github.com:${GITHUB_REPO}.git ${BASE_DIR}
 cd ${BASE_DIR}/${TEST_DIR}
 git checkout ${COMMIT_SHA}
 
-dep ensure --vendor-only
-
 echo "Run integration test..."
 TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} 2>&1`
 TEST_EXIT_CODE=$?
