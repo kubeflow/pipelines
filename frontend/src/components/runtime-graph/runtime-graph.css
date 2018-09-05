@@ -21,10 +21,13 @@
   @apply --shadow-elevation-3dp;
   border-left: solid 1px var(--divider-color);
   cursor: ew-resize;
+  z-index: 99;
 }
 
 .hide-node-details {
   height: var(--height-small);
+  min-height: var(--height-small);
+  min-width: var(--height-small);
   width: var(--height-small);
 }
 
@@ -45,11 +48,12 @@
   flex-basis: 0;
   min-width: 0;
   width: 0;
-  z-index: 1;
+  z-index: 99;
 }
 
 .node-details.visible {
-  flex-basis: 50%;
+  max-width: 90%;
+  min-width: 25%;
 }
 
 paper-tab {
@@ -131,6 +135,10 @@ paper-tab {
 
 .job-node:hover .label {
   white-space: initial;
+}
+
+.no-outputs-msg {
+  padding: var(--spacing-base);
 }
 
 .plot-container {

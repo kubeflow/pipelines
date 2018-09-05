@@ -70,13 +70,31 @@
 
         <div class="tabs-container">
           <paper-tabs id="tabs" class="no-shrink" selected="{{_selectedTab}}">
-              <paper-tab id="configTab">Task Configuration</paper-tab>
-              <paper-tab id="logsTab">Logs</paper-tab>
+            <paper-tab id="artifactTab">Artifacts</paper-tab>
+            <paper-tab id="configTab">Task Configuration</paper-tab>
+            <paper-tab id="logsTab">Logs</paper-tab>
           </paper-tabs>
         </div>
 
         <!-- This is relative so that the spinner overlay will only cover up to this element -->
         <iron-pages class="scrollable relative" selected="{{_selectedTab}}">
+
+          <!-- iron-page tab 1 -->
+          <div>
+            <template is="dom-if" if="[[!_selectedNodeOutputs.length]]">
+              <div class="no-outputs-msg">No output artifacts for this step.</div>
+            </template>
+            <div class="overlay" hidden="[[!_loadingOutputs]]">
+              <paper-spinner class="absolute-spinner" active></paper-spinner>
+            </div>
+            <div id="plotContainer" class="plot-container">
+              <template is="dom-repeat" items="[[_selectedNodeOutputs]]" as="plotMetadata">
+                <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
+              </template>
+            </div>
+          </div>
+
+          <!-- iron-page tab 2 -->
           <div>
             <div class="padded-spacing-minus-1 details-table">
               <div>
@@ -122,20 +140,9 @@
                 </template>
               </div>
             </template>
-
-            <div class="strong padded-top-left">Output artifacts</div>
-            <div>
-              <div class="overlay" hidden="[[!_loadingOutputs]]">
-                <paper-spinner class="absolute-spinner" active></paper-spinner>
-              </div>
-              <div id="plotContainer" class="plot-container">
-                <template is="dom-repeat" items="[[_selectedNodeOutputs]]" as="plotMetadata">
-                  <data-plot plot-metadata="[[plotMetadata]]"></data-plot>
-                </template>
-              </div>
-            </div>
           </div>
 
+          <!-- iron-page tab 3 -->
           <div class="scrollable">
             <div class="relative">
               <page-error id="logsError" class="flex-grow"></page-error>

@@ -50,14 +50,6 @@ describe('view run details', () => {
     assertDiffs(browser.checkDocument());
   });
 
-  it('switches to run outputs', () => {
-    const selector = 'app-shell run-details #output-tab';
-
-    browser.waitForVisible(selector);
-    browser.click(selector);
-    assertDiffs(browser.checkDocument());
-  });
-
   it('switches to run details', () => {
     const selector = 'app-shell run-details #info-tab';
 
@@ -112,6 +104,11 @@ describe('view run details', () => {
 
     browser.waitForVisible(selector);
     browser.click(selector);
+    assertDiffs(browser.checkDocument());
+  });
+
+  it('switches to task configuration viewer', () => {
+    browser.click('app-shell run-details runtime-graph #configTab');
     assertDiffs(browser.checkDocument());
   });
 

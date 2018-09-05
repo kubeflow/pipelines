@@ -245,6 +245,7 @@ export class RuntimeGraph extends Polymer.Element {
 
   protected _exitNodeDetails(): void {
     this._nodeDetailsPaneSplitter!.setSizes([100, 0]);
+    this.$.nodeDetails.classList.remove('visible');
     this.shadowRoot!.querySelector('.gutter')!.setAttribute('hidden', 'true');
     this._unselectAllNodes();
   }
@@ -263,6 +264,7 @@ export class RuntimeGraph extends Polymer.Element {
     } else {
       this._nodeDetailsPaneSplitter!.setSizes([ 50, 50 ]);
     }
+    this.$.nodeDetails.classList.add('visible');
 
     this._selectedNode = e.model.node;
 
