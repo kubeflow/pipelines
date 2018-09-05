@@ -1,5 +1,77 @@
 [![Build Status](https://travis-ci.com/googleprivate/ml.svg?token=JjfzFsYGxZwkHvXFCpwt&branch=master)](https://travis-ci.com/googleprivate/ml)
 
+# ML Pipeline Services - Overview
+
+This project is aimed at:
+
+* End to end orchestration: enabling and simplifying the orchestration of end to end machine learning pipelines
+* Easy Experimentation: making it easy for users to try numerous ideas and techniques, and manage the various trials/experiments.
+* Easy Re-Use: enabling users to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
+
+## Introduction
+
+### The Python Code to Represent a Pipeline Workflow Graph
+
+```python
+
+@mlp.pipeline(
+  name='XGBoost Trainer',
+  description='A trainer that does end-to-end distributed training for XGBoost models.'
+)
+def xgb_train_pipeline(
+    output,
+    project,
+    region=PipelineParam(value='us-central1')
+    train_data=PipelineParam(value='gs://ml-pipeline-playground/sfpd/train.csv'),
+    eval_data=PipelineParam(value='gs://ml-pipeline-playground/sfpd/eval.csv'),
+    schema=PipelineParam(value='gs://ml-pipeline-playground/sfpd/schema.json'),
+    target=PipelineParam(value='resolution'),
+    rounds=PipelineParam(value=200),
+    workers=PipelineParam(value=2),
+):
+  delete_cluster_op = DeleteClusterOp('delete-cluster', project, region)
+  with mlp.ExitHandler(exit_op=delete_cluster_op):
+    create_cluster_op = CreateClusterOp('create-cluster', project, region, output)
+
+    analyze_op = AnalyzeOp('analyze', project, region, create_cluster_op.output, schema,
+                           train_data, '%s/{{workflow.name}}/analysis' % output)
+
+    transform_op = TransformOp('transform', project, region, create_cluster_op.output,
+                               train_data, eval_data, target, analyze_op.output,
+                               '%s/{{workflow.name}}/transform' % output)
+
+    train_op = TrainerOp('train', project, region, create_cluster_op.output, transform_op.outputs['train'],
+                         transform_op.outputs['eval'], target, analyze_op.output, workers,
+                         rounds, '%s/{{workflow.name}}/model' % output)
+
+    predict_op = PredictOp('predict', project, region, create_cluster_op.output, transform_op.outputs['eval'],
+                           train_op.output, target, analyze_op.output, '%s/{{workflow.name}}/predict' % output)
+
+    confusion_matrix_op = ConfusionMatrixOp('confusion-matrix', predict_op.output,
+                                            '%s/{{workflow.name}}/confusionmatrix' % output)
+
+    roc_op = RocOp('roc', predict_op.output, '%s/{{workflow.name}}/roc' % output)
+
+```
+
+### The Above Pipeline After Being Uploaded
+
+<kbd>
+  <img src="docs/images/job.png">
+</kbd>
+
+### The Run Time Execution Graph of the Pipeline Above
+
+<kbd>
+  <img src="docs/images/graph.png">
+</kbd>
+
+### Outputs From The Pipeline
+
+<kbd>
+  <img src="docs/images/output.png">
+</kbd>
+
 # ML Pipeline Services - User Guideline
 
 This document guides you through the steps to deploy Machine Learning Pipeline Services and run your first pipeline sample. 

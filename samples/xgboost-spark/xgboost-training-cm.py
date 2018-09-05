@@ -145,11 +145,24 @@ class ConfusionMatrixOp(mlp.ContainerOp):
         '--predictions', predictions
      ])
 
+
+class RocOp(mlp.ContainerOp):
+
+  def __init__(self, name, predictions, trueclass, output):
+    super(RocOp, self).__init__(
+      name=name,
+      image='gcr.io/ml-pipeline/ml-pipeline-local-roc',
+      arguments=[
+        '--output', output,
+        '--predictions', predictions,
+        '--trueclass', trueclass
+     ])
+
 # =======================================================================
 
 @mlp.pipeline(
   name='XGBoost Trainer',
-  description='A trainer that does end-to-end training for XGBoost models.'
+  description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
     output,
@@ -161,6 +174,7 @@ def xgb_train_pipeline(
     target=mlp.PipelineParam('target', value='resolution'),
     rounds=mlp.PipelineParam('rounds', value=200),
     workers=mlp.PipelineParam('workers', value=2),
+    true_label=mlp.PipelineParam('true-label', value='ACTION'),
 ):
   delete_cluster_op = DeleteClusterOp('delete-cluster', project, region)
   with mlp.ExitHandler(exit_op=delete_cluster_op):
@@ -168,6 +182,7 @@ def xgb_train_pipeline(
 
     analyze_op = AnalyzeOp('analyze', project, region, create_cluster_op.output, schema,
                            train_data, '%s/{{workflow.name}}/analysis' % output)
+
     transform_op = TransformOp('transform', project, region, create_cluster_op.output,
                                train_data, eval_data, target, analyze_op.output,
                                '%s/{{workflow.name}}/transform' % output)
@@ -175,10 +190,13 @@ def xgb_train_pipeline(
     train_op = TrainerOp('train', project, region, create_cluster_op.output, transform_op.outputs['train'],
                          transform_op.outputs['eval'], target, analyze_op.output, workers,
                          rounds, '%s/{{workflow.name}}/model' % output)
+
     predict_op = PredictOp('predict', project, region, create_cluster_op.output, transform_op.outputs['eval'],
                            train_op.output, target, analyze_op.output, '%s/{{workflow.name}}/predict' % output)
 
     confusion_matrix_op = ConfusionMatrixOp('confusion-matrix', predict_op.output,
                                             '%s/{{workflow.name}}/confusionmatrix' % output)
+
+    roc_op = RocOp('roc', predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output)
 
 
