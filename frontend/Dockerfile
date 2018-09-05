@@ -7,6 +7,8 @@ WORKDIR ./src
 
 COPY . .
 
+WORKDIR ./frontend
+
 RUN npm install && cd server && npm install
 RUN ./node_modules/bower/bin/bower i --allow-root
 RUN npm run build
@@ -23,8 +25,8 @@ RUN node gen_licenses . && node gen_licenses server && \
 
 FROM node:9.4.0-alpine
 
-COPY --from=build ./src/server /server
-COPY --from=build ./src/dist /client
+COPY --from=build ./src/frontend/server /server
+COPY --from=build ./src/frontend/dist /client
 
 WORKDIR /server
 

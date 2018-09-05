@@ -38,6 +38,7 @@
     "reflect-metadata": "^0.1.10",
     "sinon": "^6.1.5",
     "svg-url-loader": "^2.3.2",
+    "swagger-ts-client": "^0.9.6",
     "ts-loader": "4.4.2",
     "ts-node": "^7.0.1",
     "tslint": "^5.11.0",
@@ -52,12 +53,16 @@
   "scripts": {
     "mock:api": "ts-node mock-backend/mock-api-server.ts 3001",
     "mock:server": "ML_PIPELINE_SERVICE_HOST=localhost ML_PIPELINE_SERVICE_PORT=3001 node server/dist/server.js dist",
-    "build": "webpack --config webpack.prod.ts && cd ./server && npm run build",
-    "docker": "COMMIT_HASH=`git rev-parse HEAD`; docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"`date -u`\" .",
+    "build": "npm run apis && webpack --config webpack.prod.ts && cd ./server && npm run build",
+    "docker": "COMMIT_HASH=`git rev-parse HEAD`; docker build -q -t ml-pipelines-frontend:${COMMIT_HASH} --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE=\"`date -u`\" -f Dockerfile ..",
     "dev": "webpack-dev-server --config webpack.dev.ts",
     "lint": "tslint -p tsconfig.json",
     "postinstall": "bower install && cd ./server && npm install && cd ../test && npm install",
-    "start": "npm run dev",
+    "apis:pipeline": "swagger-ts-client -s ../backend/api/pipeline.swagger.json -t ./src/api/pipeline.ts -o ./src/api",
+    "apis:job": "swagger-ts-client -s ../backend/api/job.swagger.json -t ./src/api/job.ts -o ./src/api",
+    "apis:run": "swagger-ts-client -s ../backend/api/run.swagger.json -t ./src/api/run.ts -o ./src/api",
+    "apis": "npm run apis:pipeline && npm run apis:job && npm run apis:run",
+    "start": "npm run apis && npm run dev",
     "tsc": "tsc"
   },
   "repository": {

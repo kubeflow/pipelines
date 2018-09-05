@@ -22,7 +22,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
-import { Job } from '../../api/job';
+import { apiJob } from '../../api/job';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { RuntimeGraph } from '../runtime-graph/runtime-graph';
@@ -37,7 +37,7 @@ export class RunDetails extends PageElement {
   public workflow: any = undefined;
 
   @property({ type: Object })
-  public job: Job | undefined = undefined;
+  public job: apiJob | undefined = undefined;
 
   @property({ type: Number })
   public selectedTab = -1;
@@ -89,7 +89,7 @@ export class RunDetails extends PageElement {
     this._loadingRun = true;
     try {
       const response = await Apis.getRun(this._jobId, this._runId);
-      this.workflow = JSON.parse(response.workflow) as any;
+      this.workflow = JSON.parse(response.workflow!) as any;
       this.job = await Apis.getJob(this._jobId);
     } catch (err) {
       this.showPageError(
@@ -126,7 +126,7 @@ export class RunDetails extends PageElement {
           }));
   }
 
-  protected _formatDateString(date: string): string {
+  protected _formatDateString(date: Date | string): string {
     return Utils.formatDateString(date);
   }
 

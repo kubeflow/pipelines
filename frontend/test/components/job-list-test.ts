@@ -18,8 +18,7 @@ import * as sinon from 'sinon';
 import * as Apis from '../../src/lib/apis';
 
 import { assert } from 'chai';
-import { Job } from '../../src/api/job';
-import { ListJobsResponse } from '../../src/api/list_jobs_response';
+import { apiListJobsResponse } from '../../src/api/job';
 import { JobList } from '../../src/components/job-list/job-list';
 import { PageError } from '../../src/components/page-error/page-error';
 import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
@@ -33,10 +32,9 @@ let deleteJobStub: sinon.SinonStub;
 let listJobsStub: sinon.SinonStub;
 let listRunsStub: sinon.SinonStub;
 
-const allJobsResponse = new ListJobsResponse();
+const allJobsResponse: apiListJobsResponse = {};
 allJobsResponse.next_page_token = '';
-allJobsResponse.jobs =
-    fixedData.data.jobs.map((p: any) => Job.buildFromObject(p));
+allJobsResponse.jobs = fixedData.data.jobs;
 
 async function _resetFixture(): Promise<void> {
   return resetFixture('job-list', undefined, (f: JobList) => {
@@ -65,9 +63,9 @@ describe('job-list', () => {
   it('shows last 5 runs status', (done) => {
     listRunsStub = sinon.stub(Apis, 'listRuns');
     const successRun = fixedData.data.runs[0];
-    successRun.run.status = 'Succeeded';
+    successRun.run!.status = 'Succeeded';
     const failureRun = fixedData.data.runs[1];
-    failureRun.run.status = 'Failed';
+    failureRun.run!.status = 'Failed';
     listRunsStub.returns({ runs: [] });
     listRunsStub.onFirstCall().returns({ runs: [successRun.run, failureRun.run] });
 

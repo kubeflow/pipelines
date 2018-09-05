@@ -23,5 +23,8 @@
   "include": [
     "./src/**/*",
     "./bower_components/**/*.d.ts"
+  ],
+  "exclude": [
+    "./src/api/*"
   ]
 }

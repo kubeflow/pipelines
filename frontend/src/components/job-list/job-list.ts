@@ -22,9 +22,7 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import * as xss from 'xss';
-import { Job } from '../../api/job';
-import { JobSortKeys, ListJobsRequest } from '../../api/list_jobs_request';
-import { ListRunsRequest } from '../../api/list_runs_request';
+import { apiJob } from '../../api/job';
 import { DialogResult } from '../../components/popup-dialog/popup-dialog';
 import {
   ItemDblClickEvent,
@@ -47,7 +45,7 @@ import './job-list.html';
 export class JobList extends PageElement {
 
   @property({ type: Array })
-  public jobs: Job[] = [];
+  public jobs: apiJob[] = [];
 
   @property({ type: Boolean })
   protected _busy = false;
@@ -81,12 +79,12 @@ export class JobList extends PageElement {
   protected jobListRows: ItemListRow[] = [];
 
   protected jobListColumns: ItemListColumn[] = [
-    new ItemListColumn('Name', ColumnTypeName.STRING, JobSortKeys.NAME, 2),
+    new ItemListColumn('Name', ColumnTypeName.STRING, Apis.JobSortKeys.NAME, 2),
     new ItemListColumn('Last 5 runs', ColumnTypeName.STRING, undefined, 1),
     // Sorting by Pipeline is not supported right now because we are displaying Pipeline name, but
     // the backend giving us Pipeline IDs. See: (#903) and (#904)
     new ItemListColumn('Pipeline', ColumnTypeName.STRING, undefined, 1.5),
-    new ItemListColumn('Created at', ColumnTypeName.DATE, JobSortKeys.CREATED_AT),
+    new ItemListColumn('Created at', ColumnTypeName.DATE, Apis.JobSortKeys.CREATED_AT),
     new ItemListColumn('Schedule', ColumnTypeName.STRING),
     new ItemListColumn('Enabled', ColumnTypeName.STRING, undefined, 0.5),
   ];
@@ -131,7 +129,7 @@ export class JobList extends PageElement {
 
   public load(): void {
     this.itemList.reset();
-    this._loadJobs(new ListJobsRequest(this.itemList.selectedPageSize));
+    this._loadJobs({ pageSize: this.itemList.selectedPageSize });
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
@@ -176,7 +174,7 @@ export class JobList extends PageElement {
 
     await Promise.all(this.itemList.selectedIndices.map(async (i) => {
       try {
-        await Apis.deleteJob(this.jobs[i].id);
+        await Apis.deleteJob(this.jobs[i].id!);
       } catch (err) {
         errorMessage = `Deleting Job: "${this.jobs[i].name}" failed with error: "${err}"`;
         unsuccessfulDeletes++;
@@ -187,7 +185,7 @@ export class JobList extends PageElement {
     if (successfulDeletes > 0) {
       Utils.showNotification(`Successfully deleted ${successfulDeletes} Jobs!`);
       this.itemList.reset();
-      this._loadJobs(new ListJobsRequest(this.itemList.selectedPageSize));
+      this._loadJobs({ pageSize: this.itemList.selectedPageSize });
     }
 
     if (unsuccessfulDeletes > 0) {
@@ -202,12 +200,12 @@ export class JobList extends PageElement {
   }
 
   private _loadNewListPage(ev: NewListPageEvent): void {
-    const request = new ListJobsRequest(ev.detail.pageSize);
-    request.filterBy = ev.detail.filterBy;
-    request.pageToken = ev.detail.pageToken;
-    request.sortBy = ev.detail.sortBy;
-
-    this._loadJobs(request);
+    this._loadJobs({
+      filterBy: ev.detail.filterBy,
+      pageSize: ev.detail.pageSize,
+      pageToken: ev.detail.pageToken,
+      sortBy: ev.detail.sortBy,
+    });
   }
 
   private _selectedItemsChanged(): void {
@@ -226,18 +224,19 @@ export class JobList extends PageElement {
         this._debouncer || null,
         Polymer.Async.timeOut.after(300),
         async () => {
-          const request = new ListJobsRequest(ev.detail.pageSize);
-          request.filterBy = ev.detail.filterString;
-          request.orderAscending = ev.detail.orderAscending;
-          request.sortBy = ev.detail.sortColumn;
-          this._loadJobs(request);
+          this._loadJobs({
+            filterBy: ev.detail.filterString,
+            orderAscending: ev.detail.orderAscending,
+            pageSize: ev.detail.pageSize,
+            sortBy: ev.detail.sortColumn,
+          });
         }
     );
     // Allows tests to use Polymer.flush to ensure debounce has completed.
     Polymer.enqueueDebouncer(this._debouncer);
   }
 
-  private async _loadJobs(request: ListJobsRequest): Promise<void> {
+  private async _loadJobs(request: Apis.ListJobsRequest): Promise<void> {
     try {
       const listJobsResponse = await Apis.listJobs(request);
       this.jobs = listJobsResponse.jobs || [];
@@ -253,7 +252,7 @@ export class JobList extends PageElement {
       // the mocked data prevents us from being able to use functions at the moment.
       let schedule = '-';
       if (job && job.trigger) {
-        schedule = job.trigger.toString();
+        schedule = Utils.triggerDisplayString(job.trigger);
       }
       const row = new ItemListRow({
         columns: [
@@ -262,7 +261,7 @@ export class JobList extends PageElement {
           '',
           Utils.formatDateString(job.created_at),
           schedule,
-          Utils.enabledDisplayString(job.trigger, job.enabled)
+          Utils.enabledDisplayString(job.trigger, job.enabled || false)
         ],
         selected: false,
       });
@@ -271,14 +270,14 @@ export class JobList extends PageElement {
 
     // Fetch and set last 5 runs' statuses for each job
     this.jobs.forEach(async (job, i) => {
-      const listRunsResponse = await Apis.listRuns(new ListRunsRequest(job.id, 5));
+      const listRunsResponse = await Apis.listRuns({ jobId: job.id, pageSize: 5 });
       this.set(`jobListRows.${i}.columns.1`,
           (listRunsResponse.runs || []).map((r) => r.status).join(':'));
     });
 
     // Fetch and set pipeline name for each job
     this.jobs.forEach(async (job, i) => {
-      const pipeline = await Apis.getPipeline(job.pipeline_id);
+      const pipeline = await Apis.getPipeline(job.pipeline_id!);
       this.set(`jobListRows.${i}.columns.2`, pipeline.name);
     });
   }

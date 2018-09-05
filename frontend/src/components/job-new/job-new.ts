@@ -27,10 +27,8 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
-import { Job } from '../../api/job';
-import { ListPipelinesRequest } from '../../api/list_pipelines_request';
-import { Parameter } from '../../api/parameter';
-import { Pipeline } from '../../api/pipeline';
+import { apiJob } from '../../api/job';
+import { apiParameter, apiPipeline } from '../../api/pipeline';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { JobSchedule } from '../job-schedule/job-schedule';
@@ -45,20 +43,20 @@ interface NewJobQueryParams {
 
 interface NewJobData {
   pipelineId?: string;
-  parameters?: Parameter[];
+  parameters?: apiParameter[];
 }
 
 @customElement('job-new')
 export class JobNew extends PageElement {
 
   @property({ type: Array })
-  public pipelines: Pipeline[] = [];
+  public pipelines: apiPipeline[] = [];
 
   @property({ type: Number })
   protected _pipelineIndex = -1;
 
   @property({ type: Number })
-  protected _pipelineId = '';
+  protected _pipelineId: string | undefined = '';
 
   @property({ type: String })
   protected _description = '';
@@ -67,7 +65,7 @@ export class JobNew extends PageElement {
   protected _name = '';
 
   @property({ type: Array })
-  protected _parameters: Parameter[] = [];
+  protected _parameters: apiParameter[] | undefined = [];
 
   @property({ type: Boolean })
   protected _busy = false;
@@ -125,7 +123,7 @@ export class JobNew extends PageElement {
       // TODO: It's still being decided if this Pipeline selector will be part of the new job page,
       // and if it is, how it will work. Using 25 as a page size here as a temporary measure until
       // that's worked out.
-      const response = await Apis.listPipelines(new ListPipelinesRequest(25));
+      const response = await Apis.listPipelines({ pageSize: 25 });
       this.pipelines = response.pipelines || [];
 
       if (this._pipelineId) {
@@ -142,7 +140,7 @@ export class JobNew extends PageElement {
         // Augment the list of parameters with the overwrite data parameters. To achieve this, check
         // if there one with the same name in the overwrite data, Object.assign them.
         this._overwriteData.parameters.forEach((p) => {
-          let param = this._parameters.find((_p) => _p.name === p.name);
+          let param = (this._parameters || []).find((_p) => _p.name === p.name);
           if (param) {
             param = Object.assign(param, p);
           }
@@ -206,14 +204,15 @@ export class JobNew extends PageElement {
   }
 
   protected async _deploy(): Promise<void> {
-    const newJob = new Job();
-    newJob.name = this._name;
-    newJob.description = this._description;
-    newJob.enabled = true;
-    newJob.pipeline_id = this._pipelineId;
-    newJob.parameters = this._parameters;
+    const newJob: apiJob = {
+      description: this._description,
+      enabled: true,
+      name: this._name,
+      parameters: this._parameters as any,
+      pipeline_id: this._pipelineId || '',
+    };
     if (this._schedule) {
-      newJob.max_concurrency = this._schedule.maxConcurrentRuns;
+      newJob.max_concurrency = this._schedule.maxConcurrentRuns.toString();
       const trigger = this._schedule.toTrigger();
       if (trigger) {
         newJob.trigger = trigger;

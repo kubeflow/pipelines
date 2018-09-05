@@ -19,8 +19,7 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import * as xss from 'xss';
-import { ListRunsRequest, RunSortKeys } from '../../api/list_runs_request';
-import { RunMetadata } from '../../api/run';
+import { apiRun } from '../../api/run';
 import {
   ItemDblClickEvent,
   ListFormatChangeEvent,
@@ -41,7 +40,7 @@ import './run-list.html';
 export class RunList extends Polymer.Element {
 
   @property({ type: Array })
-  public runsMetadata: RunMetadata[] = [];
+  public runsMetadata: apiRun[] = [];
 
   public get itemList(): ItemListElement {
     return this.$.runsItemList as ItemListElement;
@@ -50,8 +49,8 @@ export class RunList extends Polymer.Element {
   protected runListRows: ItemListRow[] = [];
 
   protected runListColumns: ItemListColumn[] = [
-    new ItemListColumn('Run Name', ColumnTypeName.STRING, RunSortKeys.NAME),
-    new ItemListColumn('Created at', ColumnTypeName.DATE, RunSortKeys.CREATED_AT),
+    new ItemListColumn('Run Name', ColumnTypeName.STRING, Apis.RunSortKeys.NAME),
+    new ItemListColumn('Created at', ColumnTypeName.DATE, Apis.RunSortKeys.CREATED_AT),
     new ItemListColumn('Scheduled at', ColumnTypeName.DATE),
   ];
 
@@ -86,7 +85,7 @@ export class RunList extends Polymer.Element {
   public loadRuns(jobId: string): void {
     this._jobId = jobId;
     this.itemList.reset();
-    this._loadRunsInternal(new ListRunsRequest(jobId, this.itemList.selectedPageSize));
+    this._loadRunsInternal({ jobId, pageSize: this.itemList.selectedPageSize });
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
@@ -108,7 +107,7 @@ export class RunList extends Polymer.Element {
     return Utils.dateDiffToString(endDate.valueOf() - startDate.valueOf());
   }
 
-  private async _loadRunsInternal(request: ListRunsRequest): Promise<void> {
+  private async _loadRunsInternal(request: Apis.ListRunsRequest): Promise<void> {
     try {
       const listRunsResponse = await Apis.listRuns(request);
       this.runsMetadata = listRunsResponse.runs || [];
@@ -133,11 +132,13 @@ export class RunList extends Polymer.Element {
   }
 
   private _loadNewListPage(ev: NewListPageEvent): void {
-    const request = new ListRunsRequest(this._jobId, ev.detail.pageSize);
-    request.filterBy = ev.detail.filterBy;
-    request.pageToken = ev.detail.pageToken;
-    request.sortBy = ev.detail.sortBy;
-    this._loadRunsInternal(request);
+    this._loadRunsInternal({
+      filterBy: ev.detail.filterBy,
+      jobId: this._jobId,
+      pageSize: ev.detail.pageSize,
+      pageToken: ev.detail.pageToken,
+      sortBy: ev.detail.sortBy,
+    });
   }
 
   private _listFormatChanged(ev: ListFormatChangeEvent): void {
@@ -146,11 +147,13 @@ export class RunList extends Polymer.Element {
         this._debouncer || null,
         Polymer.Async.timeOut.after(300),
         async () => {
-          const request = new ListRunsRequest(this._jobId, ev.detail.pageSize);
-          request.filterBy = ev.detail.filterString;
-          request.orderAscending = ev.detail.orderAscending;
-          request.sortBy = ev.detail.sortColumn;
-          this._loadRunsInternal(request);
+          this._loadRunsInternal({
+            filterBy: ev.detail.filterString,
+            jobId: this._jobId,
+            orderAscending: ev.detail.orderAscending,
+            pageSize: ev.detail.pageSize,
+            sortBy: ev.detail.sortColumn,
+          });
         }
     );
     // Allows tests to use Polymer.flush to ensure debounce has completed.

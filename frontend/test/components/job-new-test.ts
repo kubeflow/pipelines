@@ -18,7 +18,7 @@ import * as sinon from 'sinon';
 import * as APIs from '../../src/lib/apis';
 
 import { assert } from 'chai';
-import { Job } from '../../src/api/job';
+import { apiJob } from '../../src/api/job';
 import { JobNew } from '../../src/components/job-new/job-new';
 import { resetFixture } from './test-utils';
 
@@ -90,7 +90,7 @@ describe('job-new', () => {
     assert(fixture.$.jobParameters.querySelector('#parametersTitle'),
         'Pipeline parameters should exist after pipeline is selected');
     Array.from(fixture.$.jobParameters.querySelectorAll('paper-input')).forEach((input, i) =>
-        assert.strictEqual(input.label, pipelines.examplePipeline.parameters[i].name));
+        assert.strictEqual(input.label, pipelines.examplePipeline.parameters![i].name));
   });
 
   it('updates the displayed parameters when pipeline selection changes', async () => {
@@ -198,20 +198,20 @@ describe('job-new', () => {
     fixture.deployButton.click();
 
     assert(deployJobStub.calledOnce, 'Apis.newJob() should only be called once.');
-    const actualJob = deployJobStub.firstCall.args[0] as Job;
+    const actualJob = deployJobStub.firstCall.args[0] as apiJob;
     assert.strictEqual(actualJob.name, fixture.nameInput.value);
     assert.strictEqual(actualJob.description, fixture.descriptionInput.value);
-    assert.strictEqual(actualJob.max_concurrency, fixture.schedule!.maxConcurrentRuns);
+    assert.strictEqual(actualJob.max_concurrency, fixture.schedule!.maxConcurrentRuns.toString());
 
     // TODO: mock time and test format.
     assert.strictEqual(actualJob.pipeline_id, (fixture.listBox.selectedItem as any).pipelineId);
-    assert.strictEqual(actualJob.parameters.length, parameterInputs.length);
+    assert.strictEqual(actualJob.parameters!.length, parameterInputs.length);
     for (let i = 0; i < parameterInputs.length; i++) {
       assert.strictEqual(
-          actualJob.parameters[i].value, (parameterInputs[i] as PaperInputElement).value);
+          actualJob.parameters![i].value, (parameterInputs[i] as PaperInputElement).value);
     }
     // "0 0 * * * ?" is the default schedule. It means "run every hour".
-    assert.strictEqual(actualJob.trigger!.cronExpression, '0 0 * * * ?');
+    assert.strictEqual(actualJob.trigger!.cron_schedule!.cron, '0 0 * * * ?');
 
     deployJobStub.restore();
   });
@@ -262,7 +262,7 @@ describe('job-new', () => {
       assert.strictEqual(params[2], '5');
       assert.strictEqual(params[3], 'some/output/path');
       Array.from(fixture.$.jobParameters.querySelectorAll('paper-input')).forEach((input, i) =>
-            assert.strictEqual(input.label, pipelines.examplePipeline2.parameters[i].name));
+            assert.strictEqual(input.label, pipelines.examplePipeline2.parameters![i].name));
     });
   });
 

@@ -1,6 +1,4 @@
 .git
 bower_components
 dist
-mock-backend
 node_modules
-test

@@ -21,8 +21,8 @@ import * as Apis from '../../src/lib/apis';
 import * as Utils from '../../src/lib/utils';
 
 import { assert } from 'chai';
-import { Job } from '../../src/api/job';
-import { Run } from '../../src/api/run';
+import { apiJob } from '../../src/api/job';
+import { apiRunDetail } from '../../src/api/run';
 import { RunDetails } from '../../src/components/run-details/run-details';
 import { RuntimeGraph } from '../../src/components/runtime-graph/runtime-graph';
 import { RouteEvent } from '../../src/model/events';
@@ -33,13 +33,13 @@ let getJobStub: sinon.SinonStub;
 let getRunStub: sinon.SinonStub;
 let graphRefreshStub: sinon.SinonStub;
 
-const mockRun: Run = {
+const mockRun: apiRunDetail = {
   run: {
-    created_at: 'test-created-at',
+    created_at: new Date(),
     id: 'test-id',
     name: 'test-run',
     namespace: 'test-namespace',
-    scheduled_at: 'test-scheduled-at',
+    scheduled_at: new Date(),
     status: 'RUNNING',
   },
   workflow: JSON.stringify(coinflipRun),
@@ -53,21 +53,21 @@ async function _resetFixture(): Promise<void> {
 }
 
 const testRun = fixedData.data.runs[0];
-const testWorkflow = JSON.parse(testRun.workflow);
+const testWorkflow = JSON.parse(testRun.workflow!);
 
-const testJob = Job.buildFromObject({
-  created_at: new Date().toISOString(),
+const testJob: apiJob = {
+  created_at: new Date(),
   description: 'test job description',
   enabled: false,
   id: '1000',
-  max_concurrency: 10,
+  max_concurrency: '10',
   name: 'test job name',
   parameters: [],
-  pipeline_id: 2000,
+  pipeline_id: '2000',
   status: '',
-  trigger: null,
-  updated_at: new Date().toISOString(),
-});
+  trigger: undefined,
+  updated_at: new Date(),
+};
 
 describe('run-details', () => {
 
@@ -134,7 +134,7 @@ describe('run-details', () => {
     getJobStub.returns(testJob);
     await _resetFixture();
     fixture.tabs.select(1);
-    const workflow = JSON.parse(mockRun.workflow) as any;
+    const workflow = JSON.parse(mockRun.workflow!) as any;
     workflow.spec.arguments!.parameters = testJob.parameters;
     workflow.spec.arguments!.parameters![1].value = 'value2withplaceholder';
     fixture.workflow = workflow;
@@ -153,7 +153,7 @@ describe('run-details', () => {
   });
 
   it('clones the run into a new job', (done) => {
-    const workflow = JSON.parse(mockRun.workflow) as any;
+    const workflow = JSON.parse(mockRun.workflow!) as any;
     const params = [{ name: 'param1', value: 'value2withplaceholder' }];
     workflow.spec.arguments!.parameters = params;
     fixture.workflow = workflow;
@@ -186,7 +186,7 @@ describe('run-details', () => {
     it('passes the runtime graph object to the runtime-graph component', async () => {
       await _resetFixture();
       assert.deepStrictEqual(graphRefreshStub.lastCall.args[0].metadata,
-          JSON.parse(testRun.workflow).metadata);
+          JSON.parse(testRun.workflow!).metadata);
     });
 
   });

@@ -74,10 +74,6 @@ export class DateTimePicker extends Polymer.Element {
     return this.$.useDateTimeCheckbox as PaperCheckboxElement;
   }
 
-  public dateTimeAsIsoString(): string {
-    return this.datetime ? this.datetime.toISOString() : '';
-  }
-
   // Launch datepicker dialog for starting date.
   protected _launchDatePicker(): void {
     const datepicker = this.$.datepicker as any;

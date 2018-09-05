@@ -21,9 +21,8 @@ import * as Apis from '../../src/lib/apis';
 import * as Utils from '../../src/lib/utils';
 
 import { assert } from 'chai';
-import { CronSchedule, Job, Trigger } from '../../src/api/job';
-import { ListRunsResponse } from '../../src/api/list_runs_response';
-import { Run } from '../../src/api/run';
+import { apiJob, apiTrigger } from '../../src/api/job';
+import { apiListRunsResponse, apiRunDetail } from '../../src/api/run';
 import { JobDetails } from '../../src/components/job-details/job-details';
 import { PageError } from '../../src/components/page-error/page-error';
 import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
@@ -46,25 +45,27 @@ async function _resetFixture(): Promise<void> {
   });
 }
 
-const testCronTrigger =
-    new Trigger(
-        new CronSchedule(
-            '0 * * * ? *',
-            new Date().toISOString(),
-            new Date(Math.round(Date.now() / 1000) + 5 * 24 * 60 * 60).toISOString()));
+const testCronTrigger: apiTrigger = {
+  cron_schedule: {
+    cron: '0 * * * ? *',
+    end_time: new Date(Math.round(Date.now() / 1000) + 5 * 24 * 60 * 60),
+    start_time: new Date(),
+  }
+};
 
-const testJob = new Job();
-testJob.created_at = '';
-testJob.description = 'test job description';
-testJob.enabled = false;
-testJob.id = 'test-job-id';
-testJob.max_concurrency = 10;
-testJob.name = 'test job name';
-testJob.pipeline_id = '2000';
-testJob.parameters = [];
-testJob.status = '';
-testJob.trigger = undefined;
-testJob.updated_at = '';
+const testJob: apiJob = {
+  created_at: new Date(),
+  description: 'test job description',
+  enabled: false,
+  id: 'test-job-id',
+  max_concurrency: '10',
+  name: 'test job name',
+  parameters: [],
+  pipeline_id: '2000',
+  status: '',
+  trigger: undefined,
+  updated_at: new Date(),
+};
 
 describe('job-details', () => {
 
@@ -72,9 +73,9 @@ describe('job-details', () => {
     getJobStub = sinon.stub(Apis, 'getJob');
     getJobStub.returns(testJob);
 
-    const listRunsResponse: ListRunsResponse = {
+    const listRunsResponse: apiListRunsResponse = {
       next_page_token: '',
-      runs: fixedData.data.runs.map((r: Run) => r.run),
+      runs: fixedData.data.runs.map((r: apiRunDetail) => r.run!),
     };
     listRunsStub = sinon.stub(Apis, 'listRuns');
     listRunsStub.returns(listRunsResponse);
@@ -100,7 +101,7 @@ describe('job-details', () => {
     assert(isVisible(createdAtDiv), 'cannot find createdAt div');
     assert.strictEqual(
         createdAtDiv.innerText,
-        Utils.formatDateString(testJob.created_at!),
+        Utils.formatDateString(testJob.created_at),
         'displayed createdAt does not match test data');
 
     const scheduleDiv = fixture.shadowRoot!.querySelector('.schedule.value') as HTMLDivElement;
@@ -121,7 +122,7 @@ describe('job-details', () => {
 
     const scheduleDiv = fixture.shadowRoot!.querySelector('.schedule.value') as HTMLDivElement;
     assert(isVisible(scheduleDiv), 'should find schedule div');
-    assert.strictEqual(scheduleDiv.innerText, testJob.trigger.cronExpression,
+    assert.strictEqual(scheduleDiv.innerText, testJob.trigger.cron_schedule!.cron,
         'displayed schedule does not match test data');
 
     const enabledDiv = fixture.shadowRoot!.querySelector('.enabled.value') as HTMLDivElement;
@@ -145,8 +146,8 @@ describe('job-details', () => {
     paramRows.forEach((row, i) => {
       const key = row.querySelector('.key') as HTMLDivElement;
       const value = row.querySelector('.value') as HTMLDivElement;
-      assert.strictEqual(key.innerText, testJob.parameters[i].name);
-      assert.strictEqual(value.innerText, testJob.parameters[i].value);
+      assert.strictEqual(key.innerText, testJob.parameters![i].name);
+      assert.strictEqual(value.innerText, testJob.parameters![i].value);
     });
   });
 
@@ -158,7 +159,8 @@ describe('job-details', () => {
     Polymer.flush();
 
     assert(isVisible(runList), 'should now show runs div');
-    assert.deepStrictEqual(runList.runsMetadata, fixedData.data.runs.map((r: Run) => r.run),
+    assert.deepStrictEqual(runList.runsMetadata,
+        fixedData.data.runs.map((r: apiRunDetail) => r.run),
         'jost list does not match test data');
   });
 
@@ -166,7 +168,8 @@ describe('job-details', () => {
     fixture.tabs.select(1);
     const runList = fixture.shadowRoot!.querySelector('run-list') as RunList;
 
-    assert.deepStrictEqual(runList.runsMetadata, fixedData.data.runs.map((r: Run) => r.run),
+    assert.deepStrictEqual(runList.runsMetadata,
+        fixedData.data.runs.map((r: apiRunDetail) => r.run),
         'jost list does not match test data');
 
     listRunsStub.returns({ nextPageToken: '', jobs: [fixedData.data.jobs[0]] });
@@ -174,7 +177,7 @@ describe('job-details', () => {
 
     listRunsStub.returns({
       nextPageToken: '',
-      runs: [fixedData.data.runs.map((r: Run) => r.run)[0]],
+      runs: [fixedData.data.runs.map((r: apiRunDetail) => r.run)[0]],
     });
     fixture.refreshButton.click();
 

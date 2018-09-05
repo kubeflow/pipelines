@@ -16,16 +16,12 @@ import * as express from 'express';
 import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
+import * as Apis from '../src/lib/apis';
 
-import { Job } from '../src/api/job';
-import { JobSortKeys } from '../src/api/list_jobs_request';
-import { ListJobsResponse } from '../src/api/list_jobs_response';
-import { PipelineSortKeys } from '../src/api/list_pipelines_request';
-import { ListPipelinesResponse } from '../src/api/list_pipelines_response';
-import { RunSortKeys } from '../src/api/list_runs_request';
-import { ListRunsResponse } from '../src/api/list_runs_response';
-import { Pipeline } from '../src/api/pipeline';
-import { RunMetadata } from '../src/api/run';
+import { apiJob, apiListJobsResponse } from '../src/api/job';
+import { apiListPipelinesResponse } from '../src/api/pipeline';
+import { apiPipeline } from '../src/api/pipeline';
+import { apiListRunsResponse, apiRun } from '../src/api/run';
 import { data as fixedData } from './fixed-data';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
@@ -77,25 +73,25 @@ export default (app: express.Application) => {
 
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
-    const response: ListJobsResponse = {
+    const response: apiListJobsResponse = {
       jobs: [],
       next_page_token: '',
     };
 
-    let jobs: Job[] = fixedData.jobs;
+    let jobs: apiJob[] = fixedData.jobs;
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
       jobs = fixedData.jobs.filter((j) =>
-          j.name.toLocaleLowerCase().indexOf(
+          j.name!.toLocaleLowerCase().indexOf(
               decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
 
     }
 
     // The backend sorts by created_at by default.
-    const sortKey: (keyof Job) = req.query.sortBy || JobSortKeys.CREATED_AT;
+    const sortKey: (keyof apiJob) = req.query.sortBy || Apis.JobSortKeys.CREATED_AT;
 
-    if (!isValidSortKey(JobSortKeys, sortKey)) {
+    if (!isValidSortKey(Apis.JobSortKeys, sortKey)) {
       res.status(405).send(`Unsupported sort string: ${sortKey}`);
       return;
     }
@@ -108,7 +104,7 @@ export default (app: express.Application) => {
       if (a[sortKey]! === b[sortKey]!) {
         result = 0;
       }
-      return result * ((req.query.ascending === 'true') ? 1 : -1);
+      return result * ((req.query.ascending === 'false') ? -1 : 1);
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
@@ -140,7 +136,7 @@ export default (app: express.Application) => {
     switch (req.method) {
       case 'DELETE':
         const i = fixedData.jobs.findIndex((j) => j.id === req.params.jid);
-        if (fixedData.jobs[i].name.startsWith('Cannot be deleted')) {
+        if (fixedData.jobs[i].name!.startsWith('Cannot be deleted')) {
           res.status(502).send(`Deletion failed for job: '${fixedData.jobs[i].name}'`);
         } else {
           // Delete the job from fixedData.
@@ -159,12 +155,12 @@ export default (app: express.Application) => {
   app.get(v1alpha2Prefix + '/jobs/:jid/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
-    const response: ListRunsResponse = {
+    const response: apiListRunsResponse = {
       next_page_token: '',
       runs: [],
     };
 
-    let runs: RunMetadata[] = fixedData.runs.map((r) => r.run);
+    let runs: apiRun[] = fixedData.runs.map((r) => r.run!);
 
     if (req.params.jid.startsWith('new-job-')) {
       response.runs = runs.slice(0, 1);
@@ -178,14 +174,14 @@ export default (app: express.Application) => {
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
-      runs = runs.filter((r) => r.name.toLocaleLowerCase().indexOf(
+      runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
           decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
     }
 
     // The backend sorts by created_at by default.
-    const sortKey: (keyof RunMetadata) = req.query.sortBy || RunSortKeys.CREATED_AT;
+    const sortKey: (keyof apiRun) = req.query.sortBy || Apis.RunSortKeys.CREATED_AT;
 
-    if (!isValidSortKey(RunSortKeys, sortKey)) {
+    if (!isValidSortKey(Apis.RunSortKeys, sortKey)) {
       res.status(405).send(`Unsupported sort string: ${sortKey}`);
       return;
     }
@@ -198,7 +194,7 @@ export default (app: express.Application) => {
       if (a[sortKey]! === b[sortKey]!) {
         result = 0;
       }
-      return result * ((req.query.ascending === 'true') ? 1 : -1);
+      return result * ((req.query.ascending === 'false') ? -1 : 1);
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
@@ -238,7 +234,7 @@ export default (app: express.Application) => {
 
   app.get(v1alpha2Prefix + '/jobs/:pid/runs/:jid', (req, res) => {
     const jid = req.params.jid;
-    const run = fixedData.runs.find((r) => r.run.id === jid);
+    const run = fixedData.runs.find((r) => r.run!.id === jid);
     if (!run) {
       res.status(404).send('Cannot find a run with id: ' + jid);
       return;
@@ -253,25 +249,25 @@ export default (app: express.Application) => {
     }
 
     res.header('Content-Type', 'application/json');
-    const response: ListPipelinesResponse = {
+    const response: apiListPipelinesResponse = {
       next_page_token: '',
       pipelines: [],
     };
 
-    let pipelines: Pipeline[] = fixedData.pipelines;
+    let pipelines: apiPipeline[] = fixedData.pipelines;
     if (req.query.filterBy) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated depending on how the backend implements filtering.
       pipelines = fixedData.pipelines.filter((p) =>
-          p.name.toLocaleLowerCase().indexOf(
+          p.name!.toLocaleLowerCase().indexOf(
               decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
 
     }
 
     // The backend sorts by created_at by default.
-    const sortKey: (keyof Pipeline) = req.query.sortBy || PipelineSortKeys.CREATED_AT;
+    const sortKey: (keyof apiPipeline) = req.query.sortBy || Apis.PipelineSortKeys.CREATED_AT;
 
-    if (!isValidSortKey(PipelineSortKeys, sortKey)) {
+    if (!isValidSortKey(Apis.PipelineSortKeys, sortKey)) {
       res.status(405).send(`Unsupported sort string: ${sortKey}`);
       return;
     }
@@ -284,7 +280,7 @@ export default (app: express.Application) => {
       if (a[sortKey]! === b[sortKey]!) {
         result = 0;
       }
-      return result * ((req.query.ascending === 'true') ? 1 : -1);
+      return result * ((req.query.ascending === 'false') ? -1 : 1);
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
@@ -301,7 +297,7 @@ export default (app: express.Application) => {
   app.delete(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const i = fixedData.pipelines.findIndex((p) => p.id === req.params.pid);
-    if (fixedData.pipelines[i].name.startsWith('Cannot be deleted')) {
+    if (fixedData.pipelines[i].name!.startsWith('Cannot be deleted')) {
       res.status(502).send(`Deletion failed for pipeline: '${fixedData.pipelines[i].name}'`);
     } else {
       // Delete the pipelines from fixedData.

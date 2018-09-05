@@ -67,7 +67,9 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: frontend
+            value: .
+          - name: docker-file
+            value: frontend/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.frontend-image}}"
       - name: build-scheduledworkflow-image

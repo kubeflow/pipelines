@@ -13,7 +13,6 @@
 // limitations under the License.
 
 import { assert } from 'chai';
-import { CronSchedule, PeriodicSchedule, Trigger } from '../../src/api/job';
 import { JobSchedule } from '../../src/components/job-schedule/job-schedule';
 import { resetFixture } from './test-utils';
 
@@ -77,7 +76,8 @@ describe('job-schedule', () => {
       Polymer.Async.idlePeriod.run(() => {
         assert.strictEqual(fixture.periodicIntervalDropdown!.value, 'hours');
         // Default interval is 1 hour (3600 seconds)
-        assert.deepStrictEqual(fixture.toTrigger(), new Trigger(new PeriodicSchedule(3600)));
+        assert.deepStrictEqual(fixture.toTrigger(),
+            { periodic_schedule: { interval_second: '3600' } });
         done();
       });
     });
@@ -96,8 +96,8 @@ describe('job-schedule', () => {
         fixture._periodicIntervals.forEach((v, i) => {
           fixture.periodicIntervalListbox!.select(i);
           assert.strictEqual(fixture.periodicIntervalDropdown!.value, v);
-          assert.deepStrictEqual(
-              fixture.toTrigger(), new Trigger(new PeriodicSchedule(periods[i] * frequency)));
+          assert.deepStrictEqual(fixture.toTrigger(),
+              { periodic_schedule: { interval_second: (periods[i] * frequency).toString() } });
         });
         done();
       });
@@ -105,7 +105,7 @@ describe('job-schedule', () => {
 
     it('returns a periodic_schedule trigger when toTrigger is called', () => {
       // Default periodic schedule corresponds to "every hour", so 3600 seconds
-      const expectedPeriodicTrigger = new Trigger(new PeriodicSchedule(3600));
+      const expectedPeriodicTrigger = { periodic_schedule: { interval_second: '3600'} };
       assert.deepStrictEqual(fixture.toTrigger(), expectedPeriodicTrigger);
     });
 
@@ -136,7 +136,7 @@ describe('job-schedule', () => {
       // even with Polymer.flush()
       Polymer.Async.idlePeriod.run(() => {
         assert.strictEqual(fixture.cronIntervalDropdown!.value, 'hourly');
-        assert.deepStrictEqual(fixture.toTrigger(), new Trigger(new CronSchedule('0 0 * * * ?')));
+        assert.deepStrictEqual(fixture.toTrigger(), { cron_schedule: { cron: '0 0 * * * ?' } });
         done();
       });
     });
@@ -160,7 +160,7 @@ describe('job-schedule', () => {
           assert.strictEqual(fixture.cronIntervalDropdown!.value, v);
           assert.deepStrictEqual(
               fixture.toTrigger(),
-              new Trigger(new CronSchedule(cronExpressions[i])));
+              { cron_schedule: { cron: cronExpressions[i] } });
           assert.strictEqual(fixture.allWeekdaysCheckbox!.checked, true);
           assert.strictEqual(fixture.allWeekdaysCheckbox!.disabled, v !== 'weekly');
         });
@@ -181,14 +181,14 @@ describe('job-schedule', () => {
         assert.strictEqual(sundayButton.active, false);
         // 1-6 correspond to Monday - Saturday, Sunday isn't included because we clicked it.
         assert.deepStrictEqual(
-            fixture.toTrigger(), new Trigger(new CronSchedule('0 0 0 ? * 1,2,3,4,5,6')));
+            fixture.toTrigger(), { cron_schedule: { cron: '0 0 0 ? * 1,2,3,4,5,6' } });
         done();
       });
     });
 
     it('returns a cron_schedule trigger when toTrigger is called', () => {
       // Default cron schedule corresponds to "hourly"
-      const expectedCronTrigger = new Trigger(new CronSchedule('0 0 * * * ?'));
+      const expectedCronTrigger = { cron_schedule: { cron: '0 0 * * * ?' } };
       assert.deepStrictEqual(fixture.toTrigger(), expectedCronTrigger);
     });
 
@@ -203,20 +203,20 @@ describe('job-schedule', () => {
       fixture.cronExpressionInput!.value = '1 2 3 4 5 ?';
 
       assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), false);
-      const expectedCronTrigger = new Trigger(new CronSchedule('1 2 3 4 5 ?'));
+      const expectedCronTrigger = { cron_schedule: { cron: '1 2 3 4 5 ?' } };
       assert.deepStrictEqual(fixture.toTrigger(), expectedCronTrigger);
     });
 
     it('rederives cron expression from inputs when editing is redisabled', () => {
       // Default cron schedule corresponds to "hourly"
-      const originalCronTrigger = new Trigger(new CronSchedule('0 0 * * * ?'));
+      const originalCronTrigger = { cron_schedule: { cron: '0 0 * * * ?' } };
       assert.deepStrictEqual(fixture.toTrigger(), originalCronTrigger);
       assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), true);
 
       // Enable editing and change the cron expression
       fixture.allowEditingCronCheckbox!.checked = true;
       fixture.cronExpressionInput!.value = '1 2 3 4 5 ?';
-      const newCronTrigger = new Trigger(new CronSchedule('1 2 3 4 5 ?'));
+      const newCronTrigger = { cron_schedule: { cron: '1 2 3 4 5 ?' } };
       assert.deepStrictEqual(fixture.toTrigger(), newCronTrigger);
       assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), false);
 

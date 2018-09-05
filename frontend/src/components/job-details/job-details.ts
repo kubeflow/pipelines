@@ -26,7 +26,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
-import { Job, Trigger } from '../../api/job';
+import { apiJob, apiTrigger } from '../../api/job';
 import { DialogResult } from '../../components/popup-dialog/popup-dialog';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
@@ -40,7 +40,7 @@ import './job-details.html';
 export class JobDetails extends PageElement {
 
   @property({ type: Object })
-  public job: Job | null = null;
+  public job: apiJob | null = null;
 
   @property({ type: Number })
   public selectedTab = -1;
@@ -97,7 +97,7 @@ export class JobDetails extends PageElement {
   }
 
   protected _refresh(): void {
-    if (this.job) {
+    if (this.job && this.job.id) {
       this._loadJob(this.job.id);
     }
   }
@@ -106,6 +106,9 @@ export class JobDetails extends PageElement {
     try {
       const job = await Apis.getJob(id);
       this.job = job;
+      if (!this.job || !this.job.id) {
+        throw new Error('Could not get job with id: ' + id);
+      }
 
       (this.$.runs as RunList).loadRuns(this.job.id);
       this._disableCloneJobButton = false;
@@ -129,11 +132,11 @@ export class JobDetails extends PageElement {
   }
 
   protected async _enableJob(): Promise<void> {
-    if (this.job) {
+    if (this.job && this.job.id) {
       try {
         this._busy = true;
         await Apis.enableJob(this.job.id);
-        this.job = await Apis.getJob(this.job.id);
+        this.job = await Apis.getJob(this.job.id!);
         Utils.showNotification('Job enabled');
       } catch (err) {
         Utils.showDialog('Error enabling job: ' + err);
@@ -144,11 +147,11 @@ export class JobDetails extends PageElement {
   }
 
   protected async _disableJob(): Promise<void> {
-    if (this.job) {
+    if (this.job && this.job.id) {
       try {
         this._busy = true;
         await Apis.disableJob(this.job.id);
-        this.job = await Apis.getJob(this.job.id);
+        this.job = await Apis.getJob(this.job.id!);
         Utils.showNotification('Job disabled');
       } catch (err) {
         Utils.showDialog('Error disabling job: ' + err);
@@ -159,7 +162,7 @@ export class JobDetails extends PageElement {
   }
 
   protected async _deleteJob(): Promise<void> {
-    if (this.job) {
+    if (this.job && this.job.id) {
       const dialogResult = await Utils.showDialog(
           'Delete job?',
           'You are about to delete this job. Are you sure you want to proceed?',
@@ -187,28 +190,25 @@ export class JobDetails extends PageElement {
     }
   }
 
-  protected _enabledDisplayString(trigger: Trigger, enabled: boolean): string {
+  protected _enabledDisplayString(trigger: apiTrigger, enabled: boolean): string {
     return Utils.enabledDisplayString(trigger, enabled);
   }
 
   protected _scheduleDisplayString(): string {
-    if (this.job && this.job.trigger) {
-      return this.job.trigger.toString();
-    }
-    return '-';
+    return this.job ? Utils.triggerDisplayString(this.job.trigger) : '-';
   }
 
-  protected _formatDateString(date: string): string {
+  protected _formatDateString(date: Date): string {
     return Utils.formatDateString(date);
   }
 
   // Job can only be enabled/disabled if there's a schedule/trigger
-  protected _computeAllowJobEnable(enabled: boolean, trigger: Trigger|null): boolean {
+  protected _computeAllowJobEnable(enabled: boolean, trigger: apiTrigger|null): boolean {
     return !!trigger && !enabled;
   }
 
   // Job can only be enabled/disabled if there's a schedule/trigger
-  protected _computeAllowJobDisable(enabled: boolean, trigger: Trigger|null): boolean {
+  protected _computeAllowJobDisable(enabled: boolean, trigger: apiTrigger|null): boolean {
     return !!trigger && enabled;
   }
 

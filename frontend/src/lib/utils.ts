@@ -15,7 +15,7 @@
 import { DialogResult, PopupDialog } from '../components/popup-dialog/popup-dialog';
 
 import 'paper-toast/paper-toast';
-import { Trigger } from '../api/job';
+import { apiTrigger } from '../api/job';
 import '../components/popup-dialog/popup-dialog';
 
 export const NODE_PHASE = {
@@ -53,15 +53,69 @@ export function listenOnce(element: Node, eventName: string, cb: Function): void
   element.addEventListener(eventName, listener);
 }
 
-export function enabledDisplayString(trigger: Trigger|undefined, enabled: boolean): string {
+export function enabledDisplayString(trigger: apiTrigger|undefined, enabled: boolean): string {
   if (trigger) {
     return enabled ? 'Yes' : 'No';
   }
   return '-';
 }
 
-export function formatDateString(date: string | undefined): string {
-  return date ? new Date(date).toLocaleString() : '-';
+export function formatDateString(date: Date | string | undefined): string {
+  if (typeof date === 'string') {
+    return new Date(date).toLocaleString();
+  } else {
+    return date ? date.toLocaleString() : '-';
+  }
+}
+
+export function triggerDisplayString(trigger?: apiTrigger): string {
+  if (trigger) {
+    if (trigger.cron_schedule && trigger.cron_schedule.cron) {
+      return trigger.cron_schedule.cron;
+    }
+    if (trigger.periodic_schedule && trigger.periodic_schedule.interval_second) {
+      const intervalSecond = trigger.periodic_schedule.interval_second;
+      const secInMin = 60;
+      const secInHour = secInMin * 60;
+      const secInDay = secInHour * 24;
+      const secInWeek = secInDay * 7;
+      const secInMonth = secInDay * 30;
+      const months = Math.floor(+intervalSecond / secInMonth);
+      const weeks = Math.floor((+intervalSecond % secInMonth) / secInWeek);
+      const days = Math.floor((+intervalSecond % secInWeek) / secInDay);
+      const hours = Math.floor((+intervalSecond % secInDay) / secInHour);
+      const minutes = Math.floor((+intervalSecond % secInHour) / secInMin);
+      const seconds = Math.floor(+intervalSecond % secInMin);
+      let interval = 'Run every';
+      if (months) {
+        interval += ` ${months} months,`;
+      }
+      if (weeks) {
+        interval += ` ${weeks} weeks,`;
+      }
+      if (days) {
+        interval += ` ${days} days,`;
+      }
+      if (hours) {
+        interval += ` ${hours} hours,`;
+      }
+      if (minutes) {
+        interval += ` ${minutes} minutes,`;
+      }
+      if (seconds) {
+        interval += ` ${seconds} seconds,`;
+      }
+      // Add 'and' if necessary
+      const insertAndLocation = interval.lastIndexOf(', ') + 1;
+      if (insertAndLocation > 0) {
+        interval = interval.slice(0, insertAndLocation) +
+          ' and' + interval.slice(insertAndLocation);
+      }
+      // Remove trailing comma
+      return interval.slice(0, -1);
+    }
+  }
+  return '-';
 }
 
 export function getRunTime(start: string, end: string, status: any): string {

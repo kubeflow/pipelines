@@ -26,7 +26,7 @@ import 'polymer/polymer.html';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
-import { CronSchedule, PeriodicSchedule, Trigger } from '../../api/job';
+import { apiCronSchedule, apiPeriodicSchedule, apiTrigger } from '../../api/job';
 import { DateTimePicker } from '../date-time-picker/date-time-picker';
 
 import './job-schedule.html';
@@ -197,15 +197,37 @@ export class JobSchedule extends Polymer.Element {
     return this._maxConcurrentRuns;
   }
 
-  public toTrigger(): Trigger|null {
+  public toTrigger(): apiTrigger|null {
     if (this._SCHEDULES[this._scheduleTypeIndex] === PERIODIC) {
-      return new Trigger(
-          new PeriodicSchedule(this._getPeriodInSeconds(), this._startTime(), this._endTime()));
+      const schedule = {
+        periodic_schedule: {
+          interval_second: this._getPeriodInSeconds().toString(),
+        } as apiPeriodicSchedule,
+      };
+      const startTime = this._startTime();
+      const endTime = this._endTime();
+      if (startTime !== undefined) {
+        schedule.periodic_schedule.start_time = startTime;
+      }
+      if (endTime !== undefined) {
+        schedule.periodic_schedule.end_time = endTime;
+      }
+      return schedule;
     }
 
     if (this._SCHEDULES[this._scheduleTypeIndex] === CRON) {
-      return new Trigger(
-          new CronSchedule(this._cronExpression, this._startTime(), this._endTime()));
+      const schedule = {
+        cron_schedule: {
+          cron: this._cronExpression,
+        } as apiCronSchedule,
+      };
+      if (this._startTime() !== undefined) {
+        schedule.cron_schedule.start_time = this._startTime();
+      }
+      if (this._endTime() !== undefined) {
+        schedule.cron_schedule.end_time = this._endTime();
+      }
+      return schedule;
     }
 
     return null;
@@ -329,20 +351,20 @@ export class JobSchedule extends Polymer.Element {
     }
   }
 
-  private _startTime(): string {
+  private _startTime(): Date | undefined {
     if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY ||
         !this._startDate || !this.startDateTimePicker) {
-      return '';
+      return undefined;
     }
-    return this.startDateTimePicker.dateTimeAsIsoString();
+    return this.startDateTimePicker.datetime;
   }
 
-  private _endTime(): string {
+  private _endTime(): Date | undefined {
     if (this._SCHEDULES[this._scheduleTypeIndex] === IMMEDIATELY ||
         !this._endDate || !this.endDateTimePicker) {
-      return '';
+      return undefined;
     }
-    return this.endDateTimePicker.dateTimeAsIsoString();
+    return this.endDateTimePicker.datetime;
   }
 
   private _getPeriodInSeconds(): number {

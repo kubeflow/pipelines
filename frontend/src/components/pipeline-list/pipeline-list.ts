@@ -22,8 +22,7 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import * as xss from 'xss';
-import { ListPipelinesRequest, PipelineSortKeys } from '../../api/list_pipelines_request';
-import { Pipeline } from '../../api/pipeline';
+import { apiPipeline } from '../../api/pipeline';
 import { DialogResult } from '../../components/popup-dialog/popup-dialog';
 import {
   ItemDblClickEvent,
@@ -46,7 +45,7 @@ import './pipeline-list.html';
 export class PipelineList extends PageElement {
 
   @property({ type: Array })
-  public pipelines: Pipeline[] = [];
+  public pipelines: apiPipeline[] = [];
 
   @property({ type: Boolean })
   protected _busy = false;
@@ -80,9 +79,9 @@ export class PipelineList extends PageElement {
   protected pipelineListRows: ItemListRow[] = [];
 
   protected pipelineListColumns: ItemListColumn[] = [
-    new ItemListColumn('Name', ColumnTypeName.STRING, PipelineSortKeys.NAME, 1.5),
+    new ItemListColumn('Name', ColumnTypeName.STRING, Apis.PipelineSortKeys.NAME, 1.5),
     new ItemListColumn('Description', ColumnTypeName.STRING, undefined, 1.5),
-    new ItemListColumn('Uploaded on', ColumnTypeName.DATE, PipelineSortKeys.CREATED_AT),
+    new ItemListColumn('Uploaded on', ColumnTypeName.DATE, Apis.PipelineSortKeys.CREATED_AT),
   ];
 
   private _debouncer: Polymer.Debouncer | undefined = undefined;
@@ -115,7 +114,7 @@ export class PipelineList extends PageElement {
 
   public load(): void {
     this.itemList.reset();
-    this._loadPipelines(new ListPipelinesRequest(this.itemList.selectedPageSize));
+    this._loadPipelines({ pageSize: this.itemList.selectedPageSize } as Apis.ListPipelinesRequest);
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
@@ -147,7 +146,7 @@ export class PipelineList extends PageElement {
 
     await Promise.all(this.itemList.selectedIndices.map(async (i) => {
       try {
-        await Apis.deletePipeline(this.pipelines[i].id);
+        await Apis.deletePipeline(this.pipelines[i].id!);
       } catch (err) {
         errorMessage = `Deleting Pipeline: "${this.pipelines[i].name}" failed with error: "${err}"`;
         unsuccessfulDeletes++;
@@ -158,7 +157,7 @@ export class PipelineList extends PageElement {
     if (successfulDeletes > 0) {
       Utils.showNotification(`Successfully deleted ${successfulDeletes} Pipelines!`);
       this.itemList.reset();
-      this._loadPipelines(new ListPipelinesRequest(this.itemList.selectedPageSize));
+      this._loadPipelines({ pageSize: this.itemList.selectedPageSize });
     }
 
     if (unsuccessfulDeletes > 0) {
@@ -206,12 +205,12 @@ export class PipelineList extends PageElement {
   }
 
   private _loadNewListPage(ev: NewListPageEvent): void {
-    const request = new ListPipelinesRequest(ev.detail.pageSize);
-    request.filterBy = ev.detail.filterBy;
-    request.pageToken = ev.detail.pageToken;
-    request.sortBy = ev.detail.sortBy;
-
-    this._loadPipelines(request);
+    this._loadPipelines({
+      filterBy: ev.detail.filterBy,
+      pageSize: ev.detail.pageSize,
+      pageToken: ev.detail.pageToken,
+      sortBy: ev.detail.sortBy,
+    });
   }
 
   private _selectedItemsChanged(): void {
@@ -230,21 +229,22 @@ export class PipelineList extends PageElement {
         this._debouncer || null,
         Polymer.Async.timeOut.after(300),
         async () => {
-          const request = new ListPipelinesRequest(ev.detail.pageSize);
-          request.filterBy = ev.detail.filterString;
-          request.orderAscending = ev.detail.orderAscending;
-          request.sortBy = ev.detail.sortColumn;
-          this._loadPipelines(request);
+          this._loadPipelines({
+            filterBy: ev.detail.filterString,
+            orderAscending: ev.detail.orderAscending,
+            pageSize: ev.detail.pageSize,
+            sortBy: ev.detail.sortColumn,
+          });
         }
     );
     // Allows tests to use Polymer.flush to ensure debounce has completed.
     Polymer.enqueueDebouncer(this._debouncer);
   }
 
-  private async _loadPipelines(request: ListPipelinesRequest): Promise<void> {
+  private async _loadPipelines(request: Apis.ListPipelinesRequest): Promise<void> {
     try {
       const listPipelinesResponse = await Apis.listPipelines(request);
-      this.pipelines = listPipelinesResponse.pipelines || [];
+      this.pipelines = listPipelinesResponse.pipelines as any || [];
 
       this.itemList.updateNextPageToken(listPipelinesResponse.next_page_token || '');
     } catch (err) {

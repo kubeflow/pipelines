@@ -250,7 +250,7 @@ export class RuntimeGraph extends Polymer.Element {
     this._unselectAllNodes();
   }
 
-  protected _formatDateString(date: string): string {
+  protected _formatDateString(date: Date): string {
     return Utils.formatDateString(date);
   }
 
