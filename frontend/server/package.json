@@ -1,6 +1,4 @@
 {
-  "name": "pipelines-frontend-webserver",
-  "version": "0.0.1",
   "description": "Frontend webserver package for ML Pipeline Management",
   "main": "server.js",
   "dependencies": {

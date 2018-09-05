@@ -1,6 +1,4 @@
 {
-  "name": "pipelines-frontend-test",
-  "version": "0.0.1",
   "description": "Test package for ML Pipeline Management frontend",
   "dependencies": {
     "@types/chai": "^4.1.4",
