@@ -30,8 +30,12 @@ mkdir -p ./build
 rsync -arvp "../../launcher"/ ./build/
 sed -i -e "s/image: gcr\.io\/ml-pipeline\/ml-pipeline-kubeflow-trainer:latest/image: gcr\.io\/${PROJECT_ID}\/ml-pipeline-kubeflow-trainer:${TAG_NAME}/g" ./build/train.template.yaml
 
+cp ../../../license.sh ./build
+cp ../../../third_party_licenses.csv ./build
+
 docker build -t ml-pipeline-kubeflow-tf .
 rm -rf ./build
+
 
 docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf:${TAG_NAME}
 docker push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf:${TAG_NAME}

@@ -40,4 +40,7 @@ RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
 
 ADD build /ml
 
+RUN mkdir /usr/licenses && \
+    /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
+
 ENV PATH $PATH:/tools/node/bin:/tools/google-cloud-sdk/bin

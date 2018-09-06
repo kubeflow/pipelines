@@ -28,9 +28,13 @@ fi
 
 mkdir -p ./build
 rsync -arvp "../../dnntrainer"/ ./build/
+cp ../../../license.sh ./build
+cp ../../../third_party_licenses.csv ./build
 
 docker build -t ml-pipeline-kubeflow-trainer .
 rm -rf ./build
+
+
 
 docker tag ml-pipeline-kubeflow-trainer gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-trainer:${TAG_NAME}
 docker push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-trainer:${TAG_NAME}

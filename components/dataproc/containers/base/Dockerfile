@@ -23,6 +23,8 @@ RUN easy_install pip
 
 RUN pip install google-api-python-client==1.6.2
 
+RUN pip install tensorflow==1.6.0
+
 RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     unzip -qq google-cloud-sdk.zip -d tools && \
     rm google-cloud-sdk.zip && \
@@ -35,5 +37,8 @@ RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     touch /tools/google-cloud-sdk/lib/third_party/google.py
 
 ADD build /ml
+
+RUN mkdir /usr/licenses && \
+    /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
 
 ENV PATH $PATH:/tools/node/bin:/tools/google-cloud-sdk/bin

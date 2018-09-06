@@ -18,6 +18,8 @@ mkdir -p ./build
 rsync -arvp "../../tft"/ ./build/
 rsync -arvp "../../tfma"/ ./build/
 rsync -arvp "../../predict"/ ./build/
+cp ../../../license.sh ./build
+cp ../../../third_party_licenses.csv ./build
 
 docker build -t ml-pipeline-dataflow-base .
 rm -rf ./build

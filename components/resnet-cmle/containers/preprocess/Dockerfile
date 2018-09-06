@@ -44,4 +44,7 @@ ENV PYTHONPATH ${PYTHONPATH}:/resnet/resnet_model
 
 ADD /build /resnet
 
+RUN mkdir /usr/licenses && \
+    /resnet/license.sh /resnet/third_party_licenses.csv /usr/licenses
+
 ENTRYPOINT ["python", "/resnet/preprocess.py"]

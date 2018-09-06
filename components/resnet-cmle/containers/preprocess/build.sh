@@ -29,6 +29,9 @@ else
   TAG_NAME="$2"
 fi
 
+cp ../../../license.sh ./build
+cp ../../../third_party_licenses.csv ./build
+
 docker build -t gcr.io/ml-pipeline/resnet-preprocess .
 rm -rf ./build
 docker tag gcr.io/ml-pipeline/resnet-preprocess gcr.io/${PROJECT_ID}/resnet-preprocess:${TAG_NAME}

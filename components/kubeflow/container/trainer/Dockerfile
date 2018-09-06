@@ -29,4 +29,8 @@ RUN apt-get install --no-install-recommends -y -q build-essential && \
     apt-get --purge autoremove -y build-essential
 
 ADD build /ml
+
+RUN mkdir /usr/licenses && \
+    /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
+
 WORKDIR /ml

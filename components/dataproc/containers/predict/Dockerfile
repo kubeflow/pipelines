@@ -14,6 +14,4 @@
 
 FROM ml-pipeline-dataproc-base
 
-RUN pip install tensorflow==1.6.0
-
 ENTRYPOINT ["python", "/ml/predict.py"]

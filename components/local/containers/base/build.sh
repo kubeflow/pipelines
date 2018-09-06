@@ -17,5 +17,8 @@
 mkdir -p ./build
 rsync -arvp "../../evaluation"/ ./build/
 
+cp ../../../license.sh ./build
+cp ../../../third_party_licenses.csv ./build
+
 docker build -t ml-pipeline-local-base .
 rm -rf ./build
