@@ -25,7 +25,7 @@ class TestContainerOp(unittest.TestCase):
       param1 = mlp.PipelineParam('param1')
       param2 = mlp.PipelineParam('param2')
       op1 = mlp.ContainerOp(name='op1', image='image',
-          arguments=['%s hello %s' % (param1, param2)],
+          arguments=['%s hello %s %s' % (param1, param2, param1)],
           file_outputs={'out1': '/tmp/b'})
       
     self.assertCountEqual([x.name for x in op1.inputs], ['param1', 'param2'])

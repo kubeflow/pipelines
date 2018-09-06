@@ -61,7 +61,7 @@ class ContainerOp(object):
         match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(arg))
         matches += match
 
-    self.argument_inputs = [mlp.PipelineParam(x[1], x[0], x[2]) for x in matches]
+    self.argument_inputs = [mlp.PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
     self.file_inputs = file_inputs
     self.file_outputs = file_outputs
     self.dependent_op_names = []
