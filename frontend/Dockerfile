@@ -15,7 +15,7 @@ RUN npm run build
 
 RUN mkdir -p ./server/dist && \
     echo ${COMMIT_HASH} > ./server/dist/COMMIT_HASH && \
-    echo ${DATE} > ./server/dist/DATE
+    echo ${DATE} > ./server/dist/BUILD_DATE
 
 # Generate the dependency licenses files (one for the UI and one for the webserver),
 # concatenate them to one file under ./src/server

@@ -94,7 +94,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	pipelineUploadServer := &PipelineUploadServer{resourceManager: resourceManager}
 	topMux.HandleFunc("/apis/v1alpha2/pipelines/upload", pipelineUploadServer.UploadPipeline)
 	topMux.HandleFunc("/apis/v1alpha2/healthz", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"commit_sha":"`+getStringConfig("COMMIT_SHA")+"}")
+		io.WriteString(w, `{"commit_sha":"`+getStringConfig("COMMIT_SHA")+`"}`)
 	})
 
 	topMux.Handle("/apis/", mux)

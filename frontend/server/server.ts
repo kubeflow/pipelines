@@ -65,16 +65,23 @@ app.use(express.static(staticDir));
 const v1alpha2Prefix = '/apis/v1alpha2';
 
 const healthzStats = {
+  apiServerCommitHash: '',
   apiServerReady: false,
   buildDate,
-  commitHash,
+  frontendCommitHash: commitHash,
 };
 
-app.get(v1alpha2Prefix + '/healthz', (req, res) => {
-  fetch(apiServerAddress + '/healthz', { timeout: 1000 })
-    .then(() => healthzStats.apiServerReady = true)
-    .catch(() => healthzStats.apiServerReady = false)
-    .then(() => res.json(healthzStats));
+app.get(v1alpha2Prefix + '/healthz', async (_, res) => {
+  try {
+    const response = await fetch(
+        apiServerAddress + v1alpha2Prefix + '/healthz', { timeout : 1000 });
+    healthzStats.apiServerReady = true;
+    const serverStatus = await response.json();
+    healthzStats.apiServerCommitHash = serverStatus.commit_sha;
+  } catch (e) {
+    healthzStats.apiServerReady = false;
+  }
+  res.json(healthzStats);
 });
 
 app.get('/artifacts/get', async (req, res) => {
