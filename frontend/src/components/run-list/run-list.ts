@@ -19,6 +19,7 @@ import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import * as xss from 'xss';
+import { NodePhase } from '../../../third_party/argo-ui/argo_template';
 import { apiRun } from '../../api/run';
 import {
   ItemDblClickEvent,
@@ -94,11 +95,11 @@ export class RunList extends Polymer.Element {
         new RouteEvent(`/jobRun?jobId=${this._jobId}&runId=${runId}`));
   }
 
-  protected _getStatusIcon(status: any): string {
+  protected _getStatusIcon(status: NodePhase): string {
     return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRuntime(start: string, end: string, status: any): string {
+  protected _getRuntime(start: string, end: string, status: NodePhase): string {
     if (!status) {
       return '-';
     }

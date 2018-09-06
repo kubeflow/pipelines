@@ -26,6 +26,7 @@ import { apiRunDetail } from '../../src/api/run';
 import { RunDetails } from '../../src/components/run-details/run-details';
 import { RuntimeGraph } from '../../src/components/runtime-graph/runtime-graph';
 import { RouteEvent } from '../../src/model/events';
+import { NodePhase, Workflow } from '../../third_party/argo-ui/argo_template';
 import * as testUtils from './test-utils';
 
 let fixture: RunDetails;
@@ -120,7 +121,7 @@ describe('run-details', () => {
     assert(testUtils.isVisible(durationDiv), 'cannot find duration div');
     assert.strictEqual(durationDiv.innerText,
         Utils.getRunTime(testWorkflow.status.startedAt, testWorkflow.status.finishedAt,
-            testWorkflow.status.phase as any),
+            testWorkflow.status.phase as NodePhase),
         'displayed duration does not match test data');
   });
 
@@ -134,8 +135,8 @@ describe('run-details', () => {
     getJobStub.returns(testJob);
     await _resetFixture();
     fixture.tabs.select(1);
-    const workflow = JSON.parse(mockRun.workflow!) as any;
-    workflow.spec.arguments!.parameters = testJob.parameters;
+    const workflow = JSON.parse(mockRun.workflow!) as Workflow;
+    workflow.spec.arguments!.parameters = testJob.parameters as any;
     workflow.spec.arguments!.parameters![1].value = 'value2withplaceholder';
     fixture.workflow = workflow;
     Polymer.flush();
@@ -153,7 +154,7 @@ describe('run-details', () => {
   });
 
   it('clones the run into a new job', (done) => {
-    const workflow = JSON.parse(mockRun.workflow!) as any;
+    const workflow = JSON.parse(mockRun.workflow!) as Workflow;
     const params = [{ name: 'param1', value: 'value2withplaceholder' }];
     workflow.spec.arguments!.parameters = params;
     fixture.workflow = workflow;

@@ -22,6 +22,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, observe, property } from 'polymer-decorators/src/decorators';
+import { NodePhase, Workflow } from '../../../third_party/argo-ui/argo_template';
 import { apiJob } from '../../api/job';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
@@ -34,7 +35,7 @@ import './run-details.html';
 export class RunDetails extends PageElement {
 
   @property({ type: Object })
-  public workflow: any = undefined;
+  public workflow?: Workflow = undefined;
 
   @property({ type: Object })
   public job: apiJob | undefined = undefined;
@@ -89,7 +90,7 @@ export class RunDetails extends PageElement {
     this._loadingRun = true;
     try {
       const response = await Apis.getRun(this._jobId, this._runId);
-      this.workflow = JSON.parse(response.workflow!) as any;
+      this.workflow = JSON.parse(response.workflow!) as Workflow;
       this.job = await Apis.getJob(this._jobId);
     } catch (err) {
       this.showPageError(
@@ -130,15 +131,15 @@ export class RunDetails extends PageElement {
     return Utils.formatDateString(date);
   }
 
-  protected _getStatusIcon(status: any): string {
+  protected _getStatusIcon(status: NodePhase): string {
     return Utils.nodePhaseToIcon(status);
   }
 
-  protected _getRunTime(start: string, end: string, status: any): string {
+  protected _getRunTime(start: string, end: string, status: NodePhase): string {
     return Utils.getRunTime(start, end, status);
   }
 
-  protected _getProgressColor(status: any): string {
+  protected _getProgressColor(status: NodePhase): string {
     return Utils.nodePhaseToColor(status);
   }
 
