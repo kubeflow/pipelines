@@ -19,6 +19,7 @@ import 'paper-spinner/paper-spinner.html';
 
 import * as dagre from 'dagre';
 import * as split from 'split.js';
+import * as xss from 'xss';
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
@@ -299,7 +300,31 @@ export class RuntimeGraph extends Polymer.Element {
       this._loadingLogs = true;
       const logs = await Apis.getPodLogs(this._selectedNode.id);
       logsContainer.style.display = 'block';
-      logsContainer.innerText = logs;
+      // Linkify URLs starting with http:// or https://
+      const urlPattern = /(\b(https?):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
+      let lastMatch = 0;
+      let match = urlPattern.exec(logs);
+      while (match) {
+        // Append all text before URL match
+        const textSpan = document.createElement('span');
+        textSpan.innerText = logs.substring(lastMatch, match.index);
+        logsContainer.appendChild(textSpan);
+
+        // Append URL via an anchor element
+        const anchor = document.createElement('a');
+        anchor.setAttribute('href', xss(match[0]));
+        anchor.setAttribute('target', '_blank');
+        anchor.innerText = match[0];
+        logsContainer.appendChild(anchor);
+
+        lastMatch = match.index + match[0].length;
+
+        match = urlPattern.exec(logs);
+      }
+      // Append all text after final URL
+      const remainingTextSpan = document.createElement('span');
+      remainingTextSpan.innerText = logs.substring(lastMatch);
+      logsContainer.appendChild(remainingTextSpan);
     } catch (err) {
       errorEl.style.display = 'block';
       errorEl.showButton = false;

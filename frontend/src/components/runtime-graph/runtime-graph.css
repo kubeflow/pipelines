@@ -43,6 +43,10 @@
   font-size: var(--font-size-medium);
 }
 
+.logs-container > a {
+  color: var(--google-blue-300);
+}
+
 .node-details {
   background-color: #fff;
   flex-basis: 0;

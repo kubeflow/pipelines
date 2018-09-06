@@ -372,6 +372,15 @@ export default (app: express.Application) => {
                \    \        __/
                  \____\______/
 
+        URLs starting with http:// and https:// become links:
+            http://www.kubeflow.org/
+            https://www.google.com/search?q=kubeflow
+
+        This URL won't become a link:
+            POST somedomain.website.com/v1/projects/mine/api:submit?alt=json
+
+        Neither will this GCP bucket:
+            gs://path/to/bucket
        `);
     }, 300);
   });
