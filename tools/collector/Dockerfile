@@ -6,4 +6,4 @@ ENV PROJECT "__PROJECT_ID__"
 ENV DATASET "spartakus_collector"
 ENV TABLE "reports"
 
-CMD ["collector", "--database", "bigquery://${PROJECT}.${DATASET}.${TABLE}", "--v", "10"]
+ENTRYPOINT ["/bin/sh", "-c", "/spartakus collector --database bigquery://${PROJECT}.${DATASET}.${TABLE} --v 10"]
