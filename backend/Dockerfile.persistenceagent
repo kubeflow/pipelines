@@ -19,6 +19,7 @@ FROM alpine
 WORKDIR /bin
 
 COPY --from=builder /bin/persistence_agent /bin/persistence_agent
+COPY --from=builder /go/src/github.com/googleprivate/ml/third_party/license.txt /bin/license.txt
 RUN chmod +x /bin/persistence_agent
 
 CMD persistence_agent \

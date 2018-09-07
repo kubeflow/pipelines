@@ -22,6 +22,7 @@ ENV COMMIT_SHA=${COMMIT_SHA}
 WORKDIR /bin
 
 COPY --from=builder /bin/apiserver /bin/apiserver
+COPY --from=builder /go/src/github.com/googleprivate/ml/third_party/license.txt /bin/license.txt
 COPY backend/src/apiserver/config/ /config
 
 # Expose apiserver port
