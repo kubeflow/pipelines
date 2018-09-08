@@ -52,8 +52,8 @@ boot_disk_size=200GB
 
 gcloud compute instances create $instance_name --zone=$ZONE --machine-type=$machine_type --boot-disk-size=$boot_disk_size --scopes=storage-rw
 
-#Prow instances seem to need this to access the new GCE VMs
-gcloud compute firewall-rules create default-allow-ssh --allow tcp:22 || true
+#Tagging the VM to make it easier to apply some rules to it (e.g. firewall rules)
+gcloud compute instances add-tags $instance_name --zone=$ZONE --tags prow-test-vm
 
 #Workaround the problems with prow cluster and GCE SSH access.
 #Prow tests run as root. GCE instances do not allow SSH access for root.
