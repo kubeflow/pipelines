@@ -17,6 +17,7 @@ package util
 import (
 	"fmt"
 
+	"github.com/go-openapi/runtime"
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/api"
 	"github.com/pkg/errors"
@@ -33,6 +34,12 @@ const (
 	CUSTOM_CODE_PERMANENT CustomCode = 1
 	CUSTOM_CODE_NOT_FOUND CustomCode = 2
 	CUSTOM_CODE_GENERIC   CustomCode = 3
+)
+
+type APICode int
+
+const (
+	API_CODE_NOT_FOUND = 404
 )
 
 type CustomError struct {
@@ -79,6 +86,44 @@ func newUserError(internalError error, externalMessage string,
 		internalError:      internalError,
 		externalMessage:    externalMessage,
 		externalStatusCode: externalStatusCode,
+	}
+}
+
+func NewUserErrorWithSingleMessage(err error, message string) *UserError {
+	return NewUserError(err, message, message)
+}
+
+func NewUserError(err error, internalMessage string, externalMessage string) *UserError {
+	// Note apiError.Response is of type github.com/go-openapi/runtime/client
+	if apiError, ok := err.(*runtime.APIError); ok {
+		if apiError.Code == API_CODE_NOT_FOUND {
+			return newUserError(
+				errors.Wrapf(err, internalMessage),
+				fmt.Sprintf("%v: %v", externalMessage, "Resource not found"),
+				codes.Code(apiError.Code))
+		} else {
+			return newUserError(
+				errors.Wrapf(err, internalMessage),
+				fmt.Sprintf("%v: %v", externalMessage, err.Error()),
+				codes.Code(apiError.Code))
+		}
+	}
+
+	return newUserError(
+		errors.Wrapf(err, internalMessage),
+		fmt.Sprintf("%v: %v", externalMessage, err.Error()),
+		codes.Internal)
+}
+
+func ExtractErrorForCLI(err error, isDebugMode bool) error {
+	if userError, ok := err.(*UserError); ok {
+		if isDebugMode {
+			return fmt.Errorf("%+v", userError.internalError)
+		} else {
+			return fmt.Errorf("%v", userError.externalMessage)
+		}
+	} else {
+		return err
 	}
 }
 

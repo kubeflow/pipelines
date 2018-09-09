@@ -16,6 +16,7 @@ package util
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -23,6 +24,7 @@ import (
 	"google.golang.org/grpc"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -35,7 +37,7 @@ func WaitForGrpcClientAvailable(
 
 	formattedBasePath := fmt.Sprintf(basePath, namespace, "healthz")
 
-	clientSet, err := GetKubernetesClient(masterurl, kubeconfig)
+	clientSet, _, err := GetKubernetesClient(masterurl, kubeconfig)
 	if err != nil {
 		return errors.Wrapf(err,
 			"Failed to get the clientSet when waiting for service (%v) to be ready in namespace (%v).",
@@ -67,26 +69,50 @@ func WaitForGrpcClientAvailable(
 		formattedBasePath, namespace)
 }
 
-func GetKubernetesClient(masterUrl string, kubeconfig string) (*kubernetes.Clientset, error) {
+func GetKubernetesClient(masterUrl string, kubeconfig string) (*kubernetes.Clientset, *rest.Config,
+	error) {
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags(masterUrl, kubeconfig)
 	if err != nil {
-		return nil, errors.Wrapf(err,
+		return nil, nil, errors.Wrapf(err,
 			"Failed to get cluster config during K8s client initialization")
 	}
 	// create the clientset
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, errors.Wrapf(err,
+		return nil, nil, errors.Wrapf(err,
 			"Failed to create client set during K8s client initialization")
 	}
 
-	return clientSet, nil
+	return clientSet, config, nil
+}
+
+func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
+	*kubernetes.Clientset, *rest.Config, string, error) {
+	// Get the clientConfig
+	config, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, nil, "", errors.Wrapf(err,
+			"Failed to get cluster config during K8s client initialization")
+	}
+	// Get namespace
+	namespace, _, err := clientConfig.Namespace()
+	if err != nil {
+		return nil, nil, "", errors.Wrapf(err,
+			"Failed to get the namespace during K8s client initialization")
+	}
+	// create the clientset
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, nil, "", errors.Wrapf(err,
+			"Failed to create client set during K8s client initialization")
+	}
+	return clientSet, config, namespace, nil
 }
 
 func GetRpcConnection(namespace string, serviceName string, servicePort string,
 	masterurl string, kubeconfig string) (*grpc.ClientConn, error) {
-	clientSet, err := GetKubernetesClient(masterurl, kubeconfig)
+	clientSet, _, err := GetKubernetesClient(masterurl, kubeconfig)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to get K8s client set when getting RPC connection")
 	}
@@ -100,4 +126,11 @@ func GetRpcConnection(namespace string, serviceName string, servicePort string,
 		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
 	}
 	return conn, nil
+}
+
+func ExtractMasterIPAndPort(config *rest.Config) string {
+	host := config.Host
+	host = strings.TrimPrefix(host, "http://")
+	host = strings.TrimPrefix(host, "https://")
+	return host
 }

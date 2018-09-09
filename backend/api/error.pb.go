@@ -45,7 +45,7 @@ func (m *Error) Reset()         { *m = Error{} }
 func (m *Error) String() string { return proto.CompactTextString(m) }
 func (*Error) ProtoMessage()    {}
 func (*Error) Descriptor() ([]byte, []int) {
-	return fileDescriptor_error_f257b32a346401bb, []int{0}
+	return fileDescriptor_error_d1114a970cf39ce1, []int{0}
 }
 func (m *Error) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Error.Unmarshal(m, b)
@@ -92,7 +92,7 @@ func (m *Status) Reset()         { *m = Status{} }
 func (m *Status) String() string { return proto.CompactTextString(m) }
 func (*Status) ProtoMessage()    {}
 func (*Status) Descriptor() ([]byte, []int) {
-	return fileDescriptor_error_f257b32a346401bb, []int{1}
+	return fileDescriptor_error_d1114a970cf39ce1, []int{1}
 }
 func (m *Status) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Status.Unmarshal(m, b)
@@ -138,9 +138,9 @@ func init() {
 	proto.RegisterType((*Status)(nil), "api.Status")
 }
 
-func init() { proto.RegisterFile("error.proto", fileDescriptor_error_f257b32a346401bb) }
+func init() { proto.RegisterFile("error.proto", fileDescriptor_error_d1114a970cf39ce1) }
 
-var fileDescriptor_error_f257b32a346401bb = []byte{
+var fileDescriptor_error_d1114a970cf39ce1 = []byte{
 	// 177 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4e, 0x2d, 0x2a, 0xca,
 	0x2f, 0xd2, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x94, 0x92, 0x4c, 0xcf,

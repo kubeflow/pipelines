@@ -52,7 +52,7 @@ type APIJob struct {
 	ID string `json:"id,omitempty"`
 
 	// max concurrency
-	MaxConcurrency string `json:"max_concurrency,omitempty"`
+	MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`
 
 	// name
 	Name string `json:"name,omitempty"`

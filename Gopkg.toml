@@ -140,3 +140,7 @@
 [[override]]
   branch = "release-8.0"
   name = "k8s.io/client-go"
+
+[[override]]
+  name = "github.com/spf13/pflag"
+  version = "1.0.1"

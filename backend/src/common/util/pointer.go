@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,11 +35,27 @@ func TimePointer(t time.Time) *time.Time {
 	return &t
 }
 
+func TimestampPointer(t timestamp.Timestamp) *timestamp.Timestamp {
+	return &t
+}
+
+func DateTimePointer(t strfmt.DateTime) *strfmt.DateTime {
+	return &t
+}
+
 func MetaV1TimePointer(t metav1.Time) *metav1.Time {
 	return &t
 }
 
 func Int64Pointer(i int64) *int64 {
+	return &i
+}
+
+func UInt32Pointer(i uint32) *uint32 {
+	return &i
+}
+
+func Int32Pointer(i int32) *int32 {
 	return &i
 }
 

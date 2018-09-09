@@ -38,6 +38,11 @@ func Int64Pointer(i int64) *int64 {
 	return &i
 }
 
+// Int32Pointer converts an int32 to a pointer.
+func Int32Pointer(i int32) *int32 {
+	return &i
+}
+
 func toInt64Pointer(t *metav1.Time) *int64 {
 	if t == nil {
 		return nil

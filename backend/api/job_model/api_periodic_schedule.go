@@ -36,7 +36,7 @@ type APIPeriodicSchedule struct {
 	EndTime strfmt.DateTime `json:"end_time,omitempty"`
 
 	// interval second
-	IntervalSecond string `json:"interval_second,omitempty"`
+	IntervalSecond int64 `json:"interval_second,omitempty,string"`
 
 	// start time
 	// Format: date-time

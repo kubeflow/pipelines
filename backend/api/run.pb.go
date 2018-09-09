@@ -51,7 +51,7 @@ func (m *GetRunV2Request) Reset()         { *m = GetRunV2Request{} }
 func (m *GetRunV2Request) String() string { return proto.CompactTextString(m) }
 func (*GetRunV2Request) ProtoMessage()    {}
 func (*GetRunV2Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_run_c9c3a42c58f522b0, []int{0}
+	return fileDescriptor_run_6044d52b97539d27, []int{0}
 }
 func (m *GetRunV2Request) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetRunV2Request.Unmarshal(m, b)
@@ -90,7 +90,7 @@ func (m *GetRunRequest) Reset()         { *m = GetRunRequest{} }
 func (m *GetRunRequest) String() string { return proto.CompactTextString(m) }
 func (*GetRunRequest) ProtoMessage()    {}
 func (*GetRunRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_run_c9c3a42c58f522b0, []int{1}
+	return fileDescriptor_run_6044d52b97539d27, []int{1}
 }
 func (m *GetRunRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetRunRequest.Unmarshal(m, b)
@@ -139,7 +139,7 @@ func (m *ListRunsRequest) Reset()         { *m = ListRunsRequest{} }
 func (m *ListRunsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListRunsRequest) ProtoMessage()    {}
 func (*ListRunsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_run_c9c3a42c58f522b0, []int{2}
+	return fileDescriptor_run_6044d52b97539d27, []int{2}
 }
 func (m *ListRunsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListRunsRequest.Unmarshal(m, b)
@@ -192,7 +192,7 @@ func (m *ListRunsResponse) Reset()         { *m = ListRunsResponse{} }
 func (m *ListRunsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListRunsResponse) ProtoMessage()    {}
 func (*ListRunsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_run_c9c3a42c58f522b0, []int{3}
+	return fileDescriptor_run_6044d52b97539d27, []int{3}
 }
 func (m *ListRunsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListRunsResponse.Unmarshal(m, b)
@@ -247,7 +247,7 @@ func (m *Run) Reset()         { *m = Run{} }
 func (m *Run) String() string { return proto.CompactTextString(m) }
 func (*Run) ProtoMessage()    {}
 func (*Run) Descriptor() ([]byte, []int) {
-	return fileDescriptor_run_c9c3a42c58f522b0, []int{4}
+	return fileDescriptor_run_6044d52b97539d27, []int{4}
 }
 func (m *Run) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Run.Unmarshal(m, b)
@@ -335,7 +335,7 @@ func (m *RunDetail) Reset()         { *m = RunDetail{} }
 func (m *RunDetail) String() string { return proto.CompactTextString(m) }
 func (*RunDetail) ProtoMessage()    {}
 func (*RunDetail) Descriptor() ([]byte, []int) {
-	return fileDescriptor_run_c9c3a42c58f522b0, []int{5}
+	return fileDescriptor_run_6044d52b97539d27, []int{5}
 }
 func (m *RunDetail) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RunDetail.Unmarshal(m, b)
@@ -516,9 +516,9 @@ var _RunService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "run.proto",
 }
 
-func init() { proto.RegisterFile("run.proto", fileDescriptor_run_c9c3a42c58f522b0) }
+func init() { proto.RegisterFile("run.proto", fileDescriptor_run_6044d52b97539d27) }
 
-var fileDescriptor_run_c9c3a42c58f522b0 = []byte{
+var fileDescriptor_run_6044d52b97539d27 = []byte{
 	// 596 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x53, 0x4d, 0x6f, 0xd3, 0x40,
 	0x10, 0x55, 0x92, 0x26, 0x8d, 0x27, 0xb4, 0x81, 0xa1, 0x85, 0xc8, 0x0d, 0xa5, 0x58, 0x08, 0x45,

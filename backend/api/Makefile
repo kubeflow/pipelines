@@ -13,24 +13,32 @@
 # limitations under the License.
 
 all:
+
+  # Compile the *.proto files into *.pb.go (grpc client).
 	protoc -I/usr/local/include -I. \
 		-I${GOPATH}/src \
 		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/ \
 		--go_out=plugins=grpc:. \
 		*.proto
+
+	# Compile the *.proto files into *.pb.gw.go (grpc client).
 	protoc -I/usr/local/include -I. \
 		-I${GOPATH}/src \
 		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/ \
 		--grpc-gateway_out=logtostderr=true:. \
 		*.proto
+
+  # Compile the *.proto files into *.swagger.json (swagger specification).
 	protoc -I/usr/local/include -I. \
 		-I${GOPATH}/src \
 		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/ \
 		--swagger_out=logtostderr=true:. \
 		*.proto
+
+	# Compile the *.swagger.json into go REST clients.
 	# Instructions to install the 'swagger' command are located here:
 	# https://github.com/go-swagger/go-swagger
 	swagger generate client \
@@ -51,4 +59,16 @@ all:
 		--principal models.Principal \
 		-c pipeline_client \
 		-m pipeline_model
+
+	# Hack to fix an issue with go-swagger
+	# See https://github.com/go-swagger/go-swagger/issues/1381 for details.
+	sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' ./job_model/api_job.go
+	sed -i -- 's/IntervalSecond int64 `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' ./job_model/api_periodic_schedule.go
+
+	# Executes the //go:generate directives in the generated code.
 	go generate .
+
+	# Add licenses to the generated files.
+	# Instructions to install the 'autogen' command are located here:
+	# https://github.com/mbrukman/autogen
+	find ./ -name "*.go" -exec autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
