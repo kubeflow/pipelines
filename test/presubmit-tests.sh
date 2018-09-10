@@ -98,7 +98,13 @@ cp /etc/ssh-knative/ssh-knative ./id_rsa
 kubectl create secret generic ssh-key-secret --from-file=id_rsa=./id_rsa
 
 echo "install argo"
-argo install
+ARGO_VERSION=v2.2.0
+curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
+chmod +x /usr/local/bin/argo
+
+kubectl create ns argo
+kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
