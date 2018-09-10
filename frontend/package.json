@@ -58,9 +58,9 @@
     "dev": "webpack-dev-server --config webpack.dev.ts",
     "lint": "tslint -p tsconfig.json",
     "postinstall": "bower install && cd ./server && npm install && cd ../test && npm install",
-    "apis:pipeline": "swagger-ts-client -s ../backend/api/pipeline.swagger.json -t ./src/api/pipeline.ts -o ./src/api",
-    "apis:job": "swagger-ts-client -s ../backend/api/job.swagger.json -t ./src/api/job.ts -o ./src/api",
-    "apis:run": "swagger-ts-client -s ../backend/api/run.swagger.json -t ./src/api/run.ts -o ./src/api",
+    "apis:pipeline": "swagger-ts-client -s ../backend/api/swagger/pipeline.swagger.json -t ./src/api/pipeline.ts -o ./src/api",
+    "apis:job": "swagger-ts-client -s ../backend/api/swagger/job.swagger.json -t ./src/api/job.ts -o ./src/api",
+    "apis:run": "swagger-ts-client -s ../backend/api/swagger/run.swagger.json -t ./src/api/run.ts -o ./src/api",
     "apis": "npm run apis:pipeline && npm run apis:job && npm run apis:run",
     "start": "npm run apis && npm run dev",
     "tsc": "tsc"

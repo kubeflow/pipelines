@@ -20,14 +20,14 @@ package pipeline_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	fmt "fmt"
+	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	pipeline_model "github.com/googleprivate/ml/backend/api/pipeline_model"
+	pipeline_model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_model"
 )
 
 // ListPipelinesReader is a Reader for the ListPipelines structure.

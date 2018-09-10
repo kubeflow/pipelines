@@ -20,14 +20,14 @@ package job_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	fmt "fmt"
+	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	job_model "github.com/googleprivate/ml/backend/api/job_model"
+	job_model "github.com/googleprivate/ml/backend/api/go_http_client/job_model"
 )
 
 // EnableJobReader is a Reader for the EnableJob structure.

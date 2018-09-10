@@ -20,34 +20,34 @@ package run_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	fmt "fmt"
+	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	run_model "github.com/googleprivate/ml/backend/api/run_model"
+	run_model "github.com/googleprivate/ml/backend/api/go_http_client/run_model"
 )
 
-// GetRunReader is a Reader for the GetRun structure.
-type GetRunReader struct {
+// GetRunV2Reader is a Reader for the GetRunV2 structure.
+type GetRunV2Reader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *GetRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *GetRunV2Reader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewGetRunOK()
+		result := NewGetRunV2OK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
 
 	default:
-		result := NewGetRunDefault(response.Code())
+		result := NewGetRunV2Default(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -58,24 +58,24 @@ func (o *GetRunReader) ReadResponse(response runtime.ClientResponse, consumer ru
 	}
 }
 
-// NewGetRunOK creates a GetRunOK with default headers values
-func NewGetRunOK() *GetRunOK {
-	return &GetRunOK{}
+// NewGetRunV2OK creates a GetRunV2OK with default headers values
+func NewGetRunV2OK() *GetRunV2OK {
+	return &GetRunV2OK{}
 }
 
-/*GetRunOK handles this case with default header values.
+/*GetRunV2OK handles this case with default header values.
 
-GetRunOK get run o k
+GetRunV2OK get run v2 o k
 */
-type GetRunOK struct {
+type GetRunV2OK struct {
 	Payload *run_model.APIRunDetail
 }
 
-func (o *GetRunOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/jobs/{job_id}/runs/{run_id}][%d] getRunOK  %+v", 200, o.Payload)
+func (o *GetRunV2OK) Error() string {
+	return fmt.Sprintf("[GET /apis/v1alpha2/runs/{run_id}][%d] getRunV2OK  %+v", 200, o.Payload)
 }
 
-func (o *GetRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *GetRunV2OK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(run_model.APIRunDetail)
 
@@ -87,33 +87,33 @@ func (o *GetRunOK) readResponse(response runtime.ClientResponse, consumer runtim
 	return nil
 }
 
-// NewGetRunDefault creates a GetRunDefault with default headers values
-func NewGetRunDefault(code int) *GetRunDefault {
-	return &GetRunDefault{
+// NewGetRunV2Default creates a GetRunV2Default with default headers values
+func NewGetRunV2Default(code int) *GetRunV2Default {
+	return &GetRunV2Default{
 		_statusCode: code,
 	}
 }
 
-/*GetRunDefault handles this case with default header values.
+/*GetRunV2Default handles this case with default header values.
 
-GetRunDefault get run default
+GetRunV2Default get run v2 default
 */
-type GetRunDefault struct {
+type GetRunV2Default struct {
 	_statusCode int
 
 	Payload *run_model.APIStatus
 }
 
-// Code gets the status code for the get run default response
-func (o *GetRunDefault) Code() int {
+// Code gets the status code for the get run v2 default response
+func (o *GetRunV2Default) Code() int {
 	return o._statusCode
 }
 
-func (o *GetRunDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/jobs/{job_id}/runs/{run_id}][%d] GetRun default  %+v", o._statusCode, o.Payload)
+func (o *GetRunV2Default) Error() string {
+	return fmt.Sprintf("[GET /apis/v1alpha2/runs/{run_id}][%d] GetRunV2 default  %+v", o._statusCode, o.Payload)
 }
 
-func (o *GetRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *GetRunV2Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(run_model.APIStatus)
 

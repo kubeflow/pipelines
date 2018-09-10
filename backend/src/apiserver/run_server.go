@@ -17,7 +17,7 @@ package main
 import (
 	"context"
 
-	"github.com/googleprivate/ml/backend/api"
+	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 )
 

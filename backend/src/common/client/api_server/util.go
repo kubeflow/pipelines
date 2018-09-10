@@ -6,7 +6,7 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/go-openapi/strfmt"
-	clientmodel "github.com/googleprivate/ml/backend/api/run_model"
+	clientmodel "github.com/googleprivate/ml/backend/api/go_http_client/run_model"
 	servermodel "github.com/googleprivate/ml/backend/src/apiserver/model"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )

@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/googleprivate/ml/backend/api"
+	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"

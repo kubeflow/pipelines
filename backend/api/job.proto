@@ -16,7 +16,6 @@ syntax = "proto3";
 
 package api;
 
-import "error.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";

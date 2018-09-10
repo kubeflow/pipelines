@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	params "github.com/googleprivate/ml/backend/api/job_client/job_service"
-	model "github.com/googleprivate/ml/backend/api/job_model"
+	params "github.com/googleprivate/ml/backend/api/go_http_client/job_client/job_service"
+	model "github.com/googleprivate/ml/backend/api/go_http_client/job_model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"

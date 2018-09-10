@@ -20,34 +20,34 @@ package job_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	fmt "fmt"
+	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	job_model "github.com/googleprivate/ml/backend/api/job_model"
+	job_model "github.com/googleprivate/ml/backend/api/go_http_client/job_model"
 )
 
-// ListJobsReader is a Reader for the ListJobs structure.
-type ListJobsReader struct {
+// DeleteJobReader is a Reader for the DeleteJob structure.
+type DeleteJobReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *ListJobsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *DeleteJobReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewListJobsOK()
+		result := NewDeleteJobOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
 
 	default:
-		result := NewListJobsDefault(response.Code())
+		result := NewDeleteJobDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -58,62 +58,60 @@ func (o *ListJobsReader) ReadResponse(response runtime.ClientResponse, consumer 
 	}
 }
 
-// NewListJobsOK creates a ListJobsOK with default headers values
-func NewListJobsOK() *ListJobsOK {
-	return &ListJobsOK{}
+// NewDeleteJobOK creates a DeleteJobOK with default headers values
+func NewDeleteJobOK() *DeleteJobOK {
+	return &DeleteJobOK{}
 }
 
-/*ListJobsOK handles this case with default header values.
+/*DeleteJobOK handles this case with default header values.
 
-ListJobsOK list jobs o k
+DeleteJobOK delete job o k
 */
-type ListJobsOK struct {
-	Payload *job_model.APIListJobsResponse
+type DeleteJobOK struct {
+	Payload job_model.ProtobufEmpty
 }
 
-func (o *ListJobsOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/jobs][%d] listJobsOK  %+v", 200, o.Payload)
+func (o *DeleteJobOK) Error() string {
+	return fmt.Sprintf("[DELETE /apis/v1alpha2/jobs/{id}][%d] deleteJobOK  %+v", 200, o.Payload)
 }
 
-func (o *ListJobsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(job_model.APIListJobsResponse)
+func (o *DeleteJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
 	return nil
 }
 
-// NewListJobsDefault creates a ListJobsDefault with default headers values
-func NewListJobsDefault(code int) *ListJobsDefault {
-	return &ListJobsDefault{
+// NewDeleteJobDefault creates a DeleteJobDefault with default headers values
+func NewDeleteJobDefault(code int) *DeleteJobDefault {
+	return &DeleteJobDefault{
 		_statusCode: code,
 	}
 }
 
-/*ListJobsDefault handles this case with default header values.
+/*DeleteJobDefault handles this case with default header values.
 
-ListJobsDefault list jobs default
+DeleteJobDefault delete job default
 */
-type ListJobsDefault struct {
+type DeleteJobDefault struct {
 	_statusCode int
 
 	Payload *job_model.APIStatus
 }
 
-// Code gets the status code for the list jobs default response
-func (o *ListJobsDefault) Code() int {
+// Code gets the status code for the delete job default response
+func (o *DeleteJobDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *ListJobsDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/jobs][%d] ListJobs default  %+v", o._statusCode, o.Payload)
+func (o *DeleteJobDefault) Error() string {
+	return fmt.Sprintf("[DELETE /apis/v1alpha2/jobs/{id}][%d] DeleteJob default  %+v", o._statusCode, o.Payload)
 }
 
-func (o *ListJobsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *DeleteJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(job_model.APIStatus)
 

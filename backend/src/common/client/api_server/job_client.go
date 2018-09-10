@@ -5,9 +5,9 @@ import (
 
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/googleprivate/ml/backend/api/job_client"
-	params "github.com/googleprivate/ml/backend/api/job_client/job_service"
-	model "github.com/googleprivate/ml/backend/api/job_model"
+	apiclient "github.com/googleprivate/ml/backend/api/go_http_client/job_client"
+	params "github.com/googleprivate/ml/backend/api/go_http_client/job_client/job_service"
+	model "github.com/googleprivate/ml/backend/api/go_http_client/job_model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	params "github.com/googleprivate/ml/backend/api/pipeline_client/pipeline_service"
+	params "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_client/pipeline_service"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/spf13/cobra"
 )

@@ -5,7 +5,7 @@ import (
 	"math"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	params "github.com/googleprivate/ml/backend/api/run_client/run_service"
+	params "github.com/googleprivate/ml/backend/api/go_http_client/run_client/run_service"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
