@@ -15,30 +15,25 @@
 const assert = require('assert');
 const URL = require('url').URL;
 
-const jobName = 'helloworld-' + Date.now();
+const jobName = 'tfjob-classification-' + Date.now();
 const jobDescription = 'test job description ' + jobName;
 const waitTimeout = 5000;
 
-describe('deploy new job', () => {
+const outputDir = process.env.PIPELINE_OUTPUT;
+//let tensorboardAddress = '';
+
+describe('deploy tfjob sample job', () => {
 
   before(() => {
     browser.url('/');
   });
 
   it('navigates to job list page', () => {
-    const selector = 'app-shell side-nav #jobsBtn';
+      const selector = 'app-shell side-nav #jobsBtn';
 
-    browser.waitForVisible(selector);
-    browser.click(selector);
-  });
-
-  it('starts out with no jobs', () => {
-    const selector = 'app-shell job-list item-list #listContainer';
-    browser.waitForVisible(selector, waitTimeout);
-
-    assert.equal(browser.getText(selector), 'No jobs found. Click New Job to start.',
-        'initial job list is not empty');
-  });
+      browser.waitForVisible(selector);
+      browser.click(selector);
+    });
 
   it('opens new job page', () => {
     const selector = 'app-shell job-list paper-button';
@@ -48,7 +43,7 @@ describe('deploy new job', () => {
     assert.equal(new URL(browser.getUrl()).pathname, '/jobs/new');
   });
 
-  it('uploads the hello world pipeline', () => {
+  it('uploads the kubeflow classfication sample pipeline', () => {
     const selector = 'app-shell job-new #deployButton';
     browser.waitForVisible(selector, waitTimeout);
 
@@ -58,7 +53,7 @@ describe('deploy new job', () => {
                         .querySelector('#altFileUpload').style.display=''`);
     const uploadSelector = 'app-shell job-new #altFileUpload';
     browser.waitForVisible(uploadSelector, waitTimeout);
-    browser.chooseFile(uploadSelector, './hello-world.yaml');
+    browser.chooseFile(uploadSelector, './kubeflow-classification.yaml');
 
     // Hide the alt upload button
     browser.execute(`document.querySelector('app-shell').shadowRoot
@@ -75,6 +70,13 @@ describe('deploy new job', () => {
 
     browser.keys('Tab');
     browser.keys(jobDescription);
+
+    // Skip trigger and maximum concurrent jobs inputs
+    browser.keys('Tab');
+    browser.keys('Tab');
+
+    browser.keys('Tab')
+    browser.keys(outputDir)
 
     browser.click('app-shell job-new #deployButton');
   });
@@ -116,6 +118,13 @@ describe('deploy new job', () => {
         'job created date should be within the last five seconds');
   });
 
+  it('display job output directory correctly', () => {
+    const selector = 'app-shell job-details .params-table.details-table::div:nth-child(1)::span.value'
+    browser.waitForVisible(selector, waitTimeout);
+    assert.equal(browser.getText(selector), outputDir,
+        'job output directory is not shown correctly');
+  });
+
   it('switches to run list tab', () => {
     const selector = 'app-shell job-details paper-tab:last-child';
     browser.click(selector);
@@ -144,8 +153,8 @@ describe('deploy new job', () => {
     const runsText = browser.getText(selector);
     assert(!Array.isArray(runsText) && typeof runsText === 'string',
       'only one run should show up');
-    assert(runsText.startsWith('job-helloworld'),
-      'run name should start with job-helloworld: ' + runsText);
+    assert(runsText.startsWith('job-tfjob-classification'),
+      'run name should start with job-tfjob-classification: ' + runsText);
   });
 
   it('opens run details on double click', () => {
@@ -158,6 +167,72 @@ describe('deploy new job', () => {
       return new URL(browser.getUrl()).pathname.startsWith('/jobRun');
     }, waitTimeout);
   });
+
+  it('waits until the whole job is complete', () => {
+    const selector = 'app-shell run-details #statusString';
+    browser.waitForVisible(selector, waitTimeout);
+
+    let attempts = 0;
+
+    const maxAttempts = 144;
+
+    while (attempts < maxAttempts && browser.getText(selector) !== 'Succeeded') {
+      browser.click('app-shell run-details #refreshButton');
+      // Wait for a reasonable amount of time until the run is done
+      browser.pause(5000);
+      attempts++;
+    }
+
+    assert(attempts < maxAttempts, `waited for ${maxAttempts * 5} seconds but run did not finish`);
+  });
+
+  it('generates four nodes in the runtime graph', () => {
+    assert.equal(browser.elements('app-shell run-details runtime-graph .job-node').value.length, 4);
+  });
+// TODO: add the visualization tests after the frontend is updated with the plot orders.
+//  it('switches to output tab', () => {
+//    const selector = 'app-shell run-details #output-tab'
+//    browser.click(selector)
+//  });
+//
+//  it('creates a confusion matrix with an svg', () => {
+//    const selector = 'app-shell run-details data-plot .plotTitle';
+//    assert(browser.getText(selector).startsWith('Confusion Matrix from file:'));
+//
+//    const svgSelector = 'app-shell run-details data-plot svg';
+//    assert(browser.isVisible(svgSelector));
+//  });
+//
+//  it('creates a Start Tensorboard button', () => {
+//    const selector = 'app-shell run-details data-plot:nth-of-type(3) .plotTitle';
+//    assert(browser.getText(selector).startsWith('Tensorboard for logdir:'));
+//
+//    const buttonSelector = 'app-shell run-details data-plot:nth-of-type(3) paper-button';
+//    assert(browser.isVisible(buttonSelector));
+//    assert.equal(browser.getText(buttonSelector), 'Start Tensorboard');
+//  });
+//
+//  it('starts Tensorboard when button is clicked', () => {
+//    const buttonSelector = 'app-shell run-details data-plot:nth-of-type(3) paper-button';
+//    browser.click(buttonSelector);
+//
+//    let attempts = 0;
+//
+//    const maxAttempts = 120;
+//
+//    while (attempts < maxAttempts && browser.getText(buttonSelector) !== 'Open Tensorboard') {
+//      browser.pause(1000);
+//      attempts++;
+//    }
+//
+//    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but Tensorboard did not start`);
+//  });
+//
+//  it('generates the right Tensorboard proxy hyperlink', () => {
+//    const buttonSelector = 'app-shell run-details data-plot:nth-of-type(3) a';
+//    tensorboardAddress = browser.getAttribute(buttonSelector, 'href');
+//    assert(tensorboardAddress.indexOf('/apis/v1alpha2/_proxy/') > -1);
+//  });
 
   it('deletes the job', () => {
     const backBtn = 'app-shell run-details #jobLink';
@@ -178,12 +253,8 @@ describe('deploy new job', () => {
     }, waitTimeout);
   });
 
-  it('shows an empty list of jobs after deletion', () => {
-    const selector = 'app-shell job-list item-list #listContainer';
-    browser.waitForVisible(selector, waitTimeout);
-
-    assert.equal(browser.getText(selector), 'No jobs found. Click New Job to start.',
-        'final job list is not empty');
-  });
-
+//  it('can visit the Tensorboard pod using the proxy link', () => {
+//    browser.url(tensorboardAddress);
+//    browser.waitForVisible('paper-toolbar');
+//  });
 });

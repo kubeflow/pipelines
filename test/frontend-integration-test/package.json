@@ -1,5 +1,5 @@
 {
-  "name": "pipelines-frontend-e2e-test",
+  "name": "pipelines-frontend-integration-test",
   "version": "0.0.1",
   "description": "Visual regression end to end test package for ML Pipelines",
   "dependencies": {

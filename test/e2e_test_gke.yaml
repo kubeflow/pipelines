@@ -29,8 +29,8 @@ spec:
     - name: persistenceagent-image
     - name: api-integration-test-image-suffix
       value: api_integration_test
-    - name: e2e-tests-image-suffix
-      value: e2e-tests
+    - name: frontend-integration-tests-image-suffix
+      value: frontend-integration-tests
   templates:
   - name: e2e-test
     inputs:
@@ -43,7 +43,7 @@ spec:
       - name: scheduledworkflow-image
       - name: persistenceagent-image
       - name: api-integration-test-image-suffix
-      - name: e2e-tests-image-suffix
+      - name: frontend-integration-tests-image-suffix
     steps:
     - - name: get-project
         template: get-project
@@ -59,7 +59,7 @@ spec:
             value: test/api-integration-test
           - name: image-suffix
             value: "{{inputs.parameters.api-integration-test-image-suffix}}"
-      - name: build-e2e-tests-image
+      - name: build-frontend-integration-tests-image
         template: build-image
         arguments:
           parameters:
@@ -68,9 +68,9 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: test/e2e
+            value: test/frontend-integration-test
           - name: image-suffix
-            value: "{{inputs.parameters.e2e-tests-image-suffix}}"
+            value: "{{inputs.parameters.frontend-integration-tests-image-suffix}}"
     - - name: deploy-ml-pipeline
         template: deploy-ml-pipeline
         arguments:
@@ -95,16 +95,16 @@ spec:
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: api-integration-test-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-integration-test-image-suffix}}"
-    - - name: run-e2e-tests
-        template: run-e2e-tests
+    - - name: run-frontend-integration-tests
+        template: run-frontend-integration-tests
         arguments:
           parameters:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: e2e-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.e2e-tests-image-suffix}}"
+          - name: frontend-integration-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-integration-tests-image-suffix}}"
 
   - name: get-project
     script:
@@ -183,14 +183,14 @@ spec:
       - name: secret-volume
         mountPath: "/root/.ssh/github"
 
-  - name: run-e2e-tests
+  - name: run-frontend-integration-tests
     inputs:
       parameters:
       - name: commit-sha
       - name: test-results-gcs-dir
-      - name: e2e-tests-image
+      - name: frontend-integration-tests-image
     container:
-      image: "{{inputs.parameters.e2e-tests-image}}"
+      image: "{{inputs.parameters.frontend-integration-tests-image}}"
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",

@@ -73,10 +73,11 @@ POD=`/src/tools/google-cloud-sdk/bin/kubectl get pods -n ${NAMESPACE} -l app=ml-
 ./node_modules/.bin/wait-port 127.0.0.1:4444 -t 20000
 ./node_modules/.bin/wait-port 127.0.0.1:3000 -t 20000
 
+export PIPELINE_OUTPUT=${RESULTS_GCS_DIR}/pipeline_output
 npm test
 TEST_EXIT_CODE=$?
 
-JUNIT_TEST_RESULT=junit_E2eTestOutput.xml
+JUNIT_TEST_RESULT=junit_FrontendIntegrationTestOutput.xml
 
 echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
 tools/google-cloud-sdk/bin/gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}

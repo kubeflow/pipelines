@@ -32,7 +32,8 @@ exports.config = {
   host: '127.0.01',
   port: 4444,
   mochaOpts: {
-    timeout: 100000,
+    // units: ms
+    timeout: 800000,
   },
   logLevel: 'silent',
   plugins: {
@@ -42,11 +43,13 @@ exports.config = {
   reporterOptions: {
     junit: {
       outputDir: './',
-      outputFileFormat: () => 'junit_E2eTestOutput.xml',
+      outputFileFormat: {
+        single: () => 'junit_FrontendIntegrationTestOutput.xml',
+      }
     },
   },
   specs: [
-    './e2e.spec.js',
+    './kubeflow-classification.js',
   ],
   sync: true,
   waitforTimeout: 10000,
