@@ -108,7 +108,7 @@ export default (app: express.Application) => {
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize);
+    const end = start + (+req.query.pageSize || 20);
     response.jobs = jobs.slice(start, end);
 
     if (end < jobs.length) {
@@ -198,7 +198,7 @@ export default (app: express.Application) => {
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize);
+    const end = start + (+req.query.pageSize || 20);
     response.runs = runs.slice(start, end);
 
     if (end < runs.length) {
@@ -206,6 +206,63 @@ export default (app: express.Application) => {
     }
 
     res.json(response);
+  });
+
+  app.get(v1alpha2Prefix + '/runs', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
+    const response: apiListRunsResponse = {
+      next_page_token: '',
+      runs: [],
+    };
+
+    let runs: apiRun[] = fixedData.runs.map((r) => r.run!);
+
+    if (req.query.filterBy) {
+      // NOTE: We do not mock fuzzy matching. E.g. 'rn' doesn't match 'run'
+      // This may need to be updated when the backend implements filtering.
+      runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
+          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+    }
+
+    // The backend sorts by created_at by default.
+    const sortKey: (keyof apiRun) = req.query.sortBy || Apis.RunSortKeys.CREATED_AT;
+
+    if (!isValidSortKey(Apis.RunSortKeys, sortKey)) {
+      res.status(405).send(`Unsupported sort string: ${sortKey}`);
+      return;
+    }
+
+    runs.sort((a, b) => {
+      let result = 1;
+      if (a[sortKey]! < b[sortKey]!) {
+        result = -1;
+      }
+      if (a[sortKey]! === b[sortKey]!) {
+        result = 0;
+      }
+      return result * ((req.query.ascending === 'false') ? -1 : 1);
+    });
+
+    const start = (req.query.pageToken ? +req.query.pageToken : 0);
+    const end = start + (+req.query.pageSize || 20);
+    response.runs = runs.slice(start, end);
+
+    if (end < runs.length) {
+      response.next_page_token = end + '';
+    }
+
+    res.json(response);
+  });
+
+  app.get(v1alpha2Prefix + '/runs/:rid', (req, res) => {
+    const rid = req.params.rid;
+    const run = fixedData.runs.find((r) => r.run!.id === rid);
+    if (!run) {
+      res.status(404).send('Cannot find a run with id: ' + rid);
+      return;
+    }
+    res.json(run);
   });
 
   app.post(v1alpha2Prefix + '/jobs/:jid/enable', (req, res) => {
@@ -232,11 +289,11 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.get(v1alpha2Prefix + '/jobs/:pid/runs/:jid', (req, res) => {
-    const jid = req.params.jid;
-    const run = fixedData.runs.find((r) => r.run!.id === jid);
+  app.get(v1alpha2Prefix + '/jobs/:jid/runs/:rid', (req, res) => {
+    const rid = req.params.rid;
+    const run = fixedData.runs.find((r) => r.run!.id === rid);
     if (!run) {
-      res.status(404).send('Cannot find a run with id: ' + jid);
+      res.status(404).send('Cannot find a run with id: ' + rid);
       return;
     }
     res.json(run);
@@ -284,7 +341,7 @@ export default (app: express.Application) => {
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize);
+    const end = start + (+req.query.pageSize || 20);
     response.pipelines = pipelines.slice(start, end);
 
     if (end < pipelines.length) {

@@ -114,7 +114,7 @@ export class PipelineList extends PageElement {
 
   public load(): void {
     this.itemList.reset();
-    this._loadPipelines({ pageSize: this.itemList.selectedPageSize } as Apis.ListPipelinesRequest);
+    this._loadPipelines({ pageSize: this.itemList.selectedPageSize });
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {

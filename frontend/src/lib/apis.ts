@@ -45,6 +45,7 @@ export enum RunSortKeys {
   CREATED_AT = 'created_at',
   NAME = 'name'
 }
+
 // Valid sortKeys as specified by the backend.
 export enum PipelineSortKeys {
   AUTHOR = 'id',
@@ -279,9 +280,14 @@ export function disableJob(id: string): Promise<string> {
  * Gets a list of all the job runs from the backend.
  */
 export async function listRuns(request: ListRunsRequest): Promise<apiListRunsResponse> {
-  const runsResponse = JSON.parse(await _fetch(
-      `/jobs/${request.jobId}/runs`, v1alpha2Prefix, requestToQueryParams(request)));
-  (runsResponse.runs || []).forEach((r: any) => {
+  let response;
+  if (request.jobId) {
+    response = JSON.parse(await _fetch(
+        `/jobs/${request.jobId}/runs`, v1alpha2Prefix, requestToQueryParams(request)));
+  } else {
+    response = JSON.parse(await _fetch(`/runs`, v1alpha2Prefix, requestToQueryParams(request)));
+  }
+  (response.runs || []).forEach((r: any) => {
     if (r.created_at) {
       r.created_at = new Date(r.created_at);
     }
@@ -289,7 +295,7 @@ export async function listRuns(request: ListRunsRequest): Promise<apiListRunsRes
       r.updated_at = new Date(r.updated_at);
     }
   });
-  return runsResponse;
+  return response;
 }
 
 /**

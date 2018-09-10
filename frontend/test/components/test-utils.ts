@@ -122,3 +122,24 @@ export function restoreTag(tagName: string): void {
   // Remove the tag from the replacement map
   stubMap.delete(tagName);
 }
+
+export async function wait(timeout: number): Promise<any> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, timeout);
+  });
+}
+
+export function waitUntil(condition: () => boolean, timeout: number): Promise<any> {
+  const start = Date.now();
+  return new Promise(async (resolve, reject) => {
+    while (!condition()) {
+      if (Date.now() - start >= timeout) {
+        reject('Condition remained false after timeout');
+      }
+      await wait(50);
+    }
+    resolve();
+  });
+}

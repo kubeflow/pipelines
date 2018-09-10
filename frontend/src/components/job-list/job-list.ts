@@ -15,12 +15,14 @@
 import 'iron-icons/iron-icons.html';
 import 'paper-button/paper-button.html';
 import 'paper-spinner/paper-spinner.html';
+import 'paper-tabs/paper-tab.html';
+import 'paper-tabs/paper-tabs.html';
 import 'polymer/polymer.html';
 
 import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
-import { customElement, property } from 'polymer-decorators/src/decorators';
+import { customElement, observe, property } from 'polymer-decorators/src/decorators';
 import * as xss from 'xss';
 import { apiJob } from '../../api/job';
 import { DialogResult } from '../../components/popup-dialog/popup-dialog';
@@ -38,6 +40,8 @@ import {
   ItemListElement,
   ItemListRow,
 } from '../item-list/item-list';
+import '../run-list/run-list';
+import { RunList } from '../run-list/run-list';
 
 import './job-list.html';
 
@@ -47,8 +51,17 @@ export class JobList extends PageElement {
   @property({ type: Array })
   public jobs: apiJob[] = [];
 
+  @property({ type: Number })
+  public selectedTab = -1;
+
   @property({ type: Boolean })
   protected _busy = false;
+
+  @property({ type: String })
+  protected _runsTabHref = '#allRuns';
+
+  @property({ type: String })
+  protected _jobsTabHref = '#groupByJob';
 
   @property({ type: Boolean })
   protected _oneItemIsSelected = false;
@@ -72,8 +85,16 @@ export class JobList extends PageElement {
     return this.$.deleteBtn as PaperButtonElement;
   }
 
-  public get itemList(): ItemListElement {
+  public get jobsItemList(): ItemListElement {
     return this.$.jobsItemList as ItemListElement;
+  }
+
+  public get runsItemList(): RunList {
+    return this.$.runsItemList as RunList;
+  }
+
+  public get tabs(): PaperTabsElement {
+    return this.$.tabs as PaperTabsElement;
   }
 
   protected jobListRows: ItemListRow[] = [];
@@ -93,13 +114,14 @@ export class JobList extends PageElement {
 
   public ready(): void {
     super.ready();
-    this.itemList.addEventListener(ListFormatChangeEvent.name, this._listFormatChanged.bind(this));
-    this.itemList.addEventListener(NewListPageEvent.name, this._loadNewListPage.bind(this));
-    this.itemList.addEventListener('selected-indices-changed',
+    this.jobsItemList.addEventListener(
+        ListFormatChangeEvent.name, this._listFormatChanged.bind(this));
+    this.jobsItemList.addEventListener(NewListPageEvent.name, this._loadNewListPage.bind(this));
+    this.jobsItemList.addEventListener('selected-indices-changed',
         this._selectedItemsChanged.bind(this));
-    this.itemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
+    this.jobsItemList.addEventListener(ItemDblClickEvent.name, this._navigate.bind(this));
 
-    this.itemList.renderColumn = (value: ColumnType, colIndex: number, rowIndex: number) => {
+    this.jobsItemList.renderColumn = (value: ColumnType, colIndex: number, rowIndex: number) => {
       if (value === undefined) {
         return '-';
       }
@@ -118,8 +140,8 @@ export class JobList extends PageElement {
               `<iron-icon icon=${Utils.nodePhaseToIcon(status as any)} title="${status}"
                 class="padded-spacing-minus-6"></iron-icon>`).join('');
         default:
-          if (this.itemList.columns[colIndex] && value &&
-              this.itemList.columns[colIndex].type === ColumnTypeName.DATE) {
+          if (this.jobsItemList.columns[colIndex] && value &&
+              this.jobsItemList.columns[colIndex].type === ColumnTypeName.DATE) {
             text = (value as Date).toLocaleString();
           }
           return text;
@@ -128,8 +150,10 @@ export class JobList extends PageElement {
   }
 
   public load(): void {
-    this.itemList.reset();
-    this._loadJobs({ pageSize: this.itemList.selectedPageSize });
+    this.jobsItemList.reset();
+    const tabElement = this.tabs.querySelector(`[href="${location.hash}"]`);
+    this.selectedTab = tabElement ? this.tabs.indexOf(tabElement) : 0;
+    this._loadSelectedPage();
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
@@ -143,7 +167,7 @@ export class JobList extends PageElement {
 
   protected _cloneJob(): void {
     // Clone Job button is only enabled if there is one selected item.
-    const selectedJob = this.jobs[this.itemList.selectedIndices[0]];
+    const selectedJob = this.jobs[this.jobsItemList.selectedIndices[0]];
     this.dispatchEvent(
         new RouteEvent(
           '/jobs/new',
@@ -154,7 +178,7 @@ export class JobList extends PageElement {
   }
 
   protected async _deleteJob(): Promise<void> {
-    const deletedItemsLen = this.itemList.selectedIndices.length;
+    const deletedItemsLen = this.jobsItemList.selectedIndices.length;
     const pluralS = deletedItemsLen > 1 ? 's' : '';
     const dialogResult = await Utils.showDialog(
         `Delete ${deletedItemsLen} job${pluralS}?`,
@@ -172,7 +196,7 @@ export class JobList extends PageElement {
     let unsuccessfulDeletes = 0;
     let errorMessage = '';
 
-    await Promise.all(this.itemList.selectedIndices.map(async (i) => {
+    await Promise.all(this.jobsItemList.selectedIndices.map(async (i) => {
       try {
         await Apis.deleteJob(this.jobs[i].id!);
       } catch (err) {
@@ -181,11 +205,11 @@ export class JobList extends PageElement {
       }
     }));
 
-    const successfulDeletes = this.itemList.selectedIndices.length - unsuccessfulDeletes;
+    const successfulDeletes = this.jobsItemList.selectedIndices.length - unsuccessfulDeletes;
     if (successfulDeletes > 0) {
       Utils.showNotification(`Successfully deleted ${successfulDeletes} Jobs!`);
-      this.itemList.reset();
-      this._loadJobs({ pageSize: this.itemList.selectedPageSize });
+      this.jobsItemList.reset();
+      this._loadJobs({ pageSize: this.jobsItemList.selectedPageSize });
     }
 
     if (unsuccessfulDeletes > 0) {
@@ -199,6 +223,27 @@ export class JobList extends PageElement {
     this.dispatchEvent(new RouteEvent('/jobs/new'));
   }
 
+  @observe('selectedTab')
+  protected _selectedTabChanged(): void {
+    if (this.selectedTab === -1) {
+      return;
+    }
+    const tab = (this.tabs.selectedItem || this.tabs.children[0]) as PaperTabElement | undefined;
+    if (tab) {
+      const href = tab.getAttribute('href');
+      location.hash = href || '';
+      this._loadSelectedPage();
+    }
+  }
+
+  private _loadSelectedPage(): void {
+    if (this.selectedTab === 1) {
+      this.runsItemList.loadRuns();
+    } else {
+      this._loadJobs({ pageSize: this.jobsItemList.selectedPageSize });
+    }
+  }
+
   private _loadNewListPage(ev: NewListPageEvent): void {
     this._loadJobs({
       filterBy: ev.detail.filterBy,
@@ -209,9 +254,9 @@ export class JobList extends PageElement {
   }
 
   private _selectedItemsChanged(): void {
-    if (this.itemList.selectedIndices) {
-      this._oneItemIsSelected = this.itemList.selectedIndices.length === 1;
-      this._atLeastOneItemIsSelected = this.itemList.selectedIndices.length > 0;
+    if (this.jobsItemList.selectedIndices) {
+      this._oneItemIsSelected = this.jobsItemList.selectedIndices.length === 1;
+      this._atLeastOneItemIsSelected = this.jobsItemList.selectedIndices.length > 0;
     } else {
       this._oneItemIsSelected = false;
       this._atLeastOneItemIsSelected = false;
@@ -241,7 +286,7 @@ export class JobList extends PageElement {
       const listJobsResponse = await Apis.listJobs(request);
       this.jobs = listJobsResponse.jobs || [];
 
-      this.itemList.updateNextPageToken(listJobsResponse.next_page_token || '');
+      this.jobsItemList.updateNextPageToken(listJobsResponse.next_page_token || '');
     } catch (err) {
       this.showPageError('There was an error while loading the job list', err.message);
       Utils.log.verbose('Error loading jobs:', err);

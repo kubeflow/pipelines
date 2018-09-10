@@ -43,6 +43,9 @@ export class RunList extends Polymer.Element {
   @property({ type: Array })
   public runsMetadata: apiRun[] = [];
 
+  @property({ type: String })
+  public emptyMessage = '';
+
   public get itemList(): ItemListElement {
     return this.$.runsItemList as ItemListElement;
   }
@@ -57,7 +60,7 @@ export class RunList extends Polymer.Element {
 
   private _debouncer: Polymer.Debouncer | undefined = undefined;
 
-  private _jobId = '';
+  private _jobId ?= '';
 
   public ready(): void {
     super.ready();
@@ -83,7 +86,7 @@ export class RunList extends Polymer.Element {
     };
   }
 
-  public loadRuns(jobId: string): void {
+  public loadRuns(jobId?: string): void {
     this._jobId = jobId;
     this.itemList.reset();
     this._loadRunsInternal({ jobId, pageSize: this.itemList.selectedPageSize });

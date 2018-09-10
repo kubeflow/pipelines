@@ -23,7 +23,7 @@ import { JobList } from '../../src/components/job-list/job-list';
 import { PageError } from '../../src/components/page-error/page-error';
 import { DialogResult } from '../../src/components/popup-dialog/popup-dialog';
 import { RouteEvent } from '../../src/model/events';
-import { dialogStub, notificationStub, resetFixture } from './test-utils';
+import { dialogStub, notificationStub, resetFixture, waitUntil } from './test-utils';
 
 import * as fixedData from '../../mock-backend/fixed-data';
 
@@ -51,7 +51,9 @@ describe('job-list', () => {
   });
 
   beforeEach(async () => {
+    location.hash = '';
     await _resetFixture();
+    await waitUntil(() => !!fixture.jobsItemList.rows.length, 2000);
   });
 
   it('shows the list of jobs', () => {
@@ -60,7 +62,7 @@ describe('job-list', () => {
         fixedData.data.jobs.map((job: any) => job.id));
   });
 
-  it('shows last 5 runs status', (done) => {
+  it('shows last 5 runs status', async () => {
     listRunsStub = sinon.stub(Apis, 'listRuns');
     const successRun = fixedData.data.runs[0];
     successRun.run!.status = 'Succeeded';
@@ -69,17 +71,25 @@ describe('job-list', () => {
     listRunsStub.returns({ runs: [] });
     listRunsStub.onFirstCall().returns({ runs: [successRun.run, failureRun.run] });
 
-    _resetFixture()
-      .then(() => Polymer.Async.idlePeriod.run(() => {
-        assert.strictEqual(fixture.itemList.rows[0].columns[1], 'Succeeded:Failed');
-        assert.strictEqual(fixture.itemList.rows[1].columns[1], '');
-        listRunsStub.restore();
-        done();
-      }));
+    await _resetFixture();
+    await waitUntil(() => fixture.jobsItemList.rows[0].columns[1] === 'Succeeded:Failed', 5000);
+    assert.strictEqual(fixture.jobsItemList.rows[1].columns[1], '');
+    listRunsStub.restore();
+  });
+
+  it('shows list of all runs', async () => {
+    listRunsStub = sinon.stub(Apis, 'listRuns');
+    listRunsStub.returns({ runs: fixedData.data.runs.map((r) => r.run!) });
+    (fixture.tabs.children[1] as PaperTabElement).click();
+    await waitUntil(() =>
+        fixture.runsItemList.runsMetadata.length === fixedData.data.runs.length, 5000);
+
+    assert.deepStrictEqual(fixture.runsItemList.runsMetadata[0], fixedData.data.runs[0].run);
+    listRunsStub.restore();
   });
 
   it('displays the job name as a link to the job\'s details page', () => {
-    const link = fixture.itemList.getCellElement(1, 1).children[0];
+    const link = fixture.jobsItemList.getCellElement(1, 1).children[0];
     assert.strictEqual(link.tagName, 'A');
     assert.strictEqual(link.getAttribute('href'), `/jobs/details/${fixture.jobs[0].id}`);
   });
@@ -100,8 +110,8 @@ describe('job-list', () => {
   });
 
   it('navigates to job details page on double click', (done) => {
-    fixture.itemList._selectItemByDisplayIndex(0);
-    const index = fixture.itemList.selectedIndices[0];
+    fixture.jobsItemList._selectItemByDisplayIndex(0);
+    const index = fixture.jobsItemList.selectedIndices[0];
     const id = fixedData.data.jobs[index].id;
     const listener = (e: Event) => {
       const detail = (e as RouteEvent).detail;
@@ -113,12 +123,12 @@ describe('job-list', () => {
     };
     document.addEventListener(RouteEvent.name, listener);
 
-    const firstItem = fixture.itemList.shadowRoot!.querySelector('paper-item') as PaperItemElement;
-    firstItem.dispatchEvent(new MouseEvent('dblclick'));
+    const firstItem = fixture.jobsItemList.shadowRoot!.querySelector('paper-item');
+    firstItem!.dispatchEvent(new MouseEvent('dblclick'));
   });
 
   it('navigates to new job page with cloned job data', (done) => {
-    fixture.itemList._selectItemByRealIndex(0);
+    fixture.jobsItemList._selectItemByRealIndex(0);
 
     const listener = (e: Event) => {
       const detail = (e as RouteEvent).detail;
@@ -153,7 +163,7 @@ describe('job-list', () => {
     dialogStub.returns(DialogResult.BUTTON1);
     deleteJobStub.returns('ok');
 
-    fixture.itemList._selectItemByRealIndex(0);
+    fixture.jobsItemList._selectItemByRealIndex(0);
     fixture.deleteButton.click();
 
     Polymer.Async.idlePeriod.run(() => {
@@ -171,6 +181,7 @@ describe('job-list', () => {
     it('shows the list of jobs', async () => {
       listJobsStub.throws('cannot get list, bad stuff happened');
       await _resetFixture();
+      fixture.load();
       assert.equal(fixture.jobs.length, 0, 'should not show any jobs');
       const errorEl = fixture.$.pageErrorElement as PageError;
       assert.equal(errorEl.error, 'There was an error while loading the job list',
@@ -184,8 +195,9 @@ describe('job-list', () => {
       listJobsStub = sinon.stub(Apis, 'listJobs');
       listJobsStub.returns(allJobsResponse);
       _resetFixture()
+        .then(() => fixture.load())
         .then(() => {
-          fixture.itemList._selectItemByRealIndex(0);
+          fixture.jobsItemList._selectItemByRealIndex(0);
           fixture.deleteButton.click();
 
           Polymer.Async.idlePeriod.run(() => {
@@ -210,7 +222,7 @@ describe('job-list', () => {
     });
 
     it('sanitizes user data before inlining as HTML', () => {
-      const link = fixture.itemList.getCellElement(1, 1).children[0];
+      const link = fixture.jobsItemList.getCellElement(1, 1).children[0];
       assert(link.innerHTML.trim(), '&lt;script&gt;alert("surprise!")&lt;/script&gt;');
     });
 

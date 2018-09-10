@@ -16,6 +16,16 @@
 <dom-module id="job-list">
   <template>
     <link rel="stylesheet" href="./job-list.css">
+    <style>
+      paper-tabs {
+        --paper-tabs-selection-bar: {
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-bottom: 3px solid var(--theme-primary-color);
+        }
+      }
+    </style>
+
 
     <div class="toolbar">
       <div class="toolbar-title">All Jobs</div>
@@ -48,11 +58,24 @@
       <div class="overlay" hidden="[[!_busy]]">
         <paper-spinner class="absolute-spinner" active></paper-spinner>
       </div>
-      <div class="scrollable">
-        <item-list id="jobsItemList" class="flex-grow" rows="[[jobListRows]]"
-                   empty-message="No jobs found. Click New Job to start."
-                   columns="[[jobListColumns]]">
-        </item-list>
+      <div class="flex-column flex-grow">
+        <div class="no-shrink tabs-container">
+          <paper-tabs id="tabs" class="no-shrink" selected="{{selectedTab}}">
+            <paper-tab href$="[[_jobsTabHref]]">Group by job</paper-tab>
+            <paper-tab href$="[[_runsTabHref]]">Show all runs</paper-tab>
+          </paper-tabs>
+        </div>
+
+        <iron-pages class="padded flex-column flex-grow overflow-auto" selected="{{selectedTab}}">
+          <!-- iron-page tab1 -->
+          <item-list id="jobsItemList" class="flex-grow" rows="[[jobListRows]]"
+                     empty-message="No jobs found. Click New Job to start."
+                     columns="[[jobListColumns]]">
+          </item-list>
+
+          <!-- iron-page tab 2 -->
+          <run-list id="runsItemList" class="flex-grow" empty-message="No runs found."></run-list>
+        </iron-pages>
       </div>
     </div>
 
