@@ -166,3 +166,4 @@ pandas,https://raw.githubusercontent.com/pandas-dev/pandas/master/LICENSE,3-Clau
 scikit-learn,https://raw.githubusercontent.com/scikit-learn/scikit-learn/master/COPYING,BSD
 scipy,https://raw.githubusercontent.com/scipy/scipy/master/LICENSE.txt,BSD
 tensorflow-tensorboard,https://raw.githubusercontent.com/tensorflow/tensorboard/master/LICENSE,Apache 2.0
+defusedxml,https://raw.githubusercontent.com/tiran/defusedxml/master/LICENSE,PSF

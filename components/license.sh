@@ -20,15 +20,20 @@
 # Usage:
 #   license.sh third_party_licenses.csv /usr/licenses
 
+
+# Get the list of python packages installed locally.
 IFS=$'\n'
 INSTALLED_PACKAGES=($(pip freeze | sed s/=.*//))
 
+
+# Get the list of python packages tracked in the given CSV file.
 REGISTERED_PACKAGES=()
 while IFS=, read -r col1 col2 col3
 do
   REGISTERED_PACKAGES+=($col1)
 done < $1
 
+# Make sure all locally installed packages are covered.
 DIFF=()
 for i in "${INSTALLED_PACKAGES[@]}"; do
   skip=
@@ -45,9 +50,14 @@ if [ -n "$DIFF" ]; then
   exit 1
 fi
 
+# Gather license files for each package. For packages with GPL license we mirror the source code.
+mkdir -p $2/source
 while IFS=, read -r col1 col2 col3
 do
   if [[ " ${INSTALLED_PACKAGES[@]} " =~ " ${col1} " ]]; then
     wget -O $2/$col1.LICENSE $col2
+    if [[ "${col3}" == *GPL* ]]; then
+      pip install -t "$2/source/${col1}" ${col1}
+    fi
   fi
 done < $1

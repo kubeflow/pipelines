@@ -14,4 +14,7 @@
 
 FROM ml-pipeline-dataflow-base
 
+RUN mkdir /usr/licenses && \
+    /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
+
 ENTRYPOINT ["python", "/ml/transform.py"]
