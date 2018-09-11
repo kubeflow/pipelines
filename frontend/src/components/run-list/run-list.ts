@@ -53,6 +53,7 @@ export class RunList extends Polymer.Element {
   protected runListRows: ItemListRow[] = [];
 
   protected runListColumns: ItemListColumn[] = [
+    new ItemListColumn('Status', ColumnTypeName.STRING, undefined, 0.15),
     new ItemListColumn('Run Name', ColumnTypeName.STRING, Apis.RunSortKeys.NAME),
     new ItemListColumn('Created at', ColumnTypeName.DATE, Apis.RunSortKeys.CREATED_AT),
     new ItemListColumn('Scheduled at', ColumnTypeName.DATE),
@@ -78,11 +79,16 @@ export class RunList extends Polymer.Element {
         }
       }
       text = xss(text);
-      return colIndex ? `<span>${text}</span>` :
-          `<a class="link"
-              href="/jobRun?jobId=${this._jobId}&runId=${this.runsMetadata[rowIndex].id}">
-            ${text}
-          </a>`;
+      if (colIndex === 0) {
+        return `<iron-icon icon=${Utils.nodePhaseToIcon(text)} title="${text}"
+                class="padded-spacing-minus-6"></iron-icon>`;
+      } else {
+        return colIndex === 1 ? `<span>${text}</span>` :
+            `<a class="link"
+                href="/jobRun?jobId=${this._jobId}&runId=${this.runsMetadata[rowIndex].id}">
+              ${text}
+            </a>`;
+      }
     };
   }
 
@@ -125,6 +131,7 @@ export class RunList extends Polymer.Element {
     this.runListRows = this.runsMetadata.map((runMetadata) => {
       const row = new ItemListRow({
         columns: [
+          runMetadata.status,
           runMetadata.name,
           Utils.formatDateString(runMetadata.created_at),
           Utils.formatDateString(runMetadata.scheduled_at),

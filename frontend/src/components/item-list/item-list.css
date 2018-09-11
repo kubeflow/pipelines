@@ -83,7 +83,7 @@ div {
 }
 
 .checkbox-col {
-  flex: 0 0 80px;
+  flex: 0 0 40px;
   padding-left: var(--spacing-base);
 }
 

@@ -34,6 +34,7 @@
           [[job.name]]
         </a>
         <iron-icon icon="chevron-right"></iron-icon>
+        <iron-icon class="status-icon" icon$=[[_getStatusIcon(workflow.status.phase)]]></iron-icon>
         <span class="run-name">[[workflow.metadata.name]]</span>
       </div>
       <div class="toolbar-actions">
@@ -56,21 +57,6 @@
     <div class="relative">
       <div class="overlay" hidden="[[!_loadingRun]]"></div>
       <div class="flex-column flex-grow padded-top-left page-content">
-        <div class="flex padded-right">
-          <div>
-            <div class="flex">
-              <iron-icon class="status-icon" icon$=[[_getStatusIcon(workflow.status.phase)]]></iron-icon>
-              <!-- TODO: Get or compute the run's progress here -->
-              <paper-progress id="progress" class="run-progress" value="100"
-                              style$="--paper-progress-active-color: var([[_getProgressColor(workflow.status.phase)]])">
-              </paper-progress>
-            </div>
-            <div id="statusString">
-              <span class="status">[[workflow.status.phase]]</span>
-            </div>
-          </div>
-        </div>
-
         <div class="tabs-container">
           <paper-tabs id="tabs" class="no-shrink" selected="{{selectedTab}}">
             <paper-tab id="graph-tab" href="#graph">Graph</paper-tab>

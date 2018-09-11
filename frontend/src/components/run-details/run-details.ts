@@ -139,10 +139,6 @@ export class RunDetails extends PageElement {
     return Utils.getRunTime(start, end, status);
   }
 
-  protected _getProgressColor(status: NodePhase): string {
-    return Utils.nodePhaseToColor(status);
-  }
-
   @observe('selectedTab')
   protected _selectedTabChanged(): void {
     const tab = (this.tabs.selectedItem || this.tabs.children[0]) as PaperTabElement | undefined;

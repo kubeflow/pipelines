@@ -169,14 +169,14 @@ describe('deploy tfjob sample job', () => {
   });
 
   it('waits until the whole job is complete', () => {
-    const selector = 'app-shell run-details #statusString';
+    const selector = 'app-shell run-details iron-icon.status-icon';
     browser.waitForVisible(selector, waitTimeout);
 
     let attempts = 0;
 
     const maxAttempts = 144;
 
-    while (attempts < maxAttempts && browser.getText(selector) !== 'Succeeded') {
+    while (attempts < maxAttempts && browser.getAttribute(selector, 'icon') !== 'check-circle') {
       browser.click('app-shell run-details #refreshButton');
       // Wait for a reasonable amount of time until the run is done
       browser.pause(5000);
