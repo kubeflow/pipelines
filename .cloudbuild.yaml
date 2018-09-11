@@ -20,8 +20,8 @@ steps:
   id:   'prepareFrontend'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
-         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA',
-         '/workspace/frontend']
+         '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
+         '/workspace/frontend/Dockerfile', '/workspace']
   id:   'buildFrontend'
   waitFor: ['prepareFrontend']
 - name: 'gcr.io/cloud-builders/docker'
