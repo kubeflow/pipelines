@@ -54,6 +54,7 @@ def taxi_cab_classification(
   training_output = '%s/{{workflow.name}}/train' % output
   analysis_output = '%s/{{workflow.name}}/analysis' % output
   prediction_output = '%s/{{workflow.name}}/predict' % output
+  tf_server_name = 'taxi-cab-classification-model-{{workflow.name}}'
 
   preprocess = mlp.ContainerOp(
       name = 'preprocess',
@@ -87,3 +88,8 @@ def taxi_cab_classification(
       arguments = ['--output', prediction_output, '--data', evaluation, '--schema', schema,
                    '--target', target, '--model',  training.output, '--mode', predict_mode, '--project', project],
       file_outputs = {'predict': '/output.txt'})
+
+  deploy = mlp.ContainerOp(
+      name = 'deploy',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer',
+      arguments = ['--model-path', training.output, '--server-name', tf_server_name])
