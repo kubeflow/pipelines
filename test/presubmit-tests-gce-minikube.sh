@@ -31,12 +31,16 @@ repo_test_dir=$(dirname $0)
 
 instance_name=${instance_name:-test-minikube-${PULL_PULL_SHA:0:6}-$(date +%s)-$(echo "$@" | md5sum | cut -c 1-6)}
 
+firewall_rule_name=allow-prow-ssh-$instance_name
+
 #Function to delete VM
 function delete_vm {
     if [ "$keep_created_vm" != true ]; then
         echo "Deleting VM $instance_name"
         gcloud compute instances delete $instance_name --zone=$ZONE --quiet
     fi
+    echo "Deleting the SSH firewall rule $firewall_rule_name"
+    gcloud compute firewall-rules delete $firewall_rule_name
 }
 
 #Setting the exit handler to delete VM. The VM will be deleted when the script exists (either completes or fails)
@@ -50,10 +54,12 @@ gcloud config set compute/zone $ZONE
 machine_type=n1-standard-16
 boot_disk_size=200GB
 
-gcloud compute instances create $instance_name --zone=$ZONE --machine-type=$machine_type --boot-disk-size=$boot_disk_size --scopes=storage-rw
+gcloud compute instances create $instance_name --zone=$ZONE --machine-type=$machine_type --boot-disk-size=$boot_disk_size --scopes=storage-rw --tags=presubmit-test-vm
 
-#Tagging the VM to make it easier to apply some rules to it (e.g. firewall rules)
-gcloud compute instances add-tags $instance_name --zone=$ZONE --tags prow-test-vm
+#Adding firewall entry that allows the current instance to access the newly created VM using SSH.
+#This is needed for cases when the current instance is in different project (e.g. in the Prow cluster project)
+self_external_ip=$(curl -sSL "http://metadata/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip" -H "Metadata-Flavor: Google")
+gcloud compute firewall-rules create $firewall_rule_name --allow tcp:22 --source-ranges=${self_external_ip}/32 --target-tags=presubmit-test-vm
 
 #Workaround the problems with prow cluster and GCE SSH access.
 #Prow tests run as root. GCE instances do not allow SSH access for root.
