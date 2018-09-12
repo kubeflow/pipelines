@@ -219,13 +219,13 @@
       // This section is not deleted because we might need it in the future.
       // And it takes time to get this string right.
       //data: {
-      //  config: "executorImage: argoproj/argoexec:v2.1.0-beta2\nartifactRepository:\n s3:
+      //  config: "executorImage: argoproj/argoexec:v2.2.0\nartifactRepository:\n s3:
       //  \n  bucket: mlpipeline\n  endpoint: minio-service.default:9000\n  insecure: true
       //  \n  accessKeySecret:\n   name: mlpipeline-minio-artifact\n   key: accesskey\n  secretKeySecret:
       //  \n   name: mlpipeline-minio-artifact\n   key: secretkey"
       //},
       data: {
-        config: "executorImage: argoproj/argoexec:v2.1.0-beta2"
+        config: "executorImage: argoproj/argoexec:v2.2.0"
       },
       kind: "ConfigMap",
       metadata: {
