@@ -1,8 +1,41 @@
 # ML Pipeline Services - Authoring Guideline
 
 ## Setup
-* Create a python3 envionronment.
+* Create a python3 envionronment. 
+
+**Python 3.5 or above is required** and if you don't have Python3 set up, we suggest the following steps
+to install [Miniconda](https://conda.io/miniconda.html).
  
+In Debian/Ubuntu/[Cloud shell](https://console.cloud.google.com/cloudshell) environment:   
+```bash
+apt-get update; apt-get install -y wget bzip2
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+In Windows environment, download the [installer](https://repo.continuum.io/miniconda/Miniconda3-latest-Windows-x86_64.exe) and 
+remember to select "*Add Miniconda to my PATH environment variable*" option during the installation.
+
+In Mac environment, download the [installer](https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh) and
+run the following command:
+
+```bash
+bash Miniconda3-latest-MacOSX-x86_64.sh
+```
+
+Then, create a clean python3 envionrment
+ 
+```bash
+conda create --name mlpipeline python=3.6
+source activate mlpipeline
+```
+ 
+If `conda` command is not found, be sure to add the Miniconda path:
+ 
+```bash
+export PATH=MINICONDA_PATH/bin:$PATH
+
+```
+
 * Clone the repo. 
 
 * Install DSL library and DSL compiler
