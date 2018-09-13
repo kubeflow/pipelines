@@ -79,7 +79,8 @@ export class TableViewer extends Polymer.Element {
     if (this.pageIndex <= 1) {
       this.pageIndex = 1;
       this._hasPrevPage = false;
-    } else if (this.pageIndex >= this._numPages) {
+    }
+    if (this.pageIndex >= this._numPages) {
       this.pageIndex = this._numPages;
       this._hasNextPage = false;
     }

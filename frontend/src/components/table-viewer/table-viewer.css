@@ -20,6 +20,7 @@
 paper-icon-button {
   border-radius: 50%;
   height: 30px;
+  min-height: 30px;
   padding: 3px;
   width: 30px;
 }
@@ -59,4 +60,5 @@ th {
 
 td {
   padding: 3px;
+  text-align: left;
 }

@@ -8,14 +8,12 @@
     "http-proxy-middleware": "^0.18.0",
     "minio": "^7.0.0",
     "node-fetch": "^2.1.2",
-    "tar": "^4.4.6",
-    "tmp": "0.0.33"
+    "tar": "^4.4.6"
   },
   "devDependencies": {
     "@types/express": "^4.11.1",
     "@types/google-cloud__storage": "^1.1.7",
     "@types/minio": "^6.0.2",
-    "@types/tmp": "0.0.33",
     "typescript": "3.0.1"
   },
   "scripts": {

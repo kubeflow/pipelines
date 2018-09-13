@@ -21,7 +21,6 @@ import fetch from 'node-fetch';
 import path = require('path');
 import process = require('process');
 import * as tar from 'tar';
-import tmp = require('tmp');
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
 
@@ -103,23 +102,44 @@ app.get('/artifacts/get', async (req, res) => {
   switch (source) {
     case 'gcs':
       try {
+        // Read all files that match the key pattern, which can include wildcards '*'.
+        // The way this works is we list all paths whose prefix is the substring
+        // of the pattern until the first wildcard, then we create a regular
+        // expression out of the pattern, escaping all non-wildcard characters,
+        // and we use it to match all enumerated paths.
         const storage = Storage();
-        const destFilename = tmp.tmpNameSync();
-        await storage.bucket(bucket).file(key).download({ destination: destFilename });
-        console.log(`gs://${bucket}/${key} downloaded to ${destFilename}.`);
-        res.sendFile(destFilename, undefined, (err) => {
-          if (err) {
-            console.log('Error sending file: ' + err);
-          } else {
-            fs.unlink(destFilename, (unlinkErr) => {
-              if (unlinkErr) {
-                console.error('Error deleting downloaded file: ' + unlinkErr);
-              }
-            });
-          }
+        const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
+        const files = await storage.bucket(bucket).getFiles({ prefix });
+        const matchingFiles = files[0].filter((f) => {
+          // Escape regex characters
+          const escapeRegexChars = (s) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+          // Build a RegExp object that only recognizes asterisks ('*'), and
+          // escapes everything else.
+          const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
+          return regex.test(f.name);
+        });
+        
+        if (!matchingFiles.length) {
+          console.log('No matching files found.');
+          res.send();
+          return;
+        }       
+        console.log(`Found ${matchingFiles.length} matching files:`, matchingFiles);
+        let contents = '';
+        matchingFiles.forEach((f, i) => {
+          const buffer = [];
+          f.createReadStream()
+              .on('data', (data) => buffer.push(data))
+              .on('end', () => {
+                contents += Buffer.concat(buffer).toString().trim() + '\n';
+                if (i === matchingFiles.length - 1) {
+                  res.send(contents);
+                }
+              })
+              .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
         });
       } catch (err) {
-        res.status(500).send('Failed to download GCS file. Error: ' + err);
+        res.status(500).send('Failed to download GCS file(s). Error: ' + err);
       }
       break;
     case 'minio':
