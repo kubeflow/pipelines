@@ -72,7 +72,7 @@ describe('job-list', () => {
     listRunsStub.onFirstCall().returns({ runs: [successRun.run, failureRun.run] });
 
     await _resetFixture();
-    await waitUntil(() => fixture.jobsItemList.rows[0].columns[1] === 'Succeeded:Failed', 5000);
+    await waitUntil(() => fixture.jobsItemList.rows[0].columns[1] === 'Succeeded,Failed', 5000);
     assert.strictEqual(fixture.jobsItemList.rows[1].columns[1], '');
     listRunsStub.restore();
   });

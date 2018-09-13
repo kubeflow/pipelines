@@ -83,7 +83,7 @@ export class RunList extends Polymer.Element {
         return `<iron-icon icon=${Utils.nodePhaseToIcon(text)} title="${text}"
                 class="padded-spacing-minus-6"></iron-icon>`;
       } else {
-        return colIndex === 1 ? `<span>${text}</span>` :
+        return colIndex > 1 ? `<span>${text}</span>` :
             `<a class="link"
                 href="/jobRun?jobId=${this._jobId}&runId=${this.runsMetadata[rowIndex].id}">
               ${text}
@@ -102,10 +102,6 @@ export class RunList extends Polymer.Element {
     const runId = this.runsMetadata[ev.detail.index].id;
     this.dispatchEvent(
         new RouteEvent(`/jobRun?jobId=${this._jobId}&runId=${runId}`));
-  }
-
-  protected _getStatusIcon(status: NodePhase): string {
-    return Utils.nodePhaseToIcon(status);
   }
 
   protected _getRuntime(start: string, end: string, status: NodePhase): string {
@@ -129,9 +125,10 @@ export class RunList extends Polymer.Element {
     }
 
     this.runListRows = this.runsMetadata.map((runMetadata) => {
+      const lastStatus = Utils.getLastInStatusList(runMetadata.status || '');
       const row = new ItemListRow({
         columns: [
-          runMetadata.status,
+          lastStatus,
           runMetadata.name,
           Utils.formatDateString(runMetadata.created_at),
           Utils.formatDateString(runMetadata.scheduled_at),

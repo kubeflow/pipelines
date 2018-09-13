@@ -43,7 +43,7 @@ const runs: apiRunDetail[] = [
       name: 'coinflip-recursive-run-lknlfs3',
       namespace: 'namespace',
       scheduled_at: new Date('2017-03-17T20:58:23.000Z'),
-      status: 'Succeeded',
+      status: 'Failed:Succeeded',
     },
     workflow: JSON.stringify(coinflipRun),
   },
@@ -207,7 +207,7 @@ const jobs: apiJob[] = [
       }
     ],
     pipeline_id: pipelines[0].id,
-    status: 'Succeeded',
+    status: 'Failed:Succeeded',
     trigger: { cron_schedule: { cron: '30 1 * * * ?' } },
     updated_at: new Date('2018-03-01T21:58:23.000Z'),
   },

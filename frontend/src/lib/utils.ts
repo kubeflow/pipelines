@@ -166,6 +166,11 @@ export function nodePhaseToColor(status: NodePhase): string {
   }
 }
 
+export function getLastInStatusList(statusList: string): string {
+  // Return only the last of the status list
+  return statusList.split(':').filter((s) => !!s).pop() || 'NONE';
+}
+
 export function showDialog(
     title: string,
     body?: string,

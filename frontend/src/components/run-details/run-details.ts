@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'iron-icons/av-icons.html';
+import 'iron-icons/device-icons.html';
 import 'iron-icons/iron-icons.html';
 import 'paper-progress/paper-progress.html';
 import 'paper-tabs/paper-tab.html';
@@ -131,12 +133,12 @@ export class RunDetails extends PageElement {
     return Utils.formatDateString(date);
   }
 
-  protected _getStatusIcon(status: NodePhase): string {
-    return Utils.nodePhaseToIcon(status);
+  protected _getStatusIcon(status: string): string {
+    return Utils.nodePhaseToIcon(Utils.getLastInStatusList(status));
   }
 
-  protected _getRunTime(start: string, end: string, status: NodePhase): string {
-    return Utils.getRunTime(start, end, status);
+  protected _getRunTime(start: string, end: string, status: string): string {
+    return Utils.getRunTime(start, end, Utils.getLastInStatusList(status) as NodePhase);
   }
 
   @observe('selectedTab')

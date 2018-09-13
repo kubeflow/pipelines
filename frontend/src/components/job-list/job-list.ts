@@ -132,7 +132,7 @@ export class JobList extends PageElement {
                     ${text}
                   </a>`;
         case 1:
-          const statuses = text.split(':').filter((s) => !!s);
+          const statuses = text.split(',').filter((s) => !!s);
           while (statuses.length < 5) {
             statuses.push('NONE');
           }
@@ -316,8 +316,9 @@ export class JobList extends PageElement {
     // Fetch and set last 5 runs' statuses for each job
     this.jobs.forEach(async (job, i) => {
       const listRunsResponse = await Apis.listRuns({ jobId: job.id, pageSize: 5 });
-      this.set(`jobListRows.${i}.columns.1`,
-          (listRunsResponse.runs || []).map((r) => r.status).join(':'));
+      const statusList = (listRunsResponse.runs || []).map((r) =>
+          Utils.getLastInStatusList(r.status || ''));
+      this.set(`jobListRows.${i}.columns.1`, statusList.join(','));
     });
 
     // Fetch and set pipeline name for each job

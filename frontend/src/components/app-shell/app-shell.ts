@@ -14,6 +14,8 @@
 
 import 'app-route/app-location.html';
 import 'app-route/app-route.html';
+import 'iron-icons/av-icons.html';
+import 'iron-icons/device-icons.html';
 import 'iron-icons/iron-icons.html';
 import 'iron-pages/iron-pages.html';
 import 'paper-progress/paper-progress.html';
