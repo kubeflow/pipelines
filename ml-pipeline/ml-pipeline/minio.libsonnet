@@ -4,6 +4,7 @@
       $.parts(namespace).pvc,
       $.parts(namespace).service,
       $.parts(namespace).deploy,
+      $.parts(namespace).secret,
     ],
 
     pvc: {
@@ -110,5 +111,21 @@
         },
       },
     }, // deploy
+
+    // The motivation behind the minio secret creation is that argo workflows depend on this secret to
+    // store the artifact in minio.
+    secret: {
+      apiVersion: "v1",
+      kind: "Secret",
+      metadata: {
+        name: "mlpipeline-minio-artifact",
+        namespace: namespace,
+      },
+      type: "Opaque",
+      data: {
+        "accesskey": std.base64("minio"),
+        "secretkey": std.base64("minio123"),
+      },
+    }, // secret
   },  // parts
 }
