@@ -18,7 +18,7 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA']
   id:   'pullFrontend'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/frontend:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA', 'gcr.io/ml-pipeline/frontend:$TAG_NAME']
   id:   'tagFrontend'
   waitFor: ['pullFrontend']
 
@@ -26,7 +26,7 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA']
   id:   'pullAPIServer'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/api-server:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/api-server:$TAG_NAME']
   id:   'tagAPIServer'
   waitFor: ['pullAPIServer']
 
@@ -34,7 +34,7 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA']
   id:   'pullScheduledworkflow'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/scheduledworkflow:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', 'gcr.io/ml-pipeline/scheduledworkflow:$TAG_NAME']
   id:   'tagScheduledworkflow'
   waitFor: ['pullScheduledworkflow']
 
@@ -42,7 +42,7 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA']
   id:   'pullPersistenceagent'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/persistenceagent:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', 'gcr.io/ml-pipeline/persistenceagent:$TAG_NAME']
   id:   'tagPersistenceagent'
   waitFor: ['pullPersistenceagent']
 
@@ -50,7 +50,7 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA']
   id:   'pullBootstrapper'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/bootstrapper:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA', 'gcr.io/ml-pipeline/bootstrapper:$TAG_NAME']
   id:   'tagBootstrapper'
   waitFor: ['pullBootstrapper']
 
@@ -60,11 +60,11 @@ steps:
   args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/ml-pipeline\/bootstrapper:$TAG_NAME/g" /workspace/bootstrapper.yaml']
   id:   'prepareBootstrapperYAML'
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/release/$TAG_NAME/bootstrapper.yaml']
+  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://ml-pipeline/release/$TAG_NAME/bootstrapper.yaml']
   id:   'copyBootstrapperYAML'
   waitFor: ['prepareBootstrapperYAML']
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/release/latest/bootstrapper.yaml']
+  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://ml-pipeline/release/latest/bootstrapper.yaml']
   id:   'copyBootstrapperYAMLToLatest'
   waitFor: ['prepareBootstrapperYAML']
 
@@ -73,21 +73,21 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA']
   id:   'pullPredict'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:$TAG_NAME']
   id:   'tagPredict'
   waitFor: ['pullPredict']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA']
   id:   'pullTFT'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:$TAG_NAME']
   id:   'tagTFT'
   waitFor: ['pullTFT']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA']
   id:   'pullTFMA'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:$TAG_NAME']
   id:   'tagTFMA'
   waitFor: ['pullTFMA']
 
@@ -96,37 +96,37 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA']
   id:   'pullDeployer'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$TAG_NAME']
   id:   'tagDeployer'
   waitFor: ['pullDeployer']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA']
   id:   'pullTrainer'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$TAG_NAME']
   id:   'tagTrainer'
   waitFor: ['pullTrainer']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
   id:   'pullLauncher'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME']
   id:   'tagLauncher'
   waitFor: ['pullLauncher']
 
 images:
-- 'gcr.io/$PROJECT_ID/frontend:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/api-server:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/scheduledworkflow:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/persistenceagent:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/bootstrapper:$TAG_NAME'
+- 'gcr.io/ml-pipeline/frontend:$TAG_NAME'
+- 'gcr.io/ml-pipeline/api-server:$TAG_NAME'
+- 'gcr.io/ml-pipeline/scheduledworkflow:$TAG_NAME'
+- 'gcr.io/ml-pipeline/persistenceagent:$TAG_NAME'
+- 'gcr.io/ml-pipeline/bootstrapper:$TAG_NAME'
 
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:$TAG_NAME'
 
-- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$TAG_NAME'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME'
 
 timeout: '600s'
