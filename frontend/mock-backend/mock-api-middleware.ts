@@ -44,12 +44,11 @@ setTimeout(() => {
 }, 5000);
 
 function isValidSortKey(sortKeyEnumType: any, key: string): boolean {
-  const findResult = Object.keys(sortKeyEnumType).find(
-      (k) => sortKeyEnumType[k] === key
-  );
+  const findResult = Object.keys(sortKeyEnumType).find((k) => sortKeyEnumType[k] === key);
   return !!findResult;
 }
 
+// tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
 
   proxyMiddleware(app as any, v1alpha2Prefix);
@@ -64,6 +63,28 @@ export default (app: express.Application) => {
       res.status(404).send();
     }
   });
+
+  function getSortKeyAndOrder<T>(
+      defaultSortKey: keyof T,
+      queryParam: string|undefined): { desc: boolean, key: keyof T } {
+    let key = defaultSortKey;
+    let desc = false;
+
+    if (queryParam) {
+      const keyParts = queryParam.split(' ');
+
+      key = keyParts[0] as keyof T;
+      // Since we're validating, might as well check that the key is properly formatted.
+      if (keyParts.length > 2 ||
+          (keyParts.length === 2 && keyParts[1] !== 'desc') ||
+          !isValidSortKey(Apis.JobSortKeys, key.toString())) {
+        throw new Error(`Unsupported sort string: ${queryParam}`);
+      }
+
+      desc = keyParts.length === 2 && keyParts[1] === 'desc';
+    }
+    return { desc, key };
+  }
 
   app.get(v1alpha2Prefix + '/jobs', (req, res) => {
     if (!apiServerReady) {
@@ -88,23 +109,17 @@ export default (app: express.Application) => {
 
     }
 
-    // The backend sorts by created_at by default.
-    const sortKey: (keyof apiJob) = req.query.sortBy || Apis.JobSortKeys.CREATED_AT;
-
-    if (!isValidSortKey(Apis.JobSortKeys, sortKey)) {
-      res.status(405).send(`Unsupported sort string: ${sortKey}`);
-      return;
-    }
+    const { desc, key } = getSortKeyAndOrder<apiJob>(Apis.JobSortKeys.CREATED_AT, req.query.sortBy);
 
     jobs.sort((a, b) => {
       let result = 1;
-      if (a[sortKey]! < b[sortKey]!) {
+      if (a[key]! < b[key]!) {
         result = -1;
       }
-      if (a[sortKey]! === b[sortKey]!) {
+      if (a[key]! === b[key]!) {
         result = 0;
       }
-      return result * ((req.query.ascending === 'false') ? -1 : 1);
+      return result * (desc ? -1 : 1);
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
@@ -178,23 +193,17 @@ export default (app: express.Application) => {
           decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
     }
 
-    // The backend sorts by created_at by default.
-    const sortKey: (keyof apiRun) = req.query.sortBy || Apis.RunSortKeys.CREATED_AT;
-
-    if (!isValidSortKey(Apis.RunSortKeys, sortKey)) {
-      res.status(405).send(`Unsupported sort string: ${sortKey}`);
-      return;
-    }
+    const { desc, key } = getSortKeyAndOrder<apiRun>(Apis.RunSortKeys.CREATED_AT, req.query.sortBy);
 
     runs.sort((a, b) => {
       let result = 1;
-      if (a[sortKey]! < b[sortKey]!) {
+      if (a[key]! < b[key]!) {
         result = -1;
       }
-      if (a[sortKey]! === b[sortKey]!) {
+      if (a[key]! === b[key]!) {
         result = 0;
       }
-      return result * ((req.query.ascending === 'false') ? -1 : 1);
+      return result * (desc ? -1 : 1);
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
@@ -225,23 +234,17 @@ export default (app: express.Application) => {
           decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
     }
 
-    // The backend sorts by created_at by default.
-    const sortKey: (keyof apiRun) = req.query.sortBy || Apis.RunSortKeys.CREATED_AT;
-
-    if (!isValidSortKey(Apis.RunSortKeys, sortKey)) {
-      res.status(405).send(`Unsupported sort string: ${sortKey}`);
-      return;
-    }
+    const { desc, key } = getSortKeyAndOrder<apiRun>(Apis.RunSortKeys.CREATED_AT, req.query.sortBy);
 
     runs.sort((a, b) => {
       let result = 1;
-      if (a[sortKey]! < b[sortKey]!) {
+      if (a[key]! < b[key]!) {
         result = -1;
       }
-      if (a[sortKey]! === b[sortKey]!) {
+      if (a[key]! === b[key]!) {
         result = 0;
       }
-      return result * ((req.query.ascending === 'false') ? -1 : 1);
+      return result * (desc ? -1 : 1);
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);
@@ -321,23 +324,18 @@ export default (app: express.Application) => {
 
     }
 
-    // The backend sorts by created_at by default.
-    const sortKey: (keyof apiPipeline) = req.query.sortBy || Apis.PipelineSortKeys.CREATED_AT;
-
-    if (!isValidSortKey(Apis.PipelineSortKeys, sortKey)) {
-      res.status(405).send(`Unsupported sort string: ${sortKey}`);
-      return;
-    }
+    const { desc, key } =
+        getSortKeyAndOrder<apiPipeline>(Apis.PipelineSortKeys.CREATED_AT, req.query.sortBy);
 
     pipelines.sort((a, b) => {
       let result = 1;
-      if (a[sortKey]! < b[sortKey]!) {
+      if (a[key]! < b[key]!) {
         result = -1;
       }
-      if (a[sortKey]! === b[sortKey]!) {
+      if (a[key]! === b[key]!) {
         result = 0;
       }
-      return result * ((req.query.ascending === 'false') ? -1 : 1);
+      return result * (desc ? -1 : 1);
     });
 
     const start = (req.query.pageToken ? +req.query.pageToken : 0);

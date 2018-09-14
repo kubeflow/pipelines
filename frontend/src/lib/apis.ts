@@ -72,13 +72,16 @@ function requestToQueryParams(
     params.push(`pageToken=${request.pageToken}`);
   }
   if (request.sortBy !== undefined) {
-    params.push(`sortBy=${request.sortBy}`);
+    // Sort is ascending by default.
+    // Descending order is indicated by ' desc' after the sorted field name.
+    let sortByParam = `sortBy=${request.sortBy}`;
+    if (request.orderAscending === false) {
+      sortByParam += ' desc';
+    }
+    params.push(sortByParam);
   }
   if (request.filterBy !== undefined) {
     params.push(`filterBy=${request.filterBy}`);
-  }
-  if (request.orderAscending !== undefined) {
-    params.push(`ascending=${request.orderAscending}`);
   }
   if ('jobId' in request && request.jobId !== undefined) {
     params.push(`jobId=${request.jobId}`);
