@@ -21,11 +21,17 @@ else
   PROJECT_ID=$1
 fi
 
+if [ -z "$2" ]; then
+  TAG_NAME="latest"
+else
+  TAG_NAME="$2"
+fi
+
 # build base image
 pushd ../base
 ./build.sh
 popd
 
 docker build -t ml-pipeline-local-confusion-matrix .
-docker tag ml-pipeline-local-confusion-matrix gcr.io/${PROJECT_ID}/ml-pipeline-local-confusion-matrix
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-local-confusion-matrix
+docker tag ml-pipeline-local-confusion-matrix gcr.io/${PROJECT_ID}/ml-pipeline-local-confusion-matrix:${TAG_NAME}
+docker push gcr.io/${PROJECT_ID}/ml-pipeline-local-confusion-matrix:${TAG_NAME}

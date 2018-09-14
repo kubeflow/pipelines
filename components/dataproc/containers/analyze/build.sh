@@ -20,13 +20,17 @@ else
   PROJECT_ID=$1
 fi
 
+if [ -z "$2" ]; then
+  TAG_NAME="latest"
+else
+  TAG_NAME="$2"
+fi
+
 # build base image
 pushd ../base
 ./build.sh
 popd
 
 docker build -t ml-pipeline-dataproc-analyze .
-docker tag ml-pipeline-dataproc-analyze gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-analyze
-gcloud docker -- push gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-analyze
-
-
+docker tag ml-pipeline-dataproc-analyze gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-analyze:${TAG_NAME}
+docker push gcr.io/${PROJECT_ID}/ml-pipeline-dataproc-analyze:${TAG_NAME}

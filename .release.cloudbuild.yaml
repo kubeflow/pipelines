@@ -114,6 +114,89 @@ steps:
   id:   'tagLauncher'
   waitFor: ['pullLauncher']
 
+# Pull and retag the images for the Dataproc-based pipeline components
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-analyze:$COMMIT_SHA']
+  id:   'pullDataprocAnalyze'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-analyze:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:$TAG_NAME']
+  id:   'tagDataprocAnalyze'
+  waitFor: ['pullDataprocAnalyze']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA']
+  id:   'pullDataprocCreateCluster'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:$TAG_NAME']
+  id:   'tagDataprocCreateCluster'
+  waitFor: ['pullDataprocCreateCluster']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA']
+  id:   'pullDataprocDeleteCluster'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:$TAG_NAME']
+  id:   'tagDataprocDeleteCluster'
+  waitFor: ['pullDataprocDeleteCluster']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-predict:$COMMIT_SHA']
+  id:   'pullDataprocPredict'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-predict:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:$TAG_NAME']
+  id:   'tagDataprocPredict'
+  waitFor: ['pullDataprocPredict']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA']
+  id:   'pullDataprocTransform'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:$TAG_NAME']
+  id:   'tagDataprocTransform'
+  waitFor: ['pullDataprocTransform']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA']
+  id:   'pullDataprocTrain'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-train:$TAG_NAME']
+  id:   'tagDataprocTrain'
+  waitFor: ['pullDataprocTrain']
+
+# Pull and retag the images for the ResNet CMLE sample pipeline components
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/resnet-deploy:$COMMIT_SHA']
+  id:   'pullResNetDeploy'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/resnet-deploy:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-deploy:$TAG_NAME']
+  id:   'tagResNetDeploy'
+  waitFor: ['pullResNetDeploy']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/resnet-preprocess:$COMMIT_SHA']
+  id:   'pullResNetPreprocess'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/resnet-preprocess:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-preprocess:$TAG_NAME']
+  id:   'tagResNetPreprocess'
+  waitFor: ['pullResNetPreprocess']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/resnet-train:$COMMIT_SHA']
+  id:   'pullResNetTrain'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/resnet-train:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-train:$TAG_NAME']
+  id:   'tagResNetTrain'
+  waitFor: ['pullResNetTrain']
+
+# Pull and retag the images for the local pipeline components
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA']
+  id:   'pullLocalConfusionMatrix'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:$TAG_NAME']
+  id:   'tagLocalConfusionMatrix'
+  waitFor: ['pullLocalConfusionMatrix']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA']
+  id:   'pullLocalROC'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-local-roc:$TAG_NAME']
+  id:   'tagLocalROC'
+  waitFor: ['pullLocalROC']
+
 images:
 - 'gcr.io/ml-pipeline/frontend:$TAG_NAME'
 - 'gcr.io/ml-pipeline/api-server:$TAG_NAME'
@@ -128,5 +211,19 @@ images:
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$TAG_NAME'
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$TAG_NAME'
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME'
+
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-train:$TAG_NAME'
+
+- 'gcr.io/ml-pipeline/resnet-deploy:$TAG_NAME'
+- 'gcr.io/ml-pipeline/resnet-preprocess:$TAG_NAME'
+- 'gcr.io/ml-pipeline/resnet-train:$TAG_NAME'
+
+- 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-local-roc:$TAG_NAME'
 
 timeout: '600s'
