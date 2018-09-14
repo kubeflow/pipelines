@@ -33,7 +33,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
-	"k8s.io/client-go/kubernetes"
 )
 
 var namespace = flag.String("namespace", "default", "The namespace ml pipeline deployed to")
@@ -100,6 +99,15 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 		Body(pipelineBody).Do().Raw()
 	checkUploadPipelineResponse(t, uploadPipelineResponse, err, requestStartTime)
 
+	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
+	pipelineBody, writer = uploadPipelineFileOrFail("resources/arguments-parameters.yaml")
+	_, err = clientSet.RESTClient().Post().
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
+		SetHeader("Content-Type", writer.FormDataContentType()).
+		Body(pipelineBody).Do().Raw()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please specify a new name.")
+
 	/* ---------- Verify list pipeline works ---------- */
 	listPipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
 	checkListPipelinesResponse(t, listPipelineResponse, err, requestStartTime)
@@ -130,6 +138,11 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 	checkInstantiateJobResponse(t, newJob, err, requestStartTime, pipelineId)
 	jobId := newJob.Id
 
+	/* ---------- Instantiate another job with same name. ---------- */
+	_, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: job})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please specify a new name.")
+
 	/* ---------- Verify list jobs works ---------- */
 	listPipResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{})
 	checkListJobsResponse(t, listPipResponse, err, requestStartTime, pipelineId)
@@ -149,7 +162,7 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 	runId := listJobRunsResponse.Runs[0].Id
 
 	/* ---------- Verify run complete successfully ---------- */
-	err = s.checkRunSucceed(clientSet, s.namespace, jobId, runId)
+	err = s.checkRunSucceed(s.namespace, jobId, runId)
 	if err != nil {
 		assert.Fail(t, "The run doesn't complete. Error: "+err.Error())
 	}
@@ -179,7 +192,7 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 	checkNoPipelineExists(t, listPipelineResponse, err)
 }
 
-func (s *OneTimeJobTestSuite) checkRunSucceed(clientSet *kubernetes.Clientset, namespace string, jobId string, runId string) error {
+func (s *OneTimeJobTestSuite) checkRunSucceed(namespace string, jobId string, runId string) error {
 	var waitForRunSucceed = func() error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()

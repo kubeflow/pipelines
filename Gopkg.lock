@@ -26,6 +26,14 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  branch = "master"
+  digest = "1:c04a79a8bb3aadf5ddc4b22ef1471189f4348c6c840b01dd45da5fcdc7397748"
+  name = "github.com/VividCortex/mysqlerr"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6c6b55f8796f578c870b7e19bafb16103bc40095"
+
+[[projects]]
   digest = "1:1ff71f4cc68678400465f7e6cdb13297dfa35c3b8720b308448ae2e31cd1f6b6"
   name = "github.com/argoproj/argo"
   packages = [
@@ -1005,6 +1013,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/VividCortex/mysqlerr",
     "github.com/argoproj/argo/pkg/apis/workflow",
     "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1",
     "github.com/argoproj/argo/pkg/client/clientset/versioned",

@@ -20,6 +20,8 @@ import (
 
 	"database/sql"
 
+	"github.com/VividCortex/mysqlerr"
+	"github.com/go-sql-driver/mysql"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
@@ -173,6 +175,10 @@ func (s *JobStore) CreateJob(p *model.Job) (*model.Job, error) {
 		PointerToNullInt64(newJob.CronScheduleStartTimeInSec), PointerToNullInt64(newJob.CronScheduleEndTimeInSec), PointerToNullString(newJob.Cron),
 		PointerToNullInt64(newJob.PeriodicScheduleStartTimeInSec), PointerToNullInt64(newJob.PeriodicScheduleEndTimeInSec), PointerToNullInt64(newJob.IntervalSecond),
 		newJob.Parameters, newJob.CreatedAtInSec, newJob.UpdatedAtInSec, newJob.ScheduledWorkflow); err != nil {
+		if sqlError, ok := err.(*mysql.MySQLError); ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY {
+			return nil, util.NewInvalidInputError(
+				"Failed to create a new job. The name %v already exist. Please specify a new name.", p.DisplayName)
+		}
 		return nil, util.NewInternalServerError(err, "Failed to add job to job table: %v",
 			err.Error())
 	}

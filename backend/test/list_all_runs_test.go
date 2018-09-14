@@ -16,6 +16,7 @@ package test
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
@@ -69,6 +70,7 @@ func (s *ListAllRunsTestSuit) TestListAllRuns() {
 	pipelineBody, writer := uploadPipelineFileOrFail("resources/hello-world.yaml")
 	_, err = clientSet.RESTClient().Post().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
+		Param("name", base64.StdEncoding.EncodeToString([]byte("hello-world"))).
 		SetHeader("Content-Type", writer.FormDataContentType()).
 		Body(pipelineBody).Do().Raw()
 	assert.Nil(t, err)
@@ -76,6 +78,7 @@ func (s *ListAllRunsTestSuit) TestListAllRuns() {
 	pipelineBody, writer = uploadPipelineFileOrFail("resources/arguments-parameters.yaml")
 	_, err = clientSet.RESTClient().Post().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
+		Param("name", base64.StdEncoding.EncodeToString([]byte("arguments-parameters"))).
 		SetHeader("Content-Type", writer.FormDataContentType()).
 		Body(pipelineBody).Do().Raw()
 	assert.Nil(t, err)
@@ -91,8 +94,8 @@ func (s *ListAllRunsTestSuit) TestListAllRuns() {
 	listFirstPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "name"})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
-	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "hello-world.yaml", listFirstPagePipelineResponse.Pipelines[1].Name)
+	assert.Equal(t, "arguments-parameters", listFirstPagePipelineResponse.Pipelines[0].Name)
+	assert.Equal(t, "hello-world", listFirstPagePipelineResponse.Pipelines[1].Name)
 	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
 
 	listSecondPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "name"})

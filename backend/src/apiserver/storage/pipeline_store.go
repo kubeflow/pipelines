@@ -19,6 +19,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/VividCortex/mysqlerr"
+	"github.com/go-sql-driver/mysql"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
@@ -141,8 +143,10 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 		newPipeline.Parameters,
 		string(newPipeline.Status))
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to add pipeline to pipeline table: %v",
-			err.Error())
+		if e, ok := err.(*mysql.MySQLError); ok && e.Number == mysqlerr.ER_DUP_ENTRY {
+			return nil, util.NewInvalidInputError(
+				"Failed to create a new pipeline. The name %v already exist. Please specify a new name.", p.Name)
+		}
 	}
 	return &newPipeline, nil
 }

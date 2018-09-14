@@ -69,11 +69,11 @@ func TestListPipelines_Pagination(t *testing.T) {
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
-	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
+	pipelineStore.CreatePipeline(createPipeline("pipeline3"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
-	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
+	pipelineStore.CreatePipeline(createPipeline("pipeline4"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
-	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
+	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
 	expectedPipeline1 := model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
@@ -83,7 +83,7 @@ func TestListPipelines_Pagination(t *testing.T) {
 	expectedPipeline4 := model.Pipeline{
 		UUID:           fakeUUIDFour,
 		CreatedAtInSec: 4,
-		Name:           "pipeline1",
+		Name:           "pipeline2",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	pipelinesExpected := []model.Pipeline{expectedPipeline1, expectedPipeline4}
@@ -95,13 +95,13 @@ func TestListPipelines_Pagination(t *testing.T) {
 	expectedPipeline2 := model.Pipeline{
 		UUID:           fakeUUIDTwo,
 		CreatedAtInSec: 2,
-		Name:           "pipeline2",
+		Name:           "pipeline3",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	expectedPipeline3 := model.Pipeline{
 		UUID:           fakeUUIDThree,
 		CreatedAtInSec: 3,
-		Name:           "pipeline2",
+		Name:           "pipeline4",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	pipelinesExpected2 := []model.Pipeline{expectedPipeline2, expectedPipeline3}
@@ -118,22 +118,22 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
-	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
+	pipelineStore.CreatePipeline(createPipeline("pipeline3"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
-	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
+	pipelineStore.CreatePipeline(createPipeline("pipeline4"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
-	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
+	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
 
 	expectedPipeline2 := model.Pipeline{
 		UUID:           fakeUUIDTwo,
 		CreatedAtInSec: 2,
-		Name:           "pipeline2",
+		Name:           "pipeline3",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	expectedPipeline3 := model.Pipeline{
 		UUID:           fakeUUIDThree,
 		CreatedAtInSec: 3,
-		Name:           "pipeline2",
+		Name:           "pipeline4",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	pipelinesExpected := []model.Pipeline{expectedPipeline3, expectedPipeline2}
@@ -151,7 +151,7 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 	expectedPipeline4 := model.Pipeline{
 		UUID:           fakeUUIDFour,
 		CreatedAtInSec: 4,
-		Name:           "pipeline1",
+		Name:           "pipeline2",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	pipelinesExpected2 := []model.Pipeline{expectedPipeline4, expectedPipeline1}
@@ -255,7 +255,7 @@ func TestCreatePipeline(t *testing.T) {
 	assert.Equal(t, pipelineExpected, *pipeline, "Got unexpected pipeline.")
 }
 
-func TestCreatePipelineError(t *testing.T) {
+func TestCreatePipeline_InternalServerError(t *testing.T) {
 	pipeline := &model.Pipeline{Name: "Pipeline123"}
 	db := NewFakeDbOrFatal()
 	defer db.Close()

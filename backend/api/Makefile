@@ -56,6 +56,13 @@ all:
 		-m run_model \
 		-t go_http_client
 	swagger generate client \
+		-f swagger/pipeline.upload.swagger.json \
+		-A pipeline_upload \
+		--principal models.Principal \
+		-c pipeline_upload_client \
+		-m pipeline_upload_model \
+		-t go_http_client
+	swagger generate client \
 		-f swagger/pipeline.swagger.json \
 		-A pipeline \
 		--principal models.Principal \

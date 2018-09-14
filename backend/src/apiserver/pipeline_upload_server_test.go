@@ -16,6 +16,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -104,6 +106,66 @@ func TestUploadPipeline(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, pkgsExpect, pkg)
+}
+
+func TestUploadPipeline_SpecifyFileName(t *testing.T) {
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	fm := storage.NewFakeObjectStore()
+
+	server := PipelineUploadServer{resourceManager: initResourceManager(store.PipelineStore(), fm)}
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	w.CreateFormFile("uploadfile", "hello-world")
+	w.Close()
+	encodedName := base64.StdEncoding.EncodeToString([]byte("foobar"))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, 200, rr.Code)
+
+	// Verify stored in object store
+	template, err := fm.GetFile(storage.JobFolder, resource.DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.NotNil(t, template)
+
+	// Verify metadata in db
+	pkgsExpect := []model.Pipeline{
+		{
+			UUID:           resource.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "foobar",
+			Parameters:     "[]",
+			Status:         model.PipelineReady}}
+	pkg, str, err := store.PipelineStore().ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "UUID" /*sortByFieldName*/, false /*isDesc*/)
+	assert.Nil(t, err)
+	assert.Equal(t, str, "")
+	assert.Equal(t, pkgsExpect, pkg)
+}
+
+func TestUploadPipeline_FileNameTooLong(t *testing.T) {
+	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	fm := storage.NewFakeObjectStore()
+
+	server := PipelineUploadServer{resourceManager: initResourceManager(store.PipelineStore(), fm)}
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	w.CreateFormFile("uploadfile", "hello-world")
+	w.Close()
+	encodedName := base64.StdEncoding.EncodeToString([]byte(
+		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name"))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, 400, rr.Code)
+	assert.Contains(t, string(rr.Body.Bytes()), "File name too long")
 }
 
 func TestUploadPipeline_GetFormFileError(t *testing.T) {

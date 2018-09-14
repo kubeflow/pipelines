@@ -15,6 +15,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,13 +27,26 @@ import (
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
+// These are valid conditions of a ScheduledWorkflow.
+const (
+	FormFileKey        = "uploadfile"
+	NameQueryStringKey = "name"
+	MaxFileNameLength  = 100
+)
+
 type PipelineUploadServer struct {
 	resourceManager *resource.ResourceManager
 }
 
+// HTTP multipart endpoint for uploading pipeline file.
+// https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
+// This endpoint is not exposed through grpc endpoint, since grpc-gateway can't convert the gRPC
+// endpoint to the HTTP endpoint.
+// See https://github.com/grpc-ecosystem/grpc-gateway/issues/500
+// Thus we create the HTTP endpoint directly and using swagger to auto generate the HTTP client.
 func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Request) {
 	glog.Infof("Upload pipeline called")
-	file, header, err := r.FormFile("uploadfile")
+	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline form file"))
 		return
@@ -46,7 +60,21 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	newPipeline, err := s.resourceManager.CreatePipeline(header.Filename, pipelineFile)
+	encodedFileName := r.URL.Query().Get(NameQueryStringKey)
+	fileNameBytes, err := base64.StdEncoding.DecodeString(encodedFileName)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid file name."))
+		return
+	}
+	fileName := string(fileNameBytes)
+	if fileName == "" {
+		fileName = header.Filename
+	}
+	if len(fileName) > MaxFileNameLength {
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.NewInvalidInputError("File name too long. Support maximum length of 100"))
+		return
+	}
+	newPipeline, err := s.resourceManager.CreatePipeline(fileName, pipelineFile)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
