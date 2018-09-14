@@ -14,9 +14,11 @@
 
 import 'app-route/app-location.html';
 import 'app-route/app-route.html';
+import 'iron-icon/iron-icon.html';
 import 'iron-icons/av-icons.html';
 import 'iron-icons/device-icons.html';
 import 'iron-icons/iron-icons.html';
+import 'iron-iconset-svg/iron-iconset-svg.html';
 import 'iron-pages/iron-pages.html';
 import 'paper-progress/paper-progress.html';
 import 'paper-styles/paper-styles.html';
@@ -30,6 +32,7 @@ import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { PageError } from '../page-error/page-error';
 
+import '../../assets/pipelines-icons.html';
 import '../page-error/page-error';
 import '../side-nav/side-nav';
 

@@ -48,11 +48,16 @@ iron-icon {
   min-width: var(--icon-dimension-large);
 }
 
+iron-icon[icon="pipelines-icons:status-running"] {
+  color: var(--good-color);
+}
+
 iron-icon[icon="check-circle"] {
   color: var(--good-color);
 }
 
-iron-icon[icon="av:skip-next"] {
+iron-icon[icon="av:skip-next"],
+iron-icon[icon="device:access-time"] {
   color: var(--grey-color);
 }
 

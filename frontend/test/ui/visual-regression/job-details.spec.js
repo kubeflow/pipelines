@@ -92,7 +92,7 @@ describe('view job details', () => {
   it('allows the list to be sorted. Defaults to ascending order', () => {
     // Sort by Run Name column (ascending)
     const runNameColumnButtonSelector =
-        'app-shell job-details run-list item-list #header::div:nth-of-type(2)::paper-button';
+        'app-shell job-details run-list item-list #header::div:nth-of-type(3)::paper-button';
     browser.click(runNameColumnButtonSelector);
 
     assertDiffs(browser.checkDocument());
@@ -102,7 +102,7 @@ describe('view job details', () => {
     // Sort by Run Name column (descending)
     // Sort will be descending now since it has already been clicked once in the previous test.
     const runNameColumnButtonSelector =
-        'app-shell job-details run-list item-list #header::div:nth-of-type(2)::paper-button';
+        'app-shell job-details run-list item-list #header::div:nth-of-type(3)::paper-button';
 
     browser.click(runNameColumnButtonSelector);
 

@@ -15,6 +15,7 @@
 import 'iron-icons/av-icons.html';
 import 'iron-icons/device-icons.html';
 import 'iron-icons/iron-icons.html';
+import 'iron-iconset-svg/iron-iconset-svg.html';
 import 'paper-button/paper-button.html';
 import 'paper-checkbox/paper-checkbox.html';
 import 'paper-dropdown-menu/paper-dropdown-menu.html';
@@ -29,6 +30,7 @@ import {
   NewListPageEvent,
 } from '../../model/events';
 
+import '../../assets/pipelines-icons.html';
 import './item-list.html';
 
 export type ColumnType = Date|number|string|undefined;

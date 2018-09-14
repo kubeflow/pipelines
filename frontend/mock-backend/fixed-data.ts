@@ -87,7 +87,7 @@ const runs: apiRunDetail[] = [
       name: 'xgboost-evaluation-asdlk2',
       namespace: 'namespace',
       scheduled_at: new Date('2017-07-17T23:58:23.000Z'),
-      status: 'Succeeded',
+      status: 'Pending',
     },
     workflow: JSON.stringify(xgboostRun),
   },

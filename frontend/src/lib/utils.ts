@@ -141,11 +141,12 @@ export function getAncestorElementWithClass(element: HTMLElement, className: str
 
 export function nodePhaseToIcon(status: NodePhase|string): string {
   switch (status) {
-    case NODE_PHASE.RUNNING: return 'device:access-time';
-    case NODE_PHASE.SUCCEEDED: return 'check-circle';
-    case NODE_PHASE.SKIPPED: return 'av:skip-next';
-    case NODE_PHASE.FAILED: return 'error';
     case NODE_PHASE.ERROR: return 'error';
+    case NODE_PHASE.FAILED: return 'error';
+    case NODE_PHASE.PENDING: return 'device:access-time';
+    case NODE_PHASE.RUNNING: return 'pipelines-icons:status-running';
+    case NODE_PHASE.SKIPPED: return 'av:skip-next';
+    case NODE_PHASE.SUCCEEDED: return 'check-circle';
     case 'NONE': return 'av:fiber-manual-record';
     default:
       log.error('Unknown status:', status);

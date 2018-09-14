@@ -34,7 +34,8 @@
           [[job.name]]
         </a>
         <iron-icon icon="chevron-right"></iron-icon>
-        <iron-icon class="status-icon" icon$=[[_getStatusIcon(workflow.status.phase)]]></iron-icon>
+        <iron-icon class="status-icon" icon$=[[_getStatusIcon(workflow.status.phase)]]
+                   title="[[workflow.status.phase]]"></iron-icon>
         <span class="run-name">[[workflow.metadata.name]]</span>
       </div>
       <div class="toolbar-actions">

@@ -81,6 +81,7 @@
 
           <!-- iron-page tab 1 -->
           <div>
+            <page-error id="podError" class="flex-grow"></page-error>
             <template is="dom-if" if="[[!_selectedNodeOutputs.length]]">
               <div class="no-outputs-msg">No output artifacts for this step.</div>
             </template>

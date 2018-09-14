@@ -24,7 +24,7 @@ import * as Apis from '../../lib/apis';
 import * as Utils from '../../lib/utils';
 
 import { customElement, property } from 'polymer-decorators/src/decorators';
-import { NodeStatus, Workflow } from '../../../third_party/argo-ui/argo_template';
+import { NODE_PHASE, NodeStatus, Workflow } from '../../../third_party/argo-ui/argo_template';
 import { nodePhaseToIcon } from '../../lib/utils';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { StoragePath, StorageService } from '../../model/storage';
@@ -272,6 +272,16 @@ export class RuntimeGraph extends Polymer.Element {
 
     if (!this._selectedNode) {
       return;
+    }
+
+    const podErrorEl = this.$.podError as PageError;
+    podErrorEl.style.display = 'none';
+    if ((this._selectedNode.phase === NODE_PHASE.FAILED ||
+        this._selectedNode.phase === NODE_PHASE.ERROR) &&
+        !!this._selectedNode.message) {
+      podErrorEl.style.display = 'block';
+      podErrorEl.error = 'There were some errors while scheduling this pod';
+      podErrorEl.details = this._selectedNode.message;
     }
 
     const logsContainer = this.$.logsContainer as HTMLPreElement;
