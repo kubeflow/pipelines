@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"encoding/json"
@@ -83,9 +83,6 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}
-	if len(paramsBytes) > util.MaxParameterBytes {
-		return "", util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
-	}
 	return string(paramsBytes), nil
 }
 
@@ -150,7 +147,7 @@ func ToApiJobs(jobs []model.Job) ([]*api.Job, error) {
 func ToModelJob(job *api.Job) (*model.Job, error) {
 	params, err := toModelParameters(job.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Error convert job API model to DB model.")
+		return nil, util.Wrap(err, "Error parsing the input job.")
 	}
 	return &model.Job{
 		UUID:           job.Id,
@@ -166,6 +163,9 @@ func ToModelJob(job *api.Job) (*model.Job, error) {
 
 func toModelTrigger(trigger *api.Trigger) model.Trigger {
 	modelTrigger := model.Trigger{}
+	if trigger == nil {
+		return modelTrigger
+	}
 	if trigger.GetCronSchedule() != nil {
 		cronSchedule := trigger.GetCronSchedule()
 		modelTrigger.CronSchedule = model.CronSchedule{Cron: &cronSchedule.Cron}
@@ -192,7 +192,7 @@ func toModelTrigger(trigger *api.Trigger) model.Trigger {
 }
 
 func toApiTrigger(trigger model.Trigger) *api.Trigger {
-	if trigger.Cron != nil {
+	if trigger.Cron != nil && *trigger.Cron != "" {
 		var cronSchedule api.CronSchedule
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {

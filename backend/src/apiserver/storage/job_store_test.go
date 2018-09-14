@@ -20,6 +20,7 @@ import (
 
 	"database/sql"
 
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
@@ -97,7 +98,12 @@ func TestListJobs_Pagination(t *testing.T) {
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs("" /*pageToken*/, 1 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
+	jobs, nextPageToken, err := jobStore.ListJobs(&common.PaginationContext{
+		PageSize:        1,
+		KeyFieldName:    "Name",
+		SortByFieldName: "Name",
+		IsDesc:          false,
+	})
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, jobsExpected, jobs)
@@ -120,7 +126,17 @@ func TestListJobs_Pagination(t *testing.T) {
 			UpdatedAtInSec: 2,
 			Conditions:     "ready",
 		}}
-	jobs, newToken, err := jobStore.ListJobs(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
+	jobs, newToken, err := jobStore.ListJobs(
+		&common.PaginationContext{
+			Token: &common.Token{
+				SortByFieldValue: "pp2",
+				// The value of the key field of the next row to be returned.
+				KeyFieldValue: "2"},
+			PageSize:        2,
+			KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
+			SortByFieldName: "Name",
+			IsDesc:          false,
+		})
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, jobsExpected2, jobs)
@@ -149,7 +165,12 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs("" /*pageToken*/, 1 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
+	jobs, nextPageToken, err := jobStore.ListJobs(&common.PaginationContext{
+		PageSize:        1,
+		KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
+		SortByFieldName: "Name",
+		IsDesc:          true,
+	})
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, jobsExpected, jobs)
@@ -172,7 +193,17 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			CreatedAtInSec: 1,
 			UpdatedAtInSec: 1,
 		}}
-	jobs, newToken, err := jobStore.ListJobs(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
+	jobs, newToken, err := jobStore.ListJobs(
+		&common.PaginationContext{
+			Token: &common.Token{
+				SortByFieldValue: "pp1",
+				// The value of the key field of the next row to be returned.
+				KeyFieldValue: "1"},
+			PageSize:        2,
+			KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
+			SortByFieldName: "Name",
+			IsDesc:          true,
+		})
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, jobsExpected2, jobs)
@@ -219,7 +250,12 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			CreatedAtInSec: 2,
 			UpdatedAtInSec: 2,
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs("" /*pageToken*/, 2 /*pageSize*/, model.GetJobTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
+	jobs, nextPageToken, err := jobStore.ListJobs(&common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
+		SortByFieldName: "Name",
+		IsDesc:          false,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, jobsExpected, jobs)
@@ -230,8 +266,12 @@ func TestListJobsError(t *testing.T) {
 	defer db.Close()
 
 	db.Close()
-	_, _, err := jobStore.ListJobs("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false /*isDesc*/)
-
+	_, _, err := jobStore.ListJobs(&common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetJobTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to list job to return error")
 }
@@ -421,7 +461,6 @@ func TestEnableJob_DatabaseError(t *testing.T) {
 
 	// Enabling the job.
 	err := jobStore.EnableJob("1", true)
-	println(err.Error())
 	assert.Contains(t, err.Error(), "Error when enabling job 1 to true: sql: database is closed")
 }
 

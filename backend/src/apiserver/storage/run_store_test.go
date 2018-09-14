@@ -19,6 +19,7 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -60,12 +61,26 @@ func TestListRuns_Pagination(t *testing.T) {
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
 		}}
-	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), "", 1, model.GetRunTablePrimaryKeyColumn(), false)
+	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
+		PageSize:        1,
+		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
-	runs, nextPageToken, err = runStore.ListRuns(util.StringPointer("1"), nextPageToken, 1, model.GetRunTablePrimaryKeyColumn(), false)
+	runs, nextPageToken, err = runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
+		Token: &common.Token{
+			SortByFieldValue: "2",
+			// The value of the key field of the next row to be returned.
+			KeyFieldValue: "2"},
+		PageSize:        1,
+		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -97,12 +112,26 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
 		}}
-	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), "", 1, model.GetRunTablePrimaryKeyColumn(), true)
+	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
+		PageSize:        1,
+		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+		IsDesc:          true,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
-	runs, nextPageToken, err = runStore.ListRuns(util.StringPointer("1"), nextPageToken, 1, model.GetRunTablePrimaryKeyColumn(), true)
+	runs, nextPageToken, err = runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
+		Token: &common.Token{
+			SortByFieldValue: "1",
+			// The value of the key field of the next row to be returned.
+			KeyFieldValue: "1"},
+		PageSize:        1,
+		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+		IsDesc:          true,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -133,7 +162,12 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
 		}}
-	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), "", 10, model.GetRunTablePrimaryKeyColumn(), false)
+	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
+		PageSize:        10,
+		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -146,7 +180,12 @@ func TestListRunsError(t *testing.T) {
 	initializePrepopulatedDB(runStore)
 
 	db.Close()
-	_, _, err := runStore.ListRuns(util.StringPointer("1"), "", 10, model.GetRunTablePrimaryKeyColumn(), false)
+	_, _, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
+		PageSize:        1,
+		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }

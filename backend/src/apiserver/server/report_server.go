@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"context"
@@ -42,4 +42,8 @@ func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
 		return nil, err
 	}
 	return &empty.Empty{}, nil
+}
+
+func NewReportServer(resourceManager *resource.ResourceManager) *ReportServer {
+	return &ReportServer{resourceManager: resourceManager}
 }

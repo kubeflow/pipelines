@@ -17,16 +17,15 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"regexp"
-
-	"math"
-
 	workflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/storage"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -73,8 +72,8 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) (pipelines []model.Pipeline, nextPageToken string, err error) {
-	return r.pipelineStore.ListPipelines(pageToken, pageSize, sortByFieldName, isDesc)
+func (r *ResourceManager) ListPipelines(context *common.PaginationContext) (pipelines []model.Pipeline, nextPageToken string, err error) {
+	return r.pipelineStore.ListPipelines(context)
 }
 
 func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error) {
@@ -159,20 +158,20 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
 
-func (r *ResourceManager) ListRunsV2(pageToken string, pageSize int, sortByFieldName string, isDesc bool) (runs []model.Run, nextPageToken string, err error) {
-	return r.runStore.ListRuns(nil, pageToken, pageSize, sortByFieldName, isDesc)
+func (r *ResourceManager) ListRunsV2(context *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
+	return r.runStore.ListRuns(nil, context)
 }
 
-func (r *ResourceManager) ListRuns(jobId string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) (runs []model.Run, nextPageToken string, err error) {
+func (r *ResourceManager) ListRuns(jobId string, context *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
 	_, err = r.jobStore.GetJob(jobId)
 	if err != nil {
 		return nil, "", util.Wrap(err, "List runs failed")
 	}
-	return r.runStore.ListRuns(util.StringPointer(jobId), pageToken, pageSize, sortByFieldName, isDesc)
+	return r.runStore.ListRuns(util.StringPointer(jobId), context)
 }
 
-func (r *ResourceManager) ListJobs(pageToken string, pageSize int, sortByFieldName string, isDesc bool) (jobs []model.Job, nextPageToken string, err error) {
-	return r.jobStore.ListJobs(pageToken, pageSize, sortByFieldName, isDesc)
+func (r *ResourceManager) ListJobs(context *common.PaginationContext) (jobs []model.Job, nextPageToken string, err error) {
+	return r.jobStore.ListJobs(context)
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {

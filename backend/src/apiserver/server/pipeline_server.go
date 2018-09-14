@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 )
 
@@ -35,11 +36,13 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
-	sortByModelField, isDesc, err := parseSortByQueryString(request.SortBy, pipelineModelFieldsBySortableAPIFields)
+	paginationContext, err := ValidateListRequest(
+		request.PageToken, int(request.PageSize), model.GetPipelineTablePrimaryKeyColumn(),
+		request.SortBy, pipelineModelFieldsBySortableAPIFields)
 	if err != nil {
 		return nil, err
 	}
-	pipelines, nextPageToken, err := s.resourceManager.ListPipelines(request.PageToken, int(request.PageSize), sortByModelField, isDesc)
+	pipelines, nextPageToken, err := s.resourceManager.ListPipelines(paginationContext)
 	if err != nil {
 		return nil, err
 	}
@@ -63,4 +66,8 @@ func (s *PipelineServer) GetTemplate(ctx context.Context, request *api.GetTempla
 	}
 
 	return &api.GetTemplateResponse{Template: string(template)}, nil
+}
+
+func NewPipelineServer(resourceManager *resource.ResourceManager) *PipelineServer {
+	return &PipelineServer{resourceManager: resourceManager}
 }

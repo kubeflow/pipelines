@@ -110,17 +110,19 @@ func (s *ListAllRunsTestSuit) TestListAllRuns() {
 
 	/* ---------- Instantiate 3 job using the pipelines ---------- */
 	loopsJob := &api.Job{
-		Name:       "loops",
-		PipelineId: loopsPipelineId,
-		Enabled:    true,
+		Name:           "loops",
+		PipelineId:     loopsPipelineId,
+		MaxConcurrency: 1,
+		Enabled:        true,
 	}
 	loopsJob, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: loopsJob})
 	assert.Nil(t, err)
 
 	argumentsParametersJob := &api.Job{
-		Name:       "arguments-parameters",
-		PipelineId: argumentsParametersPipelineId,
-		Enabled:    true,
+		Name:           "arguments-parameters",
+		PipelineId:     argumentsParametersPipelineId,
+		Enabled:        true,
+		MaxConcurrency: 1,
 		Parameters: []*api.Parameter{
 			{Name: "param2", Value: "world"},
 		},
@@ -129,9 +131,10 @@ func (s *ListAllRunsTestSuit) TestListAllRuns() {
 	assert.Nil(t, err)
 
 	helloWorldJob := &api.Job{
-		Name:       "hello-world",
-		PipelineId: helloWorldPipelineId,
-		Enabled:    true,
+		Name:           "hello-world",
+		PipelineId:     helloWorldPipelineId,
+		MaxConcurrency: 1,
+		Enabled:        true,
 	}
 	helloWorldJob, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: helloWorldJob})
 	assert.Nil(t, err)

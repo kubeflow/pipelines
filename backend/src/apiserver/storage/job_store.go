@@ -16,12 +16,12 @@ package storage
 
 import (
 	"bytes"
-	"fmt"
-
 	"database/sql"
+	"fmt"
 
 	"github.com/VividCortex/mysqlerr"
 	"github.com/go-sql-driver/mysql"
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
@@ -37,7 +37,7 @@ const (
 )
 
 type JobStoreInterface interface {
-	ListJobs(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error)
+	ListJobs(context *common.PaginationContext) ([]model.Job, string, error)
 	GetJob(id string) (*model.Job, error)
 	CreateJob(*model.Job) (*model.Job, error)
 	DeleteJob(id string) error
@@ -50,11 +50,7 @@ type JobStore struct {
 	time util.TimeInterface
 }
 
-func (s *JobStore) ListJobs(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Job, string, error) {
-	context, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetJobTablePrimaryKeyColumn(), isDesc)
-	if err != nil {
-		return nil, "", err
-	}
+func (s *JobStore) ListJobs(context *common.PaginationContext) ([]model.Job, string, error) {
 	models, pageToken, err := listModel(context, s.queryJobTable)
 	if err != nil {
 		return nil, "", util.Wrap(err, "List jobs failed.")
@@ -62,11 +58,11 @@ func (s *JobStore) ListJobs(pageToken string, pageSize int, sortByFieldName stri
 	return s.toJobMetadatas(models), pageToken, err
 }
 
-func (s *JobStore) queryJobTable(context *PaginationContext) ([]model.ListableDataModel, error) {
+func (s *JobStore) queryJobTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
 	var query bytes.Buffer
 	query.WriteString(fmt.Sprintf("SELECT * FROM job_details "))
 	toPaginationQuery("WHERE", &query, context)
-	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
+	query.WriteString(fmt.Sprintf(" LIMIT %v", context.PageSize))
 
 	rows, err := s.db.Query(query.String())
 	if err != nil {

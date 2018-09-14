@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"testing"
@@ -22,7 +22,6 @@ import (
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
 )
 
 func TestToApiPipeline(t *testing.T) {
@@ -330,7 +329,7 @@ func TestToModelJob(t *testing.T) {
 		Trigger: &api.Trigger{
 			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
-				Cron:      "1 * *",
+				Cron:      "1 * * * *",
 			}}},
 		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 	}
@@ -345,29 +344,11 @@ func TestToModelJob(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron:                       util.StringPointer("1 * *"),
+				Cron:                       util.StringPointer("1 * * * *"),
 			},
 		},
 		MaxConcurrency: 1,
 		Parameters:     `[{"name":"param2","value":"world"}]`,
 	}
 	assert.Equal(t, expectedModelJob, modelJob)
-}
-
-func TestToModelJob_ParameterTooLong(t *testing.T) {
-	var params []*api.Parameter
-	// Create a long enough parameter string so it exceed the length limit of parameter.
-	for i := 0; i < 10000; i++ {
-		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
-	}
-	apiJob := &api.Job{
-		Id:             "job1",
-		Name:           "name1",
-		PipelineId:     "1",
-		Enabled:        true,
-		MaxConcurrency: 1,
-		Parameters:     params,
-	}
-	_, err := ToModelJob(apiJob)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }

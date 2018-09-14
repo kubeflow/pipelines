@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"context"
 
 	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 )
 
@@ -42,13 +43,19 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 }
 
 func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
-	sortByModelField, isDesc, err := parseSortByQueryString(request.SortBy, runModelFieldsBySortableAPIFields)
+	paginationContext, err := ValidateListRequest(
+		request.PageToken, int(request.PageSize), model.GetRunTablePrimaryKeyColumn(),
+		request.SortBy, runModelFieldsBySortableAPIFields)
 	if err != nil {
 		return nil, err
 	}
-	runs, nextPageToken, err := s.resourceManager.ListRunsV2(request.PageToken, int(request.PageSize), sortByModelField, isDesc)
+	runs, nextPageToken, err := s.resourceManager.ListRunsV2(paginationContext)
 	if err != nil {
 		return nil, err
 	}
 	return &api.ListRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
+}
+
+func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {
+	return &RunServer{resourceManager: resourceManager}
 }

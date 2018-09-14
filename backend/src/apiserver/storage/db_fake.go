@@ -38,7 +38,6 @@ func NewFakeDb() (*sql.DB, error) {
 func NewFakeDbOrFatal() *sql.DB {
 	db, err := NewFakeDb()
 	if err != nil {
-		println(err.Error())
 		glog.Fatalf("The fake DB doesn't create successfully. Fail fast.")
 	}
 	return db

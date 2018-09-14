@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
+	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/robfig/cron"
 )
 
 type JobServer struct {
@@ -27,6 +31,10 @@ type JobServer struct {
 }
 
 func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest) (*api.Job, error) {
+	err := ValidateCreateJobRequest(request.Job)
+	if err != nil {
+		return nil, err
+	}
 	jobs, err := ToModelJob(request.Job)
 	if err != nil {
 		return nil, err
@@ -47,11 +55,13 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {
-	sortByModelField, isDesc, err := parseSortByQueryString(request.SortBy, jobModelFieldsBySortableAPIFields)
+	paginationContext, err := ValidateListRequest(
+		request.PageToken, int(request.PageSize), model.GetJobTablePrimaryKeyColumn(),
+		request.SortBy, jobModelFieldsBySortableAPIFields)
 	if err != nil {
 		return nil, err
 	}
-	jobs, nextPageToken, err := s.resourceManager.ListJobs(request.PageToken, int(request.PageSize), sortByModelField, isDesc)
+	jobs, nextPageToken, err := s.resourceManager.ListJobs(paginationContext)
 	if err != nil {
 		return nil, err
 	}
@@ -63,12 +73,13 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 }
 
 func (s *JobServer) ListJobRuns(ctx context.Context, request *api.ListJobRunsRequest) (*api.ListJobRunsResponse, error) {
-	sortByModelField, isDesc, err := parseSortByQueryString(request.SortBy, runModelFieldsBySortableAPIFields)
+	paginationContext, err := ValidateListRequest(
+		request.PageToken, int(request.PageSize), model.GetRunTablePrimaryKeyColumn(),
+		request.SortBy, runModelFieldsBySortableAPIFields)
 	if err != nil {
 		return nil, err
 	}
-	runs, nextPageToken, err := s.resourceManager.ListRuns(
-		request.JobId, request.PageToken, int(request.PageSize), sortByModelField, isDesc)
+	runs, nextPageToken, err := s.resourceManager.ListRuns(request.JobId, paginationContext)
 	if err != nil {
 		return nil, err
 	}
@@ -91,10 +102,50 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 	return &empty.Empty{}, nil
 }
 
+func ValidateCreateJobRequest(job *api.Job) error {
+	if job.Status != "" {
+		return util.NewInvalidInputError("The job status should be empty.")
+	}
+	if job.CreatedAt != nil {
+		return util.NewInvalidInputError("The job CreatedAt should be empty. ")
+	}
+	if job.UpdatedAt != nil {
+		return util.NewInvalidInputError("The job UpdatedAt should be empty.")
+	}
+	if job.MaxConcurrency > 100 || job.MaxConcurrency < 1 {
+		return util.NewInvalidInputError("The max concurrency of the job is out of range. Support 1-100. Received %v.", job.MaxConcurrency)
+	}
+	paramsBytes, err := json.Marshal(job.Parameters)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to stream API parameter as string.")
+	}
+	if len(paramsBytes) > util.MaxParameterBytes {
+		return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+	}
+	if job.Trigger != nil && job.Trigger.GetCronSchedule() != nil {
+		if _, err := cron.Parse(job.Trigger.GetCronSchedule().Cron); err != nil {
+			return util.NewInvalidInputError(
+				"Schedule cron is not a supported format(https://godoc.org/github.com/robfig/cron). Error: %v", err)
+		}
+	}
+	if job.Trigger != nil && job.Trigger.GetPeriodicSchedule() != nil {
+		periodicScheduleInterval := job.Trigger.GetPeriodicSchedule().IntervalSecond
+		if periodicScheduleInterval < 1 {
+			return util.NewInvalidInputError(
+				"Found invalid period schedule interval %v. Set at interval to least 1 second.", periodicScheduleInterval)
+		}
+	}
+	return nil
+}
+
 func (s *JobServer) enableJob(id string, enabled bool) (*empty.Empty, error) {
 	err := s.resourceManager.EnableJob(id, enabled)
 	if err != nil {
 		return nil, err
 	}
 	return &empty.Empty{}, nil
+}
+
+func NewJobServer(resourceManager *resource.ResourceManager) *JobServer {
+	return &JobServer{resourceManager: resourceManager}
 }

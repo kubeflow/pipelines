@@ -21,12 +21,13 @@ import (
 
 	"github.com/VividCortex/mysqlerr"
 	"github.com/go-sql-driver/mysql"
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Pipeline, string, error)
+	ListPipelines(context *common.PaginationContext) ([]model.Pipeline, string, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
 	GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error)
 	DeletePipeline(pipelineId string) error
@@ -40,23 +41,19 @@ type PipelineStore struct {
 	uuid util.UUIDGeneratorInterface
 }
 
-func (s *PipelineStore) ListPipelines(pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Pipeline, string, error) {
-	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetPipelineTablePrimaryKeyColumn(), isDesc)
-	if err != nil {
-		return nil, "", err
-	}
-	models, pageToken, err := listModel(paginationContext, s.queryPipelineTable)
+func (s *PipelineStore) ListPipelines(context *common.PaginationContext) ([]model.Pipeline, string, error) {
+	models, pageToken, err := listModel(context, s.queryPipelineTable)
 	if err != nil {
 		return nil, "", util.Wrap(err, "List pipeline failed.")
 	}
 	return s.toPipelines(models), pageToken, err
 }
 
-func (s *PipelineStore) queryPipelineTable(context *PaginationContext) ([]model.ListableDataModel, error) {
+func (s *PipelineStore) queryPipelineTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
 	var query bytes.Buffer
 	query.WriteString(fmt.Sprintf("SELECT * FROM pipelines WHERE Status = '%v' ", model.PipelineReady))
 	toPaginationQuery("AND", &query, context)
-	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
+	query.WriteString(fmt.Sprintf(" LIMIT %v", context.PageSize))
 	r, err := s.db.Query(query.String())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list pipelines: %v", err.Error())

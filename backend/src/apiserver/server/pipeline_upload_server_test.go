@@ -1,0 +1,154 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package server
+
+import (
+	"bytes"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"encoding/base64"
+	"fmt"
+
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
+	"github.com/googleprivate/ml/backend/src/apiserver/model"
+	"github.com/googleprivate/ml/backend/src/apiserver/resource"
+	"github.com/googleprivate/ml/backend/src/apiserver/storage"
+	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestUploadPipeline(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := PipelineUploadServer{resourceManager: resourceManager}
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	w.CreateFormFile("uploadfile", "hello-world")
+	w.Close()
+	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipelines/upload", bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, 200, rr.Code)
+
+	// Verify stored in object store
+	template, err := clientManager.ObjectStore().GetFile(storage.JobFolder, resource.DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.NotNil(t, template)
+
+	// Verify metadata in db
+	pkgsExpect := []model.Pipeline{
+		{
+			UUID:           resource.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "hello-world",
+			Parameters:     "[]",
+			Status:         model.PipelineReady}}
+	pkg, str, err := clientManager.PipelineStore().ListPipelines(&common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, str, "")
+	assert.Equal(t, pkgsExpect, pkg)
+}
+
+func TestUploadPipeline_GetFormFileError(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	server := PipelineUploadServer{resourceManager: resourceManager}
+	var b bytes.Buffer
+	b.WriteString("I am invalid file")
+	w := multipart.NewWriter(&b)
+	w.CreateFormFile("uploadfile", "hello-world")
+	w.Close()
+	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipeline/upload", bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, 400, rr.Code)
+	assert.Contains(t, string(rr.Body.Bytes()), "Failed to read pipeline")
+}
+
+func TestUploadPipeline_SpecifyFileName(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := PipelineUploadServer{resourceManager: resourceManager}
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	w.CreateFormFile("uploadfile", "hello-world")
+	w.Close()
+	encodedName := base64.StdEncoding.EncodeToString([]byte("foobar"))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, 200, rr.Code)
+
+	// Verify stored in object store
+	template, err := clientManager.ObjectStore().GetFile(storage.JobFolder, resource.DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.NotNil(t, template)
+
+	// Verify metadata in db
+	pkgsExpect := []model.Pipeline{
+		{
+			UUID:           resource.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "foobar",
+			Parameters:     "[]",
+			Status:         model.PipelineReady}}
+	pkg, str, err := clientManager.PipelineStore().ListPipelines(&common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, str, "")
+	assert.Equal(t, pkgsExpect, pkg)
+}
+
+func TestUploadPipeline_FileNameTooLong(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := PipelineUploadServer{resourceManager: resourceManager}
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	w.CreateFormFile("uploadfile", "hello-world")
+	w.Close()
+	encodedName := base64.StdEncoding.EncodeToString([]byte(
+		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name"))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, 400, rr.Code)
+	assert.Contains(t, string(rr.Body.Bytes()), "File name too long")
+}

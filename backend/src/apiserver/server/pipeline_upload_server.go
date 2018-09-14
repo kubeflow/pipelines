@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package server
 
 import (
 	"encoding/base64"
@@ -97,4 +97,8 @@ func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code 
 		w.Write([]byte("Error uploading pipeline"))
 	}
 	w.Write(errBytes)
+}
+
+func NewPipelineUploadServer(resourceManager *resource.ResourceManager) *PipelineUploadServer {
+	return &PipelineUploadServer{resourceManager: resourceManager}
 }

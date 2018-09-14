@@ -17,6 +17,7 @@ package storage
 import (
 	"testing"
 
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +58,12 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 		Status:         model.PipelineReady}
 	pipelinesExpected := []model.Pipeline{expectedPipeline1, expectedPipeline2}
 
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 10 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/, false)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines(&common.PaginationContext{
+		PageSize:        10,
+		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
@@ -87,7 +93,12 @@ func TestListPipelines_Pagination(t *testing.T) {
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	pipelinesExpected := []model.Pipeline{expectedPipeline1, expectedPipeline4}
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines(&common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+		SortByFieldName: "Name",
+		IsDesc:          false,
+	})
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
@@ -106,7 +117,17 @@ func TestListPipelines_Pagination(t *testing.T) {
 		Status:         model.PipelineReady}
 	pipelinesExpected2 := []model.Pipeline{expectedPipeline2, expectedPipeline3}
 
-	pipelines, nextPageToken, err = pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, false)
+	pipelines, nextPageToken, err = pipelineStore.ListPipelines(
+		&common.PaginationContext{
+			Token: &common.Token{
+				SortByFieldValue: "pipeline3",
+				// The value of the key field of the next row to be returned.
+				KeyFieldValue: fakeUUIDTwo},
+			PageSize:        2,
+			KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+			SortByFieldName: "Name",
+			IsDesc:          false,
+		})
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected2, pipelines)
@@ -137,7 +158,12 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	pipelinesExpected := []model.Pipeline{expectedPipeline3, expectedPipeline2}
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines(&common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+		SortByFieldName: "Name",
+		IsDesc:          true,
+	})
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
@@ -155,7 +181,17 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
 	pipelinesExpected2 := []model.Pipeline{expectedPipeline4, expectedPipeline1}
-	pipelines, nextPageToken, err = pipelineStore.ListPipelines(nextPageToken, 2 /*pageSize*/, "Name" /*sortByFieldName*/, true /*isDesc*/)
+	pipelines, nextPageToken, err = pipelineStore.ListPipelines(
+		&common.PaginationContext{
+			Token: &common.Token{
+				SortByFieldValue: "pipeline2",
+				// The value of the key field of the next row to be returned.
+				KeyFieldValue: fakeUUIDFour},
+			PageSize:        2,
+			KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+			SortByFieldName: "Name",
+			IsDesc:          true,
+		})
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected2, pipelines)
@@ -174,7 +210,12 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 		Status:         model.PipelineReady}
 	pipelinesExpected := []model.Pipeline{expectedPipeline1}
 
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines(&common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
@@ -185,7 +226,11 @@ func TestListPipelinesError(t *testing.T) {
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	db.Close()
-	_, _, err := pipelineStore.ListPipelines("" /*pageToken*/, 2 /*pageSize*/, model.GetPipelineTablePrimaryKeyColumn() /*sortByFieldName*/, false /*isDesc*/)
+	_, _, err := pipelineStore.ListPipelines(&common.PaginationContext{
+		PageSize:     2,
+		KeyFieldName: model.GetPipelineTablePrimaryKeyColumn(),
+		IsDesc:       true,
+	})
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 

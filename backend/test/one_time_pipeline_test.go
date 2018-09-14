@@ -125,10 +125,11 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 	/* ---------- Instantiate job using the pipeline ---------- */
 	requestStartTime = time.Now().Unix()
 	job := &api.Job{
-		Name:        "hello-world",
-		PipelineId:  pipelineId,
-		Description: "this is my first job",
-		Enabled:     true,
+		Name:           "hello-world",
+		PipelineId:     pipelineId,
+		Description:    "this is my first job",
+		Enabled:        true,
+		MaxConcurrency: 1,
 		Parameters: []*api.Parameter{
 			{Name: "param1", Value: "goodbye"},
 			{Name: "param2", Value: "world"},
@@ -324,12 +325,13 @@ func verifyJob(t *testing.T, job *api.Job, requestStartTime int64, expectedPipel
 	job.UpdatedAt = nil
 
 	expected := api.Job{
-		Id:          job.Id,
-		CreatedAt:   &timestamp.Timestamp{Seconds: job.CreatedAt.Seconds},
-		Name:        "hello-world",
-		Description: "this is my first job",
-		PipelineId:  expectedPipelineId,
-		Enabled:     true,
+		Id:             job.Id,
+		CreatedAt:      &timestamp.Timestamp{Seconds: job.CreatedAt.Seconds},
+		Name:           "hello-world",
+		Description:    "this is my first job",
+		PipelineId:     expectedPipelineId,
+		Enabled:        true,
+		MaxConcurrency: 1,
 		Parameters: []*api.Parameter{
 			{Name: "param1", Value: "goodbye"},
 			{Name: "param2", Value: "world"},

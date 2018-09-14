@@ -126,17 +126,19 @@ func (s *PaginationTestSuit) TestPagination_E2E() {
 
 	/* ---------- Instantiate 3 job using the pipelines ---------- */
 	loopsJob := &api.Job{
-		Name:       "loops",
-		PipelineId: loopsPipelineId,
-		Enabled:    true,
+		Name:           "loops",
+		PipelineId:     loopsPipelineId,
+		Enabled:        true,
+		MaxConcurrency: 1,
 	}
 	loopsJob, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: loopsJob})
 	assert.Nil(t, err)
 
 	argumentsParametersJob := &api.Job{
-		Name:       "arguments-parameters",
-		PipelineId: argumentsParametersPipelineId,
-		Enabled:    true,
+		Name:           "arguments-parameters",
+		PipelineId:     argumentsParametersPipelineId,
+		Enabled:        true,
+		MaxConcurrency: 1,
 		Parameters: []*api.Parameter{
 			{Name: "param2", Value: "world"},
 		},
@@ -145,9 +147,10 @@ func (s *PaginationTestSuit) TestPagination_E2E() {
 	assert.Nil(t, err)
 
 	helloWorldJob := &api.Job{
-		Name:       "hello-world",
-		Enabled:    true,
-		PipelineId: helloWorldPipelineId,
+		Name:           "hello-world",
+		Enabled:        true,
+		PipelineId:     helloWorldPipelineId,
+		MaxConcurrency: 1,
 	}
 	helloWorldJob, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: helloWorldJob})
 	assert.Nil(t, err)

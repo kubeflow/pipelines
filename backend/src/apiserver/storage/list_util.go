@@ -22,39 +22,29 @@ import (
 
 	"bytes"
 
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
-// A deserialized token. Assuming the list request is sorted by name, a typical token should be
-// {SortByFieldValue:"foo", KeyFieldValue:"2"}
-// The corresponding list query would be
-// select * from table where (name, id) >=(foobar,2) order by name, id limit page_size
-type Token struct {
-	// The value of the sorted field of the next row to be returned.
-	SortByFieldValue string
-	// The value of the key field of the next row to be returned.
-	KeyFieldValue string
-}
-
 // Delegate to query the model table for a list of models.
-type QueryListableModelTable func(request *PaginationContext) ([]model.ListableDataModel, error)
+type QueryListableModelTable func(request *common.PaginationContext) ([]model.ListableDataModel, error)
 
 // Logic for listing ListableModels. This would attempt to query one more model than requested,
 // in order to generate the page token. If the result is less than request+1, the nextPageToken
 // will be empty
-func listModel(context *PaginationContext, queryTable QueryListableModelTable) (models []model.ListableDataModel, nextPageToken string, err error) {
+func listModel(context *common.PaginationContext, queryTable QueryListableModelTable) (models []model.ListableDataModel, nextPageToken string, err error) {
 	newContext := *context
 	// List one more item to generate next page token.
-	newContext.pageSize = context.pageSize + 1
+	newContext.PageSize = context.PageSize + 1
 	results, err := queryTable(&newContext)
 	if err != nil {
 		return nil, "", util.Wrap(err, "List data model failed.")
 	}
-	if len(results) < newContext.pageSize {
+	if len(results) < newContext.PageSize {
 		return results, "", nil
 	}
-	tokenString, err := toNextPageToken(context.sortByFieldName, results[context.pageSize])
+	tokenString, err := toNextPageToken(context.SortByFieldName, results[context.PageSize])
 	if err != nil {
 		return nil, "", util.Wrap(err, "Failed to create page token")
 	}
@@ -63,7 +53,7 @@ func listModel(context *PaginationContext, queryTable QueryListableModelTable) (
 
 // Generate page token given the first model to be listed in the next page.
 func toNextPageToken(sortByFieldName string, model model.ListableDataModel) (string, error) {
-	newToken := Token{
+	newToken := common.Token{
 		SortByFieldValue: fmt.Sprint(reflect.ValueOf(model).FieldByName(sortByFieldName)),
 		KeyFieldValue:    model.GetValueOfPrimaryKey(),
 	}
@@ -75,41 +65,24 @@ func toNextPageToken(sortByFieldName string, model model.ListableDataModel) (str
 	return base64.StdEncoding.EncodeToString(tokenBytes), nil
 }
 
-// Decode page token. If page token is empty, we assume listing the first page and return a nil Token.
-func deserializePageToken(pageToken string) (*Token, error) {
-	if pageToken == "" {
-		return nil, nil
-	}
-	tokenBytes, err := base64.StdEncoding.DecodeString(pageToken)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token.")
-	}
-	var token Token
-	err = json.Unmarshal(tokenBytes, &token)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token.")
-	}
-	return &token, nil
-}
-
 // If the PaginationContext is
 // {sortByFieldName "name", keyFieldName:"id", token: {SortByFieldValue: "foo", KeyFieldValue: "2"}}
 // This function construct query as something like
 // select * from table where (name, id)>=("foo","2") order by name, id
-func toPaginationQuery(op string, query *bytes.Buffer, context *PaginationContext) {
+func toPaginationQuery(op string, query *bytes.Buffer, context *common.PaginationContext) {
 	equalitySymbol := ">="
-	if context.isDesc {
+	if context.IsDesc {
 		equalitySymbol = "<="
 	}
-	if token := context.token; token != nil {
+	if token := context.Token; token != nil {
 		query.WriteString(
 			fmt.Sprintf(" %v (%v,%v) %v ('%v','%v') ", op,
-				context.sortByFieldName, context.keyFieldName, equalitySymbol,
+				context.SortByFieldName, context.KeyFieldName, equalitySymbol,
 				token.SortByFieldValue, token.KeyFieldValue))
 	}
 	order := "ASC"
-	if context.isDesc {
+	if context.IsDesc {
 		order = "DESC"
 	}
-	query.WriteString(fmt.Sprintf(" ORDER BY %v %v, %v %v", context.sortByFieldName, order, context.keyFieldName, order))
+	query.WriteString(fmt.Sprintf(" ORDER BY %v %v, %v %v", context.SortByFieldName, order, context.KeyFieldName, order))
 }

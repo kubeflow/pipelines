@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/storage"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -188,7 +189,13 @@ func TestListRun(t *testing.T) {
 	})
 	err = manager.runStore.CreateOrUpdateRun(workflow)
 	assert.Nil(t, err)
-	runs, newToken, err := manager.ListRuns("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
+	runs, newToken, err := manager.ListRuns("1",
+		&common.PaginationContext{
+			PageSize:        1,
+			KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+			IsDesc:          false,
+		})
 	runsExpected := []model.Run{{
 		UUID:           "1",
 		Name:           "run1",
@@ -207,7 +214,12 @@ func TestListRun_JobNotFoundError(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	_, _, err := manager.ListRuns("1", "" /*pageToken*/, 0 /*pageSize*/, "" /*sortByFieldName*/, false /*isDesc*/)
+	_, _, err := manager.ListRuns("1", &common.PaginationContext{
+		PageSize:        0,
+		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
 

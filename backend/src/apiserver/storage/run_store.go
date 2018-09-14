@@ -19,6 +19,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -27,7 +28,7 @@ import (
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 	// TODO(yangpa) support filtering and remove (jobId *string) parameter.
-	ListRuns(jobId *string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Run, string, error)
+	ListRuns(jobId *string, context *common.PaginationContext) ([]model.Run, string, error)
 	CreateOrUpdateRun(workflow *util.Workflow) (err error)
 }
 
@@ -37,22 +38,18 @@ type RunStore struct {
 }
 
 // ListRuns list the run metadata for a job from DB
-func (s *RunStore) ListRuns(jobId *string, pageToken string, pageSize int, sortByFieldName string, isDesc bool) ([]model.Run, string, error) {
-	paginationContext, err := NewPaginationContext(pageToken, pageSize, sortByFieldName, model.GetRunTablePrimaryKeyColumn(), isDesc)
-	if err != nil {
-		return nil, "", err
-	}
-	queryRunTable := func(request *PaginationContext) ([]model.ListableDataModel, error) {
+func (s *RunStore) ListRuns(jobId *string, context *common.PaginationContext) ([]model.Run, string, error) {
+	queryRunTable := func(request *common.PaginationContext) ([]model.ListableDataModel, error) {
 		return s.queryRunTable(jobId, request)
 	}
-	models, pageToken, err := listModel(paginationContext, queryRunTable)
+	models, pageToken, err := listModel(context, queryRunTable)
 	if err != nil {
 		return nil, "", util.Wrap(err, "List runs failed.")
 	}
 	return s.toRunMetadatas(models), pageToken, err
 }
 
-func (s *RunStore) queryRunTable(jobId *string, context *PaginationContext) ([]model.ListableDataModel, error) {
+func (s *RunStore) queryRunTable(jobId *string, context *common.PaginationContext) ([]model.ListableDataModel, error) {
 	var query bytes.Buffer
 	query.WriteString("SELECT * FROM run_details ")
 	if jobId != nil {
@@ -61,7 +58,7 @@ func (s *RunStore) queryRunTable(jobId *string, context *PaginationContext) ([]m
 	} else {
 		toPaginationQuery("WHERE", &query, context)
 	}
-	query.WriteString(fmt.Sprintf(" LIMIT %v", context.pageSize))
+	query.WriteString(fmt.Sprintf(" LIMIT %v", context.PageSize))
 	r, err := s.db.Query(query.String())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
