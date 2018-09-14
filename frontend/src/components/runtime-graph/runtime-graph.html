@@ -29,37 +29,7 @@
     <!-- TODO: No-runtime-graph (yet) experience -->
 
     <div class="flex-grow">
-      <div id="dag" class="job-dag flex-grow overflow-auto">
-        <template is="dom-repeat" items="[[_displayNodes]]" as="node">
-          <div class="job-node" on-click="_nodeClicked"
-               id$="node_[[node.id]]" style$="left: [[node.x]]px;
-                                              top: [[node.y]]px;
-                                              width: [[node.width]]px;
-                                              min-height: [[node.height]]px;
-                                              max-height: [[node.height]]px">
-            <div class="label">[[node.label]]</div>
-            <iron-icon icon$="[[node.icon]]" class="padded-spacing-minus-5"></iron-icon>
-          </div>
-        </template>
-
-        <template is="dom-repeat" items="[[_displayEdges]]" as="edge">
-          <div class="job-edge">
-            <template is="dom-repeat" items="[[edge.lines]]" as="line">
-              <div class="line" style$="width: [[line.distance]]px;
-                                        left: [[line.left]]px;
-                                        top: [[line.yMid]]px;
-                                        transform: translate(100px, 44px)
-                                        rotate([[line.angle]]deg)"></div>
-            </template>
-          </div>
-        </template>
-
-        <template is="dom-repeat" items="[[_displayEdgeStartPoints]]" as="point">
-          <div class="start-circle" style$="transform: translate(100px, 44px);
-                                            left: calc([[point.0]]px - 6px);
-                                            top: calc([[point.1]]px - 3px)"></div>
-        </template>
-      </div>
+      <pipeline-graph id="graph"></pipeline-graph>
 
       <div id="nodeDetails" class="node-details overflow-auto flex-column">
         <div class="flex">

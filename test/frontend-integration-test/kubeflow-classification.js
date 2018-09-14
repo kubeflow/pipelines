@@ -187,7 +187,8 @@ describe('deploy tfjob sample job', () => {
   });
 
   it('generates four nodes in the runtime graph', () => {
-    assert.equal(browser.elements('app-shell run-details runtime-graph .job-node').value.length, 4);
+    assert.equal(browser.elements(
+        'app-shell run-details runtime-graph pipeline-graph .job-node').value.length, 4);
   });
 // TODO: add the visualization tests after the frontend is updated with the plot orders.
 //  it('switches to output tab', () => {

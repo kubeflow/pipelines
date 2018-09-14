@@ -24,6 +24,16 @@ abstract class BaseCustomEvent extends CustomEvent<any> {
   }
 }
 
+export class GraphNodeClickEvent extends BaseCustomEvent {
+  public detail!: {
+    id: string,
+  };
+
+  constructor(id: string) {
+    super(GraphNodeClickEvent.name, { id } );
+  }
+}
+
 export class ItemDblClickEvent extends BaseCustomEvent {
   public detail!: {
     index: number,

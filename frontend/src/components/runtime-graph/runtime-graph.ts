@@ -26,11 +26,14 @@ import * as Utils from '../../lib/utils';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import { NODE_PHASE, NodeStatus, Workflow } from '../../../third_party/argo-ui/argo_template';
 import { nodePhaseToIcon } from '../../lib/utils';
+import { GraphNodeClickEvent } from '../../model/events';
 import { OutputMetadata, PlotMetadata } from '../../model/output_metadata';
 import { StoragePath, StorageService } from '../../model/storage';
 import { PageError } from '../page-error/page-error';
+import { Graph, PipelineGraph } from '../pipeline-graph/pipeline-graph';
 
 import '../data-plotter/data-plot';
+import '../pipeline-graph/pipeline-graph';
 import './runtime-graph.html';
 
 interface Line {
@@ -56,12 +59,6 @@ interface DisplayNode extends dagre.Node {
   icon: string;
   startedAt: string;
   finishedAt: string;
-}
-
-class GraphNodeClickEvent<Model> extends MouseEvent {
-  public model!: {
-    node: Model,
-  };
 }
 
 const NODE_WIDTH = 180;
@@ -98,11 +95,16 @@ export class RuntimeGraph extends Polymer.Element {
 
   private _nodeDetailsPaneSplitter: split.Instance | null = null;
 
+  public get graph(): PipelineGraph {
+    return this.$.graph as PipelineGraph;
+  }
+
   public ready(): void {
     super.ready();
+    this.graph.addEventListener(GraphNodeClickEvent.name, this._nodeClicked.bind(this));
     this._nodeDetailsPaneSplitter = split(
       [
-        this.$.dag as HTMLElement,
+        this.graph as HTMLElement,
         this.$.nodeDetails as HTMLElement
       ],
       {
@@ -134,7 +136,7 @@ export class RuntimeGraph extends Polymer.Element {
       throw new Error('Runtime graph has no nodes.');
     }
 
-    const g = new dagre.graphlib.Graph();
+    const g = new Graph();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
 
@@ -164,6 +166,7 @@ export class RuntimeGraph extends Polymer.Element {
       .forEach((node) => {
         g.setNode(node.id, {
           height: NODE_HEIGHT,
+          icon: nodePhaseToIcon(this._workflowNodes[node.id].phase),
           label: node.displayName || node.id,
           width: NODE_WIDTH,
           ...node,
@@ -205,60 +208,23 @@ export class RuntimeGraph extends Polymer.Element {
       }
     });
 
-    dagre.layout(g);
-
-    // Creates the array of nodes used that will be rendered and adds additional
-    // metadata to them.
-    this._displayNodes = g.nodes().map((id) => {
-      return Object.assign(g.node(id), {
-        finishedAt: this._workflowNodes[id].finishedAt,
-        icon: nodePhaseToIcon(this._workflowNodes[id].phase),
-        name: this._workflowNodes[id].displayName || id,
-        startedAt: this._workflowNodes[id].startedAt,
-      });
-    });
-
-    // Creates the lines that constitute the edges connecting the graph.
-    g.edges().forEach((edgeInfo) => {
-      const edge = g.edge(edgeInfo);
-      const lines: Line[] = [];
-      if (edge.points.length > 1) {
-        for (let i = 1; i < edge.points.length; i++) {
-          const x1 = edge.points[i - 1].x;
-          const y1 = edge.points[i - 1].y;
-          const x2 = edge.points[i].x;
-          const y2 = edge.points[i].y;
-          const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
-          const xMid = (x1 + x2) / 2;
-          const yMid = (y1 + y2) / 2;
-          const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
-          const left = xMid - (distance / 2);
-          lines.push({ x1, y1, x2, y2, distance, xMid, yMid, angle, left });
-
-          // Store the first point of the edge to draw the edge start circle
-          if (i === 1) {
-            this.push('_displayEdgeStartPoints', [x1, y1]);
-          }
-        }
-      }
-      this.push('_displayEdges', { from: edgeInfo.v, to: edgeInfo.w, lines });
-    });
+    this.graph.refresh(g);
   }
 
   protected _exitNodeDetails(): void {
     this._nodeDetailsPaneSplitter!.setSizes([100, 0]);
     this.$.nodeDetails.classList.remove('visible');
     this.shadowRoot!.querySelector('.gutter')!.setAttribute('hidden', 'true');
-    this._unselectAllNodes();
+    this.graph.unselectAllNodes();
   }
 
   protected _formatDateString(date: Date): string {
     return Utils.formatDateString(date);
   }
 
-  protected async _nodeClicked(e: GraphNodeClickEvent<any>): Promise<void> {
-    // Unhide resize element and open side panel to last-used size if present, otherwise use 50% of
-    // width.
+  protected async _nodeClicked(e: GraphNodeClickEvent): Promise<void> {
+    // Unhide resize element and open side panel to last-used size if present,
+    // otherwise use 50% of width.
     this.shadowRoot!.querySelector('.gutter')!.removeAttribute('hidden');
     const [ left, right ] = this._nodeDetailsPaneSplitter!.getSizes();
     if (right > 0) {
@@ -268,7 +234,8 @@ export class RuntimeGraph extends Polymer.Element {
     }
     this.$.nodeDetails.classList.add('visible');
 
-    this._selectedNode = e.model.node;
+    const clickedNodeId = e.detail.id;
+    this._selectedNode = this._workflowNodes[clickedNodeId];
 
     if (!this._selectedNode) {
       return;
@@ -294,26 +261,15 @@ export class RuntimeGraph extends Polymer.Element {
     // Reset each time a new node is clicked
     this._selectedNodeOutputs = [];
 
-    // Apply 'selected' CSS class to just this node
-    this._unselectAllNodes();
-    const root = this.shadowRoot as ShadowRoot;
-    const selectedNode = root.querySelector('#node_' + this._selectedNode.id);
-
-    if (selectedNode) {
-      selectedNode.classList.add('selected');
-    } else {
-      // This should never happen
-      Utils.showDialog('Error', 'Cannot find clicked node with id: ' + this._selectedNode.id);
-      Utils.log.verbose('Cannot find clicked node with id ' + this._selectedNode.id);
-    }
+    this.graph.selectNode(clickedNodeId);
 
     // Load outputs
-    this._loadNodeOutputs(this._workflowNodes[this._selectedNode.id]);
+    this._loadNodeOutputs(this._workflowNodes[clickedNodeId]);
 
     // Load logs
     try {
       this._loadingLogs = true;
-      const logs = await Apis.getPodLogs(this._selectedNode.id);
+      const logs = await Apis.getPodLogs(clickedNodeId);
       logsContainer.style.display = 'block';
       // Linkify URLs starting with http:// or https://
       const urlPattern = /(\b(https?):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
@@ -343,7 +299,7 @@ export class RuntimeGraph extends Polymer.Element {
     } catch (err) {
       errorEl.style.display = 'block';
       errorEl.showButton = false;
-      errorEl.error = `Could not retrieve logs for pod: ${this._selectedNode.id}. Error:\n${err}`;
+      errorEl.error = `Could not retrieve logs for pod: ${clickedNodeId}. Error:\n${err}`;
       logsContainer.style.display = 'none';
     } finally {
       this._loadingLogs = false;
@@ -385,11 +341,6 @@ export class RuntimeGraph extends Polymer.Element {
         this._loadingOutputs = false;
       }
     }
-  }
-
-  private _unselectAllNodes(): void {
-    const root = this.shadowRoot as ShadowRoot;
-    root.querySelectorAll('.job-node').forEach((node) => node.classList.remove('selected'));
   }
 
   // Outbound nodes are roughly those nodes which are the final step of the
