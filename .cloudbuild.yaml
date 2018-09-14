@@ -43,12 +43,17 @@ steps:
   id:   'buildBootstrapper'
 - name: 'debian'
   entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/ml-pipeline\/bootstrapper:$COMMIT_SHA/g" /workspace/bootstrapper.yaml']
+  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/$PROJECT_ID\/bootstrapper:$COMMIT_SHA/g" /workspace/bootstrapper.yaml']
   id:   'prepareBootstrapperYAML'
+- name: 'debian'
+  entrypoint: '/bin/bash'
+  args: ['-c', 'sed -i -e "s/args: \[/args: [\n          \"--api_image\", \"gcr.io\/$PROJECT_ID\/api-server:$COMMIT_SHA\",\n          \"--scheduled_workflow_image\", \"gcr.io\/$PROJECT_ID\/scheduledworkflow:$COMMIT_SHA\",\n          \"--persistence_agent_image\", \"gcr.io\/$PROJECT_ID\/persistenceagent:$COMMIT_SHA\",\n          \"--ui_image\", \"gcr.io\/$PROJECT_ID\/frontend:$COMMIT_SHA\"\n/g" /workspace/bootstrapper.yaml']
+  id:   'updateBootstrapperYAMLImage'
+  waitFor: ['prepareBootstrapperYAML']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/bootstrapper.yaml']
   id:   'copyBootstrapperYAML'
-  waitFor: ['prepareBootstrapperYAML']
+  waitFor: ['updateBootstrapperYAMLImage']
 
 # Build the Dataflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
