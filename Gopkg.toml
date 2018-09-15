@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/argoproj/argo"
-  version = "2.1.1"
+  version = "2.2.0"
 
 [[constraint]]
   name = "github.com/cenkalti/backoff"
@@ -39,7 +39,7 @@
 
 [[constraint]]
   name = "github.com/ghodss/yaml"
-  version = "1.0.0"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/go-sql-driver/mysql"

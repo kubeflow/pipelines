@@ -34,7 +34,7 @@
   revision = "6c6b55f8796f578c870b7e19bafb16103bc40095"
 
 [[projects]]
-  digest = "1:1ff71f4cc68678400465f7e6cdb13297dfa35c3b8720b308448ae2e31cd1f6b6"
+  digest = "1:721fdba0bb5f2e059c0355c10efec01b9cd91ee931e3592c5843882bbe2f3003"
   name = "github.com/argoproj/argo"
   packages = [
     "errors",
@@ -48,12 +48,11 @@
     "pkg/client/informers/externalversions/workflow",
     "pkg/client/informers/externalversions/workflow/v1alpha1",
     "pkg/client/listers/workflow/v1alpha1",
-    "util/retry",
     "workflow/common",
   ]
   pruneopts = "UT"
-  revision = "ac241c95c13f08e868cd6f5ee32c9ce273e239ff"
-  version = "v2.1.1"
+  revision = "af636ddd8455660f307d835814d3112b90815dfd"
+  version = "v2.2.0"
 
 [[projects]]
   digest = "1:320e7ead93de9fd2b0e59b50fd92a4d50c1f8ab455d96bc2eb083267453a9709"
@@ -118,12 +117,12 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
+  branch = "master"
+  digest = "1:326b3646f45752b2917058d66f5a6921cf72fdf820d57576a11c8fc062f8ad4f"
   name = "github.com/ghodss/yaml"
   packages = ["."]
   pruneopts = "UT"
-  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
-  version = "v1.0.0"
+  revision = "c7ce16629ff4cd059ed96ed06419dd3856fd3577"
 
 [[projects]]
   digest = "1:fe8a03a8222d5b913f256972933d26d24ad7c8286692a42943bc01633cc8fce3"
