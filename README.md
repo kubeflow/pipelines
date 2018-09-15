@@ -169,7 +169,7 @@ For more details, see [README.md](https://github.com/googleprivate/ml/blob/maste
 * Install DSL library and DSL compiler
  
 ```bash
-cd [ML_REPO_DIRECTORY]
+cd $ML_REPO_DIRECTORY
 pip install ./dsl/ --upgrade # The library to specify pipelines with Python.
 pip install ./dsl-compiler/ --upgrade # The compiler that converts pipeline code into the form required by the pipeline system.
  ```
@@ -191,7 +191,8 @@ dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
 For example:
 
 ```bash
-dsl-compile --py [ML_REPO_DIRECTORY]/samples/basic/sequential.py --output [ML_REPO_DIRECTORY]/samples/basic/sequential.yaml
+cd $ML_REPO_DIRECTORY
+dsl-compile --py ./samples/basic/sequential.py --output ./samples/basic/sequential.yaml
 ```
 
 ## Deploy the samples
