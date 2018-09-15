@@ -92,6 +92,10 @@ export class PipelineGraph extends Polymer.Element {
     });
   }
 
+  public clear(): void {
+    this._displayNodes = this._displayEdges = this._displayEdgeStartPoints = [];
+  }
+
   public selectNode(id: string): void {
     // Apply 'selected' CSS class to just this node
     this.unselectAllNodes();

@@ -100,7 +100,7 @@ describe('view run details', () => {
 
   it('opens node details upon click', () => {
     // Select a step that will show in the viewport without scrolling.
-    const selector = 'app-shell run-details runtime-graph .job-node:nth-of-type(4)';
+    const selector = 'app-shell run-details runtime-graph pipeline-graph .job-node:nth-of-type(4)';
 
     browser.waitForVisible(selector);
     browser.click(selector);

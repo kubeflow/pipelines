@@ -122,6 +122,7 @@ export class RuntimeGraph extends Polymer.Element {
 
   public refresh(graph: Workflow): void {
     this._exitNodeDetails();
+    this.graph.clear();
     this._selectedTab = 0;
     // Ensure that we're working with empty arrays.
     this._displayEdges = [];
