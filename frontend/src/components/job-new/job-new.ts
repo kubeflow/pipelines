@@ -32,6 +32,8 @@ import { apiParameter, apiPipeline } from '../../api/pipeline';
 import { RouteEvent } from '../../model/events';
 import { PageElement } from '../../model/page_element';
 import { JobSchedule } from '../job-schedule/job-schedule';
+import { PipelineUploadDialog } from '../pipeline-upload-dialog/pipeline-upload-dialog';
+import { DialogResult } from '../popup-dialog/popup-dialog';
 
 import '../date-time-picker/date-time-picker';
 
@@ -176,30 +178,15 @@ export class JobNew extends PageElement {
     }
   }
 
-  protected _altUpload(): void {
-    (this.$.altFileUpload as HTMLInputElement).click();
-  }
-
   protected async _upload(): Promise<void> {
-    const files = (this.$.altFileUpload as HTMLInputElement).files;
+    const result = await new PipelineUploadDialog().open();
 
-    if (!files) {
-      return;
-    }
-
-    const file = files[0];
-    this._busy = true;
-    try {
-      const pkg = await Apis.uploadPipeline(file);
+    // BUTTON1 is Upload
+    if (result.buttonPressed === DialogResult.BUTTON1 && result.pipeline) {
+      Utils.showNotification(`Successfully uploaded pipeline: ${result.pipeline.name}`);
       // Add the parsed pipeline to the dropdown list, and select it
-      this.push('pipelines', pkg);
-      (this.$.pipelinesListbox as PaperListboxElement).selected =
-          (this.$.pipelinesListbox as PaperListboxElement).items!.length;
-    } catch (err) {
-      Utils.showDialog('There was an error uploading the pipeline.', err);
-    } finally {
-      (this.$.altFileUpload as HTMLInputElement).value = '';
-      this._busy = false;
+      this.push('pipelines', result.pipeline);
+      this.listBox.selected = this.listBox.items!.length;
     }
   }
 
@@ -236,7 +223,7 @@ export class JobNew extends PageElement {
     this._pageError = '';
 
     // Clear pipeline selection on each component load
-    const pipelineList = this.$.pipelinesListbox as PaperListboxElement;
+    const pipelineList = this.listBox;
     pipelineList.select(-1);
     this._parameters = [];
     this._pipelineId = '';

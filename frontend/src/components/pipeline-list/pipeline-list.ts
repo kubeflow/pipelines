@@ -23,6 +23,9 @@ import * as Utils from '../../lib/utils';
 import { customElement, property } from 'polymer-decorators/src/decorators';
 import * as xss from 'xss';
 import { apiPipeline } from '../../api/pipeline';
+import {
+  PipelineUploadDialog
+} from '../../components/pipeline-upload-dialog/pipeline-upload-dialog';
 import { DialogResult } from '../../components/popup-dialog/popup-dialog';
 import {
   ItemDblClickEvent,
@@ -179,28 +182,12 @@ export class PipelineList extends PageElement {
     }
   }
 
-  protected _altUpload(): void {
-    (this.$.altFileUpload as HTMLInputElement).click();
-  }
-
   protected async _upload(): Promise<void> {
-    const files = (this.$.altFileUpload as HTMLInputElement).files;
-
-    if (!files) {
-      return;
-    }
-
-    const file = files[0];
-    this._busy = true;
-    try {
-      await Apis.uploadPipeline(file);
-      // Refresh list after uploading
+    const result = await new PipelineUploadDialog().open();
+    // BUTTON1 is Upload
+    if (result.buttonPressed === DialogResult.BUTTON1 && result.pipeline) {
+      Utils.showNotification(`Successfully uploaded pipeline: ${result.pipeline.name}`);
       this._refresh();
-    } catch (err) {
-      Utils.showDialog('There was an error uploading the pipeline.', err);
-    } finally {
-      (this.$.altFileUpload as HTMLInputElement).value = '';
-      this._busy = false;
     }
   }
 

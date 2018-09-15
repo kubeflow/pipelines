@@ -18,12 +18,13 @@
     <link rel="stylesheet" href="./popup-dialog.css">
     <paper-dialog with-backdrop id="dialog" class="dialog">
       <div class="title">[[title]]</div>
-      <div class="body">[[body]]</div>
+      <div class="body" hidden$="[[!body]]">[[body]]</div>
+      <slot name="additional-content"></slot>
       <div class="footer">
-        <paper-button hidden$="[[!button1]]" on-click="_closedWithButton1">
+        <paper-button id="button1" hidden$="[[!button1]]" on-click="_closedWithButton1">
           [[button1]]
         </paper-button>
-        <paper-button hidden$="[[!button2]]" on-click="_closedWithButton2">
+        <paper-button id="button2" hidden$="[[!button2]]" on-click="_closedWithButton2">
           [[button2]]
         </paper-button>
       </div>

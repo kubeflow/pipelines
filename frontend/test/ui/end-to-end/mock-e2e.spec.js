@@ -62,21 +62,39 @@ describe('deploy new job', () => {
   });
 
   it('uploads the hello world pipeline', () => {
-    const selector = 'app-shell job-new #deployButton';
-    browser.waitForVisible(selector, waitTimeout);
+    const uploadBtnSelector = 'app-shell job-new #uploadBtn';
+    browser.waitForVisible(uploadBtnSelector, waitTimeout);
+    browser.click(uploadBtnSelector);
 
     // Show the alt upload button
-    browser.execute(`document.querySelector('app-shell').shadowRoot
-                        .querySelector('job-new').shadowRoot
+    browser.execute(`document.querySelector('pipeline-upload-dialog').shadowRoot
                         .querySelector('#altFileUpload').style.display=''`);
-    const uploadSelector = 'app-shell job-new #altFileUpload';
-    browser.waitForVisible(uploadSelector, waitTimeout);
-    browser.chooseFile(uploadSelector, './hello-world.yaml');
+
+    const uploadInputSelector = 'pipeline-upload-dialog #altFileUpload';
+    browser.chooseFile(uploadInputSelector, './hello-world.yaml');
 
     // Hide the alt upload button
-    browser.execute(`document.querySelector('app-shell').shadowRoot
-                        .querySelector('job-new').shadowRoot
+    browser.execute(`document.querySelector('pipeline-upload-dialog').shadowRoot
                         .querySelector('#altFileUpload').style.display='none'`);
+
+    // Pipeline name should default to uploaded file name
+    const pipelineNameInputSelector = 'pipeline-upload-dialog #pipelineNameInput';
+    assert.equal(browser.getValue(pipelineNameInputSelector), 'hello-world.yaml');
+
+    // Clear pipeline name input
+    browser.execute(`document.querySelector('pipeline-upload-dialog').shadowRoot
+                        .querySelector('#pipelineNameInput').value=''`)
+    assert.equal(browser.getValue(pipelineNameInputSelector), '');
+
+    // Manually edit pipeline name
+    browser.click(pipelineNameInputSelector);
+    browser.keys('my-new-pipeline');
+    assert.equal(browser.getValue(pipelineNameInputSelector), 'my-new-pipeline');
+
+    // Complete the upload flow
+    const finalUploadBtnSelector = 'pipeline-upload-dialog popup-dialog #button1';
+    browser.click(finalUploadBtnSelector);
+
     const pkgIdSelector = 'app-shell job-new paper-dropdown-menu ' +
                           'paper-menu-button::paper-input paper-input-container::iron-input';
     browser.waitForValue(pkgIdSelector, waitTimeout);
@@ -94,12 +112,17 @@ describe('deploy new job', () => {
     browser.keys('Tab');
 
     browser.keys('Tab');
-    browser.keys('x param value');
+    browser.keys('param-1 value');
     browser.keys('Tab');
-    browser.keys('y param value');
+    browser.keys('param-2 value');
     browser.keys('Tab');
     browser.keys('output param value');
 
+    // Hide upload success toast. It appears directly over the deploy button
+    browser.execute(`document.querySelector('paper-toast').style.display='none'`);
+
+    // Wait for toast to be hidden
+    browser.waitForVisible('paper-toast', waitTimeout, true);
     browser.click('app-shell job-new #deployButton');
   });
 
@@ -153,9 +176,10 @@ describe('deploy new job', () => {
     browser.waitForVisible(selector, waitTimeout);
 
     const paramsSelector = 'app-shell job-details .params-table';
-    assert.deepEqual(browser.getText(paramsSelector),
-                     'x\nx param value\ny\ny param value\noutput\noutput param value',
-                     'parameter values are incorrect: ' + browser.getText(paramsSelector));
+    assert.deepEqual(
+        browser.getText(paramsSelector),
+        'param-1\nparam-1 value\nparam-2\nparam-2 value\noutput\noutput param value',
+        'parameter values are incorrect: ' + browser.getText(paramsSelector));
   });
 
   it('switches to run list tab', () => {
@@ -195,7 +219,7 @@ describe('deploy new job', () => {
     // Can't find a better way to wait for dialog to appear. For some reason,
     // waitForVisible just hangs.
     browser.pause(500);
-    browser.click('popup-dialog paper-button');
+    browser.click('popup-dialog #button1');
   });
 
   it('redirects back to job list page', () => {
@@ -215,6 +239,31 @@ describe('deploy new job', () => {
     browser.waitForVisible(selector, waitTimeout);
     assert.equal($$(listSelector).length, mockJobsLength - 20,
         'second page should show the remaining jobs, it shows: ' + $$(listSelector).length);
+  });
+
+  it('deletes the uploaded pipeline', () => {
+    const selector = 'app-shell side-nav #pipelinesBtn';
+    browser.click(selector);
+
+    browser.pause(500);
+
+    const pipelinesListSelector = 'app-shell pipeline-list item-list #listContainer paper-item';
+
+    const allPipelineElements = $$(pipelinesListSelector);
+
+    // Find newly uploaded pipeline and click it.
+    const newPipelineElement = allPipelineElements.find(
+        (e) => browser.elementIdText(e.ELEMENT).value.startsWith('my-new-pipeline'));
+    browser.elementIdClick(newPipelineElement.ELEMENT);
+
+    browser.click('app-shell pipeline-list #deleteBtn');
+
+    // Can't find a better way to wait for dialog to appear. For some reason,
+    // waitForVisible just hangs.
+    browser.pause(500);
+
+    // Confirm deletion
+    browser.click('popup-dialog #button1');
   });
 
   it('can use hash navigation to show the jobs page directly', () => {

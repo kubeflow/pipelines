@@ -20,7 +20,7 @@
     <div class="toolbar">
       <div class="toolbar-title">All Pipelines</div>
       <div class="toolbar-actions">
-        <paper-button id="uploadBtn" on-click="_altUpload">
+        <paper-button id="uploadBtn" on-click="_upload">
           <iron-icon icon="file-upload"></iron-icon>
           Upload pipeline
         </paper-button>
@@ -28,8 +28,6 @@
           <iron-icon icon="add"></iron-icon>
           Create job
         </paper-button>
-        <!-- This is hidden but its functionality is used by the alt upload button above -->
-        <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
         <paper-button id="refreshBtn" on-click="_refresh">
           <iron-icon icon="refresh"></iron-icon>
           Refresh
@@ -51,7 +49,7 @@
       </div>
       <div class="scrollable">
         <item-list id="pipelinesItemList" class="flex-grow" rows="[[pipelineListRows]]"
-                   empty-message="No pipelines found. Click Upload Pipeline to start."
+                   empty-message="No pipelines found. Click Upload pipeline to start."
                    columns="[[pipelineListColumns]]">
         </item-list>
       </div>

@@ -44,21 +44,38 @@ describe('deploy tfjob sample job', () => {
   });
 
   it('uploads the kubeflow classfication sample pipeline', () => {
-    const selector = 'app-shell job-new #deployButton';
-    browser.waitForVisible(selector, waitTimeout);
+    const uploadBtnSelector = 'app-shell job-new #uploadBtn';
+    browser.waitForVisible(uploadBtnSelector, waitTimeout);
+    browser.click(uploadBtnSelector);
 
     // Show the alt upload button
-    browser.execute(`document.querySelector('app-shell').shadowRoot
-                        .querySelector('job-new').shadowRoot
+    browser.execute(`document.querySelector('pipeline-upload-dialog').shadowRoot
                         .querySelector('#altFileUpload').style.display=''`);
-    const uploadSelector = 'app-shell job-new #altFileUpload';
-    browser.waitForVisible(uploadSelector, waitTimeout);
-    browser.chooseFile(uploadSelector, './kubeflow-classification.yaml');
+    const uploadInputSelector = 'pipeline-upload-dialog #altFileUpload';
+    browser.chooseFile(uploadInputSelector, './kubeflow-classification.yaml');
 
     // Hide the alt upload button
-    browser.execute(`document.querySelector('app-shell').shadowRoot
-                        .querySelector('job-new').shadowRoot
+    browser.execute(`document.querySelector('pipeline-upload-dialog').shadowRoot
                         .querySelector('#altFileUpload').style.display='none'`);
+
+    // Pipeline name should default to uploaded file name
+    const pipelineNameInputSelector = 'pipeline-upload-dialog #pipelineNameInput';
+    assert.equal(browser.getValue(pipelineNameInputSelector), 'kubeflow-classification.yaml');
+
+     // Clear pipeline name input
+    browser.execute(`document.querySelector('pipeline-upload-dialog').shadowRoot
+                        .querySelector('#pipelineNameInput').value=''`)
+    assert.equal(browser.getValue(pipelineNameInputSelector), '');
+
+     // Manually edit pipeline name
+    browser.click(pipelineNameInputSelector);
+    browser.keys('my-new-pipeline');
+    assert.equal(browser.getValue(pipelineNameInputSelector), 'my-new-pipeline');
+
+     // Complete the upload flow
+    const finalUploadBtnSelector = 'pipeline-upload-dialog popup-dialog #button1';
+    browser.click(finalUploadBtnSelector);
+
     const pkgIdSelector = 'app-shell job-new paper-dropdown-menu ' +
                           'paper-menu-button::paper-input paper-input-container::iron-input';
     browser.waitForValue(pkgIdSelector, 5 * waitTimeout);
@@ -78,6 +95,10 @@ describe('deploy tfjob sample job', () => {
     browser.keys('Tab')
     browser.keys(outputDir)
 
+    // Hide upload success toast. It appears directly over the deploy button
+    browser.execute(`document.querySelector('paper-toast').style.display='none'`);
+     // Wait for toast to be hidden
+    browser.waitForVisible('paper-toast', waitTimeout, true);
     browser.click('app-shell job-new #deployButton');
   });
 
@@ -245,7 +266,7 @@ describe('deploy tfjob sample job', () => {
     browser.click(selector);
 
     browser.pause(500);
-    browser.click('popup-dialog paper-button');
+    browser.click('popup-dialog #button1');
   });
 
   it('redirects back to job list page', () => {
@@ -253,6 +274,24 @@ describe('deploy tfjob sample job', () => {
       return new URL(browser.getUrl()).pathname === '/jobs';
     }, waitTimeout);
   });
+
+  // it('deletes the uploaded pipeline', () => {
+  //   const selector = 'app-shell side-nav #pipelinesBtn';
+  //   browser.click(selector);
+  //   browser.pause(500);
+  //   const pipelinesListSelector = 'app-shell pipeline-list item-list #listContainer paper-item';
+  //   const allPipelineElements = $$(pipelinesListSelector);
+  //   // Find newly uploaded pipeline and click it.
+  //   const newPipelineElement = allPipelineElements.find(
+  //       (e) => browser.elementIdText(e.ELEMENT).value.startsWith('my-new-pipeline'));
+  //   browser.elementIdClick(newPipelineElement.ELEMENT);
+  //   browser.click('app-shell pipeline-list #deleteBtn');
+  //   // Can't find a better way to wait for dialog to appear. For some reason,
+  //   // waitForVisible just hangs.
+  //   browser.pause(500);
+  //   // Confirm deletion
+  //   browser.click('popup-dialog #button1');
+  // });
 
 //  it('can visit the Tensorboard pod using the proxy link', () => {
 //    browser.url(tensorboardAddress);

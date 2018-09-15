@@ -1,0 +1,69 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<dom-module id="pipeline-upload-dialog">
+  <template>
+    <link rel="stylesheet" href="./pipeline-upload-dialog.css">
+
+    <style>
+        /*
+        This is here instead of in the .css file because of css-loader, which
+        tries to validate CSS while loading, and ends up commenting out all
+        mixins, since they're not officially in the CSS spec.
+        */
+        paper-input {
+          --paper-input-container: {
+            padding: 0;
+          }
+          --paper-input-container-label: {
+            box-sizing: border-box;
+            padding: 0 8px;
+          }
+          --paper-input-container-input: {
+            box-sizing: border-box;
+            font-size: 14px;
+            padding: 0 6px;
+          }
+          --paper-input-container-label-floating: {
+            color: #000;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 0 8px;
+          }
+          --paper-input-error: {
+            padding: 0 6px;
+          }
+        }
+      </style>
+
+    <div class="overlay" hidden="[[!_busy]]">
+      <paper-spinner class="absolute-spinner" active></paper-spinner>
+    </div>
+    <popup-dialog id="dialog" title="Please enter a name for this Pipeline" button1="Upload"
+                  button2="Cancel">
+      <div id="popupSlot" class="slot" slot="additional-content">
+        <paper-input id="pipelineNameInput" class="shaded" label="Pipeline Name" auto-validate
+                     autofocus required maxlength="40" spellcheck="false" value="{{_pipelineName}}">
+        </paper-input>
+        <div class="upload-fields">
+          <paper-button class="upload-btn" on-click="_altUpload">Choose a file</paper-button>
+          <div class="file-name">[[_fileName]]</div>
+        </div>
+        <!-- This is hidden but its functionality is used by the alt upload button above -->
+        <input type="file" id="altFileUpload" style="display: none" on-change="_upload">
+      </div>
+    </popup-dialog>
+  </template>
+</dom-module>

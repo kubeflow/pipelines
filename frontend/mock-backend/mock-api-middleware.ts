@@ -142,7 +142,7 @@ export default (app: express.Application) => {
     job.enabled = !!job.trigger;
     fixedData.jobs.push(job);
     setTimeout(() => {
-      res.send(fixedData.jobs[0]);
+      res.send(fixedData.jobs[fixedData.jobs.length - 1]);
     }, 1000);
   });
 
@@ -364,7 +364,34 @@ export default (app: express.Application) => {
 
   app.post(v1alpha2Prefix + '/pipelines/upload', (req, res) => {
     res.header('Content-Type', 'application/json');
-    res.json(fixedData.pipelines[0]);
+    // Don't allow uploading multiple pipelines with the same name
+    const pipelineName = decodeURIComponent(req.query.pipelineName);
+    if (fixedData.pipelines.find((p) => p.name === pipelineName)) {
+      res.status(502).send(
+          `A Pipeline named: "${pipelineName}" already exists. Please choose a different name.`);
+    } else {
+      const pipeline = req.body;
+      pipeline.id = 'new-pipeline-' + (fixedData.pipelines.length + 1);
+      pipeline.name = pipelineName;
+      pipeline.created_at = new Date().toISOString();
+      pipeline.description =
+          'TODO: the mock middleware does not actually use the uploaded pipeline';
+      pipeline.parameters = [
+        {
+          name: 'param-1'
+        },
+        {
+          name: 'param-2'
+        },
+        {
+          name: 'output'
+        },
+      ];
+      fixedData.pipelines.push(pipeline);
+      setTimeout(() => {
+        res.send(fixedData.pipelines[fixedData.pipelines.length - 1]);
+      }, 1000);
+    }
   });
 
   app.get('/artifacts/get', (req, res) => {

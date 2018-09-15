@@ -15,8 +15,10 @@
 import { customElement, property } from 'polymer-decorators/src/decorators';
 
 import 'iron-icon/iron-icon.html';
+import 'paper-button/paper-button.html';
 import 'paper-dialog/paper-dialog.html';
 import 'polymer/polymer.html';
+
 import './popup-dialog.html';
 
 export enum DialogResult {

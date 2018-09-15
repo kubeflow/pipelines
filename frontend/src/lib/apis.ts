@@ -159,14 +159,20 @@ export async function getPipelineTemplate(id: string): Promise<apiGetTemplateRes
  * Uploads the given pipeline file to the backend, and gets back a Pipeline
  * object with its metadata parsed.
  */
-export async function uploadPipeline(pipelineData: any): Promise<apiPipeline> {
+export async function uploadPipeline(
+    pipelineName: string, pipelineData: File): Promise<apiPipeline> {
   const fd = new FormData();
   fd.append('uploadfile', pipelineData, pipelineData.name);
-  const response = await _fetch('/pipelines/upload', v1alpha2Prefix, '', {
-    body: fd,
-    cache: 'no-cache',
-    method: 'POST',
-  });
+  const response =
+      await _fetch(
+          '/pipelines/upload',
+          v1alpha2Prefix,
+          `pipelineName=${encodeURIComponent(pipelineName)}`,
+        {
+          body: fd,
+          cache: 'no-cache',
+          method: 'POST',
+        });
   return JSON.parse(response);
 }
 
