@@ -54,6 +54,10 @@ class ContainerOp(object):
     self.command = command
     self.arguments = arguments
     self.is_exit_handler = is_exit_handler
+    self.memory_limit = None
+    self.memory_request = None
+    self.cpu_limit = None
+    self.cpu_request = None
 
     matches = []
     if arguments:
@@ -87,3 +91,64 @@ class ContainerOp(object):
   def after(self, op):
     """Specify explicit dependency on another op."""
     self.dependent_op_names.append(op.name)
+
+  def _validate_memory_string(self, memory_string):
+    """Validate a given string is valid for memory request or limit."""
+
+    if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$', memory_string) is None:
+      raise ValueError('Invalid memory string. Should be an integer, or integer followed '
+                       'by one of "E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki"')
+
+  def _validate_cpu_string(self, cpu_string):
+    "Validate a given string is valid for cpu request or limit."
+
+    if re.match(r'^[0-9]+m$', cpu_string) is not None:
+      return
+
+    try:
+      float(cpu_string)
+    except ValueError:
+      raise ValueError('Invalid cpu string. Should be float or integer, or integer followed '
+                       'by "m".')
+
+  def set_memory_request(self, memory):
+    """Set memory request (minimum) for this operator.
+
+    Args:
+      memory: a string which can be a number or a number followed by one of
+              "E", "P", "T", "G", "M", "K".
+    """
+
+    self._validate_memory_string(memory)
+    self.memory_request = memory
+
+  def set_memory_limit(self, memory):
+    """Set memory limit (maximum) for this operator.
+
+    Args:
+      memory: a string which can be a number or a number followed by one of
+              "E", "P", "T", "G", "M", "K".
+    """
+    self._validate_memory_string(memory)
+    self.memory_limit = memory
+
+  def set_cpu_request(self, cpu):
+    """Set cpu request (minimum) for this operator.
+
+    Args:
+      cpu: A string which can be a number or a number followed by "m", which means 1/1000.
+    """
+
+    self._validate_cpu_string(cpu)
+    self.cpu_request = cpu
+
+  def set_cpu_limit(self, cpu):
+    """Set cpu limit (maximum) for this operator.
+
+    Args:
+      cpu: A string which can be a number or a number followed by "m", which means 1/1000.
+    """
+
+    self._validate_cpu_string(cpu)
+    self.cpu_limit = cpu
+    

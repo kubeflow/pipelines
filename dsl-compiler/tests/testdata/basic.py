@@ -78,8 +78,10 @@ def save_most_frequent_word(message: mlp.PipelineParam, outputpath: mlp.Pipeline
     counter = GetFrequentWordOp(
           name='get-Frequent',
           message=message)
+    counter.set_memory_request('200M')
 
     saver = SaveMessageOp(
           name='save',
           message=counter.output,
           output_path=outputpath)
+    saver.set_cpu_limit('0.5')

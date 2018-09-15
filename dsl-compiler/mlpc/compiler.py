@@ -118,6 +118,24 @@ class Compiler(object):
     template['outputs']['artifacts'] = output_artifacts
     if op.command:
       template['container']['command'] = op.command
+
+    # Set resources.
+    if op.memory_limit or op.cpu_limit or op.memory_request or op.cpu_request:
+      template['container']['resources'] = {}
+    if op.memory_limit or op.cpu_limit:
+      template['container']['resources']['limits'] = {}
+      if op.memory_limit:
+        template['container']['resources']['limits']['memory'] = op.memory_limit
+      if op.cpu_limit:
+        template['container']['resources']['limits']['cpu'] = op.cpu_limit
+
+    if op.memory_request or op.cpu_request:
+      template['container']['resources']['requests'] = {}
+      if op.memory_request:
+        template['container']['resources']['requests']['memory'] = op.memory_request
+      if op.cpu_request:
+        template['container']['resources']['requests']['cpu'] = op.cpu_request
+
     return template
 
   def _get_groups_for_ops(self, root_group):
