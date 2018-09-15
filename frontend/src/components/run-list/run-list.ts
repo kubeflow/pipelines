@@ -85,7 +85,7 @@ export class RunList extends Polymer.Element {
       } else {
         return colIndex > 1 ? `<span>${text}</span>` :
             `<a class="link"
-                href="/jobRun?jobId=${this._jobId}&runId=${this.runsMetadata[rowIndex].id}">
+                href="/jobRun?runId=${this.runsMetadata[rowIndex].id}">
               ${text}
             </a>`;
       }
@@ -101,7 +101,7 @@ export class RunList extends Polymer.Element {
   protected _navigate(ev: ItemDblClickEvent): void {
     const runId = this.runsMetadata[ev.detail.index].id;
     this.dispatchEvent(
-        new RouteEvent(`/jobRun?jobId=${this._jobId}&runId=${runId}`));
+        new RouteEvent(`/jobRun?runId=${runId}`));
   }
 
   protected _getRuntime(start: string, end: string, status: NodePhase): string {

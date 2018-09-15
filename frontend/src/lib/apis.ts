@@ -304,8 +304,8 @@ export async function listRuns(request: ListRunsRequest): Promise<apiListRunsRes
 /**
  * Gets a job run given its id.
  */
-export async function getRun(jobId: string, runId: string): Promise<apiRunDetail> {
-  const run = JSON.parse(await _fetch(`/jobs/${jobId}/runs/${runId}`, v1alpha2Prefix));
+export async function getRun(runId: string): Promise<apiRunDetail> {
+  const run = JSON.parse(await _fetch(`/runs/${runId}`, v1alpha2Prefix));
   if (run.created_at) {
     run.created_at = new Date(run.created_at);
   }

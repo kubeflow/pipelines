@@ -38,6 +38,7 @@ const mockRun: apiRunDetail = {
   run: {
     created_at: new Date(),
     id: 'test-id',
+    job_id: '1000',
     name: 'test-run',
     namespace: 'test-namespace',
     scheduled_at: new Date(),
@@ -49,7 +50,7 @@ const mockRun: apiRunDetail = {
 async function _resetFixture(): Promise<void> {
   return testUtils.resetFixture('run-details', undefined, (f: RunDetails) => {
     fixture = f;
-    return f.load('', { runId: 'test-run', jobId: '1000' });
+    return f.load('', { runId: 'test-run' });
   });
 }
 

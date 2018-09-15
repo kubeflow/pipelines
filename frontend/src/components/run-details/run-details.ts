@@ -77,11 +77,10 @@ export class RunDetails extends PageElement {
     return this.$.configDetails as HTMLDivElement;
   }
 
-  public async load(_: string, queryParams: { runId?: string, jobId: string }): Promise<void> {
+  public async load(_: string, queryParams: { runId?: string }): Promise<void> {
     this._reset();
 
-    if (queryParams.runId !== undefined && !!queryParams.jobId) {
-      this._jobId = queryParams.jobId;
+    if (queryParams.runId !== undefined) {
       this._runId = queryParams.runId;
 
       return this._loadRun();
@@ -91,8 +90,9 @@ export class RunDetails extends PageElement {
   protected async _loadRun(): Promise<void> {
     this._loadingRun = true;
     try {
-      const response = await Apis.getRun(this._jobId, this._runId);
+      const response = await Apis.getRun(this._runId);
       this.workflow = JSON.parse(response.workflow!) as Workflow;
+      this._jobId = response.run!.job_id!;
       this.job = await Apis.getJob(this._jobId);
     } catch (err) {
       this.showPageError(

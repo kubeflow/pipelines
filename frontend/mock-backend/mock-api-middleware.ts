@@ -292,16 +292,6 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.get(v1alpha2Prefix + '/jobs/:jid/runs/:rid', (req, res) => {
-    const rid = req.params.rid;
-    const run = fixedData.runs.find((r) => r.run!.id === rid);
-    if (!run) {
-      res.status(404).send('Cannot find a run with id: ' + rid);
-      return;
-    }
-    res.json(run);
-  });
-
   app.get(v1alpha2Prefix + '/pipelines', (req, res) => {
     if (!apiServerReady) {
       res.status(404).send();

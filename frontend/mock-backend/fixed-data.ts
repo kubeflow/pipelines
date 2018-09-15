@@ -35,78 +35,6 @@ const NUM_DUMMY_PIPELINES = 30;
 const NUM_DUMMY_JOBS = 20;
 const NUM_DUMMY_RUNS = 20;
 
-const runs: apiRunDetail[] = [
-  {
-    run: {
-      created_at: new Date('2017-03-17T20:58:23.000Z'),
-      id: '3308d0ec-f1b3-4488-a2d3-8ad0f91e88e7',
-      name: 'coinflip-recursive-run-lknlfs3',
-      namespace: 'namespace',
-      scheduled_at: new Date('2017-03-17T20:58:23.000Z'),
-      status: 'Failed:Succeeded',
-    },
-    workflow: JSON.stringify(coinflipRun),
-  },
-  {
-    run: {
-      created_at: new Date('2017-04-17T21:00:00.000Z'),
-      id: '47a3d09c-7db4-4788-ac55-3f8d908574aa',
-      name: 'coinflip-error-nklng2',
-      namespace: 'namespace',
-      scheduled_at: new Date('2017-04-17T21:00:00.000Z'),
-      status: 'Succeeded',
-    },
-    workflow: JSON.stringify(errorRun),
-  },
-  {
-    run: {
-      created_at: new Date('2017-05-17T21:58:23.000Z'),
-      id: 'fa5d897e-88d3-4dfc-b189-9dea6947c9bc',
-      name: 'hello-world-7sm94',
-      namespace: 'namespace',
-      scheduled_at: new Date('2017-05-17T21:58:23.000Z'),
-      status: 'Running',
-    },
-    workflow: JSON.stringify(helloWorldRun),
-  },
-  {
-    run: {
-      created_at: new Date('2017-06-17T22:58:23.000Z'),
-      id: '21afb688-7597-47e9-b6c3-35d3145fe5e1',
-      name: 'hello-world-with-steps-kajnkv4',
-      namespace: 'namespace',
-      scheduled_at: new Date('2017-06-17T22:58:23.000Z'),
-      status: 'Failed',
-    },
-    workflow: JSON.stringify(helloWorldWithStepsRun),
-  },
-  {
-    run: {
-      created_at: new Date('2017-07-17T23:58:23.000Z'),
-      id: 'a8c471b1-a64e-4713-a660-3899815a40e4',
-      name: 'xgboost-evaluation-asdlk2',
-      namespace: 'namespace',
-      scheduled_at: new Date('2017-07-17T23:58:23.000Z'),
-      status: 'Pending',
-    },
-    workflow: JSON.stringify(xgboostRun),
-  },
-  {
-    run: {
-      created_at: new Date('2017-08-18T20:58:23.000Z'),
-      id: '7fc01714-4a13-4c05-8044-a8a72c14253b',
-      name: 'xgboost-run-with-a-veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery-' +
-          'loooooooooooooooooooooooooooong-name-aifk298',
-      namespace: 'namespace',
-      scheduled_at: new Date('2017-08-18T20:58:23.000Z'),
-      status: 'Succeeded',
-    },
-    workflow: JSON.stringify(xgboostRun),
-  },
-];
-
-runs.push(...generateNRuns());
-
 const pipelines: apiPipeline [] = [
   {
     created_at: new Date('2018-04-01T20:58:23.000Z'),
@@ -271,6 +199,84 @@ const jobs: apiJob[] = [
 
 jobs.push(...generateNJobs());
 
+const runs: apiRunDetail[] = [
+  {
+    run: {
+      created_at: new Date('2017-03-17T20:58:23.000Z'),
+      id: '3308d0ec-f1b3-4488-a2d3-8ad0f91e88e7',
+      job_id: jobs[3].id,
+      name: 'coinflip-recursive-run-lknlfs3',
+      namespace: 'namespace',
+      scheduled_at: new Date('2017-03-17T20:58:23.000Z'),
+      status: 'Failed:Succeeded',
+    },
+    workflow: JSON.stringify(coinflipRun),
+  },
+  {
+    run: {
+      created_at: new Date('2017-04-17T21:00:00.000Z'),
+      id: '47a3d09c-7db4-4788-ac55-3f8d908574aa',
+      job_id: jobs[3].id,
+      name: 'coinflip-error-nklng2',
+      namespace: 'namespace',
+      scheduled_at: new Date('2017-04-17T21:00:00.000Z'),
+      status: 'Succeeded',
+    },
+    workflow: JSON.stringify(errorRun),
+  },
+  {
+    run: {
+      created_at: new Date('2017-05-17T21:58:23.000Z'),
+      id: 'fa5d897e-88d3-4dfc-b189-9dea6947c9bc',
+      job_id: jobs[3].id,
+      name: 'hello-world-7sm94',
+      namespace: 'namespace',
+      scheduled_at: new Date('2017-05-17T21:58:23.000Z'),
+      status: 'Running',
+    },
+    workflow: JSON.stringify(helloWorldRun),
+  },
+  {
+    run: {
+      created_at: new Date('2017-06-17T22:58:23.000Z'),
+      id: '21afb688-7597-47e9-b6c3-35d3145fe5e1',
+      job_id: jobs[3].id,
+      name: 'hello-world-with-steps-kajnkv4',
+      namespace: 'namespace',
+      scheduled_at: new Date('2017-06-17T22:58:23.000Z'),
+      status: 'Failed',
+    },
+    workflow: JSON.stringify(helloWorldWithStepsRun),
+  },
+  {
+    run: {
+      created_at: new Date('2017-07-17T23:58:23.000Z'),
+      id: 'a8c471b1-a64e-4713-a660-3899815a40e4',
+      job_id: jobs[3].id,
+      name: 'xgboost-evaluation-asdlk2',
+      namespace: 'namespace',
+      scheduled_at: new Date('2017-07-17T23:58:23.000Z'),
+      status: 'Pending',
+    },
+    workflow: JSON.stringify(xgboostRun),
+  },
+  {
+    run: {
+      created_at: new Date('2017-08-18T20:58:23.000Z'),
+      id: '7fc01714-4a13-4c05-8044-a8a72c14253b',
+      job_id: jobs[3].id,
+      name: 'xgboost-run-with-a-veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery-' +
+          'loooooooooooooooooooooooooooong-name-aifk298',
+      namespace: 'namespace',
+      scheduled_at: new Date('2017-08-18T20:58:23.000Z'),
+      status: 'Succeeded',
+    },
+    workflow: JSON.stringify(xgboostRun),
+  },
+];
+
+runs.push(...generateNRuns());
+
 function generateNPipelines(): apiPipeline[] {
   const dummyPipelines: apiPipeline[] = [];
   for (let i = pipelines.length + 1; i < NUM_DUMMY_PIPELINES + pipelines.length + 1; i++) {
@@ -297,6 +303,7 @@ function generateNRuns(): apiRunDetail[] {
       run: {
         created_at: new Date('2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
         id: 'Some-run-id-' + i,
+        job_id: jobs[3].id,
         name: 'dummy-coinflip-recursive-asdlx' + i,
         namespace: 'namespace',
         scheduled_at: new Date('2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
