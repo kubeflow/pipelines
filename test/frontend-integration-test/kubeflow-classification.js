@@ -195,7 +195,7 @@ describe('deploy tfjob sample job', () => {
 
     let attempts = 0;
 
-    const maxAttempts = 144;
+    const maxAttempts = 240;
 
     while (attempts < maxAttempts && browser.getAttribute(selector, 'icon') !== 'check-circle') {
       browser.click('app-shell run-details #refreshButton');
