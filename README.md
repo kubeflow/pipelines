@@ -124,7 +124,8 @@ Go to [release page](https://github.com/googleprivate/ml/releases) to find a ver
 
 For example:
 ```bash
-kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$VERSION/bootstrapper.yaml
+PIPELINE_VERSION=0.0.16
+kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml
 ```
 And by running `kubectl get job`, you should see a job created that deploys ML pipeline along with all dependencies in the cluster.
 ```
