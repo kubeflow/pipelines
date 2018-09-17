@@ -54,6 +54,11 @@ steps:
   args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/bootstrapper.yaml']
   id:   'copyBootstrapperYAML'
   waitFor: ['updateBootstrapperYAMLImage']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/builds/latest/bootstrapper.yaml']
+  id:   'copyBootstrapperYAMLToLatest'
+  waitFor: ['prepareBootstrapperYAML']
+
 
 # Build the Dataflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
