@@ -39,24 +39,24 @@ def resnet_train(project_id: mlp.PipelineParam,
   num_eval_images: mlp.PipelineParam=mlp.PipelineParam(name='num-eval-images', value=54648),
   num_label_classes: mlp.PipelineParam=mlp.PipelineParam(name='num-label-classes', value=10)):
 
-  preprocess = mlp.ContainerOp( 
-      name = 'preprocess', 
-      image = 'gcr.io/ml-pipeline/resnet-preprocess',
+  preprocess = mlp.ContainerOp(
+      name = 'preprocess',
+      image = 'gcr.io/ml-pipeline/resnet-preprocess:0.0.16',
       arguments = ['--project_id', project_id, '--bucket', bucket, '--train_csv', train_csv,
         '--validation_csv', validation_csv,'--labels', labels],
       file_outputs = {'preprocessed': '/output.txt'})
 
-  train = mlp.ContainerOp( 
-      name = 'train', 
-      image = 'gcr.io/ml-pipeline/resnet-train',
+  train = mlp.ContainerOp(
+      name = 'train',
+      image = 'gcr.io/ml-pipeline/resnet-train:0.0.16',
       arguments = ['--bucket', bucket, '--region', region, '--depth', depth,
         '--train_batch_size', train_batch_size,'--eval_batch_size', eval_batch_size,'--steps_per_eval', steps_per_eval,
         '--train_steps', train_steps,'--num_train_images', num_train_images,'--num_eval_images', num_eval_images,
         '--num_label_classes', num_label_classes, '--data_dir', preprocess.output, '--TFVERSION', tf_version],
       file_outputs = {'trained': '/output.txt'})
 
-  deploy = mlp.ContainerOp( 
-      name = 'deploy', 
-      image = 'gcr.io/ml-pipeline/resnet-deploy',
+  deploy = mlp.ContainerOp(
+      name = 'deploy',
+      image = 'gcr.io/ml-pipeline/resnet-deploy:0.0.16',
       arguments = ['--model', model, '--version', version, '--project_id', project_id,
                    '--region', region,'--model_dir', train.output, '--TFVERSION', tf_version])

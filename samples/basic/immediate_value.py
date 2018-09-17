@@ -27,12 +27,12 @@ def immediate_value_pipeline():
   url=mlp.PipelineParam(name='url', value='gs://ml-pipeline/shakespeare1.txt')
   op1 = mlp.ContainerOp(
      name='download',
-     image='google/cloud-sdk',
+     image='google/cloud-sdk:216.0.0',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
      file_outputs={'downloaded': '/tmp/results.txt'})
   op2 = mlp.ContainerOp(
      name='echo',
-     image='library/bash',
+     image='library/bash:4.4.23',
      command=['sh', '-c'],
      arguments=['echo %s' % op1.output])
