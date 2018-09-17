@@ -120,9 +120,11 @@ kubectl create clusterrolebinding BINDING_NAME --clusterrole=cluster-admin --use
  
 ## Deploy ML Pipeline Services and Kubeflow 
 
-Run the following command to deploy the ML Pipeline Services and Kubeflow to your cluster:
+Go to [release page](https://github.com/googleprivate/ml/releases) to find a version of ML Pipeline Services. Deploy the ML Pipeline Services and Kubeflow to your cluster.
+
+For example:
 ```bash
-kubectl create -f https://storage.googleapis.com/ml-pipeline/release/latest/bootstrapper.yaml
+kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$VERSION/bootstrapper.yaml
 ```
 And by running `kubectl get job`, you should see a job created that deploys ML pipeline along with all dependencies in the cluster.
 ```
@@ -164,17 +166,18 @@ For more details, see [README.md](https://github.com/googleprivate/ml/blob/maste
 ## Setup
 * Create a python3 envionronment.
  
-* Clone the repo. 
-
-* Install DSL library and DSL compiler
+* Install a version of DSL and DSL Compiler.
  
+Go to [release page](https://github.com/googleprivate/ml/releases) to find a version of the source code zip. Download and decompress it. Run the following:
+
 ```bash
-cd $ML_REPO_DIRECTORY
+cd $EXTRACTED_DIRECTORY
 pip install ./dsl/ --upgrade # The library to specify pipelines with Python.
 pip install ./dsl-compiler/ --upgrade # The compiler that converts pipeline code into the form required by the pipeline system.
  ```
  
 Note: if you prefer adding "--user" in installation of dsl-compiler, please also run "export PATH=~/.local/bin:$PATH".
+Note: if you are feeling adventurous and want the latest, just git clone the repo and install dsl and dsl-compiler from there.
 
 After successful installation the command "dsl-compile" should be added to your PATH.
 
@@ -191,7 +194,7 @@ dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
 For example:
 
 ```bash
-cd $ML_REPO_DIRECTORY
+cd $EXTRACTED_DIRECTORY
 dsl-compile --py ./samples/basic/sequential.py --output ./samples/basic/sequential.yaml
 ```
 
