@@ -36,11 +36,11 @@ const PERIODIC = 'Periodic';
 const CRON = 'Cron';
 
 enum CronIntervals {
-  MINUTE = 'every minute',
-  HOURLY = 'hourly',
-  DAILY = 'daily',
-  WEEKLY = 'weekly',
-  MONTHLY = 'monthly',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
 }
 
 enum PeriodicIntervals {
@@ -61,10 +61,10 @@ export class JobSchedule extends Polymer.Element {
   @property({ type: Array })
   public _cronIntervals = [
     CronIntervals.MINUTE,
-    CronIntervals.HOURLY,
-    CronIntervals.DAILY,
-    CronIntervals.WEEKLY,
-    CronIntervals.MONTHLY,
+    CronIntervals.HOUR,
+    CronIntervals.DAY,
+    CronIntervals.WEEK,
+    CronIntervals.MONTH,
   ];
 
   // Visible for testing
@@ -90,7 +90,7 @@ export class JobSchedule extends Polymer.Element {
   @property({ type: Boolean })
   protected _maxConcurrentRunsIsValid = true;
 
-  // Set default interval to 'hourly'
+  // Set default interval to 'hour'
   @property({ type: Number })
   protected _intervalIndex = 1;
 
@@ -261,7 +261,7 @@ export class JobSchedule extends Polymer.Element {
       if (this._SCHEDULES[this._scheduleTypeIndex] === CRON) {
         // Weekday selection is valid if interval is not weekly or any weekday is selected.
         this._weekdaySelectionIsValid =
-            this._cronIntervals[this._intervalIndex] !== CronIntervals.WEEKLY ||
+            this._cronIntervals[this._intervalIndex] !== CronIntervals.WEEK ||
             this._weekdays.map((w) => w.active).reduce((prev, cur) => prev || cur);
 
         this.scheduleIsValid = this.scheduleIsValid && this._weekdaySelectionIsValid;
@@ -308,9 +308,9 @@ export class JobSchedule extends Polymer.Element {
 
   @observe('_intervalIndex')
   protected _updateWeekdayButtonEnabledState(): void {
-    // Weekdays are only enabled if interval is 'weekly'.
+    // Weekdays are only enabled if interval is 'week'.
     this._enableWeekdayButtons =
-        this._cronIntervals[this._intervalIndex] === CronIntervals.WEEKLY;
+        this._cronIntervals[this._intervalIndex] === CronIntervals.WEEK;
     if (!this._enableWeekdayButtons) {
       // Check 'All weekdays' checkbox and update individual weekday buttons.
       this._allDaysOfWeekActive = true;
@@ -413,14 +413,14 @@ export class JobSchedule extends Polymer.Element {
     switch (this._cronIntervals[this._intervalIndex]) {
       case CronIntervals.MINUTE:
         break;
-      case CronIntervals.HOURLY:
+      case CronIntervals.HOUR:
         minute = targetMinutes || minute;
         break;
-      case CronIntervals.DAILY:
+      case CronIntervals.DAY:
         minute = targetMinutes || minute;
         hour = targetHours || hour;
         break;
-      case CronIntervals.WEEKLY:
+      case CronIntervals.WEEK:
         minute = targetMinutes || minute;
         hour = targetHours || hour;
         dayOfMonth = '?';
@@ -436,7 +436,7 @@ export class JobSchedule extends Polymer.Element {
               []).join(',');
         }
         break;
-      case CronIntervals.MONTHLY:
+      case CronIntervals.MONTH:
         minute = targetMinutes || minute;
         hour = targetHours || hour;
         dayOfMonth = targetDayOfMonth || dayOfMonth;

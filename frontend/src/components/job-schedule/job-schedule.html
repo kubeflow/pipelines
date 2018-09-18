@@ -51,10 +51,10 @@
 
         /* Ensure the ripple fills the whole element */
         --paper-dropdown-menu-ripple: {
-          bottom: 0px;
+          bottom: 0;
           left: 0;
           right: 0;
-          top: 0px;
+          top: 0;
         }
       }
       paper-dropdown-menu.disabled, paper-input.disabled, paper-textarea.disabled {
@@ -74,12 +74,9 @@
 
       paper-input.cron-expression {
         width: 240px;
-        --paper-input-container-disabled: {
-          opacity: 0.7;
-        }
         --paper-input-container-input: {
           font-family: 'Roboto Mono', monospace;
-          padding-left: 6px;
+          padding: 0 6px;
         }
       }
     </style>
@@ -101,7 +98,7 @@
       <span class="font-large align-max-concurrency">Maximum concurrent runs</span>
       <div>
         <paper-input id="maxConcurrentRuns" required value="{{_maxConcurrentRuns}}" no-label-float
-                     class="shaded input-field-width-45 error-overflow center-text"
+                     class="shaded input-field-width-38 error-overflow center-text"
                      error-message="Please enter a value between 1 and 100" maxLength="3"
                      allowed-pattern="\d+" invalid="[[!_maxConcurrentRunsIsValid]]">
         </paper-input>
@@ -123,8 +120,9 @@
       <template is="dom-if" if="{{_showPeriodicInputs(_scheduleTypeIndex)}}">
         <div class="flex">
           <span class="font-large align-left">Run every</span>
-          <paper-input id="frequency" class="shaded input-field-width-45 padded-right" required
-                       no-label-float value="{{_frequency}}" maxlength="3" allowed-pattern="\d+">
+          <paper-input id="frequency" required no-label-float maxlength="3" allowed-pattern="\d+"
+                       class="shaded input-field-width-38 margin-right-spacing-minus-2"
+                       value="{{_frequency}}">
           </paper-input>
 
           <!-- Recurrence interval -->
@@ -143,9 +141,10 @@
       <!-- Cron scheduling UI -->
       <template is="dom-if" if="{{_showCronInputs(_scheduleTypeIndex)}}">
         <div class="flex">
-          <span class="font-large align-left">Run</span>
+          <span class="font-large align-left">Run every</span>
 
-          <paper-dropdown-menu id="cronIntervalDropdown" class="input-field-small error-overflow"
+          <paper-dropdown-menu id="cronIntervalDropdown"
+                               class="shaded input-field-small error-overflow"
                                disabled="[[_allowEditingCronExpression]]"
                                no-label-float invalid="[[!_weekdaySelectionIsValid]]"
                                error-message="Please select at least one weekday">
@@ -189,8 +188,8 @@
 
         <!-- Cron expression text field -->
         <div class="flex">
-          <paper-input id="cronExpression" class="cron-expression disabled" label="cron expression"
-                       tabindex="-1" value="{{_cronExpression}}">
+          <paper-input id="cronExpression" class="cron-expression disabled shaded"
+                       label="cron expression" tabindex="-1" value="{{_cronExpression}}">
           </paper-input>
         </div>
         <div class="cron-note">Note: Start and end dates/times are handled outside of cron.</div>

@@ -239,6 +239,10 @@ paper-listbox {
   margin-bottom: var(--spacing-minus-5);
 }
 
+.margin-right-spacing-minus-2 {
+  margin-right: var(--spacing-minus-2);
+}
+
 .no-margin {
   margin: 0;
 }
@@ -263,6 +267,10 @@ paper-listbox {
 
 .padded {
   padding: var(--spacing-base);
+}
+
+.padded-left {
+  padding-left: var(--spacing-base);
 }
 
 .padded-top-left {

@@ -129,13 +129,13 @@ describe('job-schedule', () => {
           '"Has end date" checkbox should be unchecked by default');
     });
 
-    it('shows interval dropdown with "hourly" selected by default', (done) => {
+    it('shows interval dropdown with "hour" selected by default', (done) => {
       assert.notStrictEqual(
           fixture.cronIntervalDropdown, null, 'interval dropdown should not be null');
       // Wrapper here because the element doesn't immediately render otherwise,
       // even with Polymer.flush()
       Polymer.Async.idlePeriod.run(() => {
-        assert.strictEqual(fixture.cronIntervalDropdown!.value, 'hourly');
+        assert.strictEqual(fixture.cronIntervalDropdown!.value, 'hour');
         assert.deepStrictEqual(fixture.toTrigger(), { cron_schedule: { cron: '0 0 * * * ?' } });
         done();
       });
@@ -148,11 +148,11 @@ describe('job-schedule', () => {
 
     it('updates the cron expression when the recurrence interval is changed', (done) => {
       const cronExpressions = [
-        '0 * * * * ?', // 'every minute'
-        '0 0 * * * ?', // 'hourly'
-        '0 0 0 * * ?', // 'daily'
-        '0 0 0 ? * *', // 'weekly'
-        '0 0 0 0 * ?', // 'monthly'
+        '0 * * * * ?', // 'minute'
+        '0 0 * * * ?', // 'hour'
+        '0 0 0 * * ?', // 'day'
+        '0 0 0 ? * *', // 'week'
+        '0 0 0 0 * ?', // 'month'
       ];
       Polymer.Async.idlePeriod.run(() => {
         fixture._cronIntervals.forEach((v, i) => {
@@ -162,17 +162,17 @@ describe('job-schedule', () => {
               fixture.toTrigger(),
               { cron_schedule: { cron: cronExpressions[i] } });
           assert.strictEqual(fixture.allWeekdaysCheckbox!.checked, true);
-          assert.strictEqual(fixture.allWeekdaysCheckbox!.disabled, v !== 'weekly');
+          assert.strictEqual(fixture.allWeekdaysCheckbox!.disabled, v !== 'week');
         });
         done();
       });
     });
 
-    it('enables the weekday checkbox and buttons when the interval is "weekly"', (done) => {
+    it('enables the weekday checkbox and buttons when the interval is "week"', (done) => {
       Polymer.Async.idlePeriod.run(() => {
-        // Set interval to "weekly"
+        // Set interval to "week"
         fixture.cronIntervalListbox!.select(3);
-        assert.strictEqual(fixture.cronIntervalDropdown!.value, 'weekly');
+        assert.strictEqual(fixture.cronIntervalDropdown!.value, 'week');
         assert.strictEqual(fixture.allWeekdaysCheckbox!.checked, true);
         assert.strictEqual(fixture.allWeekdaysCheckbox!.disabled, false);
         const sundayButton =
@@ -187,7 +187,7 @@ describe('job-schedule', () => {
     });
 
     it('returns a cron_schedule trigger when toTrigger is called', () => {
-      // Default cron schedule corresponds to "hourly"
+      // Default cron schedule corresponds to "hour"
       const expectedCronTrigger = { cron_schedule: { cron: '0 0 * * * ?' } };
       assert.deepStrictEqual(fixture.toTrigger(), expectedCronTrigger);
     });
@@ -208,7 +208,7 @@ describe('job-schedule', () => {
     });
 
     it('rederives cron expression from inputs when editing is redisabled', () => {
-      // Default cron schedule corresponds to "hourly"
+      // Default cron schedule corresponds to "hour"
       const originalCronTrigger = { cron_schedule: { cron: '0 0 * * * ?' } };
       assert.deepStrictEqual(fixture.toTrigger(), originalCronTrigger);
       assert.strictEqual(fixture.cronExpressionInput!.classList.contains('disabled'), true);
