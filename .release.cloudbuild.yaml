@@ -19,7 +19,11 @@ steps:
   id:   'pullFrontend'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA', 'gcr.io/ml-pipeline/frontend:$TAG_NAME']
-  id:   'tagFrontend'
+  id:   'tagFrontendVersionNumber'
+  waitFor: ['pullFrontend']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA', 'gcr.io/ml-pipeline/frontend:$COMMIT_SHA']
+  id:   'tagFrontendCommitSHA'
   waitFor: ['pullFrontend']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -27,7 +31,11 @@ steps:
   id:   'pullAPIServer'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/api-server:$TAG_NAME']
-  id:   'tagAPIServer'
+  id:   'tagAPIServerVersionNumber'
+  waitFor: ['pullAPIServer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/api-server:$COMMIT_SHA']
+  id:   'tagAPIServerCommitSHA'
   waitFor: ['pullAPIServer']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -35,7 +43,11 @@ steps:
   id:   'pullScheduledworkflow'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', 'gcr.io/ml-pipeline/scheduledworkflow:$TAG_NAME']
-  id:   'tagScheduledworkflow'
+  id:   'tagScheduledworkflowVersionNumber'
+  waitFor: ['pullScheduledworkflow']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', 'gcr.io/ml-pipeline/scheduledworkflow:$COMMIT_SHA']
+  id:   'tagScheduledworkflowCommitSHA'
   waitFor: ['pullScheduledworkflow']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -43,7 +55,11 @@ steps:
   id:   'pullPersistenceagent'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', 'gcr.io/ml-pipeline/persistenceagent:$TAG_NAME']
-  id:   'tagPersistenceagent'
+  id:   'tagPersistenceagentVersionNumber'
+  waitFor: ['pullPersistenceagent']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', 'gcr.io/ml-pipeline/persistenceagent:$COMMIT_SHA']
+  id:   'tagPersistenceagentCommitSHA'
   waitFor: ['pullPersistenceagent']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -51,7 +67,11 @@ steps:
   id:   'pullBootstrapper'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA', 'gcr.io/ml-pipeline/bootstrapper:$TAG_NAME']
-  id:   'tagBootstrapper'
+  id:   'tagBootstrapperVersionNumber'
+  waitFor: ['pullBootstrapper']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA', 'gcr.io/ml-pipeline/bootstrapper:$COMMIT_SHA']
+  id:   'tagBootstrapperCommitSHA'
   waitFor: ['pullBootstrapper']
 
 # Copy the bootstrapper config
@@ -74,21 +94,33 @@ steps:
   id:   'pullPredict'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:$TAG_NAME']
-  id:   'tagPredict'
+  id:   'tagPredictVersionNumber'
+  waitFor: ['pullPredict']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA']
+  id:   'tagPredictCommitSHA'
   waitFor: ['pullPredict']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA']
   id:   'pullTFT'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:$TAG_NAME']
-  id:   'tagTFT'
+  id:   'tagTFTVersionNumber'
+  waitFor: ['pullTFT']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:$COMMIT_SHA']
+  id:   'tagTFTCommitSHA'
   waitFor: ['pullTFT']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA']
   id:   'pullTFMA'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:$TAG_NAME']
-  id:   'tagTFMA'
+  id:   'tagTFMAVersionNumber'
+  waitFor: ['pullTFMA']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:$COMMIT_SHA']
+  id:   'tagTFMACommitSHA'
   waitFor: ['pullTFMA']
 
 # Pull and retag the images for the Kubeflow-based pipeline components
@@ -97,21 +129,33 @@ steps:
   id:   'pullDeployer'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$TAG_NAME']
-  id:   'tagDeployer'
+  id:   'tagDeployerVersionNumber'
+  waitFor: ['pullDeployer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$COMMIT_SHA']
+  id:   'tagDeployerCommitSHA'
   waitFor: ['pullDeployer']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA']
   id:   'pullTrainer'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$TAG_NAME']
-  id:   'tagTrainer'
+  id:   'tagTrainerVersionNumber'
+  waitFor: ['pullTrainer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$COMMIT_SHA']
+  id:   'tagTrainerCommitSHA'
   waitFor: ['pullTrainer']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
   id:   'pullLauncher'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME']
-  id:   'tagLauncher'
+  id:   'tagLauncherVersionNumber'
+  waitFor: ['pullLauncher']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
+  id:   'tagLauncherCommitSHA'
   waitFor: ['pullLauncher']
 
 # Pull and retag the images for the Dataproc-based pipeline components
@@ -120,42 +164,66 @@ steps:
   id:   'pullDataprocAnalyze'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-analyze:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:$TAG_NAME']
-  id:   'tagDataprocAnalyze'
+  id:   'tagDataprocAnalyzeVersionNumber'
+  waitFor: ['pullDataprocAnalyze']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-analyze:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:$COMMIT_SHA']
+  id:   'tagDataprocAnalyzeCommitSHA'
   waitFor: ['pullDataprocAnalyze']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA']
   id:   'pullDataprocCreateCluster'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:$TAG_NAME']
-  id:   'tagDataprocCreateCluster'
+  id:   'tagDataprocCreateClusterVersionNumber'
+  waitFor: ['pullDataprocCreateCluster']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA']
+  id:   'tagDataprocCreateClusterCommitSHA'
   waitFor: ['pullDataprocCreateCluster']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA']
   id:   'pullDataprocDeleteCluster'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:$TAG_NAME']
-  id:   'tagDataprocDeleteCluster'
+  id:   'tagDataprocDeleteClusterVersionNumber'
+  waitFor: ['pullDataprocDeleteCluster']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA']
+  id:   'tagDataprocDeleteClusterCommitSHA'
   waitFor: ['pullDataprocDeleteCluster']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-predict:$COMMIT_SHA']
   id:   'pullDataprocPredict'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-predict:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:$TAG_NAME']
-  id:   'tagDataprocPredict'
+  id:   'tagDataprocPredictVersionNumber'
+  waitFor: ['pullDataprocPredict']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-predict:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:$COMMIT_SHA']
+  id:   'tagDataprocPredictCommitSHA'
   waitFor: ['pullDataprocPredict']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA']
   id:   'pullDataprocTransform'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:$TAG_NAME']
-  id:   'tagDataprocTransform'
+  id:   'tagDataprocTransformVersionNumber'
+  waitFor: ['pullDataprocTransform']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:$COMMIT_SHA']
+  id:   'tagDataprocTransformCommitSHA'
   waitFor: ['pullDataprocTransform']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA']
   id:   'pullDataprocTrain'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-train:$TAG_NAME']
-  id:   'tagDataprocTrain'
+  id:   'tagDataprocTrainVersionNumber'
+  waitFor: ['pullDataprocTrain']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataproc-train:$COMMIT_SHA']
+  id:   'tagDataprocTrainCommitSHA'
   waitFor: ['pullDataprocTrain']
 
 # Pull and retag the images for the ResNet CMLE sample pipeline components
@@ -164,21 +232,33 @@ steps:
   id:   'pullResNetDeploy'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/resnet-deploy:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-deploy:$TAG_NAME']
-  id:   'tagResNetDeploy'
+  id:   'tagResNetDeployVersionNumber'
+  waitFor: ['pullResNetDeploy']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/resnet-deploy:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-deploy:$COMMIT_SHA']
+  id:   'tagResNetDeployCommitSHA'
   waitFor: ['pullResNetDeploy']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/resnet-preprocess:$COMMIT_SHA']
   id:   'pullResNetPreprocess'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/resnet-preprocess:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-preprocess:$TAG_NAME']
-  id:   'tagResNetPreprocess'
+  id:   'tagResNetPreprocessVersionNumber'
+  waitFor: ['pullResNetPreprocess']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/resnet-preprocess:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-preprocess:$COMMIT_SHA']
+  id:   'tagResNetPreprocessCommitSHA'
   waitFor: ['pullResNetPreprocess']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/resnet-train:$COMMIT_SHA']
   id:   'pullResNetTrain'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/resnet-train:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-train:$TAG_NAME']
-  id:   'tagResNetTrain'
+  id:   'tagResNetTrainVersionNumber'
+  waitFor: ['pullResNetTrain']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/resnet-train:$COMMIT_SHA', 'gcr.io/ml-pipeline/resnet-train:$COMMIT_SHA']
+  id:   'tagResNetTrainCommitSHA'
   waitFor: ['pullResNetTrain']
 
 # Pull and retag the images for the local pipeline components
@@ -187,14 +267,22 @@ steps:
   id:   'pullLocalConfusionMatrix'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:$TAG_NAME']
-  id:   'tagLocalConfusionMatrix'
+  id:   'tagLocalConfusionMatrixVersionNumber'
+  waitFor: ['pullLocalConfusionMatrix']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:$COMMIT_SHA']
+  id:   'tagLocalConfusionMatrixCommitSHA'
   waitFor: ['pullLocalConfusionMatrix']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA']
   id:   'pullLocalROC'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-local-roc:$TAG_NAME']
-  id:   'tagLocalROC'
+  id:   'tagLocalROCVersionNumber'
+  waitFor: ['pullLocalROC']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-local-roc:$COMMIT_SHA']
+  id:   'tagLocalROCCommitSHA'
   waitFor: ['pullLocalROC']
 
 # Build the tagged samples
@@ -209,31 +297,53 @@ steps:
 
 images:
 - 'gcr.io/ml-pipeline/frontend:$TAG_NAME'
+- 'gcr.io/ml-pipeline/frontend:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/api-server:$TAG_NAME'
+- 'gcr.io/ml-pipeline/api-server:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/scheduledworkflow:$TAG_NAME'
+- 'gcr.io/ml-pipeline/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/persistenceagent:$TAG_NAME'
+- 'gcr.io/ml-pipeline/persistenceagent:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/bootstrapper:$TAG_NAME'
+- 'gcr.io/ml-pipeline/bootstrapper:$COMMIT_SHA'
 
 - 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:$COMMIT_SHA'
 
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$COMMIT_SHA'
 
 - 'gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataproc-train:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataproc-train:$COMMIT_SHA'
 
 - 'gcr.io/ml-pipeline/resnet-deploy:$TAG_NAME'
+- 'gcr.io/ml-pipeline/resnet-deploy:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/resnet-preprocess:$TAG_NAME'
+- 'gcr.io/ml-pipeline/resnet-preprocess:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/resnet-train:$TAG_NAME'
+- 'gcr.io/ml-pipeline/resnet-train:$COMMIT_SHA'
 
 - 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-local-roc:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-local-roc:$COMMIT_SHA'
 
 timeout: '600s'
