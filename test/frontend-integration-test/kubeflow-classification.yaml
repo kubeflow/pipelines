@@ -51,7 +51,7 @@ spec:
       - '{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix'
       - --predictions
       - '{{inputs.parameters.prediction-prediction}}'
-      image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix
+      image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.0.16
     inputs:
       parameters:
       - name: output
@@ -176,7 +176,7 @@ spec:
       - '{{inputs.parameters.predict-mode}}'
       - --project
       - '{{inputs.parameters.project}}'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.16
     inputs:
       parameters:
       - name: evaluation
@@ -220,7 +220,7 @@ spec:
       - '{{inputs.parameters.project}}'
       - --mode
       - '{{inputs.parameters.preprocess-mode}}'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.16
     inputs:
       parameters:
       - name: evaluation
@@ -269,7 +269,7 @@ spec:
       - '{{inputs.parameters.workers}}'
       - --pss
       - '{{inputs.parameters.pss}}'
-      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf
+      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.16
     inputs:
       parameters:
       - name: hidden-layer-size
