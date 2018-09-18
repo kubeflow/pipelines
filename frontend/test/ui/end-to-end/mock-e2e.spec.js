@@ -251,6 +251,8 @@ describe('deploy new job', () => {
 
     const allPipelineElements = $$(pipelinesListSelector);
 
+    browser.waitForVisible(pipelinesListSelector);
+
     // Find newly uploaded pipeline and click it.
     const newPipelineElement = allPipelineElements.find(
         (e) => browser.elementIdText(e.ELEMENT).value.startsWith('my-new-pipeline'));
