@@ -123,7 +123,7 @@ Go to [release page](https://github.com/googleprivate/ml/releases) to find a ver
 
 For example:
 ```bash
-PIPELINE_VERSION=0.0.16
+PIPELINE_VERSION=0.0.17
 kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml
 ```
 And by running `kubectl get job`, you should see a job created that deploys ML pipeline along with all dependencies in the cluster.
@@ -139,9 +139,23 @@ kubectl logs $(kubectl get pods -l job-name=[JOB_NAME] -o jsonpath='{.items[0].m
 By default, the ML pipeline will deployed with usage collection turned on. 
 We use [Spartakus](https://github.com/kubernetes-incubator/spartakus) which does not report any personal identifiable information (PII).
 
-If you want to turn off the usage report, or deploy to a different namespace, you can pass in additional arguments to the deployment job.
-See [bootstrapper.yaml](https://github.com/googleprivate/ml/blob/master/bootstrapper.yaml#L57) file for example arguments.
+If you want to turn off the usage report, you can download the bootstrapper file and change the arguments to the deployment job.
 
+For example, download bootstrapper
+```bash
+PIPELINE_VERSION=0.0.17
+curl https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml --output bootstrapper.yaml
+```
+and then update argument in the file
+```
+        args: [
+          ... 
+          # uncomment following line
+          "--report_usage", "false",
+          ...
+        ]
+```
+then create job using the updated YAML by running ```kubectl create -f bootstrapper.yaml```
 
 When deployment is successful, forward its port to visit the ML pipeline UI. 
 ```bash
@@ -155,9 +169,23 @@ If you are using local console instead of Cloud Shell, you can access the ML pip
 See the following authoring guide on how to compile your python pipeline code into workflow yaml. Then, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
 
 ## Uninstall
-To uninstall ML pipeline, create a job following the same steps as installation, with additional uninstall argument. 
-Check [bootstrapper.yaml](https://storage.googleapis.com/ml-pipeline/bootstrapper.yaml) for details.
+To uninstall ML pipeline, download the bootstrapper file and change the arguments to the deployment job.
 
+For example, download bootstrapper
+```bash
+PIPELINE_VERSION=0.0.17
+curl https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml --output bootstrapper.yaml
+```
+and then update argument in the file
+```
+        args: [
+          ... 
+          # uncomment following line
+          "--uninstall",
+          ...
+        ]
+```
+then create job using the updated YAML by running ```kubectl create -f bootstrapper.yaml```
 
 # ML Pipeline Services - Authoring Guideline
 
