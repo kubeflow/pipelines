@@ -108,14 +108,13 @@ gcloud container clusters create [YOUR-CLUSTER-NAME] \
   --machine-type n1-standard-2 \
   --num-nodes 4
 ```
-Here we choose cloud-platform scope so it can invoke GCP APIs. You can find all options for creating a cluster in [here](https://cloud.google.com/sdk/gcloud/reference/container/clusters/create). 
+Here we choose the cloud-platform scope so the cluster can invoke GCP APIs. You can find all the options for creating a cluster in [here](https://cloud.google.com/sdk/gcloud/reference/container/clusters/create). 
 
-ML Pipelines Services uses Argo as its underlying orchestration system. When installing ML Pipeline Services, a few new cluster roles will be generated for Argo and Pipeline’s API server, in order to allow them creating and retrieving resources such as pods, Argo workflow CRDs etc. 
-
-On GKE with RBAC enabled, you might need to grant your account the ability to create such new cluster roles.
-
+Next, grant your user account permission to create new cluster roles. This step is necessary because installing ML Pipelines Services inlcudes installing a few [clusterroles](https://github.com/googleprivate/ml/search?utf8=%E2%9C%93&q=clusterrole+path%3Aml-pipeline%2Fml-pipeline&type=). 
 ```bash
-kubectl create clusterrolebinding BINDING_NAME --clusterrole=cluster-admin --user=YOUREMAIL@YOURDOMAIN.com
+# pick a name for your biniding
+BINDING_NAME=[YOUR_BINDING_NAME]
+kubectl create clusterrolebinding $BINDING_NAME --clusterrole=cluster-admin --user=$(gcloud config get-value account)
 ```
  
 ## Deploy ML Pipeline Services and Kubeflow 
