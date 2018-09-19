@@ -112,9 +112,7 @@ Here we choose the cloud-platform scope so the cluster can invoke GCP APIs. You 
 
 Next, grant your user account permission to create new cluster roles. This step is necessary because installing ML Pipelines Services inlcudes installing a few [clusterroles](https://github.com/googleprivate/ml/search?utf8=%E2%9C%93&q=clusterrole+path%3Aml-pipeline%2Fml-pipeline&type=). 
 ```bash
-# pick a name for your biniding
-BINDING_NAME=[YOUR_BINDING_NAME]
-kubectl create clusterrolebinding $BINDING_NAME --clusterrole=cluster-admin --user=$(gcloud config get-value account)
+kubectl create clusterrolebinding ml-pipeline-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value account)
 ```
  
 ## Deploy ML Pipeline Services and Kubeflow 
@@ -123,7 +121,7 @@ Go to [release page](https://github.com/googleprivate/ml/releases) to find a ver
 
 For example:
 ```bash
-PIPELINE_VERSION=0.0.17
+PIPELINE_VERSION=0.0.18
 kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml
 ```
 And by running `kubectl get job`, you should see a job created that deploys ML pipeline along with all dependencies in the cluster.
@@ -143,7 +141,7 @@ If you want to turn off the usage report, you can download the bootstrapper file
 
 For example, download bootstrapper
 ```bash
-PIPELINE_VERSION=0.0.17
+PIPELINE_VERSION=0.0.18
 curl https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml --output bootstrapper.yaml
 ```
 and then update argument in the file
@@ -173,7 +171,7 @@ To uninstall ML pipeline, download the bootstrapper file and change the argument
 
 For example, download bootstrapper
 ```bash
-PIPELINE_VERSION=0.0.17
+PIPELINE_VERSION=0.0.18
 curl https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml --output bootstrapper.yaml
 ```
 and then update argument in the file
