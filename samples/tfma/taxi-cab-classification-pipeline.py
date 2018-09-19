@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -93,3 +94,7 @@ def taxi_cab_classification(
       name = 'deploy',
       image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.18',
       arguments = ['--model-path', training.output, '--server-name', tf_server_name])
+
+if __name__ == '__main__':
+  import mlpc.main as compiler
+  compiler._compile_pipeline_function(None, __file__ + '.yaml')

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,3 +61,7 @@ def resnet_train(project_id: mlp.PipelineParam,
       image = 'gcr.io/ml-pipeline/resnet-deploy:0.0.18',
       arguments = ['--model', model, '--version', version, '--project_id', project_id,
                    '--region', region,'--model_dir', train.output, '--TFVERSION', tf_version])
+
+if __name__ == '__main__':
+  import mlpc.main as compiler
+  compiler._compile_pipeline_function(None, __file__ + '.yaml')

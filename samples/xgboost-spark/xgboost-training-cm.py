@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -198,3 +199,7 @@ def xgb_train_pipeline(
                                             '%s/{{workflow.name}}/confusionmatrix' % output)
 
     roc_op = RocOp('roc', predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output)
+
+if __name__ == '__main__':
+  import mlpc.main as compiler
+  compiler._compile_pipeline_function(None, __file__ + '.yaml')

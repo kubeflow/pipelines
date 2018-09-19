@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,3 +43,7 @@ def download_and_join(url1: mlp.PipelineParam, url2: mlp.PipelineParam):
      image='library/bash:4.4.23',
      command=['sh', '-c'],
      arguments=['echo %s %s' % (download1.output, download2.output)])
+
+if __name__ == '__main__':
+  import mlpc.main as compiler
+  compiler._compile_pipeline_function(None, __file__ + '.yaml')

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,3 +37,7 @@ def immediate_value_pipeline():
      image='library/bash:4.4.23',
      command=['sh', '-c'],
      arguments=['echo %s' % op1.output])
+
+if __name__ == '__main__':
+  import mlpc.main as compiler
+  compiler._compile_pipeline_function(None, __file__ + '.yaml')

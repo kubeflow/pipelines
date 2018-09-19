@@ -208,11 +208,15 @@ Note: if you are feeling adventurous and want the latest, just git clone the rep
 After successful installation the command "dsl-compile" should be added to your PATH.
 
 ## Compile the samples
-The sample pipelines are represented as Python code. To run these samples, you need to compile them, and then upload the output to the Pipeline system from web UI. 
-<!--- 
-In the future, we will build the compiler into the pipeline system such that these python files are immediately deployable.
---->
+The pipelines are written in Python, but they must be compiled to an intermediate representation before submitting to the Pipeline system.
 
+The sample pipelines have a self-compilation entry point. To compile the sample pipelines just run them:
+```bash
+path/sample_pipeline.py
+```
+This produces the some_pipeline.py.yaml file that can be submitted to the Pipeline system web UI.
+
+Another way to compile a pipeline is to run the DSL compiler against it:
 ```bash
 dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
 ```
