@@ -58,7 +58,7 @@ def taxi_cab_classification(
 
   preprocess = mlp.ContainerOp(
       name = 'preprocess',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.18',
       arguments = ['--train', train, '--eval', evaluation, '--schema', schema, '--output', transform_output,
                    '--project', project, '--mode', preprocess_mode, '--preprocessing-module', preprocess_module,
       ],
@@ -66,7 +66,7 @@ def taxi_cab_classification(
 
   training = mlp.ContainerOp(
       name = 'training',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.18',
       arguments = ['--job-dir', training_output, '--transformed-data-dir', preprocess.output,
                    '--schema', schema, '--learning-rate', learning_rate, '--hidden-layer-size', hidden_layer_size,
                    '--steps', steps, '--target', target, '--workers', workers, '--pss', pss,
@@ -76,7 +76,7 @@ def taxi_cab_classification(
 
   analysis = mlp.ContainerOp(
       name = 'analysis',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.0.18',
       arguments = ['--output', analysis_output, '--model', training.output, '--eval', evaluation, '--schema', schema,
                    '--project', project, '--mode', analyze_mode, '--slice-columns', analyze_slice_column,
       ],
@@ -84,12 +84,12 @@ def taxi_cab_classification(
 
   prediction = mlp.ContainerOp(
       name = 'prediction',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.18',
       arguments = ['--output', prediction_output, '--data', evaluation, '--schema', schema,
                    '--target', target, '--model',  training.output, '--mode', predict_mode, '--project', project],
       file_outputs = {'predict': '/output.txt'})
 
   deploy = mlp.ContainerOp(
       name = 'deploy',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.18',
       arguments = ['--model-path', training.output, '--server-name', tf_server_name])

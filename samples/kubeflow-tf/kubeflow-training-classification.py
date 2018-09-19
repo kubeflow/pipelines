@@ -37,14 +37,14 @@ def kubeflow_training( output: mlp.PipelineParam, project: mlp.PipelineParam,
   workflow = '{{workflow.name}}'
   preprocess = mlp.ContainerOp(
       name = 'preprocess',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.18',
       arguments = ['--train', train, '--eval', evaluation, '--schema', schema, '--output', '%s/%s/transformed' % (output, workflow),
         '--project', project, '--mode', preprocess_mode],
       file_outputs = {'transformed': '/output.txt'})
 
   training = mlp.ContainerOp(
       name = 'training',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.18',
       arguments = ['--job-dir', '%s/%s/train' % (output, workflow), '--transformed-data-dir', preprocess.output,
         '--schema', schema, '--learning-rate', learning_rate, '--hidden-layer-size', hidden_layer_size, '--steps', steps,
         '--target', target, '--workers', workers, '--pss', pss],
@@ -53,12 +53,12 @@ def kubeflow_training( output: mlp.PipelineParam, project: mlp.PipelineParam,
 
   prediction = mlp.ContainerOp(
       name = 'prediction',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.18',
       arguments = ['--output', '%s/%s/predict' % (output, workflow), '--data', evaluation, '--schema', schema,
         '--target', target, '--model',  training.output, '--mode', predict_mode, '--project', project],
       file_outputs = {'prediction': '/output.txt'})
 
   confusion_matrix = mlp.ContainerOp(
       name = 'confusionmatrix',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.0.16',
+      image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.0.18',
       arguments = ['--output', '%s/%s/confusionmatrix' % (output, workflow), '--predictions', prediction.output])

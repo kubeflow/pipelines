@@ -41,14 +41,14 @@ def resnet_train(project_id: mlp.PipelineParam,
 
   preprocess = mlp.ContainerOp(
       name = 'preprocess',
-      image = 'gcr.io/ml-pipeline/resnet-preprocess:0.0.16',
+      image = 'gcr.io/ml-pipeline/resnet-preprocess:0.0.18',
       arguments = ['--project_id', project_id, '--bucket', bucket, '--train_csv', train_csv,
         '--validation_csv', validation_csv,'--labels', labels],
       file_outputs = {'preprocessed': '/output.txt'})
 
   train = mlp.ContainerOp(
       name = 'train',
-      image = 'gcr.io/ml-pipeline/resnet-train:0.0.16',
+      image = 'gcr.io/ml-pipeline/resnet-train:0.0.18',
       arguments = ['--bucket', bucket, '--region', region, '--depth', depth,
         '--train_batch_size', train_batch_size,'--eval_batch_size', eval_batch_size,'--steps_per_eval', steps_per_eval,
         '--train_steps', train_steps,'--num_train_images', num_train_images,'--num_eval_images', num_eval_images,
@@ -57,6 +57,6 @@ def resnet_train(project_id: mlp.PipelineParam,
 
   deploy = mlp.ContainerOp(
       name = 'deploy',
-      image = 'gcr.io/ml-pipeline/resnet-deploy:0.0.16',
+      image = 'gcr.io/ml-pipeline/resnet-deploy:0.0.18',
       arguments = ['--model', model, '--version', version, '--project_id', project_id,
                    '--region', region,'--model_dir', train.output, '--TFVERSION', tf_version])

@@ -24,7 +24,7 @@ class CreateClusterOp(mlp.ContainerOp):
   def __init__(self, name, project, region, staging):
     super(CreateClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:0.0.16',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:0.0.18',
       arguments=[
           '--project', project,
           '--region', region,
@@ -39,7 +39,7 @@ class DeleteClusterOp(mlp.ContainerOp):
   def __init__(self, name, project, region):
     super(DeleteClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:0.0.16',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:0.0.18',
       arguments=[
           '--project', project,
           '--region', region,
@@ -53,7 +53,7 @@ class AnalyzeOp(mlp.ContainerOp):
   def __init__(self, name, project, region, cluster_name, schema, train_data, output):
     super(AnalyzeOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:0.0.16',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:0.0.18',
       arguments=[
           '--project', project,
           '--region', region,
@@ -71,7 +71,7 @@ class TransformOp(mlp.ContainerOp):
                target, analysis, output):
     super(TransformOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:0.0.16',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:0.0.18',
       arguments=[
           '--project', project,
           '--region', region,
@@ -96,7 +96,7 @@ class TrainerOp(mlp.ContainerOp):
 
     super(TrainerOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:0.0.16',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:0.0.18',
       arguments=[
           '--project', project,
           '--region', region,
@@ -119,7 +119,7 @@ class PredictOp(mlp.ContainerOp):
   def __init__(self, name, project, region, cluster_name, data, model, target, analysis, output):
     super(PredictOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:0.0.16',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:0.0.18',
       arguments=[
           '--project', project,
           '--region', region,
@@ -139,7 +139,7 @@ class ConfusionMatrixOp(mlp.ContainerOp):
   def __init__(self, name, predictions, output):
     super(ConfusionMatrixOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.0.16',
+      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.0.18',
       arguments=[
         '--output', output,
         '--predictions', predictions
@@ -151,7 +151,7 @@ class RocOp(mlp.ContainerOp):
   def __init__(self, name, predictions, trueclass, output):
     super(RocOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:0.0.16',
+      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:0.0.18',
       arguments=[
         '--output', output,
         '--predictions', predictions,
