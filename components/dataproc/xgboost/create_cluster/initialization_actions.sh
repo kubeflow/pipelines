@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-#
 # Initialization actions to run in dataproc setup.
 # The script will be run on each node in a dataproc cluster.
  

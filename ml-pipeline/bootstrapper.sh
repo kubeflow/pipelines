@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,8 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-#!/bin/bash
 
 # When kubectl is installed in a k8s pod, it uses env variables instead of config file to talk with master node
 # https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/#accessing-the-service.
