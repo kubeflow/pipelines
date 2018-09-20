@@ -101,8 +101,8 @@ gcloud config set compute/zone us-central1-a
 Then start a GKE cluster. 
 ```bash
 # Specify your cluster name
-CLUSTER-NAME=[YOUR-CLUSTER-NAME]
-gcloud container clusters create $CLUSTER-NAME \
+CLUSTER_NAME=[YOUR-CLUSTER-NAME]
+gcloud container clusters create $CLUSTER_NAME \
   --zone us-central1-a \
   --scopes cloud-platform \
   --enable-cloud-logging \
