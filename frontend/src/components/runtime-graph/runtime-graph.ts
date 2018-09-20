@@ -225,13 +225,13 @@ export class RuntimeGraph extends Polymer.Element {
 
   protected async _nodeClicked(e: GraphNodeClickEvent): Promise<void> {
     // Unhide resize element and open side panel to last-used size if present,
-    // otherwise use 50% of width.
+    // otherwise give side panel 70% of width.
     this.shadowRoot!.querySelector('.gutter')!.removeAttribute('hidden');
     const [ left, right ] = this._nodeDetailsPaneSplitter!.getSizes();
     if (right > 0) {
       this._nodeDetailsPaneSplitter!.setSizes([ left, right ]);
     } else {
-      this._nodeDetailsPaneSplitter!.setSizes([ 50, 50 ]);
+      this._nodeDetailsPaneSplitter!.setSizes([ 30, 70 ]);
     }
     this.$.nodeDetails.classList.add('visible');
 
