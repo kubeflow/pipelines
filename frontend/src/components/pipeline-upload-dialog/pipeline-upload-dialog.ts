@@ -104,5 +104,9 @@ export class PipelineUploadDialog extends Polymer.Element {
     if (!this._pipelineName) {
       this._pipelineName = this._fileName;
     }
+
+    // The Pipeline name is initially set to the uploaded file name, but the user may want to
+    // change the name, so we move the cursor to the input field.
+    (this.$.pipelineNameInput as PaperInputElement).focus();
   }
 }
