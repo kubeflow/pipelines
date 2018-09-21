@@ -5,6 +5,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	clientmodel "github.com/googleprivate/ml/backend/api/go_http_client/run_model"
 	servermodel "github.com/googleprivate/ml/backend/src/apiserver/model"
@@ -15,6 +16,10 @@ const (
 	apiServerBasePath       = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/"
 	apiServerDefaultTimeout = 35 * time.Second
 )
+
+// PassThroughAuth never manipulates the request
+var PassThroughAuth runtime.ClientAuthInfoWriter = runtime.ClientAuthInfoWriterFunc(
+	func(_ runtime.ClientRequest, _ strfmt.Registry) error { return nil })
 
 func toClientJobDetail(runDetail *servermodel.RunDetail) *clientmodel.APIRunDetail {
 	return &clientmodel.APIRunDetail{

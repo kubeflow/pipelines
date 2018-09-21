@@ -33,6 +33,27 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
       }
     }
   }
+  // Use bearer token for authorizing access to job service.
+  // Kubernetes client library(https://kubernetes.io/docs/reference/using-api/client-libraries/)
+  // uses bearer token as default for authorization. The section below
+  // ensures security definition object is generated in the swagger definition.
+  // For more details see https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#securityDefinitionsObject
+  security_definitions: {
+    security: {
+      key: "Bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "authorization";
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "Bearer";
+      value: {};
+    }
+  }
 };
 
 service PipelineService {

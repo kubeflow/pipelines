@@ -41,7 +41,7 @@ type Client struct {
 /*
 CreateJob create job API
 */
-func (a *Client) CreateJob(params *CreateJobParams) (*CreateJobOK, error) {
+func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthInfoWriter) (*CreateJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewCreateJobParams()
@@ -56,6 +56,7 @@ func (a *Client) CreateJob(params *CreateJobParams) (*CreateJobOK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &CreateJobReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -69,7 +70,7 @@ func (a *Client) CreateJob(params *CreateJobParams) (*CreateJobOK, error) {
 /*
 DeleteJob delete job API
 */
-func (a *Client) DeleteJob(params *DeleteJobParams) (*DeleteJobOK, error) {
+func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewDeleteJobParams()
@@ -84,6 +85,7 @@ func (a *Client) DeleteJob(params *DeleteJobParams) (*DeleteJobOK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &DeleteJobReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -97,7 +99,7 @@ func (a *Client) DeleteJob(params *DeleteJobParams) (*DeleteJobOK, error) {
 /*
 DisableJob disable job API
 */
-func (a *Client) DisableJob(params *DisableJobParams) (*DisableJobOK, error) {
+func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAuthInfoWriter) (*DisableJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewDisableJobParams()
@@ -112,6 +114,7 @@ func (a *Client) DisableJob(params *DisableJobParams) (*DisableJobOK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &DisableJobReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -125,7 +128,7 @@ func (a *Client) DisableJob(params *DisableJobParams) (*DisableJobOK, error) {
 /*
 EnableJob enable job API
 */
-func (a *Client) EnableJob(params *EnableJobParams) (*EnableJobOK, error) {
+func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthInfoWriter) (*EnableJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewEnableJobParams()
@@ -140,6 +143,7 @@ func (a *Client) EnableJob(params *EnableJobParams) (*EnableJobOK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &EnableJobReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -153,7 +157,7 @@ func (a *Client) EnableJob(params *EnableJobParams) (*EnableJobOK, error) {
 /*
 GetJob get job API
 */
-func (a *Client) GetJob(params *GetJobParams) (*GetJobOK, error) {
+func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWriter) (*GetJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetJobParams()
@@ -168,6 +172,7 @@ func (a *Client) GetJob(params *GetJobParams) (*GetJobOK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &GetJobReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -181,7 +186,7 @@ func (a *Client) GetJob(params *GetJobParams) (*GetJobOK, error) {
 /*
 ListJobRuns list job runs API
 */
-func (a *Client) ListJobRuns(params *ListJobRunsParams) (*ListJobRunsOK, error) {
+func (a *Client) ListJobRuns(params *ListJobRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobRunsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListJobRunsParams()
@@ -196,6 +201,7 @@ func (a *Client) ListJobRuns(params *ListJobRunsParams) (*ListJobRunsOK, error) 
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &ListJobRunsReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -209,7 +215,7 @@ func (a *Client) ListJobRuns(params *ListJobRunsParams) (*ListJobRunsOK, error) 
 /*
 ListJobs list jobs API
 */
-func (a *Client) ListJobs(params *ListJobsParams) (*ListJobsOK, error) {
+func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListJobsParams()
@@ -224,6 +230,7 @@ func (a *Client) ListJobs(params *ListJobsParams) (*ListJobsOK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &ListJobsReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})

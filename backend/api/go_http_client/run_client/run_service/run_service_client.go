@@ -41,7 +41,7 @@ type Client struct {
 /*
 GetRun get run API
 */
-func (a *Client) GetRun(params *GetRunParams) (*GetRunOK, error) {
+func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWriter) (*GetRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetRunParams()
@@ -56,6 +56,7 @@ func (a *Client) GetRun(params *GetRunParams) (*GetRunOK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &GetRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -69,7 +70,7 @@ func (a *Client) GetRun(params *GetRunParams) (*GetRunOK, error) {
 /*
 GetRunV2 get run v2 API
 */
-func (a *Client) GetRunV2(params *GetRunV2Params) (*GetRunV2OK, error) {
+func (a *Client) GetRunV2(params *GetRunV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetRunV2OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetRunV2Params()
@@ -84,6 +85,7 @@ func (a *Client) GetRunV2(params *GetRunV2Params) (*GetRunV2OK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &GetRunV2Reader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -97,7 +99,7 @@ func (a *Client) GetRunV2(params *GetRunV2Params) (*GetRunV2OK, error) {
 /*
 ListRuns list runs API
 */
-func (a *Client) ListRuns(params *ListRunsParams) (*ListRunsOK, error) {
+func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListRunsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListRunsParams()
@@ -112,6 +114,7 @@ func (a *Client) ListRuns(params *ListRunsParams) (*ListRunsOK, error) {
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &ListRunsReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})

@@ -60,7 +60,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.CreateJob(parameters)
+	response, err := c.apiClient.JobService.CreateJob(parameters, PassThroughAuth)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.CreateJobDefault); ok {
@@ -83,7 +83,7 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.GetJob(parameters)
+	response, err := c.apiClient.JobService.GetJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetJobDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -104,7 +104,7 @@ func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
 
 	// Make service all
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.DeleteJob(parameters)
+	_, err := c.apiClient.JobService.DeleteJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeleteJobDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -125,7 +125,7 @@ func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
 
 	// Make service all
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.EnableJob(parameters)
+	_, err := c.apiClient.JobService.EnableJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.EnableJobDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -146,7 +146,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 
 	// Make service all
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.DisableJob(parameters)
+	_, err := c.apiClient.JobService.DisableJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.DisableJobDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -168,7 +168,7 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.ListJobs(parameters)
+	response, err := c.apiClient.JobService.ListJobs(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListJobsDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -220,7 +220,7 @@ func (c *JobClient) ListRuns(parameters *params.ListJobRunsParams) (
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.ListJobRuns(parameters)
+	response, err := c.apiClient.JobService.ListJobRuns(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListJobRunsDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)

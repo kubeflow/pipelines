@@ -41,7 +41,7 @@ type Client struct {
 /*
 DeletePipeline delete pipeline API
 */
-func (a *Client) DeletePipeline(params *DeletePipelineParams) (*DeletePipelineOK, error) {
+func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewDeletePipelineParams()
@@ -56,6 +56,7 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams) (*DeletePipelineOK
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &DeletePipelineReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -69,7 +70,7 @@ func (a *Client) DeletePipeline(params *DeletePipelineParams) (*DeletePipelineOK
 /*
 GetPipeline get pipeline API
 */
-func (a *Client) GetPipeline(params *GetPipelineParams) (*GetPipelineOK, error) {
+func (a *Client) GetPipeline(params *GetPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*GetPipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetPipelineParams()
@@ -84,6 +85,7 @@ func (a *Client) GetPipeline(params *GetPipelineParams) (*GetPipelineOK, error) 
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &GetPipelineReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -97,7 +99,7 @@ func (a *Client) GetPipeline(params *GetPipelineParams) (*GetPipelineOK, error) 
 /*
 GetTemplate get template API
 */
-func (a *Client) GetTemplate(params *GetTemplateParams) (*GetTemplateOK, error) {
+func (a *Client) GetTemplate(params *GetTemplateParams, authInfo runtime.ClientAuthInfoWriter) (*GetTemplateOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetTemplateParams()
@@ -112,6 +114,7 @@ func (a *Client) GetTemplate(params *GetTemplateParams) (*GetTemplateOK, error) 
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &GetTemplateReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
@@ -125,7 +128,7 @@ func (a *Client) GetTemplate(params *GetTemplateParams) (*GetTemplateOK, error) 
 /*
 ListPipelines list pipelines API
 */
-func (a *Client) ListPipelines(params *ListPipelinesParams) (*ListPipelinesOK, error) {
+func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.ClientAuthInfoWriter) (*ListPipelinesOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListPipelinesParams()
@@ -140,6 +143,7 @@ func (a *Client) ListPipelines(params *ListPipelinesParams) (*ListPipelinesOK, e
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &ListPipelinesReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})

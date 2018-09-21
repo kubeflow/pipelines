@@ -58,7 +58,7 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.APIPi
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.GetPipeline(parameters)
+	response, err := c.apiClient.PipelineService.GetPipeline(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -79,7 +79,7 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
 
 	// Make service all
 	parameters.Context = ctx
-	_, err := c.apiClient.PipelineService.DeletePipeline(parameters)
+	_, err := c.apiClient.PipelineService.DeletePipeline(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeletePipelineDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -101,7 +101,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.GetTemplate(parameters)
+	response, err := c.apiClient.PipelineService.GetTemplate(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetTemplateDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -133,7 +133,7 @@ func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.ListPipelines(parameters)
+	response, err := c.apiClient.PipelineService.ListPipelines(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListPipelinesDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)

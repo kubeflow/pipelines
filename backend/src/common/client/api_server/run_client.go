@@ -55,7 +55,7 @@ func (c *RunClient) Get(parameters *params.GetRunV2Params) (*model.APIRunDetail,
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.GetRunV2(parameters)
+	response, err := c.apiClient.RunService.GetRunV2(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetRunDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
@@ -87,7 +87,7 @@ func (c *RunClient) List(parameters *params.ListRunsParams) (
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.ListRuns(parameters)
+	response, err := c.apiClient.RunService.ListRuns(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)
