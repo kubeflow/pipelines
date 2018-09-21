@@ -41,7 +41,7 @@ type Client struct {
 /*
 UploadPipeline upload pipeline API
 */
-func (a *Client) UploadPipeline(params *UploadPipelineParams) (*UploadPipelineOK, error) {
+func (a *Client) UploadPipeline(params *UploadPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*UploadPipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewUploadPipelineParams()
@@ -56,6 +56,7 @@ func (a *Client) UploadPipeline(params *UploadPipelineParams) (*UploadPipelineOK
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &UploadPipelineReader{formats: a.formats},
+		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
