@@ -273,6 +273,10 @@ paper-listbox {
   padding-left: var(--spacing-base);
 }
 
+.padded-left-spacing-minus-1 {
+  padding-left: var(--spacing-minus-1);
+}
+
 .padded-top-left {
   padding: var(--spacing-base) 0 0 var(--spacing-base);
 }
@@ -289,10 +293,6 @@ paper-listbox {
   padding: var(--spacing-minus-1);
 }
 
-.padded-left-spacing-minus-1 {
-  padding-left: var(--spacing-minus-1);
-}
-
 .padded-spacing-minus-3 {
   padding: var(--spacing-minus-3);
 }
@@ -307,6 +307,10 @@ paper-listbox {
 
 .padded-spacing-minus-6 {
   padding: var(--spacing-minus-6);
+}
+
+.padded-top-spacing-minus-4 {
+  padding-top: var(--spacing-minus-4);
 }
 
 .param-header {

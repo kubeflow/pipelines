@@ -3,6 +3,7 @@
   "description": "Frontend package for ML Pipeline Management",
   "main": "dist/index.html",
   "dependencies": {
+    "codemirror": "^5.40.2",
     "d3": "^5.5.0",
     "dagre": "^0.8.2",
     "js-yaml": "^3.11.0",
@@ -12,6 +13,7 @@
   "devDependencies": {
     "@types/chai": "^4.1.4",
     "@types/clean-webpack-plugin": "^0.1.2",
+    "@types/codemirror": "0.0.60",
     "@types/copy-webpack-plugin": "^4.4.2",
     "@types/d3": "^5.0.0",
     "@types/dagre": "^0.7.39",

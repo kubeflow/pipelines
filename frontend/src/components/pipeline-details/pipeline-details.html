@@ -1,0 +1,82 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<dom-module id="pipeline-details">
+    <template>
+      <link rel="stylesheet" href="./pipeline-details.css">
+      <style>
+        paper-tabs {
+          --paper-tabs-selection-bar: {
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 3px solid var(--theme-primary-color);
+          }
+        }
+      </style>
+
+      <div class="toolbar">
+        <div class="flex toolbar-title">
+          <a id="allPipelinesLink" href="/pipelines" class="faded unstyled">All Pipelines</a>
+          <iron-icon icon="chevron-right"></iron-icon>
+          <span class="pipeline-name">[[pipeline.name]]</span>
+        </div>
+        <div class="toolbar-actions">
+          <paper-button id="createJobBtn" on-click="_createJob" disabled="[[_createJobDisable]]"
+                        title="Create a new job">
+            <iron-icon icon="add"></iron-icon>
+            Create a job
+          </paper-button>
+          <paper-button id="deleteBtn" on-click="_deletePipeline">
+            <iron-icon icon="delete">
+            </iron-icon>
+            Delete
+          </paper-button>
+        </div>
+      </div>
+      <paper-progress class="loading no-shrink" indeterminate hidden="[[!_busy]]"></paper-progress>
+
+      <page-error id="pageErrorElement" error="[[_pageError]]" class="no-shrink"
+                  details="[[_pageErrorDetails]]"></page-error>
+
+      <div class="relative padded-left">
+        <div class="overlay" hidden="[[!_busy]]"></div>
+        <div class="scrollable padded-top-spacing-minus-4">
+          <div class="no-shrink tabs-container">
+            <paper-tabs id="tabs" class="no-shrink" selected="{{selectedTab}}">
+              <paper-tab href="#graph">Graph</paper-tab>
+              <paper-tab href="#source">Source</paper-tab>
+            </paper-tabs>
+          </div>
+
+          <iron-pages class="flex-column flex-grow overflow-auto" selected="{{selectedTab}}">
+
+            <!-- iron-page tab 1 -->
+            <div class="padded">
+              [ Graph ]
+            </div>
+
+            <!-- iron-page tab 2 -->
+            <div class="source-container">
+            <!-- This will be transformed into a formatted display of the the Pipeline's source code
+                once it is returned from the backend. It is automatically unhidden when that
+                transformation occurs. -->
+              <textarea id="sourceCode" hidden></textarea>
+            </div>
+          </iron-pages>
+        </div>
+      </div>
+
+    </template>
+  </dom-module>

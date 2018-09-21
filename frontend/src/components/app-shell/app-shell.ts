@@ -61,6 +61,7 @@ export class AppShell extends Polymer.Element {
     '/jobs/details': 'job-details',
     '/jobs/new': 'job-new',
     '/pipelines': 'pipeline-list',
+    '/pipelines/details': 'pipeline-details',
   };
 
   static get observers(): string[] {

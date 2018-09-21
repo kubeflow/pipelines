@@ -102,15 +102,17 @@ export class PipelineList extends PageElement {
         return '-';
       }
       let text = xss(value.toString());
-      if (colIndex === 0) {
-        // TODO: Make this a link once Pipeline details page is ready.
-        return text;
-      } else {
-        if (this.itemList.columns[colIndex] && value &&
-            this.itemList.columns[colIndex].type === ColumnTypeName.DATE) {
-          text = (value as Date).toLocaleString();
-        }
-        return text;
+      switch (colIndex) {
+        case 0:
+          return `<a class="link" href="/pipelines/details/${this.pipelines[rowIndex].id}">
+                      ${text}
+                  </a>`;
+        default:
+          if (this.itemList.columns[colIndex] && value &&
+              this.itemList.columns[colIndex].type === ColumnTypeName.DATE) {
+            text = (value as Date).toLocaleString();
+          }
+          return text;
       }
     };
   }
@@ -121,7 +123,8 @@ export class PipelineList extends PageElement {
   }
 
   protected _navigate(ev: ItemDblClickEvent): void {
-    // TODO: add navigation once details page is ready
+    const pipelineId = this.pipelines[ev.detail.index].id;
+    this.dispatchEvent(new RouteEvent(`/pipelines/details/${pipelineId}`));
   }
 
   protected _refresh(): void {
