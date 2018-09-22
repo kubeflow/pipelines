@@ -281,6 +281,36 @@
         ]
       }
     },
+    "/apis/v1beta1/runs/{run_id}/terminate": {
+      "post": {
+        "operationId": "TerminateRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
     "/apis/v1beta1/runs/{run_id}:reportMetrics": {
       "post": {
         "summary": "ReportRunMetrics reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be uniquely\nidentified by (run_id, node_id, name). Duplicate reporting will be\nignored by the API. First reporting wins.",
