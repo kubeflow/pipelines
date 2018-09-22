@@ -17,11 +17,13 @@
 
 package api
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import empty "github.com/golang/protobuf/ptypes/empty"
-import _ "google.golang.org/genproto/googleapis/api/annotations"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	empty "github.com/golang/protobuf/ptypes/empty"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
+	math "math"
+)
 
 import (
 	context "golang.org/x/net/context"
@@ -51,16 +53,17 @@ func (m *ReportWorkflowRequest) Reset()         { *m = ReportWorkflowRequest{} }
 func (m *ReportWorkflowRequest) String() string { return proto.CompactTextString(m) }
 func (*ReportWorkflowRequest) ProtoMessage()    {}
 func (*ReportWorkflowRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_report_2b55ff2ef5afebc5, []int{0}
+	return fileDescriptor_3eedb623aa6ca98c, []int{0}
 }
+
 func (m *ReportWorkflowRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReportWorkflowRequest.Unmarshal(m, b)
 }
 func (m *ReportWorkflowRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ReportWorkflowRequest.Marshal(b, m, deterministic)
 }
-func (dst *ReportWorkflowRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReportWorkflowRequest.Merge(dst, src)
+func (m *ReportWorkflowRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReportWorkflowRequest.Merge(m, src)
 }
 func (m *ReportWorkflowRequest) XXX_Size() int {
 	return xxx_messageInfo_ReportWorkflowRequest.Size(m)
@@ -90,16 +93,17 @@ func (m *ReportScheduledWorkflowRequest) Reset()         { *m = ReportScheduledW
 func (m *ReportScheduledWorkflowRequest) String() string { return proto.CompactTextString(m) }
 func (*ReportScheduledWorkflowRequest) ProtoMessage()    {}
 func (*ReportScheduledWorkflowRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_report_2b55ff2ef5afebc5, []int{1}
+	return fileDescriptor_3eedb623aa6ca98c, []int{1}
 }
+
 func (m *ReportScheduledWorkflowRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReportScheduledWorkflowRequest.Unmarshal(m, b)
 }
 func (m *ReportScheduledWorkflowRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ReportScheduledWorkflowRequest.Marshal(b, m, deterministic)
 }
-func (dst *ReportScheduledWorkflowRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReportScheduledWorkflowRequest.Merge(dst, src)
+func (m *ReportScheduledWorkflowRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReportScheduledWorkflowRequest.Merge(m, src)
 }
 func (m *ReportScheduledWorkflowRequest) XXX_Size() int {
 	return xxx_messageInfo_ReportScheduledWorkflowRequest.Size(m)
@@ -227,9 +231,9 @@ var _ReportService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "report.proto",
 }
 
-func init() { proto.RegisterFile("report.proto", fileDescriptor_report_2b55ff2ef5afebc5) }
+func init() { proto.RegisterFile("report.proto", fileDescriptor_3eedb623aa6ca98c) }
 
-var fileDescriptor_report_2b55ff2ef5afebc5 = []byte{
+var fileDescriptor_3eedb623aa6ca98c = []byte{
 	// 264 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x4a, 0x2d, 0xc8,
 	0x2f, 0x2a, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x94, 0x92, 0x49,

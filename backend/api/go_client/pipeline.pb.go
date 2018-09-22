@@ -17,13 +17,15 @@
 
 package api
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import empty "github.com/golang/protobuf/ptypes/empty"
-import timestamp "github.com/golang/protobuf/ptypes/timestamp"
-import _ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-import _ "google.golang.org/genproto/googleapis/api/annotations"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	empty "github.com/golang/protobuf/ptypes/empty"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
+	math "math"
+)
 
 import (
 	context "golang.org/x/net/context"
@@ -52,16 +54,17 @@ func (m *GetPipelineRequest) Reset()         { *m = GetPipelineRequest{} }
 func (m *GetPipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*GetPipelineRequest) ProtoMessage()    {}
 func (*GetPipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ba411728b46e00b6, []int{0}
+	return fileDescriptor_7ac67a7adf3df9c7, []int{0}
 }
+
 func (m *GetPipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetPipelineRequest.Unmarshal(m, b)
 }
 func (m *GetPipelineRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_GetPipelineRequest.Marshal(b, m, deterministic)
 }
-func (dst *GetPipelineRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetPipelineRequest.Merge(dst, src)
+func (m *GetPipelineRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetPipelineRequest.Merge(m, src)
 }
 func (m *GetPipelineRequest) XXX_Size() int {
 	return xxx_messageInfo_GetPipelineRequest.Size(m)
@@ -94,16 +97,17 @@ func (m *ListPipelinesRequest) Reset()         { *m = ListPipelinesRequest{} }
 func (m *ListPipelinesRequest) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesRequest) ProtoMessage()    {}
 func (*ListPipelinesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ba411728b46e00b6, []int{1}
+	return fileDescriptor_7ac67a7adf3df9c7, []int{1}
 }
+
 func (m *ListPipelinesRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesRequest.Unmarshal(m, b)
 }
 func (m *ListPipelinesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ListPipelinesRequest.Marshal(b, m, deterministic)
 }
-func (dst *ListPipelinesRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListPipelinesRequest.Merge(dst, src)
+func (m *ListPipelinesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListPipelinesRequest.Merge(m, src)
 }
 func (m *ListPipelinesRequest) XXX_Size() int {
 	return xxx_messageInfo_ListPipelinesRequest.Size(m)
@@ -147,16 +151,17 @@ func (m *ListPipelinesResponse) Reset()         { *m = ListPipelinesResponse{} }
 func (m *ListPipelinesResponse) String() string { return proto.CompactTextString(m) }
 func (*ListPipelinesResponse) ProtoMessage()    {}
 func (*ListPipelinesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ba411728b46e00b6, []int{2}
+	return fileDescriptor_7ac67a7adf3df9c7, []int{2}
 }
+
 func (m *ListPipelinesResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListPipelinesResponse.Unmarshal(m, b)
 }
 func (m *ListPipelinesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ListPipelinesResponse.Marshal(b, m, deterministic)
 }
-func (dst *ListPipelinesResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListPipelinesResponse.Merge(dst, src)
+func (m *ListPipelinesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListPipelinesResponse.Merge(m, src)
 }
 func (m *ListPipelinesResponse) XXX_Size() int {
 	return xxx_messageInfo_ListPipelinesResponse.Size(m)
@@ -192,16 +197,17 @@ func (m *DeletePipelineRequest) Reset()         { *m = DeletePipelineRequest{} }
 func (m *DeletePipelineRequest) String() string { return proto.CompactTextString(m) }
 func (*DeletePipelineRequest) ProtoMessage()    {}
 func (*DeletePipelineRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ba411728b46e00b6, []int{3}
+	return fileDescriptor_7ac67a7adf3df9c7, []int{3}
 }
+
 func (m *DeletePipelineRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeletePipelineRequest.Unmarshal(m, b)
 }
 func (m *DeletePipelineRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DeletePipelineRequest.Marshal(b, m, deterministic)
 }
-func (dst *DeletePipelineRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeletePipelineRequest.Merge(dst, src)
+func (m *DeletePipelineRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeletePipelineRequest.Merge(m, src)
 }
 func (m *DeletePipelineRequest) XXX_Size() int {
 	return xxx_messageInfo_DeletePipelineRequest.Size(m)
@@ -230,16 +236,17 @@ func (m *GetTemplateRequest) Reset()         { *m = GetTemplateRequest{} }
 func (m *GetTemplateRequest) String() string { return proto.CompactTextString(m) }
 func (*GetTemplateRequest) ProtoMessage()    {}
 func (*GetTemplateRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ba411728b46e00b6, []int{4}
+	return fileDescriptor_7ac67a7adf3df9c7, []int{4}
 }
+
 func (m *GetTemplateRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTemplateRequest.Unmarshal(m, b)
 }
 func (m *GetTemplateRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_GetTemplateRequest.Marshal(b, m, deterministic)
 }
-func (dst *GetTemplateRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetTemplateRequest.Merge(dst, src)
+func (m *GetTemplateRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetTemplateRequest.Merge(m, src)
 }
 func (m *GetTemplateRequest) XXX_Size() int {
 	return xxx_messageInfo_GetTemplateRequest.Size(m)
@@ -268,16 +275,17 @@ func (m *GetTemplateResponse) Reset()         { *m = GetTemplateResponse{} }
 func (m *GetTemplateResponse) String() string { return proto.CompactTextString(m) }
 func (*GetTemplateResponse) ProtoMessage()    {}
 func (*GetTemplateResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ba411728b46e00b6, []int{5}
+	return fileDescriptor_7ac67a7adf3df9c7, []int{5}
 }
+
 func (m *GetTemplateResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetTemplateResponse.Unmarshal(m, b)
 }
 func (m *GetTemplateResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_GetTemplateResponse.Marshal(b, m, deterministic)
 }
-func (dst *GetTemplateResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetTemplateResponse.Merge(dst, src)
+func (m *GetTemplateResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetTemplateResponse.Merge(m, src)
 }
 func (m *GetTemplateResponse) XXX_Size() int {
 	return xxx_messageInfo_GetTemplateResponse.Size(m)
@@ -314,16 +322,17 @@ func (m *Pipeline) Reset()         { *m = Pipeline{} }
 func (m *Pipeline) String() string { return proto.CompactTextString(m) }
 func (*Pipeline) ProtoMessage()    {}
 func (*Pipeline) Descriptor() ([]byte, []int) {
-	return fileDescriptor_pipeline_ba411728b46e00b6, []int{6}
+	return fileDescriptor_7ac67a7adf3df9c7, []int{6}
 }
+
 func (m *Pipeline) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Pipeline.Unmarshal(m, b)
 }
 func (m *Pipeline) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Pipeline.Marshal(b, m, deterministic)
 }
-func (dst *Pipeline) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Pipeline.Merge(dst, src)
+func (m *Pipeline) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Pipeline.Merge(m, src)
 }
 func (m *Pipeline) XXX_Size() int {
 	return xxx_messageInfo_Pipeline.Size(m)
@@ -557,9 +566,9 @@ var _PipelineService_serviceDesc = grpc.ServiceDesc{
 	Metadata: "pipeline.proto",
 }
 
-func init() { proto.RegisterFile("pipeline.proto", fileDescriptor_pipeline_ba411728b46e00b6) }
+func init() { proto.RegisterFile("pipeline.proto", fileDescriptor_7ac67a7adf3df9c7) }
 
-var fileDescriptor_pipeline_ba411728b46e00b6 = []byte{
+var fileDescriptor_7ac67a7adf3df9c7 = []byte{
 	// 620 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x54, 0xdd, 0x4e, 0x13, 0x51,
 	0x10, 0xb6, 0x5b, 0x28, 0xed, 0xd4, 0xb6, 0x71, 0x00, 0x59, 0x17, 0x08, 0xcd, 0x46, 0x05, 0x7f,
@@ -597,7 +606,7 @@ var fileDescriptor_pipeline_ba411728b46e00b6 = []byte{
 	0x87, 0x9e, 0x3b, 0x5f, 0xb0, 0x0b, 0x85, 0x86, 0xe8, 0x19, 0x6e, 0xff, 0x97, 0x28, 0xcc, 0xed,
 	0xa8, 0x0e, 0x0e, 0x7f, 0xec, 0x7f, 0x68, 0x6f, 0xc0, 0x52, 0x9f, 0x4e, 0xd8, 0x28, 0xd2, 0xf8,
 	0x00, 0x1b, 0x50, 0xf3, 0xaa, 0x86, 0xe0, 0x48, 0x33, 0x3d, 0x52, 0x1f, 0xb7, 0x60, 0x13, 0x4a,
-	0x07, 0xc4, 0x24, 0x49, 0x5c, 0x2e, 0x3b, 0x5e, 0x6d, 0x7f, 0xa4, 0x4f, 0x13, 0xc9, 0xaf, 0xcc,
-	0x7f, 0x4b, 0xd3, 0xe9, 0xde, 0x07, 0x18, 0x03, 0xee, 0x75, 0x4b, 0x66, 0xf7, 0x57, 0xff, 0x02,
-	0x00, 0x00, 0xff, 0xff, 0xb7, 0x34, 0x82, 0xe2, 0x1d, 0x05, 0x00, 0x00,
+	0x07, 0xc4, 0x24, 0x49, 0x5c, 0x2e, 0x3b, 0x5e, 0x8d, 0x8d, 0xf4, 0x69, 0x22, 0xf9, 0x95, 0xf9,
+	0x6f, 0x69, 0x3a, 0xdd, 0xfb, 0x00, 0x63, 0xc0, 0xbd, 0x6e, 0xc9, 0xec, 0xfe, 0xea, 0x5f, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0xcd, 0x8d, 0xfa, 0x26, 0x1d, 0x05, 0x00, 0x00,
 }

@@ -17,9 +17,11 @@
 
 package api
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -44,16 +46,17 @@ func (m *Parameter) Reset()         { *m = Parameter{} }
 func (m *Parameter) String() string { return proto.CompactTextString(m) }
 func (*Parameter) ProtoMessage()    {}
 func (*Parameter) Descriptor() ([]byte, []int) {
-	return fileDescriptor_parameter_108ec169bde5bfee, []int{0}
+	return fileDescriptor_7aacf5f9506e2787, []int{0}
 }
+
 func (m *Parameter) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Parameter.Unmarshal(m, b)
 }
 func (m *Parameter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Parameter.Marshal(b, m, deterministic)
 }
-func (dst *Parameter) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Parameter.Merge(dst, src)
+func (m *Parameter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Parameter.Merge(m, src)
 }
 func (m *Parameter) XXX_Size() int {
 	return xxx_messageInfo_Parameter.Size(m)
@@ -82,9 +85,9 @@ func init() {
 	proto.RegisterType((*Parameter)(nil), "api.Parameter")
 }
 
-func init() { proto.RegisterFile("parameter.proto", fileDescriptor_parameter_108ec169bde5bfee) }
+func init() { proto.RegisterFile("parameter.proto", fileDescriptor_7aacf5f9506e2787) }
 
-var fileDescriptor_parameter_108ec169bde5bfee = []byte{
+var fileDescriptor_7aacf5f9506e2787 = []byte{
 	// 89 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2f, 0x48, 0x2c, 0x4a,
 	0xcc, 0x4d, 0x2d, 0x49, 0x2d, 0xd2, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8,
