@@ -33,7 +33,8 @@ exports.config = {
   port: 4444,
   mochaOpts: {
     // units: ms
-    timeout: 800000,
+    //TODO:Reduce the timeout once the tests become shorter
+    timeout: 1200000,
   },
   logLevel: 'silent',
   plugins: {
