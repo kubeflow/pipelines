@@ -16,12 +16,19 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"time"
 
+	"github.com/argoproj/argo/errors"
+	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type RunServer struct {
@@ -132,6 +139,47 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 		return util.Wrap(err, "The pipeline spec is invalid.")
 	}
 	return nil
+}
+
+// TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
+func TerminateWorkflow(wfClient v1alpha1.WorkflowInterface, name string) error {
+	patchObj := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"activeDeadlineSeconds": 0,
+		},
+	}
+	var err error
+	patch, err := json.Marshal(patchObj)
+	if err != nil {
+		return errors.InternalWrapError(err)
+	}
+	for attempt := 0; attempt < 10; attempt++ {
+		_, err = wfClient.Patch(name, types.MergePatchType, patch)
+		if err != nil {
+			if !apierr.IsConflict(err) {
+				return err
+			}
+		} else {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return err
+}
+
+func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
+	var err error
+	run, err := s.resourceManager.GetRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	workflowInterface, err := client.CreateWorkflowClient("default")
+	if err != nil {
+		return nil, err
+	}
+	err = TerminateWorkflow(workflowInterface, run.Name)
+
+	return nil, err
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {
