@@ -74,3 +74,14 @@ func (c *RunClientFake) ListAll(params *runparams.ListRunsParams, maxResultSize 
 	[]*runmodel.APIRun, error) {
 	return listAllForRun(c, params, maxResultSize)
 }
+
+func (c *RunClientFake) Terminate(params *runparams.TerminateRunParams) error {
+	switch params.RunID {
+	case RunForClientErrorTest:
+		return fmt.Errorf(ClientErrorString)
+	case RunForDefaultTest:
+		return nil
+	default:
+		return fmt.Errorf(InvalidFakeRequest)
+	}
+}

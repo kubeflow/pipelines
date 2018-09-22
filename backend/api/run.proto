@@ -100,6 +100,12 @@ service RunService {
       get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
+
+  rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{run_id}/terminate"
+    };
+  }
 }
 
 message CreateRunRequest{
@@ -121,6 +127,10 @@ message ListRunsRequest{
   // E.g. If listing run for an experiment, the query string would be
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
   ResourceKey resource_reference_key = 4;
+}
+
+message TerminateRunRequest{
+  string run_id = 1;
 }
 
 message ListRunsResponse {
