@@ -40,12 +40,12 @@ type PaginationTestSuit struct {
 func (s *PaginationTestSuit) SetupTest() {
 	err := waitForReady(*namespace, *initializeTimeout)
 	if err != nil {
-		glog.Exit("Failed to initialize test. Error: %s", err.Error())
+		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 	}
 	s.namespace = *namespace
 	s.conn, err = getRpcConnection(s.namespace)
 	if err != nil {
-		glog.Exit("Failed to get RPC connection. Error: %s", err.Error())
+		glog.Exitf("Failed to get RPC connection. Error: %s", err.Error())
 	}
 	s.pipelineClient = api.NewPipelineServiceClient(s.conn)
 	s.jobClient = api.NewJobServiceClient(s.conn)
