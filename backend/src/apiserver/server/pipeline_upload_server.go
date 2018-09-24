@@ -15,11 +15,11 @@
 package server
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/golang/glog"
 	api "github.com/googleprivate/ml/backend/api/go_client"
@@ -61,12 +61,11 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	}
 
 	encodedFileName := r.URL.Query().Get(NameQueryStringKey)
-	fileNameBytes, err := base64.StdEncoding.DecodeString(encodedFileName)
+	fileName, err := url.QueryUnescape(encodedFileName)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid file name."))
 		return
 	}
-	fileName := string(fileNameBytes)
 	if fileName == "" {
 		fileName = header.Filename
 	}

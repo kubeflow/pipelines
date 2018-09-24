@@ -16,10 +16,11 @@ package test
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
+
+	"net/url"
 
 	"github.com/golang/glog"
 	api "github.com/googleprivate/ml/backend/api/go_client"
@@ -70,7 +71,7 @@ func (s *ListAllRunsTestSuit) TestListAllRuns() {
 	pipelineBody, writer := uploadPipelineFileOrFail("resources/hello-world.yaml")
 	_, err = clientSet.RESTClient().Post().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
-		Param("name", base64.StdEncoding.EncodeToString([]byte("hello-world"))).
+		Param("name", url.PathEscape("hello-world")).
 		SetHeader("Content-Type", writer.FormDataContentType()).
 		Body(pipelineBody).Do().Raw()
 	assert.Nil(t, err)
@@ -78,7 +79,7 @@ func (s *ListAllRunsTestSuit) TestListAllRuns() {
 	pipelineBody, writer = uploadPipelineFileOrFail("resources/arguments-parameters.yaml")
 	_, err = clientSet.RESTClient().Post().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
-		Param("name", base64.StdEncoding.EncodeToString([]byte("arguments-parameters"))).
+		Param("name", url.PathEscape("arguments-parameters")).
 		SetHeader("Content-Type", writer.FormDataContentType()).
 		Body(pipelineBody).Do().Raw()
 	assert.Nil(t, err)

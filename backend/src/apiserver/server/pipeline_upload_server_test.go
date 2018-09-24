@@ -16,13 +16,12 @@ package server
 
 import (
 	"bytes"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
-
-	"encoding/base64"
-	"fmt"
 
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
@@ -100,8 +99,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	w := multipart.NewWriter(&b)
 	w.CreateFormFile("uploadfile", "hello-world")
 	w.Close()
-	encodedName := base64.StdEncoding.EncodeToString([]byte("foobar"))
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", url.PathEscape("foo bar")), bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()
@@ -119,7 +117,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 		{
 			UUID:           resource.DefaultFakeUUID,
 			CreatedAtInSec: 1,
-			Name:           "foobar",
+			Name:           "foo bar",
 			Parameters:     "[]",
 			Status:         model.PipelineReady}}
 	pkg, str, err := clientManager.PipelineStore().ListPipelines(&common.PaginationContext{
@@ -141,8 +139,8 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	w := multipart.NewWriter(&b)
 	w.CreateFormFile("uploadfile", "hello-world")
 	w.Close()
-	encodedName := base64.StdEncoding.EncodeToString([]byte(
-		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name"))
+	encodedName := url.PathEscape(
+		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 

@@ -167,7 +167,7 @@ export async function uploadPipeline(
       await _fetch(
           '/pipelines/upload',
           v1alpha2Prefix,
-          `name=${Buffer.from(pipelineName).toString('base64')}`,
+          `name=${encodeURIComponent(pipelineName)}`,
         {
           body: fd,
           cache: 'no-cache',

@@ -365,7 +365,7 @@ export default (app: express.Application) => {
   app.post(v1alpha2Prefix + '/pipelines/upload', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Don't allow uploading multiple pipelines with the same name
-    const pipelineName = Buffer.from(req.query.name, 'base64').toString();
+    const pipelineName = decodeURIComponent(req.query.name);
     if (fixedData.pipelines.find((p) => p.name === pipelineName)) {
       res.status(502).send(
           `A Pipeline named: "${pipelineName}" already exists. Please choose a different name.`);
