@@ -24,7 +24,6 @@ import (
 
 const (
 	PipelineFolder = "pipelines"
-	JobFolder      = "jobs"
 )
 
 // Interface for object store.

@@ -95,7 +95,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// Delete pipeline file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.
 	// https://github.com/googleprivate/ml/issues/388
-	err = r.objectStore.DeleteFile(storage.JobFolder, fmt.Sprint(pipelineId))
+	err = r.objectStore.DeleteFile(storage.PipelineFolder, fmt.Sprint(pipelineId))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
 		return nil
@@ -122,7 +122,7 @@ func (r *ResourceManager) CreatePipeline(name string, pipelineFile []byte) (*mod
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, storage.JobFolder, fmt.Sprint(newPipeline.UUID))
+	err = r.objectStore.AddFile(pipelineFile, storage.PipelineFolder, fmt.Sprint(newPipeline.UUID))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -146,7 +146,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
 
-	template, err := r.objectStore.GetFile(storage.JobFolder, fmt.Sprint(pipelineId))
+	template, err := r.objectStore.GetFile(storage.PipelineFolder, fmt.Sprint(pipelineId))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -180,7 +180,7 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 
 func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
 	var workflow workflow.Workflow
-	err := r.objectStore.GetFromYamlFile(&workflow, storage.JobFolder, fmt.Sprint(job.PipelineId))
+	err := r.objectStore.GetFromYamlFile(&workflow, storage.PipelineFolder, fmt.Sprint(job.PipelineId))
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}

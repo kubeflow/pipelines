@@ -128,7 +128,7 @@ func TestGetPipelineTemplate(t *testing.T) {
 	defer store.Close()
 	pipeline, _ := store.PipelineStore().CreatePipeline(createPipeline("pipeline1"))
 	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.JobFolder, fmt.Sprint(pipeline.UUID))
+	store.ObjectStore().AddFile(template, storage.PipelineFolder, fmt.Sprint(pipeline.UUID))
 	manager := NewResourceManager(store)
 	actualTemplate, err := manager.GetPipelineTemplate(pipeline.UUID)
 	assert.Nil(t, err)
@@ -139,7 +139,7 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.JobFolder, fmt.Sprint(1))
+	store.ObjectStore().AddFile(template, storage.PipelineFolder, fmt.Sprint(1))
 	manager := NewResourceManager(store)
 	_, err := manager.GetPipelineTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
@@ -284,7 +284,7 @@ func TestCreateJob(t *testing.T) {
 				},
 			},
 		}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		DisplayName: "pp 1",
 		PipelineId:  "1",
@@ -323,7 +323,7 @@ func TestCreateJob_ExtraInputParameter(t *testing.T) {
 				},
 			},
 		}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		DisplayName: "pp 1",
 		PipelineId:  "1",
@@ -349,7 +349,7 @@ func TestCreateJob_InvalidParameterFormat(t *testing.T) {
 				},
 			},
 		}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		DisplayName: "pp 1",
 		PipelineId:  "1",
@@ -368,7 +368,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	// Use a bad object store
 	manager.scheduledWorkflow = &FakeBadScheduledWorkflowClient{}
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		Name:       "pp1",
 		PipelineId: "1",
@@ -401,7 +401,7 @@ func TestEnableJob(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		DisplayName: "pp 1",
 		PipelineId:  "1",
@@ -443,7 +443,7 @@ func TestEnableJob_CrdFailure(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		Name:       "pp1",
 		PipelineId: "1",
@@ -464,7 +464,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		Name:       "pp1",
 		PipelineId: "1",
@@ -484,7 +484,7 @@ func TestDeleteJob(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		Name:       "pp1",
 		PipelineId: "1",
@@ -516,7 +516,7 @@ func TestDeleteJob_CrdFailure(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		Name:       "pp1",
 		PipelineId: "1",
@@ -537,7 +537,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
 	job := &model.Job{
 		Name:       "pp1",
 		PipelineId: "1",
@@ -560,7 +560,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 
 	// Create pipeline
 	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.PipelineFolder, "1")
 
 	// Create job
 	job := &model.Job{
@@ -627,7 +627,7 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 
 	// Create pipeline
 	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.PipelineFolder, "1")
 
 	// Create job
 	job := &model.Job{
@@ -668,7 +668,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 
 	// Create pipeline
 	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.PipelineFolder, "1")
 
 	// Create job
 	job := &model.Job{
@@ -734,7 +734,7 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 
 	// Create pipeline
 	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.JobFolder, "1")
+	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.PipelineFolder, "1")
 
 	// Create job
 	job := &model.Job{

@@ -50,7 +50,7 @@ func TestUploadPipeline(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)
 
 	// Verify stored in object store
-	template, err := clientManager.ObjectStore().GetFile(storage.JobFolder, resource.DefaultFakeUUID)
+	template, err := clientManager.ObjectStore().GetFile(storage.PipelineFolder, resource.DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -110,7 +110,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	assert.Equal(t, 200, rr.Code)
 
 	// Verify stored in object store
-	template, err := clientManager.ObjectStore().GetFile(storage.JobFolder, resource.DefaultFakeUUID)
+	template, err := clientManager.ObjectStore().GetFile(storage.PipelineFolder, resource.DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
