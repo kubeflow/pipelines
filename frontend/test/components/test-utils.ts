@@ -24,6 +24,7 @@ import * as Utils from '../../src/lib/utils';
 
 export const notificationStub = sinon.stub(Utils, 'showNotification');
 export const dialogStub = sinon.stub(Utils, 'showDialog');
+export const showPipelineUploadDialog = sinon.stub(Utils, 'showPipelineUploadDialog');
 
 // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent
 // Works only for non-fixed display elements.

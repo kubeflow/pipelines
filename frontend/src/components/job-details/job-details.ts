@@ -113,8 +113,7 @@ export class JobDetails extends PageElement {
       (this.$.runs as RunList).loadRuns(this.job.id);
       this._disableCloneJobButton = false;
     } catch (err) {
-      this.showPageError(
-          'There was an error while loading details for job ' + id, err.message);
+      this.showPageError('There was an error while loading details for job ' + id, err.message);
       Utils.log.verbose('Error loading job:', err);
     }
   }

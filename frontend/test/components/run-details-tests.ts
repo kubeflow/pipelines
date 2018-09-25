@@ -199,6 +199,9 @@ describe('run-details', () => {
   });
 
   after(() => {
+    getJobStub.restore();
+    getRunStub.restore();
+    graphRefreshStub.restore();
     document.body.removeChild(fixture);
   });
 

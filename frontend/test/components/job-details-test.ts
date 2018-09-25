@@ -15,7 +15,6 @@
 import '../../src/components/job-details/job-details';
 
 import * as sinon from 'sinon';
-// @ts-ignore No module declaration at this time.
 import * as fixedData from '../../mock-backend/fixed-data';
 import * as Apis from '../../src/lib/apis';
 import * as Utils from '../../src/lib/utils';
@@ -272,13 +271,14 @@ describe('job-details', () => {
   describe('error handling', () => {
 
     it('shows page load error when failing to get job details', async () => {
-      getJobStub.throws('cannot get job, bad stuff happened');
+      getJobStub.throws(new Error('cannot get job, bad stuff happened'));
       await _resetFixture();
       assert.equal(fixture.job, null, 'should not have loaded a job');
       const errorEl = fixture.$.pageErrorElement as PageError;
       assert.equal(errorEl.error,
           'There was an error while loading details for job ' + testJob.id,
           'should show job load error');
+      assert.equal(errorEl.details, 'cannot get job, bad stuff happened');
       getJobStub.restore();
       getJobStub = sinon.stub(Apis, 'getJob');
       getJobStub.returns(testJob);
@@ -286,7 +286,7 @@ describe('job-details', () => {
 
     it('shows error dialog when failing to delete job', (done) => {
       deleteJobStub = sinon.stub(Apis, 'deleteJob');
-      deleteJobStub.throws('bad stuff happened while deleting');
+      deleteJobStub.throws(new Error('bad stuff happened while deleting'));
 
       dialogStub.reset();
       dialogStub.returns(DialogResult.DISMISS);
@@ -309,7 +309,7 @@ describe('job-details', () => {
 
     it('shows error dialog when failing to disable job', (done) => {
       disableJobsStub = sinon.stub(Apis, 'disableJob');
-      disableJobsStub.throws('bad stuff happened while disabling');
+      disableJobsStub.throws(new Error('bad stuff happened while disabling'));
       dialogStub.returns(DialogResult.DISMISS);
       _resetFixture()
         .then(() => {
@@ -317,7 +317,7 @@ describe('job-details', () => {
 
           Polymer.Async.idlePeriod.run(() => {
             assert(dialogStub.calledWith(
-                'Error disabling job: bad stuff happened while disabling'),
+                'Error disabling job: Error: bad stuff happened while disabling'),
                 'error dialog should show with disable failure message');
             disableJobsStub.restore();
             done();
@@ -327,7 +327,7 @@ describe('job-details', () => {
 
     it('shows error dialog when failing to enable job', (done) => {
       enableJobsStub = sinon.stub(Apis, 'enableJob');
-      enableJobsStub.throws('bad stuff happened while enabling');
+      enableJobsStub.throws(new Error('bad stuff happened while enabling'));
       dialogStub.returns(DialogResult.DISMISS);
       _resetFixture()
         .then(() => {
@@ -335,7 +335,7 @@ describe('job-details', () => {
 
           Polymer.Async.idlePeriod.run(() => {
             assert(dialogStub.calledWith(
-                'Error enabling job: bad stuff happened while enabling'),
+                'Error enabling job: Error: bad stuff happened while enabling'),
                 'error dialog should show with disable failure message');
             enableJobsStub.restore();
             done();
@@ -347,6 +347,10 @@ describe('job-details', () => {
   after(() => {
     getJobStub.restore();
     listRunsStub.restore();
+    deleteJobStub.restore();
+    enableJobsStub.restore();
+    disableJobsStub.restore();
+    dialogStub.reset();
     document.body.removeChild(fixture);
   });
 

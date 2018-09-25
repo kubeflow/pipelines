@@ -179,19 +179,20 @@ describe('job-list', () => {
 
   describe('error handling', () => {
     it('shows the list of jobs', async () => {
-      listJobsStub.throws('cannot get list, bad stuff happened');
+      listJobsStub.throws(new Error('cannot get list, bad stuff happened'));
       await _resetFixture();
       fixture.load();
       assert.equal(fixture.jobs.length, 0, 'should not show any jobs');
       const errorEl = fixture.$.pageErrorElement as PageError;
       assert.equal(errorEl.error, 'There was an error while loading the job list',
           'should show job load error');
+      assert.equal(errorEl.details, 'cannot get list, bad stuff happened');
       listJobsStub.restore();
     });
 
-    it('shows error dialog when failing to delete selected job', () => {
+    it('shows error dialog when failing to delete selected job', (done) => {
       deleteJobStub = sinon.stub(Apis, 'deleteJob');
-      deleteJobStub.throws('bad stuff happened while deleting');
+      deleteJobStub.throws(new Error('bad stuff happened while deleting'));
       listJobsStub = sinon.stub(Apis, 'listJobs');
       listJobsStub.returns(allJobsResponse);
       _resetFixture()
@@ -204,10 +205,11 @@ describe('job-list', () => {
             assert(dialogStub.calledWith(
                 'Failed to delete 1 Jobs',
                 'Deleting Job: "' + fixedData.data.jobs[0].name +
-                    '" failed with error: "bad stuff happened while deleting"'
+                    '" failed with error: "Error: bad stuff happened while deleting"'
             ), 'error dialog should show with delete failure message');
             deleteJobStub.restore();
             listJobsStub.restore();
+            done();
           });
         });
     });
@@ -232,6 +234,10 @@ describe('job-list', () => {
   });
 
   after(() => {
+    deleteJobStub.restore();
+    listJobsStub.restore();
+    listRunsStub.restore();
+    dialogStub.reset();
     document.body.removeChild(fixture);
   });
 

@@ -39,6 +39,9 @@ export class PipelineDetails extends PageElement {
   @property({ type: Object })
   public pipeline?: apiPipeline;
 
+  @property({ type: Object })
+  public pipelineTemplate?: apiGetTemplateResponse;
+
   @property({ type: Number })
   public selectedTab = -1;
 
@@ -49,8 +52,6 @@ export class PipelineDetails extends PageElement {
   protected _createJobDisable = true;
 
   private codeMirror?: EditorFromTextArea;
-
-  private pipelineTemplate?: apiGetTemplateResponse;
 
   public get tabs(): PaperTabsElement {
     return this.$.tabs as PaperTabsElement;
@@ -85,7 +86,7 @@ export class PipelineDetails extends PageElement {
       this._createJobDisable = false;
     } catch (err) {
       this.showPageError(
-          'There was an error while loading details for pipeline ' + id, err.message);
+          'There was an error while loading details for Pipeline ' + id, err.message);
       Utils.log.verbose('Error loading pipeline:', err);
     } finally {
       this._busy = false;

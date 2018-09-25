@@ -17,6 +17,9 @@ import { DialogResult, PopupDialog } from '../components/popup-dialog/popup-dial
 
 import 'paper-toast/paper-toast';
 import { apiTrigger } from '../api/job';
+import {
+  PipelineUploadDialog, PipelineUploadDialogResult
+} from '../components/pipeline-upload-dialog/pipeline-upload-dialog';
 import '../components/popup-dialog/popup-dialog';
 
 export function deleteAllChildren(parent: HTMLElement): void {
@@ -187,6 +190,10 @@ export function showDialog(
   dialog.button2 = button2 !== undefined ? button2 : '';
 
   return dialog.open();
+}
+
+export function showPipelineUploadDialog(): Promise<PipelineUploadDialogResult> {
+  return new PipelineUploadDialog().open();
 }
 
 export function showNotification(message: string): void {

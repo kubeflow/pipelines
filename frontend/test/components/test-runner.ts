@@ -40,6 +40,8 @@ import './job-details-test';
 import './job-list-test';
 import './job-new-test';
 import './job-schedule-test';
+import './pipeline-details-test';
+import './pipeline-list-test';
 import './popup-dialog-test';
 import './run-details-tests';
 import './table-viewer-test';
