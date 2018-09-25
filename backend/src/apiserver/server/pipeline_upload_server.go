@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"time"
+
 	"github.com/golang/glog"
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
@@ -79,12 +81,24 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		return
 	}
 	apiPipeline := ToApiPipeline(newPipeline)
-	pipelineJson, err := json.Marshal(apiPipeline)
+	createdAt := time.Unix(apiPipeline.CreatedAt.Seconds, int64(apiPipeline.CreatedAt.Nanos)).UTC().Format(time.RFC3339)
+	apiPipeline.CreatedAt = nil
+	// Create an anonymous struct to stream time conforming RFC3339 format "1970-01-01T00:00:01Z"
+	// Otherwise it returns "created_at":{"seconds":1}
+	pipeline := struct {
+		api.Pipeline
+		CreatedAtDateTime string `json:"created_at"`
+	}{
+		*apiPipeline,
+		createdAt,
+	}
+	pipelineJson, err := json.Marshal(pipeline)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
 	w.Write(pipelineJson)
+
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {

@@ -239,9 +239,18 @@ func checkNoJobExists(t *testing.T, response *api.ListJobsResponse, err error) {
 
 func checkUploadPipelineResponse(t *testing.T, response []byte, err error, requestStartTime int64) {
 	assert.Nil(t, err)
-	var pipeline api.Pipeline
-	util.UnmarshalJsonOrFail(string(response), &pipeline)
-	verifyPipeline(t, &pipeline, requestStartTime)
+
+	type UploadPipelineResponse struct {
+		api.Pipeline
+		CreatedAtDateTime string `json:"created_at"`
+	}
+	var actualResponse UploadPipelineResponse
+	util.UnmarshalJsonOrFail(string(response), &actualResponse)
+	assert.Equal(t, "arguments-parameters.yaml", actualResponse.Name)
+	params := []*api.Parameter{
+		{Name: "param1", Value: "hello"}, // Default value in the pipeline template
+		{Name: "param2"}}
+	assert.Equal(t, params, actualResponse.Parameters)
 }
 
 func checkListPipelinesResponse(t *testing.T, response *api.ListPipelinesResponse, err error, requestStartTime int64) {
