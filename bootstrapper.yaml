@@ -58,6 +58,7 @@ kind: Job
 metadata:
   generateName: deploy-ml-pipeline-
 spec:
+  backoffLimit: 1
   template:
     metadata:
       name: deploy-ml-pipeline
