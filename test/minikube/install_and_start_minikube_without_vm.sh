@@ -19,6 +19,7 @@
 
 MINIKUBE_VERSION=${MINIKUBE_VERSION:-latest}
 KUBECTL_VERSION=${KUBECTL_VERSION:-$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)}
+KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.10.5}
 
 curl -Lo minikube https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
 curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && chmod +x kubectl && sudo cp kubectl /usr/local/bin/ && rm kubectl
@@ -31,7 +32,7 @@ mkdir -p $HOME/.kube
 touch $HOME/.kube/config
 
 export KUBECONFIG=$HOME/.kube/config
-sudo -E /usr/local/bin/minikube start --vm-driver=none
+sudo -E /usr/local/bin/minikube start --vm-driver=none --kubernetes-version=$KUBERNETES_VERSION
 
 # this for loop waits until kubectl can access the api server that Minikube has created
 for i in {1..150}; do # timeout for 5 minutes
