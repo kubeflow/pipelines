@@ -157,13 +157,15 @@ fi
 if [ "$WITH_KUBEFLOW" = true ]; then
   # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
   # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
-  kubectl create ns kubeflow
   mkdir -p ${KF_DIR}
   # We use kubeflow v0.2.2 by default
   KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.2.2"}
   (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
   tar -xzvf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
   SOURCE_DIR=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
+  if !${REPORT_USAGE}; then
+      (cd ${SOURCE_DIR} && sed -i 's/ks param set kubeflow-core reportUsage true/ks param set kubeflow-core reportUsage false/g' scripts/deploy.sh)
+  fi
   (cd ${SOURCE_DIR} && export KUBEFLOW_REPO=`pwd` KUBEFLOW_KS_DIR=`pwd`/${KUBEFLOW_KS_APP} && scripts/deploy.sh)
 fi
 
