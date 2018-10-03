@@ -27,7 +27,7 @@ KF_DIR=kf-app
 KUBEFLOW_KS_APP=kubeflow-ks-app
 
 # Version number of this release.
-RELEASE_VERSION="${RELEASE_VERSION:-0.0.12}"
+RELEASE_VERSION="${RELEASE_VERSION:-0.0.20}"
 
 # Default ml pipeline api server image
 API_SERVER_IMAGE="gcr.io/ml-pipeline/api-server:${RELEASE_VERSION}"
