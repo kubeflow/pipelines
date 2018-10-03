@@ -34,7 +34,9 @@
               "name: pipelineui-mapping",
               "prefix: /pipeline",
               "rewrite: /pipeline",
+              "timeout_ms: 300000",
               "service: ml-pipeline-ui." + namespace,
+              "use_websocket: true",
             ]),
         },  //annotations
       },
