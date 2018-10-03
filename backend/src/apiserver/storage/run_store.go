@@ -17,16 +17,22 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/argoproj/argo/errors"
+	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
@@ -55,6 +61,9 @@ type RunStoreInterface interface {
 
 	// Store a new metric entry to run_metrics table.
 	ReportMetric(metric *model.RunMetric) (err error)
+
+	// Terminate a run
+	TerminateRun(runId string) error
 }
 
 type RunStore struct {
@@ -555,4 +564,45 @@ func NewRunStore(db *DB, time util.TimeInterface, metadataStore *metadata.Store)
 		time:                   time,
 		metadataStore:          metadataStore,
 	}
+}
+
+// TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
+func TerminateWorkflow(wfClient v1alpha1.WorkflowInterface, name string) error {
+	patchObj := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"activeDeadlineSeconds": 0,
+		},
+	}
+	var err error
+	patch, err := json.Marshal(patchObj)
+	if err != nil {
+		return errors.InternalWrapError(err)
+	}
+	for attempt := 0; attempt < 10; attempt++ {
+		_, err = wfClient.Patch(name, types.MergePatchType, patch)
+		if err != nil {
+			if !apierr.IsConflict(err) {
+				return err
+			}
+		} else {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return err
+}
+
+func (s *RunStore) TerminateRun(runId string) error {
+	run, err := s.GetRun(runId)
+	if err != nil {
+		return err
+	}
+
+	workflowInterface, err := client.CreateWorkflowClient("default")
+	if err != nil {
+		return err
+	}
+	err = TerminateWorkflow(workflowInterface, run.Name)
+
+	return err
 }
