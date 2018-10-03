@@ -195,7 +195,7 @@ func (c *RunClient) Terminate(parameters *params.TerminateRunParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.TerminateRun(parameters)
+	_, err := c.apiClient.RunService.TerminateRun(parameters, PassThroughAuth)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to terminate run. Params: %+v", parameters),
