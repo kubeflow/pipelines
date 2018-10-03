@@ -251,6 +251,10 @@ func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, context 
 	return r.jobStore.ListJobs(filterContext, context)
 }
 
+func (r *ResourceManager) TerminateRun(runId string) error {
+	return r.runStore.TerminateRun(runId)
+}
+
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 	return r.jobStore.GetJob(id)
 }
