@@ -152,3 +152,5 @@ class ContainerOp(object):
     self._validate_cpu_string(cpu)
     self.cpu_limit = cpu
     
+  def __repr__(self):
+      return str({self.__class__.__name__: self.__dict__})
