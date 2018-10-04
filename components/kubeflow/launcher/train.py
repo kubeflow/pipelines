@@ -42,7 +42,7 @@ from kubernetes import client as k8s_client
 from kubernetes import config
 
 
-def _generate_train_yaml(src_filename, tfjob_ns, workers, pss, args_list):
+def _generate_train_yaml(src_filename, tfjob_ns, workers, pss, trainer_image, args_list):
   """_generate_train_yaml  generates train yaml files based on train.template.yaml"""
   with open(src_filename, 'r') as f:
     content = yaml.load(f)
@@ -52,17 +52,23 @@ def _generate_train_yaml(src_filename, tfjob_ns, workers, pss, args_list):
 
   if workers and pss:
     content['spec']['tfReplicaSpecs']['PS']['replicas'] = pss
+    content['spec']['tfReplicaSpecs']['PS']['template']['spec']['containers'][0]['image'] = trainer_image
     content['spec']['tfReplicaSpecs']['PS']['template']['spec']['containers'][0]['command'].extend(args_list)
     content['spec']['tfReplicaSpecs']['Worker']['replicas'] = workers
+    content['spec']['tfReplicaSpecs']['Worker']['template']['spec']['containers'][0]['image'] = trainer_image
     content['spec']['tfReplicaSpecs']['Worker']['template']['spec']['containers'][0]['command'].extend(args_list)
+    content['spec']['tfReplicaSpecs']['MASTER']['template']['spec']['containers'][0]['image'] = trainer_image
     content['spec']['tfReplicaSpecs']['MASTER']['template']['spec']['containers'][0]['command'].extend(args_list)
   else:
     # If no workers and pss set, default is 1.
     master_spec = content['spec']['tfReplicaSpecs']['MASTER']
     worker_spec = content['spec']['tfReplicaSpecs']['Worker']
     ps_spec = content['spec']['tfReplicaSpecs']['PS']
+    master_spec['template']['spec']['containers'][0]['image'] = trainer_image
     master_spec['template']['spec']['containers'][0]['command'].extend(args_list)
+    worker_spec['template']['spec']['containers'][0]['image'] = trainer_image
     worker_spec['template']['spec']['containers'][0]['command'].extend(args_list)
+    ps_spec['template']['spec']['containers'][0]['image'] = trainer_image
     ps_spec['template']['spec']['containers'][0]['command'].extend(args_list)
 
   return content
@@ -152,11 +158,12 @@ def main(argv=None):
   kf_version = args_dict.pop('kfversion')
   tfjob_ns = args_dict.pop('tfjob_ns')
   tfjob_timeout_minutes = args_dict.pop('tfjob_timeout_minutes')
+  trainer_image = os.environ['TRAINER_IMAGE_NAME']
   args_list = ['--%s=%s' % (k.replace('_', '-'),v)
                for k,v in six.iteritems(args_dict) if v is not None]
   logging.info('Generating training template.')
   template_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'train.template.yaml')
-  content_yaml = _generate_train_yaml(template_file, tfjob_ns, workers, pss, args_list)
+  content_yaml = _generate_train_yaml(template_file, tfjob_ns, workers, pss, trainer_image, args_list)
 
   logging.info('Start training.')
   # Set up handler for k8s clients

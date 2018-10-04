@@ -28,15 +28,12 @@ fi
 
 mkdir -p ./build
 rsync -arvp "../../launcher"/ ./build/
-# TODO(https://github.com/googleprivate/ml/issues/1174): Parameterize trainer image, allowing passing customized image in for testing purpose.
-sed -i -e "s/image: gcr\.io\/ml-pipeline\/ml-pipeline-kubeflow-trainer:\([a-zA-Z0-9_.-]\)\+/image: gcr\.io\/ml-pipeline\/ml-pipeline-kubeflow-trainer:${TAG_NAME}/g" ./build/train.template.yaml
 
 cp ../../../license.sh ./build
 cp ../../../third_party_licenses.csv ./build
 
-docker build -t ml-pipeline-kubeflow-tf .
+docker build -t ml-pipeline-kubeflow-tf . --build-arg TRAINER_IMAGE_NAME=gcr\.io\/${PROJECT_ID}\/ml-pipeline-kubeflow-trainer:${TAG_NAME}
 rm -rf ./build
-
 
 docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf:${TAG_NAME}
 docker push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf:${TAG_NAME}

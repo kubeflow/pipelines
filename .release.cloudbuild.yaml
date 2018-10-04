@@ -150,11 +150,15 @@ steps:
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
   id:   'pullLauncher'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME']
+  entrypoint: '/bin/bash'
+  args: ['-c', 'printf "FROM gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA\nENV TRAINER_IMAGE_NAME gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$COMMIT_SHA" > Dockerfile; docker build -t ml-pipeline-kubeflow-tf .']
+  id: 'buildLauncher'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'ml-pipeline-kubeflow-tf', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME']
   id:   'tagLauncherVersionNumber'
   waitFor: ['pullLauncher']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
+  args: ['tag', 'ml-pipeline-kubeflow-tf', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
   id:   'tagLauncherCommitSHA'
   waitFor: ['pullLauncher']
 

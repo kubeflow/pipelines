@@ -14,6 +14,8 @@
 
 FROM ubuntu:16.04
 
+ARG TRAINER_IMAGE_NAME
+
 RUN apt-get update -y
 
 RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip git
@@ -48,10 +50,11 @@ ENV PYTHONPATH $PYTHONPATH:/tf-operator
 
 ENV PATH $PATH:/tools/google-cloud-sdk/bin:/tools/ks/bin
 
+ENV TRAINER_IMAGE_NAME $TRAINER_IMAGE_NAME
+
 ADD build /ml
 
 RUN mkdir /usr/licenses && \
     /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
 
 ENTRYPOINT ["python", "/ml/train.py"]
-
