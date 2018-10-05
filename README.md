@@ -21,7 +21,7 @@ This project is aimed at:
 def xgb_train_pipeline(
     output,
     project,
-    region=PipelineParam(value='us-central1')
+    region=PipelineParam(value='us-central1'),
     train_data=PipelineParam(value='gs://ml-pipeline-playground/sfpd/train.csv'),
     eval_data=PipelineParam(value='gs://ml-pipeline-playground/sfpd/eval.csv'),
     schema=PipelineParam(value='gs://ml-pipeline-playground/sfpd/schema.json'),
@@ -87,7 +87,7 @@ Alternatively, if you prefer to install and interact with GKE from your local ma
 Follow the [instruction](https://cloud.google.com/resource-manager/docs/creating-managing-projects) and create a GCP project. 
 Once created, enable the GKE API in this [page](https://console.developers.google.com/apis/enabled). You can also find more details about enabling the [billing](https://cloud.google.com/billing/docs/how-to/modify-project?#enable-billing), as well as activating [GKE API](https://cloud.google.com/kubernetes-engine/docs/quickstart#before-you-begin).
 
-We recommend to use CloudShell from the GCP console to run the below commands. CloudShell starts with an environment already logged in to your account and set to the currently selected project. The following two commands are requried only in a workstation shell environment, they are not needed in the CloudShell. 
+We recommend to use CloudShell from the GCP console to run the below commands. CloudShell starts with an environment already logged in to your account and set to the currently selected project. The following two commands are required only in a workstation shell environment, they are not needed in the CloudShell. 
 
 ```bash
 gcloud auth login
@@ -192,7 +192,7 @@ then create job using the updated YAML by running ```kubectl create -f bootstrap
 For more details, see [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md).
 
 ## Setup
-* Create a python3 envionronment.
+* Create a python3 environment.
  
 * Install a version of DSL and DSL Compiler.
  
