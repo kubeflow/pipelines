@@ -30,16 +30,16 @@ KUBEFLOW_KS_APP=kubeflow-ks-app
 RELEASE_VERSION="${RELEASE_VERSION:-0.0.20}"
 
 # Default ml pipeline api server image
-API_SERVER_IMAGE="gcr.io/ml-pipeline/api-server:${RELEASE_VERSION}"
+API_SERVER_IMAGE="${API_SERVER_IMAGE:-gcr.io/ml-pipeline/api-server:${RELEASE_VERSION}}"
 
 # Default ml pipeline scheduledworkflow CRD controller image
-SCHEDULED_WORKFLOW_IMAGE="gcr.io/ml-pipeline/scheduledworkflow:${RELEASE_VERSION}"
+SCHEDULED_WORKFLOW_IMAGE="${SCHEDULED_WORKFLOW_IMAGE:-gcr.io/ml-pipeline/scheduledworkflow:${RELEASE_VERSION}}"
 
 # Default ml pipeline persistence agent image
-PERSISTENCE_AGENT_IMAGE="gcr.io/ml-pipeline/persistenceagent:${RELEASE_VERSION}"
+PERSISTENCE_AGENT_IMAGE="${PERSISTENCE_AGENT_IMAGE:-gcr.io/ml-pipeline/persistenceagent:${RELEASE_VERSION}}"
 
 # Default ml pipeline ui image
-UI_IMAGE="gcr.io/ml-pipeline/frontend:${RELEASE_VERSION}"
+UI_IMAGE="${UI_IMAGE:-gcr.io/ml-pipeline/frontend:${RELEASE_VERSION}}"
 
 # Whether report usage or not. Default yes.
 REPORT_USAGE="true"

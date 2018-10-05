@@ -30,12 +30,20 @@ RUN chmod +x /ml-pipeline/deploy.sh
 # install uuidgen. Used for reporting usage
 RUN apt-get install uuid-runtime
 
-# Specify the release version as a build time argument so that it can be specified in the `docker build ...` command.
+# Specify the release version and images as a build time arguments so that it can be specified in the `docker build ...` command.
 ARG RELEASE_VERSION
+ARG API_SERVER_IMAGE
+ARG SCHEDULED_WORKFLOW_IMAGE
+ARG PERSISTENCE_AGENT_IMAGE
+ARG UI_IMAGE
 
-# Additionally specify the release version as an environment variable so that it is available to the
-# `deploy.sh` script at runtime. The default value of the environment variable is the value of the build arg.
+# Additionally specify the release version and images as environment variables so that they are available to the
+# `deploy.sh` script at runtime. The default values of each environment variable is the value of the build arg.
 ENV RELEASE_VERSION ${RELEASE_VERSION}
+ENV API_SERVER_IMAGE ${API_SERVER_IMAGE}
+ENV SCHEDULED_WORKFLOW_IMAGE ${SCHEDULED_WORKFLOW_IMAGE}
+ENV PERSISTENCE_AGENT_IMAGE ${PERSISTENCE_AGENT_IMAGE}
+ENV UI_IMAGE ${UI_IMAGE}
 
 ENTRYPOINT ["/ml-pipeline/deploy.sh"]
 CMD []
