@@ -17,17 +17,16 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/argoproj/argo/errors"
 	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 )
@@ -423,17 +422,14 @@ func TerminateWorkflow(wfClient v1alpha1.WorkflowInterface, name string) error {
 	if err != nil {
 		return errors.InternalWrapError(err)
 	}
-	for attempt := 0; attempt < 10; attempt++ {
+
+	var operation = func() error {
 		_, err = wfClient.Patch(name, types.MergePatchType, patch)
-		if err != nil {
-			if !apierr.IsConflict(err) {
-				return err
-			}
-		} else {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
+		//if err != nil && !apierr.IsConflict(err) //we can stop immediately
+		return err
 	}
+	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
+	err = backoff.Retry(operation, backoffPolicy)
 	return err
 }
 
@@ -447,6 +443,13 @@ func (s *RunStore) TerminateRun(runId string) error {
 	if err != nil {
 		return err
 	}
+
+	//stmt, err := s.db.Prepare(`
+	//	UPDATE run_details SET
+	//	Conditions = ?,
+	//	WHERE UUID = ?
+	//`)
+
 	err = TerminateWorkflow(workflowInterface, run.Name)
 
 	return err
