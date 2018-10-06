@@ -17,6 +17,55 @@
 import mlp
 import datetime
 
+def resnet_preprocess_op(project_id: 'GcpProject', bucket: 'GcsBucket', train_csv: 'GcsUri[text/csv]', validation_csv: 'GcsUri[text/csv]', labels, step_name='preprocess'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/resnet-preprocess:0.0.18',
+        arguments = [
+            '--project_id', project_id,
+            '--bucket', bucket,
+            '--train_csv', train_csv,
+            '--validation_csv', validation_csv,
+            '--labels', labels,
+        ],
+        file_outputs = {'preprocessed': '/output.txt'}
+    )
+
+def resnet_train_op(data_dir, bucket: 'GcsBucket', region: 'GcpRegion', depth: int, train_batch_size: int, eval_batch_size: int, steps_per_eval: int, train_steps: int, num_train_images: int, num_eval_images: int, num_label_classes: int, tf_version, step_name='train'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/resnet-train:0.0.18',
+        arguments = [
+            '--data_dir', data_dir,
+            '--bucket', bucket,
+            '--region', region,
+            '--depth', depth,
+            '--train_batch_size', train_batch_size,
+            '--eval_batch_size', eval_batch_size,
+            '--steps_per_eval', steps_per_eval,
+            '--train_steps', train_steps,
+            '--num_train_images', num_train_images,
+            '--num_eval_images', num_eval_images,
+            '--num_label_classes', num_label_classes,
+            '--TFVERSION', tf_version
+        ],
+        file_outputs = {'trained': '/output.txt'}
+    )
+
+def resnet_deploy_op(model_dir, model, version, project_id: 'GcpProject', region: 'GcpRegion', tf_version, step_name='deploy'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/resnet-deploy:0.0.18',
+        arguments = [
+            '--model', model,
+            '--version', version,
+            '--project_id', project_id,
+            '--region', region,
+            '--model_dir', model_dir,
+            '--TFVERSION', tf_version
+        ]
+    )
+
 
 @mlp.pipeline(
   name='ResNet_Train_Pipeline',
@@ -40,27 +89,9 @@ def resnet_train(project_id: mlp.PipelineParam,
   num_eval_images: mlp.PipelineParam=mlp.PipelineParam(name='num-eval-images', value=54648),
   num_label_classes: mlp.PipelineParam=mlp.PipelineParam(name='num-label-classes', value=10)):
 
-  preprocess = mlp.ContainerOp(
-      name = 'preprocess',
-      image = 'gcr.io/ml-pipeline/resnet-preprocess:0.0.18',
-      arguments = ['--project_id', project_id, '--bucket', bucket, '--train_csv', train_csv,
-        '--validation_csv', validation_csv,'--labels', labels],
-      file_outputs = {'preprocessed': '/output.txt'})
-
-  train = mlp.ContainerOp(
-      name = 'train',
-      image = 'gcr.io/ml-pipeline/resnet-train:0.0.18',
-      arguments = ['--bucket', bucket, '--region', region, '--depth', depth,
-        '--train_batch_size', train_batch_size,'--eval_batch_size', eval_batch_size,'--steps_per_eval', steps_per_eval,
-        '--train_steps', train_steps,'--num_train_images', num_train_images,'--num_eval_images', num_eval_images,
-        '--num_label_classes', num_label_classes, '--data_dir', preprocess.output, '--TFVERSION', tf_version],
-      file_outputs = {'trained': '/output.txt'})
-
-  deploy = mlp.ContainerOp(
-      name = 'deploy',
-      image = 'gcr.io/ml-pipeline/resnet-deploy:0.0.18',
-      arguments = ['--model', model, '--version', version, '--project_id', project_id,
-                   '--region', region,'--model_dir', train.output, '--TFVERSION', tf_version])
+  preprocess = resnet_preprocess_op(project_id, bucket, train_csv, validation_csv, labels)
+  train = resnet_train_op(preprocess.output, bucket, region, depth, train_batch_size, eval_batch_size, steps_per_eval, train_steps, num_train_images, num_eval_images, num_label_classes, tf_version)
+  deploy = resnet_deploy_op(train.output, model, version, project_id, region, tf_version)
 
 if __name__ == '__main__':
   import mlpc.main as compiler

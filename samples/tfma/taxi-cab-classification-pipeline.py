@@ -17,6 +17,84 @@
 import mlp
 import datetime
 
+def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.18',
+        arguments = [
+            '--train', train_data,
+            '--eval', evaluation_data,
+            '--schema', schema,
+            '--project', project,
+            '--mode', preprocess_mode,
+            '--preprocessing-module', preprocess_module,
+            '--output', transform_output,
+        ],
+        file_outputs = {'transformed': '/output.txt'}
+    )
+
+def kubeflow_tf_training_launcher_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target, workers: int, pss, preprocess_module: 'GcsUri[text/code/python]', tfjob_timeout_minutes: int, training_output: 'GcsUri[Directory]', step_name='training'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.18',
+        arguments = [
+            '--transformed-data-dir', transformed_data_dir,
+            '--schema', schema,
+            '--learning-rate', learning_rate,
+            '--hidden-layer-size', hidden_layer_size,
+            '--steps', steps,
+            '--target', target,
+            '--workers', workers,
+            '--pss', pss,
+            '--preprocessing-module', preprocess_module,
+            '--tfjob-timeout-minutes', tfjob_timeout_minutes,
+            '--job-dir', training_output,
+        ],
+        file_outputs = {'train': '/output.txt'}
+    )
+
+def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.0.18',
+        arguments = [
+            '--model', model,
+            '--eval', evaluation_data,
+            '--schema', schema,
+            '--project', project,
+            '--mode', analyze_mode,
+            '--slice-columns', analyze_slice_column,
+            '--output', analysis_output,
+        ],
+        file_outputs = {'analysis': '/output.txt'}
+    )
+
+def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.18',
+        arguments = [
+            '--data', evaluation_data,
+            '--schema', schema,
+            '--target', target,
+            '--model',  model,
+            '--mode', predict_mode,
+            '--project', project,
+            '--output', prediction_output,
+        ],
+        file_outputs = {'prediction': '/output.txt'}
+    )
+
+def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='deploy'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.18',
+        arguments = [
+            '--model-path', model,
+            '--server-name', tf_server_name
+        ]
+    )
+
 
 @mlp.pipeline(
   name='TFMA Taxi Cab Classification Pipeline Example',
@@ -57,43 +135,11 @@ def taxi_cab_classification(
   prediction_output = '%s/{{workflow.name}}/predict' % output
   tf_server_name = 'taxi-cab-classification-model-{{workflow.name}}'
 
-  preprocess = mlp.ContainerOp(
-      name = 'preprocess',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.18',
-      arguments = ['--train', train, '--eval', evaluation, '--schema', schema, '--output', transform_output,
-                   '--project', project, '--mode', preprocess_mode, '--preprocessing-module', preprocess_module,
-      ],
-      file_outputs = {'transformed': '/output.txt'})
-
-  training = mlp.ContainerOp(
-      name = 'training',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.18',
-      arguments = ['--job-dir', training_output, '--transformed-data-dir', preprocess.output,
-                   '--schema', schema, '--learning-rate', learning_rate, '--hidden-layer-size', hidden_layer_size,
-                   '--steps', steps, '--target', target, '--workers', workers, '--pss', pss,
-                   '--preprocessing-module', preprocess_module, '--tfjob-timeout-minutes', 60
-      ],
-      file_outputs = {'train': '/output.txt'})
-
-  analysis = mlp.ContainerOp(
-      name = 'analysis',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.0.18',
-      arguments = ['--output', analysis_output, '--model', training.output, '--eval', evaluation, '--schema', schema,
-                   '--project', project, '--mode', analyze_mode, '--slice-columns', analyze_slice_column,
-      ],
-      file_outputs = {'analysis': '/output.txt'})
-
-  prediction = mlp.ContainerOp(
-      name = 'prediction',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.18',
-      arguments = ['--output', prediction_output, '--data', evaluation, '--schema', schema,
-                   '--target', target, '--model',  training.output, '--mode', predict_mode, '--project', project],
-      file_outputs = {'predict': '/output.txt'})
-
-  deploy = mlp.ContainerOp(
-      name = 'deploy',
-      image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.18',
-      arguments = ['--model-path', training.output, '--server-name', tf_server_name])
+  preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, preprocess_module, transform_output)
+  training = kubeflow_tf_training_launcher_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, workers, pss, preprocess_module, 60, training_output)
+  analysis = dataflow_tf_model_analyze_op(training.output, evaluation, schema, project, analyze_mode, analyze_slice_column, analysis_output)
+  prediction = dataflow_tf_predict_op(evaluation, schema, target, training.output, predict_mode, project, prediction_output)
+  deploy = kubeflow_deploy_op(training.output, tf_server_name)
 
 if __name__ == '__main__':
   import mlpc.main as compiler
