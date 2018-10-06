@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/argoproj/argo/errors"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
@@ -504,7 +503,7 @@ func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) e
 	var err error
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
-		return errors.InternalWrapError(err)
+		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object.")
 	}
 
 	var operation = func() error {
