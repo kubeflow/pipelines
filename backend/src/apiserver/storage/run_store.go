@@ -20,7 +20,8 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/argoproj/argo/errors"
-	"github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -411,7 +412,7 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 }
 
 // TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
-func TerminateWorkflow(wfClient v1alpha1.WorkflowInterface, name string) error {
+func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
 	patchObj := map[string]interface{}{
 		"spec": map[string]interface{}{
 			"activeDeadlineSeconds": 0,
@@ -436,19 +437,22 @@ func TerminateWorkflow(wfClient v1alpha1.WorkflowInterface, name string) error {
 func (s *RunStore) TerminateRun(runId string) error {
 	run, err := s.GetRun(runId)
 	if err != nil {
-		return err
+		return util.NewInternalServerError(err, "Failed to get run info: %s", err.Error())
+	}
+
+	_, err = s.db.Exec(`
+		UPDATE run_details
+		SET Conditions = ?,
+		WHERE UUID = ? AND Conditions = ?`,
+		"Terminating:", runId, workflowapi.NodeRunning+":")
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start terminating the run: %s", err.Error())
 	}
 
 	workflowInterface, err := client.CreateWorkflowClient("default")
 	if err != nil {
 		return err
 	}
-
-	//stmt, err := s.db.Prepare(`
-	//	UPDATE run_details SET
-	//	Conditions = ?,
-	//	WHERE UUID = ?
-	//`)
 
 	err = TerminateWorkflow(workflowInterface, run.Name)
 
