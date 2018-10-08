@@ -25,6 +25,7 @@ usage()
     [--docker_path  path to the Dockerfile]
     [--docker_file  name of the Docker file. Dockerfile by default]
     [--image_name   project of the GCR to upload image to]
+    [--build_script path to the build script that builds the image. If specified, --docker_path and --docker_file are not required.]
     [-h help]"
 }
 
@@ -41,6 +42,9 @@ while [ "$1" != "" ]; do
                                 ;;
              --image_name )     shift
                                 IMAGE_NAME=$1
+                                ;;
+             --build_script )   shift
+                                BUILD_SCRIPT=$1
                                 ;;
              -h | --help )      usage
                                 exit
@@ -64,9 +68,14 @@ git checkout ${COMMIT_SHA}
 echo "Waiting for dind to start..."
 until docker ps; do sleep 3; done;
 
-echo "Build image ${IMAGE_NAME} using ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE}..."
-docker build -t ${IMAGE_NAME} -f ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE} ${BASE_DIR}/${DOCKER_PATH}
+if [ "$BUILD_SCRIPT" == "" ]; then
+  echo "Build image ${IMAGE_NAME} using ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE}..."
+  docker build -t ${IMAGE_NAME} -f ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE} ${BASE_DIR}/${DOCKER_PATH}
+else
+  echo "Build image ${IMAGE_NAME} using ${BUILD_SCRIPT}..."
+  cd $(dirname ${BUILD_SCRIPT})
+  bash $(basename ${BUILD_SCRIPT}) -i ${IMAGE_NAME}
+fi
 
 echo "Push image ${IMAGE_NAME} to gcr..."
 gcloud docker -- push ${IMAGE_NAME}
-

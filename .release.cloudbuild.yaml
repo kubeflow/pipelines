@@ -151,14 +151,14 @@ steps:
   id:   'tagDeployerCommitSHA'
   waitFor: ['pullDeployer']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA']
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA']
   id:   'pullTrainer'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:$TAG_NAME']
   id:   'tagTrainerVersionNumber'
   waitFor: ['pullTrainer']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$COMMIT_SHA']
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA']
   id:   'tagTrainerCommitSHA'
   waitFor: ['pullTrainer']
 - name: 'gcr.io/cloud-builders/docker'
@@ -166,7 +166,7 @@ steps:
   id:   'pullLauncher'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'printf "FROM gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA\nENV TRAINER_IMAGE_NAME gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$COMMIT_SHA" > Dockerfile; docker build -t ml-pipeline-kubeflow-tf .']
+  args: ['-c', 'printf "FROM gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA\nENV TRAINER_IMAGE_NAME gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA" > Dockerfile; docker build -t ml-pipeline-kubeflow-tf .']
   id: 'buildLauncher'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'ml-pipeline-kubeflow-tf', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME']
@@ -335,8 +335,8 @@ images:
 
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$TAG_NAME'
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:$COMMIT_SHA'
-- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$TAG_NAME'
-- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer:$COMMIT_SHA'
+- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME'
 - 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$COMMIT_SHA'
 

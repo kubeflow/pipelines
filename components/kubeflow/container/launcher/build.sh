@@ -14,16 +14,34 @@
 # limitations under the License.
 
 
-if [ -z "$1" ]; then
+while getopts ":hp:t:i:" opt; do
+  case "${opt}" in
+    h) echo "-p: project name"
+        echo "-t: tag name"
+        echo "-i: image name. If provided, project name and tag name are not necessary"
+        exit
+      ;;
+    p) PROJECT_ID=${OPTARG}
+      ;;
+    t) TAG_NAME=${OPTARG}
+      ;;
+    i) LAUNCHER_IMAGE_NAME=${OPTARG}
+      ;;
+    \? ) echo "Usage: cmd [-p] project [-t] tag [-i] image"
+      exit
+      ;;
+  esac
+done
+
+LOCAL_LAUNCHER_IMAGE_NAME=ml-pipeline-kubeflow-tf
+LOCAL_TRAINER_IMAGE_NAME=ml-pipeline-kubeflow-tf-trainer
+
+if [ -z "${PROJECT_ID}" ]; then
   PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
-else
-  PROJECT_ID=$1
 fi
 
-if [ -z "$2" ]; then
+if [ -z "${TAG_NAME}" ]; then
   TAG_NAME="latest"
-else
-  TAG_NAME="$2"
 fi
 
 mkdir -p ./build
@@ -32,8 +50,35 @@ rsync -arvp "../../launcher"/ ./build/
 cp ../../../license.sh ./build
 cp ../../../third_party_licenses.csv ./build
 
-docker build -t ml-pipeline-kubeflow-tf . --build-arg TRAINER_IMAGE_NAME=gcr\.io\/${PROJECT_ID}\/ml-pipeline-kubeflow-trainer:${TAG_NAME}
-rm -rf ./build
+# Build the trainer image
+if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then
+  TRAINER_IMAGE_NAME=gcr.io/${PROJECT_ID}/${LOCAL_TRAINER_IMAGE_NAME}:${TAG_NAME}
+else
+  # construct the trainer image name as "laucher_image_name"-trainer:"launcher_image_tag"
+  colon_index=`expr index "${LAUNCHER_IMAGE_NAME}" :`
+  if [ $colon_index == '0' ]; then
+    TRAINER_IMAGE_NAME=${LAUNCHER_IMAGE_NAME}-trainer
+  else
+    tag=${LAUNCHER_IMAGE_NAME:$colon_index}
+    TRAINER_IMAGE_NAME=${LAUNCHER_IMAGE_NAME:0:$colon_index-1}-trainer:${tag}
+  fi
+fi
 
-docker tag ml-pipeline-kubeflow-tf gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf:${TAG_NAME}
-docker push gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf:${TAG_NAME}
+bash_dir=`dirname $0`
+bash_dir_abs=`realpath $bash_dir`
+parent_dir=`dirname ${bash_dir_abs}`
+trainer_dir=${parent_dir}/trainer
+cd ${trainer_dir}
+./build.sh -i ${TRAINER_IMAGE_NAME}
+cd -
+
+docker build -t ${LOCAL_LAUNCHER_IMAGE_NAME} . --build-arg TRAINER_IMAGE_NAME=${TRAINER_IMAGE_NAME}
+if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then
+  docker tag ${LOCAL_LAUNCHER_IMAGE_NAME} gcr.io/${PROJECT_ID}/${LOCAL_LAUNCHER_IMAGE_NAME}:${TAG_NAME}
+  gcloud docker -- push gcr.io/${PROJECT_ID}/${LOCAL_LAUNCHER_IMAGE_NAME}:${TAG_NAME}
+else
+  docker tag ${LOCAL_LAUNCHER_IMAGE_NAME} "${LAUNCHER_IMAGE_NAME}"
+  gcloud docker -- push "${LAUNCHER_IMAGE_NAME}"
+fi
+
+rm -rf ./build

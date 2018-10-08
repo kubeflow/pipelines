@@ -25,7 +25,7 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer
             command:
               - python
               - -m
@@ -38,7 +38,7 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer
             command:
               - python
               - -m
@@ -51,7 +51,7 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-trainer
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer
             command:
               - python
               - -m

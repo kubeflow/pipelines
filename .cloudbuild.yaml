@@ -82,11 +82,11 @@ steps:
 # Build the Dataflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/predict && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/containers/predict && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildPredictComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/tft && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/containers/tft && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTFTComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
@@ -100,11 +100,7 @@ steps:
   id: 'buildDeployer'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash' 
-  args: ['-c', 'cd /workspace/components/kubeflow/container/trainer && ./build.sh $PROJECT_ID $COMMIT_SHA']
-  id: 'buildTrainer'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
-  args: ['-c', 'cd /workspace/components/kubeflow/container/launcher && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/kubeflow/container/launcher && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildLauncher'
 
 # Build the Dataproc-based pipeline component images
@@ -150,7 +146,7 @@ steps:
 # Build the local pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/local/containers/confusion_matrix && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/local/containers/confusion_matrix && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildConfusionMatrix'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
@@ -182,7 +178,7 @@ images:
 
 # Images for the Kubeflow-based pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-trainer:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA'
 
 # Images for the Dataproc-based pipeline components

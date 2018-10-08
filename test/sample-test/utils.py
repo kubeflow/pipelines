@@ -1,0 +1,42 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the Licens
+
+from minio import Minio
+from junit_xml import TestSuite, TestCase
+
+# Parse the workflow json to obtain the artifacts for a particular step.
+#   Note: the step_name could be the key words.
+def get_artifact_in_minio(workflow_json, step_name, output_path):
+  s3_data = {}
+  minio_access_key = 'minio'
+  minio_secret_key = 'minio123'
+  for key in workflow_json['status']['nodes'].keys():
+    if step_name in workflow_json['status']['nodes'][key]['name']:
+      s3_data = workflow_json['status']['nodes'][key]['outputs']['artifacts'][0]['s3']
+  minio_client = Minio(s3_data['endpoint'], access_key=minio_access_key, secret_key=minio_secret_key, secure=False)
+  data = minio_client.get_object(s3_data['bucket'], s3_data['key'])
+  with open(output_path, 'wb') as file:
+    for d in data.stream(32*1024):
+      file.write(d)
+
+def add_junit_test(test_cases, testname, succ, message='default message', elapsed_sec=0):
+  test_case = TestCase(testname, elapsed_sec = elapsed_sec)
+  if not succ:
+    test_case.add_failure_info(message)
+  test_cases.append(test_case)
+
+def write_junit_xml(testname, filename, test_cases):
+  with open(filename, 'w') as f:
+    ts = TestSuite(testname, test_cases)
+    TestSuite.to_file(f, [ts], prettyprint=False)
