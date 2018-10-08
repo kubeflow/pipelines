@@ -89,6 +89,20 @@ steps:
   id:   'copyBootstrapperYAMLToLatest'
   waitFor: ['prepareBootstrapperYAML']
 
+# Copy the uninstaller config
+- name: 'debian'
+  entrypoint: '/bin/bash'
+  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/ml-pipeline\/bootstrapper:$TAG_NAME/g" /workspace/uninstaller.yaml']
+  id:   'prepareUninstallerYAML'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/uninstaller.yaml', 'gs://ml-pipeline/release/$TAG_NAME/uninstaller.yaml']
+  id:   'copyUninstallerYAML'
+  waitFor: ['prepareUninstallerYAML']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/uninstaller.yaml', 'gs://ml-pipeline/release/latest/uninstaller.yaml']
+  id:   'copyUninstallerYAMLToLatest'
+  waitFor: ['prepareUninstallerYAML']
+
 # Pull and retag the images for the Dataflow-based pipeline components
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA']
