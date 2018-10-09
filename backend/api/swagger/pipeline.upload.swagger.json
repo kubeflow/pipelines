@@ -32,7 +32,7 @@
             "in": "formData",
             "required": true,
             "type": "file",
-            "description": "The pipeline to upload."
+            "description": "The pipeline to upload. Maximum size of 32MB is supported."
           },
           {
             "name": "name",

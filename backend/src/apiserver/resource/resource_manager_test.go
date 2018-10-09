@@ -65,7 +65,7 @@ func TestCreatePipeline(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	pipeline, err := manager.CreatePipeline("pipeline1", []byte(""))
+	pipeline, err := manager.CreatePipeline("pipeline1", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	pipelineExpected := &model.Pipeline{
 		UUID:           DefaultFakeUUID,
 		CreatedAtInSec: 1,
@@ -103,7 +103,7 @@ func TestCreatePipeline_StorePipelineMetadataError(t *testing.T) {
 	defer store.Close()
 	store.DB().Close()
 	manager := NewResourceManager(store)
-	_, err := manager.CreatePipeline("pipeline1", []byte(""))
+	_, err := manager.CreatePipeline("pipeline1", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to add pipeline to pipeline table")
 }
@@ -114,7 +114,7 @@ func TestCreatePipeline_CreatePipelineFileError(t *testing.T) {
 	manager := NewResourceManager(store)
 	// Use a bad object store
 	manager.objectStore = &FakeBadObjectStore{}
-	_, err := manager.CreatePipeline("pipeline1", []byte(""))
+	_, err := manager.CreatePipeline("pipeline1", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "bad object store")
 	// Verify there is a pipeline in DB with status PipelineCreating.

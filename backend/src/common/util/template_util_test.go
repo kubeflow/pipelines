@@ -18,14 +18,17 @@ import (
 	"testing"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	yaml "gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetParameters(t *testing.T) {
-	template := v1alpha1.Workflow{Spec: v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{
-		Parameters: []v1alpha1.Parameter{{Name: "name1", Value: StringPointer("value1")}}}}}
+	template := v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		Spec: v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{
+			Parameters: []v1alpha1.Parameter{{Name: "name1", Value: StringPointer("value1")}}}}}
 	templateBytes, _ := yaml.Marshal(template)
 	paramString, err := GetParameters(templateBytes)
 	assert.Nil(t, err)

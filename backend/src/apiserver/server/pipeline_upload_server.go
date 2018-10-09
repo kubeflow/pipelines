@@ -17,10 +17,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"net/url"
-
 	"time"
 
 	"github.com/golang/glog"
@@ -33,7 +30,6 @@ import (
 const (
 	FormFileKey        = "uploadfile"
 	NameQueryStringKey = "name"
-	MaxFileNameLength  = 100
 )
 
 type PipelineUploadServer struct {
@@ -55,27 +51,19 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	}
 	defer file.Close()
 
-	// Read file to byte array
-	pipelineFile, err := ioutil.ReadAll(file)
+	pipelineFile, err := ReadFile(file, MaxFileLength)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline bytes"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline file."))
 		return
 	}
 
-	encodedFileName := r.URL.Query().Get(NameQueryStringKey)
-	fileName, err := url.QueryUnescape(encodedFileName)
+	fileNameQueryString := r.URL.Query().Get(NameQueryStringKey)
+	pipelineName, err := GetPipelineName(fileNameQueryString, header.Filename)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid file name."))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline name."))
 		return
 	}
-	if fileName == "" {
-		fileName = header.Filename
-	}
-	if len(fileName) > MaxFileNameLength {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.NewInvalidInputError("File name too long. Support maximum length of 100"))
-		return
-	}
-	newPipeline, err := s.resourceManager.CreatePipeline(fileName, pipelineFile)
+	newPipeline, err := s.resourceManager.CreatePipeline(pipelineName, pipelineFile)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return

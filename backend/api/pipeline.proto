@@ -57,6 +57,13 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service PipelineService {
+  rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      post: "/apis/v1alpha2/pipelines"
+      body: "url"
+    };
+  }
+
   rpc GetPipeline(GetPipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       get: "/apis/v1alpha2/pipelines/{id}"
@@ -80,6 +87,18 @@ service PipelineService {
       get: "/apis/v1alpha2/pipelines/{id}/templates"
     };
   }
+}
+
+message Url{
+  string pipeline_url = 1;
+}
+
+// Create pipeline by providing an URL pointing to the pipeline file,
+// and optionally a pipeline name. If name is not provided, file name is used as
+// pipeline name by default. Maximum size of 32MB is supported.
+message CreatePipelineRequest{
+  Url url = 1;
+  string name = 2;
 }
 
 message GetPipelineRequest {

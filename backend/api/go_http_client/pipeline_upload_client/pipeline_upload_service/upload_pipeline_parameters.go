@@ -79,7 +79,7 @@ type UploadPipelineParams struct {
 	/*Name*/
 	Name *string
 	/*Uploadfile
-	  The pipeline to upload.
+	  The pipeline to upload. Maximum size of 32MB is supported.
 
 	*/
 	Uploadfile runtime.NamedReadCloser

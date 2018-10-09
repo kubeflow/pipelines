@@ -25,6 +25,9 @@ COPY --from=builder /bin/apiserver /bin/apiserver
 COPY --from=builder /go/src/github.com/googleprivate/ml/third_party/license.txt /bin/license.txt
 COPY backend/src/apiserver/config/ /config
 
+# Adding CA certificate so API server can download pipeline through URL
+RUN apk add ca-certificates
+
 # Expose apiserver port
 EXPOSE 8888
 

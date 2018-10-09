@@ -23,6 +23,8 @@ import (
 	"net/url"
 	"testing"
 
+	"io"
+
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
@@ -35,9 +37,10 @@ func TestUploadPipeline(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager}
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	w.CreateFormFile("uploadfile", "hello-world")
+	b := &bytes.Buffer{}
+	w := multipart.NewWriter(b)
+	part, _ := w.CreateFormFile("uploadfile", "hello-world")
+	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	w.Close()
 	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipelines/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -97,9 +100,10 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager}
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	w.CreateFormFile("uploadfile", "hello-world")
+	b := &bytes.Buffer{}
+	w := multipart.NewWriter(b)
+	part, _ := w.CreateFormFile("uploadfile", "hello-world")
+	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	w.Close()
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", url.PathEscape("foo bar")), bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -137,9 +141,10 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager}
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	w.CreateFormFile("uploadfile", "hello-world")
+	b := &bytes.Buffer{}
+	w := multipart.NewWriter(b)
+	part, _ := w.CreateFormFile("uploadfile", "hello-world")
+	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	w.Close()
 	encodedName := url.PathEscape(
 		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
@@ -150,5 +155,5 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	handler := http.HandlerFunc(server.UploadPipeline)
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, 400, rr.Code)
-	assert.Contains(t, string(rr.Body.Bytes()), "File name too long")
+	assert.Contains(t, string(rr.Body.Bytes()), "Pipeline name too long")
 }
