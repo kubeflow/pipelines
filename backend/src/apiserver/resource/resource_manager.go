@@ -197,8 +197,7 @@ func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: toScheduledWorkflowName(job.DisplayName)},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:        job.Enabled,
-			MaxConcurrency: &job.MaxConcurrency,
+			Enabled: job.Enabled,
 			Trigger: scheduledworkflow.Trigger{
 				CronSchedule:     toCrdCronSchedule(job.CronSchedule),
 				PeriodicSchedule: toCrdPeriodicSchedule(job.PeriodicSchedule),
@@ -208,6 +207,9 @@ func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
 				Spec:       workflow.Spec,
 			},
 		},
+	}
+	if job.MaxConcurrency != 0 {
+		scheduledWorkflow.Spec.MaxConcurrency = &job.MaxConcurrency
 	}
 
 	newScheduledWorkflow, err := r.scheduledWorkflow.Create(scheduledWorkflow)

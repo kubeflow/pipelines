@@ -103,17 +103,8 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 }
 
 func ValidateCreateJobRequest(job *api.Job) error {
-	if job.Status != "" {
-		return util.NewInvalidInputError("The job status should be empty.")
-	}
-	if job.CreatedAt != nil {
-		return util.NewInvalidInputError("The job CreatedAt should be empty. ")
-	}
-	if job.UpdatedAt != nil {
-		return util.NewInvalidInputError("The job UpdatedAt should be empty.")
-	}
-	if job.MaxConcurrency > 100 || job.MaxConcurrency < 1 {
-		return util.NewInvalidInputError("The max concurrency of the job is out of range. Support 1-100. Received %v.", job.MaxConcurrency)
+	if job.MaxConcurrency != 0 && (job.MaxConcurrency > 10 || job.MaxConcurrency < 1) {
+		return util.NewInvalidInputError("The max concurrency of the job is out of range. Support 1-10. Received %v.", job.MaxConcurrency)
 	}
 	paramsBytes, err := json.Marshal(job.Parameters)
 	if err != nil {
