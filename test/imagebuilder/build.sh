@@ -74,6 +74,7 @@ if [ "$BUILD_SCRIPT" == "" ]; then
 else
   echo "Build image ${IMAGE_NAME} using ${BUILD_SCRIPT}..."
   cd $(dirname ${BUILD_SCRIPT})
+  gcloud auth configure-docker
   bash $(basename ${BUILD_SCRIPT}) -i ${IMAGE_NAME}
 fi
 

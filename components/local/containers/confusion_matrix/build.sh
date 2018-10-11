@@ -54,7 +54,6 @@ pushd ../base
 popd
 
 docker build -t ${LOCAL_IMAGE_NAME} .
-gcloud auth configure-docker
 if [ -z "${IMAGE_NAME}" ]; then
   docker tag ${LOCAL_IMAGE_NAME} gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
   docker push gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
