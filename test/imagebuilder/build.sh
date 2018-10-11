@@ -78,4 +78,5 @@ else
 fi
 
 echo "Push image ${IMAGE_NAME} to gcr..."
-gcloud docker -- push ${IMAGE_NAME}
+gcloud auth configure-docker
+docker push ${IMAGE_NAME}

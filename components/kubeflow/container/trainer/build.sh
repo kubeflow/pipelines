@@ -48,12 +48,13 @@ cp ../../../license.sh ./build
 cp ../../../third_party_licenses.csv ./build
 
 docker build -t ${LOCAL_IMAGE_NAME} .
+gcloud auth configure-docker
 if [ -z "${IMAGE_NAME}" ]; then
   docker tag ${LOCAL_IMAGE_NAME} gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
-  gcloud docker -- push gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
+  docker push gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
 else
   docker tag ${LOCAL_IMAGE_NAME} "${IMAGE_NAME}"
-  gcloud docker -- push "${IMAGE_NAME}"
+  docker push "${IMAGE_NAME}"
 fi
 
 rm -rf ./build

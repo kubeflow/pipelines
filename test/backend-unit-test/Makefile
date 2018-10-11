@@ -27,7 +27,8 @@ build:
 
 # Build but don't attach the latest tag. This allows manual testing/inspection of the image first.
 push: build
-	gcloud docker -- push $(IMG):$(TAG)
+	gcloud auth configure-docker
+	docker push $(IMG):$(TAG)
 	@echo Pushed $(IMG) with  :$(TAG) tags
 	# Tagging into a new project can be very slow but it appears to work.
 	gcloud container images add-tag --quiet $(IMG):$(TAG) $(IMG):$(TAG) --verbosity=info

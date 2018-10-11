@@ -43,7 +43,8 @@ To build the API server image and upload it to GCR:
 # Run in the repository root directory 
 $ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile ./backend
 # Push to GCR
-$ gcloud docker -- push gcr.io/<your-gcp-project>/api-server:latest
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/api-server:latest
 ```
 
 To build the scheduled workflow controller image and upload it to GCR: 
@@ -51,7 +52,8 @@ To build the scheduled workflow controller image and upload it to GCR:
 # Run in the repository root directory 
 $ docker build -t gcr.io/<your-gcp-project>/scheduledworkflow:latest -f backend/Dockerfile.scheduledworkflow ./backend
 # Push to GCR
-$ gcloud docker -- push gcr.io/<your-gcp-project>/scheduledworkflow:latest
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/scheduledworkflow:latest
 ```
 
 To build the persistence agent image and upload it to GCR: 
@@ -59,7 +61,8 @@ To build the persistence agent image and upload it to GCR:
 # Run in the repository root directory 
 $ docker build -t gcr.io/<your-gcp-project>/persistenceagent:latest -f backend/Dockerfile.persistenceagent ./backend
 # Push to GCR
-$ gcloud docker -- push gcr.io/<your-gcp-project>/persistenceagent:latest
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/persistenceagent:latest
 ```
 
 ### Minikube
@@ -75,7 +78,8 @@ If your change updates deployment image (e.g. add new service account, change im
 remember to update the deployment image as well, and use that image to create deployment job.
 ```bash
 $ docker build -t gcr.io/<your-gcp-project>/bootstrapper ml-pipeline/
-$ gcloud docker -- push gcr.io/<your-gcp-project>/bootstrapper
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/bootstrapper
 ```
 
 ## Unit test
