@@ -35,7 +35,7 @@ def download_and_print(url: mlp.PipelineParam):
      name='echo',
      image='library/bash:4.4.23',
      command=['sh', '-c'],
-     arguments=['echo %s' % op1.output])
+     arguments=['echo "%s"' % op1.output])
 
 if __name__ == '__main__':
   import mlpc.main as compiler

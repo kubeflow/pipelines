@@ -27,7 +27,7 @@ spec:
       command:
       - sh
       - -c
-      image: google/cloud-sdk
+      image: google/cloud-sdk:216.0.0
     inputs:
       parameters:
       - name: url
@@ -39,11 +39,11 @@ spec:
           path: /tmp/results.txt
   - container:
       args:
-      - echo {{inputs.parameters.download-downloaded}}
+      - echo "{{inputs.parameters.download-downloaded}}"
       command:
       - sh
       - -c
-      image: library/bash
+      image: library/bash:4.4.23
     inputs:
       parameters:
       - name: download-downloaded
