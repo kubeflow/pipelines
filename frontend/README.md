@@ -2,7 +2,7 @@
 
 **Develop:** You need `npm`, install dependencies using `npm install`.
 
-You can then do `npm run dev` to run a static file server at port 3000 that
+You can then do `npm start` to run a static file server at port 3000 that
 watches the source files. This also adds a mock backend api server handler to
 webpack-dev-server so it can serve basic api calls, as well as a mock
 webserver to handle the Single Page App requests, which redirects api
