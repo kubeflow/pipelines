@@ -59,28 +59,28 @@
       kind: "Deployment",
       metadata: {
         "labels": {
-          "app": "spartakus-volunteer",
+          "app": "pipeline-spartakus-volunteer",
         },
-        name: "spartakus-volunteer",
+        name: "pipeline-spartakus-volunteer",
         namespace: namespace,
       },
       spec: {
         selector: {
           matchLabels: {
-            app: "spartakus-volunteer",
+            app: "pipeline-spartakus-volunteer",
           },
         },
         replicas: 1,
         template: {
           metadata: {
             "labels": {
-              "app": "spartakus-volunteer",
+              "app": "pipeline-spartakus-volunteer",
             },
           },
           spec: {
             containers: [
               {
-                name: "spartakus-volunteer",
+                name: "pipeline-spartakus-volunteer",
                 image: "gcr.io/google_containers/spartakus-amd64:v1.0.0",
                 imagePullPolicy: "IfNotPresent",
                 args: [
