@@ -74,6 +74,14 @@ git clone git@github.com:${GITHUB_REPO}.git ${BASE_DIR}
 cd ${BASE_DIR}
 git checkout ${COMMIT_SHA}
 
+# Install argo
+echo "install argo"
+ARGO_VERSION=v2.2.0
+mkdir -p ~/bin/
+export PATH=~/bin/:$PATH
+curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
+chmod +x ~/bin/argo
+
 echo "Run the sample tests..."
 
 # Install dsl, dsl-compiler

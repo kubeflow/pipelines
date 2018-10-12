@@ -87,6 +87,14 @@ def main():
     utils.write_junit_xml(test_name, args.output, test_cases)
     exit()
 
+  ###### Output Argo Log for Debugging ######
+  argo_log, succ = api_client_helper.get_argo_log(job_service_api, run_service_api, job_id)
+  if succ:
+    print("=========Argo Workflow Log=========")
+    print(argo_log)
+  else:
+    utils.write_junit_xml(test_name, args.output, test_cases)
+    exit()
   ###### Validate the results ######
   #   confusion matrix should show three columns for the flower data
   #     target, predicted, count

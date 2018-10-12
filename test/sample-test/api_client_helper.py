@@ -14,6 +14,7 @@
 
 import time
 import json
+import utils
 
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
@@ -92,6 +93,8 @@ def upload_pipeline_yaml(pipeline_upload_service_api, yaml_path):
 
 # wait_for_job_completion
 #   timeout: in seconds.
+#TODO: need to check the status of the runs because job status is always 'succeeded:'
+#finished_at timestamp is only available in the runtime argo yaml(workflow json): workflow_json['status']['startedAt'] and workflow_json['status']['finishedAt']
 def wait_for_job_completion(job_service_api, job_id, timeout):
   status = 'Running:'
   elapsed_time = 0
@@ -100,8 +103,8 @@ def wait_for_job_completion(job_service_api, job_id, timeout):
       get_job_response = job_service_api.get_job(id=job_id)
       status = get_job_response.status
       created_at = get_job_response.created_at
-      completed_at = get_job_response.updated_at
-      elapsed_time = (completed_at - created_at).seconds
+      updated_at = get_job_response.updated_at
+      elapsed_time = (updated_at - created_at).seconds
       print('Waiting for the job to complete')
       if elapsed_time > timeout:
         return 'Not Finished', elapsed_time
@@ -110,6 +113,17 @@ def wait_for_job_completion(job_service_api, job_id, timeout):
       print("Exception when creating the job: %s\n" % e)
       return 'Exception', elapsed_time
   return status, elapsed_time
+
+# get_argo_log returns the logs for the first run of the job
+#TODO: update the function such that it could return argo logs for multiple runs or a user specified run
+def get_argo_log(job_service_api, run_service_api, job_id):
+  workflow_json, succ = get_workflow_json(job_service_api, run_service_api, job_id)
+  if not succ:
+    print('Error: get_argo_log fails.')
+    return '', False
+  workflow_id = workflow_json['metadata']['name']
+  output, error = utils.run_bash_command('argo logs -w {}'.format(workflow_id))
+  return output, True
 
 def get_workflow_json(job_service_api, run_service_api, job_id):
   workflow_json = ""
