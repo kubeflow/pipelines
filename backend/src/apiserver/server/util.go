@@ -1,9 +1,15 @@
 package server
 
 import (
+	"archive/tar"
 	"bufio"
+	"bytes"
+	"compress/gzip"
 	"io"
+	"io/ioutil"
 	"net/url"
+
+	"strings"
 
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
@@ -31,7 +37,7 @@ func GetPipelineName(queryString string, fileName string) (string, error) {
 	return pipelineName, nil
 }
 
-func ReadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
+func loadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	reader := bufio.NewReader(fileReader)
 	pipelineFile := make([]byte, maxFileLength+1)
 	size, err := reader.Read(pipelineFile)
@@ -41,5 +47,58 @@ func ReadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	if size == maxFileLength+1 {
 		return nil, util.NewInvalidInputError("File size too large. Maximum supported size: %v", maxFileLength)
 	}
+
 	return pipelineFile[:size], nil
+}
+
+func isSupportedPipelineFormat(fileName string) bool {
+	return isYamlFile(fileName) || strings.HasSuffix(fileName, ".tar.gz")
+}
+
+func isYamlFile(fileName string) bool {
+	return strings.HasSuffix(fileName, ".yaml") || strings.HasSuffix(fileName, ".yml")
+}
+
+func decompressPipelineTarball(compressedFile []byte) ([]byte, error) {
+	gzipReader, err := gzip.NewReader(bytes.NewReader(compressedFile))
+	if err != nil {
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
+	}
+	tarReader := tar.NewReader(gzipReader)
+	header, err := tarReader.Next()
+	if err != nil || header == nil {
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
+	}
+	if !isYamlFile(header.Name) {
+		return nil, util.NewInvalidInputError("Error extracting pipeline from the tarball file. Expecting a YAML file inside the tarball. Got: %v", header.Name)
+	}
+	decompressedFile, err := ioutil.ReadAll(tarReader)
+	if err != nil {
+		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the tarball file.")
+	}
+	return decompressedFile, err
+}
+
+func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) ([]byte, error) {
+	if !isSupportedPipelineFormat(fileName) {
+		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support .tar.gz or YAML.")
+	}
+
+	// Read file into size limited byte array.
+	pipelineFileBytes, err := loadFile(fileReader, maxFileLength)
+	if err != nil {
+		return nil, util.Wrap(err, "Error read pipeline file.")
+	}
+
+	// Return if file is YAML
+	if isYamlFile(fileName) {
+		return pipelineFileBytes, nil
+	}
+
+	// Decompress if file is tarball
+	decompressedFile, err := decompressPipelineTarball(pipelineFileBytes)
+	if err != nil {
+		return nil, util.Wrap(err, "Error decompress the pipeline file")
+	}
+	return decompressedFile, nil
 }

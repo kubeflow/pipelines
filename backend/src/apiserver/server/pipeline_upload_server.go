@@ -51,7 +51,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 	}
 	defer file.Close()
 
-	pipelineFile, err := ReadFile(file, MaxFileLength)
+	pipelineFile, err := ReadPipelineFile(header.Filename, file, MaxFileLength)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Error read pipeline file."))
 		return
@@ -86,7 +86,6 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		return
 	}
 	w.Write(pipelineJson)
-
 }
 
 func (s *PipelineUploadServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {

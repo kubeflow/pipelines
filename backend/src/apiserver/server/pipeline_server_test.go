@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func TestCreatePipeline(t *testing.T) {
+func TestCreatePipeline_YAML(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
 	defer httpServer.Close()
@@ -27,6 +27,30 @@ func TestCreatePipeline(t *testing.T) {
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
 	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
 		Url: &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"}, Name: "argument-parameters"})
+
+	assert.Nil(t, err)
+	assert.NotNil(t, pipeline)
+	assert.Equal(t, "argument-parameters", pipeline.Name)
+	newPipeline, err := resourceManager.GetPipeline(pipeline.Id)
+	assert.Nil(t, err)
+	assert.NotNil(t, newPipeline)
+	var params []api.Parameter
+	err = json.Unmarshal([]byte(newPipeline.Parameters), &params)
+	assert.Nil(t, err)
+	assert.Equal(t, []api.Parameter{{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
+}
+
+func TestCreatePipeline_Tarball(t *testing.T) {
+	httpServer := getMockServer(t)
+	// Close the server when test finishes
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
+	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+		Url: &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"}, Name: "argument-parameters"})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)

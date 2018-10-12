@@ -25,6 +25,8 @@ import (
 
 	"io"
 
+	"os"
+
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
@@ -33,13 +35,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUploadPipeline(t *testing.T) {
+func TestUploadPipeline_YAML(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := PipelineUploadServer{resourceManager: resourceManager}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world")
+	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
 	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	w.Close()
 	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipelines/upload", bytes.NewReader(b.Bytes()))
@@ -62,8 +64,52 @@ func TestUploadPipeline(t *testing.T) {
 		{
 			UUID:           resource.DefaultFakeUUID,
 			CreatedAtInSec: 1,
-			Name:           "hello-world",
+			Name:           "hello-world.yaml",
 			Parameters:     "[]",
+			Status:         model.PipelineReady}}
+	pkg, str, err := clientManager.PipelineStore().ListPipelines(&common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, str, "")
+	assert.Equal(t, pkgsExpect, pkg)
+}
+
+func TestUploadPipeline_Tarball(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := PipelineUploadServer{resourceManager: resourceManager}
+	b := &bytes.Buffer{}
+	w := multipart.NewWriter(b)
+	part, _ := w.CreateFormFile("uploadfile", "arguments.tar.gz")
+	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
+	io.Copy(part, fileReader)
+	w.Close()
+	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipelines/upload", bytes.NewReader(b.Bytes()))
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(server.UploadPipeline)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(t, 200, rr.Code)
+	// Verify time format is RFC3339
+	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)
+
+	// Verify stored in object store
+	template, err := clientManager.ObjectStore().GetFile(storage.PipelineFolder, resource.DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.NotNil(t, template)
+
+	// Verify metadata in db
+	pkgsExpect := []model.Pipeline{
+		{
+			UUID:           resource.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "arguments.tar.gz",
+			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineReady}}
 	pkg, str, err := clientManager.PipelineStore().ListPipelines(&common.PaginationContext{
 		PageSize:        2,
@@ -84,7 +130,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	var b bytes.Buffer
 	b.WriteString("I am invalid file")
 	w := multipart.NewWriter(&b)
-	w.CreateFormFile("uploadfile", "hello-world")
+	w.CreateFormFile("uploadfile", "hello-world.yaml")
 	w.Close()
 	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipeline/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -102,7 +148,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	server := PipelineUploadServer{resourceManager: resourceManager}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world")
+	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
 	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	w.Close()
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", url.PathEscape("foo bar")), bytes.NewReader(b.Bytes()))
@@ -143,7 +189,7 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	server := PipelineUploadServer{resourceManager: resourceManager}
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
-	part, _ := w.CreateFormFile("uploadfile", "hello-world")
+	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
 	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	w.Close()
 	encodedName := url.PathEscape(

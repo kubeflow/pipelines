@@ -42,19 +42,18 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 		return nil, util.NewInternalServerError(err, "Failed to download the pipeline from %v "+
 			"Please double check the URL is valid and can be accessed by the pipeline system.", request.Url.PipelineUrl)
 	}
-
-	pipelineFile, err := ReadFile(resp.Body, MaxFileLength)
+	pipelineFileName := path.Base(request.Url.PipelineUrl)
+	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, MaxFileLength)
 	if err != nil {
 		return nil, util.Wrap(err, "The URL is valid but pipeline system failed to read the file.")
 	}
 
-	pipelineName, err := GetPipelineName(request.Name, path.Base(request.Url.PipelineUrl))
+	pipelineName, err := GetPipelineName(request.Name, pipelineFileName)
 	if err != nil {
 		return nil, util.Wrap(err, "Invalid pipeline name.")
 	}
 
-	var pipeline *model.Pipeline
-	pipeline, err = s.resourceManager.CreatePipeline(pipelineName, pipelineFile)
+	pipeline, err := s.resourceManager.CreatePipeline(pipelineName, pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed.")
 	}
