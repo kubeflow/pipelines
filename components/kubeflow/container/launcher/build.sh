@@ -69,7 +69,11 @@ bash_dir_abs=`realpath $bash_dir`
 parent_dir=`dirname ${bash_dir_abs}`
 trainer_dir=${parent_dir}/trainer
 cd ${trainer_dir}
-./build.sh -i ${TRAINER_IMAGE_NAME}
+if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then
+  ./build.sh -p ${PROJECT_ID} -t ${TAG_NAME}
+else
+  ./build.sh -i ${TRAINER_IMAGE_NAME}
+fi
 cd -
 
 docker build -t ${LOCAL_LAUNCHER_IMAGE_NAME} . --build-arg TRAINER_IMAGE_NAME=${TRAINER_IMAGE_NAME}

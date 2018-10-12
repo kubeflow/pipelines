@@ -42,12 +42,6 @@ if [ -z "${TAG_NAME}" ]; then
   TAG_NAME="latest"
 fi
 
-if [ -z "$2" ]; then
-  TAG_NAME="latest"
-else
-  TAG_NAME="$2"
-fi
-
 # build base image
 pushd ../base
 ./build.sh
