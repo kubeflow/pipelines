@@ -8,6 +8,8 @@ import (
 
 	"encoding/json"
 
+	"net/url"
+
 	"github.com/golang/glog"
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/stretchr/testify/assert"
@@ -17,9 +19,9 @@ import (
 
 // This test suit tests various methods to import pipeline to pipeline system, including
 // - upload yaml file
-// - (TODO) upload tarball file
+// - upload tarball file
 // - providing YAML file url
-// - (TODO) Providing tarball file url
+// - Providing tarball file url
 type ImportPipelineTest struct {
 	suite.Suite
 	namespace      string
@@ -73,10 +75,34 @@ func (s *ImportPipelineTest) TestImportPipeline() {
 	assert.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
 
+	/* ---------- Upload pipelines tarball ---------- */
+	pipelineBody, writer = uploadPipelineFileOrFail("resources/arguments.tar.gz")
+	response, err = clientSet.RESTClient().Post().
+		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
+		Param("name", url.PathEscape("arguments-parameters")).
+		SetHeader("Content-Type", writer.FormDataContentType()).
+		Body(pipelineBody).Do().Raw()
+	assert.Nil(t, err)
+	var argumentUploadPipeline api.Pipeline
+	json.Unmarshal(response, &argumentUploadPipeline)
+	assert.Equal(t, "arguments-parameters", argumentUploadPipeline.Name)
+
+	/* ---------- Import pipeline tarball by URL ---------- */
+	argumentUrlPipeline, err := s.pipelineClient.CreatePipeline(
+		ctx, &api.CreatePipelineRequest{
+			Url:  &api.Url{PipelineUrl: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.tar.gz"},
+			Name: "arguments-parameters-url"})
+	assert.Nil(t, err)
+	assert.Equal(t, "arguments-parameters-url", argumentUrlPipeline.Name)
+
 	/* ---------- Clean up ---------- */
 	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: sequentialPipeline.Id})
 	assert.Nil(t, err)
 	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: helloWorldPipeline.Id})
+	assert.Nil(t, err)
+	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: argumentUploadPipeline.Id})
+	assert.Nil(t, err)
+	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: argumentUrlPipeline.Id})
 	assert.Nil(t, err)
 }
 
