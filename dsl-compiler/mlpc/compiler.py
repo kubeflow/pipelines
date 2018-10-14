@@ -39,7 +39,7 @@ class Compiler(object):
   """
 
   def _sanitize_name(self, name):
-    return re.sub(r"[^A-Za-z0-9_\-]", '', name).lower().replace('_', '-')
+    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-') #from _make_kubernetes_name
 
   def _param_full_name(self, param):
     if param.op_name:
