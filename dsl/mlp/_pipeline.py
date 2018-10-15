@@ -14,6 +14,8 @@
 
 
 import mlp
+import re
+import sys
 
 
 def pipeline(name, description):
@@ -35,6 +37,8 @@ def pipeline(name, description):
 
   return _pipeline
 
+def _make_kubernetes_name(name):
+    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
 class Pipeline():
   """A pipeline contains a list of operators.
@@ -101,15 +105,22 @@ class Pipeline():
 
     Args:
       op: An operator of mlp.ContainerOp or its inherited type.
-    Raises:
-      ValueError if an op with the same name exists.
     """
-    if op.name in self.ops:
-      raise ValueError('Op with name "%s" exists already.' % op.name)
 
-    self.ops[op.name] = op
+    kubernetes_name = _make_kubernetes_name(op.human_name)
+    step_id = kubernetes_name
+    #If there is an existing op with this name then generate a new name.
+    if step_id in self.ops:
+      for i in range(2, sys.maxsize**10):
+        step_id = kubernetes_name + '-' + str(i)
+        if step_id not in self.ops:
+          break
+
+    self.ops[step_id] = op
     if not define_only:
       self.groups[-1].ops.append(op)
+
+    return step_id
 
   def push_ops_group(self, group: mlp.OpsGroup):
     """Push an OpsGroup into the stack.

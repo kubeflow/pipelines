@@ -46,10 +46,8 @@ class ContainerOp(object):
     if not mlp.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
-    if not re.match(r'^[A-Za-z][A-Za-z0-9-]*$', name):
-      raise ValueError('Only letters, numbers and "-" allowed in name. Must begin with letter.')
-
-    self.name = name
+    self.human_name = name
+    self.name = mlp.Pipeline.get_default_pipeline().add_op(self, is_exit_handler)
     self.image = image
     self.command = command
     self.arguments = arguments
@@ -86,11 +84,10 @@ class ContainerOp(object):
     if len(self.outputs) == 1:
       self.output = list(self.outputs.values())[0]
 
-    mlp.Pipeline.get_default_pipeline().add_op(self, is_exit_handler)
 
   def after(self, op):
     """Specify explicit dependency on another op."""
-    self.dependent_op_names.append(op.name)
+    self.dependent_op_names.append(op.step_id)
 
   def _validate_memory_string(self, memory_string):
     """Validate a given string is valid for memory request or limit."""
