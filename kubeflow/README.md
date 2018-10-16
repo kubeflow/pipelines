@@ -2,7 +2,10 @@ This is a temporary directory to host kubeflow deployment code including pipelin
 
 The code is forked from Kubeflow v0.3.0 release
 
-
+Requirements:
+- ksonnet version 0.11.0 or later.
+- Kubernetes 1.8 or later
+- kubectl
 
 Instruction
 1. Set environment variables
