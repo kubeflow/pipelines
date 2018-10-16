@@ -46,6 +46,7 @@ function createKsApp() {
 
   # Add the local registry
   ks registry add kubeflow "${KUBEFLOW_REPO}/kubeflow"
+  ks registry add ml-pipeline "${PIPELINE_REPO}/ml-pipeline"
 
   # Install all required packages
   ks pkg install kubeflow/argo
@@ -56,6 +57,8 @@ function createKsApp() {
   ks pkg install kubeflow/pytorch-job
   ks pkg install kubeflow/seldon
   ks pkg install kubeflow/tf-serving
+  ks pkg install ml-pipeline/ml-pipeline
+
 
   # Generate all required components
   ks generate pytorch-operator pytorch-operator
@@ -67,6 +70,11 @@ function createKsApp() {
 
   ks generate argo argo
   ks generate katib katib
+
+  ks generate ml-pipeline ml-pipeline --namespace=${K8S_NAMESPACE}
+  ks param set ml-pipeline report_usage true
+  ks param set ml-pipeline usage_id $(uuidgen)
+
   # Enable collection of anonymous usage metrics
   # To disable metrics collection. Remove the spartakus component.
   # cd ks_app

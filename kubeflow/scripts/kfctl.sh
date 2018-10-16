@@ -32,7 +32,9 @@ createEnv() {
   DEFAULT_KUBEFLOW_REPO="$( cd "${DIR}/.." >/dev/null && pwd )"
   # Remove trailing slash from the repo.
   KUBEFLOW_REPO=${KUBEFLOW_REPO%/}
+  PIPELINE_REPO=${PIPELINE_REPO%/}
   echo KUBEFLOW_REPO=${KUBEFLOW_REPO:-"${DEFAULT_KUBEFLOW_REPO}"} >> ${ENV_FILE}
+  echo PIPELINE_REPO=${PIPELINE_REPO:-""} >> ${ENV_FILE}
   echo KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"master"} >> ${ENV_FILE}
   echo KUBEFLOW_KS_DIR=${KUBEFLOW_KS_DIR:-"$(pwd)/ks_app"} >> ${ENV_FILE}
   echo KUBEFLOW_DOCKER_REGISTRY=${KUBEFLOW_DOCKER_REGISTRY:-""} >> ${ENV_FILE}
@@ -230,6 +232,7 @@ ksApply () {
   ks apply default -c argo
   ks apply default -c katib
   ks apply default -c spartakus
+  ks apply default -c ml-pipeline
   popd
 
   set +x
