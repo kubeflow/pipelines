@@ -24,6 +24,7 @@ usage()
     [--dataflow-tft-image           image path to the dataflow tft]
     [--dataflow-predict-image       image path to the dataflow predict]
     [--kubeflow-launcher-image      image path to the kubeflow launcher]
+    [--kubeflow-dnntrainer-image    image path to the kubeflow dnntrainer]
     [--local-confusionmatrix-image  image path to the confusion matrix]
     [-h help]"
 }
@@ -44,6 +45,9 @@ while [ "$1" != "" ]; do
                                                 ;;
              --kubeflow-launcher-image )        shift
                                                 KUBEFLOW_LAUNCHER_IMAGE=$1
+                                                ;;
+             --kubeflow-dnntrainer-image )      shift
+                                                KUBEFLOW_DNNTRAINER_IMAGE=$1
                                                 ;;
              --local-confusionmatrix-image )    shift
                                                 LOCAL_CONFUSIONMATRIX_IMAGE=$1
@@ -96,10 +100,12 @@ cd kubeflow-tf
 DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 KUBEFLOW_LAUNCHER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_LAUNCHER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DNNTRAINER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED=$(echo ${LOCAL_CONFUSIONMATRIX_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 
 sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFT_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
 sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-tf:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_LAUNCHER_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
+sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
 sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_PREDICT_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
 sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+/${LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
 

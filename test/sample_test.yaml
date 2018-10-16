@@ -31,6 +31,8 @@ spec:
       value: dataflow-tft
     - name: kubeflow-launcher-image-suffix
       value: kubeflow-launcher
+    - name: kubeflow-dnntrainer-image-suffix
+      value: kubeflow-dnntrainer
     - name: dataflow-predict-image-suffix
       value: dataflow-predict
     - name: local-confusionmatrix-image-suffix
@@ -50,6 +52,7 @@ spec:
       - name: persistenceagent-image
       - name: dataflow-tft-image-suffix
       - name: kubeflow-launcher-image-suffix
+      - name: kubeflow-dnntrainer-image-suffix
       - name: dataflow-predict-image-suffix
       - name: local-confusionmatrix-image-suffix
       - name: sample-tests-image-suffix
@@ -92,6 +95,18 @@ spec:
             value: "{{inputs.parameters.kubeflow-launcher-image-suffix}}"
           - name: build-script
             value: components/kubeflow/container/launcher/build.sh
+      - name: build-kubeflow-dnntrainer-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+          - name: build-script
+            value: components/kubeflow/container/trainer/build.sh
       - name: build-dataflow-predict-image
         template: build-image-by-script
         arguments:
@@ -142,6 +157,8 @@ spec:
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: kubeflow-launcher-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-launcher-image-suffix}}"
+          - name: kubeflow-dnntrainer-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
           - name: dataflow-predict-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-predict-image-suffix}}"
           - name: local-confusionmatrix-image
@@ -248,6 +265,7 @@ spec:
       - name: test-results-gcs-dir
       - name: dataflow-tft-image
       - name: kubeflow-launcher-image
+      - name: kubeflow-dnntrainer-image
       - name: dataflow-predict-image
       - name: local-confusionmatrix-image
       - name: sample-tests-image
@@ -259,6 +277,7 @@ spec:
         "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
         "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
         "--kubeflow-launcher-image","{{inputs.parameters.kubeflow-launcher-image}}",
+        "--kubeflow-dnntrainer-image","{{inputs.parameters.kubeflow-dnntrainer-image}}",
         "--local-confusionmatrix-image", "{{inputs.parameters.local-confusionmatrix-image}}",
       ]
       volumeMounts:
