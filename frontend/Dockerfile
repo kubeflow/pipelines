@@ -9,8 +9,8 @@ COPY . .
 
 WORKDIR ./frontend
 
-RUN npm install && cd server && npm install
-RUN ./node_modules/bower/bin/bower i --allow-root
+RUN npm install && npm run postinstall
+ENV GENERATE_SOURCEMAP false
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
@@ -26,7 +26,7 @@ RUN node gen_licenses . && node gen_licenses server && \
 FROM node:9.4.0-alpine
 
 COPY --from=build ./src/frontend/server /server
-COPY --from=build ./src/frontend/dist /client
+COPY --from=build ./src/frontend/build /client
 
 WORKDIR /server
 

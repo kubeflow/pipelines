@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const path = require('path');
+const debug = process.env.DEBUG == '1' || process.env.DEBUG == 'true';
 
 exports.config = {
   maxInstances: 1,
@@ -21,7 +21,7 @@ exports.config = {
     maxInstances: 1,
     browserName: 'chrome',
     chromeOptions: {
-      args: ['--headless', '--disable-gpu', '--window-size=1024,768'],
+      args: debug ? [] : ['--headless', '--disable-gpu'],
     },
   }],
   coloredLogs: true,
@@ -29,18 +29,15 @@ exports.config = {
   connectionRetryTimeout: 90000,
   deprecationWarnings: false,
   framework: 'mocha',
-  host: '127.0.01',
+  host: '127.0.0.1',
   port: 4444,
   mochaOpts: {
     // units: ms
     //TODO:Reduce the timeout once the tests become shorter
-    timeout: 1200000,
+    timeout: debug ? 99999999 : 1200000,
   },
   logLevel: 'silent',
-  plugins: {
-    'wdio-webcomponents': {},
-  },
-  reporters: ['dot', 'junit'],
+  reporters: debug ? [] : ['dot', 'junit'],
   reporterOptions: {
     junit: {
       outputDir: './',
@@ -49,8 +46,9 @@ exports.config = {
       }
     },
   },
+  services: debug ? ['selenium-standalone'] : [],
   specs: [
-    './kubeflow-classification.js',
+    './kubeflow-classification.spec.js',
   ],
   sync: true,
   waitforTimeout: 10000,

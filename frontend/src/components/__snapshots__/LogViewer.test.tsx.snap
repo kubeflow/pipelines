@@ -1,0 +1,987 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LogViewer does not linkify non http/https urls 1`] = `
+<LogViewer
+  logLines={
+    Array [
+      "this string: gs://path is a GCS path",
+    ]
+  }
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={1}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={1}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "auto",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;
+
+exports[`LogViewer linkifies standalone https urls 1`] = `
+<LogViewer
+  logLines={
+    Array [
+      "this string: https://path.com is a url",
+    ]
+  }
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={1}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={1}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "auto",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;
+
+exports[`LogViewer linkifies standalone urls 1`] = `
+<LogViewer
+  logLines={
+    Array [
+      "this string: http://path.com is a url",
+    ]
+  }
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={1}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={1}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "auto",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;
+
+exports[`LogViewer linkifies substring urls 1`] = `
+<LogViewer
+  logLines={
+    Array [
+      "this string:http://path.com is a url",
+    ]
+  }
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={1}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={1}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "auto",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;
+
+exports[`LogViewer renders a multi-line log 1`] = `
+<LogViewer
+  logLines={
+    Array [
+      "Lorem Ipsum is simply dummy text of the printing and typesetting",
+      "    industry. Lorem Ipsum has been the industry's standard dummy text ever",
+      "    since the 1500s, when an unknown printer took a galley of type and",
+      "    scrambled it to make a type specimen book. It has survived not only five",
+      "    centuries, but also the leap into electronic typesetting, remaining",
+      "    essentially unchanged. It was popularised in the 1960s with the release",
+      "    of Letraset sheets containing Lorem Ipsum passages, and more recently",
+      "    with desktop publishing software like Aldus PageMaker including versions",
+      "    of Lorem Ipsum.",
+    ]
+  }
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={9}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={9}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "auto",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;
+
+exports[`LogViewer renders an empty container when no logs passed 1`] = `
+<LogViewer
+  logLines={Array []}
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={0}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={0}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "hidden",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;
+
+exports[`LogViewer renders one log line 1`] = `
+<LogViewer
+  logLines={
+    Array [
+      "first line",
+    ]
+  }
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={1}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={1}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "auto",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;
+
+exports[`LogViewer renders one long line without breaking 1`] = `
+<LogViewer
+  logLines={
+    Array [
+      "Lorem Ipsum is simply dummy text of the printing and typesettingindustry. Lorem Ipsum has been the industry's standard dummy text eversince the 1500s, when an unknown printer took a galley of type andscrambled it to make a type specimen book. It has survived not only fivecenturies, but also the leap into electronic typesetting, remainingessentially unchanged. It was popularised in the 1960s with the releaseof Letraset sheets containing Lorem Ipsum passages, and more recentlywith desktop publishing software like Aldus PageMaker including versionsof Lorem Ipsum.",
+    ]
+  }
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={1}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={1}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "auto",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;
+
+exports[`LogViewer renders two log lines 1`] = `
+<LogViewer
+  logLines={
+    Array [
+      "first line",
+      "second line",
+    ]
+  }
+>
+  <AutoSizer
+    disableHeight={false}
+    disableWidth={false}
+    onResize={[Function]}
+    style={Object {}}
+  >
+    <div
+      style={
+        Object {
+          "height": 0,
+          "overflow": "visible",
+          "width": 0,
+        }
+      }
+    >
+      <List
+        autoHeight={false}
+        className="root"
+        estimatedRowSize={30}
+        height={0}
+        noRowsRenderer={[Function]}
+        onRowsRendered={[Function]}
+        onScroll={[Function]}
+        overscanIndicesGetter={[Function]}
+        overscanRowCount={10}
+        rowCount={2}
+        rowHeight={15}
+        rowRenderer={[Function]}
+        scrollToAlignment="auto"
+        scrollToIndex={-1}
+        style={Object {}}
+        width={0}
+      >
+        <Grid
+          aria-label="grid"
+          aria-readonly={true}
+          autoContainerWidth={true}
+          autoHeight={false}
+          autoWidth={false}
+          cellRangeRenderer={[Function]}
+          cellRenderer={[Function]}
+          className="ReactVirtualized__List root"
+          columnCount={1}
+          columnWidth={0}
+          containerRole="rowgroup"
+          containerStyle={Object {}}
+          estimatedColumnSize={100}
+          estimatedRowSize={30}
+          getScrollbarSize={[Function]}
+          height={0}
+          isScrollingOptOut={false}
+          noContentRenderer={[Function]}
+          noRowsRenderer={[Function]}
+          onRowsRendered={[Function]}
+          onScroll={[Function]}
+          onScrollbarPresenceChange={[Function]}
+          onSectionRendered={[Function]}
+          overscanColumnCount={0}
+          overscanIndicesGetter={[Function]}
+          overscanRowCount={10}
+          role="grid"
+          rowCount={2}
+          rowHeight={15}
+          rowRenderer={[Function]}
+          scrollToAlignment="auto"
+          scrollToColumn={-1}
+          scrollToIndex={-1}
+          scrollToRow={-1}
+          scrollingResetTimeInterval={150}
+          style={Object {}}
+          tabIndex={0}
+          width={0}
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List root"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "auto",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </Grid>
+      </List>
+    </div>
+  </AutoSizer>
+</LogViewer>
+`;

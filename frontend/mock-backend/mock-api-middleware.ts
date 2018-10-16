@@ -16,7 +16,7 @@ import * as express from 'express';
 import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
-import * as Apis from '../src/lib/apis';
+import * as Apis from '../src/lib/Apis';
 
 import { apiJob, apiListJobsResponse } from '../src/api/job';
 import { apiListPipelinesResponse } from '../src/api/pipeline';
@@ -25,12 +25,15 @@ import { apiListRunsResponse, apiRun } from '../src/api/run';
 import { data as fixedData } from './fixed-data';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
+const rocMetadataJsonPath2 = './eval-output/metadata2.json';
 const rocDataPath = './eval-output/roc.csv';
+const rocDataPath2 = './eval-output/roc2.csv';
 const tableDataPath = './eval-output/table.csv';
 
 const confusionMatrixMetadataJsonPath = './model-output/metadata.json';
 const confusionMatrixPath = './model-output/confusion_matrix.csv';
-const staticHtmlPath = './model-output/hello-world.html';
+const helloWorldHtmlPath = './model-output/hello-world.html';
+const helloWorldBigHtmlPath = './model-output/hello-world-big.html';
 
 const v1alpha2Prefix = '/apis/v1alpha2';
 
@@ -133,11 +136,14 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
+  app.options(v1alpha2Prefix + '/jobs', (req, res) => {
+    res.send();
+  });
   app.post(v1alpha2Prefix + '/jobs', (req, res) => {
     const job = req.body;
     job.id = 'new-job-' + (fixedData.jobs.length + 1);
-    job.created_at = new Date().toISOString();
-    job.updated_at = new Date().toISOString();
+    job.created_at = new Date();
+    job.updated_at = new Date();
     job.runs = [fixedData.runs[0]];
     job.enabled = !!job.trigger;
     fixedData.jobs.push(job);
@@ -175,7 +181,7 @@ export default (app: express.Application) => {
       runs: [],
     };
 
-    let runs: apiRun[] = fixedData.runs.map((r) => r.run!);
+    let runs: apiRun[] = fixedData.runs.slice(0, 7).map((r) => r.run!);
 
     if (req.params.jid.startsWith('new-job-')) {
       response.runs = runs.slice(0, 1);
@@ -268,6 +274,9 @@ export default (app: express.Application) => {
     res.json(run);
   });
 
+  app.options(v1alpha2Prefix + '/jobs/:jid/enable', (req, res) => {
+    res.send();
+  });
   app.post(v1alpha2Prefix + '/jobs/:jid/enable', (req, res) => {
     setTimeout(() => {
       const job = fixedData.jobs.find((j) => j.id === req.params.jid);
@@ -280,6 +289,9 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
+  app.options(v1alpha2Prefix + '/jobs/:jid/disable', (req, res) => {
+    res.send();
+  });
   app.post(v1alpha2Prefix + '/jobs/:jid/disable', (req, res) => {
     setTimeout(() => {
       const job = fixedData.jobs.find((j) => j.id === req.params.jid);
@@ -351,6 +363,12 @@ export default (app: express.Application) => {
     }
   });
 
+  // Needed to avoid "Response for preflight does not have HTTP ok status." error.
+  app.options(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
+    res.header('Content-Type', 'application/json');
+    res.send('ok');
+  });
+
   app.get(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
     res.json(fixedData.pipelines.find((p) => p.id === req.params.pid));
@@ -362,6 +380,9 @@ export default (app: express.Application) => {
       { template: fs.readFileSync('./mock-backend/mock-template.yaml', 'utf-8') }));
   });
 
+  app.options(v1alpha2Prefix + '/pipelines/upload', (req, res) => {
+    res.send();
+  });
   app.post(v1alpha2Prefix + '/pipelines/upload', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Don't allow uploading multiple pipelines with the same name
@@ -373,18 +394,18 @@ export default (app: express.Application) => {
       const pipeline = req.body;
       pipeline.id = 'new-pipeline-' + (fixedData.pipelines.length + 1);
       pipeline.name = pipelineName;
-      pipeline.created_at = new Date().toISOString();
+      pipeline.created_at = new Date();
       pipeline.description =
           'TODO: the mock middleware does not actually use the uploaded pipeline';
       pipeline.parameters = [
+        {
+          name: 'output'
+        },
         {
           name: 'param-1'
         },
         {
           name: 'param-2'
-        },
-        {
-          name: 'output'
         },
       ];
       fixedData.pipelines.push(pipeline);
@@ -399,16 +420,24 @@ export default (app: express.Application) => {
     res.header('Content-Type', 'application/json');
     if (key.endsWith('roc.csv')) {
       res.sendFile(_path.resolve(__dirname, rocDataPath));
+    } else if (key.endsWith('roc2.csv')) {
+      res.sendFile(_path.resolve(__dirname, rocDataPath2));
     } else if (key.endsWith('confusion_matrix.csv')) {
       res.sendFile(_path.resolve(__dirname, confusionMatrixPath));
     } else if (key.endsWith('table.csv')) {
       res.sendFile(_path.resolve(__dirname, tableDataPath));
     } else if (key.endsWith('hello-world.html')) {
-      res.sendFile(_path.resolve(__dirname, staticHtmlPath));
+      res.sendFile(_path.resolve(__dirname, helloWorldHtmlPath));
+    } else if (key.endsWith('hello-world-big.html')) {
+      res.sendFile(_path.resolve(__dirname, helloWorldBigHtmlPath));
     } else if (key === 'analysis') {
+      res.sendFile(_path.resolve(__dirname, confusionMatrixMetadataJsonPath));
+    } else if (key === 'analysis2') {
       res.sendFile(_path.resolve(__dirname, confusionMatrixMetadataJsonPath));
     } else if (key === 'model') {
       res.sendFile(_path.resolve(__dirname, rocMetadataJsonPath));
+    } else if (key === 'model2') {
+      res.sendFile(_path.resolve(__dirname, rocMetadataJsonPath2));
     } else {
       // TODO: what does production return here?
       res.send('dummy file for key: ' + key);
@@ -419,6 +448,9 @@ export default (app: express.Application) => {
     res.send(tensorboardPod);
   });
 
+  app.options(v1alpha2Prefix + '/apps/tensorboard', (req, res) => {
+    res.send();
+  });
   app.post('/apps/tensorboard', (req, res) => {
     tensorboardPod = 'http://tensorboardserver:port';
     setTimeout(() => {
@@ -427,33 +459,12 @@ export default (app: express.Application) => {
   });
 
   app.get('/k8s/pod/logs', (req, res) => {
+    const podName = decodeURIComponent(req.query.podname);
+    const shortLog = fs.readFileSync('./mock-backend/shortlog.txt', 'utf-8');
+    const longLog = fs.readFileSync('./mock-backend/longlog.txt', 'utf-8');
+    const log = podName === 'coinflip-recursive-q7dqb-3466727817' ? longLog : shortLog;
     setTimeout(() => {
-      res.send(String.raw`
-      _____________
-    < hello world >
-      -------------
-           \
-            \
-             \
-                           ##        .
-                     ## ## ##       ==
-                  ## ## ## ##      ===
-              /""""""""""""""""___/ ===
-         ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~
-              \______ o          __/
-               \    \        __/
-                 \____\______/
-
-        URLs starting with http:// and https:// become links:
-            http://www.kubeflow.org/
-            https://www.google.com/search?q=kubeflow
-
-        This URL won't become a link:
-            POST somedomain.website.com/v1/projects/mine/api:submit?alt=json
-
-        Neither will this GCP bucket:
-            gs://path/to/bucket
-       `);
+      res.send(log);
     }, 300);
   });
 

@@ -1,0 +1,83 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Router initial render 1`] = `
+<BrowserRouter>
+  <div
+    className="page"
+  >
+    <div
+      className="flexGrow"
+    >
+      <Route
+        render={[Function]}
+      />
+      <div
+        className="flexGrow flexColumn"
+      >
+        <Toolbar
+          actions={Array []}
+          breadcrumbs={
+            Array [
+              Object {
+                "displayName": "",
+                "href": "",
+              },
+            ]
+          }
+        />
+        <Switch>
+          <Route
+            exact={true}
+            path="/"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            path="/jobs"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            path="/jobs/details/:jid"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            path="/jobs/new"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            path="/pipelines"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            path="/pipelines/details/:pid"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            path="/runs/details/:rid"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            path="/compare"
+            render={[Function]}
+          />
+        </Switch>
+        <WithStyles(Snackbar)
+          autoHideDuration={5000}
+          onClose={[Function]}
+          open={false}
+        />
+      </div>
+    </div>
+    <WithStyles(Dialog)
+      onClose={[Function]}
+      open={false}
+    />
+  </div>
+</BrowserRouter>
+`;

@@ -18,8 +18,16 @@ import mockApiMiddleware from './mock-api-middleware';
 const app = express();
 const port = process.argv[2] || 3001;
 
-mockApiMiddleware(app);
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'X-Requested-With, content-type');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+  next();
+});
+
+mockApiMiddleware(app as any);
 
 app.listen(port, () => {
+  // tslint:disable-next-line:no-console
   console.log('Server listening at http://localhost:' + port);
 });

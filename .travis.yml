@@ -34,13 +34,7 @@ script:
   # Frontend tests
   - cd $TRAVIS_BUILD_DIR/frontend
   - npm i
-  - npm start &
-  - cd test
-  - ./node_modules/.bin/wait-on http-get://localhost:3000/apis/v1alpha2/healthz
-  - npm run -s component-tests
-  - npm run -s mock-e2e-tests
-  - npm run -s unit-tests
-  - pkill -f webpack-dev-server
+  - CI=true npm test
 
   # DSL tests
   - cd $TRAVIS_BUILD_DIR/dsl

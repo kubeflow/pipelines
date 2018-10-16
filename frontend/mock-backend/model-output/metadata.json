@@ -44,6 +44,10 @@
       "storage": "gcs",
       "source": "gs://some/path/hello-world.html",
       "type": "web-app"
+    }, {
+      "storage": "gcs",
+      "source": "gs://some/path/hello-world-big.html",
+      "type": "web-app"
     }
   ]
 }

@@ -1,0 +1,745 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`UploadPipelineDialog renders an active dropzone 1`] = `
+<WithStyles(Dialog)
+  id="uploadDialog"
+  onClose={[Function]}
+  open={false}
+>
+  <WithStyles(DialogTitle)>
+    Upload and name your pipeline
+  </WithStyles(DialogTitle)>
+  <n
+    className=""
+    disableClick={true}
+    disablePreview={false}
+    disabled={false}
+    getDataTransferItems={[Function]}
+    id="dropZone"
+    inputProps={Object {}}
+    maxSize={Infinity}
+    minSize={0}
+    multiple={true}
+    onDragEnter={[Function]}
+    onDragLeave={[Function]}
+    onDrop={[Function]}
+    preventDropOnDocument={true}
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <div
+      className="dropOverlay"
+    >
+      Drop files..
+    </div>
+    <div
+      className=""
+    >
+      Click choose file or just drop it here
+    </div>
+    <div
+      className="flex"
+    >
+      <WithStyles(Button)
+        className="actionButton primaryButton noShrink"
+        id="chooseFileBtn"
+        onClick={[Function]}
+      >
+        Choose file
+      </WithStyles(Button)>
+      <span
+        className="uploadPipelineName ellipsis"
+      />
+    </div>
+    <Component
+      field="uploadPipelineName"
+      instance={
+        UploadPipelineDialog {
+          "_dropzoneRef": Object {
+            "current": null,
+          },
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "onClose": [MockFunction],
+            "open": false,
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "busy": false,
+            "dropzoneActive": true,
+            "fileToUpload": null,
+            "uploadPipelineName": "",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <UploadPipelineDialog
+                onClose={[MockFunction]}
+                open={false}
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": Object {
+                "busy": false,
+                "dropzoneActive": true,
+                "fileToUpload": null,
+                "uploadPipelineName": "",
+              },
+              "_rendered": <WithStyles(Dialog)
+                id="uploadDialog"
+                onClose={[Function]}
+                open={false}
+              >
+                <WithStyles(DialogTitle)>
+                  Upload and name your pipeline
+                </WithStyles(DialogTitle)>
+                <n
+                  className=""
+                  disableClick={true}
+                  disablePreview={false}
+                  disabled={false}
+                  getDataTransferItems={[Function]}
+                  id="dropZone"
+                  inputProps={Object {}}
+                  maxSize={Infinity}
+                  minSize={0}
+                  multiple={true}
+                  onDragEnter={[Function]}
+                  onDragLeave={[Function]}
+                  onDrop={[Function]}
+                  preventDropOnDocument={true}
+                  style={
+                    Object {
+                      "position": "relative",
+                    }
+                  }
+                >
+                  <div
+                    className="dropOverlay"
+                  >
+                    Drop files..
+                  </div>
+                  <div
+                    className=""
+                  >
+                    Click choose file or just drop it here
+                  </div>
+                  <div
+                    className="flex"
+                  >
+                    <WithStyles(Button)
+                      className="actionButton primaryButton noShrink"
+                      id="chooseFileBtn"
+                      onClick={[Function]}
+                    >
+                      Choose file
+                    </WithStyles(Button)>
+                    <span
+                      className="uploadPipelineName ellipsis"
+                    />
+                  </div>
+                  <Unknown
+                    field="uploadPipelineName"
+                    instance={[Circular]}
+                    label="Pipeline name"
+                  />
+                </n>
+                <WithStyles(DialogActions)>
+                  <BusyButton
+                    busy={false}
+                    className="actionButton"
+                    id="confirmUploadBtn"
+                    onClick={[Function]}
+                    title="Upload"
+                  />
+                  <WithStyles(Button)
+                    className="actionButton"
+                    id="cancelUploadBtn"
+                    onClick={[Function]}
+                  >
+                    Cancel
+                  </WithStyles(Button)>
+                </WithStyles(DialogActions)>
+              </WithStyles(Dialog)>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Pipeline name"
+    />
+  </n>
+  <WithStyles(DialogActions)>
+    <BusyButton
+      busy={false}
+      className="actionButton"
+      id="confirmUploadBtn"
+      onClick={[Function]}
+      title="Upload"
+    />
+    <WithStyles(Button)
+      className="actionButton"
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
+  </WithStyles(DialogActions)>
+</WithStyles(Dialog)>
+`;
+
+exports[`UploadPipelineDialog renders closed 1`] = `
+<WithStyles(Dialog)
+  id="uploadDialog"
+  onClose={[Function]}
+  open={false}
+>
+  <WithStyles(DialogTitle)>
+    Upload and name your pipeline
+  </WithStyles(DialogTitle)>
+  <n
+    className=""
+    disableClick={true}
+    disablePreview={false}
+    disabled={false}
+    getDataTransferItems={[Function]}
+    id="dropZone"
+    inputProps={Object {}}
+    maxSize={Infinity}
+    minSize={0}
+    multiple={true}
+    onDragEnter={[Function]}
+    onDragLeave={[Function]}
+    onDrop={[Function]}
+    preventDropOnDocument={true}
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <div
+      className=""
+    >
+      Click choose file or just drop it here
+    </div>
+    <div
+      className="flex"
+    >
+      <WithStyles(Button)
+        className="actionButton primaryButton noShrink"
+        id="chooseFileBtn"
+        onClick={[Function]}
+      >
+        Choose file
+      </WithStyles(Button)>
+      <span
+        className="uploadPipelineName ellipsis"
+      />
+    </div>
+    <Component
+      field="uploadPipelineName"
+      instance={
+        UploadPipelineDialog {
+          "_dropzoneRef": Object {
+            "current": null,
+          },
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "onClose": [MockFunction],
+            "open": false,
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "busy": false,
+            "dropzoneActive": false,
+            "fileToUpload": null,
+            "uploadPipelineName": "",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <UploadPipelineDialog
+                onClose={[MockFunction]}
+                open={false}
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": null,
+              "_rendered": <WithStyles(Dialog)
+                id="uploadDialog"
+                onClose={[Function]}
+                open={false}
+              >
+                <WithStyles(DialogTitle)>
+                  Upload and name your pipeline
+                </WithStyles(DialogTitle)>
+                <n
+                  className=""
+                  disableClick={true}
+                  disablePreview={false}
+                  disabled={false}
+                  getDataTransferItems={[Function]}
+                  id="dropZone"
+                  inputProps={Object {}}
+                  maxSize={Infinity}
+                  minSize={0}
+                  multiple={true}
+                  onDragEnter={[Function]}
+                  onDragLeave={[Function]}
+                  onDrop={[Function]}
+                  preventDropOnDocument={true}
+                  style={
+                    Object {
+                      "position": "relative",
+                    }
+                  }
+                >
+                  <div
+                    className=""
+                  >
+                    Click choose file or just drop it here
+                  </div>
+                  <div
+                    className="flex"
+                  >
+                    <WithStyles(Button)
+                      className="actionButton primaryButton noShrink"
+                      id="chooseFileBtn"
+                      onClick={[Function]}
+                    >
+                      Choose file
+                    </WithStyles(Button)>
+                    <span
+                      className="uploadPipelineName ellipsis"
+                    />
+                  </div>
+                  <Unknown
+                    field="uploadPipelineName"
+                    instance={[Circular]}
+                    label="Pipeline name"
+                  />
+                </n>
+                <WithStyles(DialogActions)>
+                  <BusyButton
+                    busy={false}
+                    className="actionButton"
+                    id="confirmUploadBtn"
+                    onClick={[Function]}
+                    title="Upload"
+                  />
+                  <WithStyles(Button)
+                    className="actionButton"
+                    id="cancelUploadBtn"
+                    onClick={[Function]}
+                  >
+                    Cancel
+                  </WithStyles(Button)>
+                </WithStyles(DialogActions)>
+              </WithStyles(Dialog)>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Pipeline name"
+    />
+  </n>
+  <WithStyles(DialogActions)>
+    <BusyButton
+      busy={false}
+      className="actionButton"
+      id="confirmUploadBtn"
+      onClick={[Function]}
+      title="Upload"
+    />
+    <WithStyles(Button)
+      className="actionButton"
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
+  </WithStyles(DialogActions)>
+</WithStyles(Dialog)>
+`;
+
+exports[`UploadPipelineDialog renders open 1`] = `
+<WithStyles(Dialog)
+  id="uploadDialog"
+  onClose={[Function]}
+  open={false}
+>
+  <WithStyles(DialogTitle)>
+    Upload and name your pipeline
+  </WithStyles(DialogTitle)>
+  <n
+    className=""
+    disableClick={true}
+    disablePreview={false}
+    disabled={false}
+    getDataTransferItems={[Function]}
+    id="dropZone"
+    inputProps={Object {}}
+    maxSize={Infinity}
+    minSize={0}
+    multiple={true}
+    onDragEnter={[Function]}
+    onDragLeave={[Function]}
+    onDrop={[Function]}
+    preventDropOnDocument={true}
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <div
+      className=""
+    >
+      Click choose file or just drop it here
+    </div>
+    <div
+      className="flex"
+    >
+      <WithStyles(Button)
+        className="actionButton primaryButton noShrink"
+        id="chooseFileBtn"
+        onClick={[Function]}
+      >
+        Choose file
+      </WithStyles(Button)>
+      <span
+        className="uploadPipelineName ellipsis"
+      />
+    </div>
+    <Component
+      field="uploadPipelineName"
+      instance={
+        UploadPipelineDialog {
+          "_dropzoneRef": Object {
+            "current": null,
+          },
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "onClose": [MockFunction],
+            "open": false,
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "busy": false,
+            "dropzoneActive": false,
+            "fileToUpload": null,
+            "uploadPipelineName": "",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <UploadPipelineDialog
+                onClose={[MockFunction]}
+                open={false}
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": null,
+              "_rendered": <WithStyles(Dialog)
+                id="uploadDialog"
+                onClose={[Function]}
+                open={false}
+              >
+                <WithStyles(DialogTitle)>
+                  Upload and name your pipeline
+                </WithStyles(DialogTitle)>
+                <n
+                  className=""
+                  disableClick={true}
+                  disablePreview={false}
+                  disabled={false}
+                  getDataTransferItems={[Function]}
+                  id="dropZone"
+                  inputProps={Object {}}
+                  maxSize={Infinity}
+                  minSize={0}
+                  multiple={true}
+                  onDragEnter={[Function]}
+                  onDragLeave={[Function]}
+                  onDrop={[Function]}
+                  preventDropOnDocument={true}
+                  style={
+                    Object {
+                      "position": "relative",
+                    }
+                  }
+                >
+                  <div
+                    className=""
+                  >
+                    Click choose file or just drop it here
+                  </div>
+                  <div
+                    className="flex"
+                  >
+                    <WithStyles(Button)
+                      className="actionButton primaryButton noShrink"
+                      id="chooseFileBtn"
+                      onClick={[Function]}
+                    >
+                      Choose file
+                    </WithStyles(Button)>
+                    <span
+                      className="uploadPipelineName ellipsis"
+                    />
+                  </div>
+                  <Unknown
+                    field="uploadPipelineName"
+                    instance={[Circular]}
+                    label="Pipeline name"
+                  />
+                </n>
+                <WithStyles(DialogActions)>
+                  <BusyButton
+                    busy={false}
+                    className="actionButton"
+                    id="confirmUploadBtn"
+                    onClick={[Function]}
+                    title="Upload"
+                  />
+                  <WithStyles(Button)
+                    className="actionButton"
+                    id="cancelUploadBtn"
+                    onClick={[Function]}
+                  >
+                    Cancel
+                  </WithStyles(Button)>
+                </WithStyles(DialogActions)>
+              </WithStyles(Dialog)>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Pipeline name"
+    />
+  </n>
+  <WithStyles(DialogActions)>
+    <BusyButton
+      busy={false}
+      className="actionButton"
+      id="confirmUploadBtn"
+      onClick={[Function]}
+      title="Upload"
+    />
+    <WithStyles(Button)
+      className="actionButton"
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
+  </WithStyles(DialogActions)>
+</WithStyles(Dialog)>
+`;
+
+exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
+<WithStyles(Dialog)
+  id="uploadDialog"
+  onClose={[Function]}
+  open={false}
+>
+  <WithStyles(DialogTitle)>
+    Upload and name your pipeline
+  </WithStyles(DialogTitle)>
+  <n
+    className=""
+    disableClick={true}
+    disablePreview={false}
+    disabled={false}
+    getDataTransferItems={[Function]}
+    id="dropZone"
+    inputProps={Object {}}
+    maxSize={Infinity}
+    minSize={0}
+    multiple={true}
+    onDragEnter={[Function]}
+    onDragLeave={[Function]}
+    onDrop={[Function]}
+    preventDropOnDocument={true}
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <div
+      className=""
+    >
+      Click choose file or just drop it here
+    </div>
+    <div
+      className="flex"
+    >
+      <WithStyles(Button)
+        className="actionButton primaryButton noShrink"
+        id="chooseFileBtn"
+        onClick={[Function]}
+      >
+        Choose file
+      </WithStyles(Button)>
+      <span
+        className="uploadPipelineName ellipsis"
+      />
+    </div>
+    <Component
+      field="uploadPipelineName"
+      instance={
+        UploadPipelineDialog {
+          "_dropzoneRef": Object {
+            "current": null,
+          },
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "onClose": [MockFunction],
+            "open": false,
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "busy": false,
+            "dropzoneActive": false,
+            "fileToUpload": true,
+            "uploadPipelineName": "",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <UploadPipelineDialog
+                onClose={[MockFunction]}
+                open={false}
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": Object {
+                "busy": false,
+                "dropzoneActive": false,
+                "fileToUpload": true,
+                "uploadPipelineName": "",
+              },
+              "_rendered": <WithStyles(Dialog)
+                id="uploadDialog"
+                onClose={[Function]}
+                open={false}
+              >
+                <WithStyles(DialogTitle)>
+                  Upload and name your pipeline
+                </WithStyles(DialogTitle)>
+                <n
+                  className=""
+                  disableClick={true}
+                  disablePreview={false}
+                  disabled={false}
+                  getDataTransferItems={[Function]}
+                  id="dropZone"
+                  inputProps={Object {}}
+                  maxSize={Infinity}
+                  minSize={0}
+                  multiple={true}
+                  onDragEnter={[Function]}
+                  onDragLeave={[Function]}
+                  onDrop={[Function]}
+                  preventDropOnDocument={true}
+                  style={
+                    Object {
+                      "position": "relative",
+                    }
+                  }
+                >
+                  <div
+                    className=""
+                  >
+                    Click choose file or just drop it here
+                  </div>
+                  <div
+                    className="flex"
+                  >
+                    <WithStyles(Button)
+                      className="actionButton primaryButton noShrink"
+                      id="chooseFileBtn"
+                      onClick={[Function]}
+                    >
+                      Choose file
+                    </WithStyles(Button)>
+                    <span
+                      className="uploadPipelineName ellipsis"
+                    />
+                  </div>
+                  <Unknown
+                    field="uploadPipelineName"
+                    instance={[Circular]}
+                    label="Pipeline name"
+                  />
+                </n>
+                <WithStyles(DialogActions)>
+                  <BusyButton
+                    busy={false}
+                    className="actionButton"
+                    id="confirmUploadBtn"
+                    onClick={[Function]}
+                    title="Upload"
+                  />
+                  <WithStyles(Button)
+                    className="actionButton"
+                    id="cancelUploadBtn"
+                    onClick={[Function]}
+                  >
+                    Cancel
+                  </WithStyles(Button)>
+                </WithStyles(DialogActions)>
+              </WithStyles(Dialog)>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Pipeline name"
+    />
+  </n>
+  <WithStyles(DialogActions)>
+    <BusyButton
+      busy={false}
+      className="actionButton"
+      id="confirmUploadBtn"
+      onClick={[Function]}
+      title="Upload"
+    />
+    <WithStyles(Button)
+      className="actionButton"
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
+  </WithStyles(DialogActions)>
+</WithStyles(Dialog)>
+`;

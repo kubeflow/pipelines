@@ -1,8 +1,0 @@
-{
-  "compilerOptions": {
-    "lib": [ "es2015"],
-    "typeRoots": [
-      "./node_modules/@types"
-    ]
-  }
-}

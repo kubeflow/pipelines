@@ -1,0 +1,216 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SideNav renders Jobs as active page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <WithStyles(Button)
+    className="button"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="#87a1b8"
+    />
+    <span
+      className="label"
+    >
+      Pipelines
+    </span>
+  </WithStyles(Button)>
+  <WithStyles(Button)
+    className="button active"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="rgb(227, 233, 237, 1)"
+    />
+    <span
+      className="label"
+    >
+      Jobs
+    </span>
+  </WithStyles(Button)>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders Pipelines as active page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <WithStyles(Button)
+    className="button active"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="rgb(227, 233, 237, 1)"
+    />
+    <span
+      className="label"
+    >
+      Pipelines
+    </span>
+  </WithStyles(Button)>
+  <WithStyles(Button)
+    className="button"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="#87a1b8"
+    />
+    <span
+      className="label"
+    >
+      Jobs
+    </span>
+  </WithStyles(Button)>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders collapsed state 1`] = `
+<div
+  className="root noShrink collapsedRoot"
+  id="sideNav"
+>
+  <WithStyles(Button)
+    className="button active collapsedButton"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="rgb(227, 233, 237, 1)"
+    />
+    <span
+      className="collapsedLabel label"
+    >
+      Pipelines
+    </span>
+  </WithStyles(Button)>
+  <WithStyles(Button)
+    className="button collapsedButton"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="#87a1b8"
+    />
+    <span
+      className="collapsedLabel label"
+    >
+      Jobs
+    </span>
+  </WithStyles(Button)>
+  <hr
+    className="separator collapsedSeparator"
+  />
+  <WithStyles(IconButton)
+    className="chevron collapsedChevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders expanded state 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <WithStyles(Button)
+    className="button active"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="rgb(227, 233, 237, 1)"
+    />
+    <span
+      className="label"
+    >
+      Pipelines
+    </span>
+  </WithStyles(Button)>
+  <WithStyles(Button)
+    className="button"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="#87a1b8"
+    />
+    <span
+      className="label"
+    >
+      Jobs
+    </span>
+  </WithStyles(Button)>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders nothing as active page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <WithStyles(Button)
+    className="button"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="#87a1b8"
+    />
+    <span
+      className="label"
+    >
+      Pipelines
+    </span>
+  </WithStyles(Button)>
+  <WithStyles(Button)
+    className="button"
+    onClick={[Function]}
+  >
+    <PipelinesIcon
+      color="#87a1b8"
+    />
+    <span
+      className="label"
+    >
+      Jobs
+    </span>
+  </WithStyles(Button)>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;

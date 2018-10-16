@@ -1,30 +1,32 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
-    "experimentalDecorators": true,
-    "lib": [ "es2017", "es6", "es5", "dom", "dom.iterable" ],
-    "module": "commonjs",
+    "baseUrl": ".",
+    "outDir": "build/dist",
+    "module": "esnext",
+    "target": "es5",
+    "lib": ["es6", "dom"],
+    "sourceMap": true,
+    "allowJs": true,
+    "jsx": "react",
     "moduleResolution": "node",
-    "noImplicitAny": true,
+    "rootDir": "src",
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "outDir": "./dist/",
-    "paths": {
-      "*": [
-        "*",
-        "bower_components/*",
-        "node_modules/*"
-      ]
-    },
-    "strict": true,
+    "noImplicitAny": true,
     "strictNullChecks": true,
-    "target": "es2015"
+    "suppressImplicitAnyIndexErrors": true,
+    "noUnusedLocals": true
   },
-  "include": [
-    "./src/**/*",
-    "./bower_components/**/*.d.ts"
-  ],
   "exclude": [
-    "./src/api/*"
+    "node_modules",
+    "build",
+    "scripts",
+    "acceptance-tests",
+    "webpack",
+    "jest",
+    "src/setupTests.ts",
+    "server",
+    "src/api"
   ]
 }

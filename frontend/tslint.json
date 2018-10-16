@@ -1,83 +1,22 @@
 {
-  "defaultSeverity": "error",
-  "extends": ["tslint:recommended", "tslint-eslint-rules"],
+  "extends": ["tslint:recommended", "tslint-react", "tslint-config-prettier"],
   "linterOptions": {
     "exclude": [
-      "**/bower_components/**",
-      "**/node_modules/**"
+      "config/**/*.js",
+      "node_modules/**/*.ts",
+      "coverage/lcov-report/*.js",
+      "backstop_data/**/*.js",
+      "../frontend/src/api/*.ts"
     ]
   },
   "rules": {
-    "align": false,
-    "array-type": [true,
-      "array-simple"
-    ],
-    "arrow-return-shorthand": true,
-    "ban-types": [true,
-      ["Object", "Use {} instead."],
-      ["String", "Use 'string' instead."],
-      ["Number", "Use 'number' instead."],
-      ["Boolean", "Use 'boolean' instead."]
-    ],
-    "class-name": true,
-    "curly": true,
-    "eofline": true,
-    "forin": true,
     "interface-name": [true, "never-prefix"],
-    "jsdoc-format": true,
-    "label-position": true,
+    "jsx-no-bind": false,
+    "jsx-no-lambda": false,
     "max-classes-per-file": false,
-    "max-line-length": [true, 100],
-    "member-access": true,
-    "member-ordering": [true, {"order": "fields-first"}],
-    "new-parens": true,
-    "no-angle-bracket-type-assertion": true,
-    "no-arg": true,
-    "no-console": {"severity": "warning"},
-    "no-construct": true,
-    "no-debugger": true,
-    "no-default-export": true,
-    "no-duplicate-variable": true,
-    "no-empty": true,
-    "no-inferrable-types": true,
-    "no-namespace": [true, "allow-declarations"],
-    "no-reference": false,
-    "no-return-await": true,
-    "no-string-throw": true,
-    "no-trailing-whitespace": true,
-    "no-unused-expression": true,
-    "no-var-keyword": true,
-    "object-literal-shorthand": true,
-    "only-arrow-functions": [true, "allow-declarations", "allow-named-functions"],
-    "ordered-imports": true,
-    "prefer-const": true,
+    "ordered-imports": false,
     "quotemark": [true, "single"],
-    "radix": true,
     "semicolon": [true, "always", "ignore-bound-class-methods"],
-    "switch-default": true,
-    "ter-indent": [true, 2, {
-      "CallExpression": {
-        "arguments": 2
-      },
-      "FunctionDeclaration": {
-        "body": 1,
-        "parameters": 2
-      },
-      "FunctionExpression": {
-        "body": 1,
-        "parameters": 2
-      },
-      "MemberExpression": 1,
-      "SwitchCase": 1
-    }],
-    "trailing-comma": true,
-    "triple-equals": [true, "allow-null-check"],
-    "typedef": [
-      true,
-      "call-signature",
-      "property-declaration"
-    ],
-    "use-isnan": true,
     "variable-name": [
       true,
       "check-format",

@@ -1,0 +1,70 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Tensorboard does not break on empty data 1`] = `
+<div>
+  <BusyButton
+    busy={true}
+    className="primaryButton"
+    onClick={[Function]}
+    title="Start Tensorboard"
+  />
+</div>
+`;
+
+exports[`Tensorboard does not break on empty data 2`] = `
+<div>
+  <BusyButton
+    busy={true}
+    className="primaryButton"
+    onClick={[Function]}
+    title="Start Tensorboard"
+  />
+</div>
+`;
+
+exports[`Tensorboard does not break on no config 1`] = `
+<div>
+  <BusyButton
+    busy={true}
+    className="primaryButton"
+    onClick={[Function]}
+    title="Start Tensorboard"
+  />
+</div>
+`;
+
+exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
+<div>
+  <div>
+    <div
+      className=""
+    >
+      Tensorboard is running for this output.
+    </div>
+    <Link
+      className="unstyled"
+      replace={false}
+      target="_blank"
+      to="/apis/v1alpha2/_proxy/test%2Faddress"
+    >
+      <WithStyles(Button)
+        className="primaryButton"
+        disabled={false}
+      >
+        Open Tensorboard
+      </WithStyles(Button)>
+    </Link>
+  </div>
+</div>
+`;
+
+exports[`Tensorboard shows start button if no instance exists 1`] = `
+<div>
+  <BusyButton
+    busy={false}
+    className="primaryButton"
+    onClick={[Function]}
+    title="Start Tensorboard"
+  />
+</div>
+`;

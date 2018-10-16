@@ -21,13 +21,33 @@
  * be whitelisted by listing them in the `whitelist` array, and adding an entry
  * for them under ./third_party/<pkg_name>/LICENSE.
  */
+// tslint:disable:no-console
 const fs = require('fs');
 const licenseChecker = require('license-checker');
 const path = require('path');
 
 const start = path.resolve(process.cwd(), process.argv[2]);
 let licenseMissing = 0;
-const whitelist = ['@kubernetes/client-node'];
+const whitelist = new Map([
+  ['@kubernetes/client-node', 'third_party/@kubernetes/client-node/LICENSE'],
+  ['expect', 'third_party/jest/LICENSE'],
+  ['jest-config', 'third_party/jest/LICENSE'],
+  ['jest-diff', 'third_party/jest/LICENSE'],
+  ['jest-environment-jsdom', 'third_party/jest/LICENSE'],
+  ['jest-environment-node', 'third_party/jest/LICENSE'],
+  ['jest-get-type', 'third_party/jest/LICENSE'],
+  ['jest-haste-map', 'third_party/jest/LICENSE'],
+  ['jest-jasmine2', 'third_party/jest/LICENSE'],
+  ['jest-matcher-utils', 'third_party/jest/LICENSE'],
+  ['jest-message-util', 'third_party/jest/LICENSE'],
+  ['jest-regex-util', 'third_party/jest/LICENSE'],
+  ['jest-resolve-dependencies', 'third_party/jest/LICENSE'],
+  ['jest-resolve', 'third_party/jest/LICENSE'],
+  ['jest-runner', 'third_party/jest/LICENSE'],
+  ['jest-runtime', 'third_party/jest/LICENSE'],
+  ['jest-snapshot', 'third_party/jest/LICENSE'],
+  ['jest-util', 'third_party/jest/LICENSE'],
+]);
 
 licenseChecker.init({
   production: true,
@@ -39,8 +59,10 @@ licenseChecker.init({
     let output = '';
     Object.keys(json).forEach(k => {
       let licenseFile = json[k].licenseFile;
-      if (whitelist.indexOf(k) && fs.existsSync('third_party/' + k)) {
-        licenseFile = path.resolve(__dirname, 'third_party/' + k + '/LICENSE');
+      const packageName = k.substr(0, k.indexOf('@', 1));
+      const whitelistEntry = whitelist.get(packageName);
+      if (!!whitelistEntry && fs.existsSync(whitelistEntry)) {
+        licenseFile = path.resolve(__dirname, whitelistEntry);
       }
       if (!licenseFile) {
         console.error('License file not found for package: ', k);

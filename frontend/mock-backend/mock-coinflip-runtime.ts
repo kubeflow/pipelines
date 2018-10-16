@@ -161,7 +161,7 @@ export default {
             name: 'mlpipeline-ui-metadata',
             s3: {
               bucket: 'somebucket',
-              key: 'analysis',
+              key: 'analysis2',
             },
           }],
         },
@@ -209,7 +209,7 @@ export default {
             name: 'mlpipeline-ui-metadata',
             s3: {
               bucket: 'somebucket',
-              key: 'model',
+              key: 'model2',
             },
           }],
           parameters: [
@@ -244,7 +244,7 @@ export default {
       'coinflip-recursive-q7dqb-3466727817': {
         id: 'coinflip-recursive-q7dqb-3466727817',
         name: 'coinflip-recursive-q7dqb[1].tails[0].flip-coin',
-        displayName: 'flip-coin',
+        displayName: 'flip-coin-with-long-log',
         type: 'Pod',
         templateName: 'flip-coin',
         phase: 'Succeeded',

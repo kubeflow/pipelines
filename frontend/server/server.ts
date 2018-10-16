@@ -12,17 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import Storage = require('@google-cloud/storage');
-import express = require('express');
-import fs = require('fs');
-import proxy = require('http-proxy-middleware');
+import * as Storage from '@google-cloud/storage';
+import * as express from 'express';
+import {Application, static as StaticHandler} from 'express';
+import * as fs from 'fs';
+import * as proxy from 'http-proxy-middleware';
 import { Client as MinioClient } from 'minio';
 import fetch from 'node-fetch';
-import path = require('path');
-import process = require('process');
+import * as path from 'path';
+import * as process from 'process';
+// @ts-ignore
 import * as tar from 'tar';
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
+import { Stream } from 'stream';
+
+// tslint:disable:no-console
 
 // The minio endpoint, port, access and secret keys are hardcoded to the same
 // values used in the deployment.
@@ -34,7 +39,7 @@ const minioClient = new MinioClient({
   useSSL: false,
 } as any);
 
-const app = express() as express.Application;
+const app = express() as Application;
 
 if (process.argv.length < 3) {
   console.error(`\
@@ -51,15 +56,15 @@ const commitHashPath = path.join(currentDir, 'COMMIT_HASH');
 
 const staticDir = path.resolve(process.argv[2]);
 const buildDate =
-    fs.existsSync(buildDatePath) ? fs.readFileSync(buildDatePath, 'utf-8').trim() : '';
+  fs.existsSync(buildDatePath) ? fs.readFileSync(buildDatePath, 'utf-8').trim() : '';
 const commitHash =
-    fs.existsSync(commitHashPath) ? fs.readFileSync(commitHashPath, 'utf-8').trim() : '';
+  fs.existsSync(commitHashPath) ? fs.readFileSync(commitHashPath, 'utf-8').trim() : '';
 const port = process.argv[3] || 3000;
 const apiServerHost = process.env.ML_PIPELINE_SERVICE_HOST || 'localhost';
 const apiServerPort = process.env.ML_PIPELINE_SERVICE_PORT || '3001';
 const apiServerAddress = `http://${apiServerHost}:${apiServerPort}`;
 
-app.use(express.static(staticDir));
+app.use(StaticHandler(staticDir));
 
 const v1alpha2Prefix = '/apis/v1alpha2';
 
@@ -73,7 +78,7 @@ const healthzStats = {
 app.get(v1alpha2Prefix + '/healthz', async (_, res) => {
   try {
     const response = await fetch(
-        apiServerAddress + v1alpha2Prefix + '/healthz', { timeout : 1000 });
+      apiServerAddress + v1alpha2Prefix + '/healthz', { timeout: 1000 });
     healthzStats.apiServerReady = true;
     const serverStatus = await response.json();
     healthzStats.apiServerCommitHash = serverStatus.commit_sha;
@@ -112,31 +117,31 @@ app.get('/artifacts/get', async (req, res) => {
         const files = await storage.bucket(bucket).getFiles({ prefix });
         const matchingFiles = files[0].filter((f) => {
           // Escape regex characters
-          const escapeRegexChars = (s) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+          const escapeRegexChars = (s: string) => s.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
           // Build a RegExp object that only recognizes asterisks ('*'), and
           // escapes everything else.
           const regex = new RegExp('^' + key.split(/\*+/).map(escapeRegexChars).join('.*') + '$');
           return regex.test(f.name);
         });
-        
+
         if (!matchingFiles.length) {
           console.log('No matching files found.');
           res.send();
           return;
-        }       
+        }
         console.log(`Found ${matchingFiles.length} matching files:`, matchingFiles);
         let contents = '';
         matchingFiles.forEach((f, i) => {
-          const buffer = [];
+          const buffer: Buffer[] = [];
           f.createReadStream()
-              .on('data', (data) => buffer.push(data))
-              .on('end', () => {
-                contents += Buffer.concat(buffer).toString().trim() + '\n';
-                if (i === matchingFiles.length - 1) {
-                  res.send(contents);
-                }
-              })
-              .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
+            .on('data', (data) => buffer.push(data))
+            .on('end', () => {
+              contents += Buffer.concat(buffer).toString().trim() + '\n';
+              if (i === matchingFiles.length - 1) {
+                res.send(contents);
+              }
+            })
+            .on('error', () => res.status(500).send('Failed to read file: ' + f.name));
         });
       } catch (err) {
         res.status(500).send('Failed to download GCS file(s). Error: ' + err);
@@ -151,7 +156,7 @@ app.get('/artifacts/get', async (req, res) => {
 
         try {
           let contents = '';
-          stream.pipe(new tar.Parse()).on('entry', (entry) => {
+          stream.pipe(new tar.Parse()).on('entry', (entry: Stream) => {
             entry.on('data', (buffer) => contents += buffer.toString());
           });
 
