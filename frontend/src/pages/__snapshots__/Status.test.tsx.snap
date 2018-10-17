@@ -1443,7 +1443,7 @@ exports[`Status renders an icon with tooltip for phase: RUNNING 1`] = `
   }
   title="Running"
 >
-  <pure(SlowMotionVideoIcon)
+  <StatusRunning
     style={
       Object {
         "color": "#34a853",

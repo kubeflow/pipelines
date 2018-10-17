@@ -17,7 +17,7 @@
 import * as React from 'react';
 import ErrorIcon from '@material-ui/icons/Error';
 import PendingIcon from '@material-ui/icons/Schedule';
-import RunningIcon from '@material-ui/icons/SlowMotionVideo';
+import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
 import UnknownIcon from '@material-ui/icons/Help';
@@ -36,7 +36,7 @@ export enum NodePhase {
 
 export function statusToIcon(status: NodePhase) {
   // tslint:disable-next-line:variable-name
-  let IconComponent = UnknownIcon;
+  let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
   let title = '';
   switch (status) {
