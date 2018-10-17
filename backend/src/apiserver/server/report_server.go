@@ -16,10 +16,13 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 
+	workflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
+	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
 type ReportServer struct {
@@ -28,9 +31,13 @@ type ReportServer struct {
 
 func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	request *api.ReportWorkflowRequest) (*empty.Empty, error) {
-	err := s.resourceManager.ReportWorkflowResource(request.Workflow)
+	workflow, err := ValidateReportWorkflowRequest(request)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Report workflow failed.")
+	}
+	err = s.resourceManager.ReportWorkflowResource(workflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Report workflow failed.")
 	}
 	return &empty.Empty{}, nil
 }
@@ -42,6 +49,30 @@ func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
 		return nil, err
 	}
 	return &empty.Empty{}, nil
+}
+
+func ValidateReportWorkflowRequest(request *api.ReportWorkflowRequest) (*util.Workflow, error) {
+	var workflow1 workflow.Workflow
+	err := json.Unmarshal([]byte(request.Workflow), &workflow1)
+	if err != nil {
+		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, request.Workflow)
+	}
+	workflow := util.NewWorkflow(&workflow1)
+	if workflow.Name == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a name: %+v", workflow.Workflow)
+	}
+	if workflow.Namespace == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a namespace: %+v", workflow.Workflow)
+	}
+	ownerUID := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+	if ownerUID == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a valid owner: %+v", workflow.Workflow)
+	}
+
+	if workflow.UID == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a UID: %+v", workflow.Workflow)
+	}
+	return workflow, nil
 }
 
 func NewReportServer(resourceManager *resource.ResourceManager) *ReportServer {

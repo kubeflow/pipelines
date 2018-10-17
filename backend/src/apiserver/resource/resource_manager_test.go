@@ -587,7 +587,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
 	})
-	err = manager.ReportWorkflowResource(workflow.ToStringForStore())
+	err = manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
 
 	runDetail, err := manager.GetRun("MY_JOB_ID")
@@ -607,17 +607,6 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 	}
 
 	assert.Equal(t, expectedRunDetail, runDetail)
-}
-
-func TestReportWorkflowResource_UnmarshalError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	err := manager.ReportWorkflowResource("WRONG_WORKFLOW")
-	assert.NotNil(t, err)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Could not unmarshal")
 }
 
 func TestReportWorkflowResource_Error(t *testing.T) {
@@ -655,7 +644,7 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 			}},
 		},
 	})
-	err = manager.ReportWorkflowResource(workflow.ToStringForStore())
+	err = manager.ReportWorkflowResource(workflow)
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.(*util.UserError).String(), "database is closed")

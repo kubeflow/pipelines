@@ -360,15 +360,10 @@ func toScheduledWorkflowName(displayName string) string {
 	return processedName[:int(math.Min(float64(len(processedName)), 25))]
 }
 
-func (r *ResourceManager) ReportWorkflowResource(resource string) error {
-	var workflow workflow.Workflow
-	err := json.Unmarshal([]byte(resource), &workflow)
+func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
+	err := r.runStore.CreateOrUpdateRun(workflow)
 	if err != nil {
-		return util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, resource)
-	}
-	err = r.runStore.CreateOrUpdateRun(util.NewWorkflow(&workflow))
-	if err != nil {
-		return err
+		return util.Wrap(err, "Report workflow resource failed")
 	}
 	return nil
 }

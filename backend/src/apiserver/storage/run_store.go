@@ -149,24 +149,10 @@ func (s *RunStore) createRun(
 }
 
 func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
-	if workflow.Name == "" {
-		return util.NewInvalidInputError("The workflow must have a name: %+v", workflow.Workflow)
-	}
-	if workflow.Namespace == "" {
-		return util.NewInvalidInputError("The workflow must have a namespace: %+v", workflow.Workflow)
-	}
 	ownerUID := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
-	if ownerUID == "" {
-		return util.NewInvalidInputError("The workflow must have a valid owner: %+v", workflow.Workflow)
-	}
-
-	marshalled, err := json.Marshal(workflow.Workflow)
+	marshalledWorkflow, err := json.Marshal(workflow.Workflow)
 	if err != nil {
 		return util.NewInternalServerError(err, "Unable to marshal a workflow: %+v", workflow.Workflow)
-	}
-
-	if workflow.UID == "" {
-		return util.NewInvalidInputError("The workflow must have a UID: %+v", workflow.Workflow)
 	}
 
 	scheduledAtInSec := workflow.ScheduledAtInSecOr0()
@@ -183,7 +169,7 @@ func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
 		workflow.CreationTimestamp.Unix(),
 		scheduledAtInSec,
 		condition,
-		string(marshalled))
+		string(marshalledWorkflow))
 
 	if createError == nil {
 		return nil
@@ -213,7 +199,7 @@ func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
 		workflow.CreationTimestamp.Unix(),
 		scheduledAtInSec,
 		condition,
-		string(marshalled),
+		string(marshalledWorkflow),
 		string(workflow.UID))
 
 	if err != nil {
