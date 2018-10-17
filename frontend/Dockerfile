@@ -10,7 +10,6 @@ COPY . .
 WORKDIR ./frontend
 
 RUN npm install && npm run postinstall
-ENV GENERATE_SOURCEMAP false
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
