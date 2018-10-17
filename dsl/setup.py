@@ -23,7 +23,8 @@ setup(
   name='mlp',
   version=version,
   packages=[
-    'mlp'
+    'mlp',
+    'mlp.components',
   ],
   install_requires=[
     'PyYaml'

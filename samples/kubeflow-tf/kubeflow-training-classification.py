@@ -33,24 +33,41 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
         file_outputs = {'transformed': '/output.txt'}
     )
 
-def kubeflow_tf_training_launcher_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target, workers: int, pss, preprocess_module: 'GcsUri[text/code/python]', tfjob_timeout_minutes: int, training_output: 'GcsUri[Directory]', step_name='training'):
+def kubeflow_tfjob_launcher_op(container_image, command, number_of_workers: int, number_of_parameter_servers: int, tfjob_timeout_minutes: int, output_dir=None, step_name='TFJob-launcher'):
     return mlp.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.18',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.18', #TODO: Update the name in next release.
         arguments = [
+            '--workers', number_of_workers,
+            '--pss', number_of_parameter_servers,
+            '--tfjob-timeout-minutes', tfjob_timeout_minutes,
+            '--container-image', container_image,
+            '--output-dir', output_dir,
+            '--ui-metadata-type', 'tensorboard',
+            '--',
+        ] + command,
+        file_outputs = {'train': '/output.txt'}
+    )
+
+def tf_train_dnn_on_kubeflow_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target: str, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', number_of_workers: int = 1, number_of_parameter_servers: int = 1, tfjob_timeout_minutes: int = 10, step_name='training'):
+    return kubeflow_tfjob_launcher_op(
+        container_image='gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.0.18',
+        command=[
+            'python', '-m', 'trainer.task',
             '--transformed-data-dir', transformed_data_dir,
             '--schema', schema,
             '--learning-rate', learning_rate,
             '--hidden-layer-size', hidden_layer_size,
             '--steps', steps,
             '--target', target,
-            '--workers', workers,
-            '--pss', pss,
             '--preprocessing-module', preprocess_module,
-            '--tfjob-timeout-minutes', tfjob_timeout_minutes,
             '--job-dir', training_output,
         ],
-        file_outputs = {'train': '/output.txt'}
+        number_of_workers=number_of_workers,
+        number_of_parameter_servers=number_of_parameter_servers,
+        tfjob_timeout_minutes=tfjob_timeout_minutes,
+        output_dir=training_output,
+        step_name=step_name + '-on-kubeflow'
     )
 
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
@@ -91,15 +108,15 @@ def kubeflow_training( output: mlp.PipelineParam, project: mlp.PipelineParam,
   hidden_layer_size: mlp.PipelineParam=mlp.PipelineParam(name='hiddenlayersize', value='100,50'),
   steps: mlp.PipelineParam=mlp.PipelineParam(name='steps', value=2000),
   target: mlp.PipelineParam=mlp.PipelineParam(name='target', value='label'),
-  workers: mlp.PipelineParam=mlp.PipelineParam(name='workers', value=0),
-  pss: mlp.PipelineParam=mlp.PipelineParam(name='pss', value=0),
+  workers: mlp.PipelineParam=mlp.PipelineParam(name='workers', value=1), #Must be 1 or greater
+  pss: mlp.PipelineParam=mlp.PipelineParam(name='pss', value=1), #Must be 1 or greater
   preprocess_mode: mlp.PipelineParam=mlp.PipelineParam(name='preprocessmode', value='local'),
   predict_mode: mlp.PipelineParam=mlp.PipelineParam(name='predictmode', value='local')):
   # TODO: use the argo job name as the workflow
   workflow = '{{workflow.name}}'
 
   preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, '', '%s/%s/transformed' % (output, workflow))
-  training = kubeflow_tf_training_launcher_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, workers, pss, '', 10, '%s/%s/train' % (output, workflow))
+  training = tf_train_dnn_on_kubeflow_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, '', '%s/%s/train' % (output, workflow), workers, pss, 10)
   prediction = dataflow_tf_predict_op(evaluation, schema, target,  training.output, predict_mode, project, '%s/%s/predict' % (output, workflow))
   confusion_matrix = confusion_matrix_op(prediction.output, '%s/%s/confusionmatrix' % (output, workflow))
 

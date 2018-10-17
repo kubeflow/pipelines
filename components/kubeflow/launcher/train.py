@@ -12,18 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# Usage:
-# python train.py  \
-#   --job-dir=gs://ml-pipeline-playground/flower/trainer \
-#   --transformed-data-dir=gs://ml-pipeline-playground/flower/transformed \
-#   --schema=gs://ml-pipeline-playground/flower/schema.json \
-#   --target=label \
-#   --hidden-layer-size=100,50 \
-#   --steps=2000 \
-#   --workers=3 \
-#   --pss=1 \
-
+"""
+Usage:
+python train.py
+    --workers=3
+    --pss=1
+    --container-image=gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf-trainer:${TAG_NAME}
+    --output-dir gs://ml-pipeline-playground/flower/trainer
+    --ui-metadata-type tensorboard
+    --
+    python -m trainer.task
+    --job-dir=gs://ml-pipeline-playground/flower/trainer
+    --transformed-data-dir=gs://ml-pipeline-playground/flower/transformed
+    --schema=gs://ml-pipeline-playground/flower/schema.json
+    --target=label
+    --hidden-layer-size=100,50
+    --steps=2000
+"""
 # TODO: Add unit/integration tests
 
 import argparse
@@ -34,7 +39,6 @@ import logging
 import requests
 import subprocess
 import six
-from tensorflow.python.lib.io import file_io
 import time
 import yaml
 from py import tf_job_client
@@ -42,7 +46,7 @@ from kubernetes import client as k8s_client
 from kubernetes import config
 
 
-def _generate_train_yaml(src_filename, tfjob_ns, workers, pss, trainer_image, args_list):
+def _generate_train_yaml(src_filename, tfjob_ns, workers, pss, trainer_image, command):
   """_generate_train_yaml  generates train yaml files based on train.template.yaml"""
   with open(src_filename, 'r') as f:
     content = yaml.load(f)
@@ -53,68 +57,30 @@ def _generate_train_yaml(src_filename, tfjob_ns, workers, pss, trainer_image, ar
   if workers and pss:
     content['spec']['tfReplicaSpecs']['PS']['replicas'] = pss
     content['spec']['tfReplicaSpecs']['PS']['template']['spec']['containers'][0]['image'] = trainer_image
-    content['spec']['tfReplicaSpecs']['PS']['template']['spec']['containers'][0]['command'].extend(args_list)
+    content['spec']['tfReplicaSpecs']['PS']['template']['spec']['containers'][0]['command'] = command
     content['spec']['tfReplicaSpecs']['Worker']['replicas'] = workers
     content['spec']['tfReplicaSpecs']['Worker']['template']['spec']['containers'][0]['image'] = trainer_image
-    content['spec']['tfReplicaSpecs']['Worker']['template']['spec']['containers'][0]['command'].extend(args_list)
+    content['spec']['tfReplicaSpecs']['Worker']['template']['spec']['containers'][0]['command'] = command
     content['spec']['tfReplicaSpecs']['MASTER']['template']['spec']['containers'][0]['image'] = trainer_image
-    content['spec']['tfReplicaSpecs']['MASTER']['template']['spec']['containers'][0]['command'].extend(args_list)
+    content['spec']['tfReplicaSpecs']['MASTER']['template']['spec']['containers'][0]['command'] = command
   else:
     # If no workers and pss set, default is 1.
     master_spec = content['spec']['tfReplicaSpecs']['MASTER']
     worker_spec = content['spec']['tfReplicaSpecs']['Worker']
     ps_spec = content['spec']['tfReplicaSpecs']['PS']
     master_spec['template']['spec']['containers'][0]['image'] = trainer_image
-    master_spec['template']['spec']['containers'][0]['command'].extend(args_list)
+    master_spec['template']['spec']['containers'][0]['command'] = command
     worker_spec['template']['spec']['containers'][0]['image'] = trainer_image
-    worker_spec['template']['spec']['containers'][0]['command'].extend(args_list)
+    worker_spec['template']['spec']['containers'][0]['command'] = command
     ps_spec['template']['spec']['containers'][0]['image'] = trainer_image
-    ps_spec['template']['spec']['containers'][0]['command'].extend(args_list)
+    ps_spec['template']['spec']['containers'][0]['command'] = command
 
   return content
 
 def main(argv=None):
-  parser = argparse.ArgumentParser(description='ML Trainer')
-  parser.add_argument('--job-dir', type=str)
-  parser.add_argument('--transformed-data-dir',
-                      type=str,
-                      required=True,
-                      help='GCS path containing tf-transformed training and eval data.')
-  parser.add_argument('--schema',
-                      type=str,
-                      required=True,
-                      help='GCS json schema file path.')
-  parser.add_argument('--target',
-                      type=str,
-                      required=True,
-                      help='The name of the column to predict in training data.')
-  parser.add_argument('--learning-rate',
-                      type=float,
-                      default=0.1,
-                      help='Learning rate for training.')
-  parser.add_argument('--optimizer',
-                      choices=['Adam', 'SGD', 'Adagrad'],
-                      default='Adagrad',
-                      help='Optimizer for training. If not provided, '
-                           'tf.estimator default will be used.')
-  parser.add_argument('--hidden-layer-size',
-                      type=str,
-                      default='100',
-                      help='comma separated hidden layer sizes. For example "200,100,50".')
-  parser.add_argument('--steps',
-                      type=int,
-                      help='Maximum number of training steps to perform. If unspecified, will '
-                           'honor epochs.')
-  parser.add_argument('--epochs',
-                      type=int,
-                      help='Maximum number of training data epochs on which to train. If '
-                           'both "steps" and "epochs" are specified, the training '
-                           'job will run for "steps" or "epochs", whichever occurs first.')
-  parser.add_argument('--preprocessing-module',
-                      type=str,
-                      required=False,
-                      help=('GCS path to a python file defining '
-                            '"preprocess" and "get_feature_columns" functions.'))
+  parser = argparse.ArgumentParser(description='Kubeflow TFJob launcher')
+  parser.add_argument('--container-image', type=str,
+                      help='''Container image to run using KubeFlow TFJob. The command line should be added after --.''')
   parser.add_argument('--workers', type=int, default=0)
   parser.add_argument('--pss', type=int, default=0)
   parser.add_argument('--cluster', type=str,
@@ -133,7 +99,15 @@ def main(argv=None):
   parser.add_argument('--tfjob-timeout-minutes', type=int,
                       default=10,
                       help='Time in minutes to wait for the TFJob to complete')
-  args = parser.parse_args()
+  parser.add_argument('--output-dir', type=str)
+  parser.add_argument('--ui-metadata-type', type=str, default='tensorboard')
+  import sys
+  all_args = sys.argv[1:]
+  separator_idx = all_args.index('--')
+  launcher_args = all_args[:separator_idx]
+  remaining_args = all_args[separator_idx + 1:]
+  
+  args = parser.parse_args(launcher_args)
 
   logging.getLogger().setLevel(logging.INFO)
   args_dict = vars(args)
@@ -158,12 +132,11 @@ def main(argv=None):
   kf_version = args_dict.pop('kfversion')
   tfjob_ns = args_dict.pop('tfjob_ns')
   tfjob_timeout_minutes = args_dict.pop('tfjob_timeout_minutes')
-  trainer_image = os.environ['TRAINER_IMAGE_NAME']
-  args_list = ['--%s=%s' % (k.replace('_', '-'),v)
-               for k,v in six.iteritems(args_dict) if v is not None]
+  trainer_image = args.container_image or os.environ['TRAINER_IMAGE_NAME']
+  command=remaining_args
   logging.info('Generating training template.')
   template_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'train.template.yaml')
-  content_yaml = _generate_train_yaml(template_file, tfjob_ns, workers, pss, trainer_image, args_list)
+  content_yaml = _generate_train_yaml(template_file, tfjob_ns, workers, pss, trainer_image, command)
 
   logging.info('Start training.')
   # Set up handler for k8s clients
@@ -172,15 +145,16 @@ def main(argv=None):
   create_response = tf_job_client.create_tf_job(api_client, content_yaml, version=kf_version)
   job_name = create_response['metadata']['name']
 
-  # Create metadata.json file for visualization.
-  metadata = {
-    'outputs' : [{
-      'type': 'tensorboard',
-      'source': args.job_dir,
-    }]
-  }
-  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
-    json.dump(metadata, f)
+  if args.output_dir:
+    # Create metadata.json file for visualization.
+    metadata = {
+      'outputs' : [{
+        'type': args.ui_metadata_type,
+        'source': args.output_dir,
+      }]
+    }
+    with open('/mlpipeline-ui-metadata.json', 'w') as f:
+      json.dump(metadata, f)
 
   wait_response = tf_job_client.wait_for_job(
       api_client, tfjob_ns, job_name, kf_version,
@@ -217,7 +191,7 @@ def main(argv=None):
 
   tf_job_client.delete_tf_job(api_client, tfjob_ns, job_name, version=kf_version)
   with open('/output.txt', 'w') as f:
-    f.write(args.job_dir)
+    f.write(args.output_dir)
 
 if __name__== "__main__":
   main()
