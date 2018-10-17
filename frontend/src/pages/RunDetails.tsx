@@ -80,6 +80,13 @@ interface RunDetailsProps extends RouteComponentProps {
   updateToolbar: (toolbarProps: ToolbarProps) => void;
 }
 
+interface SelectedNodeDetails {
+  id: string;
+  logs?: string;
+  phaseMessage?: string;
+  viewerConfigs?: ViewerConfig[];
+}
+
 interface RunDetailsState {
   job?: apiJob;
   logsBannerAdditionalInfo: string;
@@ -88,9 +95,7 @@ interface RunDetailsState {
   graph?: dagre.graphlib.Graph;
   runMetadata?: apiRun;
   selectedTab: number;
-  selectedNodeId: string;
-  selectedNodeLogs: string;
-  selectedNodeViewerConfigs: ViewerConfig[];
+  selectedNodeDetails: SelectedNodeDetails | null;
   sidepanelBusy: boolean;
   sidepanelSelectedTab: SidePaneTab;
   workflow?: Workflow;
@@ -124,9 +129,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
       logsBannerMode: 'error',
-      selectedNodeId: '',
-      selectedNodeLogs: '',
-      selectedNodeViewerConfigs: [],
+      selectedNodeDetails: null,
       selectedTab: 0,
       sidepanelBusy: false,
       sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
@@ -163,7 +166,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
   }
 
   public render() {
-    const { graph, selectedTab, selectedNodeId, sidepanelSelectedTab, workflow } = this.state;
+    const { graph, selectedTab, selectedNodeDetails, sidepanelSelectedTab, workflow } = this.state;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
@@ -176,9 +179,9 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
 
               {selectedTab === 0 && <div className={commonCss.page}>
                 {graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                  <Graph graph={graph} selectedNodeId={selectedNodeId}
+                  <Graph graph={graph} selectedNodeId={selectedNodeDetails ? selectedNodeDetails.id : ''}
                     onClick={(id) => this._selectNode(id)} />
-                  <Slide in={!!selectedNodeId} direction='left'>
+                  <Slide in={!!selectedNodeDetails} direction='left'>
                     <Resizable className={css.sidepane} defaultSize={{ width: '70%' }} maxWidth='90%'
                       minWidth={100} enable={{
                         bottom: false,
@@ -190,14 +193,18 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
                         topLeft: false,
                         topRight: false,
                       }}>
-                      {!!selectedNodeId && <div className={commonCss.page}>
+                      {!!selectedNodeDetails && <div className={commonCss.page}>
                         <div className={commonCss.flex}>
                           <Button className={css.closeButton}
-                            onClick={() => this.setState({ selectedNodeId: '' })}>
+                            onClick={() => this.setState({ selectedNodeDetails: null })}>
                             <CloseIcon />
                           </Button>
-                          <div className={css.nodeName}>{selectedNodeId}</div>
+                          <div className={css.nodeName}>{selectedNodeDetails.id}</div>
                         </div>
+                        {this.state.selectedNodeDetails && this.state.selectedNodeDetails.phaseMessage && (
+                          <Banner mode='warning'
+                            message={this.state.selectedNodeDetails.phaseMessage} />
+                        )}
                         <div className={commonCss.page}>
                           <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
                             selectedTab={sidepanelSelectedTab}
@@ -209,7 +216,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
                           <div className={commonCss.page}>
                             {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
                               <div className={commonCss.page}>
-                                {this.state.selectedNodeViewerConfigs.map((config, i) => (
+                                {(selectedNodeDetails.viewerConfigs || []).map((config, i) => (
                                   <div key={i} className={padding(20, 'lrt')}>
                                     <ViewerContainer configs={[config]} />
                                     <Hr />
@@ -221,10 +228,12 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
                             {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
                               <div className={padding(20)}>
                                 <div className={commonCss.header}>Input parameters</div>
-                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId)[0]} />
+                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(
+                                  workflow, selectedNodeDetails.id)[0]} />
 
                                 <div className={commonCss.header}>Output parameters</div>
-                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId)[1]} />
+                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(
+                                  workflow, selectedNodeDetails.id)[1]} />
                               </div>
                             }
 
@@ -237,8 +246,8 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
                                     additionalInfo={this.state.logsBannerAdditionalInfo}
                                     refresh={this._loadSelectedNodeLogs.bind(this)} />
                                 )}
-                                {!this.state.logsBannerMessage && (
-                                  <LogViewer logLines={this.state.selectedNodeLogs.split('\n')}
+                                {!this.state.logsBannerMessage && this.state.selectedNodeDetails && (
+                                  <LogViewer logLines={(this.state.selectedNodeDetails.logs || '').split('\n')}
                                     classes={commonCss.page} />
                                 )}
                               </div>
@@ -307,12 +316,22 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
   }
 
   private _selectNode(id: string) {
-    this.setState({ selectedNodeId: id }, () =>
+    this.setState({ selectedNodeDetails: { id } }, () =>
       this._sidePaneTabSwitched(this.state.sidepanelSelectedTab));
   }
 
   private async _sidePaneTabSwitched(tab: SidePaneTab) {
-    this.setState({ sidepanelSelectedTab: tab });
+    const workflow = this.state.workflow;
+    const selectedNodeDetails = this.state.selectedNodeDetails;
+    if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
+      const node = workflow.status.nodes[selectedNodeDetails.id];
+      if (node) {
+        selectedNodeDetails.phaseMessage =
+          `This step is in ${node.phase} state: ` + node.message;
+        this.setState({ selectedNodeDetails });
+      }
+    }
+    this.setState({ selectedNodeDetails, sidepanelSelectedTab: tab });
 
     switch (tab) {
       case SidePaneTab.ARTIFACTS:
@@ -324,8 +343,8 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
   }
 
   private async _loadSelectedNodeOutputs() {
-    const nodeId = this.state.selectedNodeId;
-    if (!nodeId) {
+    const selectedNodeDetails = this.state.selectedNodeDetails;
+    if (!selectedNodeDetails) {
       // This should never happen
       logger.error('Tried to load outputs for a node that is not selected');
       return;
@@ -334,7 +353,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     const workflow = this.state.workflow;
     if (workflow && workflow.status && workflow.status.nodes) {
       // Load runtime outputs from the selected Node
-      const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[nodeId]);
+      const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
 
       // Load the viewer configurations from the output paths
       let viewerConfigs: ViewerConfig[] = [];
@@ -342,29 +361,31 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
         viewerConfigs = viewerConfigs.concat(await loadOutputArtifacts(path));
       }
 
-      this.setState({ selectedNodeViewerConfigs: viewerConfigs });
+      selectedNodeDetails.viewerConfigs = viewerConfigs;
+      this.setState({ selectedNodeDetails });
     }
     this.setState({ sidepanelBusy: false });
   }
 
   private async _loadSelectedNodeLogs() {
-    const nodeId = this.state.selectedNodeId;
-    if (!nodeId) {
+    const selectedNodeDetails = this.state.selectedNodeDetails;
+    if (!selectedNodeDetails) {
       // This should never happen
       logger.error('Tried to load outputs for a node that is not selected');
       return;
     }
     this.setState({ sidepanelBusy: true });
     try {
-      const logs = await Apis.getPodLogs(nodeId);
-      this.setState({ selectedNodeLogs: logs });
+      const logs = await Apis.getPodLogs(selectedNodeDetails.id);
+      selectedNodeDetails.logs = logs;
+      this.setState({ selectedNodeDetails });
     } catch (err) {
       this.setState({
         logsBannerAdditionalInfo: err.message,
         logsBannerMessage: `Error: failed to retrieve logs. Click Details for more information.`,
         logsBannerMode: 'error',
       });
-      logger.error('Error loading logs for node:', nodeId);
+      logger.error('Error loading logs for node:', selectedNodeDetails.id);
     } finally {
       this.setState({ sidepanelBusy: false });
     }

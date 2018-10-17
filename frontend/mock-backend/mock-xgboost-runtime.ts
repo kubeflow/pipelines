@@ -793,7 +793,8 @@ export default {
         displayName: 'xgboost-training-gzkm9.onExit',
         type: 'Steps',
         templateName: 'exit-handler',
-        phase: 'Succeeded',
+        phase: 'Pending',
+        message: 'ImagePullBackOff: Back-off pulling image "gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster"',
         startedAt: '2018-04-17T00:10:06Z',
         finishedAt: '2018-04-17T00:12:01Z',
         inputs: {

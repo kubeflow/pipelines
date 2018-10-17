@@ -36,6 +36,7 @@ export const color = {
   success: '#34a853',
   theme: '#2979FF',
   themeDarker: '#0b59dc',
+  warningBg: '#f9f9e1',
   weak: '#999',
 };
 

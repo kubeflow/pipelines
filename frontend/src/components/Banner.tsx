@@ -21,11 +21,12 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import ErrorIcon from '@material-ui/icons/Error';
+import WarningIcon from '@material-ui/icons/Warning';
 import { classes, stylesheet } from 'typestyle';
 
 import { color, commonCss, spacing } from '../Css';
 
-export type Mode = 'error';
+export type Mode = 'error' | 'warning';
 
 export const css = stylesheet({
   banner: {
@@ -88,6 +89,11 @@ class Banner extends React.Component<BannerProps, BannerState> {
         bannerModeCss = stylesheet({ mode: { backgroundColor: color.errorBg, color: color.errorText, } });
         bannerIcon = <ErrorIcon className={css.icon} />;
         dialogTitle = 'An error occurred';
+        break;
+      case 'warning':
+        bannerModeCss = stylesheet({ mode: { backgroundColor: color.warningBg, color: color.errorText, } });
+        bannerIcon = <WarningIcon className={css.icon} />;
+        dialogTitle = 'Warning';
         break;
       default:
         // Already set defaults above.
