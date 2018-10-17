@@ -14,13 +14,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: defaultvalue-
+  generateName: default-value-
 spec:
   arguments:
     parameters:
     - name: url
       value: gs://ml-pipeline/shakespeare1.txt
-  entrypoint: defaultvalue
+  entrypoint: default-value
   templates:
   - dag:
       tasks:
@@ -41,7 +41,7 @@ spec:
     inputs:
       parameters:
       - name: url
-    name: defaultvalue
+    name: default-value
   - container:
       args:
       - gsutil cat {{inputs.parameters.url}} | tee /tmp/results.txt

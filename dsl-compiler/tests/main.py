@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import sys
 import unittest
 
 import compiler_tests
@@ -22,4 +23,6 @@ if __name__ == '__main__':
   suite = unittest.TestSuite()
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(compiler_tests))
   runner = unittest.TextTestRunner()
-  result = runner.run(suite)
+  if not runner.run(suite).wasSuccessful():
+    sys.exit(1)
+

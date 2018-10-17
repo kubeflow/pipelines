@@ -14,13 +14,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: savemostfrequent-
+  generateName: save-most-frequent-
 spec:
   arguments:
     parameters:
     - name: message
     - name: outputpath
-  entrypoint: savemostfrequent
+  entrypoint: save-most-frequent
   onExit: exiting
   templates:
   - dag:
@@ -29,16 +29,16 @@ spec:
           parameters:
           - name: message
             value: '{{inputs.parameters.message}}'
-        name: get-Frequent
-        template: get-Frequent
+        name: get-frequent
+        template: get-frequent
       - arguments:
           parameters:
-          - name: get-Frequent-word
-            value: '{{tasks.get-Frequent.outputs.parameters.get-Frequent-word}}'
+          - name: get-frequent-word
+            value: '{{tasks.get-frequent.outputs.parameters.get-frequent-word}}'
           - name: outputpath
             value: '{{inputs.parameters.outputpath}}'
         dependencies:
-        - get-Frequent
+        - get-frequent
         name: save
         template: save
     inputs:
@@ -83,7 +83,7 @@ spec:
     inputs:
       parameters:
       - name: message
-    name: get-Frequent
+    name: get-frequent
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
@@ -100,12 +100,12 @@ spec:
             key: secretkey
             name: mlpipeline-minio-artifact
       parameters:
-      - name: get-Frequent-word
+      - name: get-frequent-word
         valueFrom:
           path: /tmp/message.txt
   - container:
       args:
-      - echo {{inputs.parameters.get-Frequent-word}} | tee /tmp/results.txt | gsutil
+      - echo {{inputs.parameters.get-frequent-word}} | tee /tmp/results.txt | gsutil
         cp /tmp/results.txt {{inputs.parameters.outputpath}}
       command:
       - sh
@@ -116,7 +116,7 @@ spec:
           cpu: "0.5"
     inputs:
       parameters:
-      - name: get-Frequent-word
+      - name: get-frequent-word
       - name: outputpath
     name: save
     outputs:
@@ -150,4 +150,4 @@ spec:
       parameters:
       - name: message
       - name: outputpath
-    name: savemostfrequent
+    name: save-most-frequent

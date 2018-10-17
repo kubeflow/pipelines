@@ -35,7 +35,7 @@ def parse_arguments():
   parser.add_argument('--input',
                       type=str,
                       required=True,
-                      help='The path of a yaml file that will be submitted.')
+                      help='The path of a pipeline package that will be submitted.')
   parser.add_argument('--output',
                       type=str,
                       required=True,
@@ -60,7 +60,7 @@ def main():
     exit()
 
   ###### Upload Pipeline ######
-  pipeline_id, succ = api_client_helper.upload_pipeline_yaml(pipeline_upload_service_api, args.input)
+  pipeline_id, succ = api_client_helper.upload_pipeline(pipeline_upload_service_api, args.input)
   utils.add_junit_test(test_cases, 'upload pipeline yaml', succ, 'yaml file is not uploaded')
   if not succ:
     utils.write_junit_xml(test_name, args.output, test_cases)

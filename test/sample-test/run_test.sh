@@ -109,7 +109,7 @@ sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.
 sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_PREDICT_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
 sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+/${LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
 
-dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.yaml
+dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
 
 # Generate API Python library
 cd ${BASE_DIR}/backend/api
@@ -130,7 +130,7 @@ rm -rf config.json swagger_pipeline_upload swagger_pipeline swagger_run swagger_
 # Run the tests
 #TODO: update the job output directory
 cd /
-python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.yaml --output $SAMPLE_KUBEFLOW_TEST_RESULT
+python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.tar.gz --output $SAMPLE_KUBEFLOW_TEST_RESULT
 
 echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
 gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}

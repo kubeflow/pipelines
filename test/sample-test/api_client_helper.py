@@ -81,10 +81,10 @@ def delete_job(job_service_api, job_id):
     return False
   return True
 
-def upload_pipeline_yaml(pipeline_upload_service_api, yaml_path):
+def upload_pipeline(pipeline_upload_service_api, package_path):
   pipeline_id = ''
   try:
-    upload_pipeline_response = pipeline_upload_service_api.upload_pipeline(yaml_path)
+    upload_pipeline_response = pipeline_upload_service_api.upload_pipeline(package_path)
     pipeline_id = upload_pipeline_response.id
   except swagger_pipeline_upload.rest.ApiException as e:
     print("Exception when uploading the pipeline yaml: %s\n", e)

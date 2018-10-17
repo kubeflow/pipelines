@@ -14,11 +14,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: pipelineflipcoin-
+  generateName: pipeline-flip-coin-
 spec:
   arguments:
     parameters: []
-  entrypoint: pipelineflipcoin
+  entrypoint: pipeline-flip-coin
   templates:
   - inputs:
       parameters:
@@ -184,7 +184,7 @@ spec:
         template: condition-3
       - name: flip
         template: flip
-    name: pipelineflipcoin
+    name: pipeline-flip-coin
   - container:
       command:
       - echo

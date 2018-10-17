@@ -19,6 +19,8 @@ import inspect
 import mlp
 import re
 import string
+import tarfile
+import tempfile
 import yaml
 
 
@@ -513,9 +515,12 @@ class Compiler(object):
 
     Args:
       pipeline_func: pipeline functions with @mlp.pipeline decorator.
-      package_path: the output workflow yaml file path.
+      package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
     """
     workflow = self._compile(pipeline_func)
     yaml.Dumper.ignore_aliases = lambda *args : True
-    with open(package_path, 'w') as f:
-      yaml.dump(workflow, f, default_flow_style=False)
+    with tempfile.NamedTemporaryFile() as tmp:
+      with open(tmp.name, 'w') as fd:
+        yaml.dump(workflow, fd, default_flow_style=False)
+      with tarfile.open(package_path, "w:gz") as tar:
+        tar.add(tmp.name, arcname="pipeline.yaml")

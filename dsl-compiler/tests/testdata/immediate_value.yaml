@@ -14,11 +14,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: immediatevalue-
+  generateName: immediate-value-
 spec:
   arguments:
     parameters: []
-  entrypoint: immediatevalue
+  entrypoint: immediate-value
   templates:
   - container:
       args:
@@ -89,4 +89,4 @@ spec:
         - download
         name: echo
         template: echo
-    name: immediatevalue
+    name: immediate-value

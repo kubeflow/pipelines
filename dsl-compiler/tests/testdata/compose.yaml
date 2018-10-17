@@ -14,13 +14,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: downloadandsavemostfrequent-
+  generateName: download-and-save-most-frequent-
 spec:
   arguments:
     parameters:
     - name: url
     - name: outputpath
-  entrypoint: downloadandsavemostfrequent
+  entrypoint: download-and-save-most-frequent
   templates:
   - container:
       args:
@@ -66,23 +66,23 @@ spec:
             value: '{{tasks.download.outputs.parameters.download-downloaded}}'
         dependencies:
         - download
-        name: get-Frequent
-        template: get-Frequent
+        name: get-frequent
+        template: get-frequent
       - arguments:
           parameters:
-          - name: get-Frequent-word
-            value: '{{tasks.get-Frequent.outputs.parameters.get-Frequent-word}}'
+          - name: get-frequent-word
+            value: '{{tasks.get-frequent.outputs.parameters.get-frequent-word}}'
           - name: outputpath
             value: '{{inputs.parameters.outputpath}}'
         dependencies:
-        - get-Frequent
+        - get-frequent
         name: save
         template: save
     inputs:
       parameters:
       - name: outputpath
       - name: url
-    name: downloadandsavemostfrequent
+    name: download-and-save-most-frequent
   - container:
       args:
       - python -c "from collections import Counter; words = Counter('{{inputs.parameters.download-downloaded}}'.split());
@@ -94,7 +94,7 @@ spec:
     inputs:
       parameters:
       - name: download-downloaded
-    name: get-Frequent
+    name: get-frequent
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
@@ -111,12 +111,12 @@ spec:
             key: secretkey
             name: mlpipeline-minio-artifact
       parameters:
-      - name: get-Frequent-word
+      - name: get-frequent-word
         valueFrom:
           path: /tmp/message.txt
   - container:
       args:
-      - echo {{inputs.parameters.get-Frequent-word}} | tee /tmp/results.txt | gsutil
+      - echo {{inputs.parameters.get-frequent-word}} | tee /tmp/results.txt | gsutil
         cp /tmp/results.txt {{inputs.parameters.outputpath}}
       command:
       - sh
@@ -124,7 +124,7 @@ spec:
       image: google/cloud-sdk
     inputs:
       parameters:
-      - name: get-Frequent-word
+      - name: get-frequent-word
       - name: outputpath
     name: save
     outputs:

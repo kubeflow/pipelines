@@ -19,6 +19,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import yaml
@@ -78,6 +79,10 @@ class TestCompiler(unittest.TestCase):
     self.maxDiff = None
     self.assertEqual(golden_output, mlpc.Compiler()._op_to_template(op))
 
+  def _get_yaml_from_tar(self, tar_file):
+    with tarfile.open(tar_file, 'r:gz') as tar:
+      return yaml.load(tar.extractfile(tar.getmembers()[0]))
+
   def test_basic_workflow(self):
     """Test compiling a basic workflow."""
 
@@ -85,13 +90,12 @@ class TestCompiler(unittest.TestCase):
     sys.path.append(test_data_dir)
     import basic
     tmpdir = tempfile.mkdtemp()
-    package_path = os.path.join(tmpdir, 'workflow.yaml')
+    package_path = os.path.join(tmpdir, 'workflow.tar.gz')
     try:
       mlpc.Compiler().compile(basic.save_most_frequent_word, package_path)
       with open(os.path.join(test_data_dir, 'basic.yaml'), 'r') as f:
         golden = yaml.load(f)
-      with open(package_path, 'r') as f:
-        compiled = yaml.load(f)
+      compiled = self._get_yaml_from_tar(package_path)
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -110,16 +114,15 @@ class TestCompiler(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     try:
       # First make sure the simple pipeline can be compiled.
-      simple_package_path = os.path.join(tmpdir, 'simple.yaml')
+      simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
       mlpc.Compiler().compile(compose.save_most_frequent_word, simple_package_path)
 
       # Then make sure the composed pipeline can be compiled and also compare with golden.
-      compose_package_path = os.path.join(tmpdir, 'compose.yaml')
+      compose_package_path = os.path.join(tmpdir, 'compose.tar.gz')
       mlpc.Compiler().compile(compose.download_save_most_frequent_word, compose_package_path)
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
         golden = yaml.load(f)
-      with open(compose_package_path, 'r') as f:
-        compiled = yaml.load(f)
+      compiled = self._get_yaml_from_tar(compose_package_path)
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -159,14 +162,13 @@ class TestCompiler(unittest.TestCase):
       os.chdir(test_package_dir)
       subprocess.check_call(['python3', 'setup.py', 'sdist', '--format=gztar', '-d', tmpdir])
       package_path = os.path.join(tmpdir, 'testsample-0.1.tar.gz')
-      target_yaml = os.path.join(tmpdir, 'compose.yaml')
+      target_tar = os.path.join(tmpdir, 'compose.tar.gz')
       subprocess.check_call([
           'dsl-compile', '--package', package_path, '--namespace', 'mypipeline',
-          '--output', target_yaml, '--function', 'download_save_most_frequent_word'])
+          '--output', target_tar, '--function', 'download_save_most_frequent_word'])
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
         golden = yaml.load(f)
-      with open(target_yaml, 'r') as f:
-        compiled = yaml.load(f)
+      compiled = self._get_yaml_from_tar(target_tar)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -179,13 +181,12 @@ class TestCompiler(unittest.TestCase):
     py_file = os.path.join(test_data_dir, file_base_name + '.py')
     tmpdir = tempfile.mkdtemp()
     try:
-      target_yaml = os.path.join(tmpdir, file_base_name + '.yaml')
+      target_tar = os.path.join(tmpdir, file_base_name + '.tar.gz')
       subprocess.check_call([
-          'dsl-compile', '--py', py_file, '--output', target_yaml])
+          'dsl-compile', '--py', py_file, '--output', target_tar])
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
         golden = yaml.load(f)
-      with open(target_yaml, 'r') as f:
-        compiled = yaml.load(f)
+      compiled = self._get_yaml_from_tar(target_tar)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -207,3 +208,4 @@ class TestCompiler(unittest.TestCase):
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile('default_value')
+
