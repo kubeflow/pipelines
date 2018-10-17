@@ -19,6 +19,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -74,7 +75,16 @@ func (s *RunStore) queryRunTable(jobId *string, context *common.PaginationContex
 
 // GetRun Get the run manifest from Workflow CRD
 func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
-	r, err := s.db.Query(`SELECT * FROM run_details WHERE uuid=? LIMIT 1`, runId)
+	sql, args, err := squirrel.
+		Select("*").
+		From("run_details").
+		Where(squirrel.Eq{"uuid": runId}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
@@ -113,45 +123,23 @@ func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
 }
 
 func (s *RunStore) createRun(
-	ownerUID string,
+	jobID string,
 	name string,
 	namespace string,
 	workflowUID string,
 	createdAtInSec int64,
 	scheduledAtInSec int64,
 	condition string,
-	marshalled string,
-	workflow *util.Workflow) (err error) {
-	run := &model.RunDetail{
-		Run: model.Run{
-			UUID:             workflowUID,
-			Name:             name,
-			Namespace:        namespace,
-			JobID:            ownerUID,
-			CreatedAtInSec:   createdAtInSec,
-			ScheduledAtInSec: scheduledAtInSec,
-			Conditions:       condition,
-		},
-		Workflow: marshalled,
-	}
-
-	stmt, err := s.db.Prepare(
-		`INSERT INTO run_details(UUID,Name,Namespace,JobID,CreatedAtInSec,ScheduledAtInSec,Conditions,Workflow) 
-		VALUES(?,?,?,?,?,?,?,?)`)
+	workflow string) (err error) {
+	sql, args, err := squirrel.
+		Insert("run_details").
+		Columns("UUID", "Name", "Namespace", "JobID", "CreatedAtInSec", "ScheduledAtInSec", "Conditions", "Workflow").
+		Values(workflowUID, name, namespace, jobID, createdAtInSec, scheduledAtInSec, condition, workflow).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error while creating run using workflow: %v, %+v",
-			err, workflow.Workflow)
+			err, workflow)
 	}
-	defer stmt.Close()
-	_, err = stmt.Exec(
-		run.UUID,
-		run.Name,
-		run.Namespace,
-		run.JobID,
-		run.CreatedAtInSec,
-		run.ScheduledAtInSec,
-		run.Conditions,
-		run.Workflow)
+	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Error while creating run for workflow: '%v/%v",
 			namespace, name)
@@ -195,8 +183,7 @@ func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
 		workflow.CreationTimestamp.Unix(),
 		scheduledAtInSec,
 		condition,
-		string(marshalled),
-		workflow)
+		string(marshalled))
 
 	if createError == nil {
 		return nil

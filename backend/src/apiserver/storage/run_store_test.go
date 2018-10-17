@@ -29,10 +29,9 @@ import (
 )
 
 func initializePrepopulatedDB(runStore *RunStore) {
-	workflow := util.NewWorkflow(&workflowapi.Workflow{})
-	runStore.createRun("1", "run1", "n1", "1", 1, 1, "running", "workflow1", workflow)
-	runStore.createRun("1", "run2", "n2", "2", 2, 2, "done", "workflow1", workflow)
-	runStore.createRun("2", "run3", "n3", "3", 3, 3, "done", "workflow3", workflow)
+	runStore.createRun("1", "run1", "n1", "1", 1, 1, "running", "workflow1")
+	runStore.createRun("1", "run2", "n2", "2", 2, 2, "done", "workflow1")
+	runStore.createRun("2", "run3", "n3", "3", 3, 3, "done", "workflow3")
 }
 
 func TestListRuns_Pagination(t *testing.T) {
