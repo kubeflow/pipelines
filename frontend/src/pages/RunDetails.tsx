@@ -28,13 +28,13 @@ import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
+import PlotCard from '../components/PlotCard';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import Resizable from 're-resizable';
 import Slide from '@material-ui/core/Slide';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
-import ViewerContainer from '../components/viewers/ViewerContainer';
 import { RouteComponentProps } from 'react-router';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { apiRun, apiJob } from '../../../frontend/src/api/job';
@@ -42,6 +42,7 @@ import { commonCss, color, padding } from '../Css';
 import { formatDateString, getRunTime, logger } from '../lib/Utils';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { stylesheet, classes } from 'typestyle';
+import { componentMap } from '../components/viewers/ViewerContainer';
 
 const css = stylesheet({
   closeButton: {
@@ -216,12 +217,15 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
                           <div className={commonCss.page}>
                             {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
                               <div className={commonCss.page}>
-                                {(selectedNodeDetails.viewerConfigs || []).map((config, i) => (
-                                  <div key={i} className={padding(20, 'lrt')}>
-                                    <ViewerContainer configs={[config]} />
-                                    <Hr />
-                                  </div>
-                                ))}
+                                {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
+                                  const title = componentMap[config.type].prototype.getDisplayName();
+                                  return (
+                                    <div key={i} className={padding(20, 'lrt')}>
+                                      <PlotCard configs={[config]} title={title} maxDimension={500} />
+                                      <Hr />
+                                    </div>
+                                  );
+                                })}
                               </div>
                             }
 

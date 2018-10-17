@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { NodePhase } from 'src/pages/Status';
+import { NodePhase } from '../pages/Status';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { apiTrigger } from '../../../frontend/src/api/job';
 

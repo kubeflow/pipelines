@@ -18,28 +18,24 @@ import * as Apis from '../lib/Apis';
 import * as React from 'react';
 import * as UrlParser from '../lib/UrlParser';
 import * as WorkflowParser from '../lib/WorkflowParser';
-import { BannerProps } from '../components/Banner';
 import Button from '@material-ui/core/Button';
-import CloseIcon from '@material-ui/icons/Close';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
-import Dialog from '@material-ui/core/Dialog';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
 import ExpandedIcon from '@material-ui/icons/ExpandLess';
 import Hr from '../atoms/Hr';
-import Paper from '@material-ui/core/Paper';
-import PopOutIcon from '@material-ui/icons/Launch';
+import PlotCard, { PlotCardProps } from '../components/PlotCard';
 import RunList from './RunList';
 import Separator from '../atoms/Separator';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
-import Tooltip from '@material-ui/core/Tooltip';
-import ViewerContainer, { componentMap } from '../components/viewers/ViewerContainer';
+import { BannerProps } from '../components/Banner';
 import { RouteComponentProps } from 'react-router';
 import { RoutePage } from '../components/Router';
+import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { apiRunDetail } from '../../../frontend/src/api/run';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, color, fontsize, padding } from '../Css';
+import { commonCss, fontsize, padding } from '../Css';
+import { componentMap } from '../components/viewers/ViewerContainer';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { logger } from '../lib/Utils';
 
@@ -52,99 +48,10 @@ const css = stylesheet({
   collapsed: {
     transform: 'rotate(180deg)',
   },
-  container: {
-    flexGrow: 1,
-    justifyContent: 'space-evenly',
-  },
-  dialogTitle: {
-    color: color.strong,
-    fontSize: fontsize.large,
-    width: '100%',
-  },
-  fullscreenCloseBtn: {
-    minHeight: 0,
-    minWidth: 0,
-    padding: 3,
-  },
-  fullscreenDialog: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '80%',
-    minWidth: '80%',
-    padding: 20,
-  },
-  fullscreenViewerContainer: {
-    alignItems: 'center',
-    boxSizing: 'border-box',
-    display: 'flex',
-    flexFlow: 'column',
-    flexGrow: 1,
-    height: '100%',
-    justifyContent: 'center',
-    margin: 20,
-    overflow: 'auto',
-    width: '100%',
-  },
   outputsRow: {
     overflowX: 'auto',
   },
-  plotCard: {
-    flexShrink: 0,
-    margin: 20,
-    minWidth: 250,
-    padding: 20,
-    width: 'min-content',
-  },
-  plotHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-    paddingBottom: 10,
-  },
-  plotTitle: {
-    color: color.strong,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  popoutIcon: {
-    fontSize: 18,
-  },
 });
-
-interface PlotCardProps {
-  title: string;
-  configs: ViewerConfig[];
-  CompareInstance?: Compare;
-}
-
-class PlotCard extends React.Component<PlotCardProps> {
-  public render() {
-    const { title, configs, CompareInstance, ...otherProps } = this.props;
-
-    return <Paper {...otherProps} className={css.plotCard}>
-      <div className={css.plotHeader}>
-        <div className={classes(css.plotTitle)} title={title}>{title}</div>
-        <div>
-          <Button onClick={CompareInstance ?
-            () => CompareInstance!.setState({
-              fullscreenViewerConfig: {
-                configs,
-                title,
-              }
-            }) :
-            () => null
-          }
-            style={{ padding: 4, minHeight: 0, minWidth: 0 }}>
-            <Tooltip title='Pop out'>
-              <PopOutIcon classes={{ root: css.popoutIcon }} />
-            </Tooltip>
-          </Button>
-        </div>
-      </div>
-      <ViewerContainer configs={configs} maxDimension={400} />
-    </Paper>;
-  }
-}
 
 interface TaggedViewerConfig {
   config: ViewerConfig;
@@ -261,13 +168,13 @@ class Compare extends React.Component<CompareProps, CompareState> {
               aggregated view. Only do this if there is more than one output. */}
               {(componentMap[viewerType].prototype.isAggregatable() &&
                 viewersMap.get(viewerType)!.length > 1) &&
-                <PlotCard configs={viewersMap.get(viewerType)!.map(t => t.config)}
-                  title='Aggregated view' CompareInstance={this} />
+                <PlotCard configs={viewersMap.get(viewerType)!.map(t => t.config)} maxDimension={400}
+                  title='Aggregated view' />
               }
 
               {viewersMap.get(viewerType)!.map((taggedConfig, c) => (
                 <PlotCard key={c} configs={[taggedConfig.config]} title={taggedConfig.runName}
-                  CompareInstance={this} />
+                  maxDimension={400} />
               ))}
               <Separator />
 
@@ -278,24 +185,6 @@ class Compare extends React.Component<CompareProps, CompareState> {
         <Separator orientation='vertical' />
       </div>
       )}
-
-      {!!this.state.fullscreenViewerConfig &&
-        <Dialog open={!!this.state.fullscreenViewerConfig} classes={{ paper: css.fullscreenDialog }}
-          onClose={() => this.setState({ fullscreenViewerConfig: null })}>
-          <div className={css.dialogTitle}>
-            <Button onClick={() => this.setState({ fullscreenViewerConfig: null })}
-              className={css.fullscreenCloseBtn}>
-              <CloseIcon />
-            </Button>
-            {componentMap[this.state.fullscreenViewerConfig.configs[0].type].prototype.getDisplayName()}
-            <Separator />
-            <span style={{ color: color.inactive }}>({this.state.fullscreenViewerConfig!.title})</span>
-          </div>
-          <div className={css.fullscreenViewerContainer}>
-            <ViewerContainer configs={this.state.fullscreenViewerConfig!.configs} />
-          </div>
-        </Dialog>
-      }
     </div>);
   }
 

@@ -20,10 +20,10 @@ import PendingIcon from '@material-ui/icons/Schedule';
 import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
+import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
 import { logger } from '../lib/Utils';
-import { Tooltip } from '@material-ui/core';
 
 export enum NodePhase {
   ERROR = 'Error',
