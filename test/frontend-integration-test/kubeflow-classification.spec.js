@@ -42,7 +42,9 @@ describe('deploy tfjob sample job', () => {
 
   it('uploads the kubeflow classfication sample pipeline', () => {
     browser.chooseFile('#uploadDialog input', './kubeflow-classification.yaml');
-    browser.pause(100);
+    const input = $('#uploadDialog input[type="text"]');
+    input.clearElement();
+    input.setValue('kubeflow-classification-pipeline');
     $('#confirmUploadBtn').click();
     browser.waitForVisible('#uploadDialog', waitTimeout, true);
   });
