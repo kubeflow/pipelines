@@ -191,3 +191,40 @@ func TestGetTemplateInvalidArgumentCount(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Missing 'ID' argument")
 }
+
+func TestCreatePipeline(t *testing.T) {
+	rootCmd, factory := getFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"pipeline", "create", "--no-color",
+		client.PipelineValidURL})
+	_, err := rootCmd.Command().ExecuteC()
+	assert.Nil(t, err)
+
+	expected := `
+SUCCESS
+created_at: "1970-01-01T00:00:00.000Z"
+description: PIPELINE_DESCRIPTION
+id: foo.yaml
+name: PIPELINE_NAME
+parameters:
+- name: PARAM_NAME
+  value: PARAM_VALUE
+`
+	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
+}
+
+func TestCreatePipelineInvalidUrlFormat(t *testing.T) {
+	rootCmd, _ := getFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"pipeline", "create", "--no-color",
+		client.PipelineInvalidURL})
+	_, err := rootCmd.Command().ExecuteC()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Invalid URL format")
+}
+
+func TestCreatePipelineInvalidArgumentCount(t *testing.T) {
+	rootCmd, _ := getFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"pipeline", "create", "--no-color"})
+	_, err := rootCmd.Command().ExecuteC()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Missing 'url' argument")
+}

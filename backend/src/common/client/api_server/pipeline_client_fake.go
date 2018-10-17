@@ -3,6 +3,8 @@ package api_server
 import (
 	"fmt"
 
+	"path"
+
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/go-openapi/strfmt"
@@ -14,6 +16,8 @@ import (
 const (
 	PipelineForDefaultTest     = "PIPELINE_ID_10"
 	PipelineForClientErrorTest = "PIPELINE_ID_11"
+	PipelineValidURL           = "http://www.mydomain.com/foo.yaml"
+	PipelineInvalidURL         = "foobar.something"
 )
 
 func getDefaultPipeline(id string) *pipelinemodel.APIPipeline {
@@ -50,6 +54,18 @@ type PipelineClientFake struct{}
 
 func NewPipelineClientFake() *PipelineClientFake {
 	return &PipelineClientFake{}
+}
+
+func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineParams) (
+	*pipelinemodel.APIPipeline, error) {
+	switch params.Body.PipelineURL {
+	case PipelineInvalidURL:
+		return nil, fmt.Errorf(ClientErrorString)
+	case PipelineValidURL:
+		return getDefaultPipeline(path.Base(params.Body.PipelineURL)), nil
+	default:
+		return nil, fmt.Errorf(InvalidFakeRequest)
+	}
 }
 
 func (c *PipelineClientFake) Get(params *pipelineparams.GetPipelineParams) (

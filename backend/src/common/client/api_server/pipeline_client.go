@@ -19,6 +19,7 @@ import (
 )
 
 type PipelineInterface interface {
+	Create(params *params.CreatePipelineParams) (*model.APIPipeline, error)
 	Get(params *params.GetPipelineParams) (*model.APIPipeline, error)
 	Delete(params *params.DeletePipelineParams) error
 	GetTemplate(params *params.GetTemplateParams) (*workflowapi.Workflow, error)
@@ -48,6 +49,27 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig) (*PipelineClient, er
 	return &PipelineClient{
 		apiClient: apiClient,
 	}, nil
+}
+
+func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model.APIPipeline,
+	error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineService.CreatePipeline(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.CreatePipelineDefault); ok {
+			err = fmt.Errorf(defaultError.Payload.Error)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to create pipeline. Params: %v", parameters),
+			fmt.Sprintf("Failed to create pipeline from URL %v", parameters.Body.PipelineURL))
+	}
+
+	return response.Payload, nil
 }
 
 func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.APIPipeline,

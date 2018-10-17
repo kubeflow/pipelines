@@ -149,6 +149,7 @@ func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 	// Create commands
 	pipelineCmd := NewPipelineCmd()
 	pipelineUploadCmd := NewPipelineUploadCmd(rootCmd)
+	pipelineCreateCmd := NewPipelineCreateCmd(rootCmd)
 	pipelineListCmd := NewPipelineListCmd(rootCmd, pageSize)
 	pipelineDeleteCmd := NewPipelineDeleteCmd(rootCmd)
 	pipelineGetCmd := NewPipelineGetCmd(rootCmd)
@@ -167,8 +168,8 @@ func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 
 	// Specify subcommands
 	rootCmd.AddCommand(pipelineCmd)
-	pipelineCmd.AddCommand(pipelineUploadCmd, pipelineListCmd, pipelineDeleteCmd, pipelineGetCmd,
-		pipelineGetTemplateCmd)
+	pipelineCmd.AddCommand(pipelineUploadCmd, pipelineCreateCmd, pipelineListCmd, pipelineDeleteCmd,
+		pipelineGetCmd, pipelineGetTemplateCmd)
 	rootCmd.AddCommand(runCmd)
 	runCmd.AddCommand(runGetCmd, runListCmd)
 	rootCmd.AddCommand(jobCmd)

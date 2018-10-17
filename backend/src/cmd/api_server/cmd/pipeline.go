@@ -3,8 +3,10 @@ package cmd
 import (
 	"fmt"
 	"math"
+	"net/url"
 
 	params "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_client/pipeline_service"
+	model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/spf13/cobra"
 )
@@ -35,6 +37,47 @@ func NewPipelineUploadCmd(root *RootCommand) *cobra.Command {
 		// Execution
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pkg, err := root.PipelineUploadClient().Upload(filename)
+			if err != nil {
+				return util.ExtractErrorForCLI(err, root.Debug())
+			}
+
+			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg)
+			return nil
+		},
+	}
+	command.SetOutput(root.Writer())
+	return command
+}
+
+func NewPipelineCreateCmd(root *RootCommand) *cobra.Command {
+	var (
+		pipelineURL string
+		err         error
+	)
+	var command = &cobra.Command{
+		Use:   "create url",
+		Short: "Create a pipeline",
+
+		// Validation
+		Args: func(cmd *cobra.Command, args []string) error {
+			pipelineURL, err = ValidateSingleString(args, "url")
+			if err != nil {
+				return err
+			}
+			_, err = url.ParseRequestURI(pipelineURL)
+			if err != nil {
+				return fmt.Errorf("Invalid URL format")
+			}
+			return nil
+		},
+
+		// Execution
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// We can't specify the pipeline name for now due to issue
+			// https://github.com/grpc-ecosystem/grpc-gateway/issues/559
+			params := params.NewCreatePipelineParams()
+			params.Body = &model.APIURL{PipelineURL: pipelineURL}
+			pkg, err := root.PipelineClient().Create(params)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
