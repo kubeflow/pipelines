@@ -22,7 +22,7 @@ import { apiJob, apiListJobsResponse } from '../src/api/job';
 import { apiListPipelinesResponse } from '../src/api/pipeline';
 import { apiPipeline } from '../src/api/pipeline';
 import { apiListRunsResponse, apiRun } from '../src/api/run';
-import { data as fixedData } from './fixed-data';
+import { data as fixedData, namedPipelines } from './fixed-data';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -376,8 +376,10 @@ export default (app: express.Application) => {
 
   app.get(v1alpha2Prefix + '/pipelines/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
-    res.send(JSON.stringify(
-      { template: fs.readFileSync('./mock-backend/mock-template.yaml', 'utf-8') }));
+    const filePath = req.params.pid === namedPipelines.noParamsPipeline.id
+        ? './mock-backend/mock-conditional-template.yaml'
+        : './mock-backend/mock-template.yaml';
+    res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
   });
 
   app.options(v1alpha2Prefix + '/pipelines/upload', (req, res) => {

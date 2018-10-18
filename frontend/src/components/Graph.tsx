@@ -43,6 +43,8 @@ const css = stylesheet({
   },
   label: {
     flexGrow: 1,
+    fontSize: 15,
+    fontWeight: 'bold',
     lineHeight: '2em',
     margin: 'auto',
     overflow: 'hidden',
@@ -52,27 +54,34 @@ const css = stylesheet({
   },
   lastEdgeLine: {
     $nest: {
+      // Arrowhead
       '&::after': {
-        borderColor: '#4285f4 transparent transparent transparent',
+        borderColor: `${color.theme} transparent transparent transparent`,
         borderStyle: 'solid',
         borderWidth: '7px 6px 0 6px',
         clear: 'both',
         content: `''`,
-        left: -4,
+        left: -5,
         position: 'absolute',
-        top: -4,
+        top: -5,
         transform: 'rotate(90deg)',
       },
     },
   },
   line: {
-    borderTop: '1px solid #4285f4',
+    borderTop: `2px solid ${color.theme}`,
     position: 'absolute',
   },
   node: {
+    $nest: {
+      '&:hover': {
+        borderColor: color.theme,
+      },
+    },
     backgroundColor: color.background,
-    border: 'solid 1px #aecbfa',
+    border: `solid 2px ${color.theme}`,
     borderRadius: 5,
+    boxShadow: '1px 1px 5px #aaa',
     boxSizing: 'content-box',
     color: '#124aa4',
     cursor: 'pointer',
@@ -82,8 +91,8 @@ const css = stylesheet({
     position: 'absolute',
   },
   nodeSelected: {
-    backgroundColor: '#e4ebff',
-    borderColor: '#4285f4',
+    backgroundColor: '#e4ebff !important',
+    borderColor: color.theme,
   },
   root: {
     backgroundColor: color.graphBg,
@@ -94,7 +103,7 @@ const css = stylesheet({
   },
   startCircle: {
     backgroundColor: color.background,
-    border: '1px solid #4285f4',
+    border: `1px solid ${color.theme}`,
     borderRadius: 7,
     content: '',
     display: 'inline-block',
@@ -128,7 +137,8 @@ export default class Graph extends React.Component<GraphProps> {
           const y1 = edge.points[i - 1].y;
           const x2 = edge.points[i].x;
           const y2 = edge.points[i].y;
-          const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+          // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
+          const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
           const xMid = (x1 + x2) / 2;
           const yMid = (y1 + y2) / 2;
           const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
@@ -150,8 +160,8 @@ export default class Graph extends React.Component<GraphProps> {
           <div className={classes(css.node, 'graphNode',
             node.id === this.props.selectedNodeId ? css.nodeSelected : '')} key={i}
             onClick={() => this.props.onClick && this.props.onClick(node.id)} style={{
-              left: node.x, maxHeight: node.height, minHeight: node.height,
-              top: node.y, width: node.width,
+              backgroundColor: node.bgColor, left: node.x,
+              maxHeight: node.height, minHeight: node.height, top: node.y, width: node.width,
             }}>
             <div className={css.label}>{node.label}</div>
             <div className={css.icon}>{node.icon}</div>

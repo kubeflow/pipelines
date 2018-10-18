@@ -51,7 +51,7 @@ interface PipelineDetailsProps extends RouteComponentProps {
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
-  selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null;
+  selectedNodeInfo: JSX.Element | null;
   pipeline: apiPipeline | null;
   selectedTab: number;
   selectedNodeId: string;
@@ -173,7 +173,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
             <div className={commonCss.page}>
               {selectedTab === 0 && <div className={commonCss.page}>
                 {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                  <Graph graph={this.state.graph} selectedNodeId={selectedNodeId} onClick={(id) => this._selectNode(id)}/>
+                  <Graph graph={this.state.graph} selectedNodeId={selectedNodeId} onClick={(id) => this._selectNode(id)} />
                   <Slide in={!!selectedNodeId} direction='left'>
                     <Resizable className={css.sidepane} defaultSize={{ width: '70%' }} maxWidth='90%'
                       minWidth={100} enable={{
@@ -201,14 +201,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
 
                           <div className={commonCss.page}>
                             {selectedNodeInfo && <div className={padding(20, 'lr')}>
-                              <div className={commonCss.header}>Input parameters</div>
-                              <DetailsTable fields={selectedNodeInfo.inputs} />
-
-                              <div className={commonCss.header}>Output parameters</div>
-                              <DetailsTable fields={selectedNodeInfo.outputs} />
-
-                              <div className={commonCss.header}>Arguments</div>
-                              {selectedNodeInfo.args.map((arg, i) => <div key={i}>{arg}</div>)}
+                              {this.state.selectedNodeInfo}
                             </div>}
                           </div>
                         </div>
@@ -245,27 +238,35 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
     // TODO: Show spinner while waiting for responses
     await Promise.all([Apis.getPipeline(pipelineId), Apis.getPipelineTemplate(pipelineId)])
       .then(([pipeline, templateResponse]) => {
-          this.setState({
-            pipeline,
-            templateYaml: templateResponse.template,
-          });
+        try {
+          const template: Workflow = JsYaml.safeLoad(templateResponse.template!);
+          let g: dagre.graphlib.Graph | undefined;
           try {
-            const template: Workflow = JsYaml.safeLoad(templateResponse.template!);
-            this.setState({
-              graph: StaticGraphParser.createGraph(template),
-              template
-            });
+            g = StaticGraphParser.createGraph(template);
           } catch (err) {
-            this.props.updateDialog({
-              buttons: [{ text: 'Dismiss' }],
-              content: err.message + '\n\n\n' + templateResponse.template,
-              title: 'Failed to parse pipeline yaml',
+            this.props.updateBanner({
+              additionalInfo: err.message,
+              message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
+              mode: 'error',
             });
           }
-          const toolbarActions = [...this.props.toolbarProps.actions];
-          toolbarActions[0].disabled = false;
-          this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
-        })
+          this.setState({
+            graph: g,
+            pipeline,
+            template,
+            templateYaml: templateResponse.template,
+          });
+        } catch (err) {
+          this.props.updateBanner({
+            additionalInfo: err.message + '\n\n\n' + templateResponse.template,
+            message: 'Failed to parse pipeline yaml',
+            mode: 'error',
+          });
+        }
+        const toolbarActions = [...this.props.toolbarProps.actions];
+        toolbarActions[0].disabled = false;
+        this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
+      })
       .catch((err) => {
         this.props.updateBanner({
           additionalInfo: err.message,
@@ -277,10 +278,55 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
       });
   }
 
-  private _selectNode(id: string) {
+  private _selectNode(id: string): void {
+    let nodeInfoJsx: JSX.Element = <div>Unable to retrieve node info</div>;
+    const nodeInfo = StaticGraphParser.getNodeInfo(this.state.template, id);
+
+    switch (nodeInfo.nodeType) {
+      case 'container':
+        if (nodeInfo.containerInfo) {
+          // TODO: The headers for these DetailsTables should just be a part of DetailsTables
+          nodeInfoJsx =
+            <div>
+              <div className={commonCss.header}>Input parameters</div>
+              <DetailsTable fields={nodeInfo.containerInfo.inputs} />
+
+              <div className={commonCss.header}>Output parameters</div>
+              <DetailsTable fields={nodeInfo.containerInfo.outputs} />
+
+              <div className={commonCss.header}>Arguments</div>
+              {nodeInfo.containerInfo.args.map((arg, i) =>
+                <div key={i} style={{ fontFamily: 'mono' }}>{arg}</div>)}
+
+              <div className={commonCss.header}>Command</div>
+              {nodeInfo.containerInfo.command.map((c, i) => <div key={i}>{c}</div>)}
+
+              <div className={commonCss.header}>Image</div>
+              <div>{nodeInfo.containerInfo.image}</div>
+            </div>;
+        }
+        break;
+      case 'steps':
+        if (nodeInfo.stepsInfo) {
+          nodeInfoJsx =
+            <div>
+              <div className={commonCss.header}>Conditional</div>
+              <div>{nodeInfo.stepsInfo.conditional}</div>
+
+              <div className={commonCss.header}>Parameters</div>
+              <DetailsTable fields={nodeInfo.stepsInfo.parameters} />
+            </div>;
+        }
+        break;
+      default:
+        // TODO: display using error banner within side panel.
+        nodeInfoJsx = <div>{`Node ${id} has unknown node type.`}</div>;
+        logger.error(`Node ${id} has unknown node type.`);
+    }
+
     this.setState({
       selectedNodeId: id,
-      selectedNodeInfo: StaticGraphParser.getNodeInfo(this.state.template, id),
+      selectedNodeInfo: nodeInfoJsx,
     });
   }
 
