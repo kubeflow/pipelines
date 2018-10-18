@@ -15,10 +15,10 @@
 package storage
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/VividCortex/mysqlerr"
 	"github.com/go-sql-driver/mysql"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
@@ -50,11 +50,13 @@ func (s *PipelineStore) ListPipelines(context *common.PaginationContext) ([]mode
 }
 
 func (s *PipelineStore) queryPipelineTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
-	var query bytes.Buffer
-	query.WriteString(fmt.Sprintf("SELECT * FROM pipelines WHERE Status = '%v' ", model.PipelineReady))
-	toPaginationQuery("AND", &query, context)
-	query.WriteString(fmt.Sprintf(" LIMIT %v", context.PageSize))
-	r, err := s.db.Query(query.String())
+	sqlBuilder := sq.Select("*").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
+	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to list pipelines: %v",
+			err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list pipelines: %v", err.Error())
 	}
@@ -91,7 +93,16 @@ func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {
 }
 
 func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error) {
-	r, err := s.db.Query("SELECT * FROM pipelines WHERE uuid=? AND status=? LIMIT 1", id, status)
+	sql, args, err := sq.
+		Select("*").
+		From("pipelines").
+		Where(sq.Eq{"uuid": id}).
+		Where(sq.Eq{"status": status}).
+		Limit(1).ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get pipeline: %v", err.Error())
+	}
+	r, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get pipeline: %v", err.Error())
 	}
@@ -108,7 +119,12 @@ func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineSt
 }
 
 func (s *PipelineStore) DeletePipeline(id string) error {
-	_, err := s.db.Exec(`DELETE FROM pipelines WHERE UUID=?`, id)
+	sql, args, err := sq.Delete("pipelines").Where(sq.Eq{"UUID": id}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete pipeline: %v", err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete pipeline: %v", err.Error())
 	}
@@ -124,32 +140,44 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 		return nil, util.NewInternalServerError(err, "Failed to create a pipeline id.")
 	}
 	newPipeline.UUID = id.String()
-	stmt, err := s.db.Prepare(
-		`INSERT INTO pipelines (UUID, CreatedAtInSec,Name,Description,Parameters,Status)
-						VALUES (?,?,?,?,?,?)`)
+	sql, args, err := sq.
+		Insert("pipelines").
+		SetMap(
+			sq.Eq{
+				"UUID":           newPipeline.UUID,
+				"CreatedAtInSec": newPipeline.CreatedAtInSec,
+				"Name":           newPipeline.Name,
+				"Description":    newPipeline.Description,
+				"Parameters":     newPipeline.Parameters,
+				"Status":         string(newPipeline.Status)}).
+		ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to add pipeline to pipeline table: %v",
+		return nil, util.NewInternalServerError(err, "Failed to create query to insert pipeline to pipeline table: %v",
 			err.Error())
 	}
-	defer stmt.Close()
-	_, err = stmt.Exec(
-		newPipeline.UUID,
-		newPipeline.CreatedAtInSec,
-		newPipeline.Name,
-		newPipeline.Description,
-		newPipeline.Parameters,
-		string(newPipeline.Status))
+	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		if e, ok := err.(*mysql.MySQLError); ok && e.Number == mysqlerr.ER_DUP_ENTRY {
 			return nil, util.NewInvalidInputError(
 				"Failed to create a new pipeline. The name %v already exist. Please specify a new name.", p.Name)
 		}
+		return nil, util.NewInternalServerError(err, "Failed to add pipeline to pipeline table: %v",
+			err.Error())
 	}
 	return &newPipeline, nil
 }
 
 func (s *PipelineStore) UpdatePipelineStatus(id string, status model.PipelineStatus) error {
-	_, err := s.db.Exec(`UPDATE pipelines SET Status=? WHERE UUID=?`, status, id)
+	sql, args, err := sq.
+		Update("pipelines").
+		SetMap(sq.Eq{"Status": status}).
+		Where(sq.Eq{"UUID": id}).
+		ToSql()
+	println(sql)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to update the pipeline metadata: %s", err.Error())
+	}
+	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to update the pipeline metadata: %s", err.Error())
 	}

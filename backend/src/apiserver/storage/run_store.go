@@ -15,11 +15,10 @@
 package storage
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 
-	"github.com/Masterminds/squirrel"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -51,16 +50,17 @@ func (s *RunStore) ListRuns(jobId *string, context *common.PaginationContext) ([
 }
 
 func (s *RunStore) queryRunTable(jobId *string, context *common.PaginationContext) ([]model.ListableDataModel, error) {
-	var query bytes.Buffer
-	query.WriteString("SELECT * FROM run_details ")
+	sqlBuilder := sq.Select("*").From("run_details")
 	if jobId != nil {
-		query.WriteString("WHERE " + fmt.Sprintf("JobID = '%s' ", *jobId))
-		toPaginationQuery("AND", &query, context)
-	} else {
-		toPaginationQuery("WHERE", &query, context)
+		sqlBuilder = sqlBuilder.Where(sq.Eq{"JobID": *jobId})
 	}
-	query.WriteString(fmt.Sprintf(" LIMIT %v", context.PageSize))
-	r, err := s.db.Query(query.String())
+	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
+			err.Error())
+	}
+
+	r, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
 	}
@@ -75,10 +75,10 @@ func (s *RunStore) queryRunTable(jobId *string, context *common.PaginationContex
 
 // GetRun Get the run manifest from Workflow CRD
 func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
-	sql, args, err := squirrel.
+	sql, args, err := sq.
 		Select("*").
 		From("run_details").
-		Where(squirrel.Eq{"uuid": runId}).
+		Where(sq.Eq{"uuid": runId}).
 		Limit(1).
 		ToSql()
 	if err != nil {
@@ -131,12 +131,19 @@ func (s *RunStore) createRun(
 	scheduledAtInSec int64,
 	condition string,
 	workflow string) (err error) {
-	sql, args, err := squirrel.
+	sql, args, err := sq.
 		Insert("run_details").
-		Columns("UUID", "Name", "Namespace", "JobID", "CreatedAtInSec", "ScheduledAtInSec", "Conditions", "Workflow").
-		Values(workflowUID, name, namespace, jobID, createdAtInSec, scheduledAtInSec, condition, workflow).ToSql()
+		SetMap(sq.Eq{
+			"UUID":             workflowUID,
+			"Name":             name,
+			"Namespace":        namespace,
+			"JobID":            jobID,
+			"CreatedAtInSec":   createdAtInSec,
+			"ScheduledAtInSec": scheduledAtInSec,
+			"Conditions":       condition,
+			"Workflow":         workflow}).ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err, "Error while creating run using workflow: %v, %+v",
+		return util.NewInternalServerError(err, "Failed to create query while creating run using workflow: %v, %s",
 			err, workflow)
 	}
 	_, err = s.db.Exec(sql, args...)
@@ -176,32 +183,24 @@ func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
 	}
 
 	// If creating the run did not work, attempting to update the run in the DB.
-
-	stmt, err := s.db.Prepare(`UPDATE run_details SET 
-		Name = ?,
-		Namespace = ?,
-		JobID = ?,
-		CreatedAtInSec = ?,
-		ScheduledAtInSec = ?,
-		Conditions = ?,
-		Workflow = ?
-		WHERE UUID = ?`)
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"Name":             workflow.Name,
+			"Namespace":        workflow.Namespace,
+			"JobID":            ownerUID,
+			"CreatedAtInSec":   workflow.CreationTimestamp.Unix(),
+			"ScheduledAtInSec": scheduledAtInSec,
+			"Conditions":       condition,
+			"Workflow":         string(marshalledWorkflow)}).
+		Where(sq.Eq{"UUID": string(workflow.UID)}).
+		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
+			"Failed to create query while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
 			workflow.Namespace, workflow.Name, createError.Error(), err.Error())
 	}
-	defer stmt.Close()
-	_, err = stmt.Exec(
-		workflow.Name,
-		workflow.Namespace,
-		ownerUID,
-		workflow.CreationTimestamp.Unix(),
-		scheduledAtInSec,
-		condition,
-		string(marshalledWorkflow),
-		string(workflow.UID))
-
+	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",

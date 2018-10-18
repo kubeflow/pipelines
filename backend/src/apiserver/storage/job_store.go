@@ -15,25 +15,15 @@
 package storage
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/VividCortex/mysqlerr"
 	"github.com/go-sql-driver/mysql"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
-)
-
-const (
-	insertJobQuery = `INSERT INTO job_details(
-					UUID,DisplayName,Name,Namespace,Description,
-          PipelineId,Enabled,Conditions,MaxConcurrency,
-          CronScheduleStartTimeInSec,CronScheduleEndTimeInSec,Schedule,
-          PeriodicScheduleStartTimeInSec,PeriodicScheduleEndTimeInSec,IntervalSecond,
-          Parameters,CreatedAtInSec,UpdatedAtInSec,ScheduledWorkflow) 
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 )
 
 type JobStoreInterface interface {
@@ -59,12 +49,13 @@ func (s *JobStore) ListJobs(context *common.PaginationContext) ([]model.Job, str
 }
 
 func (s *JobStore) queryJobTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
-	var query bytes.Buffer
-	query.WriteString(fmt.Sprintf("SELECT * FROM job_details "))
-	toPaginationQuery("WHERE", &query, context)
-	query.WriteString(fmt.Sprintf(" LIMIT %v", context.PageSize))
-
-	rows, err := s.db.Query(query.String())
+	sqlBuilder := sq.Select("*").From("job_details")
+	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
+			err.Error())
+	}
+	rows, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v",
 			err.Error())
@@ -79,7 +70,17 @@ func (s *JobStore) queryJobTable(context *common.PaginationContext) ([]model.Lis
 }
 
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
-	row, err := s.db.Query(`SELECT * FROM job_details WHERE uuid=? LIMIT 1`, id)
+	sql, args, err := sq.
+		Select("*").
+		From("job_details").
+		Where(sq.Eq{"uuid": id}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get job: %v",
+			err.Error())
+	}
+	row, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get job: %v",
 			err.Error())
@@ -159,18 +160,34 @@ func (s *JobStore) CreateJob(p *model.Job) (*model.Job, error) {
 	now := s.time.Now().Unix()
 	newJob.CreatedAtInSec = now
 	newJob.UpdatedAtInSec = now
-	stmt, err := s.db.Prepare(insertJobQuery)
+	sql, args, err := sq.
+		Insert("job_details").
+		SetMap(sq.Eq{
+			"UUID":                           newJob.UUID,
+			"DisplayName":                    newJob.DisplayName,
+			"Name":                           newJob.Name,
+			"Namespace":                      newJob.Namespace,
+			"Description":                    newJob.Description,
+			"PipelineId":                     newJob.PipelineId,
+			"Enabled":                        newJob.Enabled,
+			"Conditions":                     newJob.Conditions,
+			"MaxConcurrency":                 newJob.MaxConcurrency,
+			"CronScheduleStartTimeInSec":     PointerToNullInt64(newJob.CronScheduleStartTimeInSec),
+			"CronScheduleEndTimeInSec":       PointerToNullInt64(newJob.CronScheduleEndTimeInSec),
+			"Schedule":                       PointerToNullString(newJob.Cron),
+			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(newJob.PeriodicScheduleStartTimeInSec),
+			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(newJob.PeriodicScheduleEndTimeInSec),
+			"IntervalSecond":                 PointerToNullInt64(newJob.IntervalSecond),
+			"Parameters":                     newJob.Parameters,
+			"CreatedAtInSec":                 newJob.CreatedAtInSec,
+			"UpdatedAtInSec":                 newJob.UpdatedAtInSec,
+			"ScheduledWorkflow":              newJob.ScheduledWorkflow}).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to add job to job table: %v",
+		return nil, util.NewInternalServerError(err, "Failed to create query to add job to job table: %v",
 			err.Error())
 	}
-	defer stmt.Close()
-	if _, err := stmt.Exec(
-		newJob.UUID, newJob.DisplayName, newJob.Name, newJob.Namespace, newJob.Description,
-		newJob.PipelineId, newJob.Enabled, newJob.Conditions, newJob.MaxConcurrency,
-		PointerToNullInt64(newJob.CronScheduleStartTimeInSec), PointerToNullInt64(newJob.CronScheduleEndTimeInSec), PointerToNullString(newJob.Cron),
-		PointerToNullInt64(newJob.PeriodicScheduleStartTimeInSec), PointerToNullInt64(newJob.PeriodicScheduleEndTimeInSec), PointerToNullInt64(newJob.IntervalSecond),
-		newJob.Parameters, newJob.CreatedAtInSec, newJob.UpdatedAtInSec, newJob.ScheduledWorkflow); err != nil {
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
 		if sqlError, ok := err.(*mysql.MySQLError); ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY {
 			return nil, util.NewInvalidInputError(
 				"Failed to create a new job. The name %v already exist. Please specify a new name.", p.DisplayName)
@@ -183,12 +200,19 @@ func (s *JobStore) CreateJob(p *model.Job) (*model.Job, error) {
 
 func (s *JobStore) EnableJob(id string, enabled bool) error {
 	now := s.time.Now().Unix()
-	stmt, err := s.db.Prepare(`UPDATE job_details SET Enabled=?, UpdatedAtInSec=? WHERE UUID=? and Enabled=?`)
+	sql, args, err := sq.
+		Update("job_details").
+		SetMap(sq.Eq{
+			"Enabled":        enabled,
+			"UpdatedAtInSec": now}).
+		Where(sq.Eq{"UUID": string(id)}).
+		Where(sq.Eq{"Enabled": !enabled}).
+		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err, "Error when enabling job %v to %v", id, enabled)
+		return util.NewInternalServerError(err, "Error when creating query to enable job %v to %v", id, enabled)
 	}
-	defer stmt.Close()
-	if _, err := stmt.Exec(enabled, now, id, !enabled); err != nil {
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
 		return util.NewInternalServerError(err, "Error when enabling job %v to %v", id, enabled)
 	}
 	return nil
@@ -212,42 +236,31 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	if err != nil {
 		return err
 	}
-	stmt, err := s.db.Prepare(`UPDATE job_details SET 
-		Name = ?,
-		Namespace = ?,
-		Enabled = ?,
-		Conditions = ?,
-		MaxConcurrency = ?,
-		Parameters = ?,
-		UpdatedAtInSec = ?,
-		CronScheduleStartTimeInSec = ?,
-		CronScheduleEndTimeInSec = ?,
-		Schedule = ?,
-		PeriodicScheduleStartTimeInSec = ?,
-		PeriodicScheduleEndTimeInSec = ?,
-		IntervalSecond = ? 
-		WHERE UUID = ?`)
+
+	sql, args, err := sq.
+		Update("job_details").
+		SetMap(sq.Eq{
+			"Name":                           swf.Name,
+			"Namespace":                      swf.Namespace,
+			"Enabled":                        swf.Spec.Enabled,
+			"Conditions":                     swf.ConditionSummary(),
+			"MaxConcurrency":                 swf.MaxConcurrencyOr0(),
+			"Parameters":                     parameters,
+			"UpdatedAtInSec":                 now,
+			"CronScheduleStartTimeInSec":     PointerToNullInt64(swf.CronScheduleStartTimeInSecOrNull()),
+			"CronScheduleEndTimeInSec":       PointerToNullInt64(swf.CronScheduleEndTimeInSecOrNull()),
+			"Schedule":                       swf.CronOrEmpty(),
+			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
+			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
+			"IntervalSecond":                 swf.IntervalSecondOr0()}).
+		Where(sq.Eq{"UUID": string(swf.UID)}).
+		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Error while updating job with scheduled workflow: %v: %+v",
+			"Error while creating query to update job with scheduled workflow: %v: %+v",
 			err, swf.ScheduledWorkflow)
 	}
-	defer stmt.Close()
-	r, err := stmt.Exec(
-		swf.Name,
-		swf.Namespace,
-		swf.Spec.Enabled,
-		swf.ConditionSummary(),
-		swf.MaxConcurrencyOr0(),
-		parameters,
-		now,
-		PointerToNullInt64(swf.CronScheduleStartTimeInSecOrNull()),
-		PointerToNullInt64(swf.CronScheduleEndTimeInSecOrNull()),
-		swf.CronOrEmpty(),
-		PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
-		PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
-		swf.IntervalSecondOr0(),
-		string(swf.UID))
+	r, err := s.db.Exec(sql, args...)
 
 	if err != nil {
 		return util.NewInternalServerError(err,

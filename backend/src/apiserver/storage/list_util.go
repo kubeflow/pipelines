@@ -20,8 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"bytes"
-
+	sq "github.com/Masterminds/squirrel"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -69,20 +68,28 @@ func toNextPageToken(sortByFieldName string, model model.ListableDataModel) (str
 // {sortByFieldName "name", keyFieldName:"id", token: {SortByFieldValue: "foo", KeyFieldValue: "2"}}
 // This function construct query as something like
 // select * from table where (name, id)>=("foo","2") order by name, id
-func toPaginationQuery(op string, query *bytes.Buffer, context *common.PaginationContext) {
-	equalitySymbol := ">="
-	if context.IsDesc {
-		equalitySymbol = "<="
-	}
+func toPaginationQuery(selectBuilder sq.SelectBuilder, context *common.PaginationContext) sq.SelectBuilder {
 	if token := context.Token; token != nil {
-		query.WriteString(
-			fmt.Sprintf(" %v (%v,%v) %v ('%v','%v') ", op,
-				context.SortByFieldName, context.KeyFieldName, equalitySymbol,
-				token.SortByFieldValue, token.KeyFieldValue))
+		if context.IsDesc {
+			selectBuilder = selectBuilder.
+				Where(
+					sq.LtOrEq{
+						context.SortByFieldName: token.SortByFieldValue,
+						context.KeyFieldName:    token.KeyFieldValue})
+		} else {
+			selectBuilder = selectBuilder.
+				Where(
+					sq.GtOrEq{
+						context.SortByFieldName: token.SortByFieldValue,
+						context.KeyFieldName:    token.KeyFieldValue})
+		}
 	}
 	order := "ASC"
 	if context.IsDesc {
 		order = "DESC"
 	}
-	query.WriteString(fmt.Sprintf(" ORDER BY %v %v, %v %v", context.SortByFieldName, order, context.KeyFieldName, order))
+	selectBuilder = selectBuilder.
+		OrderBy(fmt.Sprintf("%v %v", context.SortByFieldName, order)).
+		OrderBy(fmt.Sprintf("%v %v", context.KeyFieldName, order))
+	return selectBuilder
 }
