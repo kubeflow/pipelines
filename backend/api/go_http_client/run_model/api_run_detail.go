@@ -30,16 +30,23 @@ import (
 // swagger:model apiRunDetail
 type APIRunDetail struct {
 
+	// pipeline runtime
+	PipelineRuntime *APIPipelineRuntime `json:"pipeline_runtime,omitempty"`
+
 	// run
 	Run *APIRun `json:"run,omitempty"`
 
-	// workflow
+	// TODO(yangpa): Following will be deprecated in v1beta1
 	Workflow string `json:"workflow,omitempty"`
 }
 
 // Validate validates this api run detail
 func (m *APIRunDetail) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validatePipelineRuntime(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateRun(formats); err != nil {
 		res = append(res, err)
@@ -48,6 +55,24 @@ func (m *APIRunDetail) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *APIRunDetail) validatePipelineRuntime(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.PipelineRuntime) { // not required
+		return nil
+	}
+
+	if m.PipelineRuntime != nil {
+		if err := m.PipelineRuntime.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline_runtime")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

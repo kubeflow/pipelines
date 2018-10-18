@@ -33,7 +33,6 @@ func toClientAPIRun(run servermodel.Run) *clientmodel.APIRun {
 		CreatedAt:   toDateTimeTestOnly(run.CreatedAtInSec),
 		ID:          run.JobID,
 		Name:        run.Name,
-		Namespace:   run.Namespace,
 		ScheduledAt: toDateTimeTestOnly(run.ScheduledAtInSec),
 		Status:      run.Conditions,
 	}

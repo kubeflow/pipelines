@@ -60,6 +60,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor))
 	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager))
+	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager))
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
 	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
 	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
@@ -82,6 +83,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// Create gRPC HTTP MUX and register services.
 	mux := runtime.NewServeMux()
 	registerHttpHandlerFromEndpoint(api.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, mux)
+	registerHttpHandlerFromEndpoint(api.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, mux)

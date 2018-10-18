@@ -65,7 +65,7 @@ func NewDeleteJobOK() *DeleteJobOK {
 
 /*DeleteJobOK handles this case with default header values.
 
-DeleteJobOK delete job o k
+A successful response.
 */
 type DeleteJobOK struct {
 	Payload job_model.ProtobufEmpty

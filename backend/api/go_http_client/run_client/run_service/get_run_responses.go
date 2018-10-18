@@ -65,7 +65,7 @@ func NewGetRunOK() *GetRunOK {
 
 /*GetRunOK handles this case with default header values.
 
-GetRunOK get run o k
+A successful response.
 */
 type GetRunOK struct {
 	Payload *run_model.APIRunDetail

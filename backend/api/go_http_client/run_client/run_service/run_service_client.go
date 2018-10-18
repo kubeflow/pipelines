@@ -39,7 +39,7 @@ type Client struct {
 }
 
 /*
-GetRun get run API
+GetRun ts o d o yangpa this will be deprecated in v1beta1
 */
 func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWriter) (*GetRunOK, error) {
 	// TODO: Validate the params before sending

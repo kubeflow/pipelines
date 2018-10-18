@@ -20,7 +20,7 @@
         "operationId": "ListPipelines",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/apiListPipelinesResponse"
             }
@@ -62,7 +62,7 @@
         "operationId": "CreatePipeline",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/apiPipeline"
             }
@@ -94,7 +94,7 @@
         "operationId": "GetPipeline",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/apiPipeline"
             }
@@ -122,7 +122,7 @@
         "operationId": "DeletePipeline",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/protobufEmpty"
             }
@@ -152,7 +152,7 @@
         "operationId": "GetTemplate",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/apiGetTemplateResponse"
             }

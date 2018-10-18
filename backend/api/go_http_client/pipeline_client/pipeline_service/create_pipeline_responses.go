@@ -65,7 +65,7 @@ func NewCreatePipelineOK() *CreatePipelineOK {
 
 /*CreatePipelineOK handles this case with default header values.
 
-CreatePipelineOK create pipeline o k
+A successful response.
 */
 type CreatePipelineOK struct {
 	Payload *pipeline_model.APIPipeline

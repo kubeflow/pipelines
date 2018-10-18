@@ -65,7 +65,7 @@ func NewCreateJobOK() *CreateJobOK {
 
 /*CreateJobOK handles this case with default header values.
 
-CreateJobOK create job o k
+A successful response.
 */
 type CreateJobOK struct {
 	Payload *job_model.APIJob

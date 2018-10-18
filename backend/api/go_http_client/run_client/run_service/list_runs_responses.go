@@ -65,7 +65,7 @@ func NewListRunsOK() *ListRunsOK {
 
 /*ListRunsOK handles this case with default header values.
 
-ListRunsOK list runs o k
+A successful response.
 */
 type ListRunsOK struct {
 	Payload *run_model.APIListRunsResponse

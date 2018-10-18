@@ -22,6 +22,7 @@ run:
   created_at: "1970-01-01T00:00:00.000Z"
   id: RUN_DEFAULT
   name: RUN_NAME
+  resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"
 
 workflow:
@@ -69,14 +70,17 @@ SUCCESS
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "100"
   name: MY_FIRST_RUN
+  resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "101"
   name: MY_SECOND_RUN
+  resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "102"
   name: MY_THIRD_RUN
+  resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"
 `
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
@@ -95,6 +99,7 @@ SUCCESS
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "100"
   name: MY_FIRST_RUN
+  resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"
 `
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))

@@ -65,7 +65,7 @@ func NewListPipelinesOK() *ListPipelinesOK {
 
 /*ListPipelinesOK handles this case with default header values.
 
-ListPipelinesOK list pipelines o k
+A successful response.
 */
 type ListPipelinesOK struct {
 	Payload *pipeline_model.APIListPipelinesResponse

@@ -71,7 +71,6 @@ func TestToApiRunDetail(t *testing.T) {
 		Run: &api.Run{
 			Id:          "run123",
 			Name:        "name123",
-			Namespace:   "ns123",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
 			Status:      "running",
@@ -106,7 +105,6 @@ func TestToApiRuns(t *testing.T) {
 		{
 			Id:          "run1",
 			Name:        "name1",
-			Namespace:   "ns1",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
 			Status:      "running",
@@ -115,7 +113,6 @@ func TestToApiRuns(t *testing.T) {
 		{
 			Id:          "run2",
 			Name:        "name2",
-			Namespace:   "ns2",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 2},
 			Status:      "done",

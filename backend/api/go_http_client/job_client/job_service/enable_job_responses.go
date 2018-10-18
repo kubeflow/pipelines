@@ -65,7 +65,7 @@ func NewEnableJobOK() *EnableJobOK {
 
 /*EnableJobOK handles this case with default header values.
 
-EnableJobOK enable job o k
+A successful response.
 */
 type EnableJobOK struct {
 	Payload job_model.ProtobufEmpty

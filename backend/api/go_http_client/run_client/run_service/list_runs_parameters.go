@@ -81,6 +81,12 @@ type ListRunsParams struct {
 	PageSize *int32
 	/*PageToken*/
 	PageToken *string
+	/*ResourceReference
+	  What resource reference to filter on. Expect {type=XX,id=XX}
+	E.g. Listing job for an experiment would be {type=EXPERIMENT,id=123}.
+
+	*/
+	ResourceReference *string
 	/*SortBy
 	  Can be format of "field_name", "field_name asc" or "field_name des"
 	Ascending by default.
@@ -148,6 +154,17 @@ func (o *ListRunsParams) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
+// WithResourceReference adds the resourceReference to the list runs params
+func (o *ListRunsParams) WithResourceReference(resourceReference *string) *ListRunsParams {
+	o.SetResourceReference(resourceReference)
+	return o
+}
+
+// SetResourceReference adds the resourceReference to the list runs params
+func (o *ListRunsParams) SetResourceReference(resourceReference *string) {
+	o.ResourceReference = resourceReference
+}
+
 // WithSortBy adds the sortBy to the list runs params
 func (o *ListRunsParams) WithSortBy(sortBy *string) *ListRunsParams {
 	o.SetSortBy(sortBy)
@@ -193,6 +210,22 @@ func (o *ListRunsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 		qPageToken := qrPageToken
 		if qPageToken != "" {
 			if err := r.SetQueryParam("page_token", qPageToken); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.ResourceReference != nil {
+
+		// query param resource_reference
+		var qrResourceReference string
+		if o.ResourceReference != nil {
+			qrResourceReference = *o.ResourceReference
+		}
+		qResourceReference := qrResourceReference
+		if qResourceReference != "" {
+			if err := r.SetQueryParam("resource_reference", qResourceReference); err != nil {
 				return err
 			}
 		}

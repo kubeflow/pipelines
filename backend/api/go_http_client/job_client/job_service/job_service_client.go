@@ -184,7 +184,7 @@ func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
-ListJobRuns list job runs API
+ListJobRuns ts o d o yangpa this will be deprecated in public beta
 */
 func (a *Client) ListJobRuns(params *ListJobRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobRunsOK, error) {
 	// TODO: Validate the params before sending

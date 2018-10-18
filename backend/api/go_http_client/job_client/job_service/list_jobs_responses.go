@@ -65,7 +65,7 @@ func NewListJobsOK() *ListJobsOK {
 
 /*ListJobsOK handles this case with default header values.
 
-ListJobsOK list jobs o k
+A successful response.
 */
 type ListJobsOK struct {
 	Payload *job_model.APIListJobsResponse

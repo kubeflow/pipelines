@@ -20,7 +20,7 @@
         "operationId": "ReportScheduledWorkflow",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/protobufEmpty"
             }
@@ -47,7 +47,7 @@
         "operationId": "ReportWorkflow",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/protobufEmpty"
             }

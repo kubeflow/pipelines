@@ -65,7 +65,7 @@ func NewGetTemplateOK() *GetTemplateOK {
 
 /*GetTemplateOK handles this case with default header values.
 
-GetTemplateOK get template o k
+A successful response.
 */
 type GetTemplateOK struct {
 	Payload *pipeline_model.APIGetTemplateResponse

@@ -65,7 +65,7 @@ func NewDeletePipelineOK() *DeletePipelineOK {
 
 /*DeletePipelineOK handles this case with default header values.
 
-DeletePipelineOK delete pipeline o k
+A successful response.
 */
 type DeletePipelineOK struct {
 	Payload pipeline_model.ProtobufEmpty

@@ -65,7 +65,7 @@ func NewGetPipelineOK() *GetPipelineOK {
 
 /*GetPipelineOK handles this case with default header values.
 
-GetPipelineOK get pipeline o k
+A successful response.
 */
 type GetPipelineOK struct {
 	Payload *pipeline_model.APIPipeline

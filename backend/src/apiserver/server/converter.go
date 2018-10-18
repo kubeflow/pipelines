@@ -90,7 +90,6 @@ func toApiRun(run *model.Run) *api.Run {
 	return &api.Run{
 		Id:          run.UUID,
 		Name:        run.Name,
-		Namespace:   run.Namespace,
 		CreatedAt:   &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
 		ScheduledAt: &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
 		Status:      run.Conditions,
