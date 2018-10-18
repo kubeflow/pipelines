@@ -83,6 +83,7 @@ export const css = stylesheet({
     color: color.alert,
     height: 18,
     paddingRight: 4,
+    verticalAlign: 'sub',
     width: 18,
   },
   row: {

@@ -48,7 +48,7 @@ exports.config = {
   },
   services: debug ? ['selenium-standalone'] : [],
   specs: [
-    './kubeflow-classification.spec.js',
+    './helloworld.spec.js',
   ],
   sync: true,
   waitforTimeout: 10000,

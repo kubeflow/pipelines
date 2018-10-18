@@ -15,12 +15,10 @@
 const assert = require('assert');
 const URL = require('url').URL;
 
-const jobName = 'tfjob-classification-' + Date.now();
+const jobName = 'helloworld-' + Date.now();
 const jobDescription = 'test job description ' + jobName;
 const waitTimeout = 5000;
-
-const outputDir = process.env.PIPELINE_OUTPUT || 'sample/output';
-//let tensorboardAddress = '';
+const parameter = 'Hello world in test'
 
 function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
@@ -29,7 +27,7 @@ function getValueFromDetailsTable(key) {
   return row.getText().substr(`${key}\n`.length);
 }
 
-describe('deploy tfjob sample job', () => {
+describe('deploy helloworld sample job', () => {
 
   before(() => {
     browser.url('/');
@@ -40,11 +38,11 @@ describe('deploy tfjob sample job', () => {
     browser.waitForVisible('#uploadDialog', waitTimeout);
   });
 
-  it('uploads the kubeflow classfication sample pipeline', () => {
-    browser.chooseFile('#uploadDialog input', './kubeflow-classification.yaml');
+  it('uploads the sample pipeline', () => {
+    browser.chooseFile('#uploadDialog input', './helloworld.yaml');
     const input = $('#uploadDialog input[type="text"]');
     input.clearElement();
-    input.setValue('kubeflow-classification-pipeline');
+    input.setValue('helloworld-pipeline');
     $('#confirmUploadBtn').click();
     browser.waitForVisible('#uploadDialog', waitTimeout, true);
   });
@@ -65,7 +63,7 @@ describe('deploy tfjob sample job', () => {
     browser.keys('Tab');
     browser.keys('Tab');
 
-    browser.keys(outputDir);
+    browser.keys(parameter);
 
     // Deploy
     $('button=Deploy').click();   
@@ -102,9 +100,9 @@ describe('deploy tfjob sample job', () => {
       'job created date should be within the last five seconds');
   });
 
-  it('displays job output directory correctly', () => {
-    const output = getValueFromDetailsTable('output');
-    assert.equal(output, outputDir, 'job output directory is not shown correctly');
+  it('displays job message correctly', () => {
+    const message = getValueFromDetailsTable('message');
+    assert.equal(message, parameter, 'job message is not shown correctly');
   });
 
   it('switches to run list tab', () => {
@@ -129,8 +127,8 @@ describe('deploy tfjob sample job', () => {
     assert(items && items.length > 0, 'only one run should show up');
 
     const runName = browser.getText(selector + ' div')[1];
-    assert(runName.startsWith('job-tfjob-classification'),
-      'run name should start with job-tfjob-classification');
+    assert(runName.startsWith('job-helloworld'),
+      'run name should start with job-helloworld');
   });
 
   it('opens run details', () => {
@@ -141,17 +139,17 @@ describe('deploy tfjob sample job', () => {
     }, waitTimeout);
   });
 
-  it('waits until the whole job is complete', () => {
+  it('waits until the whole run is complete', () => {
     const nodeSelector = '.graphNode';
 
     let attempts = 0;
 
-    const maxAttempts = 240;
+    const maxAttempts = 30;
 
     while (attempts < maxAttempts && $$(nodeSelector).length < 4) {
       $('button=Refresh').click();
       // Wait for a reasonable amount of time until the run is done
-      browser.pause(5000);
+      browser.pause(1000);
       attempts++;
     }
 
