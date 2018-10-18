@@ -175,7 +175,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
                 {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
                   <Graph graph={this.state.graph} selectedNodeId={selectedNodeId} onClick={(id) => this._selectNode(id)} />
                   <Slide in={!!selectedNodeId} direction='left'>
-                    <Resizable className={css.sidepane} defaultSize={{ width: '70%' }} maxWidth='90%'
+                    <Resizable className={css.sidepane} defaultSize={{ width: '40%' }} maxWidth='90%'
                       minWidth={100} enable={{
                         bottom: false,
                         bottomLeft: false,

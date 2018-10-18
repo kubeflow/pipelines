@@ -25,9 +25,12 @@
   },
   "scripts": {
     "analyze-bundle": "node analyze_bundle.js",
-    "apis": "npm run apis:pipeline && npm run apis:job && npm run apis:run",
+    "apis": "npm run apis:pipeline && npm run apis:pipeline-spec && npm run apis:job && npm run apis:experiment && npm run apis:resource-reference && npm run apis:run",
+    "apis:experiment": "swagger-ts-client -s ../backend/api/swagger/experiment.swagger.json -t ./src/api/experiment.ts -o ./src/api",
     "apis:job": "swagger-ts-client -s ../backend/api/swagger/job.swagger.json -t ./src/api/job.ts -o ./src/api",
     "apis:pipeline": "swagger-ts-client -s ../backend/api/swagger/pipeline.swagger.json -t ./src/api/pipeline.ts -o ./src/api",
+    "apis:pipeline-spec": "swagger-ts-client -s ../backend/api/swagger/pipeline_spec.swagger.json -t ./src/api/pipeline_spec.ts -o ./src/api",
+    "apis:resource-reference": "swagger-ts-client -s ../backend/api/swagger/resource_reference.swagger.json -t ./src/api/resource_reference.ts -o ./src/api",
     "apis:run": "swagger-ts-client -s ../backend/api/swagger/run.swagger.json -t ./src/api/run.ts -o ./src/api",
     "build": "npm run apis && react-scripts-ts build",
     "coverage": "npm run test -- --env=jsdom --coverage",

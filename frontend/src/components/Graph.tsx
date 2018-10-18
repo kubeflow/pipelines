@@ -44,7 +44,6 @@ const css = stylesheet({
   label: {
     flexGrow: 1,
     fontSize: 15,
-    fontWeight: 'bold',
     lineHeight: '2em',
     margin: 'auto',
     overflow: 'hidden',
@@ -79,7 +78,7 @@ const css = stylesheet({
       },
     },
     backgroundColor: color.background,
-    border: `solid 2px ${color.theme}`,
+    border: `solid 1px ${color.theme}`,
     borderRadius: 5,
     boxShadow: '1px 1px 5px #aaa',
     boxSizing: 'content-box',
