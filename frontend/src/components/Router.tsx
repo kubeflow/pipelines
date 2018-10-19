@@ -15,15 +15,15 @@
  */
 
 import * as React from 'react';
-import Compare from '../pages/Compare';
 import Banner, { BannerProps } from '../components/Banner';
 import Button from '@material-ui/core/Button';
+import Compare from '../pages/Compare';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import JobDetails from '../pages/JobDetails';
-import JobList from '../pages/JobList';
+import JobsAndRuns, { JobsAndRunsTab } from '../pages/JobsAndRuns';
 import NewJob from '../pages/NewJob';
 import PipelineDetails from '../pages/PipelineDetails';
 import PipelineList from '../pages/PipelineList';
@@ -32,8 +32,14 @@ import SideNav from './SideNav';
 import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
 import Toolbar, { ToolbarProps } from './Toolbar';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
+import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
-import { classes } from 'typestyle';
+
+const css = stylesheet({
+  dialog: {
+    minWidth: 250,
+  },
+});
 
 export enum RouteParams {
   jobId = 'jid',
@@ -49,6 +55,7 @@ export const RoutePage = {
   NEW_JOB: '/jobs/new',
   PIPELINES: '/pipelines',
   PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}`,
+  RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
 };
 
@@ -77,7 +84,7 @@ class Router extends React.Component<{}, RouteComponentState> {
       bannerProps: {},
       dialogProps: { open: false },
       snackbarProps: { autoHideDuration: 5000, open: false },
-      toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: []},
+      toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: [] },
     };
   }
 
@@ -95,39 +102,42 @@ class Router extends React.Component<{}, RouteComponentState> {
         <div className={commonCss.page}>
           <div className={commonCss.flexGrow}>
             <Route render={({ ...props }) => (<SideNav page={props.location.pathname} {...props} />)} />
-            <div className={classes(commonCss.flexGrow, commonCss.flexColumn)}>
+            <div className={classes(commonCss.page)}>
               <Toolbar {...this.state.toolbarProps} />
               {this.state.bannerProps.message
                 && <Banner
-                      message={this.state.bannerProps.message}
-                      mode={this.state.bannerProps.mode}
-                      additionalInfo={this.state.bannerProps.additionalInfo}
-                      refresh={this.state.bannerProps.refresh}/>}
+                  message={this.state.bannerProps.message}
+                  mode={this.state.bannerProps.mode}
+                  additionalInfo={this.state.bannerProps.additionalInfo}
+                  refresh={this.state.bannerProps.refresh} />}
               <Switch>
                 {/* TODO: clean this up using a for-loop + array or something */}
                 <Route exact={true} path={'/'} render={({ ...props }) => (
-                  <Redirect to={RoutePage.PIPELINES} {...props}/>
+                  <Redirect to={RoutePage.PIPELINES} {...props} />
                 )} />
                 <Route exact={true} path={RoutePage.JOBS} render={({ ...props }) => (
-                  <JobList {...props} {...childProps}/>
+                  <JobsAndRuns {...props} {...childProps} view={JobsAndRunsTab.JOBS} />
                 )} />
                 <Route exact={true} path={RoutePage.JOB_DETAILS} render={({ ...props }) => (
-                  <JobDetails {...props} {...childProps}/>
+                  <JobDetails {...props} {...childProps} />
                 )} />
                 <Route exact={true} path={RoutePage.NEW_JOB} render={({ ...props }) => (
-                  <NewJob {...props} {...childProps}/>
+                  <NewJob {...props} {...childProps} />
                 )} />
                 <Route exact={true} path={RoutePage.PIPELINES} render={({ ...props }) => (
-                  <PipelineList {...props} {...childProps}/>
+                  <PipelineList {...props} {...childProps} />
                 )} />
                 <Route exact={true} path={RoutePage.PIPELINE_DETAILS} render={({ ...props }) => (
-                  <PipelineDetails {...props} {...childProps}/>
+                  <PipelineDetails {...props} {...childProps} />
+                )} />
+                <Route exact={true} path={RoutePage.RUNS} render={({ ...props }) => (
+                  <JobsAndRuns {...props} {...childProps} view={JobsAndRunsTab.RUNS} />
                 )} />
                 <Route exact={true} path={RoutePage.RUN_DETAILS} render={({ ...props }) => (
-                  <RunDetails {...props} {...childProps}/>
+                  <RunDetails {...props} {...childProps} />
                 )} />
                 <Route exact={true} path={RoutePage.COMPARE} render={({ ...props }) => (
-                  <Compare {...props} {...childProps}/>
+                  <Compare {...props} {...childProps} />
                 )} />
               </Switch>
 
@@ -140,18 +150,24 @@ class Router extends React.Component<{}, RouteComponentState> {
             </div>
           </div>
 
-          <Dialog open={this.state.dialogProps.open !== false}
-              onClose={() => this._handleDialogClosed()}>
-            {this.state.dialogProps.title
-              && <DialogTitle> {this.state.dialogProps.title}</DialogTitle>}
-            {this.state.dialogProps.content
-              && <DialogContent className={commonCss.prewrap}>
-                    {this.state.dialogProps.content}
-                  </DialogContent>}
-            {this.state.dialogProps.buttons
-              && <DialogActions>
-                  {this.state.dialogProps.buttons.map((b, i) => <Button key={i} onClick={() => this._handleDialogClosed(b.onClick)}>{b.text}</Button>)}
-                </DialogActions>}
+          <Dialog open={this.state.dialogProps.open !== false} classes={{ paper: css.dialog }}
+            onClose={() => this._handleDialogClosed()}>
+            {this.state.dialogProps.title && (
+              <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
+            )}
+            {this.state.dialogProps.content && (
+              <DialogContent className={commonCss.prewrap}>
+                {this.state.dialogProps.content}
+              </DialogContent>
+            )}
+            {this.state.dialogProps.buttons && (
+              <DialogActions>
+                {this.state.dialogProps.buttons.map((b, i) =>
+                  <Button key={i} onClick={() => this._handleDialogClosed(b.onClick)} color='secondary'>
+                    {b.text}
+                  </Button>)}
+              </DialogActions>
+            )}
           </Dialog>
         </div>
       </BrowserRouter>
@@ -186,12 +202,12 @@ class Router extends React.Component<{}, RouteComponentState> {
 
   private _updateSnackbar(snackbarProps: SnackbarProps): void {
     snackbarProps.autoHideDuration =
-        snackbarProps.autoHideDuration || this.state.snackbarProps.autoHideDuration;
+      snackbarProps.autoHideDuration || this.state.snackbarProps.autoHideDuration;
     this.setState({ snackbarProps });
   }
 
   private _handleSnackbarClose(): void {
-    this.setState({ snackbarProps: { open: false, message: '' }});
+    this.setState({ snackbarProps: { open: false, message: '' } });
   }
 }
 

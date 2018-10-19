@@ -4,8 +4,8 @@ export default class StatusRunning extends React.Component<{ color: string }> {
   public render() {
     return (
       <svg width='14px' height='14px' viewBox='0 0 14 14' version='1.1'>
-        <g id='mlp' stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'>
-          <g id='400_jobs' transform='translate(-452.000000, -309.000000)' fill='#0F9D58' fill-rule='nonzero'>
+        <g id='mlp' stroke='none' strokeWidth='1' fill='none' fillRule='evenodd'>
+          <g id='400_jobs' transform='translate(-452.000000, -309.000000)' fill='#0F9D58' fillRule='nonzero'>
             <g id='Group-17' transform='translate(450.000000, 266.000000)'>
               <g id='Group-16'>
                 <g id='Group-15'>

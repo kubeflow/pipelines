@@ -12,7 +12,7 @@ exports[`Router initial render 1`] = `
         render={[Function]}
       />
       <div
-        className="flexGrow flexColumn"
+        className="page"
       >
         <Toolbar
           actions={Array []}
@@ -58,6 +58,11 @@ exports[`Router initial render 1`] = `
           />
           <Route
             exact={true}
+            path="/runs"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
             path="/runs/details/:rid"
             render={[Function]}
           />
@@ -75,6 +80,11 @@ exports[`Router initial render 1`] = `
       </div>
     </div>
     <WithStyles(Dialog)
+      classes={
+        Object {
+          "paper": "dialog",
+        }
+      }
       onClose={[Function]}
       open={false}
     />

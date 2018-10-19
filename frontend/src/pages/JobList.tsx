@@ -22,9 +22,7 @@ import { BannerProps } from '../components/Banner';
 import CloneIcon from '@material-ui/icons/FileCopy';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import DeleteIcon from '@material-ui/icons/Delete';
-import MD2Tabs from '../atoms/MD2Tabs';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import RunList from './RunList';
 import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
@@ -36,11 +34,6 @@ import { getLastInStatusList, logger } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { statusToIcon, NodePhase } from './Status';
-
-const views = {
-  '': 0,
-  'allRuns': 1,
-};
 
 interface DisplayJob extends apiJob {
   last5Statuses?: string[];
@@ -68,7 +61,6 @@ interface JobListState {
 
 class JobList extends React.Component<JobListProps, JobListState> {
 
-  private _runlistRef = React.createRef<RunList>();
   private _toolbarActions: ToolbarActionConfig[] = [
     {
       action: this._newJobClicked.bind(this),
@@ -131,13 +123,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
     this.props.updateToolbar({ actions: this._toolbarActions, breadcrumbs: [{ displayName: 'Jobs', href: RoutePage.JOBS }] });
   }
 
-  public componentDidMount() {
-    window.addEventListener('hashchange', this._selectTabFromHash.bind(this), false);
-    this._selectTabFromHash();
-  }
-
   public componentWillUnmount() {
-    window.removeEventListener('hashchange', this._selectTabFromHash.bind(this), false);
     this.props.updateBanner({});
   }
 
@@ -178,22 +164,13 @@ class JobList extends React.Component<JobListProps, JobListState> {
       };
     });
 
-    const { selectedTab } = this.state;
-
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <MD2Tabs tabs={['Group by job', 'Show all runs']} selectedTab={selectedTab}
-          onSwitch={this._tabSwitched.bind(this)} />
-        {selectedTab === 0 && (
-          <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
-            updateSelection={this._selectionChanged.bind(this)} sortBy={this.state.sortBy}
-            reload={this._loadJobs.bind(this)} selectedIds={this.state.selectedJobIds}
-            pageSize={this.state.pageSize}
-            emptyMessage='No jobs found. Click "New job" to start.' />
-        )}
-
-        {selectedTab === 1 && <RunList handleError={this._handlePageError.bind(this)}
-          {...this.props} ref={this._runlistRef} disableSelection={true} />}
+        <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
+          updateSelection={this._selectionChanged.bind(this)} sortBy={this.state.sortBy}
+          reload={this._loadJobs.bind(this)} selectedIds={this.state.selectedJobIds}
+          pageSize={this.state.pageSize}
+          emptyMessage='No jobs found. Click "New job" to start.' />
       </div>
     );
   }
@@ -246,11 +223,6 @@ class JobList extends React.Component<JobListProps, JobListState> {
         logger.error(`Error: failed to retrieve pipeline for job: ${job.name}.`, err);
       }
     }));
-
-    // Tell run list to refresh
-    if (this._runlistRef.current) {
-      this._runlistRef.current.refresh();
-    }
 
     // TODO: saw this warning:
     // Warning: Can't call setState (or forceUpdate) on an unmounted component.
@@ -326,25 +298,6 @@ class JobList extends React.Component<JobListProps, JobListState> {
 
       this._selectionChanged(unsuccessfulDeleteIds);
     }
-  }
-
-  private _selectTabFromHash() {
-    const viewParam = UrlParser.from('hash').get(UrlParser.QUERY_PARAMS.view) || '';
-    let selectedTab = views[viewParam];
-
-    if (selectedTab === undefined) {
-      UrlParser.from('hash').clear(UrlParser.QUERY_PARAMS.view);
-      selectedTab = views[''];
-    }
-
-    this.setState({ selectedTab });
-  }
-
-  private _tabSwitched(newTab: number) {
-    const view = Object.keys(views).find(k => views[k] === newTab) || '';
-    UrlParser.from('hash').push(UrlParser.QUERY_PARAMS.view, view);
-
-    this.setState({ selectedTab: newTab });
   }
 
   private _nameCustomRenderer(value: string, id: string) {
