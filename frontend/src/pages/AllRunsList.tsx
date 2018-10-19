@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import * as UrlParser from '../lib/UrlParser';
 import CloneIcon from '@material-ui/icons/FileCopy';
 import CompareIcon from '@material-ui/icons/CompareArrows';
 import RefreshIcon from '@material-ui/icons/Refresh';
@@ -24,6 +23,7 @@ import { BannerProps } from '../components/Banner';
 import { RoutePage } from '../components/Router';
 import { RouteComponentProps } from 'react-router';
 import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 
@@ -96,8 +96,8 @@ class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
     const indices = this.state.selectedIds;
     if (indices.length > 1 && indices.length <= 10) {
       const runIds = this.state.selectedIds.join(',');
-      const searchString = UrlParser.from('search').build({
-        [UrlParser.QUERY_PARAMS.runlist]: runIds,
+      const searchString = new URLParser(this.props).build({
+        [QUERY_PARAMS.runlist]: runIds,
       });
       this.props.history.push(RoutePage.COMPARE + searchString);
     }
@@ -130,8 +130,8 @@ class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
   private _cloneRun() {
     if (this.state.selectedIds.length === 1) {
       const runId = this.state.selectedIds[0];
-      const searchString = UrlParser.from('search').build({
-        [UrlParser.QUERY_PARAMS.cloneFromRun]: runId || ''
+      const searchString = new URLParser(this.props).build({
+        [QUERY_PARAMS.cloneFromRun]: runId || ''
       });
       this.props.history.push(RoutePage.NEW_JOB + searchString);
     }

@@ -53,6 +53,16 @@ describe('SideNav', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('renders Pipelines as active when on PipelineDetails page', () => {
+    const tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...routerProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders Jobs as active when on JobDetails page', () => {
+    const tree = shallow(<SideNav page={RoutePage.JOB_DETAILS} {...routerProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('renders nothing as active page', () => {
     const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(tree).toMatchSnapshot();

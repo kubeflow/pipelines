@@ -16,7 +16,6 @@
 
 import * as Apis from '../lib/Apis';
 import * as React from 'react';
-import * as UrlParser from '../lib/UrlParser';
 import AddIcon from '@material-ui/icons/Add';
 import { BannerProps } from '../components/Banner';
 import CloneIcon from '@material-ui/icons/FileCopy';
@@ -34,6 +33,7 @@ import { getLastInStatusList, logger } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { statusToIcon, NodePhase } from './Status';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 
 interface DisplayJob extends apiJob {
   last5Statuses?: string[];
@@ -256,8 +256,8 @@ class JobList extends React.Component<JobListProps, JobListState> {
         return;
       }
       const jobId = job.id;
-      const searchString = UrlParser.from('search').build({
-        [UrlParser.QUERY_PARAMS.cloneFromJob]: jobId || ''
+      const searchString = new URLParser(this.props).build({
+        [QUERY_PARAMS.cloneFromJob]: jobId || ''
       });
       this.props.history.push(RoutePage.NEW_JOB + searchString);
     }

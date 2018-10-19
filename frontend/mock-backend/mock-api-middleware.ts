@@ -140,13 +140,23 @@ export default (app: express.Application) => {
     res.send();
   });
   app.post(v1alpha2Prefix + '/jobs', (req, res) => {
-    const job = req.body;
+    const job: apiJob = req.body;
     job.id = 'new-job-' + (fixedData.jobs.length + 1);
     job.created_at = new Date();
     job.updated_at = new Date();
-    job.runs = [fixedData.runs[0]];
     job.enabled = !!job.trigger;
     fixedData.jobs.push(job);
+
+    const date = new Date().toISOString();
+    fixedData.runs.push({
+      run: {
+        created_at: new Date(),
+        id: 'job-at-' + date,
+        job_id: fixedData.jobs[0].id,
+        name: 'new-job-'+ date,
+        status: 'Running',
+      },
+    });
     setTimeout(() => {
       res.send(fixedData.jobs[fixedData.jobs.length - 1]);
     }, 1000);

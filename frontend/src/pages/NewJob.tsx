@@ -16,24 +16,24 @@
 
 import * as Apis from '../lib/Apis';
 import * as React from 'react';
-import * as UrlParser from '../lib/UrlParser';
-import { BannerProps } from '../components/Banner';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Input from '../atoms/Input';
 import MenuItem from '@material-ui/core/MenuItem';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
-import { ToolbarProps } from '../components/Toolbar';
 import Trigger from '../components/Trigger';
-import { RouteComponentProps } from 'react-router';
+import { BannerProps } from '../components/Banner';
 import { DialogProps, RoutePage } from '../components/Router';
+import { RouteComponentProps } from 'react-router';
+import { SnackbarProps } from '@material-ui/core/Snackbar';
+import { ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { apiJob, apiTrigger } from '../../../frontend/src/api/job';
 import { apiPipeline } from '../../../frontend/src/api/pipeline';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
 
 interface NewJobProps extends RouteComponentProps {
   toolbarProps: ToolbarProps;
@@ -158,11 +158,11 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
     } as any, () => {
       // Set querystring if pipeline id has changed
       if (name === 'pipelineId') {
-        UrlParser.from('search')
-          .set(UrlParser.QUERY_PARAMS.pipelineId, (value || '').toString());
+        const urlParser = new URLParser(this.props);
+        urlParser.set(QUERY_PARAMS.pipelineId, (value || '').toString());
 
         // Clear other query params so as not to confuse the user
-        UrlParser.from('search').clear(UrlParser.QUERY_PARAMS.cloneFromJob);
+        urlParser.clear(QUERY_PARAMS.cloneFromJob);
       }
 
       this._validate();
@@ -251,8 +251,9 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
     this.setState({ pipelines });
 
     // Get clone job id from querystring if any
-    const originalJobId = UrlParser.from('search').get(UrlParser.QUERY_PARAMS.cloneFromJob);
-    const originalRunId = UrlParser.from('search').get(UrlParser.QUERY_PARAMS.cloneFromRun);
+    const urlParser = new URLParser(this.props);
+    const originalJobId = urlParser.get(QUERY_PARAMS.cloneFromJob);
+    const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
     if (originalJobId) {
       try {
         const job = await Apis.getJob(originalJobId);
@@ -271,7 +272,7 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
           pipelineId: job.pipeline_id!,
           pipelines,
         }, () => this._jobNameRef.current!.select());
-        UrlParser.from('search').clear(UrlParser.QUERY_PARAMS.pipelineId);
+        urlParser.clear(QUERY_PARAMS.pipelineId);
       } catch (err) {
         this.props.updateBanner({
           additionalInfo: err.message,
@@ -316,10 +317,10 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
       }
     } else {
       // Get pipeline id from querystring if any
-      let possiblePipelineId = UrlParser.from('search').get(UrlParser.QUERY_PARAMS.pipelineId);
+      let possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
       if (!pipelines.find(p => p.id === possiblePipelineId)) {
         possiblePipelineId = '';
-        UrlParser.from('search').clear(UrlParser.QUERY_PARAMS.pipelineId);
+        urlParser.clear(QUERY_PARAMS.pipelineId);
       }
       this.setState({
         pipelineId: possiblePipelineId,

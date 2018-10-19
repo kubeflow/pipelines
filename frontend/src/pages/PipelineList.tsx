@@ -16,7 +16,6 @@
 
 import * as Apis from '../lib/Apis';
 import * as React from 'react';
-import * as UrlParser from '../lib/UrlParser';
 import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -29,6 +28,7 @@ import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { apiPipeline, apiListPipelinesResponse } from '../../../frontend/src/api/pipeline';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
@@ -253,8 +253,7 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
   private _createJob() {
     if (this.state.selectedIds.length === 1) {
       const pipelineId = this.state.selectedIds[0];
-      const search = UrlParser.from('search')
-        .build({ [UrlParser.QUERY_PARAMS.pipelineId]: pipelineId });
+      const search = new URLParser(this.props).build({ [QUERY_PARAMS.pipelineId]: pipelineId });
       this.props.history.push(RoutePage.NEW_JOB + search);
     }
   }

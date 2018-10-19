@@ -66,12 +66,12 @@ describe('deploy helloworld sample job', () => {
     browser.keys(parameter);
 
     // Deploy
-    $('button=Deploy').click();   
+    $('button=Deploy').click();
   });
 
   it('redirects back to job list page', () => {
     browser.waitUntil(() => {
-      return new URL(browser.getUrl()).pathname === '/jobs';
+      return new URL(browser.getUrl()).hash === '#/jobs';
     }, waitTimeout);
   });
 
@@ -132,10 +132,11 @@ describe('deploy helloworld sample job', () => {
   });
 
   it('opens run details', () => {
+    browser.waitForVisible('.tableRow a');
     $('.tableRow a').click();
 
     browser.waitUntil(() => {
-      return new URL(browser.getUrl()).pathname.startsWith('/runs/details/');
+      return new URL(browser.getUrl()).hash.startsWith('#/runs/details/');
     }, waitTimeout);
   });
 
@@ -153,71 +154,25 @@ describe('deploy helloworld sample job', () => {
       attempts++;
     }
 
-    assert(attempts < maxAttempts, `waited for ${maxAttempts * 5} seconds but run did not finish`);
+    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not finish`);
   });
 
-  // TODO: add the visualization tests after the frontend is updated with the plot orders.
-  //  it('switches to output tab', () => {
-  //    const selector = 'app-shell run-details #output-tab'
-  //    browser.click(selector)
-  //  });
-  //
-  //  it('creates a confusion matrix with an svg', () => {
-  //    const selector = 'app-shell run-details data-plot .plotTitle';
-  //    assert(browser.getText(selector).startsWith('Confusion Matrix from file:'));
-  //
-  //    const svgSelector = 'app-shell run-details data-plot svg';
-  //    assert(browser.isVisible(svgSelector));
-  //  });
-  //
-  //  it('creates a Start Tensorboard button', () => {
-  //    const selector = 'app-shell run-details data-plot:nth-of-type(3) .plotTitle';
-  //    assert(browser.getText(selector).startsWith('Tensorboard for logdir:'));
-  //
-  //    const buttonSelector = 'app-shell run-details data-plot:nth-of-type(3) paper-button';
-  //    assert(browser.isVisible(buttonSelector));
-  //    assert.equal(browser.getText(buttonSelector), 'Start Tensorboard');
-  //  });
-  //
-  //  it('starts Tensorboard when button is clicked', () => {
-  //    const buttonSelector = 'app-shell run-details data-plot:nth-of-type(3) paper-button';
-  //    browser.click(buttonSelector);
-  //
-  //    let attempts = 0;
-  //
-  //    const maxAttempts = 120;
-  //
-  //    while (attempts < maxAttempts && browser.getText(buttonSelector) !== 'Open Tensorboard') {
-  //      browser.pause(1000);
-  //      attempts++;
-  //    }
-  //
-  //    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but Tensorboard did not start`);
-  //  });
-  //
-  //  it('generates the right Tensorboard proxy hyperlink', () => {
-  //    const buttonSelector = 'app-shell run-details data-plot:nth-of-type(3) a';
-  //    tensorboardAddress = browser.getAttribute(buttonSelector, 'href');
-  //    assert(tensorboardAddress.indexOf('/apis/v1alpha2/_proxy/') > -1);
-  //  });
-
   it('deletes the job', () => {
-    browser.url('/jobs');
+    $('button=Jobs').click();
 
     browser.waitForVisible('.tableRow', waitTimeout);
     $('.tableRow').click();
     $('button=Delete').click();
+    $('.dialogButton').click();
+    $('.dialog').waitForVisible(waitTimeout, true);
   });
 
   it('deletes the uploaded pipeline', () => {
-    browser.url('/pipelines');
+    $('button=Pipelines').click();
 
+    browser.waitForVisible('.tableRow', waitTimeout);
     $('.tableRow').click();
     $('button=Delete').click();
+    $('.dialogButton').click();
   });
-
-  //  it('can visit the Tensorboard pod using the proxy link', () => {
-  //    browser.url(tensorboardAddress);
-  //    browser.waitForVisible('paper-toolbar');
-  //  });
 });

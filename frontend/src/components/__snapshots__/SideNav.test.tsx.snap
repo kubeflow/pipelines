@@ -5,32 +5,95 @@ exports[`SideNav renders Jobs as active page 1`] = `
   className="root noShrink"
   id="sideNav"
 >
-  <WithStyles(Button)
-    className="button"
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/pipelines"
+  >
+    <WithStyles(Button)
+      className="button"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/jobs"
+  >
+    <WithStyles(Button)
+      className="button active"
+    >
+      <PipelinesIcon
+        color="rgb(227, 233, 237, 1)"
+      />
+      <span
+        className="label"
+      >
+        Jobs
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
     onClick={[Function]}
   >
-    <PipelinesIcon
-      color="#87a1b8"
-    />
-    <span
-      className="label"
-    >
-      Pipelines
-    </span>
-  </WithStyles(Button)>
-  <WithStyles(Button)
-    className="button active"
-    onClick={[Function]}
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders Jobs as active when on JobDetails page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/pipelines"
   >
-    <PipelinesIcon
-      color="rgb(227, 233, 237, 1)"
-    />
-    <span
-      className="label"
+    <WithStyles(Button)
+      className="button"
     >
-      Jobs
-    </span>
-  </WithStyles(Button)>
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/jobs"
+  >
+    <WithStyles(Button)
+      className="button active"
+    >
+      <PipelinesIcon
+        color="rgb(227, 233, 237, 1)"
+      />
+      <span
+        className="label"
+      >
+        Jobs
+      </span>
+    </WithStyles(Button)>
+  </Link>
   <hr
     className="separator"
   />
@@ -48,32 +111,95 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   className="root noShrink"
   id="sideNav"
 >
-  <WithStyles(Button)
-    className="button active"
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/pipelines"
+  >
+    <WithStyles(Button)
+      className="button active"
+    >
+      <PipelinesIcon
+        color="rgb(227, 233, 237, 1)"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/jobs"
+  >
+    <WithStyles(Button)
+      className="button"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Jobs
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
     onClick={[Function]}
   >
-    <PipelinesIcon
-      color="rgb(227, 233, 237, 1)"
-    />
-    <span
-      className="label"
-    >
-      Pipelines
-    </span>
-  </WithStyles(Button)>
-  <WithStyles(Button)
-    className="button"
-    onClick={[Function]}
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/pipelines"
   >
-    <PipelinesIcon
-      color="#87a1b8"
-    />
-    <span
-      className="label"
+    <WithStyles(Button)
+      className="button active"
     >
-      Jobs
-    </span>
-  </WithStyles(Button)>
+      <PipelinesIcon
+        color="rgb(227, 233, 237, 1)"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/jobs"
+  >
+    <WithStyles(Button)
+      className="button"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Jobs
+      </span>
+    </WithStyles(Button)>
+  </Link>
   <hr
     className="separator"
   />
@@ -91,32 +217,42 @@ exports[`SideNav renders collapsed state 1`] = `
   className="root noShrink collapsedRoot"
   id="sideNav"
 >
-  <WithStyles(Button)
-    className="button active collapsedButton"
-    onClick={[Function]}
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/pipelines"
   >
-    <PipelinesIcon
-      color="rgb(227, 233, 237, 1)"
-    />
-    <span
-      className="collapsedLabel label"
+    <WithStyles(Button)
+      className="button active collapsedButton"
     >
-      Pipelines
-    </span>
-  </WithStyles(Button)>
-  <WithStyles(Button)
-    className="button collapsedButton"
-    onClick={[Function]}
+      <PipelinesIcon
+        color="rgb(227, 233, 237, 1)"
+      />
+      <span
+        className="collapsedLabel label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/jobs"
   >
-    <PipelinesIcon
-      color="#87a1b8"
-    />
-    <span
-      className="collapsedLabel label"
+    <WithStyles(Button)
+      className="button collapsedButton"
     >
-      Jobs
-    </span>
-  </WithStyles(Button)>
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="collapsedLabel label"
+      >
+        Jobs
+      </span>
+    </WithStyles(Button)>
+  </Link>
   <hr
     className="separator collapsedSeparator"
   />
@@ -134,32 +270,42 @@ exports[`SideNav renders expanded state 1`] = `
   className="root noShrink"
   id="sideNav"
 >
-  <WithStyles(Button)
-    className="button active"
-    onClick={[Function]}
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/pipelines"
   >
-    <PipelinesIcon
-      color="rgb(227, 233, 237, 1)"
-    />
-    <span
-      className="label"
+    <WithStyles(Button)
+      className="button active"
     >
-      Pipelines
-    </span>
-  </WithStyles(Button)>
-  <WithStyles(Button)
-    className="button"
-    onClick={[Function]}
+      <PipelinesIcon
+        color="rgb(227, 233, 237, 1)"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/jobs"
   >
-    <PipelinesIcon
-      color="#87a1b8"
-    />
-    <span
-      className="label"
+    <WithStyles(Button)
+      className="button"
     >
-      Jobs
-    </span>
-  </WithStyles(Button)>
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Jobs
+      </span>
+    </WithStyles(Button)>
+  </Link>
   <hr
     className="separator"
   />
@@ -177,32 +323,42 @@ exports[`SideNav renders nothing as active page 1`] = `
   className="root noShrink"
   id="sideNav"
 >
-  <WithStyles(Button)
-    className="button"
-    onClick={[Function]}
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/pipelines"
   >
-    <PipelinesIcon
-      color="#87a1b8"
-    />
-    <span
-      className="label"
+    <WithStyles(Button)
+      className="button"
     >
-      Pipelines
-    </span>
-  </WithStyles(Button)>
-  <WithStyles(Button)
-    className="button"
-    onClick={[Function]}
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    replace={false}
+    to="/jobs"
   >
-    <PipelinesIcon
-      color="#87a1b8"
-    />
-    <span
-      className="label"
+    <WithStyles(Button)
+      className="button"
     >
-      Jobs
-    </span>
-  </WithStyles(Button)>
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Jobs
+      </span>
+    </WithStyles(Button)>
+  </Link>
   <hr
     className="separator"
   />

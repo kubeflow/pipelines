@@ -38,7 +38,7 @@ exports.config = {
   },
   logLevel: 'silent',
   reporters: debug ? [] : ['dot', 'junit'],
-  reporterOptions: {
+  reporterOptions: debug ? {} : {
     junit: {
       outputDir: './',
       outputFileFormat: {

@@ -20,7 +20,6 @@ import * as Apis from '../lib/Apis';
 import * as React from 'react';
 import * as JsYaml from 'js-yaml';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import * as UrlParser from '../lib/UrlParser';
 import AddIcon from '@material-ui/icons/Add';
 import { BannerProps } from '../components/Banner';
 import Button from '@material-ui/core/Button';
@@ -41,6 +40,7 @@ import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 
 interface PipelineDetailsProps extends RouteComponentProps {
   toolbarProps: ToolbarProps;
@@ -332,8 +332,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
 
   private _newJobClicked(): void {
     const searchString = this.state.pipeline && this.state.pipeline.id ?
-      UrlParser.from('search')
-        .build({ [UrlParser.QUERY_PARAMS.pipelineId]: this.state.pipeline.id }) : '';
+      new URLParser(this.props).build({ [QUERY_PARAMS.pipelineId]: this.state.pipeline.id }) : '';
     this.props.history.push(RoutePage.NEW_JOB + searchString);
   }
 

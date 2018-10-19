@@ -16,7 +16,6 @@
 
 import * as Apis from '../lib/Apis';
 import * as React from 'react';
-import * as UrlParser from '../lib/UrlParser';
 import { BannerProps } from '../components/Banner';
 import CloneIcon from '@material-ui/icons/FileCopy';
 import CompareIcon from '@material-ui/icons/CompareArrows';
@@ -37,6 +36,7 @@ import { commonCss, padding } from '../Css';
 import { formatDateString, enabledDisplayString, logger } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 
 interface JobDetailsProps extends RouteComponentProps {
   toolbarProps: ToolbarProps;
@@ -250,8 +250,8 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
     const indices = this.state.selectedRunIds;
     if (indices.length > 1 && indices.length <= 10) {
       const runIds = this.state.selectedRunIds.join(',');
-      const searchString = UrlParser.from('search').build({
-        [UrlParser.QUERY_PARAMS.runlist]: runIds,
+      const searchString = new URLParser(this.props).build({
+        [QUERY_PARAMS.runlist]: runIds,
       });
       this.props.history.push(RoutePage.COMPARE + searchString);
     }
@@ -259,8 +259,8 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
 
   private _cloneJob() {
     if (this.state.job && this.state.job.id) {
-      const searchString = UrlParser.from('search').build({
-        [UrlParser.QUERY_PARAMS.cloneFromJob]: this.state.job!.id || ''
+      const searchString = new URLParser(this.props).build({
+        [QUERY_PARAMS.cloneFromJob]: this.state.job!.id || ''
       });
       this.props.history.push(RoutePage.NEW_JOB + searchString);
     }

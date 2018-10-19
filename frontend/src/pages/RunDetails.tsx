@@ -16,7 +16,6 @@
 
 import * as Apis from '../lib/Apis';
 import * as React from 'react';
-import * as UrlParser from '../lib/UrlParser';
 import * as WorkflowParser from '../lib/WorkflowParser';
 import Banner, { BannerProps, Mode } from '../components/Banner';
 import Button from '@material-ui/core/Button';
@@ -35,14 +34,15 @@ import Slide from '@material-ui/core/Slide';
 import { RouteComponentProps } from 'react-router';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { apiRun, apiJob } from '../../../frontend/src/api/job';
 import { commonCss, color, padding } from '../Css';
+import { componentMap } from '../components/viewers/ViewerContainer';
 import { formatDateString, getRunTime, logger } from '../lib/Utils';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { stylesheet, classes } from 'typestyle';
-import { componentMap } from '../components/viewers/ViewerContainer';
 
 const css = stylesheet({
   closeButton: {
@@ -397,8 +397,8 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
 
   private _cloneRun() {
     if (this.state.runMetadata) {
-      const searchString = UrlParser.from('search').build({
-        [UrlParser.QUERY_PARAMS.cloneFromRun]: this.state.runMetadata.id || ''
+      const searchString = new URLParser(this.props).build({
+        [QUERY_PARAMS.cloneFromRun]: this.state.runMetadata.id || ''
       });
       this.props.history.push(RoutePage.NEW_JOB + searchString);
     }

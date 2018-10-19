@@ -16,7 +16,6 @@
 
 import * as Apis from '../lib/Apis';
 import * as React from 'react';
-import * as UrlParser from '../lib/UrlParser';
 import * as WorkflowParser from '../lib/WorkflowParser';
 import Button from '@material-ui/core/Button';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
@@ -30,6 +29,7 @@ import { BannerProps } from '../components/Banner';
 import { RouteComponentProps } from 'react-router';
 import { RoutePage } from '../components/Router';
 import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { apiRunDetail } from '../../../frontend/src/api/run';
@@ -128,7 +128,7 @@ class Compare extends React.Component<CompareProps, CompareState> {
   public render() {
     const { collapseSections, viewersMap } = this.state;
 
-    const runIds = UrlParser.from('search').get(UrlParser.QUERY_PARAMS.runlist).split(',');
+    const runIds = new URLParser(this.props).get(QUERY_PARAMS.runlist).split(',');
 
     return (<div className={classes(commonCss.page, padding(20, 'lr'))}>
 
@@ -189,8 +189,7 @@ class Compare extends React.Component<CompareProps, CompareState> {
   }
 
   private async _loadRuns() {
-    const runIdsQuery = UrlParser.from('search')
-      .get(UrlParser.QUERY_PARAMS.runlist).split(',');
+    const runIdsQuery = new URLParser(this.props).get(QUERY_PARAMS.runlist).split(',');
     const runs: apiRunDetail[] = [];
     const workflowObjects: Workflow[] = [];
     const failingRuns: string[] = [];

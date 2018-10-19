@@ -31,7 +31,7 @@ import RunDetails from '../pages/RunDetails';
 import SideNav from './SideNav';
 import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
 import Toolbar, { ToolbarProps } from './Toolbar';
-import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
+import { Route, Switch, Redirect, HashRouter } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
 
@@ -98,7 +98,7 @@ class Router extends React.Component<{}, RouteComponentState> {
     };
 
     return (
-      <BrowserRouter>
+      <HashRouter>
         <div className={commonCss.page}>
           <div className={commonCss.flexGrow}>
             <Route render={({ ...props }) => (<SideNav page={props.location.pathname} {...props} />)} />
@@ -151,7 +151,7 @@ class Router extends React.Component<{}, RouteComponentState> {
           </div>
 
           <Dialog open={this.state.dialogProps.open !== false} classes={{ paper: css.dialog }}
-            onClose={() => this._handleDialogClosed()}>
+            className='dialog' onClose={() => this._handleDialogClosed()}>
             {this.state.dialogProps.title && (
               <DialogTitle> {this.state.dialogProps.title}</DialogTitle>
             )}
@@ -163,14 +163,15 @@ class Router extends React.Component<{}, RouteComponentState> {
             {this.state.dialogProps.buttons && (
               <DialogActions>
                 {this.state.dialogProps.buttons.map((b, i) =>
-                  <Button key={i} onClick={() => this._handleDialogClosed(b.onClick)} color='secondary'>
+                  <Button key={i} onClick={() => this._handleDialogClosed(b.onClick)}
+                    className='dialogButton' color='secondary'>
                     {b.text}
                   </Button>)}
               </DialogActions>
             )}
           </Dialog>
         </div>
-      </BrowserRouter>
+      </HashRouter>
     );
   }
 

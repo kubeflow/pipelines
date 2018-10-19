@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Router initial render 1`] = `
-<BrowserRouter>
+<HashRouter>
   <div
     className="page"
   >
@@ -80,6 +80,7 @@ exports[`Router initial render 1`] = `
       </div>
     </div>
     <WithStyles(Dialog)
+      className="dialog"
       classes={
         Object {
           "paper": "dialog",
@@ -89,5 +90,5 @@ exports[`Router initial render 1`] = `
       open={false}
     />
   </div>
-</BrowserRouter>
+</HashRouter>
 `;

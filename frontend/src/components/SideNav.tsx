@@ -20,6 +20,7 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import IconButton from '@material-ui/core/IconButton';
 import JobsIcon from '../icons/jobs';
 import PipelinesIcon from '../icons/pipelines';
+import { Link } from 'react-router-dom';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { RoutePage } from '../components/Router';
 import { RouterProps } from 'react-router';
@@ -138,24 +139,24 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
       inactive: sideNavColors.fgDefault,
     };
 
-    // TODO: select tab based on path prefix. (e.g. /jobs/details should select the Jobs button)
-
     return (
       <div id='sideNav' className={classes(css.root, commonCss.noShrink, collapsed && css.collapsedRoot)}>
-        <Button onClick={() => this.props.history.push(RoutePage.PIPELINES)}
-          className={classes(css.button,
-            page === RoutePage.PIPELINES && css.active,
+        <Link to={RoutePage.PIPELINES} className={commonCss.unstyled}>
+          <Button className={classes(css.button,
+            page.startsWith(RoutePage.PIPELINES) && css.active,
             collapsed && css.collapsedButton)}>
-          <PipelinesIcon color={page === RoutePage.PIPELINES ? iconColor.active : iconColor.inactive} />
-          <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
-        </Button>
-        <Button onClick={() => this.props.history.push(RoutePage.JOBS)}
-          className={classes(css.button,
-            page === RoutePage.JOBS && css.active,
+            <PipelinesIcon color={page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive} />
+            <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
+          </Button>
+        </Link>
+        <Link to={RoutePage.JOBS} className={commonCss.unstyled}>
+          <Button className={classes(css.button,
+            page.startsWith(RoutePage.JOBS) && css.active,
             collapsed && css.collapsedButton)}>
-          <JobsIcon color={page === RoutePage.JOBS ? iconColor.active : iconColor.inactive} />
-          <span className={classes(collapsed && css.collapsedLabel, css.label)}>Jobs</span>
-        </Button>
+            <JobsIcon color={page.startsWith(RoutePage.JOBS) ? iconColor.active : iconColor.inactive} />
+            <span className={classes(collapsed && css.collapsedLabel, css.label)}>Jobs</span>
+          </Button>
+        </Link>
         <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
         <IconButton className={classes(css.chevron, collapsed && css.collapsedChevron)}
           onClick={this._toggleNavClicked.bind(this)}>
