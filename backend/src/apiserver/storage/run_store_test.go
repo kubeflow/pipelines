@@ -205,7 +205,7 @@ func TestGetRun(t *testing.T) {
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
 		},
-		Workflow: "workflow1",
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
 	}
 
 	runDetail, err := runStore.GetRun("1")
@@ -252,7 +252,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
 		},
-		Workflow: "workflow1",
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
 	}
 
 	runDetail, err := runStore.GetRun("1")
@@ -293,7 +293,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 			ScheduledAtInSec: 100,
 			Conditions:       "Running:",
 		},
-		Workflow: workflow.ToStringForStore(),
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
 
 	runDetail, err = runStore.GetRun("1")
@@ -345,7 +345,7 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 			ScheduledAtInSec: 100,
 			Conditions:       "Running:",
 		},
-		Workflow: workflow.ToStringForStore(),
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
 
 	runDetail, err = runStore.GetRun("2000")
@@ -419,7 +419,7 @@ func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 			ScheduledAtInSec: 0,
 			Conditions:       ":",
 		},
-		Workflow: workflow.ToStringForStore(),
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
 
 	runDetail, err := runStore.GetRun("1")

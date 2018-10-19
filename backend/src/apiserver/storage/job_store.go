@@ -19,8 +19,6 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/VividCortex/mysqlerr"
-	"github.com/go-sql-driver/mysql"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -49,7 +47,7 @@ func (s *JobStore) ListJobs(context *common.PaginationContext) ([]model.Job, str
 }
 
 func (s *JobStore) queryJobTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
-	sqlBuilder := sq.Select("*").From("job_details")
+	sqlBuilder := sq.Select("*").From("jobs")
 	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
@@ -72,7 +70,7 @@ func (s *JobStore) queryJobTable(context *common.PaginationContext) ([]model.Lis
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	sql, args, err := sq.
 		Select("*").
-		From("job_details").
+		From("jobs").
 		Where(sq.Eq{"uuid": id}).
 		Limit(1).
 		ToSql()
@@ -93,14 +91,14 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	if len(jobs) == 0 {
 		return nil, util.NewResourceNotFoundError("Job", fmt.Sprint(id))
 	}
-	return &jobs[0].Job, nil
+	return &jobs[0], nil
 }
 
-func (s *JobStore) scanRows(r *sql.Rows) ([]model.JobDetail, error) {
-	var jobs []model.JobDetail
+func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
+	var jobs []model.Job
 	for r.Next() {
-		var uuid, displayName, name, namespace, packageId, conditions,
-			scheduledWorkflow, description, parameters string
+		var uuid, displayName, name, namespace, pipelineId, conditions,
+			description, parameters, pipelineSpecManifest, workflowSpecManifest string
 		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec,
 			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
 		var cron sql.NullString
@@ -108,21 +106,21 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.JobDetail, error) {
 		var createdAtInSec, updatedAtInSec, maxConcurrency int64
 		err := r.Scan(
 			&uuid, &displayName, &name, &namespace, &description,
-			&packageId, &enabled, &conditions, &maxConcurrency,
+			&maxConcurrency, &createdAtInSec, &updatedAtInSec, &enabled,
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
-			&parameters, &createdAtInSec, &updatedAtInSec, &scheduledWorkflow)
+			&pipelineSpecManifest, &workflowSpecManifest, &parameters, &pipelineId, &conditions)
 
 		if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, model.JobDetail{Job: model.Job{
+		jobs = append(jobs, model.Job{
 			UUID:           uuid,
 			DisplayName:    displayName,
 			Name:           name,
 			Namespace:      namespace,
 			Description:    description,
-			PipelineId:     packageId,
+			PipelineId:     pipelineId,
 			Enabled:        enabled,
 			Conditions:     conditions,
 			MaxConcurrency: maxConcurrency,
@@ -138,16 +136,18 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.JobDetail, error) {
 					IntervalSecond:                 NullInt64ToPointer(intervalSecond),
 				},
 			},
-			Parameters:     parameters,
+			PipelineSpec: model.PipelineSpec{
+				Parameters: parameters,
+			},
 			CreatedAtInSec: createdAtInSec,
 			UpdatedAtInSec: updatedAtInSec,
-		}, ScheduledWorkflow: scheduledWorkflow})
+		})
 	}
 	return jobs, nil
 }
 
 func (s *JobStore) DeleteJob(id string) error {
-	_, err := s.db.Exec(`DELETE FROM job_details WHERE UUID=?`, id)
+	_, err := s.db.Exec(`DELETE FROM jobs WHERE UUID=?`, id)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete job: %v", err.Error())
 	}
@@ -155,23 +155,22 @@ func (s *JobStore) DeleteJob(id string) error {
 }
 
 func (s *JobStore) CreateJob(p *model.Job) (*model.Job, error) {
-	var newJob model.JobDetail
-	newJob.Job = *p
+	newJob := *p
 	now := s.time.Now().Unix()
 	newJob.CreatedAtInSec = now
 	newJob.UpdatedAtInSec = now
 	sql, args, err := sq.
-		Insert("job_details").
+		Insert("jobs").
 		SetMap(sq.Eq{
 			"UUID":                           newJob.UUID,
 			"DisplayName":                    newJob.DisplayName,
 			"Name":                           newJob.Name,
 			"Namespace":                      newJob.Namespace,
 			"Description":                    newJob.Description,
+			"MaxConcurrency":                 newJob.MaxConcurrency,
 			"PipelineId":                     newJob.PipelineId,
 			"Enabled":                        newJob.Enabled,
 			"Conditions":                     newJob.Conditions,
-			"MaxConcurrency":                 newJob.MaxConcurrency,
 			"CronScheduleStartTimeInSec":     PointerToNullInt64(newJob.CronScheduleStartTimeInSec),
 			"CronScheduleEndTimeInSec":       PointerToNullInt64(newJob.CronScheduleEndTimeInSec),
 			"Schedule":                       PointerToNullString(newJob.Cron),
@@ -181,27 +180,26 @@ func (s *JobStore) CreateJob(p *model.Job) (*model.Job, error) {
 			"Parameters":                     newJob.Parameters,
 			"CreatedAtInSec":                 newJob.CreatedAtInSec,
 			"UpdatedAtInSec":                 newJob.UpdatedAtInSec,
-			"ScheduledWorkflow":              newJob.ScheduledWorkflow}).ToSql()
+			// TODO(yangpa) store actual value instead before v1beta1
+			"PipelineSpecManifest": "",
+			"WorkflowSpecManifest": "",
+		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to add job to job table: %v",
 			err.Error())
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if sqlError, ok := err.(*mysql.MySQLError); ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY {
-			return nil, util.NewInvalidInputError(
-				"Failed to create a new job. The name %v already exist. Please specify a new name.", p.DisplayName)
-		}
 		return nil, util.NewInternalServerError(err, "Failed to add job to job table: %v",
 			err.Error())
 	}
-	return &newJob.Job, nil
+	return &newJob, nil
 }
 
 func (s *JobStore) EnableJob(id string, enabled bool) error {
 	now := s.time.Now().Unix()
 	sql, args, err := sq.
-		Update("job_details").
+		Update("jobs").
 		SetMap(sq.Eq{
 			"Enabled":        enabled,
 			"UpdatedAtInSec": now}).
@@ -238,7 +236,7 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	}
 
 	sql, args, err := sq.
-		Update("job_details").
+		Update("jobs").
 		SetMap(sq.Eq{
 			"Name":                           swf.Name,
 			"Namespace":                      swf.Namespace,
@@ -283,10 +281,10 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	return nil
 }
 
-func (s *JobStore) toListableModels(jobs []model.JobDetail) []model.ListableDataModel {
+func (s *JobStore) toListableModels(jobs []model.Job) []model.ListableDataModel {
 	models := make([]model.ListableDataModel, len(jobs))
 	for i := range models {
-		models[i] = jobs[i].Job
+		models[i] = jobs[i]
 	}
 	return models
 }

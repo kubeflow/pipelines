@@ -18,19 +18,20 @@ import "fmt"
 
 type Job struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key"`
-	DisplayName    string `gorm:"column:DisplayName; not null; unique"` /* The name that user provides. Can contain special characters*/
-	Name           string `gorm:"column:Name; not null;"`               /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
+	DisplayName    string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
+	Name           string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Namespace      string `gorm:"column:Namespace; not null;"`
 	Description    string `gorm:"column:Description; not null"`
-	PipelineId     string `gorm:"column:PipelineId; not null"`
-	Enabled        bool   `gorm:"column:Enabled; not null"`
-	Conditions     string `gorm:"column:Conditions; not null"`
 	MaxConcurrency int64  `gorm:"column:MaxConcurrency;not null"`
-	Trigger        `gorm:"column:Trigger;"`
-	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
-	Parameters     string `gorm:"column:Parameters;not null; size:65535"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"` /* The time this record is stored in DB*/
 	UpdatedAtInSec int64  `gorm:"column:UpdatedAtInSec; not null"`
+	Enabled        bool   `gorm:"column:Enabled; not null"`
+	Trigger
+	PipelineSpec
+
+	// TODO(yangpa): Pipeline ID will be deprecated after v1beta1
+	PipelineId string `gorm:"column:PipelineId; not null"`
+	Conditions string `gorm:"column:Conditions; not null"`
 }
 
 // Trigger specifies when to create a new workflow.
@@ -67,12 +68,6 @@ type PeriodicSchedule struct {
 	// Interval describing when a workflow should be created within the
 	// time interval defined by StartTime and EndTime.
 	IntervalSecond *int64 `gorm:"column:IntervalSecond;"`
-}
-
-type JobDetail struct {
-	Job
-	/* ScheduledWorkflow CRD. Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
-	ScheduledWorkflow string `gorm:"column:ScheduledWorkflow; size:65535"`
 }
 
 func (j Job) GetValueOfPrimaryKey() string {

@@ -264,7 +264,7 @@ func TestGetRun(t *testing.T) {
 			CreatedAtInSec: 1,
 			Conditions:     ":",
 		},
-		Workflow: string(workflowBytes),
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: string(workflowBytes)},
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, runExpected, run)
@@ -289,7 +289,9 @@ func TestCreateJob(t *testing.T) {
 		DisplayName: "pp 1",
 		PipelineId:  "1",
 		Enabled:     true,
-		Parameters:  "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	expectedJob := &model.Job{
@@ -302,7 +304,9 @@ func TestCreateJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		Conditions:     "NO_STATUS:",
-		Parameters:     "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
 	}
 
 	assert.Nil(t, err)
@@ -328,7 +332,9 @@ func TestCreateJob_ExtraInputParameter(t *testing.T) {
 		DisplayName: "pp 1",
 		PipelineId:  "1",
 		Enabled:     true,
-		Parameters:  "[{\"name\":\"param2\",\"value\":\"world\"}]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[{\"name\":\"param2\",\"value\":\"world\"}]",
+		},
 	}
 	_, err := manager.CreateJob(job)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
@@ -354,7 +360,9 @@ func TestCreateJob_InvalidParameterFormat(t *testing.T) {
 		DisplayName: "pp 1",
 		PipelineId:  "1",
 		Enabled:     true,
-		Parameters:  "[I am invalid parameter format]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[I am invalid parameter format]",
+		},
 	}
 	_, err := manager.CreateJob(job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
@@ -373,7 +381,9 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	_, err := manager.CreateJob(job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
@@ -406,7 +416,9 @@ func TestEnableJob(t *testing.T) {
 		DisplayName: "pp 1",
 		PipelineId:  "1",
 		Enabled:     true,
-		Parameters:  "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -423,7 +435,9 @@ func TestEnableJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 2,
 		Conditions:     "NO_STATUS:",
-		Parameters:     "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJob, newJob)
@@ -448,7 +462,9 @@ func TestEnableJob_CrdFailure(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -469,7 +485,9 @@ func TestEnableJob_DbFailure(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -489,7 +507,9 @@ func TestDeleteJob(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -521,7 +541,9 @@ func TestDeleteJob_CrdFailure(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -542,7 +564,9 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -567,7 +591,9 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -603,7 +629,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 			ScheduledAtInSec: 0,
 			Conditions:       ":",
 		},
-		Workflow: workflow.ToStringForStore(),
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
 
 	assert.Equal(t, expectedRunDetail, runDetail)
@@ -623,7 +649,9 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -664,7 +692,9 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -698,7 +728,9 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 				IntervalSecond: util.Int64Pointer(0),
 			},
 		},
-		Parameters:     "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 2,
 	}
@@ -730,7 +762,9 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
-		Parameters: "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)

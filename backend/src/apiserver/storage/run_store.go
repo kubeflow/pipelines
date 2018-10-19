@@ -103,9 +103,13 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
 	var runs []model.RunDetail
 	for rows.Next() {
-		var uuid, name, namespace, jobID, conditions, workflow string
-		var CreatedAtInSec, ScheduledAtInSec int64
-		err := rows.Scan(&uuid, &name, &namespace, &jobID, &CreatedAtInSec, &ScheduledAtInSec, &conditions, &workflow)
+		var uuid, displayName, name, namespace, description, pipelineSpecManifest, workflowSpecManifest, parameters,
+			jobID, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
+		var createdAtInSec, scheduledAtInSec int64
+		err := rows.Scan(
+			&uuid, &displayName, &name, &namespace, &description, &createdAtInSec, &scheduledAtInSec,
+			&conditions, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
+			&jobID, &pipelineRuntimeManifest, &workflowRuntimeManifest)
 		if err != nil {
 			return runs, nil
 		}
@@ -114,10 +118,10 @@ func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
 			Name:             name,
 			Namespace:        namespace,
 			JobID:            jobID,
-			CreatedAtInSec:   CreatedAtInSec,
-			ScheduledAtInSec: ScheduledAtInSec,
+			CreatedAtInSec:   createdAtInSec,
+			ScheduledAtInSec: scheduledAtInSec,
 			Conditions:       conditions},
-			Workflow: workflow})
+			PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflowRuntimeManifest}})
 	}
 	return runs, nil
 }
@@ -134,14 +138,22 @@ func (s *RunStore) createRun(
 	sql, args, err := sq.
 		Insert("run_details").
 		SetMap(sq.Eq{
-			"UUID":             workflowUID,
-			"Name":             name,
-			"Namespace":        namespace,
-			"JobID":            jobID,
-			"CreatedAtInSec":   createdAtInSec,
-			"ScheduledAtInSec": scheduledAtInSec,
-			"Conditions":       condition,
-			"Workflow":         workflow}).ToSql()
+			"UUID":                    workflowUID,
+			"Name":                    name,
+			"Namespace":               namespace,
+			"JobID":                   jobID,
+			"CreatedAtInSec":          createdAtInSec,
+			"ScheduledAtInSec":        scheduledAtInSec,
+			"Conditions":              condition,
+			"WorkflowRuntimeManifest": workflow,
+			// TODO(yangpa) store actual value instead before v1beta1
+			"DisplayName":             "",
+			"Description":             "",
+			"PipelineRuntimeManifest": "",
+			"PipelineSpecManifest":    "",
+			"WorkflowSpecManifest":    "",
+			"Parameters":              "",
+		}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query while creating run using workflow: %v, %s",
 			err, workflow)
@@ -186,13 +198,13 @@ func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"Name":             workflow.Name,
-			"Namespace":        workflow.Namespace,
-			"JobID":            ownerUID,
-			"CreatedAtInSec":   workflow.CreationTimestamp.Unix(),
-			"ScheduledAtInSec": scheduledAtInSec,
-			"Conditions":       condition,
-			"Workflow":         string(marshalledWorkflow)}).
+			"Name":                    workflow.Name,
+			"Namespace":               workflow.Namespace,
+			"JobID":                   ownerUID,
+			"CreatedAtInSec":          workflow.CreationTimestamp.Unix(),
+			"ScheduledAtInSec":        scheduledAtInSec,
+			"Conditions":              condition,
+			"WorkflowRuntimeManifest": string(marshalledWorkflow)}).
 		Where(sq.Eq{"UUID": string(workflow.UID)}).
 		ToSql()
 	if err != nil {
@@ -206,7 +218,6 @@ func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
 			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
 			workflow.Namespace, workflow.Name, createError.Error(), err.Error())
 	}
-
 	return nil
 }
 

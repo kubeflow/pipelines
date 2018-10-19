@@ -108,7 +108,7 @@ func ToApiRuns(runs []model.Run) []*api.Run {
 func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
 	return &api.RunDetail{
 		Run:      toApiRun(&run.Run),
-		Workflow: run.Workflow,
+		Workflow: run.WorkflowRuntimeManifest,
 	}
 }
 
@@ -156,7 +156,9 @@ func ToModelJob(job *api.Job) (*model.Job, error) {
 		Enabled:        job.Enabled,
 		Trigger:        toModelTrigger(job.Trigger),
 		MaxConcurrency: job.MaxConcurrency,
-		Parameters:     params,
+		PipelineSpec: model.PipelineSpec{
+			Parameters: params,
+		},
 	}, nil
 }
 

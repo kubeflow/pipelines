@@ -130,7 +130,13 @@ func initDBClient(initConnectionTimeout time.Duration) *sql.DB {
 	util.TerminateIfError(err)
 
 	// Create table
-	response := db.AutoMigrate(&model.Pipeline{}, &model.RunDetail{}, &model.JobDetail{})
+	response := db.AutoMigrate(
+		&model.Experiment{},
+		&model.Job{},
+		&model.Pipeline{},
+		&model.ResourceReference{},
+		&model.RunDetail{})
+
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
@@ -139,7 +145,7 @@ func initDBClient(initConnectionTimeout time.Duration) *sql.DB {
 		glog.Fatalf("Failed to create a foreign key for JobID in run table. Error: %s", response.Error)
 	}
 	response = db.Model(&model.RunDetail{}).
-		AddForeignKey("JobID", "job_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+		AddForeignKey("JobID", "jobs(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for JobID in run_detail table. Error: %s", response.Error)
 	}

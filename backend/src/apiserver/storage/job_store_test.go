@@ -71,7 +71,6 @@ func initializeDbAndStore() (*sql.DB, *JobStore) {
 		UpdatedAtInSec: 2,
 	}
 	jobStore.CreateJob(job2)
-
 	return db, jobStore
 }
 
@@ -545,7 +544,9 @@ func TestUpdateJob_Success(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 3,
 		MaxConcurrency: 200,
-		Parameters:     "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
+		},
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(10),
@@ -613,7 +614,9 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		Conditions:     "NO_STATUS:",
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 3,
-		Parameters:     "[]",
+		PipelineSpec: model.PipelineSpec{
+			Parameters: "[]",
+		},
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: nil,

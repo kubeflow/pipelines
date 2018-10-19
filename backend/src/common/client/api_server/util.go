@@ -24,7 +24,7 @@ var PassThroughAuth runtime.ClientAuthInfoWriter = runtime.ClientAuthInfoWriterF
 func toClientJobDetail(runDetail *servermodel.RunDetail) *clientmodel.APIRunDetail {
 	return &clientmodel.APIRunDetail{
 		Run:      toClientAPIRun(runDetail.Run),
-		Workflow: runDetail.Workflow,
+		Workflow: runDetail.WorkflowRuntimeManifest,
 	}
 }
 

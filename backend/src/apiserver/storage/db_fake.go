@@ -31,7 +31,13 @@ func NewFakeDb() (*sql.DB, error) {
 		return nil, fmt.Errorf("Could not create the GORM database: %v", err)
 	}
 	// Create tables
-	db.AutoMigrate(&model.Pipeline{}, &model.RunDetail{}, &model.JobDetail{})
+	db.AutoMigrate(
+		&model.Experiment{},
+		&model.Job{},
+		&model.Pipeline{},
+		&model.ResourceReference{},
+		&model.RunDetail{})
+
 	return db.DB(), nil
 }
 

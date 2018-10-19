@@ -139,11 +139,6 @@ func (s *OneTimeJobTestSuite) TestOneTimeJob_E2E() {
 	checkInstantiateJobResponse(t, newJob, err, requestStartTime, pipelineId)
 	jobId := newJob.Id
 
-	/* ---------- Instantiate another job with same name. ---------- */
-	_, err = s.jobClient.CreateJob(ctx, &api.CreateJobRequest{Job: job})
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a new name.")
-
 	/* ---------- Verify list jobs works ---------- */
 	listPipResponse, err := s.jobClient.ListJobs(ctx, &api.ListJobsRequest{})
 	checkListJobsResponse(t, listPipResponse, err, requestStartTime, pipelineId)

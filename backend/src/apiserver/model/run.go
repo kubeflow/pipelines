@@ -16,18 +16,28 @@ package model
 
 type Run struct {
 	UUID             string `gorm:"column:UUID; not null; primary_key"`
-	Name             string `gorm:"column:Name; not null"`
-	Namespace        string `gorm:"column:Namespace; not null"`
-	JobID            string `gorm:"column:JobID; not null"`
+	DisplayName      string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
+	Name             string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
+	Namespace        string `gorm:"column:Namespace; not null;"`
+	Description      string `gorm:"column:Description; not null"`
 	CreatedAtInSec   int64  `gorm:"column:CreatedAtInSec; not null"`
-	ScheduledAtInSec int64  `gorm:"column:ScheduledAtInSec; not null"`
+	ScheduledAtInSec int64  `gorm:"column:ScheduledAtInSec;"`
 	Conditions       string `gorm:"column:Conditions; not null"`
+	PipelineSpec
+
+	// TODO(yangpa): The fields below will be deprecated after v1beta1
+	JobID string `gorm:"column:JobID;"`
+}
+
+type PipelineRuntime struct {
+	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; size:65535"`
+	/* Argo CRD. Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
+	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; size:65535"`
 }
 
 type RunDetail struct {
 	Run
-	/* Argo CRD. Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
-	Workflow string `gorm:"column:Workflow; not null; size:65535"`
+	PipelineRuntime
 }
 
 func (r Run) GetValueOfPrimaryKey() string {

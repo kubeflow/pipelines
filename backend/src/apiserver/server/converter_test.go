@@ -64,7 +64,7 @@ func TestToApiRunDetail(t *testing.T) {
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
 		},
-		Workflow: "workflow123",
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
 	}
 	apiRun := ToApiRunDetail(modelRun)
 	expectedApiRun := &api.RunDetail{
@@ -136,7 +136,9 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 1,
-		Parameters:     `[{"name":"param2","value":"world"}]`,
+		PipelineSpec: model.PipelineSpec{
+			Parameters: `[{"name":"param2","value":"world"}]`,
+		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
@@ -173,7 +175,9 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 1,
-		Parameters:     `[{"name":"param2","value":"world"}]`,
+		PipelineSpec: model.PipelineSpec{
+			Parameters: `[{"name":"param2","value":"world"}]`,
+		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
@@ -204,7 +208,9 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 		Enabled:        true,
 		Trigger:        model.Trigger{},
 		MaxConcurrency: 1,
-		Parameters:     `[{"name":"param2","value":"world"}]`,
+		PipelineSpec: model.PipelineSpec{
+			Parameters: `[{"name":"param2","value":"world"}]`,
+		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
@@ -231,7 +237,9 @@ func TestToApiJob_ErrorParsingField(t *testing.T) {
 		Enabled:        true,
 		Trigger:        model.Trigger{},
 		MaxConcurrency: 1,
-		Parameters:     `invalid parameter format`,
+		PipelineSpec: model.PipelineSpec{
+			Parameters: `invalid parameter format`,
+		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
@@ -258,7 +266,9 @@ func TestToApiJobs(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 1,
-		Parameters:     `[{"name":"param2","value":"world"}]`,
+		PipelineSpec: model.PipelineSpec{
+			Parameters: `[{"name":"param2","value":"world"}]`,
+		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 	}
@@ -275,7 +285,9 @@ func TestToApiJobs(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 2,
-		Parameters:     `[{"name":"param2","value":"world"}]`,
+		PipelineSpec: model.PipelineSpec{
+			Parameters: `[{"name":"param2","value":"world"}]`,
+		},
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
 	}
@@ -345,7 +357,9 @@ func TestToModelJob(t *testing.T) {
 			},
 		},
 		MaxConcurrency: 1,
-		Parameters:     `[{"name":"param2","value":"world"}]`,
+		PipelineSpec: model.PipelineSpec{
+			Parameters: `[{"name":"param2","value":"world"}]`,
+		},
 	}
 	assert.Equal(t, expectedModelJob, modelJob)
 }
