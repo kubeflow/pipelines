@@ -49,7 +49,7 @@ const css = stylesheet({
   root: {
     $nest: {
       '& .ReactVirtualized__Grid__innerScrollContainer': {
-        overflow: 'auto !important',
+        overflow: 'initial !important',
       },
     },
     backgroundColor: '#222',

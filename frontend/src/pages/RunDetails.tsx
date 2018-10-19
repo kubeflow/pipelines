@@ -329,7 +329,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
       const node = workflow.status.nodes[selectedNodeDetails.id];
-      if (node) {
+      if (node && selectedNodeDetails.phaseMessage) {
         selectedNodeDetails.phaseMessage =
           `This step is in ${node.phase} state: ` + node.message;
         this.setState({ selectedNodeDetails });
