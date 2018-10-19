@@ -68,7 +68,7 @@ func NewReportRunMetricsOK() *ReportRunMetricsOK {
 A successful response.
 */
 type ReportRunMetricsOK struct {
-	Payload run_model.ProtobufEmpty
+	Payload run_model.APIReportRunMetricsResponse
 }
 
 func (o *ReportRunMetricsOK) Error() string {

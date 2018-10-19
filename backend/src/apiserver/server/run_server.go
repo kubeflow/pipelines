@@ -17,7 +17,6 @@ package server
 import (
 	"context"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
@@ -62,9 +61,9 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	return &api.ListRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
 }
 
-func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRunMetricsRequest) (*empty.Empty, error) {
+func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
 	// TODO(hongyes): Implement the action.
-	return &empty.Empty{}, nil
+	return &api.ReportRunMetricsResponse{}, nil
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {
