@@ -101,6 +101,36 @@
         "tags": [
           "RunService"
         ]
+      },
+      "post": {
+        "operationId": "CreateRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRun"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiRun"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
       }
     },
     "/apis/v1alpha2/runs/{run_id}": {

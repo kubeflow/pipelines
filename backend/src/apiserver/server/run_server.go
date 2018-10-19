@@ -20,10 +20,15 @@ import (
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
+	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
 type RunServer struct {
 	resourceManager *resource.ResourceManager
+}
+
+func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.Run, error) {
+	return nil, util.NewBadRequestError(nil, "Not implemented")
 }
 
 func (s *RunServer) GetRunV2(ctx context.Context, request *api.GetRunV2Request) (*api.RunDetail, error) {

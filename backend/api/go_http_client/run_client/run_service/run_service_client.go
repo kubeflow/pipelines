@@ -39,6 +39,35 @@ type Client struct {
 }
 
 /*
+CreateRun create run API
+*/
+func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthInfoWriter) (*CreateRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewCreateRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "CreateRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1alpha2/runs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &CreateRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*CreateRunOK), nil
+
+}
+
+/*
 GetRun ts o d o yangpa this will be deprecated in v1beta1
 */
 func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWriter) (*GetRunOK, error) {

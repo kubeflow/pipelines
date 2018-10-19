@@ -58,6 +58,13 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service RunService {
+  rpc CreateRun(CreateRunRequest) returns (Run) {
+    option (google.api.http) = {
+      post: "/apis/v1alpha2/runs"
+      body: "run"
+    };
+  }
+
   rpc GetRunV2(GetRunV2Request) returns (RunDetail) {
     option (google.api.http) = {
       get: "/apis/v1alpha2/runs/{run_id}"
@@ -76,6 +83,10 @@ service RunService {
       get: "/apis/v1alpha2/jobs/{job_id}/runs/{run_id}"
     };
   }
+}
+
+message CreateRunRequest{
+  Run run = 1;
 }
 
 message GetRunV2Request{
