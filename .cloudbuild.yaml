@@ -198,4 +198,4 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA'
 
-timeout: '2400s'
+timeout: '3000s'
