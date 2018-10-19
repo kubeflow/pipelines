@@ -55,6 +55,7 @@ const css = stylesheet({
 
 interface TaggedViewerConfig {
   config: ViewerConfig;
+  runId: string;
   runName: string;
 }
 
@@ -68,6 +69,7 @@ interface CompareState {
   collapseSections: { [key: string]: boolean };
   fullscreenViewerConfig: PlotCardProps | null;
   runs: apiRunDetail[];
+  selectedIds: string[];
   viewersMap: Map<PlotType, TaggedViewerConfig[]>;
   workflowObjects: Workflow[];
 }
@@ -102,6 +104,7 @@ class Compare extends React.Component<CompareProps, CompareState> {
       collapseSections: {},
       fullscreenViewerConfig: null,
       runs: [],
+      selectedIds: [],
       viewersMap: new Map(),
       workflowObjects: [],
     };
@@ -126,9 +129,15 @@ class Compare extends React.Component<CompareProps, CompareState> {
   }
 
   public render() {
-    const { collapseSections, viewersMap } = this.state;
+    const { collapseSections, selectedIds, viewersMap } = this.state;
 
     const runIds = new URLParser(this.props).get(QUERY_PARAMS.runlist).split(',');
+
+    const runsPerViewerType = (viewerType: PlotType) => {
+      return viewersMap.get(viewerType) ? viewersMap
+        .get(viewerType)!
+        .filter(el => selectedIds.indexOf(el.runId) > -1) : [];
+    };
 
     return (<div className={classes(commonCss.page, padding(20, 'lr'))}>
 
@@ -144,13 +153,15 @@ class Compare extends React.Component<CompareProps, CompareState> {
       </div>
 
       {!collapseSections[overviewSectionName] && <div className={commonCss.noShrink}>
-        <RunList handleError={this._handlePageError.bind(this)} {...this.props} runIdListMask={runIds} disablePaging={true} />
+        <RunList handleError={this._handlePageError.bind(this)} {...this.props}
+          selectedIds={selectedIds} runIdListMask={runIds} disablePaging={true}
+          updateSelection={ids => this.setState({ selectedIds: ids })} />
       </div>}
 
       <Separator orientation='vertical' />
 
       {Array.from(viewersMap.keys()).map((viewerType, i) => <div key={i}>
-        <div>
+        <React.Fragment>
           <Button onClick={() => {
             collapseSections[viewerType] = !collapseSections[viewerType];
             this.setState({ collapseSections });
@@ -159,20 +170,23 @@ class Compare extends React.Component<CompareProps, CompareState> {
               style={{ marginRight: 5, transition: 'transform 0.3s' }} />
             {componentMap[viewerType].prototype.getDisplayName()}
           </Button>
-        </div>
+        </React.Fragment>
 
         {!collapseSections[viewerType] &&
-          <div>
+          <React.Fragment>
             <div className={classes(commonCss.flex, css.outputsRow)}>
-              {/* If the component allows aggregation, add one more card for its
-              aggregated view. Only do this if there is more than one output. */}
-              {(componentMap[viewerType].prototype.isAggregatable() &&
-                viewersMap.get(viewerType)!.length > 1) &&
-                <PlotCard configs={viewersMap.get(viewerType)!.map(t => t.config)} maxDimension={400}
-                  title='Aggregated view' />
-              }
+              {/* If the component allows aggregation, add one more card for
+              its aggregated view. Only do this if there is more than one
+              output, filtering out any unselected runs. */}
+              {(componentMap[viewerType].prototype.isAggregatable() && (
+                runsPerViewerType(viewerType).length > 1) && (
+                  <PlotCard configs={
+                    runsPerViewerType(viewerType).map(t => t.config)} maxDimension={400}
+                    title='Aggregated view' />
+                )
+              )}
 
-              {viewersMap.get(viewerType)!.map((taggedConfig, c) => (
+              {runsPerViewerType(viewerType).map((taggedConfig, c) => (
                 <PlotCard key={c} configs={[taggedConfig.config]} title={taggedConfig.runName}
                   maxDimension={400} />
               ))}
@@ -180,7 +194,7 @@ class Compare extends React.Component<CompareProps, CompareState> {
 
             </div>
             <Hr />
-          </div>
+          </React.Fragment>
         }
         <Separator orientation='vertical' />
       </div>
@@ -216,7 +230,11 @@ class Compare extends React.Component<CompareProps, CompareState> {
       return;
     }
 
-    this.setState({ runs, workflowObjects });
+    this.setState({
+      runs,
+      selectedIds: runs.map(r => r.run!.id!),
+      workflowObjects,
+    });
 
     if (!runs || !workflowObjects) {
       return;
@@ -236,6 +254,7 @@ class Compare extends React.Component<CompareProps, CompareState> {
           const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
           currentList.push({
             config,
+            runId: runs[i].run!.id!,
             runName: runs[i].run!.name!,
           });
           viewersMap.set(config.type, currentList);
