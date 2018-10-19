@@ -27,6 +27,7 @@ func getDefaultJobRun(id string, name string) *jobmodel.APIRun {
 		CreatedAt: strfmt.NewDateTime(),
 		ID:        id,
 		Name:      name,
+		Metrics:   []*jobmodel.APIRunMetric{},
 	}
 }
 

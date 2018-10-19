@@ -277,6 +277,16 @@
       "default": "UNKNOWN_MODE",
       "description": "Required input.\n\n - DISABLED: The job won't schedule any run if disabled."
     },
+    "RunMetricFormat": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "RAW",
+        "PERCENTAGE"
+      ],
+      "default": "UNSPECIFIED",
+      "description": " - UNSPECIFIED: Default value if not present.\n - RAW: Display value as its raw format.\n - PERCENTAGE: Display value in percentage format."
+    },
     "apiCronSchedule": {
       "type": "object",
       "properties": {
@@ -527,12 +537,41 @@
           "type": "string",
           "description": "In case any error happens retrieving a run field, only run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
         },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiRunMetric"
+          },
+          "description": "Output. The metrics of the run. The metrics are reported by ReportMetrics\nAPI."
+        },
         "job_id": {
           "type": "string",
           "title": "TODO(yangpa): Following will be deprecated in v1beta1"
         },
         "namespace": {
           "type": "string"
+        }
+      }
+    },
+    "apiRunMetric": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Required. The user defined name of the metric. It must between 1 and 63 characters\nlong and must conform to the following regular expression:\n`[a-z]([-a-z0-9]*[a-z0-9])?`."
+        },
+        "node_id": {
+          "type": "string",
+          "description": "Required. The runtime node ID which reports the metric. The node ID can be found in\nthe RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded."
+        },
+        "number_value": {
+          "type": "number",
+          "format": "double",
+          "description": "The number value of the metric."
+        },
+        "format": {
+          "$ref": "#/definitions/RunMetricFormat",
+          "description": "The display format of metric."
         }
       }
     },

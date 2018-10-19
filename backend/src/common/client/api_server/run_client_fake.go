@@ -21,6 +21,7 @@ func getDefaultRun(id string, name string) *runmodel.APIRunDetail {
 			CreatedAt: strfmt.NewDateTime(),
 			ID:        id,
 			Name:      name,
+			Metrics:   []*runmodel.APIRunMetric{},
 		},
 	}
 }

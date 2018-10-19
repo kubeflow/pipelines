@@ -90,4 +90,4 @@ all:
 	# Add licenses to the generated files.
 	# Instructions to install the 'autogen' command are located here:
 	# https://github.com/mbrukman/autogen
-	find ./ -name "*.go" -exec autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+	find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;

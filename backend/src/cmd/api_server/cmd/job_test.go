@@ -329,16 +329,19 @@ func TestListJobRuns(t *testing.T) {
 SUCCESS
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "100"
+  metrics: []
   name: MY_FIRST_RUN
   resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "101"
+  metrics: []
   name: MY_SECOND_RUN
   resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "102"
+  metrics: []
   name: MY_THIRD_RUN
   resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"
@@ -366,6 +369,7 @@ func TestListJobRunsMaxItems(t *testing.T) {
 SUCCESS
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "100"
+  metrics: []
   name: MY_FIRST_RUN
   resource_references: null
   scheduled_at: "0001-01-01T00:00:00.000Z"

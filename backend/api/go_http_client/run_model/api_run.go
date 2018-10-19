@@ -51,6 +51,10 @@ type APIRun struct {
 	// TODO(yangpa): Following will be deprecated in v1beta1
 	JobID string `json:"job_id,omitempty"`
 
+	// Output. The metrics of the run. The metrics are reported by ReportMetrics
+	// API.
+	Metrics []*APIRunMetric `json:"metrics"`
+
 	// Required input field. Name provided by user,
 	// or auto generated if run is created by scheduled job. Not unique.
 	Name string `json:"name,omitempty"`
@@ -85,6 +89,10 @@ func (m *APIRun) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateMetrics(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validatePipelineSpec(formats); err != nil {
 		res = append(res, err)
 	}
@@ -111,6 +119,31 @@ func (m *APIRun) validateCreatedAt(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("created_at", "body", "date-time", m.CreatedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *APIRun) validateMetrics(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Metrics) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Metrics); i++ {
+		if swag.IsZero(m.Metrics[i]) { // not required
+			continue
+		}
+
+		if m.Metrics[i] != nil {
+			if err := m.Metrics[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("metrics" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
