@@ -17,7 +17,7 @@
 set -xe
 
 # K8s Namespace that all resources deployed to
-NAMESPACE=default
+NAMESPACE=kubeflow
 
 usage()
 {

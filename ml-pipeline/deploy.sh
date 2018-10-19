@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 #
 # Copyright 2018 Google LLC
 #
@@ -15,16 +15,16 @@
 # limitations under the License.
 
 # K8s Namespace that all resources deployed to
-NAMESPACE=default
+NAMESPACE=kubeflow
 
 # ML pipeline Ksonnet app name
 APP_DIR=ml-pipeline-app
 
 # Kubeflow directory
-KF_DIR=kf-app
+KF_DIR=/kf-app
 
 # Kubeflow Ksonnet app name
-KUBEFLOW_KS_APP=kubeflow-ks-app
+KFAPP=/kubeflow-ks-app
 
 # Version number of this release.
 RELEASE_VERSION="${RELEASE_VERSION:-0.0.20}"
@@ -158,23 +158,24 @@ if [ "$WITH_KUBEFLOW" = true ]; then
   # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
   # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
   mkdir -p ${KF_DIR}
-  # We use kubeflow v0.2.2 by default
-  KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.2.2"}
+  # We use kubeflow v0.3.0 by default
+  KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.3.0"}
   (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
   tar -xzvf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
-  SOURCE_DIR=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
-  if !${REPORT_USAGE}; then
-      (cd ${SOURCE_DIR} && sed -i 's/ks param set kubeflow-core reportUsage true/ks param set kubeflow-core reportUsage false/g' scripts/deploy.sh)
+  KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
+  if [[ ${REPORT_USAGE} != "true" ]]; then
+      (cd ${KUBEFLOW_REPO} && sed -i -e 's/--reportUsage\=true/--reportUsage\=false/g' scripts/util.sh)
   fi
-  (cd ${SOURCE_DIR} && export KUBEFLOW_REPO=`pwd` KUBEFLOW_KS_DIR=`pwd`/${KUBEFLOW_KS_APP} && scripts/deploy.sh)
+  (${KUBEFLOW_REPO}/scripts/kfctl.sh init ${KFAPP} --platform none)
+  (cd ${KFAPP} && ${KUBEFLOW_REPO}/scripts/kfctl.sh generate k8s && ${KUBEFLOW_REPO}/scripts/kfctl.sh apply k8s)
 fi
 
 if ${UNINSTALL} ; then
   ( cd ${APP_DIR} && ks delete default)
   if [ "$WITH_KUBEFLOW" = true ]; then
-    SOURCE_DIR=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
+    KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
     # Uninstall Kubeflow
-    (cd ${SOURCE_DIR}/${KUBEFLOW_KS_APP} && ks delete default)
+    (cd ${KUBEFLOW_REPO}/${KFAPP} && ks delete default)
   fi
   exit 0
 fi

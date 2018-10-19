@@ -35,7 +35,7 @@ def init_config():
   k8s_config.load_incluster_config()
   k8s_api_client = k8s_client.ApiClient()
 
-  mlPipelineAPIServerBase = '/api/v1/namespaces/default/services/ml-pipeline:8888/proxy'
+  mlPipelineAPIServerBase = '/api/v1/namespaces/kubeflow/services/ml-pipeline:8888/proxy'
   config = Configuration()
   config.host = k8s_api_client.configuration.host + mlPipelineAPIServerBase
   config.api_key = k8s_api_client.configuration.api_key

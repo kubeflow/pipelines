@@ -35,8 +35,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-var namespace = flag.String("namespace", "default", "The namespace ml pipeline deployed to")
-var initializeTimeout = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
 var testTimeout = flag.Duration("testTimeout", 2*time.Minute, "Duration to wait for the test to finish")
 
 type OneTimeJobTestSuite struct {

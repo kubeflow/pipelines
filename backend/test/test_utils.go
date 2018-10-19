@@ -23,6 +23,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"flag"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -36,6 +38,9 @@ const (
 	// ML pipeline API server root URL
 	mlPipelineAPIServerBase = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1alpha2/%s"
 )
+
+var namespace = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
+var initializeTimeout = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
 
 func getKubernetesClient() (*kubernetes.Clientset, error) {
 	// use the current context in kubeconfig
