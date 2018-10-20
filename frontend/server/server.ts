@@ -33,7 +33,7 @@ import { Stream } from 'stream';
 // values used in the deployment.
 const minioClient = new MinioClient({
   accessKey: 'minio',
-  endPoint: 'minio-service.default',
+  endPoint: 'minio-service.kubeflow',
   port: 9000,
   secretKey: 'minio123',
   useSSL: false,

@@ -220,7 +220,7 @@
       // And it takes time to get this string right.
       //data: {
       //  config: "executorImage: argoproj/argoexec:v2.2.0\nartifactRepository:\n s3:
-      //  \n  bucket: mlpipeline\n  endpoint: minio-service.default:9000\n  insecure: true
+      //  \n  bucket: mlpipeline\n  endpoint: minio-service.kubeflow:9000\n  insecure: true
       //  \n  accessKeySecret:\n   name: mlpipeline-minio-artifact\n   key: accesskey\n  secretKeySecret:
       //  \n   name: mlpipeline-minio-artifact\n   key: secretkey"
       //},
@@ -272,6 +272,15 @@
             "watch",
             "update",
             "patch",
+          ],
+        },
+        {
+          apiGroups: [""],
+          resources: [
+            "secrets",
+          ],
+          verbs: [
+            "get",
           ],
         },
         {

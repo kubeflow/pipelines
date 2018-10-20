@@ -64,7 +64,7 @@ class TestCompiler(unittest.TestCase):
               'name': 'mlpipeline-minio-artifact',
             },
             'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.default:9000',
+            'endpoint': 'minio-service.kubeflow:9000',
             'insecure': True,
             'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
             'secretKeySecret': {

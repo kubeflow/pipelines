@@ -103,7 +103,8 @@ class Compiler(object):
       'name': 'mlpipeline-ui-metadata',
       'path': '/mlpipeline-ui-metadata.json',
       's3': {
-        'endpoint': 'minio-service.default:9000',
+        # TODO: parameterize namespace for minio service
+        'endpoint': 'minio-service.kubeflow:9000',
         'bucket': 'mlpipeline',
         'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
         'insecure': True,
@@ -444,7 +445,8 @@ class Compiler(object):
       'spec': {
         'entrypoint': pipeline.name,
         'templates': templates,
-        'arguments': {'parameters': input_params}
+        'arguments': {'parameters': input_params},
+        'serviceAccountName': 'argo'
       }
     }
     if exit_handler:
