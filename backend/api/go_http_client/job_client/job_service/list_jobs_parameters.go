@@ -36,8 +36,11 @@ import (
 // NewListJobsParams creates a new ListJobsParams object
 // with the default values initialized.
 func NewListJobsParams() *ListJobsParams {
-	var ()
+	var (
+		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListJobsParams{
+		ResourceReferenceType: &resourceReferenceTypeDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -46,8 +49,11 @@ func NewListJobsParams() *ListJobsParams {
 // NewListJobsParamsWithTimeout creates a new ListJobsParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewListJobsParamsWithTimeout(timeout time.Duration) *ListJobsParams {
-	var ()
+	var (
+		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListJobsParams{
+		ResourceReferenceType: &resourceReferenceTypeDefault,
 
 		timeout: timeout,
 	}
@@ -56,8 +62,11 @@ func NewListJobsParamsWithTimeout(timeout time.Duration) *ListJobsParams {
 // NewListJobsParamsWithContext creates a new ListJobsParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewListJobsParamsWithContext(ctx context.Context) *ListJobsParams {
-	var ()
+	var (
+		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListJobsParams{
+		ResourceReferenceType: &resourceReferenceTypeDefault,
 
 		Context: ctx,
 	}
@@ -66,9 +75,12 @@ func NewListJobsParamsWithContext(ctx context.Context) *ListJobsParams {
 // NewListJobsParamsWithHTTPClient creates a new ListJobsParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewListJobsParamsWithHTTPClient(client *http.Client) *ListJobsParams {
-	var ()
+	var (
+		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListJobsParams{
-		HTTPClient: client,
+		ResourceReferenceType: &resourceReferenceTypeDefault,
+		HTTPClient:            client,
 	}
 }
 
@@ -81,12 +93,16 @@ type ListJobsParams struct {
 	PageSize *int32
 	/*PageToken*/
 	PageToken *string
-	/*ResourceReference
-	  What resource reference to filter on. Expect {type=XX,id=XX}
-	E.g. Listing job for an experiment would be {type=EXPERIMENT,id=123}.
+	/*ResourceReferenceID
+	  Required field. The ID of the resource that referred to.
 
 	*/
-	ResourceReference *string
+	ResourceReferenceID *string
+	/*ResourceReferenceType
+	  Required field. The type of the resource that referred to.
+
+	*/
+	ResourceReferenceType *string
 	/*SortBy
 	  Can be format of "field_name", "field_name asc" or "field_name des"
 	Ascending by default.
@@ -154,15 +170,26 @@ func (o *ListJobsParams) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
-// WithResourceReference adds the resourceReference to the list jobs params
-func (o *ListJobsParams) WithResourceReference(resourceReference *string) *ListJobsParams {
-	o.SetResourceReference(resourceReference)
+// WithResourceReferenceID adds the resourceReferenceID to the list jobs params
+func (o *ListJobsParams) WithResourceReferenceID(resourceReferenceID *string) *ListJobsParams {
+	o.SetResourceReferenceID(resourceReferenceID)
 	return o
 }
 
-// SetResourceReference adds the resourceReference to the list jobs params
-func (o *ListJobsParams) SetResourceReference(resourceReference *string) {
-	o.ResourceReference = resourceReference
+// SetResourceReferenceID adds the resourceReferenceId to the list jobs params
+func (o *ListJobsParams) SetResourceReferenceID(resourceReferenceID *string) {
+	o.ResourceReferenceID = resourceReferenceID
+}
+
+// WithResourceReferenceType adds the resourceReferenceType to the list jobs params
+func (o *ListJobsParams) WithResourceReferenceType(resourceReferenceType *string) *ListJobsParams {
+	o.SetResourceReferenceType(resourceReferenceType)
+	return o
+}
+
+// SetResourceReferenceType adds the resourceReferenceType to the list jobs params
+func (o *ListJobsParams) SetResourceReferenceType(resourceReferenceType *string) {
+	o.ResourceReferenceType = resourceReferenceType
 }
 
 // WithSortBy adds the sortBy to the list jobs params
@@ -216,16 +243,32 @@ func (o *ListJobsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 
 	}
 
-	if o.ResourceReference != nil {
+	if o.ResourceReferenceID != nil {
 
-		// query param resource_reference
-		var qrResourceReference string
-		if o.ResourceReference != nil {
-			qrResourceReference = *o.ResourceReference
+		// query param resource_reference.id
+		var qrResourceReferenceID string
+		if o.ResourceReferenceID != nil {
+			qrResourceReferenceID = *o.ResourceReferenceID
 		}
-		qResourceReference := qrResourceReference
-		if qResourceReference != "" {
-			if err := r.SetQueryParam("resource_reference", qResourceReference); err != nil {
+		qResourceReferenceID := qrResourceReferenceID
+		if qResourceReferenceID != "" {
+			if err := r.SetQueryParam("resource_reference.id", qResourceReferenceID); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.ResourceReferenceType != nil {
+
+		// query param resource_reference.type
+		var qrResourceReferenceType string
+		if o.ResourceReferenceType != nil {
+			qrResourceReferenceType = *o.ResourceReferenceType
+		}
+		qResourceReferenceType := qrResourceReferenceType
+		if qResourceReferenceType != "" {
+			if err := r.SetQueryParam("resource_reference.type", qResourceReferenceType); err != nil {
 				return err
 			}
 		}

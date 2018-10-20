@@ -120,9 +120,10 @@ message ListJobsRequest{
   // Ascending by default.
   string sort_by = 3;
 
-  // What resource reference to filter on. Expect {type=XX,id=XX}
-  // E.g. Listing job for an experiment would be {type=EXPERIMENT,id=123}
-  string resource_reference = 4;
+  // What resource reference to filter on.
+  // E.g. If listing job for an experiment, the query string would be
+  // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
+  ResourceReferenceKey resource_reference = 4;
 }
 
 message ListJobsResponse {

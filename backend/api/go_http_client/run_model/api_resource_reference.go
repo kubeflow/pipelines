@@ -30,34 +30,49 @@ import (
 // swagger:model apiResourceReference
 type APIResourceReference struct {
 
-	// Required input field. The ID of the resource that referred to.
-	ID string `json:"id,omitempty"`
+	// key
+	Key *APIResourceReferenceKey `json:"key,omitempty"`
 
-	// Optional input field. The name of the resource that referred to.
+	// Optional field. The name of the resource that referred to.
 	Name string `json:"name,omitempty"`
 
-	// Required input field. The relationship from referred resource to the object.
+	// Required field. The relationship from referred resource to the object.
 	Relationship APIRelationship `json:"relationship,omitempty"`
-
-	// type
-	Type APIResourceType `json:"type,omitempty"`
 }
 
 // Validate validates this api resource reference
 func (m *APIResourceReference) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateRelationship(formats); err != nil {
+	if err := m.validateKey(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateType(formats); err != nil {
+	if err := m.validateRelationship(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *APIResourceReference) validateKey(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Key) { // not required
+		return nil
+	}
+
+	if m.Key != nil {
+		if err := m.Key.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("key")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -70,22 +85,6 @@ func (m *APIResourceReference) validateRelationship(formats strfmt.Registry) err
 	if err := m.Relationship.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("relationship")
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (m *APIResourceReference) validateType(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Type) { // not required
-		return nil
-	}
-
-	if err := m.Type.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("type")
 		}
 		return err
 	}

@@ -36,8 +36,11 @@ import (
 // NewListRunsParams creates a new ListRunsParams object
 // with the default values initialized.
 func NewListRunsParams() *ListRunsParams {
-	var ()
+	var (
+		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListRunsParams{
+		ResourceReferenceType: &resourceReferenceTypeDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -46,8 +49,11 @@ func NewListRunsParams() *ListRunsParams {
 // NewListRunsParamsWithTimeout creates a new ListRunsParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewListRunsParamsWithTimeout(timeout time.Duration) *ListRunsParams {
-	var ()
+	var (
+		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListRunsParams{
+		ResourceReferenceType: &resourceReferenceTypeDefault,
 
 		timeout: timeout,
 	}
@@ -56,8 +62,11 @@ func NewListRunsParamsWithTimeout(timeout time.Duration) *ListRunsParams {
 // NewListRunsParamsWithContext creates a new ListRunsParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewListRunsParamsWithContext(ctx context.Context) *ListRunsParams {
-	var ()
+	var (
+		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListRunsParams{
+		ResourceReferenceType: &resourceReferenceTypeDefault,
 
 		Context: ctx,
 	}
@@ -66,9 +75,12 @@ func NewListRunsParamsWithContext(ctx context.Context) *ListRunsParams {
 // NewListRunsParamsWithHTTPClient creates a new ListRunsParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewListRunsParamsWithHTTPClient(client *http.Client) *ListRunsParams {
-	var ()
+	var (
+		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
 	return &ListRunsParams{
-		HTTPClient: client,
+		ResourceReferenceType: &resourceReferenceTypeDefault,
+		HTTPClient:            client,
 	}
 }
 
@@ -81,12 +93,16 @@ type ListRunsParams struct {
 	PageSize *int32
 	/*PageToken*/
 	PageToken *string
-	/*ResourceReference
-	  What resource reference to filter on. Expect {type=XX,id=XX}
-	E.g. Listing job for an experiment would be {type=EXPERIMENT,id=123}.
+	/*ResourceReferenceID
+	  Required field. The ID of the resource that referred to.
 
 	*/
-	ResourceReference *string
+	ResourceReferenceID *string
+	/*ResourceReferenceType
+	  Required field. The type of the resource that referred to.
+
+	*/
+	ResourceReferenceType *string
 	/*SortBy
 	  Can be format of "field_name", "field_name asc" or "field_name des"
 	Ascending by default.
@@ -154,15 +170,26 @@ func (o *ListRunsParams) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
-// WithResourceReference adds the resourceReference to the list runs params
-func (o *ListRunsParams) WithResourceReference(resourceReference *string) *ListRunsParams {
-	o.SetResourceReference(resourceReference)
+// WithResourceReferenceID adds the resourceReferenceID to the list runs params
+func (o *ListRunsParams) WithResourceReferenceID(resourceReferenceID *string) *ListRunsParams {
+	o.SetResourceReferenceID(resourceReferenceID)
 	return o
 }
 
-// SetResourceReference adds the resourceReference to the list runs params
-func (o *ListRunsParams) SetResourceReference(resourceReference *string) {
-	o.ResourceReference = resourceReference
+// SetResourceReferenceID adds the resourceReferenceId to the list runs params
+func (o *ListRunsParams) SetResourceReferenceID(resourceReferenceID *string) {
+	o.ResourceReferenceID = resourceReferenceID
+}
+
+// WithResourceReferenceType adds the resourceReferenceType to the list runs params
+func (o *ListRunsParams) WithResourceReferenceType(resourceReferenceType *string) *ListRunsParams {
+	o.SetResourceReferenceType(resourceReferenceType)
+	return o
+}
+
+// SetResourceReferenceType adds the resourceReferenceType to the list runs params
+func (o *ListRunsParams) SetResourceReferenceType(resourceReferenceType *string) {
+	o.ResourceReferenceType = resourceReferenceType
 }
 
 // WithSortBy adds the sortBy to the list runs params
@@ -216,16 +243,32 @@ func (o *ListRunsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 
 	}
 
-	if o.ResourceReference != nil {
+	if o.ResourceReferenceID != nil {
 
-		// query param resource_reference
-		var qrResourceReference string
-		if o.ResourceReference != nil {
-			qrResourceReference = *o.ResourceReference
+		// query param resource_reference.id
+		var qrResourceReferenceID string
+		if o.ResourceReferenceID != nil {
+			qrResourceReferenceID = *o.ResourceReferenceID
 		}
-		qResourceReference := qrResourceReference
-		if qResourceReference != "" {
-			if err := r.SetQueryParam("resource_reference", qResourceReference); err != nil {
+		qResourceReferenceID := qrResourceReferenceID
+		if qResourceReferenceID != "" {
+			if err := r.SetQueryParam("resource_reference.id", qResourceReferenceID); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.ResourceReferenceType != nil {
+
+		// query param resource_reference.type
+		var qrResourceReferenceType string
+		if o.ResourceReferenceType != nil {
+			qrResourceReferenceType = *o.ResourceReferenceType
+		}
+		qResourceReferenceType := qrResourceReferenceType
+		if qResourceReferenceType != "" {
+			if err := r.SetQueryParam("resource_reference.type", qResourceReferenceType); err != nil {
 				return err
 			}
 		}
