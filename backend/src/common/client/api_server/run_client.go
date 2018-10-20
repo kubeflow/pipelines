@@ -88,6 +88,7 @@ func (c *RunClient) List(parameters *params.ListRunsParams) (
 	// Make service all
 	parameters.Context = ctx
 	response, err := c.apiClient.RunService.ListRuns(parameters, PassThroughAuth)
+
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)

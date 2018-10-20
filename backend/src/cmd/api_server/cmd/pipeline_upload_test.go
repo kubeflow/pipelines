@@ -18,14 +18,6 @@ func TestPipelineUpload(t *testing.T) {
 
 	expected := `
 SUCCESS
-created_at:
-  seconds: 10
-description: PIPELINE_DESCRIPTION
-id: "500"
-name: PIPELINE_NAME
-parameters:
-- name: PARAM_NAME
-  value: PARAM_VALUE
 `
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
 	fmt.Println(factory.Result())
@@ -40,20 +32,6 @@ func TestPipelineUploadJson(t *testing.T) {
 
 	expected := `
 SUCCESS
-{
-  "id": "500",
-  "created_at": {
-    "seconds": 10
-  },
-  "name": "PIPELINE_NAME",
-  "description": "PIPELINE_DESCRIPTION",
-  "parameters": [
-    {
-      "name": "PARAM_NAME",
-      "value": "PARAM_VALUE"
-    }
-  ]
-}
 `
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
 	fmt.Println(factory.Result())
@@ -67,14 +45,6 @@ func TestPipelineUploadColor(t *testing.T) {
 
 	expected := fmt.Sprintf(`
 %s[32mSUCCESS%s[0m
-created_at:
-  seconds: 10
-description: PIPELINE_DESCRIPTION
-id: "500"
-name: PIPELINE_NAME
-parameters:
-- name: PARAM_NAME
-  value: PARAM_VALUE
 `, Escape, Escape)
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
 	fmt.Println(factory.Result())

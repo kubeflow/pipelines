@@ -3,8 +3,9 @@ package api_server
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/go-openapi/strfmt"
+	params "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_model"
 )
 
 const (
@@ -15,13 +16,13 @@ const (
 	InvalidFakeRequest = "Invalid fake request"
 )
 
-func getDefaultUploadedPipeline() *api.Pipeline {
-	return &api.Pipeline{
-		Id:          "500",
-		CreatedAt:   &timestamp.Timestamp{Seconds: 10},
+func getDefaultUploadedPipeline() *model.APIPipeline {
+	return &model.APIPipeline{
+		ID:          "500",
+		CreatedAt:   strfmt.NewDateTime(),
 		Name:        "PIPELINE_NAME",
 		Description: "PIPELINE_DESCRIPTION",
-		Parameters: []*api.Parameter{&api.Parameter{
+		Parameters: []*model.APIParameter{&model.APIParameter{
 			Name:  "PARAM_NAME",
 			Value: "PARAM_VALUE",
 		}},
@@ -34,7 +35,8 @@ func NewPipelineUploadClientFake() *PipelineUploadClientFake {
 	return &PipelineUploadClientFake{}
 }
 
-func (c *PipelineUploadClientFake) Upload(filePath string) (*api.Pipeline, error) {
+func (c *PipelineUploadClientFake) UploadFile(filePath string,
+	parameters *params.UploadPipelineParams) (*model.APIPipeline, error) {
 	switch filePath {
 	case FileForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)

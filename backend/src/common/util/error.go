@@ -104,14 +104,14 @@ func NewUserError(err error, internalMessage string, externalMessage string) *Us
 		} else {
 			return newUserError(
 				errors.Wrapf(err, internalMessage),
-				fmt.Sprintf("%v: %v", externalMessage, err.Error()),
+				fmt.Sprintf("%v. Raw error from the service: %v", externalMessage, err.Error()),
 				codes.Code(apiError.Code))
 		}
 	}
 
 	return newUserError(
 		errors.Wrapf(err, internalMessage),
-		fmt.Sprintf("%v: %v", externalMessage, err.Error()),
+		fmt.Sprintf("%v. Raw error from the service: %v", externalMessage, err.Error()),
 		codes.Internal)
 }
 

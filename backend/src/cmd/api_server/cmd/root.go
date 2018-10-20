@@ -61,6 +61,8 @@ func NewRootCmd(factory ClientFactoryInterface) *RootCommand {
 	}
 	command.SetOutput(factory.Writer())
 	root.command = command
+	root.command.SilenceErrors = true
+	root.command.SilenceUsage = true
 	addStandardFlagsToCmd(command, &root.outputFormat, &root.debug, &root.noColor)
 	root.clientConfig = addKubectlFlagsToCmd(command)
 	return root

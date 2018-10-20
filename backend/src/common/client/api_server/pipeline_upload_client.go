@@ -1,20 +1,20 @@
 package api_server
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"mime/multipart"
 	"os"
-	"path/filepath"
 
-	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/go-openapi/runtime"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	apiclient "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_client"
+	params "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/pkg/errors"
-	"gopkg.in/square/go-jose.v2/json"
-	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -26,92 +26,65 @@ const (
 )
 
 type PipelineUploadInterface interface {
-	Upload(filePath string) (*api.Pipeline, error)
+	UploadFile(filePath string, parameters *params.UploadPipelineParams) (*model.APIPipeline, error)
 }
 
 type PipelineUploadClient struct {
-	k8Client  *kubernetes.Clientset
-	namespace string
+	apiClient *apiclient.PipelineUpload
 }
 
 func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig) (
 	*PipelineUploadClient, error) {
 	// Creating k8 client
-	k8Client, _, namespace, err := util.GetKubernetesClientFromClientConfig(clientConfig)
+	k8Client, config, namespace, err := util.GetKubernetesClientFromClientConfig(clientConfig)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error while creating K8 client")
 	}
 
+	// Create API client
+	httpClient := k8Client.RESTClient().(*rest.RESTClient).Client
+	masterIPAndPort := util.ExtractMasterIPAndPort(config)
+	apiClient := apiclient.New(httptransport.NewWithClient(masterIPAndPort,
+		fmt.Sprintf(apiServerBasePath, namespace), nil, httpClient), strfmt.Default)
+
 	// Creating upload client
 	return &PipelineUploadClient{
-		k8Client:  k8Client,
-		namespace: namespace,
+		apiClient: apiClient,
 	}, nil
 }
 
-func (c *PipelineUploadClient) Upload(filePath string) (*api.Pipeline, error) {
-	// Convert file to bytes
-	bytes, writer, err := toBytesFromFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
-	defer cancel()
-
-	// Upload bytes
-	responseBytes, err := c.k8Client.RESTClient().Post().Context(ctx).
-		AbsPath(fmt.Sprintf(pipelineUploadServerBasePath, c.namespace, pipelineUploadPath)).
-		SetHeader(pipelineUploadContentTypeKey, writer.FormDataContentType()).
-		Body(bytes).Do().Raw()
-	if err != nil {
-		return nil, util.NewUserErrorWithSingleMessage(err,
-			fmt.Sprintf("Failed to upload pipeline from file '%s'", filePath))
-	}
-
-	// Unmarshal pipeline from response result
-	var pkg api.Pipeline
-	err = json.Unmarshal(responseBytes, &pkg)
-	if err != nil {
-		return nil, util.NewUserErrorWithSingleMessage(err,
-			fmt.Sprintf("Failed to unmarshal API call result from response bytes"))
-	}
-
-	return &pkg, nil
-}
-
-func toBytesFromFile(filePath string) (*bytes.Buffer, *multipart.Writer, error) {
-	// Opening file
+func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.UploadPipelineParams) (
+	*model.APIPipeline, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, nil, util.NewUserErrorWithSingleMessage(err,
+		return nil, util.NewUserErrorWithSingleMessage(err,
 			fmt.Sprintf("Failed to open file '%s'", filePath))
 	}
 	defer file.Close()
 
-	// Creating byte writer
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(pipelineUploadFieldName, filepath.Base(filePath))
+	parameters.Uploadfile = runtime.NamedReader(filePath, file)
+	return c.Upload(parameters)
+}
+
+func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.APIPipeline,
+	error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service all
+	parameters.Context = ctx
+	response, err := c.apiClient.PipelineUploadService.UploadPipeline(parameters, PassThroughAuth)
+
 	if err != nil {
-		return nil, nil, util.NewUserErrorWithSingleMessage(err,
-			fmt.Sprintf("Failed to create byte writer for file '%s'", filePath))
+		if defaultError, ok := err.(*params.UploadPipelineDefault); ok {
+			err = fmt.Errorf(defaultError.Payload.Error)
+		}
+
+		return nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to upload pipeline. Params: %v", parameters),
+			fmt.Sprintf("Failed to upload pipeline"))
 	}
 
-	// Copying file
-	_, err = io.Copy(part, file)
-	if err != nil {
-		return nil, nil, util.NewUserErrorWithSingleMessage(err,
-			fmt.Sprintf("Failed to turn file '%s' into bytes", filePath))
-	}
-
-	// Closing byte writer
-	err = writer.Close()
-	if err != nil {
-		return nil, nil, util.NewUserErrorWithSingleMessage(err,
-			fmt.Sprintf("Failed to close byte writer"))
-	}
-
-	return body, writer, nil
+	return response.Payload, nil
 }

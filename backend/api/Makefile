@@ -14,7 +14,11 @@
 
 all:
 
-  # Compile the *.proto files into *.pb.go (grpc client).
+	# Delete currently generated code.
+	rm -r ./go_http_client/*
+	rm -r ./go_client/*
+
+	# Compile the *.proto files into *.pb.go (grpc client).
 	protoc -I/usr/local/include -I. \
 		-I${GOPATH}/src \
 		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
@@ -41,6 +45,8 @@ all:
 	# Compile the *.swagger.json into go REST clients.
 	# Instructions to install the 'swagger' command are located here:
 	# https://github.com/go-swagger/go-swagger
+	# swagger v0.17.0 was last used.
+
 	swagger generate client \
 		-f swagger/job.swagger.json \
 		-A job \
@@ -90,4 +96,8 @@ all:
 	# Add licenses to the generated files.
 	# Instructions to install the 'autogen' command are located here:
 	# https://github.com/mbrukman/autogen
-	find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+	find ./ -name "*.go" -exec autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+
+	# Hack to fix an issue with go-swagger.
+	# See https://github.com/go-swagger/go-swagger/issues/1170
+	cp ./text_marshmaller_hack.txt ./go_http_client/pipeline_upload_model/text_marshmaller_hack.go

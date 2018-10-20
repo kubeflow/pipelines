@@ -47,7 +47,14 @@ func (o *UploadPipelineReader) ReadResponse(response runtime.ClientResponse, con
 		return result, nil
 
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		result := NewUploadPipelineDefault(response.Code())
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		if response.Code()/100 == 2 {
+			return result, nil
+		}
+		return nil, result
 	}
 }
 
@@ -71,6 +78,44 @@ func (o *UploadPipelineOK) Error() string {
 func (o *UploadPipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(pipeline_upload_model.APIPipeline)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewUploadPipelineDefault creates a UploadPipelineDefault with default headers values
+func NewUploadPipelineDefault(code int) *UploadPipelineDefault {
+	return &UploadPipelineDefault{
+		_statusCode: code,
+	}
+}
+
+/*UploadPipelineDefault handles this case with default header values.
+
+UploadPipelineDefault upload pipeline default
+*/
+type UploadPipelineDefault struct {
+	_statusCode int
+
+	Payload *pipeline_upload_model.APIStatus
+}
+
+// Code gets the status code for the upload pipeline default response
+func (o *UploadPipelineDefault) Code() int {
+	return o._statusCode
+}
+
+func (o *UploadPipelineDefault) Error() string {
+	return fmt.Sprintf("[POST /apis/v1alpha2/pipelines/upload][%d] UploadPipeline default  %+v", o._statusCode, o.Payload)
+}
+
+func (o *UploadPipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(pipeline_upload_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

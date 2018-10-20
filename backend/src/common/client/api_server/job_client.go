@@ -61,7 +61,6 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 	// Make service all
 	parameters.Context = ctx
 	response, err := c.apiClient.JobService.CreateJob(parameters, PassThroughAuth)
-
 	if err != nil {
 		if defaultError, ok := err.(*params.CreateJobDefault); ok {
 			err = fmt.Errorf(defaultError.Payload.Error)

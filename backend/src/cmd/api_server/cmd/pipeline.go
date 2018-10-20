@@ -7,6 +7,7 @@ import (
 
 	params "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_model"
+	uploadparams "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/spf13/cobra"
 )
@@ -23,6 +24,7 @@ func NewPipelineUploadCmd(root *RootCommand) *cobra.Command {
 	var (
 		filename string
 		err      error
+		name     string
 	)
 	var command = &cobra.Command{
 		Use:   "upload FILE",
@@ -36,15 +38,21 @@ func NewPipelineUploadCmd(root *RootCommand) *cobra.Command {
 
 		// Execution
 		RunE: func(cmd *cobra.Command, args []string) error {
-			pkg, err := root.PipelineUploadClient().Upload(filename)
+			params := uploadparams.NewUploadPipelineParams()
+			if name != "" {
+				params.Name = &name
+			}
+			_, err := root.PipelineUploadClient().UploadFile(filename, params)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
 
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg)
+			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "")
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVarP(&name, "name", "a", "",
+		"Name of the pipeline. If not specified, the name of the uploaded file is used.")
 	command.SetOutput(root.Writer())
 	return command
 }
@@ -77,6 +85,7 @@ func NewPipelineCreateCmd(root *RootCommand) *cobra.Command {
 			// https://github.com/grpc-ecosystem/grpc-gateway/issues/559
 			params := params.NewCreatePipelineParams()
 			params.Body = &model.APIURL{PipelineURL: pipelineURL}
+
 			pkg, err := root.PipelineClient().Create(params)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())

@@ -30,6 +30,32 @@ parameters:
 	//To print the actual output, use: fmt.Println(factory.Result())
 }
 
+func TestGetPipelineJson(t *testing.T) {
+	rootCmd, factory := getFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"pipeline", "get", "--no-color", "-o", "json",
+		fmt.Sprintf("%v", client.PipelineForDefaultTest)})
+	_, err := rootCmd.Command().ExecuteC()
+	assert.Nil(t, err)
+
+	expected := `
+SUCCESS
+{
+  "created_at": "1970-01-01T00:00:00.000Z",
+  "description": "PIPELINE_DESCRIPTION",
+  "id": "PIPELINE_ID_10",
+  "name": "PIPELINE_NAME",
+  "parameters": [
+    {
+      "name": "PARAM_NAME",
+      "value": "PARAM_VALUE"
+    }
+  ]
+}
+`
+	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
+	//To print the actual output, use: fmt.Println(factory.Result())
+}
+
 func TestGetPipelineClientError(t *testing.T) {
 	rootCmd, _ := getFakeRootCommand()
 	rootCmd.Command().SetArgs([]string{"pipeline", "get", "--no-color",
