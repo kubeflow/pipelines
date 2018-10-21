@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row, css } from './CustomTable';
+import CustomTable, { Column, Row, css, ExpandState } from './CustomTable';
 import { shallow } from 'enzyme';
 
 const props = {
@@ -49,7 +49,20 @@ const rows: Row[] = [
   },
 ];
 
+// tslint:disable-next-line:no-console
+const consoleErrorBackup = console.error;
+let consoleSpy: jest.Mock;
+
 describe('CustomTable', () => {
+  beforeAll(() => {
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
+  });
+
+  afterAll(() => {
+    // tslint:disable-next-line:no-console
+    console.error = consoleErrorBackup;
+  });
+
   it('renders without rows or columns', () => {
     const tree = shallow(<CustomTable {...props} />);
     expect(tree).toMatchSnapshot();
@@ -150,15 +163,17 @@ describe('CustomTable', () => {
     expect(reload).toHaveBeenLastCalledWith({ pageToken: '' });
   });
 
-  it('throws if number of cells in a row has too many cells', () => {
-    expect(() => shallow(<CustomTable {...props} rows={rows} />)).toThrow();
+  it('logs error if row has more cells than columns', () => {
+    shallow(<CustomTable {...props} rows={rows} />);
+    expect(consoleSpy).toHaveBeenLastCalledWith(
+      'Rows must have the same number of cells defined in columns');
   });
 
-  it('throws if number of cells in a row has too few cells', () => {
+  it('logs error if row has fewer cells than columns', () => {
     const testcolumns = [{ label: 'col1' }, { label: 'col2' }, { label: 'col3' }];
-    expect(() => shallow(
-      <CustomTable {...props} rows={rows} columns={testcolumns} />)
-    ).toThrow();
+    shallow(<CustomTable {...props} rows={rows} columns={testcolumns} />);
+    expect(consoleSpy).toHaveBeenLastCalledWith(
+      'Rows must have the same number of cells defined in columns');
   });
 
   it('renders some rows', () => {
@@ -334,5 +349,45 @@ describe('CustomTable', () => {
     await reloadResult;
     expect(spy).toHaveBeenLastCalledWith({ pageSize: 1234, pageToken: '' });
     expect(tree.state()).toHaveProperty('tokenList', ['']);
+  });
+
+  it('renders a collapsed row', () => {
+    const row = { ...rows[0] };
+    row.expandState = ExpandState.COLLAPSED;
+    const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
+      getExpandComponent={() => null} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders an expanded row', () => {
+    const row = { ...rows[0] };
+    row.expandState = ExpandState.EXPANDED;
+    const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders an expanded row with expanded component below it', () => {
+    const row = { ...rows[0] };
+    row.expandState = ExpandState.EXPANDED;
+    const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
+      getExpandComponent={() => <span>Hello World</span>} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('calls prop to toggle expansion', () => {
+    const row = { ...rows[0] };
+    const toggleSpy = jest.fn();
+    const stopPropagationSpy = jest.fn();
+    row.expandState = ExpandState.EXPANDED;
+    const tree = shallow(<CustomTable {...props} rows={[row, row, row]} columns={columns}
+      getExpandComponent={() => <span>Hello World</span>} toggleExpansion={toggleSpy} />);
+    tree.find('.' + css.expandButton).at(1).simulate('click', { stopPropagation: stopPropagationSpy });
+    expect(toggleSpy).toHaveBeenCalledWith(1);
+    expect(stopPropagationSpy).toHaveBeenCalledWith();
+  });
+
+  it('renders a table with sorting disabled', () => {
+    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} disableSorting={true} />);
+    expect(tree).toMatchSnapshot();
   });
 });

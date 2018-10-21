@@ -17,28 +17,31 @@
 import * as Apis from '../lib/Apis';
 import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
-import { BannerProps } from '../components/Banner';
 import CloneIcon from '@material-ui/icons/FileCopy';
-import CustomTable, { Column, Row } from '../components/CustomTable';
+import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import DeleteIcon from '@material-ui/icons/Delete';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import RunList from './RunList';
+import { BannerProps } from '../components/Banner';
+import { DialogProps, RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
-import { DialogProps, RoutePage, RouteParams } from '../components/Router';
+import { SnackbarProps } from '@material-ui/core/Snackbar';
+import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { apiJob, apiListJobsResponse } from '../../../frontend/src/api/job';
+import { apiRun } from '../api/run';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { getLastInStatusList, logger } from '../lib/Utils';
-import { triggerDisplayString } from '../lib/TriggerUtils';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
+import { logger, getLastInStatusList } from '../lib/Utils';
 import { statusToIcon, NodePhase } from './Status';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { triggerDisplayString } from '../lib/TriggerUtils';
 
 interface DisplayJob extends apiJob {
-  last5Statuses?: string[];
+  last5Runs?: apiRun[];
   pipelineName?: string;
   error?: string;
+  expandState?: ExpandState;
 }
 
 interface JobListProps extends RouteComponentProps {
@@ -152,16 +155,17 @@ class JobList extends React.Component<JobListProps, JobListState> {
     const rows: Row[] = this.state.displayJobs.map(j => {
       return {
         error: j.error,
+        expandState: j.expandState,
         id: j.id!,
         otherFields: [
           j.name!,
-          j.last5Statuses,
+          j.expandState === ExpandState.EXPANDED ? [] : j.last5Runs,
           j.pipelineName,
           j.created_at!.toLocaleString(),
           triggerDisplayString(j.trigger),
           j.enabled,
         ]
-      };
+      } as Row;
     });
 
     return (
@@ -169,7 +173,8 @@ class JobList extends React.Component<JobListProps, JobListState> {
         <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
           updateSelection={this._selectionChanged.bind(this)} sortBy={this.state.sortBy}
           reload={this._loadJobs.bind(this)} selectedIds={this.state.selectedJobIds}
-          pageSize={this.state.pageSize}
+          toggleExpansion={this._toggleRowExpand.bind(this)}
+          pageSize={this.state.pageSize} getExpandComponent={this._getExpandedJobComponent.bind(this)}
           emptyMessage='No jobs found. Click "New job" to start.' />
       </div>
     );
@@ -190,6 +195,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
     try {
       response = await Apis.listJobs(request);
       displayJobs = response.jobs || [];
+      displayJobs.forEach(j => j.expandState = ExpandState.COLLAPSED);
     } catch (err) {
       this._handlePageError(
         'Error: failed to retrieve list of jobs. Click Details for more information.', err);
@@ -202,9 +208,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
       // TODO: should we aggregate errors here? What if they fail for different reasons?
       try {
         const listRunsResponse = await Apis.listRuns({ jobId: job.id, pageSize: 5 });
-        const statusList = (listRunsResponse.runs || []).map((r) =>
-          getLastInStatusList(r.status || '') || '-');
-        job.last5Statuses = statusList;
+        job.last5Runs = listRunsResponse.runs || [];
       } catch (err) {
         job.error = 'Failed to load the last 5 runs of this job';
         logger.error(`Error: failed to retrieve run statuses for job: ${job.name}.`, err);
@@ -305,10 +309,12 @@ class JobList extends React.Component<JobListProps, JobListState> {
       to={RoutePage.JOB_DETAILS.replace(':' + RouteParams.jobId, id)}>{value}</Link>;
   }
 
-  private _last5RunsCustomRenderer(value: NodePhase[]) {
+  private _last5RunsCustomRenderer(runs: apiRun[]) {
     return <div className={commonCss.flex}>
-      {value.map((status, i) => (
-        <span key={i} style={{ margin: '0 1px' }}>{statusToIcon(status)}</span>
+      {runs.map((run, i) => (
+        <span key={i} style={{ margin: '0 1px' }}>
+          {statusToIcon(getLastInStatusList(run.status || '') || NodePhase.ERROR)}
+        </span>
       ))}
     </div>;
   }
@@ -323,6 +329,24 @@ class JobList extends React.Component<JobListProps, JobListState> {
 
   private _newJobClicked() {
     this.props.history.push(RoutePage.NEW_JOB);
+  }
+
+  private _toggleRowExpand(rowIndex: number) {
+    const displayJobs = this.state.displayJobs;
+    displayJobs[rowIndex].expandState =
+      displayJobs[rowIndex].expandState === ExpandState.COLLAPSED ?
+      ExpandState.EXPANDED :
+      ExpandState.COLLAPSED;
+
+    this.setState({ displayJobs });
+  }
+
+  private _getExpandedJobComponent(jobIndex: number) {
+    const job = this.state.displayJobs[jobIndex];
+    const runIds = (job.last5Runs || []).map(r => r.id!);
+    return <RunList runIdListMask={runIds} handleError={() => null} {...this.props}
+      disablePaging={true} selectedIds={this.state.selectedJobIds}
+      updateSelection={this._selectionChanged.bind(this)} disableSorting={true} />;
   }
 }
 

@@ -35,6 +35,7 @@ interface DisplayRun {
 interface RunListProp extends RouteComponentProps {
   disablePaging?: boolean;
   disableSelection?: boolean;
+  disableSorting?: boolean;
   jobIdMask?: string;
   runIdListMask?: string[];
   handleError: (message: string, error: Error) => void;
@@ -96,7 +97,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
           pageSize={this.state.pageSize} sortBy={this.state.sortBy}
           updateSelection={this.props.updateSelection} selectedIds={this.props.selectedIds}
           disablePaging={this.props.disablePaging} reload={this._loadRuns.bind(this)}
-          disableSelection={this.props.disableSelection}
+          disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
           emptyMessage={`No runs found${this.props.jobIdMask ? ' for this job' : ''}.`} />
       </div>
     );
@@ -107,7 +108,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
   }
 
   private async _loadRuns(loadRequest?: Apis.BaseListRequest): Promise<string> {
-    if (this.props.runIdListMask && this.props.runIdListMask.length) {
+    if (Array.isArray(this.props.runIdListMask)) {
       return await this._loadSpecificRuns(this.props.runIdListMask);
     }
     return await this._loadAllRuns(loadRequest);

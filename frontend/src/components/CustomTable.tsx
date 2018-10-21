@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import ArrowRight from '@material-ui/icons/ArrowRight';
 import Checkbox from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
@@ -29,6 +30,13 @@ import { CheckboxProps } from '@material-ui/core/Checkbox';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, dimension, commonCss, color, padding } from '../Css';
+import { logger } from '../lib/Utils';
+
+export enum ExpandState {
+  COLLAPSED,
+  EXPANDED,
+  NONE,
+}
 
 export interface Column {
   flex?: number;
@@ -36,10 +44,12 @@ export interface Column {
   sortKey?: string;
   customRenderer?: (value: any, id: string) => React.StatelessComponent;
 }
+
 export interface Row {
+  expandState?: ExpandState;
+  error?: string;
   id: string;
   otherFields: any[];
-  error?: string;
 }
 
 const rowHeight = 40;
@@ -57,7 +67,6 @@ export const css = stylesheet({
     fontSize: fontsize.base,
     marginRight: 10,
     overflow: 'hidden',
-    padding: '0 10px',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
@@ -68,6 +77,25 @@ export const css = stylesheet({
   emptyMessage: {
     padding: 20,
     textAlign: 'center',
+  },
+  expandButton: {
+    marginRight: 13,
+    padding: 3,
+    transition: 'transform 0.3s',
+  },
+  expandButtonExpanded: {
+    transform: 'rotate(90deg)',
+  },
+  expandedContainer: {
+    border: '1px solid ' + color.divider,
+    borderRadius: 7,
+    boxShadow: '0px 2px 7px #aaa',
+    margin: '4px 2px',
+  },
+  expandedRow: {
+    borderBottom: '1px solid transparent !important',
+    boxSizing: 'border-box',
+    height: '34px !important',
   },
   footer: {
     padding: '5px 10px',
@@ -111,6 +139,8 @@ interface CustomTableProps {
   columns: Column[];
   disablePaging?: boolean;
   disableSelection?: boolean;
+  disableSorting?: boolean;
+  getExpandComponent?: (index: number) => React.ReactNode;
   emptyMessage?: string;
   orderAscending: boolean;
   pageSize: number;
@@ -118,6 +148,7 @@ interface CustomTableProps {
   rows: Row[];
   selectedIds?: string[];
   sortBy: string;
+  toggleExpansion?: (rowId: number) => void;
   updateSelection?: (selectedIds: string[]) => void;
 }
 
@@ -174,7 +205,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public render() {
-    const { orderAscending, sortBy, pageSize } = this.props;
+    const { disableSorting, orderAscending, sortBy, pageSize } = this.props;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => total += (c.flex || 1), 0);
     const widths = this.props.columns.map(c => (c.flex || 1) / totalFlex * 100);
@@ -187,7 +218,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           {this.props.disableSelection !== true && (
             <div className={classes(css.columnName, css.cell)}>
               <Checkbox indeterminate={!!numSelected && numSelected < this.props.rows.length}
-                color='primary' checked={numSelected === this.props.rows.length}
+                color='primary' checked={!!numSelected && numSelected === this.props.rows.length}
                 onChange={this.handleSelectAllClick.bind(this)} />
             </div>
           )}
@@ -197,14 +228,17 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             return (
               <div key={i} style={{ width: widths[i] + '%' }}
                 className={css.columnName}>
-                <Tooltip title={isColumnSortable ? 'Sort' : 'Cannot sort by this column'}
-                  enterDelay={300}>
-                  <TableSortLabel active={isCurrentSortColumn} className={commonCss.ellipsis}
-                    direction={isColumnSortable ? orderAscending ? 'asc' : 'desc' : undefined}
-                    onClick={() => this._requestSort(this.props.columns[i].sortKey)}>
-                    {col.label}
-                  </TableSortLabel>
-                </Tooltip>
+                {disableSorting === true && <div>{col.label}</div>}
+                {!disableSorting && (
+                  <Tooltip title={isColumnSortable ? 'Sort' : 'Cannot sort by this column'}
+                    enterDelay={300}>
+                    <TableSortLabel active={isCurrentSortColumn} className={commonCss.ellipsis}
+                      direction={isColumnSortable ? (orderAscending ? 'asc' : 'desc') : undefined}
+                      onClick={() => this._requestSort(this.props.columns[i].sortKey)}>
+                      {col.label}
+                    </TableSortLabel>
+                  </Tooltip>
+                )}
               </div>
             );
           })}
@@ -216,17 +250,30 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           {this.props.rows.length === 0 && !!this.props.emptyMessage && (
             <div className={css.emptyMessage}>{this.props.emptyMessage}</div>
           )}
-          {this.props.rows.map((row: Row) => {
+          {this.props.rows.map((row, i) => {
             if (row.otherFields.length !== this.props.columns.length) {
-              throw new Error('Rows must have the same number of cells defined in columns');
+              logger.error('Rows must have the same number of cells defined in columns');
+              return null;
             }
-            return (
-              <div role='checkbox' key={row.id} tabIndex={-1}
-                className={classes('tableRow', css.row, this.isSelected(row.id) && css.selected)}
+            return (<div className={classes(row.expandState === ExpandState.EXPANDED && css.expandedContainer)} key={i}>
+              <div role='checkbox' tabIndex={-1} className={
+                classes(
+                  'tableRow',
+                  css.row,
+                  this.isSelected(row.id) && css.selected,
+                  row.expandState === ExpandState.EXPANDED && css.expandedRow
+                )}
                 onClick={e => this.handleClick(e, row.id)}>
                 {this.props.disableSelection !== true && (
                   <div className={css.cell}>
                     <Checkbox color='primary' checked={this.isSelected(row.id)} />
+                    {!!this.props.getExpandComponent && (
+                      <IconButton className={classes(css.expandButton,
+                        row.expandState === ExpandState.EXPANDED && css.expandButtonExpanded)}
+                        onClick={(e) => this._expandButtonToggled(e, i)}>
+                        <ArrowRight />
+                      </IconButton>
+                    )}
                   </div>
                 )}
                 {row.otherFields.map((cell, c) => (
@@ -239,7 +286,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   </div>
                 ))}
               </div>
-            );
+              {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (
+                <div className={padding(20, 'lr')}>
+                  {this.props.getExpandComponent(i)}
+                </div>
+              )}
+            </div>);
           })}
         </div>
 
@@ -317,5 +369,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       maxPageNumber: Number.MAX_SAFE_INTEGER,
       tokenList: newTokenList,
     });
+  }
+
+  private _expandButtonToggled(e: React.MouseEvent, rowIndex: number) {
+    e.stopPropagation();
+    if (this.props.toggleExpansion) {
+      this.props.toggleExpansion(rowIndex);
+    }
   }
 }

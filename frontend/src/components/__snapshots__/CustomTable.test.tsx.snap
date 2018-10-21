@@ -66,84 +66,790 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
     className="scrollContainer"
   >
     <div
-      className="tableRow row"
-      key="row1"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="0"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
-      </div>
-      <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
-          }
-        }
-      >
-        <WithStyles(Tooltip)
-          title="dummy error"
+        <div
+          className="cell"
         >
-          <pure(WarningRoundedIcon)
-            className="icon"
+          <WithStyles(Checkbox)
+            color="primary"
           />
-        </WithStyles(Tooltip)>
-        cell1
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          <WithStyles(Tooltip)
+            title="dummy error"
+          >
+            <pure(WarningRoundedIcon)
+              className="icon"
+            />
+          </WithStyles(Tooltip)>
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
       </div>
     </div>
     <div
-      className="tableRow row"
-      key="row2"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="1"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
       </div>
-      <div
-        className="cell"
+    </div>
+  </div>
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      className="rowsPerPage"
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="outlined"
+    >
+      <WithStyles(MenuItem)
         key="0"
-        style={
-          Object {
-            "width": "50%",
-          }
-        }
+        value={10}
       >
-        cell1
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={false}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders a collapsed row 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+    <div
+      className="columnName"
+      key="0"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col1
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+    <div
+      className="columnName"
+      key="1"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col2
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className=""
+      key="0"
+    >
+      <div
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
+      >
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+          <WithStyles(IconButton)
+            className="expandButton"
+            onClick={[Function]}
+          >
+            <pure(ArrowRightIcon) />
+          </WithStyles(IconButton)>
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      className="rowsPerPage"
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="outlined"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={false}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders a table with sorting disabled 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+    <div
+      className="columnName"
+      key="0"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <div>
+        col1
+      </div>
+    </div>
+    <div
+      className="columnName"
+      key="1"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <div>
+        col2
+      </div>
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className=""
+      key="0"
+    >
+      <div
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
+      >
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
+      </div>
+    </div>
+    <div
+      className=""
+      key="1"
+    >
+      <div
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
+      >
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      className="rowsPerPage"
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="outlined"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={false}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders an expanded row 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+    <div
+      className="columnName"
+      key="0"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col1
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+    <div
+      className="columnName"
+      key="1"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col2
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="expandedContainer"
+      key="0"
+    >
+      <div
+        className="tableRow row expandedRow"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
+      >
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      className="rowsPerPage"
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="outlined"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={false}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders an expanded row with expanded component below it 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+    <div
+      className="columnName"
+      key="0"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col1
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+    <div
+      className="columnName"
+      key="1"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col2
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="expandedContainer"
+      key="0"
+    >
+      <div
+        className="tableRow row expandedRow"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
+      >
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+          <WithStyles(IconButton)
+            className="expandButton expandButtonExpanded"
+            onClick={[Function]}
+          >
+            <pure(ArrowRightIcon) />
+          </WithStyles(IconButton)>
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
       </div>
       <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
-          }
-        }
+        className=""
       >
-        cell2
+        <span>
+          Hello World
+        </span>
       </div>
     </div>
   </div>
@@ -215,7 +921,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
       className="columnName cell"
     >
       <WithStyles(Checkbox)
-        checked={true}
+        checked={false}
         color="primary"
         indeterminate={false}
         onChange={[Function]}
@@ -337,7 +1043,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
       className="columnName cell"
     >
       <WithStyles(Checkbox)
-        checked={true}
+        checked={false}
         color="primary"
         indeterminate={false}
         onChange={[Function]}
@@ -476,40 +1182,44 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
     className="scrollContainer"
   >
     <div
-      className="tableRow row"
-      key="row2"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="0"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
-      </div>
-      <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell1
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell2
+        </div>
       </div>
     </div>
   </div>
@@ -636,77 +1346,85 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
     className="scrollContainer"
   >
     <div
-      className="tableRow row"
-      key="row1"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="0"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
-      </div>
-      <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell1
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell2
+        </div>
       </div>
     </div>
     <div
-      className="tableRow row"
-      key="row2"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="1"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
-      </div>
-      <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell1
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell2
+        </div>
       </div>
     </div>
   </div>
@@ -778,7 +1496,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
       className="columnName cell"
     >
       <WithStyles(Checkbox)
-        checked={true}
+        checked={false}
         color="primary"
         indeterminate={false}
         onChange={[Function]}
@@ -901,7 +1619,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
       className="columnName cell"
     >
       <WithStyles(Checkbox)
-        checked={true}
+        checked={false}
         color="primary"
         indeterminate={false}
         onChange={[Function]}
@@ -1078,77 +1796,85 @@ exports[`CustomTable renders some rows 1`] = `
     className="scrollContainer"
   >
     <div
-      className="tableRow row"
-      key="row1"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="0"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
-      </div>
-      <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell1
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell2
+        </div>
       </div>
     </div>
     <div
-      className="tableRow row"
-      key="row2"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="1"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
-      </div>
-      <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell1
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell2
+        </div>
       </div>
     </div>
   </div>
@@ -1275,81 +2001,89 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
     className="scrollContainer"
   >
     <div
-      className="tableRow row"
-      key="row1"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="0"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
-      </div>
-      <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        <span>
-          this is custom output
-        </span>
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        >
+          <span>
+            this is custom output
+          </span>
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell2
+        </div>
       </div>
     </div>
     <div
-      className="tableRow row"
-      key="row2"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="1"
     >
       <div
-        className="cell"
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        <WithStyles(Checkbox)
-          color="primary"
-        />
-      </div>
-      <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+        >
+          <WithStyles(Checkbox)
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        <span>
-          this is custom output
-        </span>
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        >
+          <span>
+            this is custom output
+          </span>
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell2
+        </div>
       </div>
     </div>
   </div>
@@ -1421,7 +2155,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
       className="columnName cell"
     >
       <WithStyles(Checkbox)
-        checked={true}
+        checked={false}
         color="primary"
         indeterminate={false}
         onChange={[Function]}
@@ -1544,63 +2278,71 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
     className="scrollContainer"
   >
     <div
-      className="tableRow row"
-      key="row1"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="0"
     >
       <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
-          }
-        }
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        cell1
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
       </div>
     </div>
     <div
-      className="tableRow row"
-      key="row2"
-      onClick={[Function]}
-      role="checkbox"
-      tabIndex={-1}
+      className=""
+      key="1"
     >
       <div
-        className="cell"
-        key="0"
-        style={
-          Object {
-            "width": "50%",
-          }
-        }
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
       >
-        cell1
-      </div>
-      <div
-        className="cell"
-        key="1"
-        style={
-          Object {
-            "width": "50%",
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
           }
-        }
-      >
-        cell2
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
       </div>
     </div>
   </div>

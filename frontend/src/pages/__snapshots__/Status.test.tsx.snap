@@ -279,15 +279,17 @@ exports[`Status handles an unknown phase 1`] = `
   }
   title=""
 >
-  <pure(HelpIcon)
-    style={
-      Object {
-        "color": "#616161",
-        "height": 18,
-        "width": 18,
+  <span>
+    <pure(HelpIcon)
+      style={
+        Object {
+          "color": "#616161",
+          "height": 18,
+          "width": 18,
+        }
       }
-    }
-  />
+    />
+  </span>
 </Tooltip>
 `;
 
@@ -570,15 +572,17 @@ exports[`Status renders an icon with tooltip for phase: ERROR 1`] = `
   }
   title="Error while running this resource"
 >
-  <pure(ErrorIcon)
-    style={
-      Object {
-        "color": "#D50000",
-        "height": 18,
-        "width": 18,
+  <span>
+    <pure(ErrorIcon)
+      style={
+        Object {
+          "color": "#D50000",
+          "height": 18,
+          "width": 18,
+        }
       }
-    }
-  />
+    />
+  </span>
 </Tooltip>
 `;
 
@@ -861,15 +865,17 @@ exports[`Status renders an icon with tooltip for phase: FAILED 1`] = `
   }
   title="Resource failed to execute"
 >
-  <pure(ErrorIcon)
-    style={
-      Object {
-        "color": "#D50000",
-        "height": 18,
-        "width": 18,
+  <span>
+    <pure(ErrorIcon)
+      style={
+        Object {
+          "color": "#D50000",
+          "height": 18,
+          "width": 18,
+        }
       }
-    }
-  />
+    />
+  </span>
 </Tooltip>
 `;
 
@@ -1152,15 +1158,17 @@ exports[`Status renders an icon with tooltip for phase: PENDING 1`] = `
   }
   title="Pending execution"
 >
-  <pure(ScheduleIcon)
-    style={
-      Object {
-        "color": "#999",
-        "height": 18,
-        "width": 18,
+  <span>
+    <pure(ScheduleIcon)
+      style={
+        Object {
+          "color": "#999",
+          "height": 18,
+          "width": 18,
+        }
       }
-    }
-  />
+    />
+  </span>
 </Tooltip>
 `;
 
@@ -1443,15 +1451,17 @@ exports[`Status renders an icon with tooltip for phase: RUNNING 1`] = `
   }
   title="Running"
 >
-  <StatusRunning
-    style={
-      Object {
-        "color": "#34a853",
-        "height": 18,
-        "width": 18,
+  <span>
+    <StatusRunning
+      style={
+        Object {
+          "color": "#34a853",
+          "height": 18,
+          "width": 18,
+        }
       }
-    }
-  />
+    />
+  </span>
 </Tooltip>
 `;
 
@@ -1734,15 +1744,17 @@ exports[`Status renders an icon with tooltip for phase: SKIPPED 1`] = `
   }
   title="Execution has been skipped for this resource"
 >
-  <pure(SkipNextIcon)
-    style={
-      Object {
-        "color": "#616161",
-        "height": 18,
-        "width": 18,
+  <span>
+    <pure(SkipNextIcon)
+      style={
+        Object {
+          "color": "#616161",
+          "height": 18,
+          "width": 18,
+        }
       }
-    }
-  />
+    />
+  </span>
 </Tooltip>
 `;
 
@@ -2025,14 +2037,16 @@ exports[`Status renders an icon with tooltip for phase: SUCCEEDED 1`] = `
   }
   title="Executed successfully"
 >
-  <pure(CheckCircleIcon)
-    style={
-      Object {
-        "color": "#34a853",
-        "height": 18,
-        "width": 18,
+  <span>
+    <pure(CheckCircleIcon)
+      style={
+        Object {
+          "color": "#34a853",
+          "height": 18,
+          "width": 18,
+        }
       }
-    }
-  />
+    />
+  </span>
 </Tooltip>
 `;

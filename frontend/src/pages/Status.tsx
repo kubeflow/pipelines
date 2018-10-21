@@ -73,7 +73,7 @@ export function statusToIcon(status: NodePhase) {
       logger.error('Unknown node phase:', status);
   }
 
-  return <Tooltip title={title}>
+  return <Tooltip title={title}><span>
     <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
-  </Tooltip>;
+  </span></Tooltip>;
 }
