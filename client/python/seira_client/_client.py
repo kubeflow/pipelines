@@ -72,7 +72,7 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response
 
-  def run_pipeline(self, job_name, pipeline_id, params):
+  def run_pipeline(self, job_name, pipeline_id, params={}):
     """Run a specified pipeline.
 
     Args:
@@ -86,7 +86,7 @@ class Client(object):
 
     import seira_job
 
-    api_params = [seira_job.ApiParameter(name=k, value=v) for k,v in six.iteritems(params)]
+    api_params = [seira_job.ApiParameter(name=k, value=str(v)) for k,v in six.iteritems(params)]
     body = seira_job.ApiJob(pipeline_id=pipeline_id, name=job_name, parameters=api_params,
                             max_concurrency=10, enabled = True)
     response = self._job_api.create_job(body)
