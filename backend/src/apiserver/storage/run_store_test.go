@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
@@ -37,7 +38,7 @@ func initializePrepopulatedDB(runStore *RunStore) {
 func TestListRuns_Pagination(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	expectedFirstPageRuns := []model.Run{
@@ -49,6 +50,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
+			Metrics:          []*model.RunMetric{},
 		}}
 	expectedSecondPageRuns := []model.Run{
 		{
@@ -59,6 +61,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
+			Metrics:          []*model.RunMetric{},
 		}}
 	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
 		PageSize:        1,
@@ -88,7 +91,7 @@ func TestListRuns_Pagination(t *testing.T) {
 func TestListRuns_Pagination_Descend(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	expectedFirstPageRuns := []model.Run{
@@ -100,6 +103,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
+			Metrics:          []*model.RunMetric{},
 		}}
 	expectedSecondPageRuns := []model.Run{
 		{
@@ -110,6 +114,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
+			Metrics:          []*model.RunMetric{},
 		}}
 	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
 		PageSize:        1,
@@ -139,7 +144,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	expectedRuns := []model.Run{
@@ -151,6 +156,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
+			Metrics:          []*model.RunMetric{},
 		},
 		{
 			UUID:             "2",
@@ -160,6 +166,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
+			Metrics:          []*model.RunMetric{},
 		}}
 	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
 		PageSize:        10,
@@ -175,7 +182,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 func TestListRunsError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	db.Close()
@@ -192,7 +199,7 @@ func TestListRunsError(t *testing.T) {
 func TestGetRun(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	expectedRun := &model.RunDetail{
@@ -204,6 +211,7 @@ func TestGetRun(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
+			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
 	}
@@ -216,7 +224,7 @@ func TestGetRun(t *testing.T) {
 func TestGetRun_NotFoundError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	_, err := runStore.GetRun("notfound")
@@ -227,7 +235,7 @@ func TestGetRun_NotFoundError(t *testing.T) {
 func TestGetRun_InternalError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 	db.Close()
 
@@ -239,7 +247,7 @@ func TestGetRun_InternalError(t *testing.T) {
 func TestUpdateRun_UpdateSuccess(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	expectedRun := &model.RunDetail{
@@ -251,6 +259,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
+			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
 	}
@@ -292,6 +301,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 100,
 			Conditions:       "Running:",
+			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
@@ -304,7 +314,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 func TestUpdateRun_CreateSuccess(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	// Checking that the run is not yet in the DB
@@ -344,6 +354,7 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 100,
 			Conditions:       "Running:",
+			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
@@ -356,7 +367,7 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 func TestUpdateRun_UpdateError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 	db.Close()
 
@@ -388,7 +399,7 @@ func TestUpdateRun_UpdateError(t *testing.T) {
 func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
 	initializePrepopulatedDB(runStore)
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
@@ -418,6 +429,7 @@ func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 0,
 			Conditions:       ":",
+			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
@@ -425,4 +437,134 @@ func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 	runDetail, err := runStore.GetRun("1")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun, runDetail)
+}
+
+func TestReportMetric_Success(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	initializePrepopulatedDB(runStore)
+
+	metric := &model.RunMetric{
+		RunUUID:     "1",
+		NodeID:      "node1",
+		Name:        "acurracy",
+		NumberValue: 0.77,
+		Format:      "PERCENTAGE",
+	}
+	runStore.ReportMetric(metric)
+
+	runDetail, err := runStore.GetRun("1")
+	assert.Nil(t, err, "Got error: %+v", err)
+	assert.Equal(t, []*model.RunMetric{metric}, runDetail.Run.Metrics)
+}
+
+func TestReportMetric_DupReports_Fail(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	initializePrepopulatedDB(runStore)
+
+	metric1 := &model.RunMetric{
+		RunUUID:     "1",
+		NodeID:      "node1",
+		Name:        "acurracy",
+		NumberValue: 0.77,
+		Format:      "PERCENTAGE",
+	}
+	metric2 := &model.RunMetric{
+		RunUUID:     "1",
+		NodeID:      "node1",
+		Name:        "acurracy",
+		NumberValue: 0.88,
+		Format:      "PERCENTAGE",
+	}
+	runStore.ReportMetric(metric1)
+
+	err := runStore.ReportMetric(metric2)
+	_, ok := err.(*util.UserError)
+	assert.True(t, ok)
+}
+
+func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	initializePrepopulatedDB(runStore)
+	sql, args, _ := sq.
+		Insert("run_metrics").
+		SetMap(sq.Eq{
+			"RunUUID":     "1",
+			"NodeID":      "node1",
+			"Name":        "accuracy",
+			"NumberValue": 0.88,
+			"Format":      "RAW",
+			"Payload":     "{ invalid; json,"}).ToSql()
+	db.Exec(sql, args...)
+
+	runDetail, err := runStore.GetRun("1")
+	assert.Nil(t, err, "Got error: %+v", err)
+	assert.Empty(t, runDetail.Run.Metrics)
+}
+
+func TestListRuns_WithMetrics(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	initializePrepopulatedDB(runStore)
+	metric1 := &model.RunMetric{
+		RunUUID:     "1",
+		NodeID:      "node1",
+		Name:        "acurracy",
+		NumberValue: 0.77,
+		Format:      "PERCENTAGE",
+	}
+	metric2 := &model.RunMetric{
+		RunUUID:     "1",
+		NodeID:      "node2",
+		Name:        "logloss",
+		NumberValue: -1.2,
+		Format:      "RAW",
+	}
+	metric3 := &model.RunMetric{
+		RunUUID:     "2",
+		NodeID:      "node2",
+		Name:        "logloss",
+		NumberValue: -1.3,
+		Format:      "RAW",
+	}
+	runStore.ReportMetric(metric1)
+	runStore.ReportMetric(metric2)
+	runStore.ReportMetric(metric3)
+
+	expectedRuns := []model.Run{
+		{
+			UUID:             "1",
+			Name:             "run1",
+			Namespace:        "n1",
+			JobID:            "1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+			Metrics:          []*model.RunMetric{metric1, metric2},
+		},
+		{
+			UUID:             "2",
+			Name:             "run2",
+			Namespace:        "n2",
+			JobID:            "1",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "done",
+			Metrics:          []*model.RunMetric{metric3},
+		},
+	}
+	runs, _, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
+		PageSize:        2,
+		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
+		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
+		IsDesc:          false,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 }

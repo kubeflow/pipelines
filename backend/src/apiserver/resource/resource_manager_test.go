@@ -203,6 +203,7 @@ func TestListRun(t *testing.T) {
 		JobID:          "1",
 		CreatedAtInSec: 1,
 		Conditions:     ":",
+		Metrics:        []*model.RunMetric{},
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
@@ -263,6 +264,7 @@ func TestGetRun(t *testing.T) {
 			JobID:          "1",
 			CreatedAtInSec: 1,
 			Conditions:     ":",
+			Metrics:        []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: string(workflowBytes)},
 	}
@@ -628,6 +630,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 0,
 			Conditions:       ":",
+			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}

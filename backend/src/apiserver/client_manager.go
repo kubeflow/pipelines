@@ -99,7 +99,7 @@ func (c *ClientManager) init() {
 	c.jobStore = storage.NewJobStore(db, c.time)
 
 	// Initialize run store v2
-	c.runStore = storage.NewRunStore(db, c.time)
+	c.runStore = storage.NewRunStore(db, c.time, storage.NewMySQLDialect())
 
 	// Initialize pipeline manager.
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
@@ -135,19 +135,21 @@ func initDBClient(initConnectionTimeout time.Duration) *sql.DB {
 		&model.Job{},
 		&model.Pipeline{},
 		&model.ResourceReference{},
-		&model.RunDetail{})
+		&model.RunDetail{},
+		&model.RunMetric{})
 
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
-
-	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for JobID in run table. Error: %s", response.Error)
-	}
 	response = db.Model(&model.RunDetail{}).
 		AddForeignKey("JobID", "jobs(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for JobID in run_detail table. Error: %s", response.Error)
+		glog.Fatalf("Failed to create a foreign key for JobID in run_details table. Error: %s", response.Error)
+	}
+	response = db.Model(&model.RunMetric{}).
+		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	if response.Error != nil {
+		glog.Fatalf("Failed to create a foreign key for RunID in run_metrics table. Error: %s", response.Error)
 	}
 	return db.DB()
 }

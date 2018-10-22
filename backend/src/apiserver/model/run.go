@@ -23,6 +23,7 @@ type Run struct {
 	CreatedAtInSec   int64  `gorm:"column:CreatedAtInSec; not null"`
 	ScheduledAtInSec int64  `gorm:"column:ScheduledAtInSec;"`
 	Conditions       string `gorm:"column:Conditions; not null"`
+	Metrics          []*RunMetric
 	PipelineSpec
 
 	// TODO(yangpa): The fields below will be deprecated after v1beta1
@@ -38,6 +39,15 @@ type PipelineRuntime struct {
 type RunDetail struct {
 	Run
 	PipelineRuntime
+}
+
+type RunMetric struct {
+	RunUUID     string  `gorm:"column:RunUUID; not null;primary_key"`
+	NodeID      string  `gorm:"column:NodeID; not null; primary_key"`
+	Name        string  `gorm:"column:Name; not null;primary_key"`
+	NumberValue float64 `gorm:"column:NumberValue"`
+	Format      string  `gorm:"column:Format"`
+	Payload     string  `gorm:"column:Payload; not null; size:65535"`
 }
 
 func (r Run) GetValueOfPrimaryKey() string {

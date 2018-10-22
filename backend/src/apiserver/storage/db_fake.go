@@ -36,7 +36,8 @@ func NewFakeDb() (*sql.DB, error) {
 		&model.Job{},
 		&model.Pipeline{},
 		&model.ResourceReference{},
-		&model.RunDetail{})
+		&model.RunDetail{},
+		&model.RunMetric{})
 
 	return db.DB(), nil
 }

@@ -61,7 +61,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		db:                          db,
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
-		runStore:                    storage.NewRunStore(db, time),
+		runStore:                    storage.NewRunStore(db, time, storage.NewSQLiteDialect()),
 		workflowClientFake:          workflowClient,
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
