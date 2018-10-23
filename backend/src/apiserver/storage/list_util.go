@@ -72,16 +72,12 @@ func toPaginationQuery(selectBuilder sq.SelectBuilder, context *common.Paginatio
 	if token := context.Token; token != nil {
 		if context.IsDesc {
 			selectBuilder = selectBuilder.
-				Where(
-					sq.LtOrEq{
-						context.SortByFieldName: token.SortByFieldValue,
-						context.KeyFieldName:    token.KeyFieldValue})
+				Where(sq.Or{sq.Lt{context.SortByFieldName: token.SortByFieldValue},
+					sq.And{sq.Eq{context.SortByFieldName: token.SortByFieldValue}, sq.LtOrEq{context.KeyFieldName: token.KeyFieldValue}}})
 		} else {
 			selectBuilder = selectBuilder.
-				Where(
-					sq.GtOrEq{
-						context.SortByFieldName: token.SortByFieldValue,
-						context.KeyFieldName:    token.KeyFieldValue})
+				Where(sq.Or{sq.Gt{context.SortByFieldName: token.SortByFieldValue},
+					sq.And{sq.Eq{context.SortByFieldName: token.SortByFieldValue}, sq.GtOrEq{context.KeyFieldName: token.KeyFieldValue}}})
 		}
 	}
 	order := "ASC"
