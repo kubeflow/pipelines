@@ -38,7 +38,7 @@ RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     touch /tools/google-cloud-sdk/lib/third_party/google.py
 
 RUN wget -nv https://github.com/ksonnet/ksonnet/releases/download/v0.9.0/ks_0.9.0_linux_amd64.tar.gz && \
-    tar -xvzf ks_0.9.0_linux_amd64.tar.gz && \
+    tar -xzf ks_0.9.0_linux_amd64.tar.gz && \
     mkdir -p /tools/ks/bin && \
     cp ./ks_0.9.0_linux_amd64/ks /tools/ks/bin && \
     rm ks_0.9.0_linux_amd64.tar.gz && \

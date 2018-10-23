@@ -161,7 +161,7 @@ if [ "$WITH_KUBEFLOW" = true ]; then
   # We use kubeflow v0.3.0 by default
   KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.3.0"}
   (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
-  tar -xzvf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
+  tar -xzf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
   KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
   if [[ ${REPORT_USAGE} != "true" ]]; then
       (cd ${KUBEFLOW_REPO} && sed -i -e 's/--reportUsage\=true/--reportUsage\=false/g' scripts/util.sh)
