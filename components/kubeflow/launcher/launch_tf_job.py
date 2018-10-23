@@ -14,7 +14,7 @@
 
 """
 Usage:
-python train.py
+python launch_tf_job.py
     --workers=3
     --pss=1
     --container-image=gcr.io/${PROJECT_ID}/ml-pipeline-kubeflow-tf-trainer:${TAG_NAME}
