@@ -171,11 +171,11 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'ml-pipeline-kubeflow-tf', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$TAG_NAME']
   id:   'tagLauncherVersionNumber'
-  waitFor: ['pullLauncher']
+  waitFor: ['buildLauncher']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'ml-pipeline-kubeflow-tf', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
   id:   'tagLauncherCommitSHA'
-  waitFor: ['pullLauncher']
+  waitFor: ['buildLauncher']
 
 # Pull and retag the images for the Dataproc-based pipeline components
 - name: 'gcr.io/cloud-builders/docker'
