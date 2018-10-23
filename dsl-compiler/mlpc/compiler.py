@@ -25,7 +25,7 @@ import yaml
 
 
 class Compiler(object):
-  """DSL Compiler. 
+  """DSL Compiler.
 
   It compiles DSL pipeline functions into workflow yaml. Example usage:
   ```python
@@ -47,6 +47,27 @@ class Compiler(object):
     if param.op_name:
       return param.op_name + '-' + param.name
     return self._sanitize_name(param.name)
+
+  def _build_conventional_artifact(self, name):
+    return {
+      'name': name,
+      'path': '/' + name + '.json',
+      's3': {
+        # TODO: parameterize namespace for minio service
+        'endpoint': 'minio-service.kubeflow:9000',
+        'bucket': 'mlpipeline',
+        'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
+        'insecure': True,
+        'accessKeySecret': {
+          'name': 'mlpipeline-minio-artifact',
+          'key': 'accesskey',
+        },
+        'secretKeySecret': {
+          'name': 'mlpipeline-minio-artifact',
+          'key': 'secretkey'
+        }
+      },
+    }
 
   def _op_to_template(self, op):
     """Generate template given an operator inherited from mlp.ContainerOp."""
@@ -99,25 +120,8 @@ class Compiler(object):
     # for the artifact output when default artifact repository is configured,
     # this part needs to be updated to use the default artifact repository.
     output_artifacts = []
-    output_artifacts.append({
-      'name': 'mlpipeline-ui-metadata',
-      'path': '/mlpipeline-ui-metadata.json',
-      's3': {
-        # TODO: parameterize namespace for minio service
-        'endpoint': 'minio-service.kubeflow:9000',
-        'bucket': 'mlpipeline',
-        'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
-        'insecure': True,
-        'accessKeySecret': {
-          'name': 'mlpipeline-minio-artifact',
-          'key': 'accesskey',
-        },
-        'secretKeySecret': {
-          'name': 'mlpipeline-minio-artifact',
-          'key': 'secretkey'
-        }
-      },
-    })
+    output_artifacts.append(self._build_conventional_artifact('mlpipeline-ui-metadata'))
+    output_artifacts.append(self._build_conventional_artifact('mlpipeline-metrics'))
     template['outputs']['artifacts'] = output_artifacts
     if op.command:
       template['container']['command'] = op.command
@@ -176,7 +180,7 @@ class Compiler(object):
       return groups
 
     return _get_groups_helper(root_group)
-        
+
   def _get_uncommon_ancestors(self, op_groups, op1, op2):
     """Helper function to get unique ancestors between two ops.
 
@@ -206,7 +210,7 @@ class Compiler(object):
       # op's inputs and all params used in conditions for that op are both considered.
       for param in op.inputs + list(condition_params[op.name]):
         # if the value is already provided (immediate value), then no need to expose
-        # it as input for its parent groups. 
+        # it as input for its parent groups.
         if param.value:
           continue
 
@@ -236,7 +240,7 @@ class Compiler(object):
             for g in op_groups[op.name]:
               inputs[g].add((full_name, None))
     return inputs, outputs
-    
+
   def _get_condition_params_for_ops(self, root_group):
     """Get parameters referenced in conditions of ops."""
 
@@ -258,7 +262,7 @@ class Compiler(object):
 
     _get_condition_params_for_ops_helper(root_group, [])
     return conditions
-      
+
   def _get_dependencies(self, pipeline, root_group, op_groups):
     """Get dependent groups and ops for all ops and groups.
 
@@ -296,7 +300,7 @@ class Compiler(object):
 
   def _group_to_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
-    
+
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
@@ -377,13 +381,13 @@ class Compiler(object):
         tasks.append(task)
       tasks.sort(key=lambda x: x['name'])
       template['dag'] = {'tasks': tasks}
-    return template     
+    return template
 
   def _create_new_groups(self, root_group):
     """Create a copy of the input group, and insert extra groups for conditions."""
 
     new_group = copy.deepcopy(root_group)
-    
+
     def _insert_group_for_condition_helper(group):
       for i, g in enumerate(group.groups):
         if g.type == 'condition':
@@ -398,7 +402,7 @@ class Compiler(object):
 
     _insert_group_for_condition_helper(new_group)
     return new_group
-    
+
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
@@ -499,7 +503,7 @@ class Compiler(object):
     with mlp.Pipeline(pipeline_name) as p:
       pipeline_func(*args_list)
 
-    # Remove when argo supports local exit handler.    
+    # Remove when argo supports local exit handler.
     self._validate_exit_handler(p)
 
     # Fill in the default values.

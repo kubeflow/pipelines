@@ -72,6 +72,23 @@ class TestCompiler(unittest.TestCase):
               'name': 'mlpipeline-minio-artifact',
             }
           }
+        },{
+          'name': 'mlpipeline-metrics',
+          'path': '/mlpipeline-metrics.json',
+          's3': {
+            'accessKeySecret': {
+              'key': 'accesskey',
+              'name': 'mlpipeline-minio-artifact',
+            },
+            'bucket': 'mlpipeline',
+            'endpoint': 'minio-service.kubeflow:9000',
+            'insecure': True,
+            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
+            'secretKeySecret': {
+              'key': 'secretkey',
+              'name': 'mlpipeline-minio-artifact',
+            }
+          }
         }]
       }
     }
@@ -192,7 +209,7 @@ class TestCompiler(unittest.TestCase):
       self.assertEqual(golden, compiled)
     finally:
       shutil.rmtree(tmpdir)
-    
+
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
     self._test_py_compile('basic')
