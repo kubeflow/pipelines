@@ -95,6 +95,12 @@ service RunService {
       body: "*"
     };
   }
+
+  rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1alpha2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
+    };
+  }
 }
 
 message CreateRunRequest{
@@ -253,4 +259,18 @@ message ReportRunMetricsResponse {
     // Output. The detailed message of the error of the reporting.
     string message = 4;
   }
+}
+
+message ReadArtifactRequest {
+  // The ID of the run.
+  string run_id = 1;
+  // The ID of the running node.
+  string node_id = 2;
+  // The name of the artifact.
+  string artifact_name = 3;
+}
+
+message ReadArtifactResponse {
+  // The bytes of the artifact content.
+  bytes data = 1;
 }

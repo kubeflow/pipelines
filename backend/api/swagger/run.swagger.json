@@ -176,6 +176,51 @@
         ]
       }
     },
+    "/apis/v1alpha2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
+      "get": {
+        "operationId": "ReadArtifact",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiReadArtifactResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
+            "description": "The ID of the run.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "node_id",
+            "description": "The ID of the running node.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "artifact_name",
+            "description": "The name of the artifact.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
     "/apis/v1alpha2/runs/{run_id}:reportMetrics": {
       "post": {
         "summary": "ReportRunMetrics reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be uniquely\nidentified by (run_id, node_id, name). Duplicate reporting will be\nignored by the API. First reporting wins.",
@@ -287,6 +332,16 @@
             "$ref": "#/definitions/apiParameter"
           },
           "description": "The parameter user provide to inject to the pipeline YAML.\nIf a default value of a parameter exist in the YAML,\nthe value user provided here will replace."
+        }
+      }
+    },
+    "apiReadArtifactResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "description": "The bytes of the artifact content."
         }
       }
     },

@@ -66,6 +66,11 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRun
 	return &api.ReportRunMetricsResponse{}, nil
 }
 
+func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+	// TODO(hongyes): Implement the action.
+	return &api.ReadArtifactResponse{}, nil
+}
+
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {
 	return &RunServer{resourceManager: resourceManager}
 }
