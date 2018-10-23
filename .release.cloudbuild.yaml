@@ -365,4 +365,4 @@ images:
 - 'gcr.io/ml-pipeline/ml-pipeline-local-roc:$TAG_NAME'
 - 'gcr.io/ml-pipeline/ml-pipeline-local-roc:$COMMIT_SHA'
 
-timeout: '600s'
+timeout: '1200s'
