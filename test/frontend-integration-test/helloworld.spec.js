@@ -81,7 +81,8 @@ describe('deploy helloworld sample job', () => {
 
     // Navigate to details of the deployed job, by finding the anchor element
     // with the job's name as inner text
-    $('.tableRow').element('a').click();
+    browser.waitForVisible('.tableRow a');
+    $('.tableRow a').click();
   });
 
   it('switches to config tab', () => {
