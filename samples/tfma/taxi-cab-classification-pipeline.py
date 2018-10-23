@@ -159,5 +159,5 @@ def taxi_cab_classification(
   deploy = kubeflow_deploy_op(training.output, tf_server_name)
 
 if __name__ == '__main__':
-  import mlpc.main as compiler
-  compiler._compile_pipeline_function(None, __file__ + '.yaml')
+  import mlpc
+  mlpc.Compiler().compile(taxi_cab_classification, __file__ + '.tar.gz')

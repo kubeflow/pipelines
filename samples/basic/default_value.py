@@ -39,5 +39,5 @@ def immediate_value_pipeline(
      arguments=['echo %s' % op1.output])
 
 if __name__ == '__main__':
-  import mlpc.main as compiler
-  compiler._compile_pipeline_function(None, __file__ + '.yaml')
+  import mlpc
+  mlpc.Compiler().compile(immediate_value_pipeline, __file__ + '.tar.gz')

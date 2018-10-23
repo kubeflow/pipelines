@@ -121,5 +121,5 @@ def kubeflow_training( output: mlp.PipelineParam, project: mlp.PipelineParam,
   confusion_matrix = confusion_matrix_op(prediction.output, '%s/%s/confusionmatrix' % (output, workflow))
 
 if __name__ == '__main__':
-  import mlpc.main as compiler
-  compiler._compile_pipeline_function(None, __file__ + '.yaml')
+  import mlpc
+  mlpc.Compiler().compile(kubeflow_training, __file__ + '.tar.gz')

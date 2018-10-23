@@ -55,5 +55,5 @@ def flipcoin():
       PrintOp('print2')
 
 if __name__ == '__main__':
-  import mlpc.main as compiler
-  compiler._compile_pipeline_function(None, __file__ + '.yaml')
+  import mlpc
+  mlpc.Compiler().compile(flipcoin, __file__ + '.tar.gz')

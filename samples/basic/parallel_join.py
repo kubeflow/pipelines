@@ -45,5 +45,5 @@ def download_and_join(url1: mlp.PipelineParam, url2: mlp.PipelineParam):
      arguments=['echo %s %s' % (download1.output, download2.output)])
 
 if __name__ == '__main__':
-  import mlpc.main as compiler
-  compiler._compile_pipeline_function(None, __file__ + '.yaml')
+  import mlpc
+  mlpc.Compiler().compile(download_and_join, __file__ + '.tar.gz')

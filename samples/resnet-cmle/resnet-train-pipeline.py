@@ -94,5 +94,5 @@ def resnet_train(project_id: mlp.PipelineParam,
   deploy = resnet_deploy_op(train.output, model, version, project_id, region, tf_version)
 
 if __name__ == '__main__':
-  import mlpc.main as compiler
-  compiler._compile_pipeline_function(None, __file__ + '.yaml')
+  import mlpc
+  mlpc.Compiler().compile(resnet_train, __file__ + '.tar.gz')

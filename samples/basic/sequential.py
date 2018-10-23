@@ -38,5 +38,5 @@ def download_and_print(url: mlp.PipelineParam):
      arguments=['echo "%s"' % op1.output])
 
 if __name__ == '__main__':
-  import mlpc.main as compiler
-  compiler._compile_pipeline_function(None, __file__ + '.yaml')
+  import mlpc
+  mlpc.Compiler().compile(download_and_print, __file__ + '.tar.gz')

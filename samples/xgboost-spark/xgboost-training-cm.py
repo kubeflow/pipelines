@@ -201,5 +201,5 @@ def xgb_train_pipeline(
     roc_op = RocOp('roc', predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output)
 
 if __name__ == '__main__':
-  import mlpc.main as compiler
-  compiler._compile_pipeline_function(None, __file__ + '.yaml')
+  import mlpc
+  mlpc.Compiler().compile(xgb_train_pipeline, __file__ + '.tar.gz')
