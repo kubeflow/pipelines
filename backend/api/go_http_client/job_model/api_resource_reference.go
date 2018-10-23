@@ -31,7 +31,7 @@ import (
 type APIResourceReference struct {
 
 	// key
-	Key *APIResourceReferenceKey `json:"key,omitempty"`
+	Key *APIResourceKey `json:"key,omitempty"`
 
 	// Optional field. The name of the resource that referred to.
 	Name string `json:"name,omitempty"`

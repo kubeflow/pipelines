@@ -26,9 +26,9 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// APIResourceReferenceKey api resource reference key
-// swagger:model apiResourceReferenceKey
-type APIResourceReferenceKey struct {
+// APIResourceKey api resource key
+// swagger:model apiResourceKey
+type APIResourceKey struct {
 
 	// Required field. The ID of the resource that referred to.
 	ID string `json:"id,omitempty"`
@@ -37,8 +37,8 @@ type APIResourceReferenceKey struct {
 	Type APIResourceType `json:"type,omitempty"`
 }
 
-// Validate validates this api resource reference key
-func (m *APIResourceReferenceKey) Validate(formats strfmt.Registry) error {
+// Validate validates this api resource key
+func (m *APIResourceKey) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateType(formats); err != nil {
@@ -51,7 +51,7 @@ func (m *APIResourceReferenceKey) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIResourceReferenceKey) validateType(formats strfmt.Registry) error {
+func (m *APIResourceKey) validateType(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Type) { // not required
 		return nil
@@ -68,7 +68,7 @@ func (m *APIResourceReferenceKey) validateType(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *APIResourceReferenceKey) MarshalBinary() ([]byte, error) {
+func (m *APIResourceKey) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -76,8 +76,8 @@ func (m *APIResourceReferenceKey) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *APIResourceReferenceKey) UnmarshalBinary(b []byte) error {
-	var res APIResourceReferenceKey
+func (m *APIResourceKey) UnmarshalBinary(b []byte) error {
+	var res APIResourceKey
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

@@ -37,10 +37,10 @@ import (
 // with the default values initialized.
 func NewListRunsParams() *ListRunsParams {
 	var (
-		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
 	)
 	return &ListRunsParams{
-		ResourceReferenceType: &resourceReferenceTypeDefault,
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -50,10 +50,10 @@ func NewListRunsParams() *ListRunsParams {
 // with the default values initialized, and the ability to set a timeout on a request
 func NewListRunsParamsWithTimeout(timeout time.Duration) *ListRunsParams {
 	var (
-		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
 	)
 	return &ListRunsParams{
-		ResourceReferenceType: &resourceReferenceTypeDefault,
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: timeout,
 	}
@@ -63,10 +63,10 @@ func NewListRunsParamsWithTimeout(timeout time.Duration) *ListRunsParams {
 // with the default values initialized, and the ability to set a context for a request
 func NewListRunsParamsWithContext(ctx context.Context) *ListRunsParams {
 	var (
-		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
 	)
 	return &ListRunsParams{
-		ResourceReferenceType: &resourceReferenceTypeDefault,
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		Context: ctx,
 	}
@@ -76,11 +76,11 @@ func NewListRunsParamsWithContext(ctx context.Context) *ListRunsParams {
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewListRunsParamsWithHTTPClient(client *http.Client) *ListRunsParams {
 	var (
-		resourceReferenceTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
 	)
 	return &ListRunsParams{
-		ResourceReferenceType: &resourceReferenceTypeDefault,
-		HTTPClient:            client,
+		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
+		HTTPClient:               client,
 	}
 }
 
@@ -93,16 +93,16 @@ type ListRunsParams struct {
 	PageSize *int32
 	/*PageToken*/
 	PageToken *string
-	/*ResourceReferenceID
+	/*ResourceReferenceKeyID
 	  Required field. The ID of the resource that referred to.
 
 	*/
-	ResourceReferenceID *string
-	/*ResourceReferenceType
+	ResourceReferenceKeyID *string
+	/*ResourceReferenceKeyType
 	  Required field. The type of the resource that referred to.
 
 	*/
-	ResourceReferenceType *string
+	ResourceReferenceKeyType *string
 	/*SortBy
 	  Can be format of "field_name", "field_name asc" or "field_name des"
 	Ascending by default.
@@ -170,26 +170,26 @@ func (o *ListRunsParams) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
-// WithResourceReferenceID adds the resourceReferenceID to the list runs params
-func (o *ListRunsParams) WithResourceReferenceID(resourceReferenceID *string) *ListRunsParams {
-	o.SetResourceReferenceID(resourceReferenceID)
+// WithResourceReferenceKeyID adds the resourceReferenceKeyID to the list runs params
+func (o *ListRunsParams) WithResourceReferenceKeyID(resourceReferenceKeyID *string) *ListRunsParams {
+	o.SetResourceReferenceKeyID(resourceReferenceKeyID)
 	return o
 }
 
-// SetResourceReferenceID adds the resourceReferenceId to the list runs params
-func (o *ListRunsParams) SetResourceReferenceID(resourceReferenceID *string) {
-	o.ResourceReferenceID = resourceReferenceID
+// SetResourceReferenceKeyID adds the resourceReferenceKeyId to the list runs params
+func (o *ListRunsParams) SetResourceReferenceKeyID(resourceReferenceKeyID *string) {
+	o.ResourceReferenceKeyID = resourceReferenceKeyID
 }
 
-// WithResourceReferenceType adds the resourceReferenceType to the list runs params
-func (o *ListRunsParams) WithResourceReferenceType(resourceReferenceType *string) *ListRunsParams {
-	o.SetResourceReferenceType(resourceReferenceType)
+// WithResourceReferenceKeyType adds the resourceReferenceKeyType to the list runs params
+func (o *ListRunsParams) WithResourceReferenceKeyType(resourceReferenceKeyType *string) *ListRunsParams {
+	o.SetResourceReferenceKeyType(resourceReferenceKeyType)
 	return o
 }
 
-// SetResourceReferenceType adds the resourceReferenceType to the list runs params
-func (o *ListRunsParams) SetResourceReferenceType(resourceReferenceType *string) {
-	o.ResourceReferenceType = resourceReferenceType
+// SetResourceReferenceKeyType adds the resourceReferenceKeyType to the list runs params
+func (o *ListRunsParams) SetResourceReferenceKeyType(resourceReferenceKeyType *string) {
+	o.ResourceReferenceKeyType = resourceReferenceKeyType
 }
 
 // WithSortBy adds the sortBy to the list runs params
@@ -243,32 +243,32 @@ func (o *ListRunsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 
 	}
 
-	if o.ResourceReferenceID != nil {
+	if o.ResourceReferenceKeyID != nil {
 
-		// query param resource_reference.id
-		var qrResourceReferenceID string
-		if o.ResourceReferenceID != nil {
-			qrResourceReferenceID = *o.ResourceReferenceID
+		// query param resource_reference_key.id
+		var qrResourceReferenceKeyID string
+		if o.ResourceReferenceKeyID != nil {
+			qrResourceReferenceKeyID = *o.ResourceReferenceKeyID
 		}
-		qResourceReferenceID := qrResourceReferenceID
-		if qResourceReferenceID != "" {
-			if err := r.SetQueryParam("resource_reference.id", qResourceReferenceID); err != nil {
+		qResourceReferenceKeyID := qrResourceReferenceKeyID
+		if qResourceReferenceKeyID != "" {
+			if err := r.SetQueryParam("resource_reference_key.id", qResourceReferenceKeyID); err != nil {
 				return err
 			}
 		}
 
 	}
 
-	if o.ResourceReferenceType != nil {
+	if o.ResourceReferenceKeyType != nil {
 
-		// query param resource_reference.type
-		var qrResourceReferenceType string
-		if o.ResourceReferenceType != nil {
-			qrResourceReferenceType = *o.ResourceReferenceType
+		// query param resource_reference_key.type
+		var qrResourceReferenceKeyType string
+		if o.ResourceReferenceKeyType != nil {
+			qrResourceReferenceKeyType = *o.ResourceReferenceKeyType
 		}
-		qResourceReferenceType := qrResourceReferenceType
-		if qResourceReferenceType != "" {
-			if err := r.SetQueryParam("resource_reference.type", qResourceReferenceType); err != nil {
+		qResourceReferenceKeyType := qrResourceReferenceKeyType
+		if qResourceReferenceKeyType != "" {
+			if err := r.SetQueryParam("resource_reference_key.type", qResourceReferenceKeyType); err != nil {
 				return err
 			}
 		}

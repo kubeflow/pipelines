@@ -120,7 +120,7 @@ message ListRunsRequest{
   // What resource reference to filter on.
   // E.g. If listing run for an experiment, the query string would be
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
-  ResourceReferenceKey resource_reference = 4;
+  ResourceKey resource_reference_key = 4;
 }
 
 message ListRunsResponse {

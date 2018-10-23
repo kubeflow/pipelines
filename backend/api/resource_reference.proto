@@ -29,7 +29,7 @@ enum Relationship {
 }
 
 
-message ResourceReferenceKey {
+message ResourceKey {
   // Required field. The type of the resource that referred to.
   ResourceType type = 1;
 
@@ -38,7 +38,7 @@ message ResourceReferenceKey {
 }
 
 message ResourceReference {
-  ResourceReferenceKey key = 1;
+  ResourceKey key = 1;
 
   // Required field. The relationship from referred resource to the object.
   Relationship relationship = 2;
