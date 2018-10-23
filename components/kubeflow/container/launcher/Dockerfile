@@ -44,7 +44,9 @@ RUN wget -nv https://github.com/ksonnet/ksonnet/releases/download/v0.9.0/ks_0.9.
     rm ks_0.9.0_linux_amd64.tar.gz && \
     rm -r ks_0.9.0_linux_amd64
 
-RUN git clone https://github.com/kubeflow/tf-operator.git 
+RUN wget https://github.com/kubeflow/tf-operator/archive/v0.3.0.zip && \
+    unzip v0.3.0.zip && \
+    mv tf-operator-0.3.0 tf-operator
 
 ENV PYTHONPATH $PYTHONPATH:/tf-operator
 
