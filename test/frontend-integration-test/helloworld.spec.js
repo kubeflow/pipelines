@@ -82,7 +82,7 @@ describe('deploy helloworld sample job', () => {
     // Navigate to details of the deployed job, by finding the anchor element
     // with the job's name as inner text
     browser.waitForVisible('.tableRow a');
-    $('.tableRow a').click();
+    browser.execute('document.querySelector(".tableRow a").click()');
   });
 
   it('switches to config tab', () => {
@@ -134,7 +134,7 @@ describe('deploy helloworld sample job', () => {
 
   it('opens run details', () => {
     browser.waitForVisible('.tableRow a');
-    $('.tableRow a').click();
+    browser.execute('document.querySelector(".tableRow a").click()');
 
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/runs/details/');
