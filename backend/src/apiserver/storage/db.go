@@ -16,9 +16,31 @@ package storage
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"strings"
+
+	"github.com/VividCortex/mysqlerr"
+	"github.com/go-sql-driver/mysql"
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
+
+// DB a struct wrapping plain sql library with SQL dialect, to solve any feature
+// difference between MySQL, which is used in production, and Sqlite, which is used
+// for unit testing.
+type DB struct {
+	*sql.DB
+	SQLDialect
+}
+
+func (d *DB) GetDialect() SQLDialect {
+	return d.SQLDialect
+}
+
+// NewDB creates a DB
+func NewDB(db *sql.DB, dialect SQLDialect) *DB {
+	return &DB{db, dialect}
+}
 
 // SQLDialect abstracts common sql queries which vary in different dialect.
 // It is used to bridge the difference between mysql (production) and sqlite
@@ -31,6 +53,9 @@ type SQLDialect interface {
 	// Concat builds query to concatenete a list of `exprs` into a single string with
 	// a separator in between.
 	Concat(exprs []string, separator string) string
+
+	// Check whether the error is a SQL duplicate entry error or not
+	IsDuplicateError(err error) bool
 }
 
 // MySQLDialect implements SQLDialect with mysql dialect implementation.
@@ -55,6 +80,11 @@ func (d MySQLDialect) Concat(exprs []string, separator string) string {
 	return fmt.Sprintf("CONCAT(%s)", strings.Join(exprs, separatorSQL))
 }
 
+func (d MySQLDialect) IsDuplicateError(err error) bool {
+	sqlError, ok := err.(*mysql.MySQLError)
+	return ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY
+}
+
 // SQLiteDialect implements SQLDialect with sqlite dialect implementation.
 type SQLiteDialect struct{}
 
@@ -75,6 +105,11 @@ func (d SQLiteDialect) Concat(exprs []string, separator string) string {
 		separatorSQL = fmt.Sprintf(`||"%s"||`, separator)
 	}
 	return strings.Join(exprs, separatorSQL)
+}
+
+func (d SQLiteDialect) IsDuplicateError(err error) bool {
+	sqlError, ok := err.(sqlite3.Error)
+	return ok && sqlError.Code == sqlite3.ErrConstraint
 }
 
 func NewMySQLDialect() MySQLDialect {

@@ -37,6 +37,7 @@ import (
 )
 
 type ClientManagerInterface interface {
+	ExperimentStore() storage.ExperimentStoreInterface
 	PipelineStore() storage.PipelineStoreInterface
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
@@ -47,6 +48,7 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManager struct {
+	experimentStore   storage.ExperimentStoreInterface
 	pipelineStore     storage.PipelineStoreInterface
 	jobStore          storage.JobStoreInterface
 	runStore          storage.RunStoreInterface
@@ -58,6 +60,7 @@ type ResourceManager struct {
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
+		experimentStore:   clientManager.ExperimentStore(),
 		pipelineStore:     clientManager.PipelineStore(),
 		jobStore:          clientManager.JobStore(),
 		runStore:          clientManager.RunStore(),
@@ -72,7 +75,21 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) ListPipelines(context *common.PaginationContext) (pipelines []model.Pipeline, nextPageToken string, err error) {
+func (r *ResourceManager) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
+	return r.experimentStore.CreateExperiment(experiment)
+}
+
+func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment, error) {
+	return r.experimentStore.GetExperiment(experimentId)
+}
+
+func (r *ResourceManager) ListExperiments(context *common.PaginationContext) (
+	experiments []model.Experiment, nextPageToken string, err error) {
+	return r.experimentStore.ListExperiments(context)
+}
+
+func (r *ResourceManager) ListPipelines(context *common.PaginationContext) (
+	pipelines []model.Pipeline, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(context)
 }
 

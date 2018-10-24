@@ -24,6 +24,29 @@ import (
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
+func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
+	return &api.Experiment{
+		Id:          experiment.UUID,
+		Name:        experiment.Name,
+		Description: experiment.Description,
+	}
+}
+
+func ToApiExperiments(experiments []model.Experiment) []*api.Experiment {
+	apiExperiments := make([]*api.Experiment, 0)
+	for _, experiment := range experiments {
+		apiExperiments = append(apiExperiments, ToApiExperiment(&experiment))
+	}
+	return apiExperiments
+}
+
+func ToModelExperiment(experiment *api.Experiment) *model.Experiment {
+	return &model.Experiment{
+		Name:        experiment.Name,
+		Description: experiment.Description,
+	}
+}
+
 func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 	params, err := toApiParameters(pipeline.Parameters)
 	if err != nil {

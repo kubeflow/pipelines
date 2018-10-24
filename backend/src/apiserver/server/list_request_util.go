@@ -29,6 +29,14 @@ const (
 	maxPageSize     = 200
 )
 
+var experimentModelFieldsBySortableAPIFields = map[string]string{
+	// Sort by CreatedAtInSec by default
+	"":           "CreatedAtInSec",
+	"id":         "UUID",
+	"name":       "Name",
+	"created_at": "CreatedAtInSec",
+}
+
 var pipelineModelFieldsBySortableAPIFields = map[string]string{
 	// Sort by CreatedAtInSec by default
 	"":           "CreatedAtInSec",

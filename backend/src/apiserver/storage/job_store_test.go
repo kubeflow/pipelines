@@ -18,8 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"database/sql"
-
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -30,7 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core"
 )
 
-func initializeDbAndStore() (*sql.DB, *JobStore) {
+func initializeDbAndStore() (*DB, *JobStore) {
 	db := NewFakeDbOrFatal()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job1 := &model.Job{

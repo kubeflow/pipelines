@@ -15,7 +15,6 @@
 package storage
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/golang/glog"
@@ -24,7 +23,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func NewFakeDb() (*sql.DB, error) {
+func NewFakeDb() (*DB, error) {
 	// Initialize GORM
 	db, err := gorm.Open("sqlite3", ":memory:")
 	if err != nil {
@@ -39,10 +38,10 @@ func NewFakeDb() (*sql.DB, error) {
 		&model.RunDetail{},
 		&model.RunMetric{})
 
-	return db.DB(), nil
+	return NewDB(db.DB(), NewSQLiteDialect()), nil
 }
 
-func NewFakeDbOrFatal() *sql.DB {
+func NewFakeDbOrFatal() *DB {
 	db, err := NewFakeDb()
 	if err != nil {
 		glog.Fatalf("The fake DB doesn't create successfully. Fail fast.")

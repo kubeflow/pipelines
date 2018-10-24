@@ -19,8 +19,6 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/VividCortex/mysqlerr"
-	"github.com/go-sql-driver/mysql"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -36,7 +34,7 @@ type PipelineStoreInterface interface {
 }
 
 type PipelineStore struct {
-	db   *sql.DB
+	db   *DB
 	time util.TimeInterface
 	uuid util.UUIDGeneratorInterface
 }
@@ -157,7 +155,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if e, ok := err.(*mysql.MySQLError); ok && e.Number == mysqlerr.ER_DUP_ENTRY {
+		if s.db.IsDuplicateError(err) {
 			return nil, util.NewInvalidInputError(
 				"Failed to create a new pipeline. The name %v already exist. Please specify a new name.", p.Name)
 		}
@@ -201,6 +199,6 @@ func (s *PipelineStore) toPipelines(models []model.ListableDataModel) []model.Pi
 }
 
 // factory function for pipeline store
-func NewPipelineStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *PipelineStore {
+func NewPipelineStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *PipelineStore {
 	return &PipelineStore{db: db, time: time, uuid: uuid}
 }

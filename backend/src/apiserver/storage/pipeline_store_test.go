@@ -300,6 +300,19 @@ func TestCreatePipeline(t *testing.T) {
 	assert.Equal(t, pipelineExpected, *pipeline, "Got unexpected pipeline.")
 }
 
+func TestCreatePipeline_DuplicateKey(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
+
+	pipeline := createPipeline("pipeline1")
+	_, err := pipelineStore.CreatePipeline(pipeline)
+	assert.Nil(t, err)
+	_, err = pipelineStore.CreatePipeline(pipeline)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "The name pipeline1 already exist")
+}
+
 func TestCreatePipeline_InternalServerError(t *testing.T) {
 	pipeline := &model.Pipeline{Name: "Pipeline123"}
 	db := NewFakeDbOrFatal()

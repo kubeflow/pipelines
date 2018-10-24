@@ -15,8 +15,6 @@
 package resource
 
 import (
-	"database/sql"
-
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/src/apiserver/storage"
 	"github.com/googleprivate/ml/backend/src/common/util"
@@ -28,7 +26,8 @@ const (
 )
 
 type FakeClientManager struct {
-	db                          *sql.DB
+	db                          *storage.DB
+	experimentStore             storage.ExperimentStoreInterface
 	pipelineStore               storage.PipelineStoreInterface
 	jobStore                    storage.JobStoreInterface
 	runStore                    storage.RunStoreInterface
@@ -59,9 +58,10 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 
 	return &FakeClientManager{
 		db:                          db,
+		experimentStore:             storage.NewExperimentStore(db, time, uuid),
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
-		runStore:                    storage.NewRunStore(db, time, storage.NewSQLiteDialect()),
+		runStore:                    storage.NewRunStore(db, time),
 		workflowClientFake:          workflowClient,
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
@@ -77,6 +77,10 @@ func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
 		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
 	}
 	return fakeStore
+}
+
+func (f *FakeClientManager) ExperimentStore() storage.ExperimentStoreInterface {
+	return f.experimentStore
 }
 
 func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
@@ -95,7 +99,7 @@ func (f *FakeClientManager) UUID() util.UUIDGeneratorInterface {
 	return f.uuid
 }
 
-func (f *FakeClientManager) DB() *sql.DB {
+func (f *FakeClientManager) DB() *storage.DB {
 	return f.db
 }
 

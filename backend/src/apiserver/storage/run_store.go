@@ -19,8 +19,6 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/VividCortex/mysqlerr"
-	"github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
@@ -42,9 +40,8 @@ type RunStoreInterface interface {
 }
 
 type RunStore struct {
-	db         *sql.DB
-	time       util.TimeInterface
-	sqlDialect SQLDialect
+	db   *DB
+	time util.TimeInterface
 }
 
 // ListRuns list the run metadata for a job from DB
@@ -110,7 +107,7 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 }
 
 func (s *RunStore) selectRunDetailsWithMetrics() sq.SelectBuilder {
-	sd := s.sqlDialect
+	sd := s.db.GetDialect()
 	metricConcatQuery := sd.Concat([]string{`"["`, sd.GroupConcat("m.Payload", ","), `"]"`}, "")
 	return sq.
 		Select("rd.*", metricConcatQuery+" AS metrics").
@@ -285,7 +282,7 @@ func (s *RunStore) ReportMetric(metric *model.RunMetric) (err error) {
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if sqlError, ok := err.(*mysql.MySQLError); ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY {
+		if s.db.IsDuplicateError(err) {
 			return util.NewAlreadyExistError(
 				"same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
 		}
@@ -311,6 +308,6 @@ func (s *RunStore) toRunMetadatas(models []model.ListableDataModel) []model.Run 
 }
 
 // factory function for run store
-func NewRunStore(db *sql.DB, time util.TimeInterface, sqlDialect SQLDialect) *RunStore {
-	return &RunStore{db: db, time: time, sqlDialect: sqlDialect}
+func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
+	return &RunStore{db: db, time: time}
 }

@@ -30,7 +30,7 @@ type Workflow struct {
 	*workflowapi.Workflow
 }
 
-// NewWorkflow creates an Workflow.
+// NewWorkflow creates a Workflow.
 func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	return &Workflow{
 		workflow,

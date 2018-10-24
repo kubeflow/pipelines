@@ -38,7 +38,7 @@ func initializePrepopulatedDB(runStore *RunStore) {
 func TestListRuns_Pagination(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	expectedFirstPageRuns := []model.Run{
@@ -91,7 +91,7 @@ func TestListRuns_Pagination(t *testing.T) {
 func TestListRuns_Pagination_Descend(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	expectedFirstPageRuns := []model.Run{
@@ -144,7 +144,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	expectedRuns := []model.Run{
@@ -182,7 +182,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 func TestListRunsError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	db.Close()
@@ -199,7 +199,7 @@ func TestListRunsError(t *testing.T) {
 func TestGetRun(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	expectedRun := &model.RunDetail{
@@ -224,7 +224,7 @@ func TestGetRun(t *testing.T) {
 func TestGetRun_NotFoundError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	_, err := runStore.GetRun("notfound")
@@ -235,7 +235,7 @@ func TestGetRun_NotFoundError(t *testing.T) {
 func TestGetRun_InternalError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 	db.Close()
 
@@ -247,7 +247,7 @@ func TestGetRun_InternalError(t *testing.T) {
 func TestUpdateRun_UpdateSuccess(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	expectedRun := &model.RunDetail{
@@ -314,7 +314,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 func TestUpdateRun_CreateSuccess(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	// Checking that the run is not yet in the DB
@@ -367,7 +367,7 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 func TestUpdateRun_UpdateError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 	db.Close()
 
@@ -399,7 +399,7 @@ func TestUpdateRun_UpdateError(t *testing.T) {
 func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
@@ -442,7 +442,7 @@ func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 func TestReportMetric_Success(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	metric := &model.RunMetric{
@@ -462,7 +462,7 @@ func TestReportMetric_Success(t *testing.T) {
 func TestReportMetric_DupReports_Fail(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 
 	metric1 := &model.RunMetric{
@@ -489,7 +489,7 @@ func TestReportMetric_DupReports_Fail(t *testing.T) {
 func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 	sql, args, _ := sq.
 		Insert("run_metrics").
@@ -510,7 +510,7 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 func TestListRuns_WithMetrics(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), NewSQLiteDialect())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 	initializePrepopulatedDB(runStore)
 	metric1 := &model.RunMetric{
 		RunUUID:     "1",

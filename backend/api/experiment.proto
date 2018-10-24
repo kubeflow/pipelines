@@ -106,4 +106,7 @@ message Experiment {
 
   // Optional input field. Describing the purpose of the experiment
   string description =3;
+
+  // Output. The time that the experiment created.
+  google.protobuf.Timestamp created_at = 4;
 }

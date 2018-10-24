@@ -43,7 +43,8 @@ const (
 
 // Container for all service clients
 type ClientManager struct {
-	db                *sql.DB
+	db                *storage.DB
+	experimentStore   storage.ExperimentStoreInterface
 	pipelineStore     storage.PipelineStoreInterface
 	jobStore          storage.JobStoreInterface
 	runStore          storage.RunStoreInterface
@@ -53,9 +54,14 @@ type ClientManager struct {
 	uuid              util.UUIDGeneratorInterface
 }
 
+func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
+	return c.experimentStore
+}
+
 func (c *ClientManager) PipelineStore() storage.PipelineStoreInterface {
 	return c.pipelineStore
 }
+
 func (c *ClientManager) JobStore() storage.JobStoreInterface {
 	return c.jobStore
 }
@@ -91,17 +97,11 @@ func (c *ClientManager) init() {
 	// UUID generator
 	c.uuid = util.NewUUIDGenerator()
 
-	// Initialize pipeline store
 	c.db = db
+	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)
 	c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
-
-	// Initialize job store v2
 	c.jobStore = storage.NewJobStore(db, c.time)
-
-	// Initialize run store v2
-	c.runStore = storage.NewRunStore(db, c.time, storage.NewMySQLDialect())
-
-	// Initialize pipeline manager.
+	c.runStore = storage.NewRunStore(db, c.time)
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
 
 	c.scheduledWorkflow = client.CreateScheduledWorkflowClientOrFatal(
@@ -113,7 +113,7 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func initDBClient(initConnectionTimeout time.Duration) *sql.DB {
+func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	driverName := getStringConfig("DBConfig.DriverName")
 	var arg string
 
@@ -151,7 +151,7 @@ func initDBClient(initConnectionTimeout time.Duration) *sql.DB {
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for RunID in run_metrics table. Error: %s", response.Error)
 	}
-	return db.DB()
+	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
 // Initialize the connection string for connecting to Mysql database

@@ -34,7 +34,7 @@ type JobStoreInterface interface {
 }
 
 type JobStore struct {
-	db   *sql.DB
+	db   *DB
 	time util.TimeInterface
 }
 
@@ -298,7 +298,7 @@ func (s *JobStore) toJobMetadatas(models []model.ListableDataModel) []model.Job 
 }
 
 // factory function for job store
-func NewJobStore(db *sql.DB, time util.TimeInterface) *JobStore {
+func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
 	return &JobStore{
 		db:   db,
 		time: time,
