@@ -156,6 +156,11 @@ func NewInvalidInputErrorWithDetails(err error, externalMessage string) *UserErr
 		codes.InvalidArgument)
 }
 
+func NewAlreadyExistError(messageFormat string, a ...interface{}) *UserError {
+	message := fmt.Sprintf(messageFormat, a...)
+	return newUserError(errors.Errorf("Already exist error: %v", message), message, codes.AlreadyExists)
+}
+
 func NewBadRequestError(err error, externalFormat string, a ...interface{}) *UserError {
 	externalMessage := fmt.Sprintf(externalFormat, a...)
 	return newUserError(

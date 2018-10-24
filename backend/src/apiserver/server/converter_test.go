@@ -75,6 +75,7 @@ func TestToApiRunDetail(t *testing.T) {
 			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
 			Status:      "running",
 			JobId:       "job123",
+			Metrics:     []*api.RunMetric{},
 		},
 		Workflow: "workflow123",
 	}
@@ -82,6 +83,30 @@ func TestToApiRunDetail(t *testing.T) {
 }
 
 func TestToApiRuns(t *testing.T) {
+	metric1 := &model.RunMetric{
+		Name:        "metric-1",
+		NodeID:      "node-1",
+		NumberValue: 0.88,
+		Format:      "RAW",
+	}
+	metric2 := &model.RunMetric{
+		Name:        "metric-2",
+		NodeID:      "node-2",
+		NumberValue: 0.99,
+		Format:      "PERCENTAGE",
+	}
+	apiMetric1 := &api.RunMetric{
+		Name:   metric1.Name,
+		NodeId: metric1.NodeID,
+		Value:  &api.RunMetric_NumberValue{metric1.NumberValue},
+		Format: api.RunMetric_RAW,
+	}
+	apiMetric2 := &api.RunMetric{
+		Name:   metric2.Name,
+		NodeId: metric2.NodeID,
+		Value:  &api.RunMetric_NumberValue{metric2.NumberValue},
+		Format: api.RunMetric_PERCENTAGE,
+	}
 	modelRun1 := model.Run{
 		UUID:             "run1",
 		Name:             "name1",
@@ -90,6 +115,7 @@ func TestToApiRuns(t *testing.T) {
 		CreatedAtInSec:   1,
 		ScheduledAtInSec: 1,
 		Conditions:       "running",
+		Metrics:          []*model.RunMetric{metric1, metric2},
 	}
 	modelRun2 := model.Run{
 		UUID:             "run2",
@@ -99,6 +125,7 @@ func TestToApiRuns(t *testing.T) {
 		CreatedAtInSec:   2,
 		ScheduledAtInSec: 2,
 		Conditions:       "done",
+		Metrics:          []*model.RunMetric{metric2},
 	}
 	apiRuns := ToApiRuns([]model.Run{modelRun1, modelRun2})
 	expectedApiRun := []*api.Run{
@@ -109,6 +136,7 @@ func TestToApiRuns(t *testing.T) {
 			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
 			Status:      "running",
 			JobId:       "job1",
+			Metrics:     []*api.RunMetric{apiMetric1, apiMetric2},
 		},
 		{
 			Id:          "run2",
@@ -117,6 +145,7 @@ func TestToApiRuns(t *testing.T) {
 			ScheduledAt: &timestamp.Timestamp{Seconds: 2},
 			Status:      "done",
 			JobId:       "job2",
+			Metrics:     []*api.RunMetric{apiMetric2},
 		},
 	}
 	assert.Equal(t, expectedApiRun, apiRuns)
@@ -362,4 +391,70 @@ func TestToModelJob(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedModelJob, modelJob)
+}
+
+func TestToApiRunMetric(t *testing.T) {
+	modelRunMetric := &model.RunMetric{
+		Name:        "metric-1",
+		NodeID:      "node-1",
+		NumberValue: 0.88,
+		Format:      "RAW",
+	}
+
+	actualAPIRunMetric := ToApiRunMetric(modelRunMetric)
+
+	expectedAPIRunMetric := &api.RunMetric{
+		Name:   "metric-1",
+		NodeId: "node-1",
+		Value: &api.RunMetric_NumberValue{
+			NumberValue: 0.88,
+		},
+		Format: api.RunMetric_RAW,
+	}
+	assert.Equal(t, expectedAPIRunMetric, actualAPIRunMetric)
+}
+
+func TestToApiRunMetric_UnknownFormat(t *testing.T) {
+	// This can happen if we accidentally remove an existing format value from proto.
+	modelRunMetric := &model.RunMetric{
+		Name:        "metric-1",
+		NodeID:      "node-1",
+		NumberValue: 0.88,
+		Format:      "NotExistValue",
+	}
+
+	actualAPIRunMetric := ToApiRunMetric(modelRunMetric)
+
+	expectedAPIRunMetric := &api.RunMetric{
+		Name:   "metric-1",
+		NodeId: "node-1",
+		Value: &api.RunMetric_NumberValue{
+			NumberValue: 0.88,
+		},
+		// Expect return UNSPECIFIED for unknown format
+		Format: api.RunMetric_UNSPECIFIED,
+	}
+	assert.Equal(t, expectedAPIRunMetric, actualAPIRunMetric)
+}
+
+func TestToModelRunMetric(t *testing.T) {
+	apiRunMetric := &api.RunMetric{
+		Name:   "metric-1",
+		NodeId: "node-1",
+		Value: &api.RunMetric_NumberValue{
+			NumberValue: 0.88,
+		},
+		Format: api.RunMetric_RAW,
+	}
+
+	actualModelRunMetric := ToModelRunMetric(apiRunMetric, "run-1")
+
+	expectedModelRunMetric := &model.RunMetric{
+		RunUUID:     "run-1",
+		Name:        "metric-1",
+		NodeID:      "node-1",
+		NumberValue: 0.88,
+		Format:      "RAW",
+	}
+	assert.Equal(t, expectedModelRunMetric, actualModelRunMetric)
 }

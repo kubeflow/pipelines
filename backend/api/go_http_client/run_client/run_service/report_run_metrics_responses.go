@@ -68,7 +68,7 @@ func NewReportRunMetricsOK() *ReportRunMetricsOK {
 A successful response.
 */
 type ReportRunMetricsOK struct {
-	Payload run_model.APIReportRunMetricsResponse
+	Payload *run_model.APIReportRunMetricsResponse
 }
 
 func (o *ReportRunMetricsOK) Error() string {
@@ -77,8 +77,10 @@ func (o *ReportRunMetricsOK) Error() string {
 
 func (o *ReportRunMetricsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
+	o.Payload = new(run_model.APIReportRunMetricsResponse)
+
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

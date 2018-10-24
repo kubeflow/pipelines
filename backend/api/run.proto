@@ -205,7 +205,7 @@ message RunMetric {
 
   // Required. The runtime node ID which reports the metric. The node ID can be found in
   // the RunDetail.workflow.Status. Metric with same (node_id, name)
-  // are considerd as duplicate. Only the first reporting will be recorded.
+  // are considerd as duplicate. Only the first reporting will be recorded. Max length is 128.
   string node_id = 2;
 
   oneof value {
@@ -259,6 +259,7 @@ message ReportRunMetricsResponse {
     // Output. The detailed message of the error of the reporting.
     string message = 4;
   }
+  repeated ReportRunMetricResult results = 1;
 }
 
 message ReadArtifactRequest {

@@ -381,3 +381,10 @@ func (r *ResourceManager) ReportScheduledWorkflowResource(resource string) error
 	}
 	return nil
 }
+
+func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
+	if err := r.runStore.ReportMetric(metric); err != nil {
+		return err
+	}
+	return nil
+}

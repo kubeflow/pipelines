@@ -26,32 +26,28 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// APIRunMetric api run metric
-// swagger:model apiRunMetric
-type APIRunMetric struct {
+// ReportRunMetricsResponseReportRunMetricResult report run metrics response report run metric result
+// swagger:model ReportRunMetricsResponseReportRunMetricResult
+type ReportRunMetricsResponseReportRunMetricResult struct {
 
-	// The display format of metric.
-	Format RunMetricFormat `json:"format,omitempty"`
+	// Output. The detailed message of the error of the reporting.
+	Message string `json:"message,omitempty"`
 
-	// Required. The user defined name of the metric. It must between 1 and 63 characters
-	// long and must conform to the following regular expression:
-	// `[a-z]([-a-z0-9]*[a-z0-9])?`.
-	Name string `json:"name,omitempty"`
+	// Output. The name of the metric.
+	MetricName string `json:"metric_name,omitempty"`
 
-	// Required. The runtime node ID which reports the metric. The node ID can be found in
-	// the RunDetail.workflow.Status. Metric with same (node_id, name)
-	// are considerd as duplicate. Only the first reporting will be recorded. Max length is 128.
-	NodeID string `json:"node_id,omitempty"`
+	// Output. The ID of the node which reports the metric.
+	MetricNodeID string `json:"metric_node_id,omitempty"`
 
-	// The number value of the metric.
-	NumberValue float64 `json:"number_value,omitempty"`
+	// Output. The status of the metric reporting.
+	Status ReportRunMetricsResponseReportRunMetricResultStatus `json:"status,omitempty"`
 }
 
-// Validate validates this api run metric
-func (m *APIRunMetric) Validate(formats strfmt.Registry) error {
+// Validate validates this report run metrics response report run metric result
+func (m *ReportRunMetricsResponseReportRunMetricResult) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateFormat(formats); err != nil {
+	if err := m.validateStatus(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -61,15 +57,15 @@ func (m *APIRunMetric) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIRunMetric) validateFormat(formats strfmt.Registry) error {
+func (m *ReportRunMetricsResponseReportRunMetricResult) validateStatus(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Format) { // not required
+	if swag.IsZero(m.Status) { // not required
 		return nil
 	}
 
-	if err := m.Format.Validate(formats); err != nil {
+	if err := m.Status.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("format")
+			return ve.ValidateName("status")
 		}
 		return err
 	}
@@ -78,7 +74,7 @@ func (m *APIRunMetric) validateFormat(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *APIRunMetric) MarshalBinary() ([]byte, error) {
+func (m *ReportRunMetricsResponseReportRunMetricResult) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -86,8 +82,8 @@ func (m *APIRunMetric) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *APIRunMetric) UnmarshalBinary(b []byte) error {
-	var res APIRunMetric
+func (m *ReportRunMetricsResponseReportRunMetricResult) UnmarshalBinary(b []byte) error {
+	var res ReportRunMetricsResponseReportRunMetricResult
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

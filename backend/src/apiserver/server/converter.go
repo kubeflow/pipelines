@@ -87,13 +87,20 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 }
 
 func toApiRun(run *model.Run) *api.Run {
+	metrics := []*api.RunMetric{}
+	if run.Metrics != nil {
+		for _, metric := range run.Metrics {
+			metrics = append(metrics, ToApiRunMetric(metric))
+		}
+	}
 	return &api.Run{
-		Id:          run.UUID,
-		Name:        run.Name,
 		CreatedAt:   &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
+		Id:          run.UUID,
+		JobId:       run.JobID,
+		Metrics:     metrics,
+		Name:        run.Name,
 		ScheduledAt: &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
 		Status:      run.Conditions,
-		JobId:       run.JobID,
 	}
 }
 
@@ -160,6 +167,27 @@ func ToModelJob(job *api.Job) (*model.Job, error) {
 			Parameters: params,
 		},
 	}, nil
+}
+
+func ToApiRunMetric(metric *model.RunMetric) *api.RunMetric {
+	return &api.RunMetric{
+		Name:   metric.Name,
+		NodeId: metric.NodeID,
+		Value: &api.RunMetric_NumberValue{
+			NumberValue: metric.NumberValue,
+		},
+		Format: api.RunMetric_Format(api.RunMetric_Format_value[metric.Format]),
+	}
+}
+
+func ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
+	return &model.RunMetric{
+		RunUUID:     runUUID,
+		Name:        metric.GetName(),
+		NodeID:      metric.GetNodeId(),
+		NumberValue: metric.GetNumberValue(),
+		Format:      metric.GetFormat().String(),
+	}
 }
 
 func toModelTrigger(trigger *api.Trigger) model.Trigger {

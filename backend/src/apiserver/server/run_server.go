@@ -62,8 +62,24 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 }
 
 func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
-	// TODO(hongyes): Implement the action.
-	return &api.ReportRunMetricsResponse{}, nil
+	// Makes sure run exists
+	_, err := s.resourceManager.GetRun(request.GetRunId())
+	if err != nil {
+		return nil, err
+	}
+	response := &api.ReportRunMetricsResponse{
+		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{},
+	}
+	for _, metric := range request.GetMetrics() {
+		err := ValidateRunMetric(metric)
+		if err == nil {
+			err = s.resourceManager.ReportMetric(ToModelRunMetric(metric, request.GetRunId()))
+		}
+		response.Results = append(
+			response.Results,
+			NewReportRunMetricResult(metric.GetName(), metric.GetNodeId(), err))
+	}
+	return response, nil
 }
 
 func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {

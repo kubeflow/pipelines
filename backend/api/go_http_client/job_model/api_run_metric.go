@@ -40,7 +40,7 @@ type APIRunMetric struct {
 
 	// Required. The runtime node ID which reports the metric. The node ID can be found in
 	// the RunDetail.workflow.Status. Metric with same (node_id, name)
-	// are considerd as duplicate. Only the first reporting will be recorded.
+	// are considerd as duplicate. Only the first reporting will be recorded. Max length is 128.
 	NodeID string `json:"node_id,omitempty"`
 
 	// The number value of the metric.

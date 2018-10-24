@@ -286,7 +286,8 @@ func (s *RunStore) ReportMetric(metric *model.RunMetric) (err error) {
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		if sqlError, ok := err.(*mysql.MySQLError); ok && sqlError.Number == mysqlerr.ER_DUP_ENTRY {
-			return util.NewInvalidInputError("same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
+			return util.NewAlreadyExistError(
+				"same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
 		}
 		return util.NewInternalServerError(err, "failed to insert metric: %v", metric)
 	}

@@ -584,7 +584,7 @@
         },
         "node_id": {
           "type": "string",
-          "description": "Required. The runtime node ID which reports the metric. The node ID can be found in\nthe RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded."
+          "description": "Required. The runtime node ID which reports the metric. The node ID can be found in\nthe RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded. Max length is 128."
         },
         "number_value": {
           "type": "number",

@@ -263,6 +263,39 @@
     }
   },
   "definitions": {
+    "ReportRunMetricsResponseReportRunMetricResult": {
+      "type": "object",
+      "properties": {
+        "metric_name": {
+          "type": "string",
+          "description": "Output. The name of the metric."
+        },
+        "metric_node_id": {
+          "type": "string",
+          "description": "Output. The ID of the node which reports the metric."
+        },
+        "status": {
+          "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResultStatus",
+          "description": "Output. The status of the metric reporting."
+        },
+        "message": {
+          "type": "string",
+          "description": "Output. The detailed message of the error of the reporting."
+        }
+      }
+    },
+    "ReportRunMetricsResponseReportRunMetricResultStatus": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "OK",
+        "INVALID_ARGUMENT",
+        "DUPLICATE_REPORTING",
+        "INTERNAL_ERROR"
+      ],
+      "default": "UNSPECIFIED",
+      "description": " - UNSPECIFIED: Default value if not present.\n - OK: Indicates successful reporting.\n - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.\n - DUPLICATE_REPORTING: Indicates that the metric has been reported before.\n - INTERNAL_ERROR: Indicates that something went wrong in the server."
+    },
     "RunMetricFormat": {
       "type": "string",
       "enum": [
@@ -371,7 +404,15 @@
       }
     },
     "apiReportRunMetricsResponse": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResult"
+          }
+        }
+      }
     },
     "apiResourceKey": {
       "type": "object",
@@ -495,7 +536,7 @@
         },
         "node_id": {
           "type": "string",
-          "description": "Required. The runtime node ID which reports the metric. The node ID can be found in\nthe RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded."
+          "description": "Required. The runtime node ID which reports the metric. The node ID can be found in\nthe RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded. Max length is 128."
         },
         "number_value": {
           "type": "number",
