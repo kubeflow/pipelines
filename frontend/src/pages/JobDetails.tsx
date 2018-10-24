@@ -175,9 +175,9 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
               tabs={['Runs', 'Config']} />
             <div className={commonCss.page}>
 
-              {selectedTab === 0 && <RunList handleError={this._handlePageError.bind(this)}
+              {selectedTab === 0 && <RunList onError={this._handlePageError.bind(this)}
                 jobIdMask={job.id} ref={this._runlistRef} selectedIds={this.state.selectedRunIds}
-                updateSelection={this._selectionChanged.bind(this)} {...this.props} />}
+                onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />}
 
               {selectedTab === 1 && (<div className={padding()}>
                 <div className={commonCss.header}>Job details</div>

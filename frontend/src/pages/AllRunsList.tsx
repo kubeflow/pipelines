@@ -27,7 +27,7 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 
-interface AllRunsListProps extends RouteComponentProps {
+export interface AllRunsListProps extends RouteComponentProps {
   toolbarProps: ToolbarProps;
   updateBanner: (bannerProps: BannerProps) => void;
   updateToolbar: (toolbarProps: ToolbarProps) => void;
@@ -89,8 +89,8 @@ class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
 
   public render() {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
-      <RunList handleError={this._handlePageError.bind(this)} selectedIds={this.state.selectedIds}
-        updateSelection={this._selectionChanged.bind(this)}
+      <RunList onError={this._handlePageError.bind(this)} selectedIds={this.state.selectedIds}
+        onSelectionChange={this._selectionChanged.bind(this)}
         {...this.props} ref={this._runlistRef} />
     </div>;
   }

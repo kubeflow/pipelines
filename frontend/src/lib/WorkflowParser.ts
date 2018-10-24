@@ -37,6 +37,11 @@ export function createRuntimeGraph(workflow: Workflow) {
   const NODE_WIDTH = 180;
   const NODE_HEIGHT = 70;
 
+  if (!workflow || !workflow.status || !workflow.status.nodes ||
+    !workflow.metadata || !workflow.metadata.name) {
+    return g;
+  }
+
   const workflowNodes = workflow.status.nodes;
   const workflowName = workflow.metadata.name || '';
 
@@ -93,7 +98,7 @@ export function createRuntimeGraph(workflow: Workflow) {
 
   // Remove all virtual nodes
   g.nodes().forEach((nodeId) => {
-    if (isVirtual(workflowNodes[nodeId])) {
+    if (workflowNodes[nodeId] && isVirtual(workflowNodes[nodeId])) {
       const parents = (g.inEdges(nodeId) || []).map((edge) => edge.v);
       parents.forEach((p) => g.removeEdge(p, nodeId));
       (g.outEdges(nodeId) || []).forEach((outboundEdge) => {

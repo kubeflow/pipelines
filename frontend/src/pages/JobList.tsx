@@ -348,9 +348,9 @@ class JobList extends React.Component<JobListProps, JobListState> {
   private _getExpandedJobComponent(jobIndex: number) {
     const job = this.state.displayJobs[jobIndex];
     const runIds = (job.last5Runs || []).map(r => r.id!);
-    return <RunList runIdListMask={runIds} handleError={() => null} {...this.props}
+    return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
       disablePaging={true} selectedIds={this.state.selectedJobIds}
-      updateSelection={this._selectionChanged.bind(this)} disableSorting={true} />;
+      onSelectionChange={this._selectionChanged.bind(this)} disableSorting={true} />;
   }
 }
 

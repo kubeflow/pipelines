@@ -38,9 +38,9 @@ interface RunListProp extends RouteComponentProps {
   disableSorting?: boolean;
   jobIdMask?: string;
   runIdListMask?: string[];
-  handleError: (message: string, error: Error) => void;
+  onError: (message: string, error: Error) => void;
   selectedIds?: string[];
-  updateSelection?: (selectedRunIds: string[]) => void;
+  onSelectionChange?: (selectedRunIds: string[]) => void;
 }
 
 interface RunListState {
@@ -95,7 +95,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
       <div>
         <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
           pageSize={this.state.pageSize} sortBy={this.state.sortBy}
-          updateSelection={this.props.updateSelection} selectedIds={this.props.selectedIds}
+          updateSelection={this.props.onSelectionChange} selectedIds={this.props.selectedIds}
           disablePaging={this.props.disablePaging} reload={this._loadRuns.bind(this)}
           disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
           emptyMessage={`No runs found${this.props.jobIdMask ? ' for this job' : ''}.`} />
@@ -127,7 +127,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
         });
       })
       .catch((err) =>
-        this.props.handleError(
+        this.props.onError(
           'Error: failed to fetch runs.', err));
     return '';
   }
@@ -160,7 +160,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
         );
       }
     } catch (err) {
-      this.props.handleError(
+      this.props.onError(
         'Error: failed to fetch runs.', err);
       // No point in continuing if we couldn't retrieve any runs.
       return '';

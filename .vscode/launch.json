@@ -10,11 +10,11 @@
         "--env=jsdom",
         "--runInBand"
       ],
-      "cwd": "${workspaceFolder}/react-frontend",
+      "cwd": "${workspaceFolder}/frontend",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "runtimeExecutable": "${workspaceRoot}/react-frontend/node_modules/.bin/react-scripts-ts",
+      "runtimeExecutable": "${workspaceFolder}/frontend/node_modules/.bin/react-scripts-ts",
       "protocol": "inspector"
-    },
+    }
   ]
 }

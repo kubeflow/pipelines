@@ -166,9 +166,9 @@ class Compare extends React.Component<CompareProps, CompareState> {
       {/* Overview section */}
       {!collapseSections[overviewSectionName] && (
         <div className={commonCss.noShrink}>
-          <RunList handleError={this._handlePageError.bind(this)} {...this.props}
+          <RunList onError={this._handlePageError.bind(this)} {...this.props}
             selectedIds={selectedIds} runIdListMask={runIds} disablePaging={true}
-            updateSelection={this._selectionChanged.bind(this)} />
+            onSelectionChange={this._selectionChanged.bind(this)} />
         </div>
       )}
 

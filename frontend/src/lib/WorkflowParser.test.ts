@@ -14,10 +14,145 @@
  * limitations under the License.
  */
 
-import { getNodeInputOutputParams, loadNodeOutputPaths, loadAllOutputPaths, parseStoragePath, StorageService, getOutboundNodes } from './WorkflowParser';
+import {
+  StorageService,
+  createRuntimeGraph,
+  getNodeInputOutputParams,
+  getOutboundNodes,
+  loadAllOutputPaths,
+  loadNodeOutputPaths,
+  parseStoragePath,
+} from './WorkflowParser';
 
 describe('WorkflowParser', () => {
-  // TODO: createRuntimeGraph tests
+  describe('createRuntimeGraph', () => {
+    it('handles an undefined workflow', () => {
+      const g = createRuntimeGraph(undefined as any);
+      expect(g.nodes()).toEqual([]);
+      expect(g.edges()).toEqual([]);
+    });
+
+    it('handles an empty workflow', () => {
+      const g = createRuntimeGraph({} as any);
+      expect(g.nodes()).toEqual([]);
+      expect(g.edges()).toEqual([]);
+    });
+
+    it('handles a workflow without nodes', () => {
+      const g = createRuntimeGraph({ status: {} } as any);
+      expect(g.nodes()).toEqual([]);
+      expect(g.edges()).toEqual([]);
+    });
+
+    it('handles a workflow without a metadata', () => {
+      const g = createRuntimeGraph({ status: { nodes: [{ key: 'value' }] } } as any);
+      expect(g.nodes()).toEqual([]);
+      expect(g.edges()).toEqual([]);
+    });
+
+    it('handles a workflow without a name', () => {
+      const g = createRuntimeGraph({ status: { nodes: [{ key: 'value' }] }, metadata: {} } as any);
+      expect(g.nodes()).toEqual([]);
+      expect(g.edges()).toEqual([]);
+    });
+
+    it('creates a two-node graph', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            node1: {
+              displayName: 'node1',
+              id: 'node1',
+              name: 'node1',
+              outboundNodes: ['node2'],
+              phase: 'Succeeded',
+              type: 'Steps',
+            },
+            node2: {
+              displayName: 'node2',
+              id: 'node2',
+              name: 'node2',
+              phase: 'Succeeded',
+              type: 'Pod',
+            }
+          },
+        }
+      };
+      const g = createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual(['node1', 'node2']);
+      expect(g.edges()).toEqual([]);
+    });
+
+    it('creates graph with exit handler attached', () => {
+      const workflow = {
+        metadata: { name: 'node1' },
+        status: {
+          nodes: {
+            node1: {
+              displayName: 'node1',
+              id: 'node1',
+              name: 'node1',
+              outboundNodes: ['node2'],
+              phase: 'Succeeded',
+              type: 'Steps',
+            },
+            node2: {
+              displayName: 'node2',
+              id: 'node2',
+              name: 'node2',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            node3: {
+              displayName: 'node3',
+              id: 'node3',
+              name: 'node1.onExit',
+              phase: 'Succeeded',
+              type: 'Pod',
+            }
+          },
+        }
+      };
+      const g = createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual(['node2', 'node3']);
+      expect(g.edges()).toEqual([{ v: 'node2', w: 'node3' }]);
+    });
+
+    it('deletes virtual nodes', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            node1: {
+              children: ['node2'],
+              id: 'node1',
+              name: 'node1',
+              phase: 'Succeeded',
+              type: 'Steps',
+            },
+            node2: {
+              boundaryID: 'node2',
+              children: ['node3'],
+              id: 'node2',
+              name: 'node2',
+              phase: 'Succeeded',
+              type: 'StepGroup',
+            },
+            node3: {
+              id: 'node3',
+              name: 'node3',
+              phase: 'Succeeded',
+              type: 'Pod',
+            }
+          },
+        }
+      };
+      const g = createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual(['node1', 'node3']);
+      expect(g.edges()).toEqual([{ v: 'node1', w: 'node3' }]);
+    });
+  });
 
   describe('getNodeInputOutputParams', () => {
     it('handles undefined workflow', () => {

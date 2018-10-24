@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`JobsAndRuns renders jobs page 1`] = `
+<div
+  className="page"
+>
+  <MD2Tabs
+    onSwitch={[Function]}
+    selectedTab={0}
+    tabs={
+      Array [
+        "Group by job",
+        "Show all runs",
+      ]
+    }
+  />
+  <JobList
+    someOtherProps="any"
+    view={0}
+  />
+</div>
+`;
+
+exports[`JobsAndRuns renders runs page 1`] = `
+<div
+  className="page"
+>
+  <MD2Tabs
+    onSwitch={[Function]}
+    selectedTab={1}
+    tabs={
+      Array [
+        "Group by job",
+        "Show all runs",
+      ]
+    }
+  />
+  <AllRunsList
+    someOtherProps="any"
+    view={1}
+  />
+</div>
+`;
