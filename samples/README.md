@@ -54,17 +54,17 @@ In the future, we will build the compiler into the pipeline system such that the
 --->
 
 ```bash
-dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
+dsl-compile --py [path/to/py/file] --output [path/to/output/tar.gz]
 ```
 
 For example:
 
 ```bash
-dsl-compile --py [ML_REPO_DIRECTORY]/samples/basic/sequential.py --output [ML_REPO_DIRECTORY]/samples/basic/sequential.yaml
+dsl-compile --py [ML_REPO_DIRECTORY]/samples/basic/sequential.py --output [ML_REPO_DIRECTORY]/samples/basic/sequential.tar.gz
 ```
 
 ## Deploy the samples
-Upload the generated yaml file through the ML pipeline UI.
+Upload the generated .tar.gz file through the ML pipeline UI.
 
 ## Optional for advanced users: Building Your Own Components
 
