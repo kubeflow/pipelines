@@ -1,4 +1,3 @@
-#!/bin/bash -e
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Setup dependencies for deployment of the validator."""
 
-mkdir -p ./build
-rsync -arvp "../../tfdv"/ ./build/
-rsync -arvp "../../tft"/ ./build/
-rsync -arvp "../../tfma"/ ./build/
-rsync -arvp "../../predict"/ ./build/
-cp ../../../license.sh ./build
-cp ../../../third_party_licenses.csv ./build
+import setuptools
 
-docker build -t ml-pipeline-dataflow-base .
-rm -rf ./build
-
+if __name__ == '__main__':
+    setuptools.setup(name='tfdv_validation_job', version='1.0',
+                     packages=setuptools.find_packages(),
+                     install_requires=[
+                         'tensorflow==1.9.0',
+                         'tensorflow-data-validation==1.9.0'])

@@ -86,6 +86,10 @@ steps:
   id: 'buildPredictComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
+  args: ['-c', 'cd /workspace/components/dataflow/containers/tfdv && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  id: 'buildTFDVComponent'
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataflow/containers/tft && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTFTComponent'
 - name: 'gcr.io/cloud-builders/docker'
@@ -173,6 +177,7 @@ images:
 
 # Images for the Dataflow-based pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfdv:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA'
 

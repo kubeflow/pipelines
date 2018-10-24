@@ -116,6 +116,17 @@ steps:
   id:   'tagPredictCommitSHA'
   waitFor: ['pullPredict']
 - name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfdv:$COMMIT_SHA']
+  id:   'pullTFDV'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfdv:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:$TAG_NAME']
+  id:   'tagTFDVVersionNumber'
+  waitFor: ['pullTFDV']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfdv:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:$COMMIT_SHA']
+  id:   'tagTFDVCommitSHA'
+  waitFor: ['pullTFDV']
+- name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA']
   id:   'pullTFT'
 - name: 'gcr.io/cloud-builders/docker'
@@ -328,6 +339,8 @@ images:
 
 - 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:$TAG_NAME'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:$TAG_NAME'
+- 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:$TAG_NAME'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:$TAG_NAME'
