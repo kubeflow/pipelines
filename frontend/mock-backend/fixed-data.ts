@@ -18,9 +18,9 @@ import coinflipRun from './mock-coinflip-runtime';
 import errorRun from './mock-error-runtime';
 import xgboostRun from './mock-xgboost-runtime';
 
-import { apiJob } from '../src/api/job';
-import { apiPipeline } from '../src/api/pipeline';
-import { apiRunDetail } from '../src/api/run';
+import { ApiJob } from '../src/apis/job';
+import { ApiPipeline } from '../src/apis/pipeline';
+import { ApiRunDetail } from '../src/apis/run';
 
 function padStartTwoZeroes(str: string): string {
   let padded = str || '';
@@ -35,7 +35,7 @@ const NUM_DUMMY_PIPELINES = 30;
 const NUM_DUMMY_JOBS = 20;
 const NUM_DUMMY_RUNS = 20;
 
-const pipelines: apiPipeline [] = [
+const pipelines: ApiPipeline [] = [
   {
     created_at: new Date('2018-04-01T20:58:23.000Z'),
     description: 'An awesome unstructured text pipeline.',
@@ -108,7 +108,7 @@ const pipelines: apiPipeline [] = [
 
 pipelines.push(...generateNPipelines());
 
-const jobs: apiJob[] = [
+const jobs: ApiJob[] = [
   {
     created_at: new Date('2018-03-01T21:58:23.000Z'),
     description: 'This job has no runs',
@@ -199,7 +199,7 @@ const jobs: apiJob[] = [
 
 jobs.push(...generateNJobs());
 
-const runs: apiRunDetail[] = [
+const runs: ApiRunDetail[] = [
   {
     run: {
       created_at: new Date('2017-03-17T20:58:23.000Z'),
@@ -277,8 +277,8 @@ const runs: apiRunDetail[] = [
 
 runs.push(...generateNRuns());
 
-function generateNPipelines(): apiPipeline[] {
-  const dummyPipelines: apiPipeline[] = [];
+function generateNPipelines(): ApiPipeline[] {
+  const dummyPipelines: ApiPipeline[] = [];
   for (let i = pipelines.length + 1; i < NUM_DUMMY_PIPELINES + pipelines.length + 1; i++) {
     dummyPipelines.push({
       created_at: new Date('2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
@@ -296,8 +296,8 @@ function generateNPipelines(): apiPipeline[] {
   return dummyPipelines;
 }
 
-function generateNRuns(): apiRunDetail[] {
-  const dummyRuns: apiRunDetail[] = [];
+function generateNRuns(): ApiRunDetail[] {
+  const dummyRuns: ApiRunDetail[] = [];
   for (let i = runs.length + 1; i < NUM_DUMMY_RUNS + runs.length + 1; i++) {
     dummyRuns.push({
       run: {
@@ -315,8 +315,8 @@ function generateNRuns(): apiRunDetail[] {
   return dummyRuns;
 }
 
-function generateNJobs(): apiJob[] {
-  const dummyJobs: apiJob[] = [];
+function generateNJobs(): ApiJob[] {
+  const dummyJobs: ApiJob[] = [];
   for (let i = jobs.length + 1; i < NUM_DUMMY_JOBS + jobs.length + 1; i++) {
     dummyJobs.push({
       created_at: new Date('2018-04-01T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),

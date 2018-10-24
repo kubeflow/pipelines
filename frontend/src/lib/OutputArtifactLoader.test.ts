@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
+import { Apis } from '../lib/Apis';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { PlotType } from '../components/viewers/Viewer';
 import { StoragePath, StorageService } from './WorkflowParser';

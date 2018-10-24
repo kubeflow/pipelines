@@ -16,7 +16,7 @@
 
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/yaml/yaml.js';
-import * as Apis from '../lib/Apis';
+import { Apis } from '../lib/Apis';
 import * as React from 'react';
 import * as JsYaml from 'js-yaml';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
@@ -35,12 +35,12 @@ import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { RouteComponentProps } from 'react-router';
 import { DialogProps, RoutePage, RouteParams } from '../components/Router';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
-import { apiPipeline } from '../../../frontend/src/api/pipeline';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { ApiPipeline } from '../apis/pipeline';
 
 interface PipelineDetailsProps extends RouteComponentProps {
   toolbarProps: ToolbarProps;
@@ -52,7 +52,7 @@ interface PipelineDetailsProps extends RouteComponentProps {
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
   selectedNodeInfo: JSX.Element | null;
-  pipeline: apiPipeline | null;
+  pipeline: ApiPipeline | null;
   selectedTab: number;
   selectedNodeId: string;
   sidepanelBusy: boolean;
@@ -236,46 +236,52 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
   private async _loadPipeline(): Promise<void> {
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
     // TODO: Show spinner while waiting for responses
-    await Promise.all([Apis.getPipeline(pipelineId), Apis.getPipelineTemplate(pipelineId)])
-      .then(([pipeline, templateResponse]) => {
+    await Promise.all([
+      Apis.pipelineServiceApi.getPipeline(pipelineId),
+      Apis.pipelineServiceApi.getTemplate(pipelineId)
+    ]).then(([pipeline, templateResponse]) => {
+      try {
+        const template: Workflow = JsYaml.safeLoad(templateResponse.template!);
+        let g: dagre.graphlib.Graph | undefined;
         try {
-          const template: Workflow = JsYaml.safeLoad(templateResponse.template!);
-          let g: dagre.graphlib.Graph | undefined;
-          try {
-            g = StaticGraphParser.createGraph(template);
-          } catch (err) {
-            this.props.updateBanner({
-              additionalInfo: err.message,
-              message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
-              mode: 'error',
-            });
-          }
-          this.setState({
-            graph: g,
-            pipeline,
-            template,
-            templateYaml: templateResponse.template,
-          });
+          g = StaticGraphParser.createGraph(template);
         } catch (err) {
-          this.props.updateBanner({
-            additionalInfo: err.message + '\n\n\n' + templateResponse.template,
-            message: 'Failed to parse pipeline yaml',
-            mode: 'error',
-          });
+          this._handlePageError('Error: failed to generate Pipeline graph.', err.message);
         }
-        const toolbarActions = [...this.props.toolbarProps.actions];
-        toolbarActions[0].disabled = false;
-        this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
-      })
-      .catch((err) => {
-        this.props.updateBanner({
-          additionalInfo: err.message,
-          message: `Error: failed to retrieve pipeline or template for ID: ${pipelineId}. Click Details for more information.`,
-          mode: 'error',
-          refresh: this._loadPipeline.bind(this),
+        this.setState({
+          graph: g,
+          pipeline,
+          template,
+          templateYaml: templateResponse.template,
         });
+      } catch (err) {
+        this.props.updateBanner({
+          additionalInfo: err.message + '\n\n\n' + templateResponse.template,
+          message: 'Failed to parse pipeline yaml',
+          mode: 'error',
+        });
+      }
+      const toolbarActions = [...this.props.toolbarProps.actions];
+      toolbarActions[0].disabled = false;
+      this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
+    })
+      .catch((err) => {
+        this._handlePageError(
+          `Error: failed to retrieve pipeline or template for ID: ${pipelineId}.`,
+          err.message,
+          this._loadPipeline.bind(this),
+        );
         logger.error(`Error loading pipeline or template for ID: ${pipelineId}`, err);
       });
+  }
+
+  private _handlePageError(message: string, error?: Error, refreshFunc?: () => void): void {
+    this.props.updateBanner({
+      additionalInfo: error ? error.message : undefined,
+      message: message + ((error && error.message) ? ' Click Details for more information.' : ''),
+      mode: 'error',
+      refresh: refreshFunc,
+    });
   }
 
   private _selectNode(id: string): void {
@@ -340,7 +346,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
     if (deleteConfirmed) {
       // TODO: Show spinner during wait.
       try {
-        await Apis.deletePipeline(this.state.pipeline!.id!);
+        await Apis.pipelineServiceApi.deletePipeline(this.state.pipeline!.id!);
         // TODO: add success notification
         this.props.history.push(RoutePage.PIPELINES);
       } catch (err) {

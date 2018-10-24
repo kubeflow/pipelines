@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
+import { Apis } from '../lib/Apis';
 import * as React from 'react';
 import * as WorkflowParser from '../lib/WorkflowParser';
 import Button from '@material-ui/core/Button';
@@ -33,13 +33,13 @@ import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { apiRunDetail } from '../../../frontend/src/api/run';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, fontsize, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { countBy, flatten } from 'lodash';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { logger } from '../lib/Utils';
+import { ApiRunDetail } from '../apis/run';
 
 const css = stylesheet({
   collapseBtn: {
@@ -73,7 +73,7 @@ interface CompareState {
   paramsTableRows: string[][];
   paramsTableXLabels: string[];
   paramsTableYLabels: string[];
-  runs: apiRunDetail[];
+  runs: ApiRunDetail[];
   selectedIds: string[];
   viewersMap: Map<PlotType, TaggedViewerConfig[]>;
   workflowObjects: Workflow[];
@@ -240,13 +240,13 @@ class Compare extends React.Component<CompareProps, CompareState> {
 
   private async _loadRuns() {
     const runIdsQuery = new URLParser(this.props).get(QUERY_PARAMS.runlist).split(',');
-    const runs: apiRunDetail[] = [];
+    const runs: ApiRunDetail[] = [];
     const workflowObjects: Workflow[] = [];
     const failingRuns: string[] = [];
     let lastError = '';
     await Promise.all(runIdsQuery.map(async id => {
       try {
-        const run = await Apis.getRun(id);
+        const run = await Apis.runServiceApi.getRunV2(id);
         runs.push(run);
         workflowObjects.push(JSON.parse(run.workflow || '{}'));
       } catch (err) {

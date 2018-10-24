@@ -3,6 +3,9 @@
 # dependencies
 /node_modules
 
+# dev
+swagger-codegen-cli.jar
+
 # testing
 /coverage
 backstop_data/html_report/

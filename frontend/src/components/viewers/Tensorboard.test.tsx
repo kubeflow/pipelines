@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../../lib/Apis';
+import { Apis } from '../../lib/Apis';
 import * as React from 'react';
 import { shallow } from 'enzyme';
 import { PlotType } from './Viewer';

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
+import { Apis } from '../lib/Apis';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { PagedTableConfig } from '../components/viewers/PagedTable';

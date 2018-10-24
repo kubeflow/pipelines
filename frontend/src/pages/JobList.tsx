@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
+import { Apis, JobSortKeys, BaseListRequest, ListJobsRequest } from '../lib/Apis';
 import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CloneIcon from '@material-ui/icons/FileCopy';
@@ -22,23 +22,23 @@ import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable
 import DeleteIcon from '@material-ui/icons/Delete';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import RunList from './RunList';
+import { ApiRun } from '../apis/run';
 import { BannerProps } from '../components/Banner';
 import { DialogProps, RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
-import { apiJob, apiListJobsResponse } from '../../../frontend/src/api/job';
-import { apiRun } from '../api/run';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger, getLastInStatusList } from '../lib/Utils';
 import { statusToIcon, NodePhase } from './Status';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { ApiListJobsResponse, ApiJob } from '../apis/job';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 
-interface DisplayJob extends apiJob {
-  last5Runs?: apiRun[];
+interface DisplayJob extends ApiJob {
+  last5Runs?: ApiRun[];
   pipelineName?: string;
   error?: string;
   expandState?: ExpandState;
@@ -118,7 +118,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
       pageToken: '',
       selectedJobIds: [],
       selectedTab: 0,
-      sortBy: Apis.JobSortKeys.CREATED_AT,
+      sortBy: JobSortKeys.CREATED_AT,
     };
   }
 
@@ -136,7 +136,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
         customRenderer: this._nameCustomRenderer.bind(this),
         flex: 2,
         label: 'Job name',
-        sortKey: Apis.JobSortKeys.NAME,
+        sortKey: JobSortKeys.NAME,
       },
       {
         customRenderer: this._last5RunsCustomRenderer.bind(this),
@@ -147,7 +147,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
         flex: 2,
         label: 'Pipeline',
       },
-      { label: 'Created at', sortKey: Apis.JobSortKeys.CREATED_AT, flex: 1 },
+      { label: 'Created at', sortKey: JobSortKeys.CREATED_AT, flex: 1 },
       { label: 'Schedule', flex: 1 },
       { label: 'Enabled', flex: 1 },
     ];
@@ -180,9 +180,9 @@ class JobList extends React.Component<JobListProps, JobListState> {
     );
   }
 
-  private async _loadJobs(loadRequest?: Apis.BaseListRequest): Promise<string> {
+  private async _loadJobs(loadRequest?: BaseListRequest): Promise<string> {
     // Override the current state with incoming request
-    const request: Apis.ListJobsRequest = Object.assign({
+    const request: ListJobsRequest = Object.assign({
       orderAscending: this.state.orderAscending,
       pageSize: this.state.pageSize,
       pageToken: this.state.pageToken,
@@ -190,15 +190,19 @@ class JobList extends React.Component<JobListProps, JobListState> {
     }, loadRequest);
 
     // Fetch the list of jobs
-    let response: apiListJobsResponse;
+    let response: ApiListJobsResponse;
     let displayJobs: DisplayJob[];
     try {
-      response = await Apis.listJobs(request);
+      response =
+        await Apis.jobServiceApi.listJobs(
+          request.pageToken,
+          request.pageSize,
+          request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : ''
+        );
       displayJobs = response.jobs || [];
       displayJobs.forEach(j => j.expandState = ExpandState.COLLAPSED);
     } catch (err) {
-      this._handlePageError(
-        'Error: failed to retrieve list of jobs. Click Details for more information.', err);
+      this._handlePageError('Error: failed to retrieve list of jobs.', err);
       // No point in continuing if we couldn't retrieve any jobs.
       return '';
     }
@@ -207,7 +211,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
     await Promise.all(displayJobs.map(async job => {
       // TODO: should we aggregate errors here? What if they fail for different reasons?
       try {
-        const listRunsResponse = await Apis.listRuns({ jobId: job.id, pageSize: 5 });
+        const listRunsResponse = await Apis.jobServiceApi.listJobRuns(job.id!, '', 5, '');
         job.last5Runs = listRunsResponse.runs || [];
       } catch (err) {
         job.error = 'Failed to load the last 5 runs of this job';
@@ -219,7 +223,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
     await Promise.all(displayJobs.map(async job => {
       // TODO: should we aggregate errors here? What if they fail for different reasons?
       try {
-        const pipeline = await Apis.getPipeline(job.pipeline_id!);
+        const pipeline = await Apis.pipelineServiceApi.getPipeline(job.pipeline_id!);
         job.pipelineName = pipeline.name;
       } catch (err) {
         // TODO: job name ideally needs padding-top 1px when there's an error like this.
@@ -246,7 +250,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
   private _handlePageError(message: string, error: Error): void {
     this.props.updateBanner({
       additionalInfo: error.message,
-      message,
+      message: message + (error.message ? ' Click Details for more information.' : ''),
       mode: 'error',
       refresh: this._loadJobs.bind(this),
     });
@@ -274,7 +278,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
       // TODO: Show spinner during wait.
       await Promise.all(this.state.selectedJobIds.map(async (id) => {
         try {
-          await Apis.deleteJob(id);
+          await Apis.jobServiceApi.deleteJob(id);
         } catch (err) {
           unsuccessfulDeleteIds.push(id);
           const job = this.state.displayJobs.find((p) => p.id === id);
@@ -309,7 +313,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
       to={RoutePage.JOB_DETAILS.replace(':' + RouteParams.jobId, id)}>{value}</Link>;
   }
 
-  private _last5RunsCustomRenderer(runs: apiRun[]) {
+  private _last5RunsCustomRenderer(runs: ApiRun[]) {
     return <div className={commonCss.flex}>
       {runs.map((run, i) => (
         <span key={i} style={{ margin: '0 1px' }}>
@@ -335,8 +339,8 @@ class JobList extends React.Component<JobListProps, JobListState> {
     const displayJobs = this.state.displayJobs;
     displayJobs[rowIndex].expandState =
       displayJobs[rowIndex].expandState === ExpandState.COLLAPSED ?
-      ExpandState.EXPANDED :
-      ExpandState.COLLAPSED;
+        ExpandState.EXPANDED :
+        ExpandState.COLLAPSED;
 
     this.setState({ displayJobs });
   }

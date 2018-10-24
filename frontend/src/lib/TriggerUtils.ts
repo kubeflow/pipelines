@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { apiTrigger, apiPeriodicSchedule, apiCronSchedule } from '../../../frontend/src/api/job';
+import { ApiTrigger, ApiPeriodicSchedule, ApiCronSchedule } from '../../src/apis/job';
 
 export enum TriggerType {
   NOW,
@@ -61,7 +61,7 @@ export function getPeriodInSeconds(interval: PeriodicInterval, count: number): n
 }
 
 export function buildCron(startDateTime: Date | undefined, intervalCategory: PeriodicInterval,
-  selectedDays: boolean[]) {
+  selectedDays: boolean[]): string {
   const isAllDaysChecked = selectedDays.every(d => !!d);
   let targetDayOfMonth = '0';
   let targetHours = '0';
@@ -134,12 +134,12 @@ export function pickersToDate(hasDate: boolean, dateStr: string, timeStr: string
 
 export function buildTrigger(intervalCategory: PeriodicInterval, intervalValue: number,
   startDateTime: Date | undefined, endDateTime: Date | undefined, type: TriggerType, cron: string) {
-  let trigger: apiTrigger | undefined;
+  let trigger: ApiTrigger | undefined;
   if (type === TriggerType.INTERVALED) {
     trigger = {
       periodic_schedule: {
         interval_second: getPeriodInSeconds(intervalCategory, intervalValue).toString(),
-      } as apiPeriodicSchedule,
+      } as ApiPeriodicSchedule,
     };
     trigger.periodic_schedule!.start_time = startDateTime;
     trigger.periodic_schedule!.end_time = endDateTime;
@@ -147,7 +147,7 @@ export function buildTrigger(intervalCategory: PeriodicInterval, intervalValue: 
     trigger = {
       cron_schedule: {
         cron,
-      } as apiCronSchedule,
+      } as ApiCronSchedule,
     };
     trigger.cron_schedule!.start_time = startDateTime;
     trigger.cron_schedule!.end_time = endDateTime;
@@ -169,7 +169,7 @@ export function dateToPickerFormat(d: Date) {
   return [nowDate, nowTime];
 }
 
-export function triggerDisplayString(trigger?: apiTrigger): string {
+export function triggerDisplayString(trigger?: ApiTrigger): string {
   if (trigger) {
     if (trigger.cron_schedule && trigger.cron_schedule.cron) {
       return trigger.cron_schedule.cron;

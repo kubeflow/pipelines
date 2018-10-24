@@ -77,7 +77,10 @@ class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
   }
 
   public componentWillMount() {
-    this.props.updateToolbar({ actions: this._toolbarActions, breadcrumbs: [{ displayName: 'All runs', href: '' }] });
+    this.props.updateToolbar({
+      actions: this._toolbarActions,
+      breadcrumbs: [{ displayName: 'All runs', href: '' }]
+    });
   }
 
   public componentWillUnmount() {

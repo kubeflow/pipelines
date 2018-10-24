@@ -173,7 +173,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     if (this.props.disableSelection === true) {
       return;
     }
-    const selectedIds = (event.target as CheckboxProps).checked ? this.props.rows.map((v) => v.id) : [];
+    const selectedIds =
+        (event.target as CheckboxProps).checked ? this.props.rows.map((v) => v.id) : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }
@@ -298,8 +299,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {/* Footer */}
         {!this.props.disablePaging && <div className={css.footer}>
           <span className={padding()}>Rows per page:</span>
-          <TextField select={true} variant='outlined' className={css.rowsPerPage}
-            onChange={this._requestRowsPerPage.bind(this)} value={pageSize}>
+          <TextField select={true} variant='standard' className={css.rowsPerPage}
+              InputProps={{ disableUnderline: true }} onChange={this._requestRowsPerPage.bind(this)}
+              value={pageSize}>
             {[10, 20, 50, 100].map((size, i) => (
               <MenuItem key={i} value={size}>{size}</MenuItem>
             ))}

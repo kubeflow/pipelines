@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
+import { Apis, RunSortKeys, BaseListRequest, ListRunsRequest } from '../lib/Apis';
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import { Link } from 'react-router-dom';
@@ -22,12 +22,12 @@ import { NodePhase, statusToIcon } from './Status';
 import { RouteComponentProps } from 'react-router';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
-import { apiListRunsResponse, apiRun, apiRunDetail } from '../../../frontend/src/api/run';
 import { commonCss } from '../Css';
 import { getRunTime, getLastInStatusList } from '../lib/Utils';
+import { ApiListRunsResponse, ApiRunDetail, ApiRun } from '../../src/apis/run';
 
 interface DisplayRun {
-  metadata: apiRun;
+  metadata: ApiRun;
   workflow?: Workflow;
   error?: string;
 }
@@ -61,7 +61,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
       pageSize: 10,
       pageToken: '',
       runs: [],
-      sortBy: Apis.RunSortKeys.CREATED_AT,
+      sortBy: RunSortKeys.CREATED_AT,
     };
   }
 
@@ -71,11 +71,11 @@ class RunList extends React.Component<RunListProp, RunListState> {
         customRenderer: this._nameCustomRenderer.bind(this),
         flex: 2,
         label: 'Run name',
-        sortKey: Apis.RunSortKeys.NAME,
+        sortKey: RunSortKeys.NAME,
       },
       { customRenderer: this._statusCustomRenderer.bind(this), flex: .5, label: 'Status' },
       { label: 'Duration', flex: 1 },
-      { label: 'Start time', flex: 2, sortKey: Apis.RunSortKeys.CREATED_AT },
+      { label: 'Start time', flex: 2, sortKey: RunSortKeys.CREATED_AT },
     ];
 
     const rows: Row[] = this.state.runs.map(r => {
@@ -107,7 +107,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
     await this._loadRuns();
   }
 
-  private async _loadRuns(loadRequest?: Apis.BaseListRequest): Promise<string> {
+  private async _loadRuns(loadRequest?: BaseListRequest): Promise<string> {
     if (Array.isArray(this.props.runIdListMask)) {
       return await this._loadSpecificRuns(this.props.runIdListMask);
     }
@@ -115,7 +115,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
   }
 
   private async _loadSpecificRuns(runIdListMask: string[]): Promise<string> {
-    await Promise.all(runIdListMask.map(async id => await Apis.getRun(id)))
+    await Promise.all(runIdListMask.map(async id => await Apis.runServiceApi.getRunV2(id)))
       .then((result) => {
         const displayRuns: DisplayRun[] = result.map(r => ({
           metadata: r.run!,
@@ -128,13 +128,13 @@ class RunList extends React.Component<RunListProp, RunListState> {
       })
       .catch((err) =>
         this.props.handleError(
-          'Error: failed to fetch runs. Click Details for more information.', err));
+          'Error: failed to fetch runs.', err));
     return '';
   }
 
-  private async _loadAllRuns(loadRequest?: Apis.BaseListRequest): Promise<string> {
+  private async _loadAllRuns(loadRequest?: BaseListRequest): Promise<string> {
     // Override the current state with incoming request
-    const request: Apis.ListRunsRequest = Object.assign({
+    const request: ListRunsRequest = Object.assign({
       orderAscending: this.state.orderAscending,
       pageSize: this.state.pageSize,
       pageToken: this.state.pageToken,
@@ -143,12 +143,25 @@ class RunList extends React.Component<RunListProp, RunListState> {
 
     request.jobId = this.props.jobIdMask;
 
-    let response: apiListRunsResponse;
+    let response: ApiListRunsResponse;
     try {
-      response = await Apis.listRuns(request);
+      if (request.jobId) {
+        response = await Apis.jobServiceApi.listJobRuns(
+          request.jobId,
+          request.pageToken,
+          request.pageSize,
+          request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : ''
+        );
+      } else {
+        response = await Apis.runServiceApi.listRuns(
+          request.pageToken,
+          request.pageSize,
+          request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : ''
+        );
+      }
     } catch (err) {
       this.props.handleError(
-        'Error: failed to fetch runs. Click Details for more information.', err);
+        'Error: failed to fetch runs.', err);
       // No point in continuing if we couldn't retrieve any runs.
       return '';
     }
@@ -157,9 +170,9 @@ class RunList extends React.Component<RunListProp, RunListState> {
 
     // Fetch and set the workflow details
     await Promise.all(displayRuns.map(async displayRun => {
-      let getRunResponse: apiRunDetail;
+      let getRunResponse: ApiRunDetail;
       try {
-        getRunResponse = await Apis.getRun(displayRun.metadata!.id!);
+        getRunResponse = await Apis.runServiceApi.getRunV2(displayRun.metadata!.id!);
         displayRun.workflow = JSON.parse(getRunResponse.workflow || '{}');
       } catch (err) {
         // This could be an API exception, or a JSON parse exception.

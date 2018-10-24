@@ -23,14 +23,14 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Separator from '../atoms/Separator';
 import { commonCss } from '../Css';
 import { dateToPickerFormat } from '../lib/TriggerUtils';
-import { apiTrigger } from '../../../frontend/src/api/job';
 import {
   PeriodicInterval, TriggerType, triggers, buildCron,
   pickersToDate, buildTrigger
 } from '../lib/TriggerUtils';
+import { ApiTrigger } from '../apis/job';
 
 interface TriggerProps {
-  onChange?: (trigger?: apiTrigger, maxConcurrentJobs?: string) => void;
+  onChange?: (trigger?: ApiTrigger, maxConcurrentJobs?: string) => void;
 }
 
 interface TriggerState {
@@ -185,7 +185,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     } as any, this._updateTrigger.bind(this));
   }
 
-  private _updateTrigger() {
+  private _updateTrigger(): void {
     const { hasStartDate, hasEndDate, startDate, startTime, endDate, endTime, editCron,
       intervalCategory, intervalValue, type, cron, selectedDays } = this.state;
 
@@ -207,11 +207,11 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     });
   }
 
-  private _isAllDaysChecked() {
+  private _isAllDaysChecked(): boolean {
     return this.state.selectedDays.every(d => !!d);
   }
 
-  private _toggleCheckAllDays() {
+  private _toggleCheckAllDays(): void {
     const isAllChecked = this._isAllDaysChecked();
     this.state.selectedDays.forEach((d, i) => {
       if (d !== !isAllChecked) {
@@ -220,7 +220,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     });
   }
 
-  private _toggleDay(index: number) {
+  private _toggleDay(index: number): void {
     const newDays = this.state.selectedDays;
     newDays[index] = !newDays[index];
     const startDate = pickersToDate(

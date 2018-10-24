@@ -17,9 +17,6 @@
 import { createGraph } from './StaticGraphParser';
 
 describe('StaticGraphParser', () => {
-  // const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
-  // let fileToRead: string;
-  // jest.spyOn(Apis, 'readFile').mockImplementation(() => fileToRead);
 
   function newWorkflow(): any {
     return {

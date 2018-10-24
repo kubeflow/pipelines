@@ -16,13 +16,13 @@ import * as express from 'express';
 import * as fs from 'fs';
 import * as _path from 'path';
 import proxyMiddleware from '../server/proxy-middleware';
-import * as Apis from '../src/lib/Apis';
+import { JobSortKeys, RunSortKeys, PipelineSortKeys } from '../src/lib/Apis';
 
-import { apiJob, apiListJobsResponse } from '../src/api/job';
-import { apiListPipelinesResponse } from '../src/api/pipeline';
-import { apiPipeline } from '../src/api/pipeline';
-import { apiListRunsResponse, apiRun } from '../src/api/run';
+import helloWorldRuntime from './integration-test-runtime';
 import { data as fixedData, namedPipelines } from './fixed-data';
+import { ApiPipeline, ApiListPipelinesResponse } from '../src/apis/pipeline';
+import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
+import { ApiRun, ApiListRunsResponse } from '../src/apis/run';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -46,11 +46,6 @@ setTimeout(() => {
   apiServerReady = true;
 }, 5000);
 
-function isValidSortKey(sortKeyEnumType: any, key: string): boolean {
-  const findResult = Object.keys(sortKeyEnumType).find((k) => sortKeyEnumType[k] === key);
-  return !!findResult;
-}
-
 // tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
 
@@ -67,21 +62,18 @@ export default (app: express.Application) => {
     }
   });
 
-  function getSortKeyAndOrder<T>(
-      defaultSortKey: keyof T,
-      queryParam: string|undefined): { desc: boolean, key: keyof T } {
+  function getSortKeyAndOrder(defaultSortKey: string, queryParam?: string): { desc: boolean, key: string } {
     let key = defaultSortKey;
     let desc = false;
 
     if (queryParam) {
       const keyParts = queryParam.split(' ');
+      key = keyParts[0];
 
-      key = keyParts[0] as keyof T;
-      // Since we're validating, might as well check that the key is properly formatted.
+      // Check that the key is properly formatted.
       if (keyParts.length > 2 ||
-          (keyParts.length === 2 && keyParts[1] !== 'desc') ||
-          !isValidSortKey(Apis.JobSortKeys, key.toString())) {
-        throw new Error(`Unsupported sort string: ${queryParam}`);
+          (keyParts.length === 2 && keyParts[1] !== 'asc' && keyParts[1] !== 'desc')) {
+        throw new Error(`Invalid sort string: ${queryParam}`);
       }
 
       desc = keyParts.length === 2 && keyParts[1] === 'desc';
@@ -97,22 +89,22 @@ export default (app: express.Application) => {
 
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
-    const response: apiListJobsResponse = {
+    const response: ApiListJobsResponse = {
       jobs: [],
       next_page_token: '',
     };
 
-    let jobs: apiJob[] = fixedData.jobs;
-    if (req.query.filterBy) {
+    let jobs: ApiJob[] = fixedData.jobs;
+    if (req.query.filter_by) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
       jobs = fixedData.jobs.filter((j) =>
-          j.name!.toLocaleLowerCase().indexOf(
-              decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+        j.name!.toLocaleLowerCase().indexOf(
+          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
 
     }
 
-    const { desc, key } = getSortKeyAndOrder<apiJob>(Apis.JobSortKeys.CREATED_AT, req.query.sortBy);
+    const { desc, key } = getSortKeyAndOrder(JobSortKeys.CREATED_AT, req.query.sort_by);
 
     jobs.sort((a, b) => {
       let result = 1;
@@ -125,8 +117,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize || 20);
+    const start = (req.query.page_token ? +req.query.page_token : 0);
+    const end = start + (+req.query.page_size || 20);
     response.jobs = jobs.slice(start, end);
 
     if (end < jobs.length) {
@@ -139,8 +131,9 @@ export default (app: express.Application) => {
   app.options(v1alpha2Prefix + '/jobs', (req, res) => {
     res.send();
   });
+
   app.post(v1alpha2Prefix + '/jobs', (req, res) => {
-    const job: apiJob = req.body;
+    const job: ApiJob = req.body;
     job.id = 'new-job-' + (fixedData.jobs.length + 1);
     job.created_at = new Date();
     job.updated_at = new Date();
@@ -153,9 +146,11 @@ export default (app: express.Application) => {
         created_at: new Date(),
         id: 'job-at-' + date,
         job_id: fixedData.jobs[0].id,
-        name: 'new-job-'+ date,
+        name: 'job-' + job.name + date,
+        scheduled_at: new Date(),
         status: 'Running',
       },
+      workflow: JSON.stringify(helloWorldRuntime),
     });
     setTimeout(() => {
       res.send(fixedData.jobs[fixedData.jobs.length - 1]);
@@ -172,7 +167,7 @@ export default (app: express.Application) => {
         } else {
           // Delete the job from fixedData.
           fixedData.jobs.splice(i, 1);
-          res.send('ok');
+          res.json({});
         }
         break;
       case 'GET':
@@ -186,12 +181,12 @@ export default (app: express.Application) => {
   app.get(v1alpha2Prefix + '/jobs/:jid/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
-    const response: apiListRunsResponse = {
+    const response: ApiListRunsResponse = {
       next_page_token: '',
       runs: [],
     };
 
-    let runs: apiRun[] = fixedData.runs.slice(0, 7).map((r) => r.run!);
+    let runs: ApiRun[] = fixedData.runs.slice(0, 7).map((r) => r.run!);
 
     if (req.params.jid.startsWith('new-job-')) {
       response.runs = runs.slice(0, 1);
@@ -202,14 +197,14 @@ export default (app: express.Application) => {
       return;
     }
 
-    if (req.query.filterBy) {
+    if (req.query.filter_by) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
       runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+        decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
     }
 
-    const { desc, key } = getSortKeyAndOrder<apiRun>(Apis.RunSortKeys.CREATED_AT, req.query.sortBy);
+    const { desc, key } = getSortKeyAndOrder(RunSortKeys.CREATED_AT, req.query.sort_by);
 
     runs.sort((a, b) => {
       let result = 1;
@@ -222,8 +217,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize || 20);
+    const start = (req.query.page_token ? +req.query.page_token : 0);
+    const end = start + (+req.query.page_size || 20);
     response.runs = runs.slice(start, end);
 
     if (end < runs.length) {
@@ -236,21 +231,21 @@ export default (app: express.Application) => {
   app.get(v1alpha2Prefix + '/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
-    const response: apiListRunsResponse = {
+    const response: ApiListRunsResponse = {
       next_page_token: '',
       runs: [],
     };
 
-    let runs: apiRun[] = fixedData.runs.map((r) => r.run!);
+    let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
 
-    if (req.query.filterBy) {
+    if (req.query.filter_by) {
       // NOTE: We do not mock fuzzy matching. E.g. 'rn' doesn't match 'run'
       // This may need to be updated when the backend implements filtering.
       runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+        decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
     }
 
-    const { desc, key } = getSortKeyAndOrder<apiRun>(Apis.RunSortKeys.CREATED_AT, req.query.sortBy);
+    const { desc, key } = getSortKeyAndOrder(RunSortKeys.CREATED_AT, req.query.sort_by);
 
     runs.sort((a, b) => {
       let result = 1;
@@ -263,8 +258,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize || 20);
+    const start = (req.query.page_token ? +req.query.page_token : 0);
+    const end = start + (+req.query.page_size || 20);
     response.runs = runs.slice(start, end);
 
     if (end < runs.length) {
@@ -292,7 +287,7 @@ export default (app: express.Application) => {
       const job = fixedData.jobs.find((j) => j.id === req.params.jid);
       if (job) {
         job.enabled = true;
-        res.send('ok');
+        res.json({});
       } else {
         res.status(500).send('Cannot find a job with id ' + req.params.jid);
       }
@@ -307,7 +302,7 @@ export default (app: express.Application) => {
       const job = fixedData.jobs.find((j) => j.id === req.params.jid);
       if (job) {
         job.enabled = false;
-        res.send('ok');
+        res.json({});
       } else {
         res.status(500).send('Cannot find a job with id ' + req.params.jid);
       }
@@ -321,23 +316,23 @@ export default (app: express.Application) => {
     }
 
     res.header('Content-Type', 'application/json');
-    const response: apiListPipelinesResponse = {
+    const response: ApiListPipelinesResponse = {
       next_page_token: '',
       pipelines: [],
     };
 
-    let pipelines: apiPipeline[] = fixedData.pipelines;
-    if (req.query.filterBy) {
+    let pipelines: ApiPipeline[] = fixedData.pipelines;
+    if (req.query.filter_by) {
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated depending on how the backend implements filtering.
       pipelines = fixedData.pipelines.filter((p) =>
-          p.name!.toLocaleLowerCase().indexOf(
-              decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
+        p.name!.toLocaleLowerCase().indexOf(
+          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
 
     }
 
-    const { desc, key } =
-        getSortKeyAndOrder<apiPipeline>(Apis.PipelineSortKeys.CREATED_AT, req.query.sortBy);
+    const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);
+
 
     pipelines.sort((a, b) => {
       let result = 1;
@@ -350,8 +345,8 @@ export default (app: express.Application) => {
       return result * (desc ? -1 : 1);
     });
 
-    const start = (req.query.pageToken ? +req.query.pageToken : 0);
-    const end = start + (+req.query.pageSize || 20);
+    const start = (req.query.page_token ? +req.query.page_token : 0);
+    const end = start + (+req.query.page_size || 20);
     response.pipelines = pipelines.slice(start, end);
 
     if (end < pipelines.length) {
@@ -369,14 +364,14 @@ export default (app: express.Application) => {
     } else {
       // Delete the pipelines from fixedData.
       fixedData.pipelines.splice(i, 1);
-      res.send('ok');
+      res.json({});
     }
   });
 
   // Needed to avoid "Response for preflight does not have HTTP ok status." error.
   app.options(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    res.send('ok');
+    res.json({});
   });
 
   app.get(v1alpha2Prefix + '/pipelines/:pid', (req, res) => {
@@ -387,8 +382,8 @@ export default (app: express.Application) => {
   app.get(v1alpha2Prefix + '/pipelines/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     const filePath = req.params.pid === namedPipelines.noParamsPipeline.id
-        ? './mock-backend/mock-conditional-template.yaml'
-        : './mock-backend/mock-template.yaml';
+      ? './mock-backend/mock-conditional-template.yaml'
+      : './mock-backend/mock-template.yaml';
     res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
   });
 
@@ -401,14 +396,14 @@ export default (app: express.Application) => {
     const pipelineName = decodeURIComponent(req.query.name);
     if (fixedData.pipelines.find((p) => p.name === pipelineName)) {
       res.status(502).send(
-          `A Pipeline named: "${pipelineName}" already exists. Please choose a different name.`);
+        `A Pipeline named: "${pipelineName}" already exists. Please choose a different name.`);
     } else {
       const pipeline = req.body;
       pipeline.id = 'new-pipeline-' + (fixedData.pipelines.length + 1);
       pipeline.name = pipelineName;
       pipeline.created_at = new Date();
       pipeline.description =
-          'TODO: the mock middleware does not actually use the uploaded pipeline';
+        'TODO: the mock middleware does not actually use the uploaded pipeline';
       pipeline.parameters = [
         {
           name: 'output'

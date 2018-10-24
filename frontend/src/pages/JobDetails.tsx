@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
 import * as React from 'react';
 import { BannerProps } from '../components/Banner';
 import CloneIcon from '@material-ui/icons/FileCopy';
@@ -30,13 +29,14 @@ import Separator from '../atoms/Separator';
 import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { RouteComponentProps } from 'react-router';
 import { DialogProps, RoutePage, RouteParams } from '../components/Router';
-import { apiJob } from '../../../frontend/src/api/job';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, enabledDisplayString, logger } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { ApiJob } from '../apis/job';
+import { Apis } from '../lib/Apis';
 
 interface JobDetailsProps extends RouteComponentProps {
   toolbarProps: ToolbarProps;
@@ -47,7 +47,7 @@ interface JobDetailsProps extends RouteComponentProps {
 }
 
 interface JobDetailsState {
-  job: apiJob | null;
+  job: ApiJob | null;
   selectedRunIds: string[];
   selectedTab: number;
 }
@@ -207,7 +207,7 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
     const jobId = this.props.match.params[RouteParams.jobId];
 
     try {
-      const job = await Apis.getJob(jobId);
+      const job = await Apis.jobServiceApi.getJob(jobId);
 
       const toolbarActions = [...this.props.toolbarProps.actions];
       toolbarActions[3].disabled = job.enabled === true;
@@ -218,7 +218,7 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
       this.setState({ job }, () => this._runlistRef.current && this._runlistRef.current.refresh());
     } catch (err) {
       this._handlePageError(
-        `Error: failed to retrieve job: ${jobId}. Click Details for more information.`, err);
+        `Error: failed to retrieve job: ${jobId}.`, err);
       logger.error(`Error loading job: ${jobId}`, err);
     }
   }
@@ -226,7 +226,7 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
   private _handlePageError(message: string, error: Error): void {
     this.props.updateBanner({
       additionalInfo: error.message,
-      message,
+      message: message + (error.message ? ' Click Details for more information.' : ''),
       mode: 'error',
       refresh: this._loadJob.bind(this),
     });
@@ -284,7 +284,7 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
       toolbarActions[buttonIndex].busy = true;
       this._updateToolbar(toolbarActions);
       try {
-        await (enabled ? Apis.enableJob(id) : Apis.disableJob(id));
+        await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
         this._loadJob();
       } catch (err) {
         this._showErrorDialog(`Failed to ${enabled ? 'enable' : 'disable'} job`, err.message);
@@ -303,7 +303,7 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
     if (deleteConfirmed) {
       // TODO: Show spinner during wait.
       try {
-        await Apis.deleteJob(this.state.job!.id!);
+        await Apis.jobServiceApi.deleteJob(this.state.job!.id!);
         this.props.history.push(RoutePage.JOBS);
         this.props.updateSnackbar({
           message: `Successfully deleted job: ${this.state.job!.name}`,

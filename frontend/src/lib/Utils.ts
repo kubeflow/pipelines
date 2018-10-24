@@ -16,7 +16,7 @@
 
 import { NodePhase } from '../pages/Status';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { apiTrigger } from '../../../frontend/src/api/job';
+import { ApiTrigger } from '../apis/job';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -42,7 +42,7 @@ export function formatDateString(date: Date | string | undefined): string {
   }
 }
 
-export function enabledDisplayString(trigger: apiTrigger | undefined, enabled: boolean): string {
+export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: boolean): string {
   if (trigger) {
     return enabled ? 'Yes' : 'No';
   }

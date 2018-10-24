@@ -164,12 +164,17 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -334,12 +339,17 @@ exports[`CustomTable renders a collapsed row 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -521,12 +531,17 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -685,12 +700,17 @@ exports[`CustomTable renders an expanded row 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -862,12 +882,17 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -984,12 +1009,17 @@ exports[`CustomTable renders columns with specified widths 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -1068,12 +1098,17 @@ exports[`CustomTable renders empty message on no rows 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -1232,12 +1267,17 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -1437,12 +1477,17 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -1560,12 +1605,17 @@ exports[`CustomTable renders some columns with descending sort order on first co
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -1682,12 +1732,17 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -1887,12 +1942,17 @@ exports[`CustomTable renders some rows 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -2096,12 +2156,17 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -2174,12 +2239,17 @@ exports[`CustomTable renders without rows or columns 1`] = `
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"
@@ -2355,12 +2425,17 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       Rows per page:
     </span>
     <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
       className="rowsPerPage"
       onChange={[Function]}
       required={false}
       select={true}
       value={10}
-      variant="outlined"
+      variant="standard"
     >
       <WithStyles(MenuItem)
         key="0"

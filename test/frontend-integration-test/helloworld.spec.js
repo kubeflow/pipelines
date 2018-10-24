@@ -18,7 +18,7 @@ const URL = require('url').URL;
 const jobName = 'helloworld-' + Date.now();
 const jobDescription = 'test job description ' + jobName;
 const waitTimeout = 5000;
-const parameter = 'Hello world in test'
+const outputParameterValue = 'Hello world in test'
 
 function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
@@ -63,7 +63,7 @@ describe('deploy helloworld sample job', () => {
     browser.keys('Tab');
     browser.keys('Tab');
 
-    browser.keys(parameter);
+    browser.keys(outputParameterValue);
 
     // Deploy
     $('button=Deploy').click();
@@ -101,9 +101,9 @@ describe('deploy helloworld sample job', () => {
       'job created date should be within the last five seconds');
   });
 
-  it('displays job message correctly', () => {
-    const message = getValueFromDetailsTable('message');
-    assert.equal(message, parameter, 'job message is not shown correctly');
+  it('displays job inputs correctly', () => {
+    const paramValue = getValueFromDetailsTable('message');
+    assert.equal(paramValue, outputParameterValue, 'job message is not shown correctly');
   });
 
   it('switches to run list tab', () => {
@@ -175,5 +175,6 @@ describe('deploy helloworld sample job', () => {
     $('.tableRow').click();
     $('button=Delete').click();
     $('.dialogButton').click();
+    $('.dialog').waitForVisible(waitTimeout, true);
   });
 });

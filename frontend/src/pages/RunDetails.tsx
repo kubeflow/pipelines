@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
+import { Apis } from '../lib/Apis';
 import * as React from 'react';
 import * as WorkflowParser from '../lib/WorkflowParser';
+import { ApiJob } from '../apis/job';
+import { ApiRun } from '../apis/run';
 import Banner, { BannerProps, Mode } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -37,7 +39,6 @@ import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { apiRun, apiJob } from '../../../frontend/src/api/job';
 import { commonCss, color, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { formatDateString, getRunTime, logger } from '../lib/Utils';
@@ -89,12 +90,12 @@ interface SelectedNodeDetails {
 }
 
 interface RunDetailsState {
-  job?: apiJob;
+  job?: ApiJob;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
   logsBannerMode: Mode;
   graph?: dagre.graphlib.Graph;
-  runMetadata?: apiRun;
+  runMetadata?: ApiRun;
   selectedTab: number;
   selectedNodeDetails: SelectedNodeDetails | null;
   sidepanelBusy: boolean;
@@ -295,8 +296,8 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     const runId = this.props.match.params[RouteParams.runId];
 
     try {
-      const runDetail = await Apis.getRun(runId);
-      const job = await Apis.getJob(runDetail.run!.job_id!);
+      const runDetail = await Apis.runServiceApi.getRunV2(runId);
+      const job = await Apis.jobServiceApi.getJob(runDetail.run!.job_id!);
       const [runMetadata, workflow] = [runDetail.run, JSON.parse(runDetail.workflow || '{}')];
       // Build runtime graph
       const graph = workflow && workflow.status && workflow.status.nodes ?
@@ -311,7 +312,8 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     } catch (err) {
       this.props.updateBanner({
         additionalInfo: err.message,
-        message: `Error: failed to retrieve run: ${runId}. Click Details for more information.`,
+        message: `Error: failed to retrieve run: ${runId}.`
+            + (err.message ? ' Click Details for more information.' : ''),
         mode: 'error',
         refresh: this._loadRun.bind(this)
       });
@@ -386,7 +388,8 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     } catch (err) {
       this.setState({
         logsBannerAdditionalInfo: err.message,
-        logsBannerMessage: `Error: failed to retrieve logs. Click Details for more information.`,
+        logsBannerMessage: 'Error: failed to retrieve logs.'
+            + (err.message ? ' Click Details for more information.' : ''),
         logsBannerMode: 'error',
       });
       logger.error('Error loading logs for node:', selectedNodeDetails.id);

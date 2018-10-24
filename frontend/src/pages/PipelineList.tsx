@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
+import { Apis, PipelineSortKeys, BaseListRequest, ListPipelinesRequest } from '../lib/Apis';
 import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row } from '../components/CustomTable';
@@ -22,6 +22,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import UploadIcon from '@material-ui/icons/CloudUpload';
 import UploadPipelineDialog from '../components/UploadPipelineDialog';
+import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
 import { BannerProps } from '../components/Banner';
 import { DialogProps, RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
@@ -29,7 +30,6 @@ import { RouteComponentProps } from 'react-router';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
-import { apiPipeline, apiListPipelinesResponse } from '../../../frontend/src/api/pipeline';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -46,7 +46,7 @@ interface PipelineListState {
   orderAscending: boolean;
   pageSize: number;
   pageToken: string;
-  pipelines: apiPipeline[];
+  pipelines: ApiPipeline[];
   selectedIds: string[];
   sortBy: string;
   uploadDialogOpen: boolean;
@@ -107,7 +107,7 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
       pageToken: '',
       pipelines: [],
       selectedIds: [],
-      sortBy: Apis.PipelineSortKeys.NAME,
+      sortBy: PipelineSortKeys.NAME,
       uploadDialogOpen: false,
     };
   }
@@ -128,10 +128,10 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
         customRenderer: this._nameCustomRenderer.bind(this),
         flex: 1,
         label: 'Pipeline name',
-        sortKey: Apis.PipelineSortKeys.NAME,
+        sortKey: PipelineSortKeys.NAME,
       },
       { label: 'Description', flex: 3 },
-      { label: 'Uploaded on', sortKey: Apis.PipelineSortKeys.CREATED_AT, flex: 1 },
+      { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
     const rows: Row[] = this.state.pipelines.map((p) => {
@@ -163,9 +163,9 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
     });
   }
 
-  private async _loadPipelines(loadRequest?: Apis.BaseListRequest): Promise<string> {
+  private async _loadPipelines(loadRequest?: BaseListRequest): Promise<string> {
     // Override the current state with incoming request
-    const request: Apis.ListPipelinesRequest = Object.assign({
+    const request: ListPipelinesRequest = Object.assign({
       orderAscending: this.state.orderAscending,
       pageSize: this.state.pageSize,
       pageToken: this.state.pageToken,
@@ -173,13 +173,18 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
     }, loadRequest);
 
 
-    let response: apiListPipelinesResponse;
+    let response: ApiListPipelinesResponse;
     try {
-      response = await Apis.listPipelines(request);
+      response = await Apis.pipelineServiceApi.listPipelines(
+        request.pageToken,
+        request.pageSize,
+        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : ''
+      );
     } catch (err) {
       this.props.updateBanner({
         additionalInfo: err.message,
-        message: 'Error: failed to retrieve list of pipelines. Click Details for more information.',
+        message: 'Error: failed to retrieve list of pipelines.'
+          + (err.message ? ' Click Details for more information.' : ''),
         mode: 'error',
         refresh: this._loadPipelines.bind(this),
       });
@@ -222,7 +227,7 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
       // TODO: Show spinner during wait.
       await Promise.all(this.state.selectedIds.map(async (id) => {
         try {
-          await Apis.deletePipeline(id);
+          await Apis.pipelineServiceApi.deletePipeline(id);
         } catch (err) {
           unsuccessfulDeleteIds.push(id);
           const pipeline = this.state.pipelines.find((p) => p.id === id);

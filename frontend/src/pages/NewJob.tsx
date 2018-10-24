@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../lib/Apis';
+import { Apis } from '../lib/Apis';
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
@@ -22,6 +22,8 @@ import Input from '../atoms/Input';
 import MenuItem from '@material-ui/core/MenuItem';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
+import { ApiJob, ApiTrigger } from '../apis/job';
+import { ApiPipeline } from '../apis/pipeline';
 import { BannerProps } from '../components/Banner';
 import { DialogProps, RoutePage } from '../components/Router';
 import { RouteComponentProps } from 'react-router';
@@ -29,8 +31,6 @@ import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
-import { apiJob, apiTrigger } from '../../../frontend/src/api/job';
-import { apiPipeline } from '../../../frontend/src/api/pipeline';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -50,8 +50,8 @@ interface NewJobState {
   jobName: string;
   maxConcurrentJobs?: string;
   pipelineId: string;
-  pipelines: apiPipeline[];
-  trigger: apiTrigger | undefined;
+  pipelines: ApiPipeline[];
+  trigger: ApiTrigger | undefined;
 }
 
 const css = stylesheet({
@@ -176,7 +176,7 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
       logger.error(`Could not find a pipeline with the selected id: ${this.state.pipelineId}`);
       return;
     }
-    const newJob: apiJob = {
+    const newJob: ApiJob = {
       description: this.state.description,
       enabled: true,
       max_concurrency: this.state.maxConcurrentJobs || '1',
@@ -188,7 +188,7 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
 
     this.setState({ isDeploying: true }, async () => {
       try {
-        await Apis.newJob(newJob);
+        await Apis.jobServiceApi.createJob(newJob);
         this.props.history.push(RoutePage.JOBS);
         this.props.updateSnackbar({
           message: `Successfully deployed new Job: ${newJob.name}`,
@@ -235,14 +235,10 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
   private async _load() {
     let response;
     try {
-      response = await Apis.listPipelines({ pageSize: 25 });
+      response = await Apis.pipelineServiceApi.listPipelines(undefined, 25);
     } catch (err) {
-      this.props.updateBanner({
-        additionalInfo: err.message,
-        message: 'Error: failed to fetch pipelines. Click Details for more information.',
-        mode: 'error',
-        refresh: this._load.bind(this),
-      });
+      this._handlePageError(
+        'Error: failed to fetch pipelines.', err.message, this._load.bind(this));
       logger.error(`Cannot get the original job's data`);
       // Nothing else to do here if we couldn't load any pipelines
       return;
@@ -256,13 +252,11 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
     const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
     if (originalJobId) {
       try {
-        const job = await Apis.getJob(originalJobId);
+        const job = await Apis.jobServiceApi.getJob(originalJobId);
         const pipelineIndex = pipelines.findIndex(p => p.id === job.pipeline_id);
         if (pipelineIndex === -1) {
-          this.props.updateBanner({
-            message: `Error: failed to find a pipeline corresponding to that of the original job: ${originalJobId}.`,
-            mode: 'error',
-          });
+          this._handlePageError(
+            `Error: failed to find a pipeline corresponding to that of the original job: ${originalJobId}.`);
           logger.error(`Cannot get the original job's data`);
           return;
         }
@@ -274,25 +268,18 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
         }, () => this._jobNameRef.current!.select());
         urlParser.clear(QUERY_PARAMS.pipelineId);
       } catch (err) {
-        this.props.updateBanner({
-          additionalInfo: err.message,
-          message: `Error: failed to get original job: ${originalJobId}. Click Details for more information.`,
-          mode: 'error',
-        });
+        this._handlePageError(`Error: failed to get original job: ${originalJobId}.`, err);
         logger.error(`Failed to get original job ${originalJobId}`, err);
       }
       // Get the original run's id from querystring if any, get its job, and copy pipeline id and
       // parameters
     } else if (originalRunId) {
       try {
-        const runDetails = await Apis.getRun(originalRunId);
-        const job = await Apis.getJob(runDetails.run!.job_id!);
+        const runDetails = await Apis.runServiceApi.getRunV2(originalRunId);
+        const job = await Apis.jobServiceApi.getJob(runDetails.run!.job_id!);
         const pipelineIndex = pipelines.findIndex(p => p.id === job.pipeline_id);
         if (pipelineIndex === -1) {
-          this.props.updateBanner({
-            message: `Error: failed to find a pipeline corresponding to that of the original run: ${originalRunId}.`,
-            mode: 'error',
-          });
+          this._handlePageError(`Error: failed to find a pipeline corresponding to that of the original run: ${originalRunId}.`);
           logger.error(`Cannot get the original run's data`);
           return;
         }
@@ -308,11 +295,7 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
           pipelines,
         }, () => this._jobNameRef.current!.select());
       } catch (err) {
-        this.props.updateBanner({
-          additionalInfo: err.message,
-          message: `Error: failed to get original run: ${originalRunId}. Click Details for more information.`,
-          mode: 'error',
-        });
+        this._handlePageError(`Error: failed to get original run: ${originalRunId}.`, err);
         logger.error(`Failed to get original run ${originalRunId}`, err);
       }
     } else {
@@ -328,6 +311,15 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
     }
 
     this._validate();
+  }
+
+  private _handlePageError(message: string, error?: Error, refreshFunc?: () => void): void {
+    this.props.updateBanner({
+      additionalInfo: error ? error.message : undefined,
+      message: message + ((error && error.message) ? ' Click Details for more information.' : ''),
+      mode: 'error',
+      refresh: refreshFunc,
+    });
   }
 
   private _validate() {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as Apis from '../../lib/Apis';
+import { Apis } from '../../lib/Apis';
 import * as React from 'react';
 import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
