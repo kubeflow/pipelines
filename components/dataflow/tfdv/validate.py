@@ -70,7 +70,7 @@ def parse_arguments():
 def convert_feature_to_json(feature, key_columns):
     feature_json = {'name': feature.name}
     feature_type = schema_pb2.FeatureType.Name(feature.type)
-    if feature in key_columns:
+    if feature.name in key_columns:
         feature_json['type'] = 'KEY'
     elif (feature_type == 'INT' or feature_type == 'FLOAT' or
         feature.HasField('int_domain') or feature.HasField('float_domain')):

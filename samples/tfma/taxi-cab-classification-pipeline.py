@@ -17,6 +17,25 @@
 import mlp
 import datetime
 
+def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
+    return mlp.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/omars-test-kubeflow-project/ml-pipeline-dataflow-tfdv:0.0.23',
+        arguments = [
+            '--csv-data-for-inference', inference_data,
+            '--csv-data-to-validate', validation_data,
+            '--column-names', column_names,
+            '--key-columns', key_columns,
+            '--project', project,
+            '--mode', mode,
+            '--output', validation_output,
+        ],
+        file_outputs = {
+            'validation': '/output.txt',
+            'schema': '/output_schema.json',
+        }
+    )
+
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return mlp.ContainerOp(
         name = step_name,
@@ -121,15 +140,20 @@ def taxi_cab_classification(
     output: mlp.PipelineParam,
     project: mlp.PipelineParam,
 
-    schema: mlp.PipelineParam=mlp.PipelineParam(
-        name='schema',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json'),
+    column_names: mlp.PipelineParam=mlp.PipelineParam(
+        name='column-names',
+        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/column-names.json'),
+    key_columns: mlp.PipelineParam=mlp.PipelineParam(
+        name='key-columns',
+        value='trip_start_timestamp'),
     train: mlp.PipelineParam=mlp.PipelineParam(
         name='train',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv'),
     evaluation: mlp.PipelineParam=mlp.PipelineParam(
         name='evaluation',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv'),
+    validation_mode: mlp.PipelineParam=mlp.PipelineParam(
+        name='validation-mode', value='local'),
     preprocess_mode: mlp.PipelineParam=mlp.PipelineParam(
         name='preprocess-mode', value='local'),
     preprocess_module: mlp.PipelineParam=mlp.PipelineParam(
@@ -146,16 +170,18 @@ def taxi_cab_classification(
     analyze_mode: mlp.PipelineParam=mlp.PipelineParam(name='analyze-mode', value='local'),
     analyze_slice_column: mlp.PipelineParam=mlp.PipelineParam(
         name='analyze-slice-column', value='trip_start_hour')):
+  validation_output = '%s/{{workflow.name}}/validation' % output
   transform_output = '%s/{{workflow.name}}/transformed' % output
   training_output = '%s/{{workflow.name}}/train' % output
   analysis_output = '%s/{{workflow.name}}/analysis' % output
   prediction_output = '%s/{{workflow.name}}/predict' % output
   tf_server_name = 'taxi-cab-classification-model-{{workflow.name}}'
 
-  preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, preprocess_module, transform_output)
-  training = tf_train_dnn_on_kubeflow_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, preprocess_module, training_output, workers, pss, 60)
-  analysis = dataflow_tf_model_analyze_op(training.output, evaluation, schema, project, analyze_mode, analyze_slice_column, analysis_output)
-  prediction = dataflow_tf_predict_op(evaluation, schema, target, training.output, predict_mode, project, prediction_output)
+  validation = dataflow_tf_data_validation_op(train, evaluation, column_names, key_columns, project, validation_mode, validation_output)
+  preprocess = dataflow_tf_transform_op(train, evaluation, validation.outputs['schema'], project, preprocess_mode, preprocess_module, transform_output)
+  training = tf_train_dnn_on_kubeflow_op(preprocess.output, validation.outputs['schema'], learning_rate, hidden_layer_size, steps, target, preprocess_module, training_output, workers, pss, 60)
+  analysis = dataflow_tf_model_analyze_op(training.output, evaluation, validation.outputs['schema'], project, analyze_mode, analyze_slice_column, analysis_output)
+  prediction = dataflow_tf_predict_op(evaluation, validation.outputs['schema'], target, training.output, predict_mode, project, prediction_output)
   deploy = kubeflow_deploy_op(training.output, tf_server_name)
 
 if __name__ == '__main__':
