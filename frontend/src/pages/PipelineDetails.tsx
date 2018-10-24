@@ -16,12 +16,10 @@
 
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/yaml/yaml.js';
-import { Apis } from '../lib/Apis';
-import * as React from 'react';
 import * as JsYaml from 'js-yaml';
+import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
 import AddIcon from '@material-ui/icons/Add';
-import { BannerProps } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CloseIcon from '@material-ui/icons/Close';
@@ -31,16 +29,19 @@ import Graph from '../components/Graph';
 import MD2Tabs from '../atoms/MD2Tabs';
 import Resizable from 're-resizable';
 import Slide from '@material-ui/core/Slide';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
-import { RouteComponentProps } from 'react-router';
+import { ApiPipeline } from '../apis/pipeline';
+import { Apis } from '../lib/Apis';
+import { BannerProps } from '../components/Banner';
 import { DialogProps, RoutePage, RouteParams } from '../components/Router';
+import { Paper, Collapse } from '@material-ui/core';
+import { RouteComponentProps } from 'react-router';
+import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { classes, stylesheet } from 'typestyle';
-import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
-import { ApiPipeline } from '../apis/pipeline';
 
 interface PipelineDetailsProps extends RouteComponentProps {
   toolbarProps: ToolbarProps;
@@ -56,6 +57,7 @@ interface PipelineDetailsState {
   selectedTab: number;
   selectedNodeId: string;
   sidepanelBusy: boolean;
+  summaryShown: boolean;
   template?: Workflow;
   templateYaml?: string;
 }
@@ -94,6 +96,21 @@ const css = stylesheet({
     position: 'absolute !important' as any,
     right: 0,
     top: 0,
+    zIndex: 2,
+  },
+  summaryCard: {
+    backgroundColor: color.background,
+    bottom: 20,
+    left: 20,
+    maxHeight: 250,
+    padding: 20,
+    position: 'absolute',
+    width: 250,
+    zIndex: 1,
+  },
+  summaryKey: {
+    color: color.strong,
+    marginTop: 10,
   },
 });
 
@@ -135,6 +152,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
       selectedNodeInfo: null,
       selectedTab: 0,
       sidepanelBusy: false,
+      summaryShown: true,
     };
   }
 
@@ -158,7 +176,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
   }
 
   public render(): JSX.Element {
-    const { pipeline, selectedNodeInfo, selectedNodeId, selectedTab, templateYaml } = this.state;
+    const { pipeline, selectedNodeInfo, selectedNodeId, selectedTab, summaryShown, templateYaml } = this.state;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
@@ -173,6 +191,22 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
             <div className={commonCss.page}>
               {selectedTab === 0 && <div className={commonCss.page}>
                 {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+                  <Paper className={css.summaryCard}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div className={commonCss.header}>
+                        Summary
+                      </div>
+                      <Button onClick={() => this.setState({ summaryShown: !summaryShown })} color='secondary'>
+                        {summaryShown ? 'Hide' : 'Show'}
+                      </Button>
+                    </div>
+                    <Collapse in={summaryShown}>
+                      <div className={css.summaryKey}>Uploaded on</div>
+                      <div>{new Date(pipeline.created_at!).toLocaleString()}</div>
+                      <div className={css.summaryKey}>Description</div>
+                      <div>{pipeline.description}</div>
+                    </Collapse>
+                  </Paper>
                   <Graph graph={this.state.graph} selectedNodeId={selectedNodeId} onClick={(id) => this._selectNode(id)} />
                   <Slide in={!!selectedNodeId} direction='left'>
                     <Resizable className={css.sidepane} defaultSize={{ width: '40%' }} maxWidth='90%'
