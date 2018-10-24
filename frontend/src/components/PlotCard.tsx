@@ -102,13 +102,17 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
   public render() {
     const { title, configs, maxDimension, ...otherProps } = this.props;
 
+    if (!configs || !configs.length) {
+      return null;
+    }
+
     return <div>
       <Paper {...otherProps} className={css.plotCard}>
         <div className={css.plotHeader}>
           <div className={classes(css.plotTitle)} title={title}>{title}</div>
           <div>
             <Button onClick={() => this.setState({ fullscreenDialogOpen: true })}
-              style={{ padding: 4, minHeight: 0, minWidth: 0 }}>
+              style={{ padding: 4, minHeight: 0, minWidth: 0 }} className='popOutButton'>
               <Tooltip title='Pop out'>
                 <PopOutIcon classes={{ root: css.popoutIcon }} />
               </Tooltip>
@@ -122,7 +126,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
         onClose={() => this.setState({ fullscreenDialogOpen: false })}>
         <div className={css.dialogTitle}>
           <Button onClick={() => this.setState({ fullscreenDialogOpen: false })}
-            className={css.fullscreenCloseBtn}>
+            className={classes(css.fullscreenCloseBtn, 'fullscreenCloseButton')}>
             <CloseIcon />
           </Button>
           {componentMap[configs[0].type].prototype.getDisplayName()}

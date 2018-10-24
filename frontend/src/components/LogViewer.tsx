@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { List, AutoSizer } from 'react-virtualized';
+import { List, AutoSizer, ListRowProps } from 'react-virtualized';
 import { fontsize, fonts } from '../Css';
 import { stylesheet } from 'typestyle';
 
@@ -82,15 +82,7 @@ class LogViewer extends React.Component<LogViewerProps> {
       {({ height, width }) => (
         <List width={width} height={height} rowCount={this.props.logLines.length}
           rowHeight={15} className={css.root} ref={this._rootRef}
-          rowRenderer={({ style, key, index }) =>
-            <div key={key} className={css.line} style={style}>
-              <span className={css.number}
-                style={this._getLineNumberStyle(this.props.logLines[index])}>{index + 1}</span>
-              {this._parseLine(this.props.logLines[index]).map((piece, p) => (
-                <span key={p}>{piece}</span>
-              ))}
-            </div>
-          } />
+          rowRenderer={this._rowRenderer.bind(this)} />
       )}
     </AutoSizer>;
   }
@@ -102,15 +94,30 @@ class LogViewer extends React.Component<LogViewerProps> {
     }
   }
 
-  private _getLineNumberStyle(line: string): React.CSSProperties {
+  private _rowRenderer(props: ListRowProps): React.ReactNode {
+    const { style, key, index } = props;
+    return (
+      <div key={key} className={css.line}
+        style={this._getLineNumberStyle(this.props.logLines[index], style)}>
+        <span className={css.number}>{index + 1}</span>
+        {this._parseLine(this.props.logLines[index]).map((piece, p) => (
+          <span key={p}>{piece}</span>
+        ))}
+      </div>
+    );
+  }
+
+  private _getLineNumberStyle(line: string, oldStyle: React.CSSProperties): React.CSSProperties {
     const lineLowerCase = line.toLowerCase();
+    const style = { ...oldStyle };
     if (lineLowerCase.indexOf('error') > -1 || lineLowerCase.indexOf('fail') > -1) {
-      return { backgroundColor: 'darkred', color: 'white' };
+      style.backgroundColor = '#700000';
+      style.color = 'white';
     } else if (lineLowerCase.indexOf('warn') > -1) {
-      return { backgroundColor: '#797900', color: 'white' };
-    } else {
-      return {};
+      style.backgroundColor = '#545400';
+      style.color = 'white';
     }
+    return style;
   }
 
   private _parseLine(line: string): React.ReactNode[] {

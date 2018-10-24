@@ -151,7 +151,7 @@ export function loadNodeOutputPaths(selectedWorkflowNode: NodeStatus): StoragePa
 // the workflow, and parsing outputs for each.
 export function loadAllOutputPaths(workflow: Workflow) {
   let outputPaths: StoragePath[] = [];
-  if (workflow.status && workflow.status.nodes) {
+  if (workflow && workflow.status && workflow.status.nodes) {
     Object.keys(workflow.status.nodes).forEach(n =>
       outputPaths = outputPaths.concat(loadNodeOutputPaths(workflow.status.nodes[n])));
   }
@@ -177,15 +177,24 @@ export function parseStoragePath(strPath: string): StoragePath {
 // Outbound nodes are roughly those nodes which are the final step of the
 // workflow's execution. More information can be found in the NodeStatus
 // interface definition.
-function getOutboundNodes(graph: Workflow, nodeId: string): string[] {
+export function getOutboundNodes(graph: Workflow, nodeId: string): string[] {
+  let outbound: string[] = [];
+
+  if (!graph || !graph.status || !graph.status.nodes) {
+    return outbound;
+  }
+
   const node = graph.status.nodes[nodeId];
+  if (!node) {
+    return outbound;
+  }
+
   if (node.type === 'Pod') {
     return [node.id];
   }
-  let outbound = Array<string>();
   for (const outboundNodeID of node.outboundNodes || []) {
     const outNode = graph.status.nodes[outboundNodeID];
-    if (outNode.type === 'Pod') {
+    if (outNode && outNode.type === 'Pod') {
       outbound.push(outboundNodeID);
     } else {
       outbound = outbound.concat(getOutboundNodes(graph, outboundNodeID));
@@ -197,6 +206,6 @@ function getOutboundNodes(graph: Workflow, nodeId: string): string[] {
 // Returns whether or not the given node is one of the intermediate nodes used
 // by Argo to orchestrate the workflow. Such nodes are not generally
 // meaningful from a user's perspective.
-function isVirtual(node: NodeStatus): boolean {
+export function isVirtual(node: NodeStatus): boolean {
   return (node.type === 'StepGroup' || node.type === 'DAG') && !!node.boundaryID;
 }

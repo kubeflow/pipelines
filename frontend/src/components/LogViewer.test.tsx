@@ -15,20 +15,26 @@
  */
 
 import * as React from 'react';
-import { mount } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import LogViewer from './LogViewer';
 
 describe('LogViewer', () => {
   it('renders an empty container when no logs passed', () => {
-    expect(mount(<LogViewer logLines={[]} />)).toMatchSnapshot();
+    expect(shallow(<LogViewer logLines={[]} />)).toMatchSnapshot();
   });
 
   it('renders one log line', () => {
-    expect(mount(<LogViewer logLines={['first line']} />)).toMatchSnapshot();
+    const logLines = ['first line'];
+    const logViewer = new LogViewer({ logLines });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
   });
 
   it('renders two log lines', () => {
-    expect(mount(<LogViewer logLines={['first line', 'second line']} />)).toMatchSnapshot();
+    const logLines = ['first line', 'second line'];
+    const logViewer = new LogViewer({ logLines });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
   });
 
   it('renders one long line without breaking', () => {
@@ -41,7 +47,9 @@ describe('LogViewer', () => {
       `of Letraset sheets containing Lorem Ipsum passages, and more recently` +
       `with desktop publishing software like Aldus PageMaker including versions` +
       `of Lorem Ipsum.`;
-    expect(mount(<LogViewer logLines={[line]} />)).toMatchSnapshot();
+    const logViewer = new LogViewer({ logLines: [line] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
   });
 
   it('renders a multi-line log', () => {
@@ -54,24 +62,36 @@ describe('LogViewer', () => {
     of Letraset sheets containing Lorem Ipsum passages, and more recently
     with desktop publishing software like Aldus PageMaker including versions
     of Lorem Ipsum.`;
-    expect(mount(<LogViewer logLines={line.split('\n')} />)).toMatchSnapshot();
+    const logViewer = new LogViewer({ logLines: line.split('\n') });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
   });
 
   it('linkifies standalone urls', () => {
-    expect(mount(<LogViewer logLines={['this string: http://path.com is a url']} />)).toMatchSnapshot();
+    const logLines = ['this string: http://path.com is a url'];
+    const logViewer = new LogViewer({ logLines });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
   });
 
   it('linkifies standalone https urls', () => {
-    expect(mount(<LogViewer logLines={['this string: https://path.com is a url']} />)).toMatchSnapshot();
+    const logLines = ['this string: https://path.com is a url'];
+    const logViewer = new LogViewer({ logLines });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
   });
 
   it('linkifies substring urls', () => {
-    expect(mount(<LogViewer logLines={['this string:http://path.com is a url']} />)).toMatchSnapshot();
+    const logLines = ['this string:http://path.com is a url'];
+    const logViewer = new LogViewer({ logLines });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
   });
 
   it('does not linkify non http/https urls', () => {
-    const logs = 'this string: gs://path is a GCS path';
-    const tree = mount(<LogViewer logLines={[logs]} />);
+    const logLines = ['this string: gs://path is a GCS path'];
+    const logViewer = new LogViewer({ logLines });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
     expect(tree).toMatchSnapshot();
   });
 
@@ -81,5 +101,53 @@ describe('LogViewer', () => {
     const tree = mount(<LogViewer logLines={[logs]} />);
     tree.instance().componentDidUpdate!({}, {});
     expect(spy).toHaveBeenCalled();
+  });
+
+  it('renders a row with given index as line number', () => {
+    const logViewer = new LogViewer({ logLines: ['line1', 'line2'] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a row with error', () => {
+    const logViewer = new LogViewer({ logLines: ['line1 with error', 'line2'] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a row with upper case error', () => {
+    const logViewer = new LogViewer({ logLines: ['line1 with ERROR', 'line2'] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a row with error word as substring', () => {
+    const logViewer = new LogViewer({ logLines: ['line1 with errorWord', 'line2'] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a row with warning', () => {
+    const logViewer = new LogViewer({ logLines: ['line1 with warning', 'line2'] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a row with warn', () => {
+    const logViewer = new LogViewer({ logLines: ['line1 with warn', 'line2'] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a row with upper case warning', () => {
+    const logViewer = new LogViewer({ logLines: ['line1 with WARNING', 'line2'] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a row with warning word as substring', () => {
+    const logViewer = new LogViewer({ logLines: ['line1 with warning:something', 'line2'] });
+    const tree = shallow((logViewer as any)._rowRenderer({ index: 0 }));
+    expect(tree).toMatchSnapshot();
   });
 });
