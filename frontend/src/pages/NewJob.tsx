@@ -140,8 +140,8 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
 
           <br />
           <div className={commonCss.flex}>
-            <BusyButton title='Deploy' disabled={!!errorMessage} busy={this.state.isDeploying}
-              className={classes(commonCss.actionButton, commonCss.primaryButton)}
+            <BusyButton id='deployBtn' disabled={!!errorMessage} busy={this.state.isDeploying}
+              className={classes(commonCss.actionButton, commonCss.primaryButton)} title='Deploy'
               onClick={this._deploy.bind(this)} />
             <Button onClick={() => this.props.history.push(RoutePage.JOBS)}>Cancel</Button>
             <div className={css.errorMessage}>{errorMessage}</div>

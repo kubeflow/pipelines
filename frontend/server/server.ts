@@ -14,7 +14,7 @@
 
 import * as Storage from '@google-cloud/storage';
 import * as express from 'express';
-import {Application, static as StaticHandler} from 'express';
+import { Application, static as StaticHandler } from 'express';
 import * as fs from 'fs';
 import * as proxy from 'http-proxy-middleware';
 import { Client as MinioClient } from 'minio';
@@ -27,7 +27,7 @@ import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
 import { Stream } from 'stream';
 
-// tslint:disable:no-console
+const BASEPATH = '/pipeline';
 
 // The minio endpoint, port, access and secret keys are hardcoded to the same
 // values used in the deployment.
@@ -40,6 +40,11 @@ const minioClient = new MinioClient({
 } as any);
 
 const app = express() as Application;
+
+app.use(function (req, _, next) {
+  console.info(req.method + ' ' + req.originalUrl);
+  next();
+});
 
 if (process.argv.length < 3) {
   console.error(`\
@@ -64,9 +69,7 @@ const apiServerHost = process.env.ML_PIPELINE_SERVICE_HOST || 'localhost';
 const apiServerPort = process.env.ML_PIPELINE_SERVICE_PORT || '3001';
 const apiServerAddress = `http://${apiServerHost}:${apiServerPort}`;
 
-app.use(StaticHandler(staticDir));
-
-const v1alpha2Prefix = '/apis/v1alpha2';
+const v1alpha2Prefix = 'apis/v1alpha2';
 
 const healthzStats = {
   apiServerCommitHash: '',
@@ -75,10 +78,10 @@ const healthzStats = {
   frontendCommitHash: commitHash,
 };
 
-app.get(v1alpha2Prefix + '/healthz', async (_, res) => {
+const healthzHandler = async (_, res) => {
   try {
     const response = await fetch(
-      apiServerAddress + v1alpha2Prefix + '/healthz', { timeout: 1000 });
+      `${apiServerAddress}/${v1alpha2Prefix}/healthz`, { timeout: 1000 });
     healthzStats.apiServerReady = true;
     const serverStatus = await response.json();
     healthzStats.apiServerCommitHash = serverStatus.commit_sha;
@@ -86,9 +89,12 @@ app.get(v1alpha2Prefix + '/healthz', async (_, res) => {
     healthzStats.apiServerReady = false;
   }
   res.json(healthzStats);
-});
+};
 
-app.get('/artifacts/get', async (req, res) => {
+app.get('/' + v1alpha2Prefix + '/healthz', healthzHandler);
+app.get(BASEPATH + '/' + v1alpha2Prefix + '/healthz', healthzHandler);
+
+app.get('artifacts/get', async (req, res) => {
   const [source, bucket, encodedKey] = [req.query.source, req.query.bucket, req.query.key];
   if (!source) {
     res.status(500).send('Storage source is missing from artifact request');
@@ -174,7 +180,7 @@ app.get('/artifacts/get', async (req, res) => {
   }
 });
 
-app.get('/apps/tensorboard', async (req, res) => {
+app.get('apps/tensorboard', async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -192,7 +198,7 @@ app.get('/apps/tensorboard', async (req, res) => {
   }
 });
 
-app.post('/apps/tensorboard', async (req, res) => {
+app.post('apps/tensorboard', async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -213,7 +219,7 @@ app.post('/apps/tensorboard', async (req, res) => {
 
 });
 
-app.get('/k8s/pod/logs', async (req, res) => {
+app.get('k8s/pod/logs', async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -234,21 +240,26 @@ app.get('/k8s/pod/logs', async (req, res) => {
 
 proxyMiddleware(app, v1alpha2Prefix);
 
-app.all(v1alpha2Prefix + '/*', proxy({
+app.all('/' + v1alpha2Prefix + '/*', proxy({
   changeOrigin: true,
-  onProxyReq: (proxyReq) => {
+  onProxyReq: proxyReq => {
     console.log('Proxied request: ', (proxyReq as any).path);
   },
   target: apiServerAddress,
 }));
 
-app.all(v1alpha2Prefix + '/*', proxy({
+app.all(BASEPATH  + '/' + v1alpha2Prefix + '/*', proxy({
   changeOrigin: true,
-  onProxyReq: (proxyReq) => {
+  onProxyReq: proxyReq => {
     console.log('Proxied request: ', (proxyReq as any).path);
   },
+  pathRewrite: (path) =>
+    path.startsWith(BASEPATH) ? path.substr(BASEPATH.length, path.length) : path,
   target: apiServerAddress,
 }));
+
+app.use(BASEPATH, StaticHandler(staticDir));
+app.use(StaticHandler(staticDir));
 
 app.get('*', (req, res) => {
   // TODO: look into caching this file to speed up multiple requests.

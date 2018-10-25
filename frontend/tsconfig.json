@@ -20,6 +20,7 @@
   },
   "exclude": [
     "__mocks__",
+    "analyze-bundle.js",
     "node_modules",
     "build",
     "scripts",

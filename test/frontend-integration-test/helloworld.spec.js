@@ -34,7 +34,7 @@ describe('deploy helloworld sample job', () => {
   });
 
   it('opens the pipeline upload dialog', () => {
-    $('button=Upload pipeline').click();
+    $('#uploadBtn').click();
     browser.waitForVisible('#uploadDialog', waitTimeout);
   });
 
@@ -48,8 +48,9 @@ describe('deploy helloworld sample job', () => {
   });
 
   it('uses the uploaded pipeline to create a new job', () => {
+    $('.tableRow').waitForVisible(waitTimeout);
     $('.tableRow').click();
-    $('button=Create job').click();
+    $('#createJobBtn').click();
   });
 
   it('populates job details and deploys', () => {
@@ -66,7 +67,7 @@ describe('deploy helloworld sample job', () => {
     browser.keys(outputParameterValue);
 
     // Deploy
-    $('button=Deploy').click();
+    $('#deployBtn').click();
   });
 
   it('redirects back to job list page', () => {
@@ -118,7 +119,7 @@ describe('deploy helloworld sample job', () => {
     const maxAttempts = 80;
 
     while (attempts < maxAttempts && (!items || items.length === 0)) {
-      $('button=Refresh').click();
+      $('#refreshBtn').click();
       browser.pause(1000);
       items = $$(selector);
       attempts++;
@@ -149,7 +150,7 @@ describe('deploy helloworld sample job', () => {
     const maxAttempts = 30;
 
     while (attempts < maxAttempts && $$(nodeSelector).length < 4) {
-      $('button=Refresh').click();
+      $('#refreshBtn').click();
       // Wait for a reasonable amount of time until the run is done
       browser.pause(1000);
       attempts++;
@@ -159,21 +160,21 @@ describe('deploy helloworld sample job', () => {
   });
 
   it('deletes the job', () => {
-    $('button=Jobs').click();
+    $('#jobsButton').click();
 
     browser.waitForVisible('.tableRow', waitTimeout);
     $('.tableRow').click();
-    $('button=Delete').click();
+    $('#deleteBtn').click();
     $('.dialogButton').click();
     $('.dialog').waitForVisible(waitTimeout, true);
   });
 
   it('deletes the uploaded pipeline', () => {
-    $('button=Pipelines').click();
+    $('#pipelinesButton').click();
 
     browser.waitForVisible('.tableRow', waitTimeout);
     $('.tableRow').click();
-    $('button=Delete').click();
+    $('#deleteBtn').click();
     $('.dialogButton').click();
     $('.dialog').waitForVisible(waitTimeout, true);
   });

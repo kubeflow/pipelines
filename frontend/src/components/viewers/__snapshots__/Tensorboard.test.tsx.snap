@@ -45,7 +45,7 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
       className="unstyled"
       replace={false}
       target="_blank"
-      to="/apis/v1alpha2/_proxy/test%2Faddress"
+      to="apis/v1alpha2/_proxy/test%2Faddress"
     >
       <WithStyles(Button)
         className="primaryButton"

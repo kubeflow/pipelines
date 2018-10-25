@@ -73,6 +73,7 @@
     "typescript": "^3.0.3",
     "webpack-bundle-analyzer": "^3.0.2"
   },
+  "homepage": "./",
   "jest": {
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",

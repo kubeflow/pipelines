@@ -18,7 +18,7 @@ import { JobServiceApi } from '../apis/job';
 import { RunServiceApi } from '../apis/run';
 import { PipelineServiceApi, ApiPipeline } from '../apis/pipeline';
 
-const v1alpha2Prefix = '/apis/v1alpha2';
+const v1alpha2Prefix = 'apis/v1alpha2';
 
 export interface BaseListRequest {
   filterBy?: string;
@@ -34,11 +34,13 @@ export class Apis {
    * Get pod logs
    */
   public static getPodLogs(podName: string): Promise<string> {
-    return this._fetch(`/k8s/pod/logs?podname=${encodeURIComponent(podName)}`);
+    return this._fetch(`k8s/pod/logs?podname=${encodeURIComponent(podName)}`);
   }
 
   public static get basePath(): string {
-    return location.protocol + '//' + location.host;
+    const path = location.protocol + '//' + location.host + location.pathname;
+    // Trim trailing '/' if exists
+    return path.endsWith('/') ? path.substr(0, path.length - 1) : path;
   }
 
   public static get jobServiceApi(): JobServiceApi {
@@ -78,7 +80,7 @@ export class Apis {
    * Reads file from storage using server.
    */
   public static readFile(path: StoragePath): Promise<string> {
-    return this._fetch('/artifacts/get' +
+    return this._fetch('artifacts/get' +
       `?source=${path.source}&bucket=${path.bucket}&key=${encodeURIComponent(path.key)}`);
   }
 
@@ -86,7 +88,7 @@ export class Apis {
    * Gets the address (IP + port) of a Tensorboard service given the logdir
    */
   public static getTensorboardApp(logdir: string): Promise<string> {
-    return this._fetch(`/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
+    return this._fetch(`apps/tensorboard?logdir=${encodeURIComponent(logdir)}`);
   }
 
   /**
@@ -94,7 +96,7 @@ export class Apis {
    */
   public static startTensorboardApp(logdir: string): Promise<string> {
     return this._fetch(
-      `/apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
+      `apps/tensorboard?logdir=${encodeURIComponent(logdir)}`,
       undefined,
       undefined,
       { headers: { 'content-type': 'application/json', }, method: 'POST', }

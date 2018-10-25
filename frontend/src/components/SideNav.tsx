@@ -141,7 +141,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
 
     return (
       <div id='sideNav' className={classes(css.root, commonCss.noShrink, collapsed && css.collapsedRoot)}>
-        <Link to={RoutePage.PIPELINES} className={commonCss.unstyled}>
+        <Link id='pipelinesButton' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
           <Button className={classes(css.button,
             page.startsWith(RoutePage.PIPELINES) && css.active,
             collapsed && css.collapsedButton)}>
@@ -149,7 +149,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
             <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
           </Button>
         </Link>
-        <Link to={RoutePage.JOBS} className={commonCss.unstyled}>
+        <Link id='jobsButton' to={RoutePage.JOBS} className={commonCss.unstyled}>
           <Button className={classes(css.button,
             page.startsWith(RoutePage.JOBS) && css.active,
             collapsed && css.collapsedButton)}>
