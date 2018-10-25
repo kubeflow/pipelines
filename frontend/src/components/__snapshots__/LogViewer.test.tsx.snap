@@ -3,18 +3,23 @@
 exports[`LogViewer does not linkify non http/https urls 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      this string: gs://path is a GCS path
+    <span
+      key="0"
+    >
+      <span>
+        this string: gs://path is a GCS path
+      </span>
     </span>
   </span>
 </div>
@@ -23,36 +28,41 @@ exports[`LogViewer does not linkify non http/https urls 1`] = `
 exports[`LogViewer linkifies standalone https urls 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      this string: 
-    </span>
-  </span>
-  <span
-    key="1"
-  >
-    <a
-      className="a"
-      href="https://path.com"
-      target="_blank"
+    <span
+      key="0"
     >
-      https://path.com
-    </a>
-  </span>
-  <span
-    key="2"
-  >
-    <span>
-       is a url
+      <span>
+        this string: 
+      </span>
+    </span>
+    <span
+      key="1"
+    >
+      <a
+        className="a"
+        href="https://path.com"
+        target="_blank"
+      >
+        https://path.com
+      </a>
+    </span>
+    <span
+      key="2"
+    >
+      <span>
+         is a url
+      </span>
     </span>
   </span>
 </div>
@@ -61,36 +71,41 @@ exports[`LogViewer linkifies standalone https urls 1`] = `
 exports[`LogViewer linkifies standalone urls 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      this string: 
-    </span>
-  </span>
-  <span
-    key="1"
-  >
-    <a
-      className="a"
-      href="http://path.com"
-      target="_blank"
+    <span
+      key="0"
     >
-      http://path.com
-    </a>
-  </span>
-  <span
-    key="2"
-  >
-    <span>
-       is a url
+      <span>
+        this string: 
+      </span>
+    </span>
+    <span
+      key="1"
+    >
+      <a
+        className="a"
+        href="http://path.com"
+        target="_blank"
+      >
+        http://path.com
+      </a>
+    </span>
+    <span
+      key="2"
+    >
+      <span>
+         is a url
+      </span>
     </span>
   </span>
 </div>
@@ -99,36 +114,41 @@ exports[`LogViewer linkifies standalone urls 1`] = `
 exports[`LogViewer linkifies substring urls 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      this string:
-    </span>
-  </span>
-  <span
-    key="1"
-  >
-    <a
-      className="a"
-      href="http://path.com"
-      target="_blank"
+    <span
+      key="0"
     >
-      http://path.com
-    </a>
-  </span>
-  <span
-    key="2"
-  >
-    <span>
-       is a url
+      <span>
+        this string:
+      </span>
+    </span>
+    <span
+      key="1"
+    >
+      <a
+        className="a"
+        href="http://path.com"
+        target="_blank"
+      >
+        http://path.com
+      </a>
+    </span>
+    <span
+      key="2"
+    >
+      <span>
+         is a url
+      </span>
     </span>
   </span>
 </div>
@@ -137,18 +157,23 @@ exports[`LogViewer linkifies substring urls 1`] = `
 exports[`LogViewer renders a multi-line log 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      Lorem Ipsum is simply dummy text of the printing and typesetting
+    <span
+      key="0"
+    >
+      <span>
+        Lorem Ipsum is simply dummy text of the printing and typesetting
+      </span>
     </span>
   </span>
 </div>
@@ -157,23 +182,33 @@ exports[`LogViewer renders a multi-line log 1`] = `
 exports[`LogViewer renders a row with error 1`] = `
 <div
   className="line"
-  style={
-    Object {
-      "backgroundColor": "#700000",
-      "color": "white",
-    }
-  }
 >
   <span
     className="number"
+    style={
+      Object {
+        "backgroundColor": "#700000",
+        "color": "white",
+      }
+    }
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={
+      Object {
+        "backgroundColor": "#700000",
+        "color": "white",
+      }
+    }
   >
-    <span>
-      line1 with error
+    <span
+      key="0"
+    >
+      <span>
+        line1 with error
+      </span>
     </span>
   </span>
 </div>
@@ -182,23 +217,33 @@ exports[`LogViewer renders a row with error 1`] = `
 exports[`LogViewer renders a row with error word as substring 1`] = `
 <div
   className="line"
-  style={
-    Object {
-      "backgroundColor": "#700000",
-      "color": "white",
-    }
-  }
 >
   <span
     className="number"
+    style={
+      Object {
+        "backgroundColor": "#700000",
+        "color": "white",
+      }
+    }
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={
+      Object {
+        "backgroundColor": "#700000",
+        "color": "white",
+      }
+    }
   >
-    <span>
-      line1 with errorWord
+    <span
+      key="0"
+    >
+      <span>
+        line1 with errorWord
+      </span>
     </span>
   </span>
 </div>
@@ -207,18 +252,23 @@ exports[`LogViewer renders a row with error word as substring 1`] = `
 exports[`LogViewer renders a row with given index as line number 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      line1
+    <span
+      key="0"
+    >
+      <span>
+        line1
+      </span>
     </span>
   </span>
 </div>
@@ -227,23 +277,33 @@ exports[`LogViewer renders a row with given index as line number 1`] = `
 exports[`LogViewer renders a row with upper case error 1`] = `
 <div
   className="line"
-  style={
-    Object {
-      "backgroundColor": "#700000",
-      "color": "white",
-    }
-  }
 >
   <span
     className="number"
+    style={
+      Object {
+        "backgroundColor": "#700000",
+        "color": "white",
+      }
+    }
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={
+      Object {
+        "backgroundColor": "#700000",
+        "color": "white",
+      }
+    }
   >
-    <span>
-      line1 with ERROR
+    <span
+      key="0"
+    >
+      <span>
+        line1 with ERROR
+      </span>
     </span>
   </span>
 </div>
@@ -252,23 +312,33 @@ exports[`LogViewer renders a row with upper case error 1`] = `
 exports[`LogViewer renders a row with upper case warning 1`] = `
 <div
   className="line"
-  style={
-    Object {
-      "backgroundColor": "#545400",
-      "color": "white",
-    }
-  }
 >
   <span
     className="number"
+    style={
+      Object {
+        "backgroundColor": "#545400",
+        "color": "white",
+      }
+    }
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={
+      Object {
+        "backgroundColor": "#545400",
+        "color": "white",
+      }
+    }
   >
-    <span>
-      line1 with WARNING
+    <span
+      key="0"
+    >
+      <span>
+        line1 with WARNING
+      </span>
     </span>
   </span>
 </div>
@@ -277,23 +347,33 @@ exports[`LogViewer renders a row with upper case warning 1`] = `
 exports[`LogViewer renders a row with warn 1`] = `
 <div
   className="line"
-  style={
-    Object {
-      "backgroundColor": "#545400",
-      "color": "white",
-    }
-  }
 >
   <span
     className="number"
+    style={
+      Object {
+        "backgroundColor": "#545400",
+        "color": "white",
+      }
+    }
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={
+      Object {
+        "backgroundColor": "#545400",
+        "color": "white",
+      }
+    }
   >
-    <span>
-      line1 with warn
+    <span
+      key="0"
+    >
+      <span>
+        line1 with warn
+      </span>
     </span>
   </span>
 </div>
@@ -302,23 +382,33 @@ exports[`LogViewer renders a row with warn 1`] = `
 exports[`LogViewer renders a row with warning 1`] = `
 <div
   className="line"
-  style={
-    Object {
-      "backgroundColor": "#545400",
-      "color": "white",
-    }
-  }
 >
   <span
     className="number"
+    style={
+      Object {
+        "backgroundColor": "#545400",
+        "color": "white",
+      }
+    }
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={
+      Object {
+        "backgroundColor": "#545400",
+        "color": "white",
+      }
+    }
   >
-    <span>
-      line1 with warning
+    <span
+      key="0"
+    >
+      <span>
+        line1 with warning
+      </span>
     </span>
   </span>
 </div>
@@ -327,23 +417,33 @@ exports[`LogViewer renders a row with warning 1`] = `
 exports[`LogViewer renders a row with warning word as substring 1`] = `
 <div
   className="line"
-  style={
-    Object {
-      "backgroundColor": "#545400",
-      "color": "white",
-    }
-  }
 >
   <span
     className="number"
+    style={
+      Object {
+        "backgroundColor": "#545400",
+        "color": "white",
+      }
+    }
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={
+      Object {
+        "backgroundColor": "#545400",
+        "color": "white",
+      }
+    }
   >
-    <span>
-      line1 with warning:something
+    <span
+      key="0"
+    >
+      <span>
+        line1 with warning:something
+      </span>
     </span>
   </span>
 </div>
@@ -363,18 +463,23 @@ exports[`LogViewer renders an empty container when no logs passed 1`] = `
 exports[`LogViewer renders one log line 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      first line
+    <span
+      key="0"
+    >
+      <span>
+        first line
+      </span>
     </span>
   </span>
 </div>
@@ -383,18 +488,23 @@ exports[`LogViewer renders one log line 1`] = `
 exports[`LogViewer renders one long line without breaking 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      Lorem Ipsum is simply dummy text of the printing and typesettingindustry. Lorem Ipsum has been the industry's standard dummy text eversince the 1500s, when an unknown printer took a galley of type andscrambled it to make a type specimen book. It has survived not only fivecenturies, but also the leap into electronic typesetting, remainingessentially unchanged. It was popularised in the 1960s with the releaseof Letraset sheets containing Lorem Ipsum passages, and more recentlywith desktop publishing software like Aldus PageMaker including versionsof Lorem Ipsum.
+    <span
+      key="0"
+    >
+      <span>
+        Lorem Ipsum is simply dummy text of the printing and typesettingindustry. Lorem Ipsum has been the industry's standard dummy text eversince the 1500s, when an unknown printer took a galley of type andscrambled it to make a type specimen book. It has survived not only fivecenturies, but also the leap into electronic typesetting, remainingessentially unchanged. It was popularised in the 1960s with the releaseof Letraset sheets containing Lorem Ipsum passages, and more recentlywith desktop publishing software like Aldus PageMaker including versionsof Lorem Ipsum.
+      </span>
     </span>
   </span>
 </div>
@@ -403,18 +513,23 @@ exports[`LogViewer renders one long line without breaking 1`] = `
 exports[`LogViewer renders two log lines 1`] = `
 <div
   className="line"
-  style={Object {}}
 >
   <span
     className="number"
+    style={Object {}}
   >
     1
   </span>
   <span
-    key="0"
+    className="line"
+    style={Object {}}
   >
-    <span>
-      first line
+    <span
+      key="0"
+    >
+      <span>
+        first line
+      </span>
     </span>
   </span>
 </div>
