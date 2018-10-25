@@ -34,3 +34,5 @@ RUN mkdir /usr/licenses && \
     /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
 
 WORKDIR /ml
+
+ENTRYPOINT ["python", "-m", "trainer.task"]

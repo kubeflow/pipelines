@@ -282,11 +282,6 @@ def main():
   # configure the TF_CONFIG such that the tensorflow recoginzes the MASTER in the yaml file as the chief.
   # TODO: kubeflow is working on fixing the problem and this TF_CONFIG can be
   # removed then.
-  tf_config = os.environ['TF_CONFIG']
-  tf_json = json.loads(tf_config)
-  tf_json['environment'] = 'cloud'
-  tf_config = json.dumps(tf_json)
-  os.environ['TF_CONFIG'] = tf_config
 
   args = parse_arguments()
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -339,6 +334,18 @@ def main():
           lambda: eval_input_receiver_fn(
               args.transformed_data_dir, schema, args.target)))
 
+
+  metadata = {
+    'outputs' : [{
+      'type': 'tensorboard',
+      'source': args.job_dir,
+    }]
+  }
+  with open('/mlpipeline-ui-metadata.json', 'w') as f:
+    json.dump(metadata, f)
+
+  with open('/output.txt', 'w') as f:
+    f.write(args.job_dir)
 
 if __name__ == '__main__':
   main()
