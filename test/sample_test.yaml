@@ -255,7 +255,8 @@ spec:
         "--ui_image", "{{inputs.parameters.frontend-image}}",
         "--scheduled_workflow_image", "{{inputs.parameters.scheduledworkflow-image}}",
         "--persistence_agent_image", "{{inputs.parameters.persistenceagent-image}}",
-        "--deploy_argo", "false" # Argo is already installed in the cluster. No need to install again.
+        "--deploy_argo", "false", # Argo is already installed in the cluster. No need to install again.
+        "--report_usage", "false" # Skip reporting usage for test
       ]
 
   - name: run-sample-tests

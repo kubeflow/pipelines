@@ -19,7 +19,7 @@ spec:
   arguments:
     parameters: []
   entrypoint: immediate-value
-  serviceAccountName: argo
+  serviceAccountName: pipeline-runner
   templates:
   - container:
       args:

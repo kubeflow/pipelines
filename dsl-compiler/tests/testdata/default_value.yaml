@@ -21,7 +21,7 @@ spec:
     - name: url
       value: gs://ml-pipeline/shakespeare1.txt
   entrypoint: default-value
-  serviceAccountName: argo
+  serviceAccountName: pipeline-runner
   templates:
   - dag:
       tasks:

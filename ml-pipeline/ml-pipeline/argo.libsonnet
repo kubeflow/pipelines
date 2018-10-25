@@ -387,15 +387,6 @@
           ],
         },
         {
-          apiGroups: [""],
-          resources: [
-            "secrets",
-          ],
-          verbs: [
-            "get",
-          ],
-        },
-        {
           apiGroups: [
             "argoproj.io",
           ],

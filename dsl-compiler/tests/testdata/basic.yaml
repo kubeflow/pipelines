@@ -21,7 +21,7 @@ spec:
     - name: message
     - name: outputpath
   entrypoint: save-most-frequent
-  serviceAccountName: argo
+  serviceAccountName: pipeline-runner
   onExit: exiting
   templates:
   - dag:

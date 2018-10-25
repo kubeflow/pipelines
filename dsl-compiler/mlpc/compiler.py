@@ -450,7 +450,7 @@ class Compiler(object):
         'entrypoint': pipeline.name,
         'templates': templates,
         'arguments': {'parameters': input_params},
-        'serviceAccountName': 'argo'
+        'serviceAccountName': 'pipeline-runner'
       }
     }
     if exit_handler:

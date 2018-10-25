@@ -19,7 +19,7 @@ spec:
   arguments:
     parameters: []
   entrypoint: pipeline-flip-coin
-  serviceAccountName: argo
+  serviceAccountName: pipeline-runner
   templates:
   - inputs:
       parameters:

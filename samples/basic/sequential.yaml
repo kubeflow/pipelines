@@ -20,7 +20,7 @@ spec:
     parameters:
     - name: url
   entrypoint: sequential
-  serviceAccountName: argo
+  serviceAccountName: pipeline-runner
   templates:
   - container:
       args:

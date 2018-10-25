@@ -5,6 +5,9 @@
     $.parts(namespace).role,
     $.parts(namespace).service,
     $.parts(namespace).deploy(api_image),
+    $.parts(namespace).pipelineRunnerServiceAccount,
+    $.parts(namespace).pipelineRunnerRole,
+    $.parts(namespace).pipelineRunnerRoleBinding,
   ],
 
   parts(namespace):: {
@@ -174,5 +177,119 @@
         },
       },
     }, // deploy
+
+    pipelineRunnerServiceAccount: {
+      apiVersion: "v1",
+      kind: "ServiceAccount",
+      metadata: {
+        name: "pipeline-runner",
+        namespace: namespace,
+      },
+    },  // service account
+
+    // Keep in sync with https://github.com/argoproj/argo/blob/master/cmd/argo/commands/const.go#L20
+    // Permissions need to be cluster wide for the workflow controller to be able to process workflows
+    // in other namespaces. We could potentially use the ConfigMap of the workflow-controller to
+    // scope it to a particular namespace in which case we might be able to restrict the permissions
+    // to a particular namespace.
+    pipelineRunnerRole: {
+      apiVersion: "rbac.authorization.k8s.io/v1beta1",
+      kind: "ClusterRole",
+      metadata: {
+        labels: {
+          app: "pipeline-runner",
+        },
+        name: "pipeline-runner",
+        namespace: namespace,
+      },
+      rules: [
+        {
+          apiGroups: [""],
+          resources: [
+            "pods",
+            "pods/exec",
+          ],
+          verbs: [
+            "create",
+            "get",
+            "list",
+            "watch",
+            "update",
+            "patch",
+          ],
+        },
+        {
+          apiGroups: [""],
+          resources: [
+            "secrets",
+          ],
+          verbs: [
+            "get",
+          ],
+        },
+        {
+          apiGroups: [""],
+          resources: [
+            "configmaps",
+          ],
+          verbs: [
+            "get",
+            "watch",
+            "list",
+          ],
+        },
+        {
+          apiGroups: [
+            "",
+          ],
+          resources: [
+            "persistentvolumeclaims",
+          ],
+          verbs: [
+            "create",
+            "delete",
+          ],
+        },
+        {
+          apiGroups: [
+            "argoproj.io",
+          ],
+          resources: [
+            "workflows",
+          ],
+          verbs: [
+            "get",
+            "list",
+            "watch",
+            "update",
+            "patch",
+          ],
+        },
+      ],
+    },  // operator-role
+
+    pipelineRunnerRoleBinding:: {
+      apiVersion: "rbac.authorization.k8s.io/v1beta1",
+      kind: "ClusterRoleBinding",
+      metadata: {
+        labels: {
+          app: "pipeline-runner",
+        },
+        name: "pipeline-runner",
+        namespace: namespace,
+      },
+      roleRef: {
+        apiGroup: "rbac.authorization.k8s.io",
+        kind: "ClusterRole",
+        name: "pipeline-runner",
+      },
+      subjects: [
+        {
+          kind: "ServiceAccount",
+          name: "pipeline-runner",
+          namespace: namespace,
+        },
+      ],
+    },  // role binding
   },  // parts
 }
