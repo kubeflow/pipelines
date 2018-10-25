@@ -34,7 +34,7 @@ Instructions for enabling that can be found [here](https://cloud.google.com/endp
 Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and then run the following to compile the pipeline:
 
 ```bash
-dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.yaml
+dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
 ```
 
 ## Deploying a pipeline

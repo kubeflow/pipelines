@@ -166,7 +166,7 @@ If you are using Cloud Shell, you could view the UI by open the [web preview](ht
 If you are using local console instead of Cloud Shell, you can access the ML pipeline UI at [localhost:8080](http://localhost:8080).
 
 ## Run your first TFJob pipeline
-See the following authoring guide on how to compile your python pipeline code into workflow yaml. Then, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
+See the following authoring guide on how to compile your python pipeline code into workflow tar file. Then, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
 
 ## Uninstall
 To uninstall ML pipeline, download the bootstrapper file and change the arguments to the deployment job.
@@ -216,19 +216,19 @@ The sample pipelines have a self-compilation entry point. To compile the sample 
 ```bash
 path/sample_pipeline.py
 ```
-This produces the some_pipeline.py.yaml file that can be submitted to the Pipeline system web UI.
+This produces the some_pipeline.py.tar.gz file that can be submitted to the Pipeline system web UI.
 
 Another way to compile a pipeline is to run the DSL compiler against it:
 ```bash
-dsl-compile --py [path/to/py/file] --output [path/to/output/yaml]
+dsl-compile --py [path/to/py/file] --output [path/to/output/tar.gz]
 ```
 
 For example:
 
 ```bash
 cd $EXTRACTED_DIRECTORY
-dsl-compile --py ./samples/basic/sequential.py --output ./samples/basic/sequential.yaml
+dsl-compile --py ./samples/basic/sequential.py --output ./samples/basic/sequential.tar.gz
 ```
 
 ## Deploy the samples
-Upload the generated yaml file through the ML pipeline UI.
+Upload the generated tar file through the ML pipeline UI.

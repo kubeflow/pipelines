@@ -15,7 +15,7 @@ Note: The trainer depends on KubeFlow API Version v1alpha2.
 Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and then run the following command to compile the pipeline:
 
 ```bash
-dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.yaml
+dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
 ```
 
 ## Deploying a pipeline
