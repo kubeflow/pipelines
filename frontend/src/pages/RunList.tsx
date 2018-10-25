@@ -32,7 +32,7 @@ interface DisplayRun {
   error?: string;
 }
 
-interface RunListProp extends RouteComponentProps {
+export interface RunListProp extends RouteComponentProps {
   disablePaging?: boolean;
   disableSelection?: boolean;
   disableSorting?: boolean;
@@ -86,7 +86,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
           r.metadata!.name,
           getLastInStatusList(r.metadata.status || '') || '-',
           getRunTime(r.workflow),
-          r.metadata!.created_at!.toLocaleString(),
+          this._createdAtToString(r.metadata),
         ],
       };
     });
@@ -112,6 +112,14 @@ class RunList extends React.Component<RunListProp, RunListState> {
       return await this._loadSpecificRuns(this.props.runIdListMask);
     }
     return await this._loadAllRuns(loadRequest);
+  }
+
+  private _createdAtToString(run?: ApiRun) {
+    if (run && run.created_at && run.created_at.toLocaleString) {
+      return run.created_at.toLocaleString();
+    } else {
+      return '';
+    }
   }
 
   private async _loadSpecificRuns(runIdListMask: string[]): Promise<string> {
