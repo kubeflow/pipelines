@@ -59,7 +59,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service RunService {
-  rpc CreateRun(CreateRunRequest) returns (Run) {
+  rpc CreateRun(CreateRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       post: "/apis/v1alpha2/runs"
       body: "run"
@@ -180,11 +180,11 @@ message Run {
 }
 
 message PipelineRuntime {
-  // Output. The runtime manifest of the pipeline, including the status
+  // Output. The runtime JSON manifest of the pipeline, including the status
   // of pipeline steps and fields need for UI visualization etc.
   string pipeline_manifest = 10;
 
-  // Output. The runtime manifest of the argo workflow.
+  // Output. The runtime JSON manifest of the argo workflow.
   // This is deprecated after pipeline_runtime_manifest is in use.
   string workflow_manifest = 11;
 }

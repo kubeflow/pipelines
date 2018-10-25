@@ -68,7 +68,7 @@ func NewCreateRunOK() *CreateRunOK {
 A successful response.
 */
 type CreateRunOK struct {
-	Payload *run_model.APIRun
+	Payload *run_model.APIRunDetail
 }
 
 func (o *CreateRunOK) Error() string {
@@ -77,7 +77,7 @@ func (o *CreateRunOK) Error() string {
 
 func (o *CreateRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.APIRun)
+	o.Payload = new(run_model.APIRunDetail)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

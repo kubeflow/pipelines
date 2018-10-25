@@ -14,20 +14,7 @@
 
 package model
 
-type ResourceType string
-type Relationship string
-
-const (
-	experiment ResourceType = "Experiment"
-	job        ResourceType = "Job"
-	run        ResourceType = "Run"
-	pipeline   ResourceType = "pipeline"
-)
-
-const (
-	owner   Relationship = "Owner"
-	creator Relationship = "Creator"
-)
+import "github.com/googleprivate/ml/backend/src/apiserver/common"
 
 // Resource reference table models the relationship between resources in a loosely coupled way.
 type ResourceReference struct {
@@ -35,17 +22,17 @@ type ResourceReference struct {
 	ResourceUUID string `gorm:"column:ResourceUUID; not null; primary_key"`
 
 	// The type of the resource object
-	ResourceType ResourceType `gorm:"column:ResourceType; not null; primary_key"`
+	ResourceType common.ResourceType `gorm:"column:ResourceType; not null; primary_key"`
 
 	// The ID of the resource that been referenced to.
 	ReferenceUUID string `gorm:"column:ReferenceUUID; not null; "`
 
 	// The type of the resource that been referenced to.
-	ReferenceType ResourceType `gorm:"column:ReferenceType; not null; "`
+	ReferenceType common.ResourceType `gorm:"column:ReferenceType; not null; "`
 
 	// The name of the resource that been referenced to.
 	ReferenceName string `gorm:"column:ReferenceName;"`
 
 	// The relationship between the resource object and the resource that been referenced to.
-	Relationship Relationship `gorm:"column:Relationship; not null; "`
+	Relationship common.Relationship `gorm:"column:Relationship; not null; "`
 }

@@ -82,3 +82,21 @@ func BoolNilOrValue(b *bool) string {
 		return fmt.Sprintf("%v", *b)
 	}
 }
+
+// BooleanPointer converts a bool to a bool pointer.
+func BooleanPointer(b bool) *bool {
+	return &b
+}
+
+// Metav1TimePointer converts a metav1.Time to a pointer.
+func Metav1TimePointer(t metav1.Time) *metav1.Time {
+	return &t
+}
+
+func ToInt64Pointer(t *metav1.Time) *int64 {
+	if t == nil {
+		return nil
+	} else {
+		return Int64Pointer(t.Unix())
+	}
+}

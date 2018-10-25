@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -157,4 +158,188 @@ func TestToStringForStore(t *testing.T) {
 	assert.Equal(t,
 		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\",\"creationTimestamp\":null},\"spec\":{\"templates\":null,\"entrypoint\":\"\",\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		workflow.ToStringForStore())
+}
+
+func TestWorkflow_OverrideName(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+	})
+
+	workflow.OverrideName("NEW_WORKFLOW_NAME")
+
+	expected := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "NEW_WORKFLOW_NAME",
+		},
+	}
+
+	assert.Equal(t, expected, workflow.Get())
+}
+
+func TestWorkflow_OverrideParameters(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM1", Value: StringPointer("VALUE1")},
+					{Name: "PARAM2", Value: StringPointer("VALUE2")},
+					{Name: "PARAM3", Value: StringPointer("VALUE3")},
+					{Name: "PARAM4", Value: StringPointer("")},
+					{Name: "PARAM5", Value: StringPointer("VALUE5")},
+				},
+			},
+		},
+	})
+
+	workflow.OverrideParameters(map[string]string{
+		"PARAM1": "NEW_VALUE1",
+		"PARAM3": "NEW_VALUE3",
+		"PARAM4": "NEW_VALUE4",
+		"PARAM5": "",
+		"PARAM9": "NEW_VALUE9",
+	})
+
+	expected := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
+					{Name: "PARAM2", Value: StringPointer("VALUE2")},
+					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
+					{Name: "PARAM4", Value: StringPointer("NEW_VALUE4")},
+					{Name: "PARAM5", Value: StringPointer("")},
+				},
+			},
+		},
+	}
+	assert.Equal(t, expected, workflow.Get())
+}
+
+func TestWorkflow_SetOwnerReferences(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+	})
+
+	workflow.SetOwnerReferences(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "SCHEDULE_NAME",
+		},
+	})
+
+	expected := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion:         "kubeflow.org/v1alpha1",
+				Kind:               "ScheduledWorkflow",
+				Name:               "SCHEDULE_NAME",
+				Controller:         BoolPointer(true),
+				BlockOwnerDeletion: BoolPointer(true),
+			}},
+		},
+	}
+
+	assert.Equal(t, expected, workflow.Get())
+}
+
+func TestSetLabels(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+	})
+
+	workflow.SetLabels("key", "value")
+
+	expected := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "WORKFLOW_NAME",
+			Labels: map[string]string{"key": "value"},
+		},
+	}
+
+	assert.Equal(t, expected, workflow.Get())
+}
+
+func TestGetSpec(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "WORKFLOW_NAME",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: StringPointer("VALUE")},
+				},
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Message: "I AM A MESSAGE",
+		},
+	})
+
+	expected := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "WORKFLOW_NAME",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: StringPointer("VALUE")},
+				},
+			},
+		},
+	}
+
+	assert.Equal(t, expected, workflow.GetSpec().Get())
+}
+
+func TestVerifyParameters(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
+					{Name: "PARAM2", Value: StringPointer("VALUE2")},
+					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
+					{Name: "PARAM5", Value: StringPointer("")},
+				},
+			},
+		},
+	})
+	assert.Nil(t, workflow.VerifyParameters(map[string]string{"PARAM1": "V1", "PARAM2": "V2"}))
+}
+
+func TestVerifyParameters_Failed(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
+					{Name: "PARAM2", Value: StringPointer("VALUE2")},
+					{Name: "PARAM3", Value: StringPointer("NEW_VALUE3")},
+					{Name: "PARAM5", Value: StringPointer("")},
+				},
+			},
+		},
+	})
+	assert.NotNil(t, workflow.VerifyParameters(map[string]string{"PARAM1": "V1", "NON_EXIST": "V2"}))
 }

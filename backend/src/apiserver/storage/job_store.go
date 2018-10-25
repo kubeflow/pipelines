@@ -109,7 +109,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 			&maxConcurrency, &createdAtInSec, &updatedAtInSec, &enabled,
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
-			&pipelineSpecManifest, &workflowSpecManifest, &parameters, &pipelineId, &conditions)
+			&pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions)
 
 		if err != nil {
 			return nil, err
@@ -120,7 +120,6 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 			Name:           name,
 			Namespace:      namespace,
 			Description:    description,
-			PipelineId:     pipelineId,
 			Enabled:        enabled,
 			Conditions:     conditions,
 			MaxConcurrency: maxConcurrency,
@@ -137,6 +136,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
+				PipelineId: pipelineId,
 				Parameters: parameters,
 			},
 			CreatedAtInSec: createdAtInSec,
@@ -154,32 +154,28 @@ func (s *JobStore) DeleteJob(id string) error {
 	return nil
 }
 
-func (s *JobStore) CreateJob(p *model.Job) (*model.Job, error) {
-	newJob := *p
-	now := s.time.Now().Unix()
-	newJob.CreatedAtInSec = now
-	newJob.UpdatedAtInSec = now
+func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	sql, args, err := sq.
 		Insert("jobs").
 		SetMap(sq.Eq{
-			"UUID":                           newJob.UUID,
-			"DisplayName":                    newJob.DisplayName,
-			"Name":                           newJob.Name,
-			"Namespace":                      newJob.Namespace,
-			"Description":                    newJob.Description,
-			"MaxConcurrency":                 newJob.MaxConcurrency,
-			"PipelineId":                     newJob.PipelineId,
-			"Enabled":                        newJob.Enabled,
-			"Conditions":                     newJob.Conditions,
-			"CronScheduleStartTimeInSec":     PointerToNullInt64(newJob.CronScheduleStartTimeInSec),
-			"CronScheduleEndTimeInSec":       PointerToNullInt64(newJob.CronScheduleEndTimeInSec),
-			"Schedule":                       PointerToNullString(newJob.Cron),
-			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(newJob.PeriodicScheduleStartTimeInSec),
-			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(newJob.PeriodicScheduleEndTimeInSec),
-			"IntervalSecond":                 PointerToNullInt64(newJob.IntervalSecond),
-			"Parameters":                     newJob.Parameters,
-			"CreatedAtInSec":                 newJob.CreatedAtInSec,
-			"UpdatedAtInSec":                 newJob.UpdatedAtInSec,
+			"UUID":                           j.UUID,
+			"DisplayName":                    j.DisplayName,
+			"Name":                           j.Name,
+			"Namespace":                      j.Namespace,
+			"Description":                    j.Description,
+			"MaxConcurrency":                 j.MaxConcurrency,
+			"Enabled":                        j.Enabled,
+			"Conditions":                     j.Conditions,
+			"CronScheduleStartTimeInSec":     PointerToNullInt64(j.CronScheduleStartTimeInSec),
+			"CronScheduleEndTimeInSec":       PointerToNullInt64(j.CronScheduleEndTimeInSec),
+			"Schedule":                       PointerToNullString(j.Cron),
+			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(j.PeriodicScheduleStartTimeInSec),
+			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(j.PeriodicScheduleEndTimeInSec),
+			"IntervalSecond":                 PointerToNullInt64(j.IntervalSecond),
+			"Parameters":                     j.Parameters,
+			"CreatedAtInSec":                 j.CreatedAtInSec,
+			"UpdatedAtInSec":                 j.UpdatedAtInSec,
+			"PipelineId":                     j.PipelineId,
 			// TODO(yangpa) store actual value instead before v1beta1
 			"PipelineSpecManifest": "",
 			"WorkflowSpecManifest": "",
@@ -193,7 +189,7 @@ func (s *JobStore) CreateJob(p *model.Job) (*model.Job, error) {
 		return nil, util.NewInternalServerError(err, "Failed to add job to job table: %v",
 			err.Error())
 	}
-	return &newJob, nil
+	return j, nil
 }
 
 func (s *JobStore) EnableJob(id string, enabled bool) error {
@@ -218,18 +214,6 @@ func (s *JobStore) EnableJob(id string, enabled bool) error {
 
 func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	now := s.time.Now().Unix()
-
-	if swf.Name == "" {
-		return util.NewInvalidInputError("The resource must have a name: %+v", swf.ScheduledWorkflow)
-	}
-	if swf.Namespace == "" {
-		return util.NewInvalidInputError("The resource must have a namespace: %+v", swf.ScheduledWorkflow)
-	}
-
-	if swf.UID == "" {
-		return util.NewInvalidInputError("The resource must have a UID: %+v", swf.UID)
-	}
-
 	parameters, err := swf.ParametersAsString()
 	if err != nil {
 		return err

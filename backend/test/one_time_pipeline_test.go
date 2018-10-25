@@ -339,6 +339,13 @@ func verifyJob(t *testing.T, job *api.Job, requestStartTime int64, expectedPipel
 			{Name: "param2", Value: "world"},
 		},
 		Trigger: &api.Trigger{},
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: expectedPipelineId,
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "goodbye"},
+				{Name: "param2", Value: "world"},
+			},
+		},
 	}
 	assert.Equal(t, expected, *job)
 }

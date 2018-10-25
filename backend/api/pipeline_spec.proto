@@ -19,22 +19,18 @@ package api;
 import "parameter.proto";
 
 message PipelineSpec {
-  // User can create a run by providing either id of the pipeline uploaded,
-  // or raw pipeline manifest YAML.
-  oneof pipeline {
-    // Optional input field. The ID of the pipeline user uploaded before.
-    string pipeline_id = 1;
+  // Optional input field. The ID of the pipeline user uploaded before.
+  string pipeline_id = 1;
 
-    // Optional input field. The marshalled raw argo workflow.
-    // This will be deprecated when pipeline_manifest is in use.
-    string workflow_manifest = 2;
+  // Optional input field. The marshalled raw argo JSON workflow.
+  // This will be deprecated when pipeline_manifest is in use.
+  string workflow_manifest = 2;
 
-    // Optional input field. The raw pipeline spec.
-    string pipeline_manifest = 3;
-  }
+  // Optional input field. The raw pipeline JSON spec.
+  string pipeline_manifest = 3;
 
-  // The parameter user provide to inject to the pipeline YAML.
-  // If a default value of a parameter exist in the YAML,
+  // The parameter user provide to inject to the pipeline JSON.
+  // If a default value of a parameter exist in the JSON,
   // the value user provided here will replace.
   repeated Parameter parameters = 4;
 }

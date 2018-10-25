@@ -29,11 +29,11 @@ import (
 // swagger:model apiPipelineRuntime
 type APIPipelineRuntime struct {
 
-	// Output. The runtime manifest of the pipeline, including the status
+	// Output. The runtime JSON manifest of the pipeline, including the status
 	// of pipeline steps and fields need for UI visualization etc.
 	PipelineManifest string `json:"pipeline_manifest,omitempty"`
 
-	// Output. The runtime manifest of the argo workflow.
+	// Output. The runtime JSON manifest of the argo workflow.
 	// This is deprecated after pipeline_runtime_manifest is in use.
 	WorkflowManifest string `json:"workflow_manifest,omitempty"`
 }

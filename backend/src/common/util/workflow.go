@@ -17,7 +17,6 @@ package util
 import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
-	"github.com/googleprivate/ml/backend/src/crd/controller/scheduledworkflow/util"
 	swfregister "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +34,38 @@ func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	return &Workflow{
 		workflow,
 	}
+}
+
+// OverrideParameters overrides some of the parameters of a Workflow.
+func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
+	desiredSlice := make([]workflowapi.Parameter, 0)
+	for _, currentParam := range w.Spec.Arguments.Parameters {
+		var desiredValue *string = nil
+		if param, ok := desiredParams[currentParam.Name]; ok {
+			desiredValue = &param
+		} else {
+			desiredValue = currentParam.Value
+		}
+		desiredSlice = append(desiredSlice, workflowapi.Parameter{
+			Name:  currentParam.Name,
+			Value: desiredValue,
+		})
+	}
+	w.Spec.Arguments.Parameters = desiredSlice
+}
+
+func (w *Workflow) VerifyParameters(desiredParams map[string]string) error {
+	templateParamsMap := make(map[string]*string)
+	for _, param := range w.Spec.Arguments.Parameters {
+		templateParamsMap[param.Name] = param.Value
+	}
+	for k := range desiredParams {
+		_, ok := templateParamsMap[k]
+		if !ok {
+			return NewInvalidInputError("Unrecognized input parameter: %v", k)
+		}
+	}
+	return nil
 }
 
 // Get converts this object to a workflowapi.Workflow.
@@ -91,8 +122,8 @@ func (w *Workflow) ScheduledAtInSecOr0() int64 {
 	}
 
 	for key, value := range w.Labels {
-		if key == util.LabelKeyWorkflowEpoch {
-			result, err := util.RetrieveInt64FromLabel(value)
+		if key == LabelKeyWorkflowEpoch {
+			result, err := RetrieveInt64FromLabel(value)
 			if err != nil {
 				glog.Errorf("Could not retrieve scheduled epoch from label key (%v) and label value (%v).", key, value)
 				return 0
@@ -120,4 +151,41 @@ func (w *Workflow) ToStringForStore() string {
 
 func (w *Workflow) HasScheduledWorkflowAsParent() bool {
 	return containsScheduledWorkflow(w.Workflow.OwnerReferences)
+}
+
+func (w *Workflow) GetSpec() *Workflow {
+	spec := w.DeepCopy()
+	spec.Status = workflowapi.WorkflowStatus{}
+	return NewWorkflow(spec)
+}
+
+// OverrideName sets the name of a Workflow.
+func (w *Workflow) OverrideName(name string) {
+	w.GenerateName = ""
+	w.Name = name
+}
+
+// SetOwnerReferences sets owner references on a Workflow.
+func (w *Workflow) SetOwnerReferences(schedule *swfapi.ScheduledWorkflow) {
+	w.OwnerReferences = []metav1.OwnerReference{
+		*metav1.NewControllerRef(schedule, schema.GroupVersionKind{
+			Group:   swfapi.SchemeGroupVersion.Group,
+			Version: swfapi.SchemeGroupVersion.Version,
+			Kind:    swfregister.Kind,
+		}),
+	}
+}
+
+func (w *Workflow) SetLabels(key string, value string) {
+	if w.Labels == nil {
+		w.Labels = make(map[string]string)
+	}
+	w.Labels[key] = value
+}
+
+func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, index int64) {
+	w.SetLabels(LabelKeyWorkflowScheduledWorkflowName, name)
+	w.SetLabels(LabelKeyWorkflowEpoch, FormatInt64ForLabel(nextScheduledEpoch))
+	w.SetLabels(LabelKeyWorkflowIndex, FormatInt64ForLabel(index))
+	w.SetLabels(LabelKeyWorkflowIsOwnedByScheduledWorkflow, "true")
 }

@@ -17,14 +17,12 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"math"
-	"regexp"
 	"strconv"
-	"strings"
-	"time"
 
-	workflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
+	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/storage"
@@ -42,32 +40,35 @@ type ClientManagerInterface interface {
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
+	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
 
 type ResourceManager struct {
-	experimentStore   storage.ExperimentStoreInterface
-	pipelineStore     storage.PipelineStoreInterface
-	jobStore          storage.JobStoreInterface
-	runStore          storage.RunStoreInterface
-	objectStore       storage.ObjectStoreInterface
-	scheduledWorkflow scheduledworkflowclient.ScheduledWorkflowInterface
-	time              util.TimeInterface
-	uuid              util.UUIDGeneratorInterface
+	experimentStore         storage.ExperimentStoreInterface
+	pipelineStore           storage.PipelineStoreInterface
+	jobStore                storage.JobStoreInterface
+	runStore                storage.RunStoreInterface
+	objectStore             storage.ObjectStoreInterface
+	workflowClient          workflowclient.WorkflowInterface
+	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
+	time                    util.TimeInterface
+	uuid                    util.UUIDGeneratorInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	return &ResourceManager{
-		experimentStore:   clientManager.ExperimentStore(),
-		pipelineStore:     clientManager.PipelineStore(),
-		jobStore:          clientManager.JobStore(),
-		runStore:          clientManager.RunStore(),
-		objectStore:       clientManager.ObjectStore(),
-		scheduledWorkflow: clientManager.ScheduledWorkflow(),
-		time:              clientManager.Time(),
-		uuid:              clientManager.UUID(),
+		experimentStore:         clientManager.ExperimentStore(),
+		pipelineStore:           clientManager.PipelineStore(),
+		jobStore:                clientManager.JobStore(),
+		runStore:                clientManager.RunStore(),
+		objectStore:             clientManager.ObjectStore(),
+		workflowClient:          clientManager.Workflow(),
+		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
+		time:                    clientManager.Time(),
+		uuid:                    clientManager.UUID(),
 	}
 }
 
@@ -171,6 +172,55 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	return template, nil
 }
 
+func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
+	// Get workflow from pipeline spec, which might be pipeline ID or an argo workflow
+	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
+	}
+	var workflow util.Workflow
+	err = json.Unmarshal(workflowSpecManifestBytes, &workflow)
+	if err != nil {
+		return nil, util.NewInternalServerError(err,
+			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
+	}
+
+	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
+	// Append provided parameter
+	// Verify no additional parameter provided
+	if err := workflow.VerifyParameters(parameters); err != nil {
+		return nil, util.Wrap(err, "Failed to verify parameters.")
+	}
+	workflow.OverrideParameters(parameters)
+
+	// Create argo workflow CRD resource
+	newWorkflow, err := r.workflowClient.Create(workflow.Get())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
+	}
+
+	// Store run metadata into database
+	run, err := ToModelRun(apiRun, string(workflowSpecManifestBytes))
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert run model")
+	}
+
+	run.UUID = string(newWorkflow.UID)
+	run.Name = newWorkflow.Name
+	run.Namespace = newWorkflow.Namespace
+	run.Conditions = util.NewWorkflow(newWorkflow).Condition()
+	run.CreatedAtInSec = r.time.Now().Unix()
+
+	runDetail := &model.RunDetail{Run: *run}
+	workflowRuntimeManifest, err := json.Marshal(newWorkflow)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Unable to marshal a workflow: %+v", newWorkflow)
+	}
+	runDetail.WorkflowRuntimeManifest = string(workflowRuntimeManifest)
+	// TODO: store the resource reference
+	return r.runStore.CreateRun(runDetail)
+}
+
 func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
@@ -195,32 +245,43 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 	return r.jobStore.GetJob(id)
 }
 
-func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
-	var workflow workflow.Workflow
-	err := r.objectStore.GetFromYamlFile(&workflow, storage.PipelineFolder, fmt.Sprint(job.PipelineId))
+// TODO create resource reference for experiment-> job.
+func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
+	job, err := ToModelJob(apiJob)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
 
-	inputParams, err := toCrdParameter(job.Parameters)
+	// Verify pipeline exist
+	_, err = r.pipelineStore.GetPipeline(job.PipelineId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline failed")
+	}
+
+	var workflow util.Workflow
+	err = r.objectStore.GetFromYamlFile(&workflow, storage.PipelineFolder, job.PipelineId)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
 	// Verify no additional parameter provided
-	if err = verifyParameters(inputParams, workflow.Spec.Arguments.Parameters); err != nil {
+	err = workflow.VerifyParameters(toParametersMap(apiJob.GetParameters()))
+	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
-
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(job.DisplayName)
+	if err != nil {
+		return nil, util.Wrap(err, "Create job failed")
+	}
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
-		ObjectMeta: v1.ObjectMeta{GenerateName: toScheduledWorkflowName(job.DisplayName)},
+		ObjectMeta: v1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled: job.Enabled,
 			Trigger: scheduledworkflow.Trigger{
 				CronSchedule:     toCrdCronSchedule(job.CronSchedule),
-				PeriodicSchedule: toCrdPeriodicSchedule(job.PeriodicSchedule),
+				PeriodicSchedule: toCRDPeriodicSchedule(job.PeriodicSchedule),
 			},
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: inputParams,
+				Parameters: toCRDParameter(apiJob.GetParameters()),
 				Spec:       workflow.Spec,
 			},
 		},
@@ -229,7 +290,7 @@ func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
 		scheduledWorkflow.Spec.MaxConcurrency = &job.MaxConcurrency
 	}
 
-	newScheduledWorkflow, err := r.scheduledWorkflow.Create(scheduledWorkflow)
+	newScheduledWorkflow, err := r.scheduledWorkflowClient.Create(scheduledWorkflow)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
@@ -237,21 +298,10 @@ func (r *ResourceManager) CreateJob(job *model.Job) (*model.Job, error) {
 	job.Name = newScheduledWorkflow.Name
 	job.Namespace = newScheduledWorkflow.Namespace
 	job.Conditions = util.NewScheduledWorkflow(newScheduledWorkflow).ConditionSummary()
+	now := r.time.Now().Unix()
+	job.CreatedAtInSec = now
+	job.UpdatedAtInSec = now
 	return r.jobStore.CreateJob(job)
-}
-
-func verifyParameters(inputParams []scheduledworkflow.Parameter, templateParams []workflow.Parameter) error {
-	templateParamsMap := make(map[string]*string)
-	for _, param := range templateParams {
-		templateParamsMap[param.Name] = param.Value
-	}
-	for _, params := range inputParams {
-		_, ok := templateParamsMap[params.Name]
-		if !ok {
-			return util.NewInvalidInputError("Unrecognized input parameter: %v", params.Name)
-		}
-	}
-	return nil
 }
 
 func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
@@ -259,7 +309,7 @@ func (r *ResourceManager) EnableJob(jobID string, enabled bool) error {
 	if err != nil {
 		return util.Wrap(err, "Enable/Disable job failed")
 	}
-	_, err = r.scheduledWorkflow.Patch(
+	_, err = r.scheduledWorkflowClient.Patch(
 		job.Name,
 		types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enabled))))
@@ -283,7 +333,7 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete job failed")
 	}
-	err = r.scheduledWorkflow.Delete(job.Name, &v1.DeleteOptions{})
+	err = r.scheduledWorkflowClient.Delete(job.Name, &v1.DeleteOptions{})
 	if err != nil {
 		return util.NewInternalServerError(err, "Delete job CRD failed.")
 	}
@@ -294,6 +344,14 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 	return nil
 }
 
+func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
+	return r.runStore.ReportRun(workflow)
+}
+
+func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWorkflow) error {
+	return r.jobStore.UpdateJob(swf)
+}
+
 // checkJobExist The Kubernetes API doesn't support CRUD by UID. This method
 // retrieve the job metadata from the database, then retrieve the CRD
 // using the job name, and compare the given job id is same as the CRD.
@@ -302,7 +360,7 @@ func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 	if err != nil {
 		return nil, util.Wrap(err, "Check job exist failed")
 	}
-	scheduledWorkflow, err := r.scheduledWorkflow.Get(job.Name, v1.GetOptions{})
+	scheduledWorkflow, err := r.scheduledWorkflowClient.Get(job.Name, v1.GetOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Check job exist failed")
 	}
@@ -312,96 +370,28 @@ func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 	return job, nil
 }
 
-func toCrdCronSchedule(cronSchedule model.CronSchedule) *scheduledworkflow.CronSchedule {
-	if cronSchedule.Cron == nil {
-		return nil
-	}
-	crdCronSchedule := scheduledworkflow.CronSchedule{}
-	crdCronSchedule.Cron = *cronSchedule.Cron
-	if cronSchedule.CronScheduleStartTimeInSec != nil {
-		startTime := v1.NewTime(time.Unix(*cronSchedule.CronScheduleStartTimeInSec, 0))
-		crdCronSchedule.StartTime = &startTime
-	}
-	if cronSchedule.CronScheduleEndTimeInSec != nil {
-		endTime := v1.NewTime(time.Unix(*cronSchedule.CronScheduleEndTimeInSec, 0))
-		crdCronSchedule.EndTime = &endTime
-	}
-	return &crdCronSchedule
-}
-
-func toCrdPeriodicSchedule(periodicSchedule model.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
-	if periodicSchedule.IntervalSecond == nil {
-		return nil
-	}
-	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
-	crdPeriodicSchedule.IntervalSecond = *periodicSchedule.IntervalSecond
-	if periodicSchedule.PeriodicScheduleStartTimeInSec != nil {
-		startTime := v1.NewTime(time.Unix(*periodicSchedule.PeriodicScheduleStartTimeInSec, 0))
-		crdPeriodicSchedule.StartTime = &startTime
-	}
-	if periodicSchedule.PeriodicScheduleEndTimeInSec != nil {
-		endTime := v1.NewTime(time.Unix(*periodicSchedule.PeriodicScheduleEndTimeInSec, 0))
-		crdPeriodicSchedule.EndTime = &endTime
-	}
-	return &crdPeriodicSchedule
-}
-
-func toCrdParameter(paramsString string) ([]scheduledworkflow.Parameter, error) {
-	swParams := make([]scheduledworkflow.Parameter, 0)
-	var params []workflow.Parameter
-	err := json.Unmarshal([]byte(paramsString), &params)
-	if err != nil {
-		// The parameter string is from the marshaled job parameter field.
-		// Unmarshalling it should never get error. Return internal exception if failed.
-		return swParams, util.NewInternalServerError(err, "Failed to parse the parameter CRD")
-	}
-	for _, param := range params {
-		swParam := scheduledworkflow.Parameter{
-			Name:  param.Name,
-			Value: *param.Value,
+func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, error) {
+	if spec.GetPipelineId() != "" {
+		// Verify pipeline exist
+		_, err := r.pipelineStore.GetPipeline(spec.GetPipelineId())
+		if err != nil {
+			return nil, util.Wrap(err, "Get pipeline failed")
 		}
-		swParams = append(swParams, swParam)
+		workflowYAMLBytes, err := r.objectStore.GetFile(storage.PipelineFolder, spec.GetPipelineId())
+		if err != nil {
+			return nil, util.Wrap(err, "Get pipeline YAML failed.")
+		}
+		workflowJsonBytes, err := yaml.YAMLToJSON(workflowYAMLBytes)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to convert workflow to JSON. Workflow: %s", string(workflowYAMLBytes))
+		}
+		return workflowJsonBytes, nil
+	} else if spec.GetWorkflowManifest() != "" {
+		return []byte(spec.GetWorkflowManifest()), nil
 	}
-	return swParams, nil
+	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
 }
 
-// Process the job name to remove special char, prepend with "job-" prefix, and
-// truncate size to <=25
-func toScheduledWorkflowName(displayName string) string {
-	const (
-		// K8s resource name only allow lower case alphabetic char, number and -
-		swfCompatibleNameRegx = "[^a-z0-9-]+"
-	)
-	reg := regexp.MustCompile(swfCompatibleNameRegx)
-	processedName := "job-" + reg.ReplaceAllString(strings.ToLower(displayName), "")
-	return processedName[:int(math.Min(float64(len(processedName)), 25))]
-}
-
-func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
-	err := r.runStore.CreateOrUpdateRun(workflow)
-	if err != nil {
-		return util.Wrap(err, "Report workflow resource failed")
-	}
-	return nil
-}
-
-func (r *ResourceManager) ReportScheduledWorkflowResource(resource string) error {
-	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
-	err := json.Unmarshal([]byte(resource), &scheduledWorkflow)
-	if err != nil {
-		return util.NewInvalidInputError("Could not unmarshal scheduled workflow: %v: %v",
-			err, resource)
-	}
-	err = r.jobStore.UpdateJob(util.NewScheduledWorkflow(&scheduledWorkflow))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
-	if err := r.runStore.ReportMetric(metric); err != nil {
-		return err
-	}
-	return nil
+func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {
+	return r.runStore.ReportMetric(ToModelRunMetric(metric, runUUID))
 }

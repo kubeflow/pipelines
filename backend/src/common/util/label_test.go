@@ -21,7 +21,7 @@ import (
 )
 
 func TestFormatInt64ForLabel(t *testing.T) {
-	assert.Equal(t, "100", formatInt64ForLabel(100))
+	assert.Equal(t, "100", FormatInt64ForLabel(100))
 }
 
 func TestRetrieveInt64FromLabel(t *testing.T) {

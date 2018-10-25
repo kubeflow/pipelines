@@ -15,6 +15,7 @@
 package util
 
 import (
+	"math"
 	"time"
 
 	"github.com/golang/glog"
@@ -62,4 +63,15 @@ func ParseTimeOrFatal(value string) time.Time {
 		glog.Fatalf("Could not parse time: %+v", err)
 	}
 	return result.UTC()
+}
+
+// FormatTimeForLogging formats an epoch for logging purposes.
+func FormatTimeForLogging(epoch int64) string {
+	if epoch <= 0 {
+		return "INVALID TIME"
+	} else if epoch == math.MaxInt64 {
+		return "NEVER"
+	} else {
+		return time.Unix(epoch, 0).UTC().String()
+	}
 }

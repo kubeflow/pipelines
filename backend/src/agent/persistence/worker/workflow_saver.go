@@ -37,7 +37,7 @@ func NewWorkflowSaver(client client.WorkflowClientInterface,
 
 func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch int64) error {
 	// Get the Workflow with this namespace/name
-	swf, err := s.client.Get(namespace, name)
+	wf, err := s.client.Get(namespace, name)
 	isNotFound := util.HasCustomCode(err, util.CUSTOM_CODE_NOT_FOUND)
 	if err != nil && isNotFound {
 		// Permanent failure.
@@ -52,8 +52,8 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 
 	}
 
-	// Save this Scheduled Workflow to the database.
-	err = s.pipelineClient.ReportWorkflow(swf)
+	// Save this Workflow to the database.
+	err = s.pipelineClient.ReportWorkflow(wf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)
 
 	// Failure

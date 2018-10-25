@@ -28,9 +28,6 @@ type Job struct {
 	Enabled        bool   `gorm:"column:Enabled; not null"`
 	Trigger
 	PipelineSpec
-
-	// TODO(yangpa): Pipeline ID will be deprecated after v1beta1
-	PipelineId string `gorm:"column:PipelineId; not null"`
 	Conditions string `gorm:"column:Conditions; not null"`
 }
 

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/src/apiserver/client"
@@ -43,15 +44,16 @@ const (
 
 // Container for all service clients
 type ClientManager struct {
-	db                *storage.DB
-	experimentStore   storage.ExperimentStoreInterface
-	pipelineStore     storage.PipelineStoreInterface
-	jobStore          storage.JobStoreInterface
-	runStore          storage.RunStoreInterface
-	objectStore       storage.ObjectStoreInterface
-	scheduledWorkflow scheduledworkflowclient.ScheduledWorkflowInterface
-	time              util.TimeInterface
-	uuid              util.UUIDGeneratorInterface
+	db              *storage.DB
+	experimentStore storage.ExperimentStoreInterface
+	pipelineStore   storage.PipelineStoreInterface
+	jobStore        storage.JobStoreInterface
+	runStore        storage.RunStoreInterface
+	objectStore     storage.ObjectStoreInterface
+	wfClient        workflowclient.WorkflowInterface
+	swfClient       scheduledworkflowclient.ScheduledWorkflowInterface
+	time            util.TimeInterface
+	uuid            util.UUIDGeneratorInterface
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -74,8 +76,12 @@ func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return c.objectStore
 }
 
+func (c *ClientManager) Workflow() workflowclient.WorkflowInterface {
+	return c.wfClient
+}
+
 func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
-	return c.scheduledWorkflow
+	return c.swfClient
 }
 
 func (c *ClientManager) Time() util.TimeInterface {
@@ -104,7 +110,10 @@ func (c *ClientManager) init() {
 	c.runStore = storage.NewRunStore(db, c.time)
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
 
-	c.scheduledWorkflow = client.CreateScheduledWorkflowClientOrFatal(
+	c.wfClient = client.CreateWorkflowClientOrFatal(
+		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+
+	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 	glog.Infof("Client manager initialized successfully")
 }

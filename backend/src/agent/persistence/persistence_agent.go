@@ -22,7 +22,7 @@ import (
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
 	"github.com/googleprivate/ml/backend/src/agent/persistence/client"
 	"github.com/googleprivate/ml/backend/src/agent/persistence/worker"
-	"github.com/googleprivate/ml/backend/src/crd/controller/scheduledworkflow/util"
+	"github.com/googleprivate/ml/backend/src/common/util"
 	swfregister "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfScheme "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/scheme"
 	swfinformers "github.com/googleprivate/ml/backend/src/crd/pkg/client/informers/externalversions"

@@ -93,24 +93,8 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	return apiParams, nil
 }
 
-func toModelParameters(apiParams []*api.Parameter) (string, error) {
-	params := make([]v1alpha1.Parameter, 0)
-	for _, apiParam := range apiParams {
-		param := v1alpha1.Parameter{
-			Name:  apiParam.Name,
-			Value: &apiParam.Value,
-		}
-		params = append(params, param)
-	}
-	paramsBytes, err := json.Marshal(params)
-	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
-	}
-	return string(paramsBytes), nil
-}
-
 func toApiRun(run *model.Run) *api.Run {
-	metrics := []*api.RunMetric{}
+	var metrics []*api.RunMetric
 	if run.Metrics != nil {
 		for _, metric := range run.Metrics {
 			metrics = append(metrics, ToApiRunMetric(metric))
@@ -124,6 +108,11 @@ func toApiRun(run *model.Run) *api.Run {
 		Name:        run.Name,
 		ScheduledAt: &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
 		Status:      run.Conditions,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId:       run.PipelineId,
+			WorkflowManifest: run.WorkflowSpecManifest,
+			PipelineManifest: run.PipelineSpecManifest,
+		},
 	}
 }
 
@@ -137,7 +126,11 @@ func ToApiRuns(runs []model.Run) []*api.Run {
 
 func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
 	return &api.RunDetail{
-		Run:      toApiRun(&run.Run),
+		Run: toApiRun(&run.Run),
+		PipelineRuntime: &api.PipelineRuntime{
+			WorkflowManifest: run.WorkflowRuntimeManifest,
+			PipelineManifest: run.PipelineRuntimeManifest,
+		},
 		Workflow: run.WorkflowRuntimeManifest,
 	}
 }
@@ -162,6 +155,12 @@ func ToApiJob(job *model.Job) *api.Job {
 		MaxConcurrency: job.MaxConcurrency,
 		Trigger:        toApiTrigger(job.Trigger),
 		Parameters:     params,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId:       job.PipelineId,
+			WorkflowManifest: job.WorkflowSpecManifest,
+			PipelineManifest: job.PipelineSpecManifest,
+			Parameters:       params,
+		},
 	}
 }
 
@@ -173,25 +172,6 @@ func ToApiJobs(jobs []model.Job) ([]*api.Job, error) {
 	return apiJobs, nil
 }
 
-func ToModelJob(job *api.Job) (*model.Job, error) {
-	params, err := toModelParameters(job.Parameters)
-	if err != nil {
-		return nil, util.Wrap(err, "Error parsing the input job.")
-	}
-	return &model.Job{
-		UUID:           job.Id,
-		DisplayName:    job.Name,
-		Description:    job.Description,
-		PipelineId:     job.PipelineId,
-		Enabled:        job.Enabled,
-		Trigger:        toModelTrigger(job.Trigger),
-		MaxConcurrency: job.MaxConcurrency,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: params,
-		},
-	}, nil
-}
-
 func ToApiRunMetric(metric *model.RunMetric) *api.RunMetric {
 	return &api.RunMetric{
 		Name:   metric.Name,
@@ -201,46 +181,6 @@ func ToApiRunMetric(metric *model.RunMetric) *api.RunMetric {
 		},
 		Format: api.RunMetric_Format(api.RunMetric_Format_value[metric.Format]),
 	}
-}
-
-func ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
-	return &model.RunMetric{
-		RunUUID:     runUUID,
-		Name:        metric.GetName(),
-		NodeID:      metric.GetNodeId(),
-		NumberValue: metric.GetNumberValue(),
-		Format:      metric.GetFormat().String(),
-	}
-}
-
-func toModelTrigger(trigger *api.Trigger) model.Trigger {
-	modelTrigger := model.Trigger{}
-	if trigger == nil {
-		return modelTrigger
-	}
-	if trigger.GetCronSchedule() != nil {
-		cronSchedule := trigger.GetCronSchedule()
-		modelTrigger.CronSchedule = model.CronSchedule{Cron: &cronSchedule.Cron}
-		if cronSchedule.StartTime != nil {
-			modelTrigger.CronScheduleStartTimeInSec = &cronSchedule.StartTime.Seconds
-		}
-		if cronSchedule.EndTime != nil {
-			modelTrigger.CronScheduleEndTimeInSec = &cronSchedule.EndTime.Seconds
-		}
-	}
-
-	if trigger.GetPeriodicSchedule() != nil {
-		periodicSchedule := trigger.GetPeriodicSchedule()
-		modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
-			IntervalSecond: &periodicSchedule.IntervalSecond}
-		if trigger.GetPeriodicSchedule().StartTime != nil {
-			modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
-		}
-		if trigger.GetPeriodicSchedule().EndTime != nil {
-			modelTrigger.PeriodicScheduleEndTimeInSec = &periodicSchedule.EndTime.Seconds
-		}
-	}
-	return modelTrigger
 }
 
 func toApiTrigger(trigger model.Trigger) *api.Trigger {

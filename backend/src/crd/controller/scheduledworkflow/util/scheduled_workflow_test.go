@@ -21,6 +21,7 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	commonutil "github.com/googleprivate/ml/backend/src/common/util"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +36,7 @@ func TestScheduledWorkflow_maxConcurrency(t *testing.T) {
 	// lower than min
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
-			MaxConcurrency: Int64Pointer(0),
+			MaxConcurrency: commonutil.Int64Pointer(0),
 		},
 	})
 	assert.Equal(t, int64(1), schedule.maxConcurrency())
@@ -43,7 +44,7 @@ func TestScheduledWorkflow_maxConcurrency(t *testing.T) {
 	// higher than max
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
-			MaxConcurrency: Int64Pointer(2000000),
+			MaxConcurrency: commonutil.Int64Pointer(2000000),
 		},
 	})
 	assert.Equal(t, int64(10), schedule.maxConcurrency())
@@ -57,7 +58,7 @@ func TestScheduledWorkflow_maxHistory(t *testing.T) {
 	// lower than min
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
-			MaxHistory: Int64Pointer(0),
+			MaxHistory: commonutil.Int64Pointer(0),
 		},
 	})
 	assert.Equal(t, int64(0), schedule.maxHistory())
@@ -65,7 +66,7 @@ func TestScheduledWorkflow_maxHistory(t *testing.T) {
 	// higher than max
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
-			MaxHistory: Int64Pointer(2000000),
+			MaxHistory: commonutil.Int64Pointer(2000000),
 		},
 	})
 	assert.Equal(t, int64(100), schedule.maxHistory())
@@ -86,7 +87,7 @@ func TestScheduledWorkflow_hasRunAtLeastOnce(t *testing.T) {
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
-				LastTriggeredTime: Metav1TimePointer(metav1.NewTime(time.Unix(50, 0).UTC())),
+				LastTriggeredTime: commonutil.Metav1TimePointer(metav1.NewTime(time.Unix(50, 0).UTC())),
 			},
 		},
 	})
@@ -102,7 +103,7 @@ func TestScheduledWorkflow_lastIndex(t *testing.T) {
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
-				LastIndex: Int64Pointer(50),
+				LastIndex: commonutil.Int64Pointer(50),
 			},
 		},
 	})
@@ -118,7 +119,7 @@ func TestScheduledWorkflow_nextIndex(t *testing.T) {
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
-				LastIndex: Int64Pointer(50),
+				LastIndex: commonutil.Int64Pointer(50),
 			},
 		},
 	})
@@ -128,11 +129,11 @@ func TestScheduledWorkflow_nextIndex(t *testing.T) {
 func TestScheduledWorkflow_MinIndex(t *testing.T) {
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
-			MaxHistory: Int64Pointer(100),
+			MaxHistory: commonutil.Int64Pointer(100),
 		},
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
-				LastIndex: Int64Pointer(50),
+				LastIndex: commonutil.Int64Pointer(50),
 			},
 		},
 	})
@@ -140,11 +141,11 @@ func TestScheduledWorkflow_MinIndex(t *testing.T) {
 
 	schedule = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
-			MaxHistory: Int64Pointer(20),
+			MaxHistory: commonutil.Int64Pointer(20),
 		},
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
-				LastIndex: Int64Pointer(50),
+				LastIndex: commonutil.Int64Pointer(50),
 			},
 		},
 	})
@@ -185,7 +186,7 @@ func TestScheduledWorkflow_nextResourceID(t *testing.T) {
 		},
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
-				LastIndex: Int64Pointer(50),
+				LastIndex: commonutil.Int64Pointer(50),
 			},
 		},
 	})
@@ -200,7 +201,7 @@ func TestScheduledWorkflow_NextResourceName(t *testing.T) {
 		},
 		Status: swfapi.ScheduledWorkflowStatus{
 			Trigger: swfapi.TriggerStatus{
-				LastIndex: Int64Pointer(50),
+				LastIndex: commonutil.Int64Pointer(50),
 			},
 		},
 	})
@@ -304,7 +305,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronSchedule(t *testing.T) {
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: Int64Pointer(int64(10)),
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				CronSchedule: &swfapi.CronSchedule{
 					Cron: "0 * * * * *",
@@ -343,7 +344,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_PeriodicSchedule(t *testing.T) 
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: Int64Pointer(int64(10)),
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				PeriodicSchedule: &swfapi.PeriodicSchedule{
 					IntervalSecond: int64(60),
@@ -382,7 +383,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: Int64Pointer(int64(10)),
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				PeriodicSchedule: &swfapi.PeriodicSchedule{
 					IntervalSecond: int64(60),
@@ -407,13 +408,13 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 			Labels: map[string]string{
-				LabelKeyScheduledWorkflowEnabled: "true",
-				LabelKeyScheduledWorkflowStatus:  string(swfapi.ScheduledWorkflowEnabled),
+				commonutil.LabelKeyScheduledWorkflowEnabled: "true",
+				commonutil.LabelKeyScheduledWorkflowStatus:  string(swfapi.ScheduledWorkflowEnabled),
 			},
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: Int64Pointer(int64(10)),
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				PeriodicSchedule: &swfapi.PeriodicSchedule{
 					IntervalSecond: int64(60),
@@ -435,7 +436,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_NoWorkflow(t *test
 				Completed: []swfapi.WorkflowStatus{*status3, *status1, *status4, *status2},
 			},
 			Trigger: swfapi.TriggerStatus{
-				NextTriggeredTime: Metav1TimePointer(
+				NextTriggeredTime: commonutil.Metav1TimePointer(
 					metav1.NewTime(time.Unix(scheduledEpoch, 0).UTC())),
 			},
 		},
@@ -463,7 +464,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: Int64Pointer(int64(10)),
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				PeriodicSchedule: &swfapi.PeriodicSchedule{
 					IntervalSecond: int64(60),
@@ -477,7 +478,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 	status3 := createStatus("WORKFLOW3", 7)
 	status4 := createStatus("WORKFLOW4", 4)
 
-	workflow := NewWorkflow(&workflowapi.Workflow{})
+	workflow := commonutil.NewWorkflow(&workflowapi.Workflow{})
 
 	schedule.UpdateStatus(
 		updatedEpoch,
@@ -490,13 +491,13 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,
 			Labels: map[string]string{
-				LabelKeyScheduledWorkflowEnabled: "true",
-				LabelKeyScheduledWorkflowStatus:  string(swfapi.ScheduledWorkflowEnabled),
+				commonutil.LabelKeyScheduledWorkflowEnabled: "true",
+				commonutil.LabelKeyScheduledWorkflowStatus:  string(swfapi.ScheduledWorkflowEnabled),
 			},
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: Int64Pointer(int64(10)),
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				PeriodicSchedule: &swfapi.PeriodicSchedule{
 					IntervalSecond: int64(60),
@@ -517,11 +518,11 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_UpdateStatus_WithWorkflow(t *te
 				Completed: []swfapi.WorkflowStatus{*status3, *status1, *status4, *status2},
 			},
 			Trigger: swfapi.TriggerStatus{
-				LastTriggeredTime: Metav1TimePointer(
+				LastTriggeredTime: commonutil.Metav1TimePointer(
 					metav1.NewTime(time.Unix(scheduledEpoch, 0).UTC())),
-				NextTriggeredTime: Metav1TimePointer(
+				NextTriggeredTime: commonutil.Metav1TimePointer(
 					metav1.NewTime(time.Unix(scheduledEpoch+minute, 0).UTC())),
-				LastIndex: Int64Pointer(int64(1)),
+				LastIndex: commonutil.Int64Pointer(int64(1)),
 			},
 		},
 	}
@@ -542,7 +543,7 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: Int64Pointer(int64(10)),
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				PeriodicSchedule: &swfapi.PeriodicSchedule{
 					IntervalSecond: int64(60),
@@ -557,8 +558,8 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 					ServiceAccountName: "SERVICE_ACCOUNT",
 					Arguments: workflowapi.Arguments{
 						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM1", Value: StringPointer("VALUE1")},
-							{Name: "PARAM2", Value: StringPointer("VALUE2")},
+							{Name: "PARAM1", Value: commonutil.StringPointer("VALUE1")},
+							{Name: "PARAM2", Value: commonutil.StringPointer("VALUE2")},
 						},
 					},
 				},
@@ -585,15 +586,15 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 				Kind:               "ScheduledWorkflow",
 				Name:               "SCHEDULE1",
 				UID:                "",
-				Controller:         BooleanPointer(true),
-				BlockOwnerDeletion: BooleanPointer(true)}},
+				Controller:         commonutil.BooleanPointer(true),
+				BlockOwnerDeletion: commonutil.BooleanPointer(true)}},
 		},
 		Spec: workflowapi.WorkflowSpec{
 			ServiceAccountName: "SERVICE_ACCOUNT",
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1")},
-					{Name: "PARAM2", Value: StringPointer("VALUE2")},
+					{Name: "PARAM1", Value: commonutil.StringPointer("NEW_VALUE1")},
+					{Name: "PARAM2", Value: commonutil.StringPointer("VALUE2")},
 				},
 			},
 		},
@@ -615,7 +616,7 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 		},
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: Int64Pointer(int64(10)),
+			MaxConcurrency: commonutil.Int64Pointer(int64(10)),
 			Trigger: swfapi.Trigger{
 				PeriodicSchedule: &swfapi.PeriodicSchedule{
 					IntervalSecond: int64(60),
@@ -630,8 +631,8 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 					ServiceAccountName: "SERVICE_ACCOUNT",
 					Arguments: workflowapi.Arguments{
 						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM1", Value: StringPointer("VALUE1")},
-							{Name: "PARAM2", Value: StringPointer("VALUE2")},
+							{Name: "PARAM1", Value: commonutil.StringPointer("VALUE1")},
+							{Name: "PARAM2", Value: commonutil.StringPointer("VALUE2")},
 						},
 					},
 				},
@@ -658,15 +659,15 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 				Kind:               "ScheduledWorkflow",
 				Name:               "SCHEDULE1",
 				UID:                "",
-				Controller:         BooleanPointer(true),
-				BlockOwnerDeletion: BooleanPointer(true)}},
+				Controller:         commonutil.BooleanPointer(true),
+				BlockOwnerDeletion: commonutil.BooleanPointer(true)}},
 		},
 		Spec: workflowapi.WorkflowSpec{
 			ServiceAccountName: "SERVICE_ACCOUNT",
 			Arguments: workflowapi.Arguments{
 				Parameters: []workflowapi.Parameter{
-					{Name: "PARAM1", Value: StringPointer("NEW_VALUE1_19700101100000")},
-					{Name: "PARAM2", Value: StringPointer("NEW_VALUE2_1")},
+					{Name: "PARAM1", Value: commonutil.StringPointer("NEW_VALUE1_19700101100000")},
+					{Name: "PARAM2", Value: commonutil.StringPointer("NEW_VALUE2_1")},
 				},
 			},
 		},

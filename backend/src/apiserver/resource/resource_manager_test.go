@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/apiserver/storage"
@@ -156,6 +157,161 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "object not found")
 }
 
+func TestCreateRun(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		}}
+	workflowBytes, _ := json.Marshal(workflow)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string(workflowBytes),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+
+	workflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedWorkflowBytes, _ := json.Marshal(workflow)
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			DisplayName:    "run1",
+			Name:           "workflow-name",
+			CreatedAtInSec: 1,
+			Conditions:     ":",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: string(workflowBytes),
+				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: string(expectedWorkflowBytes),
+		},
+	}
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
+	assert.Equal(t, 1, store.workflowClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	runDetail, err = manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
+func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string("I am invalid"),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateRun(apiRun)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
+}
+
+func TestCreateRun_OverrideParametersError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		}}
+	workflowBytes, _ := json.Marshal(workflow)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string(workflowBytes),
+			Parameters: []*api.Parameter{
+				{Name: "param2", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateRun(apiRun)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unrecognized input parameter")
+}
+
+func TestCreateRun_CreateWorkflowError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	manager.workflowClient = &storage.FakeBadWorkflowClient{}
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		}}
+	workflowBytes, _ := json.Marshal(workflow)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string(workflowBytes),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateRun(apiRun)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to create a workflow")
+}
+
+func TestCreateRun_StoreRunMetadataError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	store.DB().Close()
+	workflow := &v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		}}
+	workflowBytes, _ := json.Marshal(workflow)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string(workflowBytes),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateRun(apiRun)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Error while creating run for workflow")
+}
+
 func TestListRun(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -165,10 +321,12 @@ func TestListRun(t *testing.T) {
 		UUID:           "1",
 		Name:           "pp1",
 		Namespace:      "n1",
-		PipelineId:     "1",
 		Enabled:        true,
 		CreatedAtInSec: 0,
 		UpdatedAtInSec: 0,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
 	}
 
 	_, err := manager.jobStore.CreateJob(job1)
@@ -187,7 +345,7 @@ func TestListRun(t *testing.T) {
 			}},
 		},
 	})
-	err = manager.runStore.CreateOrUpdateRun(workflow)
+	err = manager.runStore.ReportRun(workflow)
 	assert.Nil(t, err)
 	runs, newToken, err := manager.ListRuns("1",
 		&common.PaginationContext{
@@ -196,6 +354,7 @@ func TestListRun(t *testing.T) {
 			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
 			IsDesc:          false,
 		})
+	workflowBytes, _ := json.Marshal(workflow)
 	runsExpected := []model.Run{{
 		UUID:           "1",
 		Name:           "run1",
@@ -203,7 +362,9 @@ func TestListRun(t *testing.T) {
 		JobID:          "1",
 		CreatedAtInSec: 1,
 		Conditions:     ":",
-		Metrics:        []*model.RunMetric{},
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: string(workflowBytes),
+		},
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
@@ -229,10 +390,12 @@ func TestGetRun(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	job1 := &model.Job{
-		UUID:           "1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PipelineId:     "1",
+		UUID:      "1",
+		Name:      "pp1",
+		Namespace: "n1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
 		Enabled:        true,
 		CreatedAtInSec: 0,
 		UpdatedAtInSec: 0,
@@ -253,7 +416,7 @@ func TestGetRun(t *testing.T) {
 			}},
 		},
 	})
-	err = manager.runStore.CreateOrUpdateRun(workflow)
+	err = manager.runStore.ReportRun(workflow)
 	run, err := manager.GetRun("1")
 	workflowBytes, _ := json.Marshal(workflow)
 	runExpected := &model.RunDetail{
@@ -264,7 +427,9 @@ func TestGetRun(t *testing.T) {
 			JobID:          "1",
 			CreatedAtInSec: 1,
 			Conditions:     ":",
-			Metrics:        []*model.RunMetric{},
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: string(workflowBytes),
+			},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: string(workflowBytes)},
 	}
@@ -277,7 +442,8 @@ func TestCreateJob(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	workflow := &v1alpha1.Workflow{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
@@ -285,29 +451,30 @@ func TestCreateJob(t *testing.T) {
 					{Name: "param1"},
 				},
 			},
-		}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
-		DisplayName: "pp 1",
-		PipelineId:  "1",
-		Enabled:     true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+	job := &api.Job{
+		Name:       "pp 1",
+		PipelineId: p.UUID,
+		Enabled:    true,
+		Parameters: []*api.Parameter{
+			{Name: "param1", Value: "world"},
 		},
 	}
 	newJob, err := manager.CreateJob(job)
 	expectedJob := &model.Job{
 		UUID:           "123",
 		DisplayName:    "pp 1",
-		Name:           "job-pp1",
+		Name:           "pp1",
 		Namespace:      "default",
-		PipelineId:     "1",
 		Enabled:        true,
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 1,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
 		Conditions:     "NO_STATUS:",
 		PipelineSpec: model.PipelineSpec{
 			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			PipelineId: p.UUID,
 		},
 	}
 
@@ -320,7 +487,8 @@ func TestCreateJob_ExtraInputParameter(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 
-	workflow := &v1alpha1.Workflow{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
@@ -328,47 +496,20 @@ func TestCreateJob_ExtraInputParameter(t *testing.T) {
 					{Name: "param1"},
 				},
 			},
-		}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
-		DisplayName: "pp 1",
-		PipelineId:  "1",
-		Enabled:     true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[{\"name\":\"param2\",\"value\":\"world\"}]",
+		}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+	job := &api.Job{
+		Name:       "pp 1",
+		PipelineId: p.UUID,
+		Enabled:    true,
+		Parameters: []*api.Parameter{
+			{Name: "param2", Value: "world"},
 		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err = manager.CreateJob(job)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Unrecognized input parameter: param2")
-}
-
-func TestCreateJob_InvalidParameterFormat(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-		Spec: v1alpha1.WorkflowSpec{
-			Arguments: v1alpha1.Arguments{
-				Parameters: []v1alpha1.Parameter{
-					{Name: "param1"},
-				},
-			},
-		}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
-		DisplayName: "pp 1",
-		PipelineId:  "1",
-		Enabled:     true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[I am invalid parameter format]",
-		},
-	}
-	_, err := manager.CreateJob(job)
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to parse the parameter CRD")
 }
 
 func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
@@ -376,51 +517,49 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	// Use a bad object store
-	manager.scheduledWorkflow = &FakeBadScheduledWorkflowClient{}
-	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
+	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
-	_, err := manager.CreateJob(job)
+	_, err = manager.CreateJob(job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to create a scheduled workflow")
 }
 
-func TestCreateJob_FailedToRetrieveYaml(t *testing.T) {
+func TestCreateJob_PipelineNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	// Use a bad object store
-	manager.objectStore = &FakeBadObjectStore{}
-	job := &model.Job{
+	job := &api.Job{
 		Name:       "pp1",
 		PipelineId: "1",
 		Enabled:    true,
 	}
 	_, err := manager.CreateJob(job)
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "bad object store")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Pipeline 1 not found")
 }
 
 func TestEnableJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
-		DisplayName: "pp 1",
-		PipelineId:  "1",
-		Enabled:     true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+	job := &api.Job{
+		Name:       "pp 1",
+		PipelineId: p.UUID,
+		Enabled:    true,
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -430,14 +569,14 @@ func TestEnableJob(t *testing.T) {
 	expectedJob := &model.Job{
 		UUID:           "123",
 		DisplayName:    "pp 1",
-		Name:           "job-pp1",
+		Name:           "pp1",
 		Namespace:      "default",
-		PipelineId:     "1",
 		Enabled:        false,
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 2,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
 		Conditions:     "NO_STATUS:",
 		PipelineSpec: model.PipelineSpec{
+			PipelineId: p.UUID,
 			Parameters: "[]",
 		},
 	}
@@ -458,20 +597,20 @@ func TestEnableJob_CrdFailure(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
-	manager.scheduledWorkflow = &FakeBadScheduledWorkflowClient{}
+	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
 	err = manager.EnableJob(newJob.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
@@ -481,15 +620,16 @@ func TestEnableJob_DbFailure(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -503,15 +643,15 @@ func TestDeleteJob(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -519,7 +659,7 @@ func TestDeleteJob(t *testing.T) {
 	err = manager.DeleteJob(newJob.UUID)
 	assert.Nil(t, err)
 
-	job, err = manager.GetJob(newJob.UUID)
+	_, err = manager.GetJob(newJob.UUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 123 not found")
 }
@@ -537,20 +677,20 @@ func TestDeleteJob_CrdFailure(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
-	manager.scheduledWorkflow = &FakeBadScheduledWorkflowClient{}
+	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
 	err = manager.DeleteJob(newJob.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
@@ -560,15 +700,15 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	workflow := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflow, storage.PipelineFolder, "1")
-	job := &model.Job{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -585,23 +725,23 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create pipeline
-	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.PipelineFolder, "1")
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
 
 	// Create job
-	job := &model.Job{
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
 	// report workflow
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+	workflow = util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
@@ -621,6 +761,7 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 	runDetail, err := manager.GetRun("MY_JOB_ID")
 	assert.Nil(t, err)
 
+	workflowBytes, _ := json.Marshal(workflow)
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "MY_JOB_ID",
@@ -630,7 +771,9 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 0,
 			Conditions:       ":",
-			Metrics:          []*model.RunMetric{},
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: string(workflowBytes),
+			},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
@@ -644,17 +787,17 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create pipeline
-	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.PipelineFolder, "1")
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
 
 	// Create job
-	job := &model.Job{
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -662,7 +805,7 @@ func TestReportWorkflowResource_Error(t *testing.T) {
 	store.Close()
 
 	// report workflow
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+	workflow = util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
@@ -687,17 +830,17 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create pipeline
-	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.PipelineFolder, "1")
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
 
 	// Create job
-	job := &model.Job{
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -710,19 +853,19 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 			UID:       types.UID(newJob.UUID),
 		},
 	})
-	err = manager.ReportScheduledWorkflowResource(swf.ToStringForStore())
+	err = manager.ReportScheduledWorkflowResource(swf)
 	assert.Nil(t, err)
 
-	runDetail, err := manager.GetJob(newJob.UUID)
+	actualJob, err := manager.GetJob(newJob.UUID)
 	assert.Nil(t, err)
 
 	expectedJob := &model.Job{
-		Name:       "MY_NAME",
-		Namespace:  "MY_NAMESPACE",
-		PipelineId: "1",
-		Enabled:    false,
-		UUID:       newJob.UUID,
-		Conditions: "NO_STATUS:",
+		Name:        "MY_NAME",
+		DisplayName: "pp1",
+		Namespace:   "MY_NAMESPACE",
+		Enabled:     false,
+		UUID:        newJob.UUID,
+		Conditions:  "NO_STATUS:",
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				Cron: util.StringPointer(""),
@@ -732,23 +875,13 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 			},
 		},
 		PipelineSpec: model.PipelineSpec{
+			PipelineId: p.UUID,
 			Parameters: "[]",
 		},
-		CreatedAtInSec: 1,
-		UpdatedAtInSec: 2,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 3,
 	}
-	assert.Equal(t, expectedJob, runDetail)
-}
-
-func TestReportScheduledWorkflowResource_UnmarshalError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	err := manager.ReportScheduledWorkflowResource("WRONG_SCHEDULED_WORKFLOW")
-	assert.NotNil(t, err)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Could not unmarshal")
+	assert.Equal(t, expectedJob, actualJob)
 }
 
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
@@ -757,17 +890,17 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create pipeline
-	workflowForPipeline := &v1alpha1.Workflow{ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}}
-	store.ObjectStore().AddAsYamlFile(workflowForPipeline, storage.PipelineFolder, "1")
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
 
 	// Create job
-	job := &model.Job{
+	job := &api.Job{
 		Name:       "pp1",
-		PipelineId: "1",
+		PipelineId: p.UUID,
 		Enabled:    true,
-		PipelineSpec: model.PipelineSpec{
-			Parameters: "[]",
-		},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -782,18 +915,88 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 			UID:       types.UID(newJob.UUID),
 		},
 	})
-	err = manager.ReportScheduledWorkflowResource(swf.ToStringForStore())
+	err = manager.ReportScheduledWorkflowResource(swf)
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
 }
 
-func TestToScheduledWorkflowName_SpecialCharsAndSpace(t *testing.T) {
-	assert.Equal(t, toScheduledWorkflowName("! HaVe ä £unky name"), "job-haveunkyname")
+func TestGetWorkflowSpecBytes_ByPipelineID(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
+		Spec: v1alpha1.WorkflowSpec{
+			Arguments: v1alpha1.Arguments{
+				Parameters: []v1alpha1.Parameter{
+					{Name: "param1"},
+				},
+			},
+		}})
+	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+	assert.Nil(t, err)
+
+	spec := &api.PipelineSpec{
+		PipelineId: p.UUID,
+		Parameters: []*api.Parameter{
+			{Name: "param1", Value: "world"},
+		},
+	}
+	workflowBytes, err := manager.getWorkflowSpecBytes(spec)
+	assert.Nil(t, err)
+	var actualWorkflow v1alpha1.Workflow
+	json.Unmarshal(workflowBytes, &actualWorkflow)
+	assert.Equal(t, workflow.Get(), &actualWorkflow)
 }
 
-func TestToScheduledWorkflowName_TruncateLongName(t *testing.T) {
-	assert.Equal(t, toScheduledWorkflowName("AloooooooooooooooooongName"), "job-aloooooooooooooooooon")
+func TestGetWorkflowSpecBytes_ByPipelineID_NotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	spec := &api.PipelineSpec{
+		PipelineId: "1",
+		Parameters: []*api.Parameter{
+			{Name: "param1", Value: "world"},
+		},
+	}
+	_, err := manager.getWorkflowSpecBytes(spec)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestGetWorkflowSpecBytes_ByWorkflowManifest(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	spec := &api.PipelineSpec{
+		WorkflowManifest: "some manifest",
+		Parameters: []*api.Parameter{
+			{Name: "param1", Value: "world"},
+		},
+	}
+	workflowBytes, err := manager.getWorkflowSpecBytes(spec)
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("some manifest"), workflowBytes)
+}
+
+func TestGetWorkflowSpecBytes_MissingSpec(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	spec := &api.PipelineSpec{
+		Parameters: []*api.Parameter{
+			{Name: "param1", Value: "world"},
+		},
+	}
+	_, err := manager.getWorkflowSpecBytes(spec)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Please provide a valid pipeline spec")
 }
 
 const (

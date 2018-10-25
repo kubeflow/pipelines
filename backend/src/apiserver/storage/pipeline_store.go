@@ -171,7 +171,6 @@ func (s *PipelineStore) UpdatePipelineStatus(id string, status model.PipelineSta
 		SetMap(sq.Eq{"Status": status}).
 		Where(sq.Eq{"UUID": id}).
 		ToSql()
-	println(sql)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to update the pipeline metadata: %s", err.Error())
 	}

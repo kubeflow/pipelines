@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
@@ -27,8 +28,16 @@ type RunServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.Run, error) {
-	return nil, util.NewBadRequestError(nil, "Not implemented")
+func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
+	err := ValidateCreateRunRequest(request)
+	if err != nil {
+		return nil, util.Wrap(err, "Validate create run request failed.")
+	}
+	run, err := s.resourceManager.CreateRun(request.Run)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a new run.")
+	}
+	return ToApiRunDetail(run), nil
 }
 
 func (s *RunServer) GetRunV2(ctx context.Context, request *api.GetRunV2Request) (*api.RunDetail, error) {
@@ -73,7 +82,7 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRun
 	for _, metric := range request.GetMetrics() {
 		err := ValidateRunMetric(metric)
 		if err == nil {
-			err = s.resourceManager.ReportMetric(ToModelRunMetric(metric, request.GetRunId()))
+			err = s.resourceManager.ReportMetric(metric, request.GetRunId())
 		}
 		response.Results = append(
 			response.Results,
@@ -85,6 +94,61 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRun
 func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
 	// TODO(hongyes): Implement the action.
 	return &api.ReadArtifactResponse{}, nil
+}
+
+func ValidateCreateRunRequest(request *api.CreateRunRequest) error {
+	run := request.Run
+	if run.Name == "" {
+		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
+	}
+	if err := ValidateRunResourceReference(run.ResourceReferences); err != nil {
+		return util.Wrap(err, "The resource reference is invalid.")
+	}
+
+	if err := ValidatePipelineSpec(run.PipelineSpec); err != nil {
+		return util.Wrap(err, "The pipeline spec is invalid.")
+	}
+	return nil
+}
+
+func ValidatePipelineSpec(spec *api.PipelineSpec) error {
+	if spec == nil || (spec.GetPipelineId() == "" && spec.GetWorkflowManifest() == "") {
+		return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline ID or workflow manifest.")
+	}
+	if spec.GetPipelineId() != "" && spec.GetWorkflowManifest() != "" {
+		return util.NewInvalidInputError("Please either specify a pipeline ID or a workflow manifest, not both.")
+	}
+	paramsBytes, err := json.Marshal(spec.Parameters)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
+			printParameters(spec.Parameters))
+	}
+	if len(paramsBytes) > util.MaxParameterBytes {
+		return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+	}
+	return nil
+}
+
+func ValidateRunResourceReference(references []*api.ResourceReference) error {
+	if references == nil || len(references) == 0 || references[0] == nil {
+		return util.NewInvalidInputError("The resource reference is empty. Please specify which experiment owns this run.")
+	}
+	if len(references) > 1 {
+		return util.NewInvalidInputError("Got more resource references than expected. Please only specify which experiment owns this run.")
+	}
+	if references[0].Key.Type != api.ResourceType_EXPERIMENT {
+		return util.NewInvalidInputError("Unexpected resource type. Expected:%v. Got: %v",
+			api.ResourceType_EXPERIMENT, references[0].Key.Type)
+	}
+	if references[0].Key.Id == "" {
+		return util.NewInvalidInputError("Resource ID is empty. Please specify a valid ID")
+	}
+	if references[0].Relationship != api.Relationship_OWNER {
+		return util.NewInvalidInputError("Unexpected relationship for the experiment. Expected: %v. Got: %v",
+			api.Relationship_OWNER, references[0].Relationship)
+	}
+	return nil
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {

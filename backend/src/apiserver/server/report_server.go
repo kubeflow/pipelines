@@ -23,6 +23,7 @@ import (
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 	"github.com/googleprivate/ml/backend/src/common/util"
+	scheduledworkflow "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 )
 
 type ReportServer struct {
@@ -44,7 +45,11 @@ func (s *ReportServer) ReportWorkflow(ctx context.Context,
 
 func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
 	request *api.ReportScheduledWorkflowRequest) (*empty.Empty, error) {
-	err := s.resourceManager.ReportScheduledWorkflowResource(request.ScheduledWorkflow)
+	scheduledWorkflow, err := ValidateReportScheduledWorkflowRequest(request)
+	if err != nil {
+		return nil, util.Wrap(err, "Report scheduled workflow failed.")
+	}
+	err = s.resourceManager.ReportScheduledWorkflowResource(scheduledWorkflow)
 	if err != nil {
 		return nil, err
 	}
@@ -64,15 +69,30 @@ func ValidateReportWorkflowRequest(request *api.ReportWorkflowRequest) (*util.Wo
 	if workflow.Namespace == "" {
 		return nil, util.NewInvalidInputError("The workflow must have a namespace: %+v", workflow.Workflow)
 	}
-	ownerUID := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
-	if ownerUID == "" {
-		return nil, util.NewInvalidInputError("The workflow must have a valid owner: %+v", workflow.Workflow)
-	}
-
 	if workflow.UID == "" {
 		return nil, util.NewInvalidInputError("The workflow must have a UID: %+v", workflow.Workflow)
 	}
 	return workflow, nil
+}
+
+func ValidateReportScheduledWorkflowRequest(request *api.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {
+	var scheduledWorkflow scheduledworkflow.ScheduledWorkflow
+	err := json.Unmarshal([]byte(request.ScheduledWorkflow), &scheduledWorkflow)
+	if err != nil {
+		return nil, util.NewInvalidInputError("Could not unmarshal scheduled workflow: %v: %v",
+			err, request.ScheduledWorkflow)
+	}
+	swf := util.NewScheduledWorkflow(&scheduledWorkflow)
+	if swf.Name == "" {
+		return nil, util.NewInvalidInputError("The resource must have a name: %+v", swf.ScheduledWorkflow)
+	}
+	if swf.Namespace == "" {
+		return nil, util.NewInvalidInputError("The resource must have a namespace: %+v", swf.ScheduledWorkflow)
+	}
+	if swf.UID == "" {
+		return nil, util.NewInvalidInputError("The resource must have a UID: %+v", swf.UID)
+	}
+	return swf, nil
 }
 
 func NewReportServer(resourceManager *resource.ResourceManager) *ReportServer {

@@ -15,22 +15,15 @@
 package util
 
 import (
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"fmt"
+	"strconv"
 )
 
-// IsNotFound returns whether an error indicates that a resource was "not found".
-func IsNotFound(err error) bool {
-	return reasonForError(err) == metav1.StatusReasonNotFound
+func FormatInt64ForLabel(epoch int64) string {
+	return fmt.Sprintf("%d", epoch)
 }
 
-// ReasonForError returns the HTTP status for a particular error.
-func reasonForError(err error) metav1.StatusReason {
-	switch t := err.(type) {
-	case errors.APIStatus:
-		return t.Status().Reason
-	case *errors.StatusError:
-		return t.Status().Reason
-	}
-	return metav1.StatusReasonUnknown
+// RetrieveInt64FromLabel converts a string label value into an epoch.
+func RetrieveInt64FromLabel(epoch string) (int64, error) {
+	return strconv.ParseInt(epoch, 10, 64)
 }

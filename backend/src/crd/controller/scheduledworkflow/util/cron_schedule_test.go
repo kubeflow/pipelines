@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	commonutil "github.com/googleprivate/ml/backend/src/common/util"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,8 +34,8 @@ const (
 func TestCronSchedule_getNextScheduledEpoch_Cron_StartDate_EndDate(t *testing.T) {
 	// First job.
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
-		StartTime: Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
-		EndTime:   Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
+		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "0 * * * * * ",
 	})
 	lastJobEpoch := int64(0)
@@ -64,8 +65,8 @@ func TestCronSchedule_getNextScheduledEpoch_CronOnly(t *testing.T) {
 
 func TestCronSchedule_getNextScheduledEpoch_NoCron(t *testing.T) {
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
-		StartTime: Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
-		EndTime:   Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
+		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "",
 	})
 	lastJobEpoch := int64(0)
@@ -75,8 +76,8 @@ func TestCronSchedule_getNextScheduledEpoch_NoCron(t *testing.T) {
 
 func TestCronSchedule_getNextScheduledEpoch_InvalidCron(t *testing.T) {
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
-		StartTime: Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
-		EndTime:   Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour, 0).UTC())),
+		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "*$&%*(W&",
 	})
 	lastJobEpoch := int64(0)
@@ -87,8 +88,8 @@ func TestCronSchedule_getNextScheduledEpoch_InvalidCron(t *testing.T) {
 func TestCronSchedule_GetNextScheduledEpoch(t *testing.T) {
 	// There was a previous job.
 	schedule := NewCronSchedule(&swfapi.CronSchedule{
-		StartTime: Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
-		EndTime:   Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		StartTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(10*hour+10*minute, 0).UTC())),
+		EndTime:   commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:      "0 * * * * * ",
 	})
 	lastJobEpoch := int64(10*hour + 20*minute)
@@ -103,7 +104,7 @@ func TestCronSchedule_GetNextScheduledEpoch(t *testing.T) {
 	// There is no previous job, no schedule start date, falling back on the
 	// creation date of the workflow.
 	schedule = NewCronSchedule(&swfapi.CronSchedule{
-		EndTime: Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
+		EndTime: commonutil.Metav1TimePointer(v1.NewTime(time.Unix(11*hour, 0).UTC())),
 		Cron:    "0 * * * * * ",
 	})
 	assert.Equal(t, int64(10*hour+15*minute+minute),

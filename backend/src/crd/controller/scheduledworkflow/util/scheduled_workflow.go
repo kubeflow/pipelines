@@ -23,6 +23,7 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	commonutil "github.com/googleprivate/ml/backend/src/common/util"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
@@ -161,7 +162,7 @@ func (s *ScheduledWorkflow) getFormattedWorkflowParametersAsMap(
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Schedule resource that 'owns' it.
 func (s *ScheduledWorkflow) NewWorkflow(
-	nextScheduledEpoch int64, nowEpoch int64) *Workflow {
+	nextScheduledEpoch int64, nowEpoch int64) *commonutil.Workflow {
 
 	const (
 		workflowKind       = "Workflow"
@@ -174,7 +175,7 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	}
 	workflow.Kind = workflowKind
 	workflow.APIVersion = workflowApiVersion
-	result := NewWorkflow(workflow)
+	result := commonutil.NewWorkflow(workflow)
 
 	// Set the name of the worfklow.
 	result.OverrideName(s.NextResourceName())
@@ -186,8 +187,7 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	// Set the parameters.
 	result.OverrideParameters(formattedParams)
 
-	// Set the labels.
-	result.SetCanonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
+	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
 
 	// The the owner references.
 	result.SetOwnerReferences(s.ScheduledWorkflow)
@@ -226,7 +226,7 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch() int64 {
 	if s.Spec.Trigger.PeriodicSchedule != nil {
 		return NewPeriodicSchedule(s.Spec.Trigger.PeriodicSchedule).
 			GetNextScheduledEpoch(
-				toInt64Pointer(s.Status.Trigger.LastTriggeredTime),
+				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
 				s.creationEpoch())
 	}
 
@@ -234,7 +234,7 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch() int64 {
 	if s.Spec.Trigger.CronSchedule != nil {
 		return NewCronSchedule(s.Spec.Trigger.CronSchedule).
 			GetNextScheduledEpoch(
-				toInt64Pointer(s.Status.Trigger.LastTriggeredTime),
+				commonutil.ToInt64Pointer(s.Status.Trigger.LastTriggeredTime),
 				s.creationEpoch())
 	}
 
@@ -257,7 +257,7 @@ func (s *ScheduledWorkflow) setLabel(key string, value string) {
 }
 
 // UpdateStatus updates the status of a workflow in the Kubernetes API server.
-func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *Workflow,
+func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *commonutil.Workflow,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus) {
 
@@ -293,13 +293,13 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *Workflow,
 		Completed: completed,
 	}
 
-	s.setLabel(LabelKeyScheduledWorkflowEnabled, strconv.FormatBool(
+	s.setLabel(commonutil.LabelKeyScheduledWorkflowEnabled, strconv.FormatBool(
 		s.enabled()))
-	s.setLabel(LabelKeyScheduledWorkflowStatus, string(conditionType))
+	s.setLabel(commonutil.LabelKeyScheduledWorkflowStatus, string(conditionType))
 
 	if workflow != nil {
 		s.updateLastTriggeredTime(scheduledEpoch)
-		s.Status.Trigger.LastIndex = Int64Pointer(s.nextIndex())
+		s.Status.Trigger.LastIndex = commonutil.Int64Pointer(s.nextIndex())
 		s.updateNextTriggeredTime(s.getNextScheduledEpoch())
 	} else {
 		// LastTriggeredTime is unchanged.
@@ -309,13 +309,13 @@ func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, workflow *Workflow,
 }
 
 func (s *ScheduledWorkflow) updateLastTriggeredTime(epoch int64) {
-	s.Status.Trigger.LastTriggeredTime = Metav1TimePointer(
+	s.Status.Trigger.LastTriggeredTime = commonutil.Metav1TimePointer(
 		metav1.NewTime(time.Unix(epoch, 0).UTC()))
 }
 
 func (s *ScheduledWorkflow) updateNextTriggeredTime(epoch int64) {
 	if epoch != math.MaxInt64 {
-		s.Status.Trigger.NextTriggeredTime = Metav1TimePointer(
+		s.Status.Trigger.NextTriggeredTime = commonutil.Metav1TimePointer(
 			metav1.NewTime(time.Unix(epoch, 0).UTC()))
 	} else {
 		s.Status.Trigger.NextTriggeredTime = nil

@@ -20,6 +20,7 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	"github.com/argoproj/argo/pkg/client/informers/externalversions/workflow/v1alpha1"
+	commonutil "github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/googleprivate/ml/backend/src/crd/controller/scheduledworkflow/util"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	wraperror "github.com/pkg/errors"
@@ -56,13 +57,13 @@ func (p *WorkflowClient) HasSynced() func() bool {
 
 // Get returns a Workflow, given a namespace and name.
 func (p *WorkflowClient) Get(namespace string, name string) (
-	wf *util.Workflow, isNotFoundError bool, err error) {
+	wf *commonutil.Workflow, isNotFoundError bool, err error) {
 	workflow, err := p.informer.Lister().Workflows(namespace).Get(name)
 	if err != nil {
-		return nil, util.IsNotFound(err), wraperror.Wrapf(err,
+		return nil, commonutil.IsNotFound(err), wraperror.Wrapf(err,
 			"Error retrieving workflow (%v) in namespace (%v): %v", name, namespace, err)
 	}
-	return util.NewWorkflow(workflow), false, nil
+	return commonutil.NewWorkflow(workflow), false, nil
 }
 
 // List returns a list of workflows given the name of their ScheduledWorkflow,
@@ -108,11 +109,11 @@ func toWorkflowStatus(workflow *workflowapi.Workflow) *swfapi.WorkflowStatus {
 }
 
 func retrieveScheduledTime(workflow *workflowapi.Workflow) metav1.Time {
-	value, ok := workflow.Labels[util.LabelKeyWorkflowEpoch]
+	value, ok := workflow.Labels[commonutil.LabelKeyWorkflowEpoch]
 	if !ok {
 		return workflow.CreationTimestamp
 	}
-	result, err := util.RetrieveInt64FromLabel(value)
+	result, err := commonutil.RetrieveInt64FromLabel(value)
 	if err != nil {
 		return workflow.CreationTimestamp
 	}
@@ -120,11 +121,11 @@ func retrieveScheduledTime(workflow *workflowapi.Workflow) metav1.Time {
 }
 
 func retrieveIndex(workflow *workflowapi.Workflow) int64 {
-	value, ok := workflow.Labels[util.LabelKeyWorkflowIndex]
+	value, ok := workflow.Labels[commonutil.LabelKeyWorkflowIndex]
 	if !ok {
 		return 0
 	}
-	result, err := util.RetrieveInt64FromLabel(value)
+	result, err := commonutil.RetrieveInt64FromLabel(value)
 	if err != nil {
 		return 0
 	}
@@ -132,14 +133,14 @@ func retrieveIndex(workflow *workflowapi.Workflow) int64 {
 }
 
 // Create creates a workflow given a namespace and its specification.
-func (p *WorkflowClient) Create(namespace string, workflow *util.Workflow) (
-	*util.Workflow, error) {
+func (p *WorkflowClient) Create(namespace string, workflow *commonutil.Workflow) (
+	*commonutil.Workflow, error) {
 	result, err := p.clientSet.ArgoprojV1alpha1().Workflows(namespace).Create(workflow.Get())
 	if err != nil {
 		return nil, wraperror.Wrapf(err, "Error creating workflow in namespace (%v): %v: %+v", namespace,
 			err, workflow.Get())
 	}
-	return util.NewWorkflow(result), nil
+	return commonutil.NewWorkflow(result), nil
 }
 
 func getLabelSelectorToGetWorkflows(swfName string, completed bool, minIndex int64) *labels.Selector {

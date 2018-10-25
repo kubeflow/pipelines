@@ -129,8 +129,8 @@ describe('deploy helloworld sample job', () => {
     assert(items && items.length > 0, 'only one run should show up');
 
     const runName = browser.getText(selector + ' div')[1];
-    assert(runName.startsWith('job-helloworld'),
-      'run name should start with job-helloworld');
+    assert(runName.startsWith('helloworld'),
+      'run name should start with helloworld');
   });
 
   it('opens run details', () => {

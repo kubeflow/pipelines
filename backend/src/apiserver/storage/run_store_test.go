@@ -30,9 +30,51 @@ import (
 )
 
 func initializePrepopulatedDB(runStore *RunStore) {
-	runStore.createRun("1", "run1", "n1", "1", 1, 1, "running", "workflow1")
-	runStore.createRun("1", "run2", "n2", "2", 2, 2, "done", "workflow1")
-	runStore.createRun("2", "run3", "n3", "3", 3, 3, "done", "workflow3")
+	run1 := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "1",
+			JobID:            "1",
+			Name:             "run1",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+	run2 := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "2",
+			JobID:            "1",
+			Name:             "run2",
+			Namespace:        "n2",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "done",
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+	run3 := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "3",
+			JobID:            "2",
+			Name:             "run3",
+			Namespace:        "n3",
+			CreatedAtInSec:   3,
+			ScheduledAtInSec: 3,
+			Conditions:       "done",
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow3",
+		},
+	}
+	runStore.CreateRun(run1)
+	runStore.CreateRun(run2)
+	runStore.CreateRun(run3)
 }
 
 func TestListRuns_Pagination(t *testing.T) {
@@ -50,7 +92,6 @@ func TestListRuns_Pagination(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
-			Metrics:          []*model.RunMetric{},
 		}}
 	expectedSecondPageRuns := []model.Run{
 		{
@@ -61,7 +102,6 @@ func TestListRuns_Pagination(t *testing.T) {
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
-			Metrics:          []*model.RunMetric{},
 		}}
 	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
 		PageSize:        1,
@@ -103,7 +143,6 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
-			Metrics:          []*model.RunMetric{},
 		}}
 	expectedSecondPageRuns := []model.Run{
 		{
@@ -114,7 +153,6 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
-			Metrics:          []*model.RunMetric{},
 		}}
 	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
 		PageSize:        1,
@@ -156,7 +194,6 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
-			Metrics:          []*model.RunMetric{},
 		},
 		{
 			UUID:             "2",
@@ -166,7 +203,6 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
 			Conditions:       "done",
-			Metrics:          []*model.RunMetric{},
 		}}
 	runs, nextPageToken, err := runStore.ListRuns(util.StringPointer("1"), &common.PaginationContext{
 		PageSize:        10,
@@ -211,7 +247,6 @@ func TestGetRun(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
-			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
 	}
@@ -244,7 +279,7 @@ func TestGetRun_InternalError(t *testing.T) {
 		"Expected get run to return internal error")
 }
 
-func TestUpdateRun_UpdateSuccess(t *testing.T) {
+func TestReportRun_UpdateSuccess(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
@@ -259,7 +294,6 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
-			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
 	}
@@ -270,8 +304,8 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
+			Name:      "run1",
+			Namespace: "n1",
 			UID:       "1",
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1alpha1",
@@ -289,19 +323,18 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 		},
 	})
 
-	err = runStore.CreateOrUpdateRun(workflow)
+	err = runStore.ReportRun(workflow)
 	assert.Nil(t, err)
 
 	expectedRun = &model.RunDetail{
 		Run: model.Run{
 			UUID:             "1",
-			Name:             "MY_NAME",
-			Namespace:        "MY_NAMESPACE",
+			Name:             "run1",
+			Namespace:        "n1",
 			JobID:            "1",
-			CreatedAtInSec:   11,
-			ScheduledAtInSec: 100,
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
 			Conditions:       "Running:",
-			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
@@ -311,7 +344,7 @@ func TestUpdateRun_UpdateSuccess(t *testing.T) {
 	assert.Equal(t, expectedRun, runDetail)
 }
 
-func TestUpdateRun_CreateSuccess(t *testing.T) {
+func TestReportRun_CreateSuccess(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
@@ -342,9 +375,8 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 		},
 	})
 
-	err = runStore.CreateOrUpdateRun(workflow)
+	err = runStore.ReportRun(workflow)
 	assert.Nil(t, err)
-
 	expectedRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "2000",
@@ -354,7 +386,9 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 100,
 			Conditions:       "Running:",
-			Metrics:          []*model.RunMetric{},
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
+			},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}
@@ -364,7 +398,7 @@ func TestUpdateRun_CreateSuccess(t *testing.T) {
 	assert.Equal(t, expectedRun, runDetail)
 }
 
-func TestUpdateRun_UpdateError(t *testing.T) {
+func TestReportRun_UpdateError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
@@ -391,12 +425,12 @@ func TestUpdateRun_UpdateError(t *testing.T) {
 		},
 	})
 
-	err := runStore.CreateOrUpdateRun(workflow)
+	err := runStore.ReportRun(workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Error while creating or updating run")
 }
 
-func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
+func TestReportRun_MostlyEmptySpec(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
@@ -404,8 +438,8 @@ func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
+			Name:      "run1",
+			Namespace: "n1",
 			UID:       "1",
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1alpha1",
@@ -417,19 +451,18 @@ func TestUpdateRun_MostlyEmptySpec(t *testing.T) {
 		},
 	})
 
-	err := runStore.CreateOrUpdateRun(workflow)
+	err := runStore.ReportRun(workflow)
 	assert.Nil(t, err)
 
 	expectedRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "1",
-			Name:             "MY_NAME",
-			Namespace:        "MY_NAMESPACE",
+			Name:             "run1",
+			Namespace:        "n1",
 			JobID:            "1",
-			CreatedAtInSec:   11,
-			ScheduledAtInSec: 0,
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
 			Conditions:       ":",
-			Metrics:          []*model.RunMetric{},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
 	}

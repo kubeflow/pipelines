@@ -11,6 +11,7 @@ import (
 
 	"strings"
 
+	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
@@ -101,4 +102,12 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 		return nil, util.Wrap(err, "Error decompress the pipeline file")
 	}
 	return decompressedFile, nil
+}
+
+func printParameters(params []*api.Parameter) string {
+	var s strings.Builder
+	for _, p := range params {
+		s.WriteString(p.String())
+	}
+	return s.String()
 }

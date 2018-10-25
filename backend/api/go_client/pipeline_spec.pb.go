@@ -35,16 +35,15 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type PipelineSpec struct {
-	// User can create a run by providing either id of the pipeline uploaded,
-	// or raw pipeline manifest YAML.
-	//
-	// Types that are valid to be assigned to Pipeline:
-	//	*PipelineSpec_PipelineId
-	//	*PipelineSpec_WorkflowManifest
-	//	*PipelineSpec_PipelineManifest
-	Pipeline isPipelineSpec_Pipeline `protobuf_oneof:"pipeline"`
-	// The parameter user provide to inject to the pipeline YAML.
-	// If a default value of a parameter exist in the YAML,
+	// Optional input field. The ID of the pipeline user uploaded before.
+	PipelineId string `protobuf:"bytes,1,opt,name=pipeline_id,json=pipelineId,proto3" json:"pipeline_id,omitempty"`
+	// Optional input field. The marshalled raw argo JSON workflow.
+	// This will be deprecated when pipeline_manifest is in use.
+	WorkflowManifest string `protobuf:"bytes,2,opt,name=workflow_manifest,json=workflowManifest,proto3" json:"workflow_manifest,omitempty"`
+	// Optional input field. The raw pipeline JSON spec.
+	PipelineManifest string `protobuf:"bytes,3,opt,name=pipeline_manifest,json=pipelineManifest,proto3" json:"pipeline_manifest,omitempty"`
+	// The parameter user provide to inject to the pipeline JSON.
+	// If a default value of a parameter exist in the JSON,
 	// the value user provided here will replace.
 	Parameters           []*Parameter `protobuf:"bytes,4,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
@@ -77,52 +76,23 @@ func (m *PipelineSpec) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_PipelineSpec proto.InternalMessageInfo
 
-type isPipelineSpec_Pipeline interface {
-	isPipelineSpec_Pipeline()
-}
-
-type PipelineSpec_PipelineId struct {
-	PipelineId string `protobuf:"bytes,1,opt,name=pipeline_id,json=pipelineId,proto3,oneof"`
-}
-
-type PipelineSpec_WorkflowManifest struct {
-	WorkflowManifest string `protobuf:"bytes,2,opt,name=workflow_manifest,json=workflowManifest,proto3,oneof"`
-}
-
-type PipelineSpec_PipelineManifest struct {
-	PipelineManifest string `protobuf:"bytes,3,opt,name=pipeline_manifest,json=pipelineManifest,proto3,oneof"`
-}
-
-func (*PipelineSpec_PipelineId) isPipelineSpec_Pipeline() {}
-
-func (*PipelineSpec_WorkflowManifest) isPipelineSpec_Pipeline() {}
-
-func (*PipelineSpec_PipelineManifest) isPipelineSpec_Pipeline() {}
-
-func (m *PipelineSpec) GetPipeline() isPipelineSpec_Pipeline {
-	if m != nil {
-		return m.Pipeline
-	}
-	return nil
-}
-
 func (m *PipelineSpec) GetPipelineId() string {
-	if x, ok := m.GetPipeline().(*PipelineSpec_PipelineId); ok {
-		return x.PipelineId
+	if m != nil {
+		return m.PipelineId
 	}
 	return ""
 }
 
 func (m *PipelineSpec) GetWorkflowManifest() string {
-	if x, ok := m.GetPipeline().(*PipelineSpec_WorkflowManifest); ok {
-		return x.WorkflowManifest
+	if m != nil {
+		return m.WorkflowManifest
 	}
 	return ""
 }
 
 func (m *PipelineSpec) GetPipelineManifest() string {
-	if x, ok := m.GetPipeline().(*PipelineSpec_PipelineManifest); ok {
-		return x.PipelineManifest
+	if m != nil {
+		return m.PipelineManifest
 	}
 	return ""
 }
@@ -134,87 +104,6 @@ func (m *PipelineSpec) GetParameters() []*Parameter {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*PipelineSpec) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _PipelineSpec_OneofMarshaler, _PipelineSpec_OneofUnmarshaler, _PipelineSpec_OneofSizer, []interface{}{
-		(*PipelineSpec_PipelineId)(nil),
-		(*PipelineSpec_WorkflowManifest)(nil),
-		(*PipelineSpec_PipelineManifest)(nil),
-	}
-}
-
-func _PipelineSpec_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*PipelineSpec)
-	// pipeline
-	switch x := m.Pipeline.(type) {
-	case *PipelineSpec_PipelineId:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.PipelineId)
-	case *PipelineSpec_WorkflowManifest:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.WorkflowManifest)
-	case *PipelineSpec_PipelineManifest:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.PipelineManifest)
-	case nil:
-	default:
-		return fmt.Errorf("PipelineSpec.Pipeline has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _PipelineSpec_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*PipelineSpec)
-	switch tag {
-	case 1: // pipeline.pipeline_id
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Pipeline = &PipelineSpec_PipelineId{x}
-		return true, err
-	case 2: // pipeline.workflow_manifest
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Pipeline = &PipelineSpec_WorkflowManifest{x}
-		return true, err
-	case 3: // pipeline.pipeline_manifest
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Pipeline = &PipelineSpec_PipelineManifest{x}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _PipelineSpec_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*PipelineSpec)
-	// pipeline
-	switch x := m.Pipeline.(type) {
-	case *PipelineSpec_PipelineId:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.PipelineId)))
-		n += len(x.PipelineId)
-	case *PipelineSpec_WorkflowManifest:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.WorkflowManifest)))
-		n += len(x.WorkflowManifest)
-	case *PipelineSpec_PipelineManifest:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.PipelineManifest)))
-		n += len(x.PipelineManifest)
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
-}
-
 func init() {
 	proto.RegisterType((*PipelineSpec)(nil), "api.PipelineSpec")
 }
@@ -222,17 +111,16 @@ func init() {
 func init() { proto.RegisterFile("pipeline_spec.proto", fileDescriptor_7ae2a94ab58e513c) }
 
 var fileDescriptor_7ae2a94ab58e513c = []byte{
-	// 177 bytes of a gzipped FileDescriptorProto
+	// 169 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x2e, 0xc8, 0x2c, 0x48,
 	0xcd, 0xc9, 0xcc, 0x4b, 0x8d, 0x2f, 0x2e, 0x48, 0x4d, 0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17,
 	0x62, 0x4e, 0x2c, 0xc8, 0x94, 0xe2, 0x2f, 0x48, 0x2c, 0x4a, 0xcc, 0x4d, 0x2d, 0x49, 0x2d, 0x82,
-	0x88, 0x2a, 0x9d, 0x66, 0xe4, 0xe2, 0x09, 0x80, 0xaa, 0x0e, 0x2e, 0x48, 0x4d, 0x16, 0x52, 0xe4,
-	0xe2, 0x86, 0xeb, 0xce, 0x4c, 0x91, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0xf4, 0x60, 0x08, 0xe2, 0x82,
-	0x09, 0x7a, 0xa6, 0x08, 0xe9, 0x72, 0x09, 0x96, 0xe7, 0x17, 0x65, 0xa7, 0xe5, 0xe4, 0x97, 0xc7,
-	0xe7, 0x26, 0xe6, 0x65, 0xa6, 0xa5, 0x16, 0x97, 0x48, 0x30, 0x41, 0x15, 0x0a, 0xc0, 0xa4, 0x7c,
-	0xa1, 0x32, 0x20, 0xe5, 0x70, 0x13, 0xe1, 0xca, 0x99, 0x61, 0xca, 0x61, 0x52, 0x70, 0xe5, 0x7a,
-	0x5c, 0x5c, 0x70, 0x47, 0x16, 0x4b, 0xb0, 0x28, 0x30, 0x6b, 0x70, 0x1b, 0xf1, 0xe9, 0x25, 0x16,
-	0x64, 0xea, 0x05, 0xc0, 0x84, 0x83, 0x90, 0x54, 0x38, 0x71, 0x71, 0x71, 0xc0, 0xcc, 0x48, 0x62,
-	0x03, 0x7b, 0xca, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0x0f, 0xc1, 0x7c, 0x30, 0x01, 0x01, 0x00,
-	0x00,
+	0x88, 0x2a, 0xed, 0x64, 0xe4, 0xe2, 0x09, 0x80, 0xaa, 0x0e, 0x2e, 0x48, 0x4d, 0x16, 0x92, 0xe7,
+	0xe2, 0x86, 0xeb, 0xce, 0x4c, 0x91, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x0c, 0xe2, 0x82, 0x09, 0x79,
+	0xa6, 0x08, 0x69, 0x73, 0x09, 0x96, 0xe7, 0x17, 0x65, 0xa7, 0xe5, 0xe4, 0x97, 0xc7, 0xe7, 0x26,
+	0xe6, 0x65, 0xa6, 0xa5, 0x16, 0x97, 0x48, 0x30, 0x81, 0x95, 0x09, 0xc0, 0x24, 0x7c, 0xa1, 0xe2,
+	0x20, 0xc5, 0x70, 0xd3, 0xe0, 0x8a, 0x99, 0x21, 0x8a, 0x61, 0x12, 0x70, 0xc5, 0x7a, 0x5c, 0x5c,
+	0x70, 0xe7, 0x15, 0x4b, 0xb0, 0x28, 0x30, 0x6b, 0x70, 0x1b, 0xf1, 0xe9, 0x25, 0x16, 0x64, 0xea,
+	0x05, 0xc0, 0x84, 0x83, 0x90, 0x54, 0x24, 0xb1, 0x81, 0xbd, 0x60, 0x0c, 0x08, 0x00, 0x00, 0xff,
+	0xff, 0x7f, 0xd3, 0x17, 0x98, 0xef, 0x00, 0x00, 0x00,
 }

@@ -20,7 +20,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowcommon "github.com/argoproj/argo/workflow/common"
-	"github.com/googleprivate/ml/backend/src/crd/controller/scheduledworkflow/util"
+	commonutil "github.com/googleprivate/ml/backend/src/common/util"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,8 +37,8 @@ func TestToWorkflowStatuses(t *testing.T) {
 			UID:               "UID",
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
-				util.LabelKeyWorkflowEpoch: "54",
-				util.LabelKeyWorkflowIndex: "55",
+				commonutil.LabelKeyWorkflowEpoch: "54",
+				commonutil.LabelKeyWorkflowIndex: "55",
 			},
 		},
 		Status: workflowapi.WorkflowStatus{
@@ -97,7 +97,7 @@ func TestRetrieveScheduledTime(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
-				util.LabelKeyWorkflowEpoch: "54",
+				commonutil.LabelKeyWorkflowEpoch: "54",
 			},
 		},
 	}
@@ -121,7 +121,7 @@ func TestRetrieveScheduledTime(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
-				util.LabelKeyWorkflowEpoch: "UNPARSABLE_@%^%@^#%",
+				commonutil.LabelKeyWorkflowEpoch: "UNPARSABLE_@%^%@^#%",
 			},
 		},
 	}
@@ -135,7 +135,7 @@ func TestRetrieveIndex(t *testing.T) {
 	workflow := &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				util.LabelKeyWorkflowIndex: "100",
+				commonutil.LabelKeyWorkflowIndex: "100",
 			},
 		},
 	}
@@ -157,7 +157,7 @@ func TestRetrieveIndex(t *testing.T) {
 	workflow = &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				util.LabelKeyWorkflowIndex: "UNPARSABLE_LABEL_!@^^!%@#%",
+				commonutil.LabelKeyWorkflowIndex: "UNPARSABLE_LABEL_!@^^!%@#%",
 			},
 		},
 	}
@@ -180,12 +180,12 @@ func TestLabelSelectorToGetWorkflows(t *testing.T) {
 	assert.Nil(t, err)
 	expected = expected.Add(*req)
 
-	req, err = labels.NewRequirement(util.LabelKeyWorkflowScheduledWorkflowName, selection.Equals,
+	req, err = labels.NewRequirement(commonutil.LabelKeyWorkflowScheduledWorkflowName, selection.Equals,
 		[]string{"PIPELINE_NAME"})
 	assert.Nil(t, err)
 	expected = expected.Add(*req)
 
-	req, err = labels.NewRequirement(util.LabelKeyWorkflowIndex, selection.GreaterThan,
+	req, err = labels.NewRequirement(commonutil.LabelKeyWorkflowIndex, selection.GreaterThan,
 		[]string{"50"})
 	assert.Nil(t, err)
 	expected = expected.Add(*req)
@@ -205,12 +205,12 @@ func TestLabelSelectorToGetWorkflows(t *testing.T) {
 	assert.Nil(t, err)
 	expected = expected.Add(*req)
 
-	req, err = labels.NewRequirement(util.LabelKeyWorkflowScheduledWorkflowName, selection.Equals,
+	req, err = labels.NewRequirement(commonutil.LabelKeyWorkflowScheduledWorkflowName, selection.Equals,
 		[]string{"PIPELINE_NAME"})
 	assert.Nil(t, err)
 	expected = expected.Add(*req)
 
-	req, err = labels.NewRequirement(util.LabelKeyWorkflowIndex, selection.GreaterThan,
+	req, err = labels.NewRequirement(commonutil.LabelKeyWorkflowIndex, selection.GreaterThan,
 		[]string{"50"})
 	assert.Nil(t, err)
 	expected = expected.Add(*req)

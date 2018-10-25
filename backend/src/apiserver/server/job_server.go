@@ -35,11 +35,7 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 	if err != nil {
 		return nil, err
 	}
-	jobs, err := ToModelJob(request.Job)
-	if err != nil {
-		return nil, err
-	}
-	newJob, err := s.resourceManager.CreateJob(jobs)
+	newJob, err := s.resourceManager.CreateJob(request.Job)
 	if err != nil {
 		return nil, err
 	}

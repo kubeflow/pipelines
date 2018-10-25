@@ -15,10 +15,11 @@
 package resource
 
 import (
+	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/googleprivate/ml/backend/src/apiserver/storage"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
+	scheduledworkflowclient "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 )
 
 const (
@@ -54,7 +55,6 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	if err != nil {
 		return nil, err
 	}
-	workflowClient := storage.NewWorkflowClientFake()
 
 	return &FakeClientManager{
 		db:                          db,
@@ -62,7 +62,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
 		runStore:                    storage.NewRunStore(db, time),
-		workflowClientFake:          workflowClient,
+		workflowClientFake:          storage.NewWorkflowClientFake(),
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
 		time:                        time,
@@ -103,7 +103,7 @@ func (f *FakeClientManager) DB() *storage.DB {
 	return f.db
 }
 
-func (f *FakeClientManager) WorkflowClientFake() *storage.FakeWorkflowClient {
+func (f *FakeClientManager) Workflow() workflowclient.WorkflowInterface {
 	return f.workflowClientFake
 }
 
@@ -115,7 +115,7 @@ func (f *FakeClientManager) RunStore() storage.RunStoreInterface {
 	return f.runStore
 }
 
-func (f *FakeClientManager) ScheduledWorkflow() v1alpha1.ScheduledWorkflowInterface {
+func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
 	return f.scheduledWorkflowClientFake
 }
 

@@ -26,16 +26,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-const (
-	metricsRowSeparator = ";"
-	metricsColSeparator = ","
-)
-
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 	// TODO(yangpa) support filtering and remove (jobId *string) parameter.
 	ListRuns(jobId *string, context *common.PaginationContext) ([]model.Run, string, error)
-	CreateOrUpdateRun(workflow *util.Workflow) (err error)
+
+	// Create a run entry in the database
+	CreateRun(run *model.RunDetail) (*model.RunDetail, error)
+
+	// Method to store a reported argo workflow to DB.
+	// If it's a one-time run, we assume the entry is already exist in DB, and only do update.
+	// If it's a run from a recurrent job, the run might not exist in DB before. Either update or create one if not exist.
+	ReportRun(workflow *util.Workflow) (err error)
+
+	// Store a new metric entry to run_metrics table.
 	ReportMetric(metric *model.RunMetric) (err error)
 }
 
@@ -119,13 +123,13 @@ func (s *RunStore) selectRunDetailsWithMetrics() sq.SelectBuilder {
 func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
 	var runs []model.RunDetail
 	for rows.Next() {
-		var uuid, displayName, name, namespace, description, pipelineSpecManifest, workflowSpecManifest, parameters,
-			jobID, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
+		var uuid, displayName, name, namespace, description, pipelineId, pipelineSpecManifest, workflowSpecManifest,
+			parameters, jobID, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec int64
 		var metricsInString sql.NullString
 		err := rows.Scan(
 			&uuid, &displayName, &name, &namespace, &description, &createdAtInSec, &scheduledAtInSec,
-			&conditions, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
+			&conditions, &pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
 			&jobID, &pipelineRuntimeManifest, &workflowRuntimeManifest,
 			&metricsInString)
 		if err != nil {
@@ -141,21 +145,32 @@ func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
 		}
 		runs = append(runs, model.RunDetail{Run: model.Run{
 			UUID:             uuid,
+			DisplayName:      displayName,
 			Name:             name,
 			Namespace:        namespace,
-			JobID:            jobID,
+			Description:      description,
 			CreatedAtInSec:   createdAtInSec,
 			ScheduledAtInSec: scheduledAtInSec,
 			Conditions:       conditions,
-			Metrics:          metrics},
-			PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflowRuntimeManifest}})
+			Metrics:          metrics,
+			PipelineSpec: model.PipelineSpec{
+				PipelineId:           pipelineId,
+				PipelineSpecManifest: pipelineRuntimeManifest,
+				WorkflowSpecManifest: workflowSpecManifest,
+				Parameters:           parameters,
+			},
+			JobID: jobID,
+		},
+			PipelineRuntime: model.PipelineRuntime{
+				PipelineRuntimeManifest: pipelineRuntimeManifest,
+				WorkflowRuntimeManifest: workflowRuntimeManifest}})
 	}
 	return runs, nil
 }
 
 func parseMetrics(metricsInString sql.NullString, runUUID string) ([]*model.RunMetric, error) {
 	if !metricsInString.Valid {
-		return []*model.RunMetric{}, nil
+		return nil, nil
 	}
 	var metrics []*model.RunMetric
 	if err := json.Unmarshal([]byte(metricsInString.String), &metrics); err != nil {
@@ -164,99 +179,103 @@ func parseMetrics(metricsInString sql.NullString, runUUID string) ([]*model.RunM
 	return metrics, nil
 }
 
-func (s *RunStore) createRun(
-	jobID string,
-	name string,
-	namespace string,
-	workflowUID string,
-	createdAtInSec int64,
-	scheduledAtInSec int64,
-	condition string,
-	workflow string) (err error) {
+func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	sql, args, err := sq.
 		Insert("run_details").
 		SetMap(sq.Eq{
-			"UUID":                    workflowUID,
-			"Name":                    name,
-			"Namespace":               namespace,
-			"JobID":                   jobID,
-			"CreatedAtInSec":          createdAtInSec,
-			"ScheduledAtInSec":        scheduledAtInSec,
-			"Conditions":              condition,
-			"WorkflowRuntimeManifest": workflow,
-			// TODO(yangpa) store actual value instead before v1beta1
-			"DisplayName":             "",
-			"Description":             "",
-			"PipelineRuntimeManifest": "",
-			"PipelineSpecManifest":    "",
-			"WorkflowSpecManifest":    "",
-			"Parameters":              "",
+			"UUID":                    r.UUID,
+			"DisplayName":             r.DisplayName,
+			"Name":                    r.Name,
+			"Namespace":               r.Namespace,
+			"Description":             r.Description,
+			"JobID":                   r.JobID,
+			"CreatedAtInSec":          r.CreatedAtInSec,
+			"ScheduledAtInSec":        r.ScheduledAtInSec,
+			"Conditions":              r.Conditions,
+			"WorkflowRuntimeManifest": r.WorkflowRuntimeManifest,
+			"PipelineRuntimeManifest": r.PipelineRuntimeManifest,
+			"PipelineId":              r.PipelineId,
+			"PipelineSpecManifest":    r.PipelineSpec.PipelineSpecManifest,
+			"WorkflowSpecManifest":    r.PipelineSpec.WorkflowSpecManifest,
+			"Parameters":              r.PipelineSpec.Parameters,
 		}).ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create query while creating run using workflow: %v, %s",
-			err, workflow)
+		return nil, util.NewInternalServerError(err, "Error while creating run for workflow: '%v/%v",
+			r.Namespace, r.Name)
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		return util.NewInternalServerError(err, "Error while creating run for workflow: '%v/%v",
-			namespace, name)
+		return nil, util.NewInternalServerError(err, "Error while creating run for workflow: '%v/%v",
+			r.Namespace, r.Name)
 	}
+	return r, nil
+}
 
+// Update run table. Only condition and runtime manifest is allowed to be updated.
+func (s *RunStore) updateRun(
+	workflowUID string,
+	condition string,
+	workflowRuntimeManifest string) (err error) {
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"Conditions":              condition,
+			"WorkflowRuntimeManifest": workflowRuntimeManifest}).
+		Where(sq.Eq{"UUID": workflowUID}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to update workflow %s. error: '%v'", workflowUID, err.Error())
+	}
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to update workflow %s. error: '%v'", workflowUID, err.Error())
+	}
 	return nil
 }
 
 func (s *RunStore) CreateOrUpdateRun(workflow *util.Workflow) (err error) {
-	ownerUID := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
-	marshalledWorkflow, err := json.Marshal(workflow.Workflow)
-	if err != nil {
-		return util.NewInternalServerError(err, "Unable to marshal a workflow: %+v", workflow.Workflow)
+	// TODO(yangpa): store scheduledworkflow id in resource reference table.
+	runDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             string(workflow.UID),
+			Name:             workflow.Name,
+			Namespace:        workflow.Namespace,
+			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
+			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+			Conditions:       workflow.Condition(),
+			JobID:            workflow.ScheduledWorkflowUUIDAsStringOrEmpty(),
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: workflow.ToStringForStore(),
+		},
 	}
-
-	scheduledAtInSec := workflow.ScheduledAtInSecOr0()
-
-	condition := workflow.Condition()
-
-	// Attempting to create the run in the DB.
-
-	createError := s.createRun(
-		ownerUID,
-		workflow.Name,
-		workflow.Namespace,
-		string(workflow.UID),
-		workflow.CreationTimestamp.Unix(),
-		scheduledAtInSec,
-		condition,
-		string(marshalledWorkflow))
-
+	_, createError := s.CreateRun(runDetail)
 	if createError == nil {
 		return nil
 	}
 
-	// If creating the run did not work, attempting to update the run in the DB.
-	sql, args, err := sq.
-		Update("run_details").
-		SetMap(sq.Eq{
-			"Name":                    workflow.Name,
-			"Namespace":               workflow.Namespace,
-			"JobID":                   ownerUID,
-			"CreatedAtInSec":          workflow.CreationTimestamp.Unix(),
-			"ScheduledAtInSec":        scheduledAtInSec,
-			"Conditions":              condition,
-			"WorkflowRuntimeManifest": string(marshalledWorkflow)}).
-		Where(sq.Eq{"UUID": string(workflow.UID)}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
-			workflow.Namespace, workflow.Name, createError.Error(), err.Error())
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		return util.NewInternalServerError(err,
+	updateError := s.updateRun(string(workflow.UID), workflow.Condition(), workflow.ToStringForStore())
+
+	if updateError != nil {
+		return util.Wrap(updateError, fmt.Sprintf(
 			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
-			workflow.Namespace, workflow.Name, createError.Error(), err.Error())
+			workflow.Namespace, workflow.Name, createError.Error(), updateError.Error()))
 	}
 	return nil
+}
+
+func (s *RunStore) ReportRun(workflow *util.Workflow) (err error) {
+	if workflow.ScheduledWorkflowUUIDAsStringOrEmpty() == "" {
+		// If a run doesn't have owner UID, it's a one-time run created by Pipeline API server.
+		// In this case the DB entry should already be created when argo workflow is created.
+		return s.updateRun(string(workflow.UID), workflow.Condition(), workflow.ToStringForStore())
+	}
+	return s.CreateOrUpdateRun(workflow)
 }
 
 // ReportMetric inserts a new metric to run_metrics table. Conflicting metrics

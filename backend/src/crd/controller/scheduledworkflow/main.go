@@ -20,7 +20,7 @@ import (
 
 	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
-	"github.com/googleprivate/ml/backend/src/crd/controller/scheduledworkflow/util"
+	commonutil "github.com/googleprivate/ml/backend/src/common/util"
 	swfclientset "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/googleprivate/ml/backend/src/crd/pkg/client/informers/externalversions"
 	"github.com/googleprivate/ml/backend/src/crd/pkg/signals"
@@ -70,7 +70,7 @@ func main() {
 		workflowClient,
 		scheduleInformerFactory,
 		workflowInformerFactory,
-		util.NewRealTime())
+		commonutil.NewRealTime())
 
 	go scheduleInformerFactory.Start(stopCh)
 	go workflowInformerFactory.Start(stopCh)

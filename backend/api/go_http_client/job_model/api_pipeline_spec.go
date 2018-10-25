@@ -32,18 +32,18 @@ import (
 // swagger:model apiPipelineSpec
 type APIPipelineSpec struct {
 
-	// The parameter user provide to inject to the pipeline YAML.
-	// If a default value of a parameter exist in the YAML,
+	// The parameter user provide to inject to the pipeline JSON.
+	// If a default value of a parameter exist in the JSON,
 	// the value user provided here will replace.
 	Parameters []*APIParameter `json:"parameters"`
 
 	// Optional input field. The ID of the pipeline user uploaded before.
 	PipelineID string `json:"pipeline_id,omitempty"`
 
-	// Optional input field. The raw pipeline spec.
+	// Optional input field. The raw pipeline JSON spec.
 	PipelineManifest string `json:"pipeline_manifest,omitempty"`
 
-	// Optional input field. The marshalled raw argo workflow.
+	// Optional input field. The marshalled raw argo JSON workflow.
 	// This will be deprecated when pipeline_manifest is in use.
 	WorkflowManifest string `json:"workflow_manifest,omitempty"`
 }

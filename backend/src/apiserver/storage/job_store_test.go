@@ -36,7 +36,6 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PipelineId:  "1",
 		Enabled:     true,
 		Conditions:  "ready",
 		Trigger: model.Trigger{
@@ -45,6 +44,9 @@ func initializeDbAndStore() (*DB, *JobStore) {
 				PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
 				IntervalSecond:                 util.Int64Pointer(3),
 			},
+		},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -55,8 +57,10 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		DisplayName: "pp 2",
 		Name:        "pp2",
 		Namespace:   "n1",
-		PipelineId:  "1",
-		Conditions:  "ready",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
+		Conditions: "ready",
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -82,9 +86,11 @@ func TestListJobs_Pagination(t *testing.T) {
 			DisplayName: "pp 1",
 			Name:        "pp1",
 			Namespace:   "n1",
-			PipelineId:  "1",
-			Conditions:  "ready",
-			Enabled:     true,
+			PipelineSpec: model.PipelineSpec{
+				PipelineId: "1",
+			},
+			Conditions: "ready",
+			Enabled:    true,
 			Trigger: model.Trigger{
 				PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -110,8 +116,10 @@ func TestListJobs_Pagination(t *testing.T) {
 			DisplayName: "pp 2",
 			Name:        "pp2",
 			Namespace:   "n1",
-			PipelineId:  "1",
-			Enabled:     true,
+			PipelineSpec: model.PipelineSpec{
+				PipelineId: "1",
+			},
+			Enabled: true,
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -149,9 +157,11 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			DisplayName: "pp 2",
 			Name:        "pp2",
 			Namespace:   "n1",
-			PipelineId:  "1",
-			Enabled:     true,
-			Conditions:  "ready",
+			PipelineSpec: model.PipelineSpec{
+				PipelineId: "1",
+			},
+			Enabled:    true,
+			Conditions: "ready",
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -177,9 +187,11 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			DisplayName: "pp 1",
 			Name:        "pp1",
 			Namespace:   "n1",
-			PipelineId:  "1",
-			Enabled:     true,
-			Conditions:  "ready",
+			PipelineSpec: model.PipelineSpec{
+				PipelineId: "1",
+			},
+			Enabled:    true,
+			Conditions: "ready",
 			Trigger: model.Trigger{
 				PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -216,9 +228,11 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			DisplayName: "pp 1",
 			Name:        "pp1",
 			Namespace:   "n1",
-			PipelineId:  "1",
-			Enabled:     true,
-			Conditions:  "ready",
+			PipelineSpec: model.PipelineSpec{
+				PipelineId: "1",
+			},
+			Enabled:    true,
+			Conditions: "ready",
 			Trigger: model.Trigger{
 				PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -234,9 +248,11 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			DisplayName: "pp 2",
 			Name:        "pp2",
 			Namespace:   "n1",
-			PipelineId:  "1",
-			Enabled:     true,
-			Conditions:  "ready",
+			PipelineSpec: model.PipelineSpec{
+				PipelineId: "1",
+			},
+			Enabled:    true,
+			Conditions: "ready",
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -282,8 +298,10 @@ func TestGetJob(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PipelineId:  "1",
-		Conditions:  "ready",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
+		Conditions: "ready",
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -350,18 +368,24 @@ func TestCreateJob(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PipelineId:  "1",
-		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+		Enabled:        true,
 	}
 
 	job, err := jobStore.CreateJob(job)
 	assert.Nil(t, err)
 	jobExpected := &model.Job{
-		UUID:           "1",
-		DisplayName:    "pp 1",
-		Name:           "pp1",
-		Namespace:      "n1",
-		PipelineId:     "1",
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
 		Enabled:        true,
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -379,8 +403,10 @@ func TestCreateJobError(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PipelineId:  "1",
-		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
+		Enabled: true,
 	}
 
 	job, err := jobStore.CreateJob(job)
@@ -400,9 +426,11 @@ func TestEnableJob(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PipelineId:  "1",
-		Conditions:  "ready",
-		Enabled:     false,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
+		Conditions: "ready",
+		Enabled:    false,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -411,7 +439,7 @@ func TestEnableJob(t *testing.T) {
 			},
 		},
 		CreatedAtInSec: 1,
-		UpdatedAtInSec: 3,
+		UpdatedAtInSec: 1,
 	}
 
 	job, err := jobStore.GetJob("1")
@@ -431,9 +459,11 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PipelineId:  "1",
-		Conditions:  "ready",
-		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
+		Conditions: "ready",
+		Enabled:    true,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -470,9 +500,11 @@ func TestUpdateJob_Success(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PipelineId:  "1",
-		Conditions:  "ready",
-		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
+		Conditions: "ready",
+		Enabled:    true,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -536,13 +568,13 @@ func TestUpdateJob_Success(t *testing.T) {
 		DisplayName:    "pp 1",
 		Name:           "MY_NAME",
 		Namespace:      "MY_NAMESPACE",
-		PipelineId:     "1",
 		Enabled:        false,
 		Conditions:     "Enabled:",
 		CreatedAtInSec: 1,
-		UpdatedAtInSec: 3,
+		UpdatedAtInSec: 1,
 		MaxConcurrency: 200,
 		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
 			Parameters: "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
 		},
 		Trigger: model.Trigger{
@@ -573,9 +605,11 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		DisplayName: "pp 1",
 		Name:        "pp1",
 		Namespace:   "n1",
-		PipelineId:  "1",
-		Conditions:  "ready",
-		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
+		},
+		Conditions: "ready",
+		Enabled:    true,
 		Trigger: model.Trigger{
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
@@ -607,12 +641,12 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		DisplayName:    "pp 1",
 		Name:           "MY_NAME",
 		Namespace:      "MY_NAMESPACE",
-		PipelineId:     "1",
 		Enabled:        false,
 		Conditions:     "NO_STATUS:",
 		CreatedAtInSec: 1,
-		UpdatedAtInSec: 3,
+		UpdatedAtInSec: 1,
 		PipelineSpec: model.PipelineSpec{
+			PipelineId: "1",
 			Parameters: "[]",
 		},
 		Trigger: model.Trigger{
@@ -632,50 +666,6 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 	job, err = jobStore.GetJob("1")
 	assert.Nil(t, err)
 	assert.Equal(t, jobExpected, *job)
-}
-
-func TestUpdateJob_MissingField(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
-	defer db.Close()
-
-	// Name
-	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "MY_NAMESPACE",
-			UID:       "1",
-		},
-	})
-
-	err := jobStore.UpdateJob(swf)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a name")
-	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
-
-	// Namespace
-	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "MY_NAME",
-			UID:  "1",
-		},
-	})
-
-	err = jobStore.UpdateJob(swf)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a namespace")
-	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
-
-	// UID
-	swf = util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
-		},
-	})
-
-	err = jobStore.UpdateJob(swf)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.(*util.UserError).ExternalMessage(), "The resource must have a UID")
-	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.InvalidArgument)
 }
 
 func TestUpdateJob_RecordNotFound(t *testing.T) {

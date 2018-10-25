@@ -21,6 +21,7 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclientset "github.com/argoproj/argo/pkg/client/clientset/versioned"
 	workflowinformers "github.com/argoproj/argo/pkg/client/informers/externalversions"
+	commonutil "github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/googleprivate/ml/backend/src/crd/controller/scheduledworkflow/client"
 	"github.com/googleprivate/ml/backend/src/crd/controller/scheduledworkflow/util"
 	swfregister "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -69,7 +70,7 @@ type Controller struct {
 	workqueue workqueue.RateLimitingInterface
 
 	// An interface to generate the current time.
-	time util.TimeInterface
+	time commonutil.TimeInterface
 }
 
 // NewController returns a new sample controller
@@ -79,7 +80,7 @@ func NewController(
 	workflowClientSet workflowclientset.Interface,
 	swfInformerFactory swfinformers.SharedInformerFactory,
 	workflowInformerFactory workflowinformers.SharedInformerFactory,
-	time util.TimeInterface) *Controller {
+	time commonutil.TimeInterface) *Controller {
 
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1alpha1().ScheduledWorkflows()
@@ -439,7 +440,7 @@ func (c *Controller) syncHandler(key string) (
 // ScheduledWorkflow should be attempted again at a later time.
 func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 	activeWorkflowCount int, nowEpoch int64) (
-	workflow *util.Workflow, nextScheduledEpoch int64, err error) {
+	workflow *commonutil.Workflow, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
 	nextScheduledEpoch, shouldRunNow := swf.GetNextScheduledEpoch(
 		int64(activeWorkflowCount), nowEpoch)
@@ -448,7 +449,7 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 		log.WithFields(log.Fields{
 			ScheduledWorkflow: swf.Name,
 		}).Infof("Submitting workflow for ScheduledWorkflow (%v): nothing to submit (next scheduled at: %v)",
-			swf.Name, util.FormatTimeForLogging(nextScheduledEpoch))
+			swf.Name, commonutil.FormatTimeForLogging(nextScheduledEpoch))
 		return nil, nextScheduledEpoch, nil
 	}
 
@@ -466,13 +467,13 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 		ScheduledWorkflow: swf.Name,
 		Workflow:          workflow.Get().Name,
 	}).Infof("Submitting workflow for ScheduledWorkflow (%v): workflow (%v) successfully submitted (scheduled at: %v)",
-		swf.Name, workflow.Get().Name, util.FormatTimeForLogging(nextScheduledEpoch))
+		swf.Name, workflow.Get().Name, commonutil.FormatTimeForLogging(nextScheduledEpoch))
 	return workflow, nextScheduledEpoch, nil
 }
 
 func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	swf *util.ScheduledWorkflow, nextScheduledEpoch int64, nowEpoch int64) (
-	*util.Workflow, error) {
+	*commonutil.Workflow, error) {
 
 	workflowName := swf.NextResourceName()
 
@@ -505,7 +506,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 
 func (c *Controller) updateStatus(
 	swf *util.ScheduledWorkflow,
-	workflow *util.Workflow,
+	workflow *commonutil.Workflow,
 	active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus,
 	nextScheduledEpoch int64,
