@@ -89,6 +89,7 @@ pip3 install ./dsl/ --upgrade
 pip3 install ./dsl-compiler/ --upgrade
 
 SAMPLE_KUBEFLOW_TEST_RESULT=junit_SampleKubeflowOutput.xml
+SAMPLE_KUBEFLOW_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
 # Compile samples
 cd samples/
@@ -124,7 +125,7 @@ rm -rf config.json swagger_pipeline_upload swagger_pipeline swagger_run swagger_
 # Run the tests
 #TODO: update the job output directory
 cd /
-python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.tar.gz --output $SAMPLE_KUBEFLOW_TEST_RESULT
+python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.tar.gz --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT
 
 echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
 gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}

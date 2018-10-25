@@ -22,14 +22,18 @@ def get_artifact_in_minio(workflow_json, step_name, output_path):
   s3_data = {}
   minio_access_key = 'minio'
   minio_secret_key = 'minio123'
-  for key in workflow_json['status']['nodes'].keys():
-    if step_name in workflow_json['status']['nodes'][key]['name']:
-      s3_data = workflow_json['status']['nodes'][key]['outputs']['artifacts'][0]['s3']
-  minio_client = Minio(s3_data['endpoint'], access_key=minio_access_key, secret_key=minio_secret_key, secure=False)
-  data = minio_client.get_object(s3_data['bucket'], s3_data['key'])
-  with open(output_path, 'wb') as file:
-    for d in data.stream(32*1024):
-      file.write(d)
+  try:
+    for key in workflow_json['status']['nodes'].keys():
+      if step_name in workflow_json['status']['nodes'][key]['name']:
+        s3_data = workflow_json['status']['nodes'][key]['outputs']['artifacts'][0]['s3']
+    minio_client = Minio(s3_data['endpoint'], access_key=minio_access_key, secret_key=minio_secret_key, secure=False)
+    data = minio_client.get_object(s3_data['bucket'], s3_data['key'])
+    with open(output_path, 'wb') as file:
+      for d in data.stream(32*1024):
+        file.write(d)
+  except Exception as e:
+    print('error in get_artifact_in_minio: %s', e)
+    print(workflow_json)
 
 # Junit xml utilities
 def add_junit_test(test_cases, testname, succ, message='default message', elapsed_sec=0):
