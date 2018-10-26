@@ -19,10 +19,12 @@ import {
   createRuntimeGraph,
   getNodeInputOutputParams,
   getOutboundNodes,
+  getWorkflowError,
   loadAllOutputPaths,
   loadNodeOutputPaths,
   parseStoragePath,
 } from './WorkflowParser';
+import { NodePhase } from '../pages/Status';
 
 describe('WorkflowParser', () => {
   describe('createRuntimeGraph', () => {
@@ -601,5 +603,53 @@ describe('WorkflowParser', () => {
         }
       } as any, 'node1')).toEqual(['node4', 'node3']);
     });
+  });
+
+  describe('getWorkflowError', () => {
+    it('handles undefined workflow', () => {
+      expect(getWorkflowError(undefined as any)).toEqual('');
+    });
+
+    it('handles empty workflow', () => {
+      expect(getWorkflowError({} as any)).toEqual('');
+    });
+
+    it('handles empty status workflow', () => {
+      expect(getWorkflowError({ status: {} } as any)).toEqual('');
+    });
+
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.SKIPPED, NodePhase.SUCCEEDED].map(phase => {
+      it('returns empty string for workflow with no message and phase: ' + phase, () => {
+        expect(getWorkflowError({ status: { phase } } as any)).toEqual('');
+      });
+    });
+
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.SKIPPED, NodePhase.SUCCEEDED].map(phase => {
+      it('returns empty string for workflow with a message and phase: ' + phase, () => {
+        expect(getWorkflowError({ status: { message: 'woops!', phase } } as any)).toEqual('');
+      });
+    });
+
+    [NodePhase.ERROR, NodePhase.FAILED].map(phase => {
+      it('returns message string for workflow with no message and phase: ' + phase, () => {
+        expect(getWorkflowError({
+          status: {
+            phase,
+          },
+        } as any)).toEqual('Run failed for an unknown reason');
+      });
+    });
+
+    [NodePhase.ERROR, NodePhase.FAILED].map(phase => {
+      it('returns message string for workflow with a message and phase: ' + phase, () => {
+        expect(getWorkflowError({
+          status: {
+            message: 'woops!',
+            phase,
+          },
+        } as any)).toEqual('woops!');
+      });
+    });
+
   });
 });

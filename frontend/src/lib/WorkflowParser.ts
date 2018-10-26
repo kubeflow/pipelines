@@ -214,3 +214,13 @@ export function getOutboundNodes(graph: Workflow, nodeId: string): string[] {
 export function isVirtual(node: NodeStatus): boolean {
   return (node.type === 'StepGroup' || node.type === 'DAG') && !!node.boundaryID;
 }
+
+// Returns a workflow-level error string if found, empty string if none
+export function getWorkflowError(workflow: Workflow): string {
+  if (workflow && workflow.status && (
+    workflow.status.phase === NodePhase.ERROR || workflow.status.phase === NodePhase.FAILED)) {
+    return workflow.status.message || 'Run failed for an unknown reason';
+  } else {
+    return '';
+  }
+}

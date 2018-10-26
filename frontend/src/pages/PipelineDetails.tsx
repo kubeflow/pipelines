@@ -243,7 +243,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
                     </Resizable>
                   </Slide>
                 </div>}
-                {!this.state.graph && <span>No graph to show</span> /*TODO: proper error experience*/}
+                {!this.state.graph && <span style={{margin: '40px auto'}}>No graph to show</span>}
               </div>}
               {selectedTab === 1 &&
                 <div className={css.containerCss}>

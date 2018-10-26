@@ -263,7 +263,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
                     </Resizable>
                   </Slide>
                 </div>}
-                {!graph && <span>No graph to show</span> /*TODO: proper error experience*/}
+                {!graph && <span style={{margin: '40px auto'}}>No graph to show</span>}
               </div>}
 
               {selectedTab === 1 && <div className={padding()}>
@@ -298,7 +298,21 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     try {
       const runDetail = await Apis.runServiceApi.getRunV2(runId);
       const job = await Apis.jobServiceApi.getJob(runDetail.run!.job_id!);
-      const [runMetadata, workflow] = [runDetail.run, JSON.parse(runDetail.workflow || '{}')];
+      const runMetadata = runDetail.run;
+      const workflow = JSON.parse(runDetail.workflow || '{}') as Workflow;
+
+      // Show workflow errors
+      const workflowError = WorkflowParser.getWorkflowError(workflow);
+      if (workflowError) {
+        this.props.updateBanner({
+          additionalInfo: workflowError,
+          message: `Error: found errors when executing run: ${runId}.`
+            + (workflowError ? ' Click Details for more information.' : ''),
+          mode: 'error',
+          refresh: this._loadRun.bind(this)
+        });
+      }
+
       // Build runtime graph
       const graph = workflow && workflow.status && workflow.status.nodes ?
         WorkflowParser.createRuntimeGraph(workflow) : undefined;
@@ -313,7 +327,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
       this.props.updateBanner({
         additionalInfo: err.message,
         message: `Error: failed to retrieve run: ${runId}.`
-            + (err.message ? ' Click Details for more information.' : ''),
+          + (err.message ? ' Click Details for more information.' : ''),
         mode: 'error',
         refresh: this._loadRun.bind(this)
       });
@@ -331,9 +345,9 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
       const node = workflow.status.nodes[selectedNodeDetails.id];
-      if (node && selectedNodeDetails.phaseMessage) {
+      if (node && node.message) {
         selectedNodeDetails.phaseMessage =
-          `This step is in ${node.phase} state: ` + node.message;
+          `This step is in ${node.phase} state with this message: ` + node.message;
         this.setState({ selectedNodeDetails });
       }
     }
@@ -389,7 +403,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
       this.setState({
         logsBannerAdditionalInfo: err.message,
         logsBannerMessage: 'Error: failed to retrieve logs.'
-            + (err.message ? ' Click Details for more information.' : ''),
+          + (err.message ? ' Click Details for more information.' : ''),
         logsBannerMode: 'error',
       });
       logger.error('Error loading logs for node:', selectedNodeDetails.id);
