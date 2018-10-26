@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Apis } from '../lib/Apis';
 import * as React from 'react';
 import * as WorkflowParser from '../lib/WorkflowParser';
 import Button from '@material-ui/core/Button';
@@ -26,10 +25,10 @@ import Hr from '../atoms/Hr';
 import PlotCard, { PlotCardProps } from '../components/PlotCard';
 import RunList from './RunList';
 import Separator from '../atoms/Separator';
-import { BannerProps } from '../components/Banner';
-import { RouteComponentProps } from 'react-router';
+import { ApiRunDetail } from '../apis/run';
+import { Apis } from '../lib/Apis';
+import { Page } from './Page';
 import { RoutePage } from '../components/Router';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -39,7 +38,6 @@ import { componentMap } from '../components/viewers/ViewerContainer';
 import { countBy, flatten } from 'lodash';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { logger } from '../lib/Utils';
-import { ApiRunDetail } from '../apis/run';
 
 const css = stylesheet({
   collapseBtn: {
@@ -61,12 +59,6 @@ interface TaggedViewerConfig {
   runName: string;
 }
 
-interface CompareProps extends RouteComponentProps {
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
-}
-
 interface CompareState {
   collapseSections: { [key: string]: boolean };
   fullscreenViewerConfig: PlotCardProps | null;
@@ -82,26 +74,7 @@ interface CompareState {
 const overviewSectionName = 'overview';
 const paramsSectionName = 'parameters';
 
-class Compare extends React.Component<CompareProps, CompareState> {
-
-  private _toolbarActions: ToolbarActionConfig[] = [
-    {
-      action: () => this.setState({ collapseSections: {} }),
-      disabled: false,
-      icon: ExpandIcon,
-      id: 'expandBtn',
-      title: 'Expand all',
-      tooltip: 'Expand all sections',
-    },
-    {
-      action: this._collapseAllSections.bind(this),
-      disabled: false,
-      icon: CollapseIcon,
-      id: 'collapseBtn',
-      title: 'Collapse all',
-      tooltip: 'Collapse all sections',
-    },
-  ];
+class Compare extends Page<{}, CompareState> {
 
   constructor(props: any) {
     super(props);
@@ -119,22 +92,31 @@ class Compare extends React.Component<CompareProps, CompareState> {
     };
   }
 
-  public componentWillMount() {
-    this.props.updateToolbar({
-      actions: this._toolbarActions,
+  public getInitialToolbarState() {
+    return {
+      actions: [
+        {
+          action: () => this.setState({ collapseSections: {} }),
+          disabled: false,
+          icon: ExpandIcon,
+          id: 'expandBtn',
+          title: 'Expand all',
+          tooltip: 'Expand all sections',
+        },
+        {
+          action: this._collapseAllSections.bind(this),
+          disabled: false,
+          icon: CollapseIcon,
+          id: 'collapseBtn',
+          title: 'Collapse all',
+          tooltip: 'Collapse all sections',
+        },
+      ],
       breadcrumbs: [
         { displayName: 'Jobs', href: RoutePage.JOBS },
         { displayName: 'Compare runs', href: '' },
       ],
-    });
-  }
-
-  public componentDidMount() {
-    this._loadRuns();
-  }
-
-  public componentWillUnmount() {
-    this.props.updateBanner({});
+    };
   }
 
   public render() {
@@ -238,7 +220,7 @@ class Compare extends React.Component<CompareProps, CompareState> {
     </div>);
   }
 
-  private async _loadRuns() {
+  public async load() {
     const runIdsQuery = new URLParser(this.props).get(QUERY_PARAMS.runlist).split(',');
     const runs: ApiRunDetail[] = [];
     const workflowObjects: Workflow[] = [];
@@ -260,7 +242,7 @@ class Compare extends React.Component<CompareProps, CompareState> {
         additionalInfo: `The last error was:\n\n${lastError}`,
         message: `Error: failed loading ${failingRuns.length} runs. Click Details for more information.`,
         mode: 'error',
-        refresh: this._loadRuns.bind(this),
+        refresh: this.load.bind(this),
       });
       logger.error(`Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`);
       return;
@@ -342,7 +324,7 @@ class Compare extends React.Component<CompareProps, CompareState> {
       additionalInfo: error.message,
       message,
       mode: 'error',
-      refresh: this._loadRuns.bind(this),
+      refresh: this.load.bind(this),
     });
   }
 }

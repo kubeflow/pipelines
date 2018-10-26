@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Apis } from '../lib/Apis';
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
@@ -24,24 +23,14 @@ import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
 import { ApiJob, ApiTrigger } from '../apis/job';
 import { ApiPipeline } from '../apis/pipeline';
-import { BannerProps } from '../components/Banner';
-import { DialogProps, RoutePage } from '../components/Router';
-import { RouteComponentProps } from 'react-router';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
-import { ToolbarProps } from '../components/Toolbar';
+import { Apis } from '../lib/Apis';
+import { Page } from './Page';
+import { RoutePage } from '../components/Router';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
-
-interface NewJobProps extends RouteComponentProps {
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateDialog: (dialogProps: DialogProps) => void;
-  updateSnackbar: (snackbarProps: SnackbarProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
-}
 
 interface NewJobState {
   description: string;
@@ -60,7 +49,7 @@ const css = stylesheet({
   },
 });
 
-class NewJob extends React.Component<NewJobProps, NewJobState> {
+class NewJob extends Page<{}, NewJobState> {
 
   private _jobNameRef = React.createRef<HTMLInputElement>();
 
@@ -79,22 +68,14 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
     };
   }
 
-  public componentWillMount() {
-    this.props.updateToolbar({
+  public getInitialToolbarState() {
+    return {
       actions: [],
       breadcrumbs: [
         { displayName: 'Jobs', href: RoutePage.JOBS },
         { displayName: 'New job', href: RoutePage.NEW_JOB }
-      ]
-    });
-  }
-
-  public componentDidMount() {
-    this._load();
-  }
-
-  public componentWillUnmount() {
-    this.props.updateBanner({});
+      ],
+    };
   }
 
   public render() {
@@ -149,6 +130,87 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
         </div>
       </div>
     );
+  }
+
+  public async load() {
+    let response;
+    try {
+      response = await Apis.pipelineServiceApi.listPipelines(undefined, 25);
+    } catch (err) {
+      this._handlePageError(
+        'Error: failed to fetch pipelines.', err.message, this.load.bind(this));
+      logger.error(`Cannot get the original job's data`);
+      // Nothing else to do here if we couldn't load any pipelines
+      return;
+    }
+    const pipelines = response.pipelines || [];
+    this.setState({ pipelines });
+
+    // Get clone job id from querystring if any
+    const urlParser = new URLParser(this.props);
+    const originalJobId = urlParser.get(QUERY_PARAMS.cloneFromJob);
+    const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
+    if (originalJobId) {
+      try {
+        const job = await Apis.jobServiceApi.getJob(originalJobId);
+        const pipelineIndex = pipelines.findIndex(p => p.id === job.pipeline_id);
+        if (pipelineIndex === -1) {
+          this._handlePageError(
+            `Error: failed to find a pipeline corresponding to that of the original job: ${originalJobId}.`);
+          logger.error(`Cannot get the original job's data`);
+          return;
+        }
+        pipelines[pipelineIndex].parameters = job.parameters;
+        this.setState({
+          jobName: this._getCloneName(job.name!),
+          pipelineId: job.pipeline_id!,
+          pipelines,
+        }, () => this._jobNameRef.current!.select());
+        urlParser.clear(QUERY_PARAMS.pipelineId);
+      } catch (err) {
+        this._handlePageError(`Error: failed to get original job: ${originalJobId}.`, err);
+        logger.error(`Failed to get original job ${originalJobId}`, err);
+      }
+      // Get the original run's id from querystring if any, get its job, and copy pipeline id and
+      // parameters
+    } else if (originalRunId) {
+      try {
+        const runDetails = await Apis.runServiceApi.getRunV2(originalRunId);
+        const job = await Apis.jobServiceApi.getJob(runDetails.run!.job_id!);
+        const pipelineIndex = pipelines.findIndex(p => p.id === job.pipeline_id);
+        if (pipelineIndex === -1) {
+          this._handlePageError(`Error: failed to find a pipeline corresponding to that of the original run: ${originalRunId}.`);
+          logger.error(`Cannot get the original run's data`);
+          return;
+        }
+
+        const workflow = JSON.parse(runDetails.workflow || '{}') as Workflow;
+        if (workflow.spec.arguments) {
+          pipelines[pipelineIndex].parameters = workflow.spec.arguments.parameters;
+        }
+
+        this.setState({
+          jobName: this._getCloneName(job.name!),
+          pipelineId: job.pipeline_id!,
+          pipelines,
+        }, () => this._jobNameRef.current!.select());
+      } catch (err) {
+        this._handlePageError(`Error: failed to get original run: ${originalRunId}.`, err);
+        logger.error(`Failed to get original run ${originalRunId}`, err);
+      }
+    } else {
+      // Get pipeline id from querystring if any
+      let possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
+      if (!pipelines.find(p => p.id === possiblePipelineId)) {
+        possiblePipelineId = '';
+        urlParser.clear(QUERY_PARAMS.pipelineId);
+      }
+      this.setState({
+        pipelineId: possiblePipelineId,
+      });
+    }
+
+    this._validate();
   }
 
   public handleChange = (name: string) => (event: any) => {
@@ -230,87 +292,6 @@ class NewJob extends React.Component<NewJobProps, NewJobState> {
       const cloneNumber = match[1] ? +match[1] : 1;
       return `Clone (${cloneNumber + 1}) of ${match[2]}`;
     }
-  }
-
-  private async _load() {
-    let response;
-    try {
-      response = await Apis.pipelineServiceApi.listPipelines(undefined, 25);
-    } catch (err) {
-      this._handlePageError(
-        'Error: failed to fetch pipelines.', err.message, this._load.bind(this));
-      logger.error(`Cannot get the original job's data`);
-      // Nothing else to do here if we couldn't load any pipelines
-      return;
-    }
-    const pipelines = response.pipelines || [];
-    this.setState({ pipelines });
-
-    // Get clone job id from querystring if any
-    const urlParser = new URLParser(this.props);
-    const originalJobId = urlParser.get(QUERY_PARAMS.cloneFromJob);
-    const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
-    if (originalJobId) {
-      try {
-        const job = await Apis.jobServiceApi.getJob(originalJobId);
-        const pipelineIndex = pipelines.findIndex(p => p.id === job.pipeline_id);
-        if (pipelineIndex === -1) {
-          this._handlePageError(
-            `Error: failed to find a pipeline corresponding to that of the original job: ${originalJobId}.`);
-          logger.error(`Cannot get the original job's data`);
-          return;
-        }
-        pipelines[pipelineIndex].parameters = job.parameters;
-        this.setState({
-          jobName: this._getCloneName(job.name!),
-          pipelineId: job.pipeline_id!,
-          pipelines,
-        }, () => this._jobNameRef.current!.select());
-        urlParser.clear(QUERY_PARAMS.pipelineId);
-      } catch (err) {
-        this._handlePageError(`Error: failed to get original job: ${originalJobId}.`, err);
-        logger.error(`Failed to get original job ${originalJobId}`, err);
-      }
-      // Get the original run's id from querystring if any, get its job, and copy pipeline id and
-      // parameters
-    } else if (originalRunId) {
-      try {
-        const runDetails = await Apis.runServiceApi.getRunV2(originalRunId);
-        const job = await Apis.jobServiceApi.getJob(runDetails.run!.job_id!);
-        const pipelineIndex = pipelines.findIndex(p => p.id === job.pipeline_id);
-        if (pipelineIndex === -1) {
-          this._handlePageError(`Error: failed to find a pipeline corresponding to that of the original run: ${originalRunId}.`);
-          logger.error(`Cannot get the original run's data`);
-          return;
-        }
-
-        const workflow = JSON.parse(runDetails.workflow || '{}') as Workflow;
-        if (workflow.spec.arguments) {
-          pipelines[pipelineIndex].parameters = workflow.spec.arguments.parameters;
-        }
-
-        this.setState({
-          jobName: this._getCloneName(job.name!),
-          pipelineId: job.pipeline_id!,
-          pipelines,
-        }, () => this._jobNameRef.current!.select());
-      } catch (err) {
-        this._handlePageError(`Error: failed to get original run: ${originalRunId}.`, err);
-        logger.error(`Failed to get original run ${originalRunId}`, err);
-      }
-    } else {
-      // Get pipeline id from querystring if any
-      let possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
-      if (!pipelines.find(p => p.id === possiblePipelineId)) {
-        possiblePipelineId = '';
-        urlParser.clear(QUERY_PARAMS.pipelineId);
-      }
-      this.setState({
-        pipelineId: possiblePipelineId,
-      });
-    }
-
-    this._validate();
   }
 
   private _handlePageError(message: string, error?: Error, refreshFunc?: () => void): void {

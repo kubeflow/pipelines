@@ -17,6 +17,8 @@ exports[`AllRunsList disables clone button and enables compare button when multi
     selectedIds={Array []}
     toolbarProps={Object {}}
     updateBanner={[MockFunction]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
     updateToolbar={
       [MockFunction] {
         "calls": Array [
@@ -118,6 +120,8 @@ exports[`AllRunsList enables clone button when one run is selected 1`] = `
     selectedIds={Array []}
     toolbarProps={Object {}}
     updateBanner={[MockFunction]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
     updateToolbar={
       [MockFunction] {
         "calls": Array [
@@ -255,6 +259,8 @@ exports[`AllRunsList renders all runs 1`] = `
       }
     }
     updateBanner={[MockFunction]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
     updateToolbar={[MockFunction]}
   />
 </div>

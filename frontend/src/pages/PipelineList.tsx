@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Apis, PipelineSortKeys, BaseListRequest, ListPipelinesRequest } from '../lib/Apis';
 import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row } from '../components/CustomTable';
@@ -23,24 +22,14 @@ import RefreshIcon from '@material-ui/icons/Refresh';
 import UploadIcon from '@material-ui/icons/CloudUpload';
 import UploadPipelineDialog from '../components/UploadPipelineDialog';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
-import { BannerProps } from '../components/Banner';
-import { DialogProps, RoutePage, RouteParams } from '../components/Router';
+import { Apis, PipelineSortKeys, BaseListRequest, ListPipelinesRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
-import { RouteComponentProps } from 'react-router';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { Page } from './Page';
+import { RoutePage, RouteParams } from '../components/Router';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
-
-interface PipelineListProps extends RouteComponentProps {
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateDialog: (dialogProps: DialogProps) => void;
-  updateSnackbar: (snackbarProps: SnackbarProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
-}
 
 interface PipelineListState {
   orderAscending: boolean;
@@ -52,51 +41,7 @@ interface PipelineListState {
   uploadDialogOpen: boolean;
 }
 
-class PipelineList extends React.Component<PipelineListProps, PipelineListState> {
-
-  private _toolbarActions: ToolbarActionConfig[] = [
-    {
-      action: () => this.setState({ uploadDialogOpen: true }),
-      disabled: false,
-      icon: UploadIcon,
-      id: 'uploadBtn',
-      title: 'Upload pipeline',
-      tooltip: 'Upload pipeline',
-    },
-    {
-      action: this._createJob.bind(this),
-      disabled: true,
-      disabledTitle: 'Select a pipeline to create a job',
-      icon: AddIcon,
-      id: 'createJobBtn',
-      title: 'Create job',
-      tooltip: 'Create job',
-    },
-    {
-      action: () => this._loadPipelines(),
-      disabled: false,
-      icon: RefreshIcon,
-      id: 'refreshBtn',
-      title: 'Refresh',
-      tooltip: 'Refresh',
-    },
-    {
-      action: () => this.props.updateDialog({
-        buttons: [
-          { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-          { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-        ],
-        onClose: () => this._deleteDialogClosed(false),
-        title: `Delete ${this.state.selectedIds.length} Pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
-      }),
-      disabled: true,
-      disabledTitle: 'Select at least one pipeline to delete',
-      icon: DeleteIcon,
-      id: 'deleteBtn',
-      title: 'Delete',
-      tooltip: 'Delete',
-    },
-  ];
+class PipelineList extends Page<{}, PipelineListState> {
 
   constructor(props: any) {
     super(props);
@@ -112,14 +57,53 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
     };
   }
 
-  public componentWillMount() {
-    this.props.updateToolbar({
-      actions: this._toolbarActions,
-      breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }] });
-  }
-
-  public componentWillUnmount() {
-    this.props.updateBanner({});
+  public getInitialToolbarState() {
+    return {
+      actions: [
+        {
+          action: () => this.setState({ uploadDialogOpen: true }),
+          disabled: false,
+          icon: UploadIcon,
+          id: 'uploadBtn',
+          title: 'Upload pipeline',
+          tooltip: 'Upload pipeline',
+        },
+        {
+          action: this._createJob.bind(this),
+          disabled: true,
+          disabledTitle: 'Select a pipeline to create a job',
+          icon: AddIcon,
+          id: 'createJobBtn',
+          title: 'Create job',
+          tooltip: 'Create job',
+        },
+        {
+          action: () => this.load(),
+          disabled: false,
+          icon: RefreshIcon,
+          id: 'refreshBtn',
+          title: 'Refresh',
+          tooltip: 'Refresh',
+        },
+        {
+          action: () => this.props.updateDialog({
+            buttons: [
+              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+            ],
+            onClose: () => this._deleteDialogClosed(false),
+            title: `Delete ${this.state.selectedIds.length} Pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
+          }),
+          disabled: true,
+          disabledTitle: 'Select at least one pipeline to delete',
+          icon: DeleteIcon,
+          id: 'deleteBtn',
+          title: 'Delete',
+          tooltip: 'Delete',
+        },
+      ],
+      breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
+    };
   }
 
   public render(): JSX.Element {
@@ -146,13 +130,17 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
         <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
           pageSize={this.state.pageSize} sortBy={this.state.sortBy}
           updateSelection={this._selectionChanged.bind(this)} selectedIds={this.state.selectedIds}
-          reload={this._loadPipelines.bind(this)}
+          reload={this._reload.bind(this)}
           emptyMessage='No pipelines found. Click "Upload pipeline" to start.' />
 
         <UploadPipelineDialog open={this.state.uploadDialogOpen}
           onClose={this._uploadDialogClosed.bind(this)} />
       </div>
     );
+  }
+
+  public async load(): Promise<void> {
+    await this._reload();
   }
 
   private _showErrorDialog(title: string, content: string): void {
@@ -163,7 +151,7 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
     });
   }
 
-  private async _loadPipelines(loadRequest?: BaseListRequest): Promise<string> {
+  private async _reload(loadRequest?: BaseListRequest): Promise<string> {
     // Override the current state with incoming request
     const request: ListPipelinesRequest = Object.assign({
       orderAscending: this.state.orderAscending,
@@ -186,7 +174,7 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
         message: 'Error: failed to retrieve list of pipelines.'
           + (err.message ? ' Click Details for more information.' : ''),
         mode: 'error',
-        refresh: this._loadPipelines.bind(this),
+        refresh: this.load.bind(this),
       });
       // No point in continuing if we couldn't retrieve the pipelines.
       return '';
@@ -216,7 +204,7 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
     const toolbarActions = [...this.props.toolbarProps.actions];
     toolbarActions[1].disabled = selectedIds.length !== 1;
     toolbarActions[3].disabled = !selectedIds.length;
-    this.props.updateToolbar({breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions});
+    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }
 
@@ -242,13 +230,13 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
           message: `Successfully deleted ${successfulDeletes} pipeline${successfulDeletes === 1 ? '' : 's'}!`,
           open: true,
         });
-        this._loadPipelines();
+        this.load();
       }
 
       if (unsuccessfulDeleteIds.length > 0) {
         this._showErrorDialog(
-            `Failed to delete ${unsuccessfulDeleteIds.length} pipeline${unsuccessfulDeleteIds.length === 1 ? '' : 's'}`,
-            errorMessages.join('\n\n'));
+          `Failed to delete ${unsuccessfulDeleteIds.length} pipeline${unsuccessfulDeleteIds.length === 1 ? '' : 's'}`,
+          errorMessages.join('\n\n'));
       }
 
       this._selectionChanged(unsuccessfulDeleteIds);
@@ -268,7 +256,7 @@ class PipelineList extends React.Component<PipelineListProps, PipelineListState>
       try {
         await Apis.uploadPipeline(name, file);
         this.setState({ uploadDialogOpen: false });
-        this._loadPipelines();
+        this.load();
         return true;
       } catch (err) {
         this._showErrorDialog('Failed to upload pipeline', err.message);

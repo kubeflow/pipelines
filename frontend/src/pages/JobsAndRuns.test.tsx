@@ -15,24 +15,39 @@
  */
 
 import * as React from 'react';
-import JobsAndRuns, { JobsAndRunsTab } from './JobsAndRuns';
+import JobsAndRuns, { JobsAndRunsTab, JobsAndRunsProps } from './JobsAndRuns';
 import { shallow } from 'enzyme';
+
+function generateProps(): JobsAndRunsProps {
+  return {
+    history: {} as any,
+    location: '' as any,
+    match: '' as any,
+    toolbarProps: {} as any,
+    updateBanner: () => null,
+    updateDialog: jest.fn(),
+    updateSnackbar: jest.fn(),
+    updateToolbar: () => null,
+    view: JobsAndRunsTab.JOBS,
+  };
+}
 
 describe('JobsAndRuns', () => {
   it('renders jobs page', () => {
-    const routerProps = { view: JobsAndRunsTab.JOBS, someOtherProps: 'any' };
-    expect(shallow(<JobsAndRuns {...routerProps as any} />)).toMatchSnapshot();
+    expect(shallow(<JobsAndRuns {...generateProps() as any} />)).toMatchSnapshot();
   });
 
   it('renders runs page', () => {
-    const routerProps = { view: JobsAndRunsTab.RUNS, someOtherProps: 'any' };
-    expect(shallow(<JobsAndRuns {...routerProps as any} />)).toMatchSnapshot();
+    const props = generateProps();
+    props.view = JobsAndRunsTab.RUNS;
+    expect(shallow(<JobsAndRuns {...props as any} />)).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {
     const spy = jest.fn();
-    const routerProps = { view: JobsAndRunsTab.JOBS, history: { push: spy } };
-    const tree = shallow(<JobsAndRuns {...routerProps as any} />);
+    const props = generateProps();
+    props.history.push = spy;
+    const tree = shallow(<JobsAndRuns {...props as any} />);
 
     tree.find('MD2Tabs').simulate('switch', 1);
     expect(spy).toHaveBeenCalledWith('/runs');

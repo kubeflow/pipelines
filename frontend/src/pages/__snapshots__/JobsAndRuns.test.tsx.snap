@@ -15,7 +15,14 @@ exports[`JobsAndRuns renders jobs page 1`] = `
     }
   />
   <JobList
-    someOtherProps="any"
+    history={Object {}}
+    location=""
+    match=""
+    toolbarProps={Object {}}
+    updateBanner={[Function]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
+    updateToolbar={[Function]}
     view={0}
   />
 </div>
@@ -36,7 +43,14 @@ exports[`JobsAndRuns renders runs page 1`] = `
     }
   />
   <AllRunsList
-    someOtherProps="any"
+    history={Object {}}
+    location=""
+    match=""
+    toolbarProps={Object {}}
+    updateBanner={[Function]}
+    updateDialog={[MockFunction]}
+    updateSnackbar={[MockFunction]}
+    updateToolbar={[Function]}
     view={1}
   />
 </div>

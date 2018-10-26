@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-import { Apis } from '../lib/Apis';
 import * as React from 'react';
 import * as WorkflowParser from '../lib/WorkflowParser';
-import { ApiJob } from '../apis/job';
-import { ApiRun } from '../apis/run';
-import Banner, { BannerProps, Mode } from '../components/Banner';
+import Banner, { Mode } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CloneIcon from '@material-ui/icons/FileCopy';
@@ -33,9 +30,11 @@ import PlotCard from '../components/PlotCard';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import Resizable from 're-resizable';
 import Slide from '@material-ui/core/Slide';
-import { RouteComponentProps } from 'react-router';
+import { ApiJob } from '../apis/job';
+import { ApiRun } from '../apis/run';
+import { Apis } from '../lib/Apis';
+import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -75,18 +74,15 @@ enum SidePaneTab {
   LOGS,
 }
 
-interface RunDetailsProps extends RouteComponentProps {
-  runId?: string;
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
-}
-
 interface SelectedNodeDetails {
   id: string;
   logs?: string;
   phaseMessage?: string;
   viewerConfigs?: ViewerConfig[];
+}
+
+interface RunDetailsProps {
+  runId?: string;
 }
 
 interface RunDetailsState {
@@ -103,26 +99,7 @@ interface RunDetailsState {
   workflow?: Workflow;
 }
 
-class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
-
-  private _toolbarActions: ToolbarActionConfig[] = [
-    {
-      action: this._cloneRun.bind(this),
-      disabled: false,
-      icon: CloneIcon,
-      id: 'cloneBtn',
-      title: 'Clone',
-      tooltip: 'Clone',
-    },
-    {
-      action: this._loadRun.bind(this),
-      disabled: false,
-      icon: RefreshIcon,
-      id: 'refreshBtn',
-      title: 'Refresh',
-      tooltip: 'Refresh',
-    },
-  ];
+class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
   constructor(props: any) {
     super(props);
@@ -138,19 +115,31 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     };
   }
 
-  public async componentWillMount(): Promise<void> {
-    this.props.updateToolbar({
-      actions: this._toolbarActions,
-      breadcrumbs: [{ displayName: 'Jobs', href: RoutePage.JOBS }],
-    });
-  }
-
-  public async componentDidMount(): Promise<void> {
-    await this._loadRun();
-  }
-
-  public componentWillUnmount() {
-    this.props.updateBanner({});
+  public getInitialToolbarState() {
+    return {
+      actions: [
+        {
+          action: this._cloneRun.bind(this),
+          disabled: false,
+          icon: CloneIcon,
+          id: 'cloneBtn',
+          title: 'Clone',
+          tooltip: 'Clone',
+        },
+        {
+          action: this.load.bind(this),
+          disabled: false,
+          icon: RefreshIcon,
+          id: 'refreshBtn',
+          title: 'Refresh',
+          tooltip: 'Refresh',
+        },
+      ],
+      breadcrumbs: [
+        { displayName: 'Jobs', href: RoutePage.JOBS },
+        { displayName: this.props.runId!, href: '' },
+      ],
+    };
   }
 
   public render() {
@@ -249,7 +238,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
                     </Resizable>
                   </Slide>
                 </div>}
-                {!graph && <span style={{margin: '40px auto'}}>No graph to show</span>}
+                {!graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>}
 
               {selectedTab === 1 && <div className={padding()}>
@@ -278,7 +267,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
     );
   }
 
-  private async _loadRun() {
+  public async load() {
     const runId = this.props.match.params[RouteParams.runId];
 
     try {
@@ -295,7 +284,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
           message: `Error: found errors when executing run: ${runId}.`
             + (workflowError ? ' Click Details for more information.' : ''),
           mode: 'error',
-          refresh: this._loadRun.bind(this)
+          refresh: this.load.bind(this)
         });
       }
 
@@ -312,7 +301,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
       ];
 
       // TODO: run status next to page name
-      this.props.updateToolbar({ actions: this._toolbarActions, breadcrumbs });
+      this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
 
       this.setState({
         graph,
@@ -326,7 +315,7 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
         message: `Error: failed to retrieve run: ${runId}.`
           + (err.message ? ' Click Details for more information.' : ''),
         mode: 'error',
-        refresh: this._loadRun.bind(this)
+        refresh: this.load.bind(this)
       });
       logger.error('Error loading run:', runId);
     }

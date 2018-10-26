@@ -15,28 +15,20 @@
  */
 
 import * as React from 'react';
-import { BannerProps } from '../components/Banner';
-import { ToolbarProps } from '../components/Toolbar';
-import { RouteComponentProps } from 'react-router';
-import { DialogProps, RoutePage } from '../components/Router';
+import AllRunsList from './AllRunsList';
+import JobList from './JobList';
+import MD2Tabs from '../atoms/MD2Tabs';
+import { Page, PageProps } from './Page';
+import { RoutePage } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
-import JobList from './JobList';
-import AllRunsList from './AllRunsList';
-import MD2Tabs from '../atoms/MD2Tabs';
 
 export enum JobsAndRunsTab {
   JOBS = 0,
   RUNS = 1,
 }
 
-interface JobAndRunsProps extends RouteComponentProps {
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateDialog: (dialogProps: DialogProps) => void;
-  updateSnackbar: (snackbarProps: SnackbarProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
+export interface JobsAndRunsProps extends PageProps {
   view: JobsAndRunsTab;
 }
 
@@ -44,7 +36,11 @@ interface JobAndRunsState {
   selectedTab: JobsAndRunsTab;
 }
 
-class JobsAndRuns extends React.Component<JobAndRunsProps, JobAndRunsState> {
+class JobsAndRuns extends Page<JobsAndRunsProps, JobAndRunsState> {
+
+  public getInitialToolbarState() {
+    return { actions: [], breadcrumbs: [] };
+  }
 
   public render() {
     return (
@@ -60,6 +56,10 @@ class JobsAndRuns extends React.Component<JobAndRunsProps, JobAndRunsState> {
         )}
       </div>
     );
+  }
+
+  public async load(): Promise<void> {
+    return;
   }
 
   private _tabSwitched(newTab: JobsAndRunsTab) {

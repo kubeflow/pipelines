@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { Apis, JobSortKeys, BaseListRequest, ListJobsRequest } from '../lib/Apis';
 import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CloneIcon from '@material-ui/icons/FileCopy';
@@ -22,19 +21,17 @@ import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable
 import DeleteIcon from '@material-ui/icons/Delete';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import RunList from './RunList';
+import { ApiListJobsResponse, ApiJob } from '../apis/job';
 import { ApiRun } from '../apis/run';
-import { BannerProps } from '../components/Banner';
-import { DialogProps, RoutePage, RouteParams } from '../components/Router';
+import { Apis, JobSortKeys, BaseListRequest, ListJobsRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
-import { RouteComponentProps } from 'react-router';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { Page } from './Page';
+import { RoutePage, RouteParams } from '../components/Router';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger, getLastInStatusList } from '../lib/Utils';
 import { statusToIcon, NodePhase } from './Status';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
-import { ApiListJobsResponse, ApiJob } from '../apis/job';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 
 interface DisplayJob extends ApiJob {
@@ -42,14 +39,6 @@ interface DisplayJob extends ApiJob {
   pipelineName?: string;
   error?: string;
   expandState?: ExpandState;
-}
-
-interface JobListProps extends RouteComponentProps {
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateDialog: (dialogProps: DialogProps) => void;
-  updateSnackbar: (snackbarProps: SnackbarProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
 }
 
 interface JobListState {
@@ -62,51 +51,7 @@ interface JobListState {
   sortBy: string;
 }
 
-class JobList extends React.Component<JobListProps, JobListState> {
-
-  private _toolbarActions: ToolbarActionConfig[] = [
-    {
-      action: this._newJobClicked.bind(this),
-      disabled: false,
-      icon: AddIcon,
-      id: 'newJobBtn',
-      title: 'New job',
-      tooltip: 'New job',
-    },
-    {
-      action: this._loadJobs.bind(this),
-      disabled: false,
-      icon: RefreshIcon,
-      id: 'refreshBtn',
-      title: 'Refresh',
-      tooltip: 'Refresh',
-    },
-    {
-      action: this._cloneJob.bind(this),
-      disabled: true,
-      disabledTitle: 'Select a job to clone',
-      icon: CloneIcon,
-      id: 'cloneBtn',
-      title: 'Clone',
-      tooltip: 'Clone',
-    },
-    {
-      action: () => this.props.updateDialog({
-        buttons: [
-          { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-          { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-        ],
-        onClose: () => this._deleteDialogClosed(false),
-        title: `Delete ${this.state.selectedJobIds.length} job${this.state.selectedJobIds.length === 1 ? '' : 's'}?`,
-      }),
-      disabled: true,
-      disabledTitle: 'Select at least one job to delete',
-      icon: DeleteIcon,
-      id: 'deleteBtn',
-      title: 'Delete',
-      tooltip: 'Delete',
-    },
-  ];
+class JobList extends Page<{}, JobListState> {
 
   constructor(props: any) {
     super(props);
@@ -122,12 +67,53 @@ class JobList extends React.Component<JobListProps, JobListState> {
     };
   }
 
-  public componentWillMount() {
-    this.props.updateToolbar({ actions: this._toolbarActions, breadcrumbs: [{ displayName: 'Jobs', href: RoutePage.JOBS }] });
-  }
-
-  public componentWillUnmount() {
-    this.props.updateBanner({});
+  public getInitialToolbarState() {
+    return {
+      actions: [
+        {
+          action: this._newJobClicked.bind(this),
+          disabled: false,
+          icon: AddIcon,
+          id: 'newJobBtn',
+          title: 'New job',
+          tooltip: 'New job',
+        },
+        {
+          action: this.load.bind(this),
+          disabled: false,
+          icon: RefreshIcon,
+          id: 'refreshBtn',
+          title: 'Refresh',
+          tooltip: 'Refresh',
+        },
+        {
+          action: this._cloneJob.bind(this),
+          disabled: true,
+          disabledTitle: 'Select a job to clone',
+          icon: CloneIcon,
+          id: 'cloneBtn',
+          title: 'Clone',
+          tooltip: 'Clone',
+        },
+        {
+          action: () => this.props.updateDialog({
+            buttons: [
+              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+            ],
+            onClose: () => this._deleteDialogClosed(false),
+            title: `Delete ${this.state.selectedJobIds.length} job${this.state.selectedJobIds.length === 1 ? '' : 's'}?`,
+          }),
+          disabled: true,
+          disabledTitle: 'Select at least one job to delete',
+          icon: DeleteIcon,
+          id: 'deleteBtn',
+          title: 'Delete',
+          tooltip: 'Delete',
+        },
+      ],
+      breadcrumbs: [{ displayName: 'Jobs', href: RoutePage.JOBS }],
+    };
   }
 
   public render() {
@@ -172,7 +158,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
           updateSelection={this._selectionChanged.bind(this)} sortBy={this.state.sortBy}
-          reload={this._loadJobs.bind(this)} selectedIds={this.state.selectedJobIds}
+          reload={this._reload.bind(this)} selectedIds={this.state.selectedJobIds}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           pageSize={this.state.pageSize} getExpandComponent={this._getExpandedJobComponent.bind(this)}
           emptyMessage='No jobs found. Click "New job" to start.' />
@@ -180,7 +166,11 @@ class JobList extends React.Component<JobListProps, JobListState> {
     );
   }
 
-  private async _loadJobs(loadRequest?: BaseListRequest): Promise<string> {
+  public async load(loadRequest?: BaseListRequest): Promise<void> {
+    await this._reload();
+  }
+
+  private async _reload(loadRequest?: BaseListRequest): Promise<string> {
     // Override the current state with incoming request
     const request: ListJobsRequest = Object.assign({
       orderAscending: this.state.orderAscending,
@@ -252,7 +242,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
       additionalInfo: error.message,
       message: message + (error.message ? ' Click Details for more information.' : ''),
       mode: 'error',
-      refresh: this._loadJobs.bind(this),
+      refresh: this.load.bind(this),
     });
   }
 
@@ -293,7 +283,7 @@ class JobList extends React.Component<JobListProps, JobListState> {
           message: `Successfully deleted ${successfulDeletes} job${successfulDeletes === 1 ? '' : 's'}!`,
           open: true,
         });
-        this._loadJobs();
+        this.load();
       }
 
       if (unsuccessfulDeleteIds.length > 0) {

@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import RunList, { RunListProp } from './RunList';
+import RunList, { RunListProps } from './RunList';
 import { Apis } from '../lib/Apis';
 import { shallow } from 'enzyme';
 import { ApiRun, ApiRunDetail } from '../apis/run';
@@ -23,11 +23,11 @@ jest.mock('../lib/Apis');
 
 describe('RunList', () => {
   const onErrorSpy = jest.fn();
-  function generateProps(): RunListProp {
+  function generateProps(): RunListProps {
     return {
       history: {} as any,
-      location: {} as any,
-      match: {} as any,
+      location: '' as any,
+      match: '' as any,
       onError: onErrorSpy,
     };
   }

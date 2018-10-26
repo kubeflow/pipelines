@@ -81,8 +81,13 @@ const css = stylesheet({
   },
 });
 
+export interface Breadcrumb {
+  displayName: string;
+  href: string;
+}
+
 export interface ToolbarProps {
-  breadcrumbs: Array<{ displayName: string, href: string }>;
+  breadcrumbs: Breadcrumb[];
   actions: ToolbarActionConfig[];
 }
 

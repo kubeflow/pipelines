@@ -15,9 +15,10 @@
  */
 
 import * as React from 'react';
-import AllRunsList, { AllRunsListProps } from './AllRunsList';
+import AllRunsList from './AllRunsList';
 import { RoutePage } from '../components/Router';
 import { shallow } from 'enzyme';
+import { PageProps } from './Page';
 
 describe('AllRunsList', () => {
   const updateBannerSpy = jest.fn();
@@ -26,12 +27,14 @@ describe('AllRunsList', () => {
     _toolbarProps = toolbarProps;
   });
   const historyPushSpy = jest.fn();
-  const props: AllRunsListProps = {
+  const props: PageProps = {
     history: { push: historyPushSpy } as any,
     location: '' as any,
     match: '' as any,
     toolbarProps: _toolbarProps,
     updateBanner: updateBannerSpy,
+    updateDialog: jest.fn(),
+    updateSnackbar: jest.fn(),
     updateToolbar: updateToolbarSpy,
   };
 

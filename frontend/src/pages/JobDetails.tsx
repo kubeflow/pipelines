@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import { BannerProps } from '../components/Banner';
 import CloneIcon from '@material-ui/icons/FileCopy';
 import CompareIcon from '@material-ui/icons/CompareArrows';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -26,25 +25,16 @@ import MD2Tabs from '../atoms/MD2Tabs';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import RunList from '../pages/RunList';
 import Separator from '../atoms/Separator';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
-import { RouteComponentProps } from 'react-router';
-import { DialogProps, RoutePage, RouteParams } from '../components/Router';
+import { ApiJob } from '../apis/job';
+import { Apis } from '../lib/Apis';
+import { Page } from './Page';
+import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarActionConfig } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, enabledDisplayString, logger } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
-import { ApiJob } from '../apis/job';
-import { Apis } from '../lib/Apis';
-
-interface JobDetailsProps extends RouteComponentProps {
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateDialog: (dialogProps: DialogProps) => void;
-  updateSnackbar: (snackbarProps: SnackbarProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
-}
 
 interface JobDetailsState {
   job: ApiJob | null;
@@ -52,72 +42,14 @@ interface JobDetailsState {
   selectedTab: number;
 }
 
-class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
+class JobDetails extends Page<{}, JobDetailsState> {
 
   private _runlistRef = React.createRef<RunList>();
-  private _toolbarActions: ToolbarActionConfig[] = [
-    {
-      action: this._compareRuns.bind(this),
-      disabled: true,
-      icon: CompareIcon,
-      id: 'compareBtn',
-      title: 'Compare runs',
-      tooltip: 'Compare up to 10 selected runs',
-    },
-    {
-      action: this._cloneJob.bind(this),
-      disabled: true,
-      icon: CloneIcon,
-      id: 'cloneBtn',
-      title: 'Clone',
-      tooltip: 'Clone this job',
-    },
-    {
-      action: this._loadJob.bind(this),
-      disabled: false,
-      icon: RefreshIcon,
-      id: 'refreshBtn',
-      title: 'Refresh',
-      tooltip: 'Refresh',
-    },
-    {
-      action: () => this._setEnabledState(true),
-      disabled: true,
-      disabledTitle: 'Job already enabled',
-      icon: EnableIcon,
-      id: 'enableBtn',
-      title: 'Enable',
-      tooltip: 'Enable the job\'s trigger',
-    },
-    {
-      action: () => this._setEnabledState(false),
-      disabled: true,
-      disabledTitle: 'Job already disabled',
-      icon: DisableIcon,
-      id: 'disableBtn',
-      title: 'Disable',
-      tooltip: 'Disable the job\'s trigger',
-    },
-    {
-      action: () => this.props.updateDialog({
-        buttons: [
-          { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-          { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-        ],
-        onClose: () => this._deleteDialogClosed(false),
-        title: 'Delete this job?',
-      }),
-      disabled: false,
-      icon: DeleteIcon,
-      id: 'deleteBtn',
-      title: 'Delete',
-      tooltip: 'Delete this job',
-    },
-  ];
 
   constructor(props: any) {
     super(props);
 
+    // TODO: job status next to page name
     this.state = {
       job: null,
       selectedRunIds: [],
@@ -125,20 +57,72 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
     };
   }
 
-  public componentWillMount() {
-    // TODO: job status next to page name
-    this.props.updateToolbar({
-      actions: this._toolbarActions,
-      breadcrumbs: [{ displayName: 'Jobs', href: RoutePage.JOBS }],
-    });
-  }
-
-  public componentDidMount() {
-    return this._loadJob();
-  }
-
-  public componentWillUnmount() {
-    this.props.updateBanner({});
+  public getInitialToolbarState() {
+    return {
+      actions: [
+        {
+          action: this._compareRuns.bind(this),
+          disabled: true,
+          icon: CompareIcon,
+          id: 'compareBtn',
+          title: 'Compare runs',
+          tooltip: 'Compare up to 10 selected runs',
+        },
+        {
+          action: this._cloneJob.bind(this),
+          disabled: true,
+          icon: CloneIcon,
+          id: 'cloneBtn',
+          title: 'Clone',
+          tooltip: 'Clone this job',
+        },
+        {
+          action: this.load.bind(this),
+          disabled: false,
+          icon: RefreshIcon,
+          id: 'refreshBtn',
+          title: 'Refresh',
+          tooltip: 'Refresh',
+        },
+        {
+          action: () => this._setEnabledState(true),
+          disabled: true,
+          disabledTitle: 'Job already enabled',
+          icon: EnableIcon,
+          id: 'enableBtn',
+          title: 'Enable',
+          tooltip: 'Enable the job\'s trigger',
+        },
+        {
+          action: () => this._setEnabledState(false),
+          disabled: true,
+          disabledTitle: 'Job already disabled',
+          icon: DisableIcon,
+          id: 'disableBtn',
+          title: 'Disable',
+          tooltip: 'Disable the job\'s trigger',
+        },
+        {
+          action: () => this.props.updateDialog({
+            buttons: [
+              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+            ],
+            onClose: () => this._deleteDialogClosed(false),
+            title: 'Delete this job?',
+          }),
+          disabled: false,
+          icon: DeleteIcon,
+          id: 'deleteBtn',
+          title: 'Delete',
+          tooltip: 'Delete this job',
+        },
+      ],
+      breadcrumbs: [
+        { displayName: 'Jobs', href: RoutePage.JOBS },
+        { displayName: this.props.match.params[RouteParams.jobId], href: '' }
+      ],
+    };
   }
 
   public render() {
@@ -199,7 +183,7 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
     );
   }
 
-  private async _loadJob() {
+  public async load() {
     const jobId = this.props.match.params[RouteParams.jobId];
 
     try {
@@ -229,7 +213,7 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
       additionalInfo: error.message,
       message: message + (error.message ? ' Click Details for more information.' : ''),
       mode: 'error',
-      refresh: this._loadJob.bind(this),
+      refresh: this.load.bind(this),
     });
 
     if (this._runlistRef.current) {
@@ -286,7 +270,7 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
       this._updateToolbar(toolbarActions);
       try {
         await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
-        this._loadJob();
+        this.load();
       } catch (err) {
         this._showErrorDialog(`Failed to ${enabled ? 'enable' : 'disable'} job`, err.message);
       } finally {

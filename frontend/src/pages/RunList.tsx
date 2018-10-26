@@ -17,9 +17,8 @@
 import { Apis, RunSortKeys, BaseListRequest, ListRunsRequest } from '../lib/Apis';
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
-import { Link } from 'react-router-dom';
+import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
-import { RouteComponentProps } from 'react-router';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss } from '../Css';
@@ -40,7 +39,7 @@ interface MetricMetadata {
   name: string;
 }
 
-export interface RunListProp extends RouteComponentProps {
+export interface RunListProps extends RouteComponentProps {
   disablePaging?: boolean;
   disableSelection?: boolean;
   disableSorting?: boolean;
@@ -60,7 +59,7 @@ interface RunListState {
   sortBy: string;
 }
 
-class RunList extends React.Component<RunListProp, RunListState> {
+class RunList extends React.Component<RunListProps, RunListState> {
 
   constructor(props: any) {
     super(props);

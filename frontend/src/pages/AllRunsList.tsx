@@ -19,54 +19,19 @@ import CloneIcon from '@material-ui/icons/FileCopy';
 import CompareIcon from '@material-ui/icons/CompareArrows';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import RunList from './RunList';
-import { BannerProps } from '../components/Banner';
+import { Page } from './Page';
 import { RoutePage } from '../components/Router';
-import { RouteComponentProps } from 'react-router';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-
-export interface AllRunsListProps extends RouteComponentProps {
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
-}
 
 interface AllRunsListState {
   selectedIds: string[];
 }
 
-class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
+class AllRunsList extends Page<{}, AllRunsListState> {
 
   private _runlistRef = React.createRef<RunList>();
-  private _toolbarActions: ToolbarActionConfig[] = [
-    {
-      action: this._compareRuns.bind(this),
-      disabled: true,
-      icon: CompareIcon,
-      id: 'compareBtn',
-      title: 'Compare runs',
-      tooltip: 'Compare up to 10 selected runs',
-    },
-    {
-      action: this._refresh.bind(this),
-      disabled: false,
-      icon: RefreshIcon,
-      id: 'refreshBtn',
-      title: 'Refresh',
-      tooltip: 'Refresh',
-    },
-    {
-      action: this._cloneRun.bind(this),
-      disabled: true,
-      disabledTitle: 'Select a run to clone',
-      icon: CloneIcon,
-      id: 'cloneBtn',
-      title: 'Clone',
-      tooltip: 'Clone',
-    },
-  ];
 
   constructor(props: any) {
     super(props);
@@ -76,15 +41,37 @@ class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
     };
   }
 
-  public componentWillMount() {
-    this.props.updateToolbar({
-      actions: this._toolbarActions,
-      breadcrumbs: [{ displayName: 'All runs', href: '' }]
-    });
-  }
-
-  public componentWillUnmount() {
-    this.props.updateBanner({});
+  public getInitialToolbarState() {
+    return {
+      actions: [
+        {
+          action: this._compareRuns.bind(this),
+          disabled: true,
+          icon: CompareIcon,
+          id: 'compareBtn',
+          title: 'Compare runs',
+          tooltip: 'Compare up to 10 selected runs',
+        },
+        {
+          action: this.load.bind(this),
+          disabled: false,
+          icon: RefreshIcon,
+          id: 'refreshBtn',
+          title: 'Refresh',
+          tooltip: 'Refresh',
+        },
+        {
+          action: this._cloneRun.bind(this),
+          disabled: true,
+          disabledTitle: 'Select a run to clone',
+          icon: CloneIcon,
+          id: 'cloneBtn',
+          title: 'Clone',
+          tooltip: 'Clone',
+        },
+      ],
+      breadcrumbs: [{ displayName: 'All runs', href: '' }],
+    };
   }
 
   public render() {
@@ -95,6 +82,13 @@ class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
     </div>;
   }
 
+  public async load() {
+    // Tell run list to refresh
+    if (this._runlistRef.current) {
+      await this._runlistRef.current.refresh();
+    }
+  }
+
   private _compareRuns() {
     const indices = this.state.selectedIds;
     if (indices.length > 1 && indices.length <= 10) {
@@ -103,13 +97,6 @@ class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
         [QUERY_PARAMS.runlist]: runIds,
       });
       this.props.history.push(RoutePage.COMPARE + searchString);
-    }
-  }
-
-  private async _refresh() {
-    // Tell run list to refresh
-    if (this._runlistRef.current) {
-      this._runlistRef.current.refresh();
     }
   }
 
@@ -126,7 +113,7 @@ class AllRunsList extends React.Component<AllRunsListProps, AllRunsListState> {
       additionalInfo: error.message,
       message,
       mode: 'error',
-      refresh: this._refresh.bind(this),
+      refresh: this.load.bind(this),
     });
   }
 

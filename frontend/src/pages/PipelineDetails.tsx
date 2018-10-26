@@ -31,24 +31,15 @@ import Resizable from 're-resizable';
 import Slide from '@material-ui/core/Slide';
 import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
-import { BannerProps } from '../components/Banner';
-import { DialogProps, RoutePage, RouteParams } from '../components/Router';
+import { Page } from './Page';
 import { Paper, Collapse } from '@material-ui/core';
-import { RouteComponentProps } from 'react-router';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { RoutePage, RouteParams } from '../components/Router';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
-import { classes, stylesheet } from 'typestyle';
-
-interface PipelineDetailsProps extends RouteComponentProps {
-  toolbarProps: ToolbarProps;
-  updateBanner: (bannerProps: BannerProps) => void;
-  updateDialog: (dialogProps: DialogProps) => void;
-  updateToolbar: (toolbarProps: ToolbarProps) => void;
-}
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -114,34 +105,7 @@ const css = stylesheet({
   },
 });
 
-class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDetailsState> {
-
-  private _toolbarActions: ToolbarActionConfig[] = [
-    {
-      action: () => this._newJobClicked(),
-      disabled: true,
-      disabledTitle: 'Must have a Pipeline to create a Job',
-      icon: AddIcon,
-      id: 'newJobBtn',
-      title: 'Create new Job',
-      tooltip: 'Create a new Job from this Pipeline',
-    },
-    {
-      action: () => this.props.updateDialog({
-        buttons: [
-          { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-          { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-        ],
-        onClose: () => this._deleteDialogClosed(false),
-        title: 'Delete this Pipeline?',
-      }),
-      disabled: false,
-      icon: DeleteIcon,
-      id: 'deleteBtn',
-      title: 'Delete',
-      tooltip: 'Delete this pipeline',
-    },
-  ];
+class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   constructor(props: any) {
     super(props);
@@ -156,19 +120,38 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
     };
   }
 
-  public componentWillMount() {
-    this.props.updateToolbar({
-      actions: this._toolbarActions,
-      breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
-    });
-  }
-
-  public componentDidMount(): Promise<void> {
-    return this._loadPipeline();
-  }
-
-  public componentWillUnmount() {
-    this.props.updateBanner({});
+  public getInitialToolbarState() {
+    return {
+      actions: [
+        {
+          action: () => this._newJobClicked(),
+          disabled: true,
+          disabledTitle: 'Must have a Pipeline to create a Job',
+          icon: AddIcon,
+          id: 'newJobBtn',
+          title: 'Create new Job',
+          tooltip: 'Create a new Job from this Pipeline',
+        }, {
+          action: () => this.props.updateDialog({
+            buttons: [
+              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+            ],
+            onClose: () => this._deleteDialogClosed(false),
+            title: 'Delete this Pipeline?',
+          }),
+          disabled: false,
+          icon: DeleteIcon,
+          id: 'deleteBtn',
+          title: 'Delete',
+          tooltip: 'Delete this pipeline',
+        },
+      ],
+      breadcrumbs: [
+        { displayName: 'Pipelines', href: RoutePage.PIPELINES },
+        { displayName: this.props.match.params[RouteParams.pipelineId], href: '' }
+      ],
+    };
   }
 
   public render(): JSX.Element {
@@ -239,7 +222,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
                     </Resizable>
                   </Slide>
                 </div>}
-                {!this.state.graph && <span style={{margin: '40px auto'}}>No graph to show</span>}
+                {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>}
               {selectedTab === 1 &&
                 <div className={css.containerCss}>
@@ -263,7 +246,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
     );
   }
 
-  private async _loadPipeline(): Promise<void> {
+  public async load(): Promise<void> {
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
     // TODO: Show spinner while waiting for responses
@@ -301,7 +284,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
       this._handlePageError(
         `Error: failed to retrieve pipeline or template for ID: ${pipelineId}.`,
         err.message,
-        this._loadPipeline.bind(this),
+        this.load.bind(this),
       );
       logger.error(`Error loading pipeline or template for ID: ${pipelineId}`, err);
     }
