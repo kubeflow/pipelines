@@ -28,6 +28,8 @@ import (
 type PipelineClientInterface interface {
 	ReportWorkflow(workflow *util.Workflow) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
+	ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error)
+	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
 }
 
 type PipelineClient struct {
@@ -38,6 +40,7 @@ type PipelineClient struct {
 	mlPipelineServiceName string
 	mlPipelineServicePort string
 	reportServiceClient   api.ReportServiceClient
+	runServiceClient      api.RunServiceClient
 }
 
 func NewPipelineClient(
@@ -72,6 +75,7 @@ func NewPipelineClient(
 		mlPipelineServiceName: mlPipelineServiceName,
 		mlPipelineServicePort: mlPipelineServicePort,
 		reportServiceClient:   api.NewReportServiceClient(connection),
+		runServiceClient:      api.NewRunServiceClient(connection),
 	}, nil
 }
 
@@ -136,4 +140,34 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 		}
 	}
 	return nil
+}
+
+// ReadArtifact reads artifact content from run service. If the artifact is not present, returns
+// nil response.
+func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	response, err := p.runServiceClient.ReadArtifact(ctx, request)
+	if err != nil {
+		// TODO(hongyes): check NotFound error code before skip the error.
+		return nil, nil
+	}
+
+	return response, nil
+}
+
+// ReportRunMetrics reports run metrics to run service.
+func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	response, err := p.runServiceClient.ReportRunMetrics(ctx, request)
+	if err != nil {
+		// This call should always succeed unless the run doesn't exist or server is broken. In
+		// either cases, the job should retry at a later time.
+		return nil, util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
+			"Error while reporting metrics (%+v): %+v", request, err)
+	}
+	return response, nil
 }

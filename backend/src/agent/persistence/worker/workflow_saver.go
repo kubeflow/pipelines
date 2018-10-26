@@ -23,15 +23,17 @@ import (
 
 // WorkflowSaver provides a function to persist a workflow to a database.
 type WorkflowSaver struct {
-	client         client.WorkflowClientInterface
-	pipelineClient client.PipelineClientInterface
+	client          client.WorkflowClientInterface
+	pipelineClient  client.PipelineClientInterface
+	metricsReporter *MetricsReporter
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
 	pipelineClient client.PipelineClientInterface) *WorkflowSaver {
 	return &WorkflowSaver{
-		client:         client,
-		pipelineClient: pipelineClient,
+		client:          client,
+		pipelineClient:  pipelineClient,
+		metricsReporter: NewMetricsReporter(pipelineClient),
 	}
 }
 
@@ -71,5 +73,5 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	log.WithFields(log.Fields{
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
-	return nil
+	return s.metricsReporter.ReportMetrics(wf)
 }

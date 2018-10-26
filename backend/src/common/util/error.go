@@ -55,6 +55,14 @@ func NewCustomError(err error, code CustomCode, format string, a ...interface{})
 	}
 }
 
+func NewCustomErrorf(code CustomCode, format string, a ...interface{}) *CustomError {
+	message := fmt.Sprintf(format, a...)
+	return &CustomError{
+		error: errors.Errorf("CustomError (code: %v): %v", code, message),
+		code:  code,
+	}
+}
+
 func (e *CustomError) Error() string {
 	return e.error.Error()
 }

@@ -15,21 +15,28 @@
 package client
 
 import (
+	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 type PipelineClientFake struct {
-	workflows          map[string]*util.Workflow
-	scheduledWorkflows map[string]*util.ScheduledWorkflow
-	err                error
+	workflows                 map[string]*util.Workflow
+	scheduledWorkflows        map[string]*util.ScheduledWorkflow
+	err                       error
+	artifacts                 map[string]*api.ReadArtifactResponse
+	reportedMetricsRequest    *api.ReportRunMetricsRequest
+	reportMetricsResponseStub *api.ReportRunMetricsResponse
+	reportMetricsErrorStub    error
 }
 
 func NewPipelineClientFake() *PipelineClientFake {
 	return &PipelineClientFake{
-		workflows:          make(map[string]*util.Workflow),
-		scheduledWorkflows: make(map[string]*util.ScheduledWorkflow),
-		err:                nil,
+		workflows:                 make(map[string]*util.Workflow),
+		scheduledWorkflows:        make(map[string]*util.ScheduledWorkflow),
+		err:                       nil,
+		artifacts:                 make(map[string]*api.ReadArtifactResponse),
+		reportMetricsResponseStub: &api.ReportRunMetricsResponse{},
 	}
 }
 
@@ -49,6 +56,15 @@ func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow
 	return nil
 }
 
+func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+	return p.artifacts[request.String()], nil
+}
+
+func (p *PipelineClientFake) ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
+	p.reportedMetricsRequest = request
+	return p.reportMetricsResponseStub, p.reportMetricsErrorStub
+}
+
 func (p *PipelineClientFake) SetError(err error) {
 	p.err = err
 }
@@ -59,4 +75,17 @@ func (p *PipelineClientFake) GetWorkflow(namespace string, name string) *util.Wo
 
 func (p *PipelineClientFake) GetScheduledWorkflow(namespace string, name string) *util.ScheduledWorkflow {
 	return p.scheduledWorkflows[getKey(namespace, name)]
+}
+
+func (p *PipelineClientFake) StubArtifact(request *api.ReadArtifactRequest, response *api.ReadArtifactResponse) {
+	p.artifacts[request.String()] = response
+}
+
+func (p *PipelineClientFake) StubReportRunMetrics(response *api.ReportRunMetricsResponse, err error) {
+	p.reportMetricsResponseStub = response
+	p.err = err
+}
+
+func (p *PipelineClientFake) GetReportedMetricsRequest() *api.ReportRunMetricsRequest {
+	return p.reportedMetricsRequest
 }
