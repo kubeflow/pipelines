@@ -24,12 +24,20 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss } from '../Css';
 import { getRunTime, getLastInStatusList } from '../lib/Utils';
-import { ApiListRunsResponse, ApiRunDetail, ApiRun } from '../../src/apis/run';
+import { ApiListRunsResponse, ApiRunDetail, ApiRun, RunMetricFormat } from '../../src/apis/run';
+import { orderBy } from 'lodash';
 
 interface DisplayRun {
   metadata: ApiRun;
   workflow?: Workflow;
   error?: string;
+}
+
+interface MetricMetadata {
+  count: number;
+  maxValue: number;
+  minValue: number;
+  name: string;
 }
 
 export interface RunListProp extends RouteComponentProps {
@@ -44,6 +52,7 @@ export interface RunListProp extends RouteComponentProps {
 }
 
 interface RunListState {
+  metrics: MetricMetadata[];
   orderAscending: boolean;
   pageSize: number;
   pageToken: string;
@@ -57,6 +66,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
     super(props);
 
     this.state = {
+      metrics: [],
       orderAscending: true,
       pageSize: 10,
       pageToken: '',
@@ -66,6 +76,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
   }
 
   public render() {
+    const displayMetrics: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
       {
         customRenderer: this._nameCustomRenderer.bind(this),
@@ -76,9 +87,25 @@ class RunList extends React.Component<RunListProp, RunListState> {
       { customRenderer: this._statusCustomRenderer.bind(this), flex: .5, label: 'Status' },
       { label: 'Duration', flex: 1 },
       { label: 'Start time', flex: 2, sortKey: RunSortKeys.CREATED_AT },
-    ];
+    ].concat(displayMetrics.map((metric) => {
+      return { flex: 1, label: metric.name };
+    }));
+
 
     const rows: Row[] = this.state.runs.map(r => {
+      const metricFields = displayMetrics.map(dm => {
+        if (!r.metadata.metrics) {
+          return '';
+        }
+        const foundMetric = r.metadata.metrics.find(m => m.name === dm.name);
+        if (!foundMetric || foundMetric.number_value === undefined) {
+          return '';
+        }
+        if (foundMetric.format === RunMetricFormat.PERCENTAGE) {
+          return (foundMetric.number_value * 100).toFixed(3) + '%';
+        }
+        return foundMetric.number_value.toFixed(3);
+      });
       return {
         error: r.error,
         id: r.metadata.id!,
@@ -87,7 +114,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
           getLastInStatusList(r.metadata.status || '') || '-',
           getRunTime(r.workflow),
           this._createdAtToString(r.metadata),
-        ],
+        ].concat(metricFields),
       };
     });
 
@@ -131,6 +158,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
         }));
 
         this.setState({
+          metrics: this._extractMetricMetadata(displayRuns),
           runs: displayRuns,
         });
       })
@@ -188,6 +216,7 @@ class RunList extends React.Component<RunListProp, RunListState> {
       }
     }));
     this.setState({
+      metrics: this._extractMetricMetadata(displayRuns),
       orderAscending: request.orderAscending!,
       pageSize: request.pageSize!,
       pageToken: request.pageToken!,
@@ -205,6 +234,37 @@ class RunList extends React.Component<RunListProp, RunListState> {
 
   private _statusCustomRenderer(status: NodePhase) {
     return statusToIcon(status);
+  }
+
+  private _extractMetricMetadata(runs: DisplayRun[]) {
+    const metrics = Array.from(
+      runs.reduce((metricMetadatas, run) => {
+        if (!run.metadata || !run.metadata.metrics) {
+          return metricMetadatas;
+        }
+        run.metadata.metrics.forEach((metric) => {
+          if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
+            return;
+          }
+
+          let metricMetadata = metricMetadatas.get(metric.name);
+          if (!metricMetadata) {
+            metricMetadata = {
+              count: 0,
+              maxValue: Number.MIN_VALUE,
+              minValue: Number.MAX_VALUE,
+              name: metric.name,
+            };
+            metricMetadatas.set(metricMetadata.name, metricMetadata);
+          }
+          metricMetadata.count++;
+          metricMetadata.minValue = Math.min(metricMetadata.minValue, metric.number_value);
+          metricMetadata.maxValue = Math.max(metricMetadata.maxValue, metric.number_value);
+        });
+        return metricMetadatas;
+      }, new Map<string, MetricMetadata>()).values()
+    );
+    return orderBy(metrics, 'count', 'desc');
   }
 }
 

@@ -20,7 +20,7 @@ import xgboostRun from './mock-xgboost-runtime';
 
 import { ApiJob } from '../src/apis/job';
 import { ApiPipeline } from '../src/apis/pipeline';
-import { ApiRunDetail } from '../src/apis/run';
+import { ApiRunDetail, RunMetricFormat } from '../src/apis/run';
 
 function padStartTwoZeroes(str: string): string {
   let padded = str || '';
@@ -205,6 +205,18 @@ const runs: ApiRunDetail[] = [
       created_at: new Date('2017-03-17T20:58:23.000Z'),
       id: '3308d0ec-f1b3-4488-a2d3-8ad0f91e88e7',
       job_id: jobs[3].id,
+      metrics: [
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          number_value: 0.77,
+        },
+        {
+          format: RunMetricFormat.RAW,
+          name: 'log_loss',
+          number_value: -0.573,
+        }
+      ],
       name: 'coinflip-recursive-run-lknlfs3',
       namespace: 'namespace',
       scheduled_at: new Date('2017-03-17T20:58:23.000Z'),
@@ -217,6 +229,18 @@ const runs: ApiRunDetail[] = [
       created_at: new Date('2017-04-17T21:00:00.000Z'),
       id: '47a3d09c-7db4-4788-ac55-3f8d908574aa',
       job_id: jobs[3].id,
+      metrics: [
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          number_value: 0.81,
+        },
+        {
+          format: RunMetricFormat.RAW,
+          name: 'log_loss',
+          number_value: -0.78,
+        }
+      ],
       name: 'coinflip-error-nklng2',
       namespace: 'namespace',
       scheduled_at: new Date('2017-04-17T21:00:00.000Z'),
@@ -229,6 +253,11 @@ const runs: ApiRunDetail[] = [
       created_at: new Date('2017-05-17T21:58:23.000Z'),
       id: 'fa5d897e-88d3-4dfc-b189-9dea6947c9bc',
       job_id: jobs[3].id,
+      metrics: [{
+        format: RunMetricFormat.PERCENTAGE,
+        name: 'accuracy',
+        number_value: 0.77,
+      }],
       name: 'hello-world-7sm94',
       namespace: 'namespace',
       scheduled_at: new Date('2017-05-17T21:58:23.000Z'),
@@ -265,8 +294,20 @@ const runs: ApiRunDetail[] = [
       created_at: new Date('2017-08-18T20:58:23.000Z'),
       id: '7fc01714-4a13-4c05-8044-a8a72c14253b',
       job_id: jobs[3].id,
+      metrics: [
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          number_value: 0.89,
+        },
+        {
+          format: RunMetricFormat.RAW,
+          name: 'log_loss',
+          number_value: -0.123,
+        }
+      ],
       name: 'xgboost-run-with-a-veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery-' +
-          'loooooooooooooooooooooooooooong-name-aifk298',
+        'loooooooooooooooooooooooooooong-name-aifk298',
       namespace: 'namespace',
       scheduled_at: new Date('2017-08-18T20:58:23.000Z'),
       status: 'Succeeded',
@@ -281,7 +322,8 @@ function generateNPipelines(): ApiPipeline[] {
   const dummyPipelines: ApiPipeline[] = [];
   for (let i = pipelines.length + 1; i < NUM_DUMMY_PIPELINES + pipelines.length + 1; i++) {
     dummyPipelines.push({
-      created_at: new Date('2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
+      created_at: new Date(
+        '2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
       description: `A dummy pipeline (${i})`,
       id: 'Some-pipeline-id-' + i,
       name: 'ML Pipeline number ' + i,
@@ -301,12 +343,14 @@ function generateNRuns(): ApiRunDetail[] {
   for (let i = runs.length + 1; i < NUM_DUMMY_RUNS + runs.length + 1; i++) {
     dummyRuns.push({
       run: {
-        created_at: new Date('2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
+        created_at: new Date(
+          '2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
         id: 'Some-run-id-' + i,
         job_id: jobs[3].id,
         name: 'dummy-coinflip-recursive-asdlx' + i,
         namespace: 'namespace',
-        scheduled_at: new Date('2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
+        scheduled_at: new Date(
+          '2018-07-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
         status: 'Succeeded',
       },
       workflow: JSON.stringify(coinflipRun),
@@ -319,7 +363,8 @@ function generateNJobs(): ApiJob[] {
   const dummyJobs: ApiJob[] = [];
   for (let i = jobs.length + 1; i < NUM_DUMMY_JOBS + jobs.length + 1; i++) {
     dummyJobs.push({
-      created_at: new Date('2018-04-01T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
+      created_at: new Date(
+        '2018-04-01T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
       description: 'Some description',
       enabled: false,
       id: 'Some-job-id-' + i,
@@ -346,7 +391,8 @@ function generateNJobs(): ApiJob[] {
       pipeline_id: pipelines[i % pipelines.length].id,
       status: 'Succeeded',
       trigger: undefined,
-      updated_at: new Date('2018-04-01T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
+      updated_at: new Date(
+        '2018-04-01T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
     });
   }
   return dummyJobs;
