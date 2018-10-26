@@ -17,8 +17,7 @@ syntax = "proto3";
 package api;
 
 import "google/api/annotations.proto";
-import "job.proto";
-import "run.proto";
+import "google/protobuf/timestamp.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {

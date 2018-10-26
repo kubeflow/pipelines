@@ -135,6 +135,11 @@
         "description": {
           "type": "string",
           "title": "Optional input field. Describing the purpose of the experiment"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time that the experiment created."
         }
       }
     },
