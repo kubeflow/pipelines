@@ -14,11 +14,12 @@
 # limitations under the License.
 
 
-import mlp
+import kfp.dsl as dsl
 import datetime
 
+
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.18',
         arguments = [
@@ -35,7 +36,7 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
 
 
 def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target: str, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:dev',
         arguments = [
@@ -52,7 +53,7 @@ def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate
     )
 
 def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.0.18',
         arguments = [
@@ -67,8 +68,9 @@ def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'Gc
         file_outputs = {'analysis': '/output.txt'}
     )
 
+
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.18',
         arguments = [
@@ -84,7 +86,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
     )
 
 def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='deploy'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.18',
         arguments = [
@@ -94,36 +96,36 @@ def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='dep
     )
 
 
-@mlp.pipeline(
+@dsl.pipeline(
   name='TFMA Taxi Cab Classification Pipeline Example',
   description='Example pipeline that does classification with model analysis based on a public BigQuery dataset.'
 )
 def taxi_cab_classification(
-    output: mlp.PipelineParam,
-    project: mlp.PipelineParam,
+    output: dsl.PipelineParam,
+    project: dsl.PipelineParam,
 
-    schema: mlp.PipelineParam=mlp.PipelineParam(
+    schema: dsl.PipelineParam=dsl.PipelineParam(
         name='schema',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json'),
-    train: mlp.PipelineParam=mlp.PipelineParam(
+    train: dsl.PipelineParam=dsl.PipelineParam(
         name='train',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv'),
-    evaluation: mlp.PipelineParam=mlp.PipelineParam(
+    evaluation: dsl.PipelineParam=dsl.PipelineParam(
         name='evaluation',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv'),
-    preprocess_mode: mlp.PipelineParam=mlp.PipelineParam(
+    preprocess_mode: dsl.PipelineParam=dsl.PipelineParam(
         name='preprocess-mode', value='local'),
-    preprocess_module: mlp.PipelineParam=mlp.PipelineParam(
+    preprocess_module: dsl.PipelineParam=dsl.PipelineParam(
         name='preprocess-module',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py'),
-    target: mlp.PipelineParam=mlp.PipelineParam(
+    target: dsl.PipelineParam=dsl.PipelineParam(
         name='target', value='tips'),
-    learning_rate: mlp.PipelineParam=mlp.PipelineParam(name='learning-rate', value=0.1),
-    hidden_layer_size: mlp.PipelineParam=mlp.PipelineParam(name='hidden-layer-size', value='1500'),
-    steps: mlp.PipelineParam=mlp.PipelineParam(name='steps', value=3000),
-    predict_mode: mlp.PipelineParam=mlp.PipelineParam(name='predict-mode', value='local'),
-    analyze_mode: mlp.PipelineParam=mlp.PipelineParam(name='analyze-mode', value='local'),
-    analyze_slice_column: mlp.PipelineParam=mlp.PipelineParam(
+    learning_rate: dsl.PipelineParam=dsl.PipelineParam(name='learning-rate', value=0.1),
+    hidden_layer_size: dsl.PipelineParam=dsl.PipelineParam(name='hidden-layer-size', value='1500'),
+    steps: dsl.PipelineParam=dsl.PipelineParam(name='steps', value=3000),
+    predict_mode: dsl.PipelineParam=dsl.PipelineParam(name='predict-mode', value='local'),
+    analyze_mode: dsl.PipelineParam=dsl.PipelineParam(name='analyze-mode', value='local'),
+    analyze_slice_column: dsl.PipelineParam=dsl.PipelineParam(
         name='analyze-slice-column', value='trip_start_hour')):
   transform_output = '%s/{{workflow.name}}/transformed' % output
   training_output = '%s/{{workflow.name}}/train' % output
@@ -138,5 +140,5 @@ def taxi_cab_classification(
   deploy = kubeflow_deploy_op(training.output, tf_server_name)
 
 if __name__ == '__main__':
-  import mlpc
-  mlpc.Compiler().compile(taxi_cab_classification, __file__ + '.tar.gz')
+  import kfp.compiler as compiler
+  compiler.Compiler().compile(taxi_cab_classification, __file__ + '.tar.gz')

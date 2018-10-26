@@ -14,36 +14,36 @@
 # limitations under the License.
 
 
-import mlp
+import kfp.dsl as dsl
 
 
-@mlp.pipeline(
+@dsl.pipeline(
   name='Parallel_and_Join',
   description='Download two messages in parallel and print the concatenated result.'
 )
-def download_and_join(url1: mlp.PipelineParam, url2: mlp.PipelineParam):
+def download_and_join(url1: dsl.PipelineParam, url2: dsl.PipelineParam):
   """A very simple two-step pipeline."""
 
-  download1 = mlp.ContainerOp(
+  download1 = dsl.ContainerOp(
      name='download1',
      image='google/cloud-sdk:216.0.0',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url1],
      file_outputs={'downloaded': '/tmp/results.txt'})
 
-  download2 = mlp.ContainerOp(
+  download2 = dsl.ContainerOp(
      name='download2',
      image='google/cloud-sdk:216.0.0',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url2],
      file_outputs={'downloaded': '/tmp/results.txt'})
 
-  echo = mlp.ContainerOp(
+  echo = dsl.ContainerOp(
      name='echo',
      image='library/bash:4.4.23',
      command=['sh', '-c'],
      arguments=['echo %s %s' % (download1.output, download2.output)])
 
 if __name__ == '__main__':
-  import mlpc
-  mlpc.Compiler().compile(download_and_join, __file__ + '.tar.gz')
+  import kfp.compiler as compiler
+  compiler.Compiler().compile(download_and_join, __file__ + '.tar.gz')

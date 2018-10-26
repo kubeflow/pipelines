@@ -88,7 +88,7 @@ The python classes describe the interactions with the docker container image cre
 For example, a component to create confusion matrix data from prediction results is like:
 
 ```python
-class ConfusionMatrixOp(mlp.ContainerOp):
+class ConfusionMatrixOp(kfp.dsl.ContainerOp):
 
   def __init__(self, name, predictions, output_path):
     super(ConfusionMatrixOp, self).__init__(
@@ -104,12 +104,12 @@ class ConfusionMatrixOp(mlp.ContainerOp):
 ```
 
 Note:
-* Each component needs to inherit from mlp.ContainerOp.
+* Each component needs to inherit from kfp.dsl.ContainerOp.
 * If you already defined ENTRYPOINT in the container image, you don’t have to provide “command” unless you want to override it.
-* In the init arguments, there can be python native types (such as str, int) and “mlp.PipelineParam” 
-types. Each mlp.PipelineParam represents a parameter whose value is usually only known at run time. It might be a pipeline 
+* In the init arguments, there can be python native types (such as str, int) and “kfp.dsl.PipelineParam” 
+types. Each kfp.dsl.PipelineParam represents a parameter whose value is usually only known at run time. It might be a pipeline 
 parameter whose value is provided at pipeline run time by user, or can be an output from an upstream component. 
-In the above case, “predictions” and “output_path” are mlp.PipelineParams.
+In the above case, “predictions” and “output_path” are kfp.dsl.PipelineParams.
 * Although value of each PipelineParam is only available at runtime, you can still use them inline the 
 argument (note the “%s”). It means at run time the argument will contain the value of the param inline.
 * “File_outputs” lists a map between labels and local file paths. In the above case, the content of '/output.txt' is gathered as a string output of the operator. To reference the output in code:
@@ -126,34 +126,34 @@ If there is only one output then you can also do “op.output”.
 Each pipeline is identified as a python function. For example:
 
 ```python
-@mlp.pipeline(
+@kfp.dsl.pipeline(
   name='TFMA Trainer',
   description='A trainer that does end-to-end training for TFMA models.'
 )
 def train(
     output_path,
-    train_data=mlp.PipelineParam('train-data',
+    train_data=kfp.dsl.PipelineParam('train-data',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv'),
-    eval_data=mlp.PipelineParam('eval-data',
+    eval_data=kfp.dsl.PipelineParam('eval-data',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv'),
-    schema=mlp.PipelineParam('schema',
+    schema=kfp.dsl.PipelineParam('schema',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json'),
-    target=mlp.PipelineParam('target', value='tips'),
-    learning_rate=mlp.PipelineParam('learning-rate', value=0.1),
-    hidden_layer_size=mlp.PipelineParam('hidden-layer-size', value='100,50'),
-    steps=mlp.PipelineParam('steps', value=1000),
-    slice_columns=mlp.PipelineParam('slice-columns', value='trip_start_hour'),
-    true_class=mlp.PipelineParam('true-class', value='true'),
-    need_analysis=mlp.PipelineParam('need-analysis', value='true'),
+    target=kfp.dsl.PipelineParam('target', value='tips'),
+    learning_rate=kfp.dsl.PipelineParam('learning-rate', value=0.1),
+    hidden_layer_size=kfp.dsl.PipelineParam('hidden-layer-size', value='100,50'),
+    steps=kfp.dsl.PipelineParam('steps', value=1000),
+    slice_columns=kfp.dsl.PipelineParam('slice-columns', value='trip_start_hour'),
+    true_class=kfp.dsl.PipelineParam('true-class', value='true'),
+    need_analysis=kfp.dsl.PipelineParam('need-analysis', value='true'),
 )
 ```
 
 Note:
 
-* **@mlp.pipeline** is a required decoration including “name” and "description" properties.
+* **@kfp.dsl.pipeline** is a required decoration including “name” and "description" properties.
 * Input arguments will show up as pipeline parameters in the Pipeline system web UI. As a python rule, positional 
 args go first and keyword args go next.
-* Each function argument is of type mlp.PipelineParam. The default values 
+* Each function argument is of type kfp.dsl.PipelineParam. The default values 
 should all be of that type. The default values will show up in the Pipeline UI but can be overwritten.
 
 

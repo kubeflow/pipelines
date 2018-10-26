@@ -29,18 +29,18 @@
 DIR=$(mktemp -d)
 
 # Generate python code from swagger json.
-echo "{\"packageName\": \"seira_upload\"}" > /tmp/config.json
-java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../backend/api/swagger/pipeline.upload.swagger.json -o $DIR -c /tmp/config.json
-echo "{\"packageName\": \"seira_pipeline\"}" > /tmp/config.json
-java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../backend/api/swagger/pipeline.swagger.json -o $DIR -c /tmp/config.json
-echo "{\"packageName\": \"seira_job\"}" > /tmp/config.json
-java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../backend/api/swagger/job.swagger.json -o $DIR -c /tmp/config.json
-echo "{\"packageName\": \"seira_run\"}" > /tmp/config.json
-java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../backend/api/swagger/run.swagger.json -o $DIR -c /tmp/config.json
+echo "{\"packageName\": \"kfp_upload\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/pipeline.upload.swagger.json -o $DIR -c /tmp/config.json
+echo "{\"packageName\": \"kfp_pipeline\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/pipeline.swagger.json -o $DIR -c /tmp/config.json
+echo "{\"packageName\": \"kfp_job\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/job.swagger.json -o $DIR -c /tmp/config.json
+echo "{\"packageName\": \"kfp_run\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/run.swagger.json -o $DIR -c /tmp/config.json
 rm /tmp/config.json
 
 # Merge generated code with the rest code (setup.py, seira_client, etc).
-cp -r seira_client $DIR
+cp -r kfp $DIR
 cp ./setup.py $DIR
 
 # Build tarball package.

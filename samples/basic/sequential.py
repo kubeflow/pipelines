@@ -14,29 +14,29 @@
 # limitations under the License.
 
 
-import mlp
+import kfp.dsl as dsl
 
 
-@mlp.pipeline(
+@dsl.pipeline(
   name='Sequential',
   description='Download a message and print it.'
 )
-def download_and_print(url: mlp.PipelineParam):
+def download_and_print(url: dsl.PipelineParam):
   """A very simple two-step pipeline."""
 
-  op1 = mlp.ContainerOp(
+  op1 = dsl.ContainerOp(
      name='download',
      image='google/cloud-sdk:216.0.0',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
      file_outputs={'downloaded': '/tmp/results.txt'})
 
-  op2 = mlp.ContainerOp(
+  op2 = dsl.ContainerOp(
      name='echo',
      image='library/bash:4.4.23',
      command=['sh', '-c'],
      arguments=['echo "%s"' % op1.output])
 
 if __name__ == '__main__':
-  import mlpc
-  mlpc.Compiler().compile(download_and_print, __file__ + '.tar.gz')
+  import kfp.compiler as compiler
+  compiler.Compiler().compile(download_and_print, __file__ + '.tar.gz')

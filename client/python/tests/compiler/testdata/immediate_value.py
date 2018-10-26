@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,16 +27,12 @@ def immediate_value_pipeline():
   url=dsl.PipelineParam(name='url', value='gs://ml-pipeline/shakespeare1.txt')
   op1 = dsl.ContainerOp(
      name='download',
-     image='google/cloud-sdk:216.0.0',
+     image='google/cloud-sdk',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
      file_outputs={'downloaded': '/tmp/results.txt'})
   op2 = dsl.ContainerOp(
      name='echo',
-     image='library/bash:4.4.23',
+     image='library/bash',
      command=['sh', '-c'],
      arguments=['echo %s' % op1.output])
-
-if __name__ == '__main__':
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(immediate_value_pipeline, __file__ + '.tar.gz')

@@ -84,9 +84,12 @@ chmod +x ~/bin/argo
 
 echo "Run the sample tests..."
 
-# Install dsl, dsl-compiler
-pip3 install ./dsl/ --upgrade
-pip3 install ./dsl-compiler/ --upgrade
+# Generate Python package
+cd ./client/python
+./build.sh /tmp/kfp.tar.gz
+
+# Install python client, including DSL compiler.
+pip3 install /tmp/kfp.tar.gz
 
 SAMPLE_KUBEFLOW_TEST_RESULT=junit_SampleKubeflowOutput.xml
 SAMPLE_KUBEFLOW_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -106,6 +109,7 @@ sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-
 
 dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
 
+# TODO: use python SDK instead of using generated python client.
 # Generate API Python library
 cd ${BASE_DIR}/backend/api
 echo "{\"packageName\": \"swagger_pipeline_upload\"}" > config.json

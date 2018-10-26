@@ -14,11 +14,11 @@
 # limitations under the License.
 
 
-import mlp
+import kfp.dsl as dsl
 import datetime
 
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.18',
         arguments = [
@@ -33,8 +33,9 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
         file_outputs = {'transformed': '/output.txt'}
     )
 
+
 def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:dev',
         arguments = [
@@ -51,7 +52,7 @@ def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', l
     )
 
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.18',
         arguments = [
@@ -67,7 +68,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
     )
 
 def confusion_matrix_op(predictions, output, step_name='confusionmatrix'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.0.18',
         arguments = [
@@ -76,22 +77,22 @@ def confusion_matrix_op(predictions, output, step_name='confusionmatrix'):
         ]
     )
 
-@mlp.pipeline(
+@dsl.pipeline(
   name='Pipeline TFJob',
   description='Demonstrate the DSL for TFJob'
 )
-def kubeflow_training( output: mlp.PipelineParam, project: mlp.PipelineParam,
-  evaluation: mlp.PipelineParam=mlp.PipelineParam(name='evaluation', value='gs://ml-pipeline-playground/flower/eval100.csv'),
-  train: mlp.PipelineParam=mlp.PipelineParam(name='train', value='gs://ml-pipeline-playground/flower/train200.csv'),
-  schema: mlp.PipelineParam=mlp.PipelineParam(name='schema', value='gs://ml-pipeline-playground/flower/schema.json'),
-  learning_rate: mlp.PipelineParam=mlp.PipelineParam(name='learningrate', value=0.1),
-  hidden_layer_size: mlp.PipelineParam=mlp.PipelineParam(name='hiddenlayersize', value='100,50'),
-  steps: mlp.PipelineParam=mlp.PipelineParam(name='steps', value=2000),
-  target: mlp.PipelineParam=mlp.PipelineParam(name='target', value='label'),
-  workers: mlp.PipelineParam=mlp.PipelineParam(name='workers', value=0),
-  pss: mlp.PipelineParam=mlp.PipelineParam(name='pss', value=0),
-  preprocess_mode: mlp.PipelineParam=mlp.PipelineParam(name='preprocessmode', value='local'),
-  predict_mode: mlp.PipelineParam=mlp.PipelineParam(name='predictmode', value='local')):
+def kubeflow_training( output: dsl.PipelineParam, project: dsl.PipelineParam,
+  evaluation: dsl.PipelineParam=dsl.PipelineParam(name='evaluation', value='gs://ml-pipeline-playground/flower/eval100.csv'),
+  train: dsl.PipelineParam=dsl.PipelineParam(name='train', value='gs://ml-pipeline-playground/flower/train200.csv'),
+  schema: dsl.PipelineParam=dsl.PipelineParam(name='schema', value='gs://ml-pipeline-playground/flower/schema.json'),
+  learning_rate: dsl.PipelineParam=dsl.PipelineParam(name='learningrate', value=0.1),
+  hidden_layer_size: dsl.PipelineParam=dsl.PipelineParam(name='hiddenlayersize', value='100,50'),
+  steps: dsl.PipelineParam=dsl.PipelineParam(name='steps', value=2000),
+  target: dsl.PipelineParam=dsl.PipelineParam(name='target', value='label'),
+  workers: dsl.PipelineParam=dsl.PipelineParam(name='workers', value=0),
+  pss: dsl.PipelineParam=dsl.PipelineParam(name='pss', value=0),
+  preprocess_mode: dsl.PipelineParam=dsl.PipelineParam(name='preprocessmode', value='local'),
+  predict_mode: dsl.PipelineParam=dsl.PipelineParam(name='predictmode', value='local')):
   # TODO: use the argo job name as the workflow
   workflow = '{{workflow.name}}'
 
@@ -102,5 +103,5 @@ def kubeflow_training( output: mlp.PipelineParam, project: mlp.PipelineParam,
 
 
 if __name__ == '__main__':
-  import mlpc
-  mlpc.Compiler().compile(kubeflow_training, __file__ + '.tar.gz')
+  import kfp.compiler as compiler
+  compiler.Compiler().compile(kubeflow_training, __file__ + '.tar.gz')

@@ -1,0 +1,7 @@
+setup.py
+mypipeline/__init__.py
+mypipeline/compose.py
+testsample.egg-info/PKG-INFO
+testsample.egg-info/SOURCES.txt
+testsample.egg-info/dependency_links.txt
+testsample.egg-info/top_level.txt

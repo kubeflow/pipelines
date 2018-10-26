@@ -12,26 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-language: python
-python:
-  - "3.5"
-addons:
-  apt:
-    packages:
-      - default-jdk
-      - wget
-  chrome: stable
 
-script:
-  # Frontend tests
-  - cd $TRAVIS_BUILD_DIR/frontend
-  - npm i
-  - CI=true npm test
+from ._pipeline_param import PipelineParam
+from ._pipeline import Pipeline, pipeline
+from ._container_op import ContainerOp
+from ._ops_group import OpsGroup, ExitHandler, Condition
 
-  # DSL tests
-  - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
-  - cd $TRAVIS_BUILD_DIR/client/python
-  - ./build.sh /tmp/kfp.tar.gz
-  - pip install /tmp/kfp.tar.gz
-  - python tests/dsl/main.py
-  - python tests/compiler/main.py

@@ -14,30 +14,30 @@
 # limitations under the License.
 
 
-import mlp
+import kfp.dsl as dsl
 
 
-@mlp.pipeline(
+@dsl.pipeline(
   name='Default Value',
   description='A pipeline with parameter and default value.'
 )
 def immediate_value_pipeline(
-    url=mlp.PipelineParam(name='url', value='gs://ml-pipeline/shakespeare1.txt')):
+    url=dsl.PipelineParam(name='url', value='gs://ml-pipeline/shakespeare1.txt')):
 
   # "url" is a pipeline parameter, meaning users can provide values when running the
   # pipeline using UI, CLI, or API to override the default value.
-  op1 = mlp.ContainerOp(
+  op1 = dsl.ContainerOp(
      name='download',
      image='google/cloud-sdk:216.0.0',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
      file_outputs={'downloaded': '/tmp/results.txt'})
-  op2 = mlp.ContainerOp(
+  op2 = dsl.ContainerOp(
      name='echo',
      image='library/bash:4.4.23',
      command=['sh', '-c'],
      arguments=['echo %s' % op1.output])
 
 if __name__ == '__main__':
-  import mlpc
-  mlpc.Compiler().compile(immediate_value_pipeline, __file__ + '.tar.gz')
+  import kfp.compiler as compiler
+  compiler.Compiler().compile(immediate_value_pipeline, __file__ + '.tar.gz')

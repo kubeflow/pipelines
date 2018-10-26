@@ -16,32 +16,38 @@
 from setuptools import setup
 
 
-NAME = 'seira_client'
+NAME = 'kfp'
 VERSION = '0.1'
 
-
-REQUIRES = ['urllib3 >= 1.15', 'six >= 1.10', 'certifi', 'python-dateutil']
+REQUIRES = ['urllib3 >= 1.15', 'six >= 1.10', 'certifi', 'python-dateutil', 'PyYAML']
 
 setup(
     name=NAME,
     version=VERSION,
-    description='seira_client',
+    description='KubeFlow Pipeline SDK',
     author='google',
     install_requires=REQUIRES,
     packages=[
-      'seira_job',
-      'seira_job.api',
-      'seira_job.models',
-      'seira_upload',
-      'seira_upload.api',
-      'seira_upload.models',
-      'seira_pipeline',
-      'seira_pipeline.api',
-      'seira_pipeline.models',
-      'seira_run',
-      'seira_run.api',
-      'seira_run.models',
-      'seira_client',
+      'kfp',
+      'kfp.compiler',
+      'kfp.dsl',
+      'kfp_job',
+      'kfp_job.api',
+      'kfp_job.models',
+      'kfp_upload',
+      'kfp_upload.api',
+      'kfp_upload.models',
+      'kfp_pipeline',
+      'kfp_pipeline.api',
+      'kfp_pipeline.models',
+      'kfp_run',
+      'kfp_run.api',
+      'kfp_run.models',
     ],
     include_package_data=True,
+    entry_points = {
+      'console_scripts': [ 
+        'dsl-compile = kfp.compiler.main:main',
+      ]
+    }
 )

@@ -14,13 +14,13 @@
 # limitations under the License.
 
 
-import mlp
+import kfp.dsl as dsl
 
 
 # ================================================================
 # The following classes should be provided by components provider.
 
-class CreateClusterOp(mlp.ContainerOp):
+class CreateClusterOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, staging):
     super(CreateClusterOp, self).__init__(
@@ -35,7 +35,7 @@ class CreateClusterOp(mlp.ContainerOp):
      file_outputs={'output': '/output.txt'})
 
 
-class DeleteClusterOp(mlp.ContainerOp):
+class DeleteClusterOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region):
     super(DeleteClusterOp, self).__init__(
@@ -49,7 +49,7 @@ class DeleteClusterOp(mlp.ContainerOp):
       is_exit_handler=True)
 
 
-class AnalyzeOp(mlp.ContainerOp):
+class AnalyzeOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, cluster_name, schema, train_data, output):
     super(AnalyzeOp, self).__init__(
@@ -66,7 +66,7 @@ class AnalyzeOp(mlp.ContainerOp):
      file_outputs={'output': '/output.txt'})
 
 
-class TransformOp(mlp.ContainerOp):
+class TransformOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, cluster_name, train_data, eval_data,
                target, analysis, output):
@@ -86,7 +86,7 @@ class TransformOp(mlp.ContainerOp):
      file_outputs={'train': '/output_train.txt', 'eval': '/output_eval.txt'})
 
 
-class TrainerOp(mlp.ContainerOp):
+class TrainerOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, cluster_name, train_data, eval_data,
                target, analysis, workers, rounds, output, is_classification=True):
@@ -115,7 +115,7 @@ class TrainerOp(mlp.ContainerOp):
       file_outputs={'output': '/output.txt'})
 
 
-class PredictOp(mlp.ContainerOp):
+class PredictOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, cluster_name, data, model, target, analysis, output):
     super(PredictOp, self).__init__(
@@ -135,7 +135,7 @@ class PredictOp(mlp.ContainerOp):
       file_outputs={'output': '/output.txt'})
 
 
-class ConfusionMatrixOp(mlp.ContainerOp):
+class ConfusionMatrixOp(dsl.ContainerOp):
 
   def __init__(self, name, predictions, output):
     super(ConfusionMatrixOp, self).__init__(
@@ -147,7 +147,7 @@ class ConfusionMatrixOp(mlp.ContainerOp):
      ])
 
 
-class RocOp(mlp.ContainerOp):
+class RocOp(dsl.ContainerOp):
 
   def __init__(self, name, predictions, trueclass, output):
     super(RocOp, self).__init__(
@@ -161,24 +161,24 @@ class RocOp(mlp.ContainerOp):
 
 # =======================================================================
 
-@mlp.pipeline(
+@dsl.pipeline(
   name='XGBoost Trainer',
   description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
     output,
     project,
-    region=mlp.PipelineParam('region', value='us-central1'),
-    train_data=mlp.PipelineParam('train-data', value='gs://ml-pipeline-playground/sfpd/train.csv'),
-    eval_data=mlp.PipelineParam('eval-data', value='gs://ml-pipeline-playground/sfpd/eval.csv'),
-    schema=mlp.PipelineParam('schema', value='gs://ml-pipeline-playground/sfpd/schema.json'),
-    target=mlp.PipelineParam('target', value='resolution'),
-    rounds=mlp.PipelineParam('rounds', value=200),
-    workers=mlp.PipelineParam('workers', value=2),
-    true_label=mlp.PipelineParam('true-label', value='ACTION'),
+    region=dsl.PipelineParam('region', value='us-central1'),
+    train_data=dsl.PipelineParam('train-data', value='gs://ml-pipeline-playground/sfpd/train.csv'),
+    eval_data=dsl.PipelineParam('eval-data', value='gs://ml-pipeline-playground/sfpd/eval.csv'),
+    schema=dsl.PipelineParam('schema', value='gs://ml-pipeline-playground/sfpd/schema.json'),
+    target=dsl.PipelineParam('target', value='resolution'),
+    rounds=dsl.PipelineParam('rounds', value=200),
+    workers=dsl.PipelineParam('workers', value=2),
+    true_label=dsl.PipelineParam('true-label', value='ACTION'),
 ):
   delete_cluster_op = DeleteClusterOp('delete-cluster', project, region)
-  with mlp.ExitHandler(exit_op=delete_cluster_op):
+  with dsl.ExitHandler(exit_op=delete_cluster_op):
     create_cluster_op = CreateClusterOp('create-cluster', project, region, output)
 
     analyze_op = AnalyzeOp('analyze', project, region, create_cluster_op.output, schema,
@@ -201,5 +201,5 @@ def xgb_train_pipeline(
     roc_op = RocOp('roc', predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output)
 
 if __name__ == '__main__':
-  import mlpc
-  mlpc.Compiler().compile(xgb_train_pipeline, __file__ + '.tar.gz')
+  import kfp.compiler as compiler
+  compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.tar.gz')

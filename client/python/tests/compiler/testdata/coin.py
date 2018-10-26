@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,7 +52,3 @@ def flipcoin():
 
   with dsl.Condition(flip.output=='tails'):
       PrintOp('print2')
-
-if __name__ == '__main__':
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(flipcoin, __file__ + '.tar.gz')

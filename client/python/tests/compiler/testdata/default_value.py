@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,26 +17,22 @@ import kfp.dsl as dsl
 
 
 @dsl.pipeline(
-  name='Immediate Value',
-  description='A pipeline with parameter values hard coded'
+  name='Default Value',
+  description='A pipeline with parameter and default value.'
 )
-def immediate_value_pipeline():
-  # "url" is a pipeline parameter with value being hard coded.
-  # It is useful in case for some component you want to hard code a parameter instead
-  # of exposing it as a pipeline parameter.
-  url=dsl.PipelineParam(name='url', value='gs://ml-pipeline/shakespeare1.txt')
+def default_value_pipeline(
+    url=dsl.PipelineParam(name='url', value='gs://ml-pipeline/shakespeare1.txt')):
+
+  # "url" is a pipeline parameter, meaning users can provide values when running the
+  # pipeline using UI, CLI, or API to override the default value.
   op1 = dsl.ContainerOp(
      name='download',
-     image='google/cloud-sdk:216.0.0',
+     image='google/cloud-sdk',
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
      file_outputs={'downloaded': '/tmp/results.txt'})
   op2 = dsl.ContainerOp(
      name='echo',
-     image='library/bash:4.4.23',
+     image='library/bash',
      command=['sh', '-c'],
      arguments=['echo %s' % op1.output])
-
-if __name__ == '__main__':
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(immediate_value_pipeline, __file__ + '.tar.gz')
