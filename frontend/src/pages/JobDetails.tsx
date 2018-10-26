@@ -126,19 +126,15 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
   }
 
   public componentWillMount() {
-    const { job } = this.state;
     // TODO: job status next to page name
     this.props.updateToolbar({
       actions: this._toolbarActions,
-      breadcrumbs: [
-        { displayName: 'Jobs', href: RoutePage.JOBS },
-        { displayName: job && job.name ? job.name : this.props.match.params[RouteParams.jobId], href: '' }
-      ],
+      breadcrumbs: [{ displayName: 'Jobs', href: RoutePage.JOBS }],
     });
   }
 
   public componentDidMount() {
-    this._loadJob();
+    return this._loadJob();
   }
 
   public componentWillUnmount() {
@@ -213,7 +209,12 @@ class JobDetails extends React.Component<JobDetailsProps, JobDetailsState> {
       toolbarActions[3].disabled = job.enabled === true;
       toolbarActions[4].disabled = job.enabled === false;
 
-      this._updateToolbar(toolbarActions);
+      const breadcrumbs = [
+        { displayName: 'Jobs', href: RoutePage.JOBS },
+        { displayName: job.name!, href: '' },
+      ];
+
+      this.props.updateToolbar({ actions: toolbarActions, breadcrumbs });
 
       this.setState({ job }, () => this._runlistRef.current && this._runlistRef.current.refresh());
     } catch (err) {

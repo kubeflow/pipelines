@@ -88,8 +88,8 @@ export const theme = createMuiTheme({
       flat: {
         fontSize: fontsize.base,
         fontWeight: 'bold',
-        minHeight: dimension.small,
-        padding: spacing.units(-4),
+        minHeight: 24,
+        padding: '4px 8px',
         textTransform: 'none',
       },
       flatPrimary: {

@@ -139,28 +139,14 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
   }
 
   public async componentWillMount(): Promise<void> {
-    await this._loadRun();
-    const { job, runMetadata } = this.state;
-    const breadcrumbs = [
-      { displayName: 'Jobs', href: RoutePage.JOBS },
-    ];
-    if (!runMetadata) {
-      breadcrumbs.push(
-        { displayName: this.props.runId!, href: '' },
-      );
-    } else {
-      const jobDetailsHref = RoutePage.JOB_DETAILS.replace(
-        ':' + RouteParams.jobId, runMetadata.job_id!);
-      breadcrumbs.push(
-        { displayName: job ? job.name! : runMetadata.job_id!, href: jobDetailsHref },
-        { displayName: runMetadata.name!, href: '' },
-      );
-    }
-    // TODO: run status next to page name
     this.props.updateToolbar({
       actions: this._toolbarActions,
-      breadcrumbs,
+      breadcrumbs: [{ displayName: 'Jobs', href: RoutePage.JOBS }],
     });
+  }
+
+  public async componentDidMount(): Promise<void> {
+    await this._loadRun();
   }
 
   public componentWillUnmount() {
@@ -316,6 +302,17 @@ class RunDetails extends React.Component<RunDetailsProps, RunDetailsState> {
       // Build runtime graph
       const graph = workflow && workflow.status && workflow.status.nodes ?
         WorkflowParser.createRuntimeGraph(workflow) : undefined;
+
+      const jobDetailsHref = RoutePage.JOB_DETAILS.replace(
+        ':' + RouteParams.jobId, runMetadata!.job_id!);
+      const breadcrumbs = [
+        { displayName: 'Jobs', href: RoutePage.JOBS },
+        { displayName: job ? job.name! : runMetadata!.job_id!, href: jobDetailsHref },
+        { displayName: runMetadata!.name!, href: '' },
+      ];
+
+      // TODO: run status next to page name
+      this.props.updateToolbar({ actions: this._toolbarActions, breadcrumbs });
 
       this.setState({
         graph,

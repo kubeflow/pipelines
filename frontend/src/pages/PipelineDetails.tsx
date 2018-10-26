@@ -103,7 +103,7 @@ const css = stylesheet({
     bottom: 20,
     left: 20,
     maxHeight: 250,
-    padding: 20,
+    padding: 10,
     position: 'absolute',
     width: 250,
     zIndex: 1,
@@ -157,18 +157,14 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
   }
 
   public componentWillMount() {
-    const { pipeline } = this.state;
     this.props.updateToolbar({
       actions: this._toolbarActions,
-      breadcrumbs: [
-        { displayName: 'Pipelines', href: RoutePage.PIPELINES },
-        { displayName: pipeline && pipeline.name ? pipeline.name : this.props.match.params[RouteParams.pipelineId], href: '' }
-      ],
+      breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
     });
   }
 
-  public componentDidMount(): void {
-    this._loadPipeline();
+  public componentDidMount(): Promise<void> {
+    return this._loadPipeline();
   }
 
   public componentWillUnmount() {
@@ -192,7 +188,7 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
               {selectedTab === 0 && <div className={commonCss.page}>
                 {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
                   <Paper className={css.summaryCard}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
                       <div className={commonCss.header}>
                         Summary
                       </div>
@@ -269,44 +265,46 @@ class PipelineDetails extends React.Component<PipelineDetailsProps, PipelineDeta
 
   private async _loadPipeline(): Promise<void> {
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
+
     // TODO: Show spinner while waiting for responses
-    await Promise.all([
-      Apis.pipelineServiceApi.getPipeline(pipelineId),
-      Apis.pipelineServiceApi.getTemplate(pipelineId)
-    ]).then(([pipeline, templateResponse]) => {
+    try {
+      const [pipeline, templateResponse] = await Promise.all([
+        Apis.pipelineServiceApi.getPipeline(pipelineId),
+        Apis.pipelineServiceApi.getTemplate(pipelineId)
+      ]);
+
+      const template: Workflow = JsYaml.safeLoad(templateResponse.template!);
+      let g: dagre.graphlib.Graph | undefined;
       try {
-        const template: Workflow = JsYaml.safeLoad(templateResponse.template!);
-        let g: dagre.graphlib.Graph | undefined;
-        try {
-          g = StaticGraphParser.createGraph(template);
-        } catch (err) {
-          this._handlePageError('Error: failed to generate Pipeline graph.', err.message);
-        }
-        this.setState({
-          graph: g,
-          pipeline,
-          template,
-          templateYaml: templateResponse.template,
-        });
+        g = StaticGraphParser.createGraph(template);
       } catch (err) {
-        this.props.updateBanner({
-          additionalInfo: err.message + '\n\n\n' + templateResponse.template,
-          message: 'Failed to parse pipeline yaml',
-          mode: 'error',
-        });
+        this._handlePageError('Error: failed to generate Pipeline graph.', err.message);
       }
+
+      const breadcrumbs = [
+        { displayName: 'Pipelines', href: RoutePage.PIPELINES },
+        { displayName: pipeline.name!, href: '' },
+      ];
+
       const toolbarActions = [...this.props.toolbarProps.actions];
       toolbarActions[0].disabled = false;
-      this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
-    })
-      .catch((err) => {
-        this._handlePageError(
-          `Error: failed to retrieve pipeline or template for ID: ${pipelineId}.`,
-          err.message,
-          this._loadPipeline.bind(this),
-        );
-        logger.error(`Error loading pipeline or template for ID: ${pipelineId}`, err);
+      this.props.updateToolbar({ breadcrumbs, actions: toolbarActions });
+
+      this.setState({
+        graph: g,
+        pipeline,
+        template,
+        templateYaml: templateResponse.template,
       });
+    }
+    catch (err) {
+      this._handlePageError(
+        `Error: failed to retrieve pipeline or template for ID: ${pipelineId}.`,
+        err.message,
+        this._loadPipeline.bind(this),
+      );
+      logger.error(`Error loading pipeline or template for ID: ${pipelineId}`, err);
+    }
   }
 
   private _handlePageError(message: string, error?: Error, refreshFunc?: () => void): void {
