@@ -121,8 +121,6 @@ def taxi_cab_classification(
     learning_rate: mlp.PipelineParam=mlp.PipelineParam(name='learning-rate', value=0.1),
     hidden_layer_size: mlp.PipelineParam=mlp.PipelineParam(name='hidden-layer-size', value='1500'),
     steps: mlp.PipelineParam=mlp.PipelineParam(name='steps', value=3000),
-    workers: mlp.PipelineParam=mlp.PipelineParam(name='workers', value=1), #Must be 1 or greater
-    pss: mlp.PipelineParam=mlp.PipelineParam(name='pss', value=1), #Must be 1 or greater
     predict_mode: mlp.PipelineParam=mlp.PipelineParam(name='predict-mode', value='local'),
     analyze_mode: mlp.PipelineParam=mlp.PipelineParam(name='analyze-mode', value='local'),
     analyze_slice_column: mlp.PipelineParam=mlp.PipelineParam(
