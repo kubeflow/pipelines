@@ -26,7 +26,7 @@ import argparse
 import json
 import os
 import pandas as pd
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
 from tensorflow.python.lib.io import file_io
 
 
@@ -75,6 +75,16 @@ def main(argv=None):
   with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
+  accuracy = accuracy_score(df['target'], df['predicted'], labels=vocab)
+  metrics = {
+    'metrics': [{
+      'name': 'accuracy_score',
+      'numberValue':  accuracy,
+      'format': "PERCENTAGE",
+    }]
+  }
+  with file_io.FileIO('/mlpipeline-metrics.json', 'w') as f:
+    json.dump(metrics, f)
 
 if __name__== "__main__":
   main()
