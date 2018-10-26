@@ -286,6 +286,12 @@ func IsNotFound(err error) bool {
 	return reasonForError(err) == k8metav1.StatusReasonNotFound
 }
 
+// IsUserErrorCodeMatch returns whether the error is a user error with specified code.
+func IsUserErrorCodeMatch(err error, code codes.Code) bool {
+	userError, ok := err.(*UserError)
+	return ok && userError.externalStatusCode == code
+}
+
 // ReasonForError returns the HTTP status for a particular error.
 func reasonForError(err error) k8metav1.StatusReason {
 	switch t := err.(type) {

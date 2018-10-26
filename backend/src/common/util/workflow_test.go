@@ -343,3 +343,70 @@ func TestVerifyParameters_Failed(t *testing.T) {
 	})
 	assert.NotNil(t, workflow.VerifyParameters(map[string]string{"PARAM1": "V1", "NON_EXIST": "V2"}))
 }
+
+func TestFindS3ArtifactKey_Succeed(t *testing.T) {
+	expectedPath := "expected/path"
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-1": workflowapi.NodeStatus{
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{
+							workflowapi.Artifact{
+								Name: "artifact-1",
+								ArtifactLocation: workflowapi.ArtifactLocation{
+									S3: &workflowapi.S3Artifact{
+										Key: expectedPath,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	actualPath := workflow.FindObjectStoreArtifactKeyOrEmpty("node-1", "artifact-1")
+
+	assert.Equal(t, expectedPath, actualPath)
+}
+
+func TestFindS3ArtifactKey_ArtifactNotFound(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-1": workflowapi.NodeStatus{
+					Outputs: &workflowapi.Outputs{
+						Artifacts: []workflowapi.Artifact{
+							workflowapi.Artifact{
+								Name: "artifact-2",
+								ArtifactLocation: workflowapi.ArtifactLocation{
+									S3: &workflowapi.S3Artifact{
+										Key: "foo/bar",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	actualPath := workflow.FindObjectStoreArtifactKeyOrEmpty("node-1", "artifact-1")
+
+	assert.Empty(t, actualPath)
+}
+
+func TestFindS3ArtifactKey_NodeNotFound(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{},
+		},
+	})
+
+	actualPath := workflow.FindObjectStoreArtifactKeyOrEmpty("node-1", "artifact-1")
+
+	assert.Empty(t, actualPath)
+}

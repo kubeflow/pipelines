@@ -107,6 +107,10 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 	if len(runs) == 0 {
 		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
 	}
+	if runs[0].WorkflowRuntimeManifest == "" {
+		// This can only happen when workflow reporting is failed.
+		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
+	}
 	return &runs[0], nil
 }
 

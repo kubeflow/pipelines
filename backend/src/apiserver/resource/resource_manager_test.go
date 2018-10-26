@@ -38,23 +38,23 @@ import (
 
 type FakeBadObjectStore struct{}
 
-func (m *FakeBadObjectStore) AddFile(template []byte, bucket string, fileName string) error {
+func (m *FakeBadObjectStore) AddFile(template []byte, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) DeleteFile(bucket string, fileName string) error {
+func (m *FakeBadObjectStore) DeleteFile(filePath string) error {
 	return errors.New("Not implemented.")
 }
 
-func (m *FakeBadObjectStore) GetFile(bucket string, fileName string) ([]byte, error) {
+func (m *FakeBadObjectStore) GetFile(filePath string) ([]byte, error) {
 	return []byte(""), nil
 }
 
-func (m *FakeBadObjectStore) AddAsYamlFile(o interface{}, bucket string, fileName string) error {
+func (m *FakeBadObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, bucket string, fileName string) error {
+func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
@@ -129,7 +129,7 @@ func TestGetPipelineTemplate(t *testing.T) {
 	defer store.Close()
 	pipeline, _ := store.PipelineStore().CreatePipeline(createPipeline("pipeline1"))
 	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.PipelineFolder, fmt.Sprint(pipeline.UUID))
+	store.ObjectStore().AddFile(template, storage.CreatePipelinePath(fmt.Sprint(pipeline.UUID)))
 	manager := NewResourceManager(store)
 	actualTemplate, err := manager.GetPipelineTemplate(pipeline.UUID)
 	assert.Nil(t, err)
@@ -140,7 +140,7 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.PipelineFolder, fmt.Sprint(1))
+	store.ObjectStore().AddFile(template, storage.CreatePipelinePath(fmt.Sprint(1)))
 	manager := NewResourceManager(store)
 	_, err := manager.GetPipelineTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
@@ -997,6 +997,90 @@ func TestGetWorkflowSpecBytes_MissingSpec(t *testing.T) {
 	_, err := manager.getWorkflowSpecBytes(spec)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please provide a valid pipeline spec")
+}
+
+func TestReadArtifact_Succeed(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	expectedContent := "test"
+	filePath := "test/file.txt"
+	store.ObjectStore().AddFile([]byte(expectedContent), filePath)
+
+	// Create a scheduled run
+	// job, _ := manager.CreateJob(&api.Job{
+	// 	Name:       "pp1",
+	// 	PipelineId: p.UUID,
+	// 	Enabled:    true,
+	// })
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "MY_NAME",
+			Namespace:         "MY_NAMESPACE",
+			UID:               "run-1",
+			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID("job-1"),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"node-1": v1alpha1.NodeStatus{
+					Outputs: &v1alpha1.Outputs{
+						Artifacts: []v1alpha1.Artifact{
+							v1alpha1.Artifact{
+								Name: "artifact-1",
+								ArtifactLocation: v1alpha1.ArtifactLocation{
+									S3: &v1alpha1.S3Artifact{
+										Key: filePath,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.Nil(t, err)
+
+	artifactContent, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedContent, string(artifactContent))
+}
+
+func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "MY_NAME",
+			Namespace:         "MY_NAMESPACE",
+			UID:               "run-1",
+			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
+		},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.Nil(t, err)
+
+	_, err = manager.ReadArtifact("run-1", "node-1", "artifact-1")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+}
+
+func TestReadArtifact_NoRun_NotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	_, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 }
 
 const (

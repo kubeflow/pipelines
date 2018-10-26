@@ -189,3 +189,26 @@ func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, in
 	w.SetLabels(LabelKeyWorkflowIndex, FormatInt64ForLabel(index))
 	w.SetLabels(LabelKeyWorkflowIsOwnedByScheduledWorkflow, "true")
 }
+
+// FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
+// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
+func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string {
+	if w.Status.Nodes == nil {
+		return ""
+	}
+	node, found := w.Status.Nodes[nodeID]
+	if !found {
+		return ""
+	}
+	if node.Outputs == nil || node.Outputs.Artifacts == nil {
+		return ""
+	}
+	var s3Key string
+	for _, artifact := range node.Outputs.Artifacts {
+		if artifact.Name != artifactName || artifact.S3 == nil || artifact.S3.Key == "" {
+			continue
+		}
+		s3Key = artifact.S3.Key
+	}
+	return s3Key
+}

@@ -92,8 +92,14 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRun
 }
 
 func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
-	// TODO(hongyes): Implement the action.
-	return &api.ReadArtifactResponse{}, nil
+	content, err := s.resourceManager.ReadArtifact(
+		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
+	if err != nil {
+		return nil, util.Wrapf(err, "failed to read artifact '%+v'.", request)
+	}
+	return &api.ReadArtifactResponse{
+		Data: content,
+	}, nil
 }
 
 func ValidateCreateRunRequest(request *api.CreateRunRequest) error {

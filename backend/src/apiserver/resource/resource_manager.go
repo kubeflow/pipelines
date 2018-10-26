@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strconv"
 
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
@@ -113,7 +114,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// Delete pipeline file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.
 	// https://github.com/googleprivate/ml/issues/388
-	err = r.objectStore.DeleteFile(storage.PipelineFolder, fmt.Sprint(pipelineId))
+	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
 		return nil
@@ -140,7 +141,7 @@ func (r *ResourceManager) CreatePipeline(name string, pipelineFile []byte) (*mod
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, storage.PipelineFolder, fmt.Sprint(newPipeline.UUID))
+	err = r.objectStore.AddFile(pipelineFile, storage.CreatePipelinePath(fmt.Sprint(newPipeline.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -164,7 +165,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
 
-	template, err := r.objectStore.GetFile(storage.PipelineFolder, fmt.Sprint(pipelineId))
+	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -259,7 +260,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 
 	var workflow util.Workflow
-	err = r.objectStore.GetFromYamlFile(&workflow, storage.PipelineFolder, job.PipelineId)
+	err = r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(job.PipelineId))
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
@@ -377,7 +378,7 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 		if err != nil {
 			return nil, util.Wrap(err, "Get pipeline failed")
 		}
-		workflowYAMLBytes, err := r.objectStore.GetFile(storage.PipelineFolder, spec.GetPipelineId())
+		workflowYAMLBytes, err := r.objectStore.GetFile(storage.CreatePipelinePath(spec.GetPipelineId()))
 		if err != nil {
 			return nil, util.Wrap(err, "Get pipeline YAML failed.")
 		}
@@ -394,4 +395,27 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 
 func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {
 	return r.runStore.ReportMetric(ToModelRunMetric(metric, runUUID))
+}
+
+// ReadArtifact parses run's workflow to find artifact file path and reads the content of the file
+// from object store.
+func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName string) ([]byte, error) {
+	run, err := r.runStore.GetRun(runID)
+	if err != nil {
+		return nil, err
+	}
+	var storageWorkflow workflowapi.Workflow
+	err = json.Unmarshal([]byte(run.WorkflowRuntimeManifest), &storageWorkflow)
+	if err != nil {
+		// This should never happen.
+		return nil, util.NewInternalServerError(
+			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
+	}
+	workflow := util.NewWorkflow(&storageWorkflow)
+	artifactPath := workflow.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
+	if artifactPath == "" {
+		return nil, util.NewResourceNotFoundError(
+			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
+	}
+	return r.objectStore.GetFile(artifactPath)
 }
