@@ -194,18 +194,12 @@ For more details, see [README.md](https://github.com/googleprivate/ml/blob/maste
 ## Setup
 * Create a python3 environment.
  
-* Install a version of DSL and DSL Compiler.
- 
-Go to [release page](https://github.com/googleprivate/ml/releases) to find a version of the source code zip. Download and decompress it. Run the following:
+* Install a version of pipeline SDK:
 
-```bash
-cd $EXTRACTED_DIRECTORY
-pip install ./dsl/ --upgrade # The library to specify pipelines with Python.
-pip install ./dsl-compiler/ --upgrade # The compiler that converts pipeline code into the form required by the pipeline system.
- ```
+pip install https://storage.googleapis.com/ml-pipeline/kfp-0.0.23.tar.gz --upgrade
  
+
 Note: if you prefer adding "--user" in installation of dsl-compiler, please also run "export PATH=~/.local/bin:$PATH".
-Note: if you are feeling adventurous and want the latest, just git clone the repo and install dsl and dsl-compiler from there.
 
 After successful installation the command "dsl-compile" should be added to your PATH.
 
