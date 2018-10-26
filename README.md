@@ -143,7 +143,7 @@ If you want to turn off the usage report, you can download the bootstrapper file
 
 For example, download bootstrapper
 ```bash
-PIPELINE_VERSION=0.0.22
+PIPELINE_VERSION=0.0.23
 curl https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml --output bootstrapper.yaml
 ```
 and then update argument in the file
