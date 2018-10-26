@@ -195,9 +195,9 @@ For more details, see [README.md](https://github.com/googleprivate/ml/blob/maste
 * Create a python3 environment.
  
 * Install a version of pipeline SDK:
-
+```bash
 pip install https://storage.googleapis.com/ml-pipeline/kfp-0.0.23.tar.gz --upgrade
- 
+```
 
 Note: if you prefer adding "--user" in installation of dsl-compiler, please also run "export PATH=~/.local/bin:$PATH".
 
