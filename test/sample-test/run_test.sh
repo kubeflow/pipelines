@@ -85,7 +85,7 @@ chmod +x ~/bin/argo
 echo "Run the sample tests..."
 
 # Generate Python package
-cd ./client/python
+cd ./sdk/python
 ./build.sh /tmp/kfp.tar.gz
 
 # Install python client, including DSL compiler.
