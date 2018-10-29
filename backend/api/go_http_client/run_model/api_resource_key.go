@@ -30,10 +30,10 @@ import (
 // swagger:model apiResourceKey
 type APIResourceKey struct {
 
-	// Required field. The ID of the resource that referred to.
+	// The ID of the resource that referred to.
 	ID string `json:"id,omitempty"`
 
-	// Required field. The type of the resource that referred to.
+	// The type of the resource that referred to.
 	Type APIResourceType `json:"type,omitempty"`
 }
 

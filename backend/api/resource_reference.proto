@@ -30,10 +30,10 @@ enum Relationship {
 
 
 message ResourceKey {
-  // Required field. The type of the resource that referred to.
+  // The type of the resource that referred to.
   ResourceType type = 1;
 
-  // Required field. The ID of the resource that referred to.
+  // The ID of the resource that referred to.
   string id = 2;
 }
 

@@ -91,9 +91,9 @@ func (Relationship) EnumDescriptor() ([]byte, []int) {
 }
 
 type ResourceKey struct {
-	// Required field. The type of the resource that referred to.
+	// The type of the resource that referred to.
 	Type ResourceType `protobuf:"varint,1,opt,name=type,proto3,enum=api.ResourceType" json:"type,omitempty"`
-	// Required field. The ID of the resource that referred to.
+	// The ID of the resource that referred to.
 	Id                   string   `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

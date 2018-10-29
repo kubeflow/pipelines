@@ -94,12 +94,12 @@ type ListJobsParams struct {
 	/*PageToken*/
 	PageToken *string
 	/*ResourceReferenceKeyID
-	  Required field. The ID of the resource that referred to.
+	  The ID of the resource that referred to.
 
 	*/
 	ResourceReferenceKeyID *string
 	/*ResourceReferenceKeyType
-	  Required field. The type of the resource that referred to.
+	  The type of the resource that referred to.
 
 	*/
 	ResourceReferenceKeyType *string
