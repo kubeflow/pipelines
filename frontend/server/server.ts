@@ -91,10 +91,7 @@ const healthzHandler = async (_, res) => {
   res.json(healthzStats);
 };
 
-app.get('/' + v1alpha2Prefix + '/healthz', healthzHandler);
-app.get(BASEPATH + '/' + v1alpha2Prefix + '/healthz', healthzHandler);
-
-app.get('artifacts/get', async (req, res) => {
+const artifactsHandler = async (req, res) => {
   const [source, bucket, encodedKey] = [req.query.source, req.query.bucket, req.query.key];
   if (!source) {
     res.status(500).send('Storage source is missing from artifact request');
@@ -178,9 +175,9 @@ app.get('artifacts/get', async (req, res) => {
       res.status(500).send('Unknown storage source: ' + source);
       return;
   }
-});
+};
 
-app.get('apps/tensorboard', async (req, res) => {
+const getTensorboardHandler = async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -196,9 +193,9 @@ app.get('apps/tensorboard', async (req, res) => {
   } catch (err) {
     res.status(500).send('Failed to list Tensorboard pods: ' + err);
   }
-});
+};
 
-app.post('apps/tensorboard', async (req, res) => {
+const createTensorboardHandler = async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -216,10 +213,9 @@ app.post('apps/tensorboard', async (req, res) => {
   } catch (err) {
     res.status(500).send('Failed to start Tensorboard app: ' + err);
   }
+};
 
-});
-
-app.get('k8s/pod/logs', async (req, res) => {
+const logsHandler = async (req, res) => {
   if (!k8sHelper.isInCluster) {
     res.status(500).send('Cannot talk to Kubernetes master');
     return;
@@ -236,7 +232,22 @@ app.get('k8s/pod/logs', async (req, res) => {
   } catch (err) {
     res.status(500).send('Could not get main container logs: ' + err);
   }
-});
+};
+
+app.get('/' + v1alpha2Prefix + '/healthz', healthzHandler);
+app.get(BASEPATH + '/' + v1alpha2Prefix + '/healthz', healthzHandler);
+
+app.get('/artifacts/get', artifactsHandler);
+app.get(BASEPATH + '/artifacts/get', artifactsHandler);
+
+app.get('/apps/tensorboard', getTensorboardHandler);
+app.get(BASEPATH + '/apps/tensorboard', getTensorboardHandler);
+
+app.post('/apps/tensorboard', createTensorboardHandler);
+app.post(BASEPATH + '/apps/tensorboard', createTensorboardHandler);
+
+app.get('/k8s/pod/logs', logsHandler);
+app.get(BASEPATH + '/k8s/pod/logs', logsHandler);
 
 proxyMiddleware(app, v1alpha2Prefix);
 
