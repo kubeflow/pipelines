@@ -15,7 +15,7 @@
 # limitations under the License.
 
 
-# The scripts creates a seira client python package.
+# The scripts creates a Pipelines client python package.
 #
 # Usage:
 #   ./build.sh [output_dir]
