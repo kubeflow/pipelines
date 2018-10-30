@@ -17,11 +17,14 @@ import sys
 import unittest
 
 import compiler_tests
+import component_builder_test
 
 
 if __name__ == '__main__':
   suite = unittest.TestSuite()
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(compiler_tests))
+  #TODO: enable the test once a gcs mock class is created.
+  #suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(component_builder_test))
   runner = unittest.TextTestRunner()
   if not runner.run(suite).wasSuccessful():
     sys.exit(1)

@@ -13,8 +13,18 @@
 # limitations under the License.
 
 
-from ._pipeline_param import PipelineParam
-from ._pipeline import Pipeline, pipeline
-from ._container_op import ContainerOp
-from ._ops_group import OpsGroup, ExitHandler, Condition
-from ._component import PythonComponent, python_component
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: kaniko-
+  namespace: default
+spec:
+  restartPolicy: Never
+  serviceAccountName: default
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:v0.5.0
+    args: ["--cache=true",
+                "--dockerfile=dockerfile",
+                "--context=gs://mlpipeline/kaniko_build.tar.gz",
+                "--destination=gcr.io/mlpipeline/kaniko_image:latest"]

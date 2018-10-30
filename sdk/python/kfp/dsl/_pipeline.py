@@ -78,7 +78,7 @@ class Pipeline():
   def add_pipeline(name, description, func):
     """Add a pipeline function (decorated with @pipeline)."""
     Pipeline._pipeline_functions[func] = (name, description)
-  
+
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
 
