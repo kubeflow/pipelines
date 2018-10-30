@@ -24,12 +24,13 @@ REQUIRES = ['urllib3 >= 1.15', 'six >= 1.10', 'certifi', 'python-dateutil', 'PyY
 setup(
     name=NAME,
     version=VERSION,
-    description='KubeFlow Pipeline SDK',
+    description='KubeFlow Pipelines SDK',
     author='google',
     install_requires=REQUIRES,
     packages=[
       'kfp',
       'kfp.compiler',
+      'kfp.components',
       'kfp.dsl',
       'kfp_job',
       'kfp_job.api',
