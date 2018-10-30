@@ -1,15 +1,21 @@
 package api_server
 
 import (
+	"fmt"
 	"time"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/go-openapi/runtime"
+	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	clientmodel "github.com/googleprivate/ml/backend/api/go_http_client/run_model"
 	servermodel "github.com/googleprivate/ml/backend/src/apiserver/model"
+	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/pkg/errors"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -53,4 +59,34 @@ func toWorkflowTestOnly(workflow string) *workflowapi.Workflow {
 		return nil
 	}
 	return &result
+}
+
+func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
+	*httptransport.Runtime, error) {
+	// Creating k8 client
+	k8Client, config, namespace, err := util.GetKubernetesClientFromClientConfig(clientConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error while creating K8 client")
+	}
+
+	// Create API client
+	httpClient := k8Client.RESTClient().(*rest.RESTClient).Client
+	masterIPAndPort := util.ExtractMasterIPAndPort(config)
+	runtime := httptransport.NewWithClient(masterIPAndPort, fmt.Sprintf(apiServerBasePath, namespace),
+		nil, httpClient)
+
+	if debug {
+		runtime.SetDebug(true)
+	}
+
+	return runtime, err
+}
+
+func CreateErrorFromAPIStatus(error string, code int32) error {
+	return fmt.Errorf("%v (code: %v)", error, code)
+}
+
+func CreateErrorCouldNotRecoverAPIStatus(err error) error {
+	return fmt.Errorf("Could not parse the error returned from the server. Most likely, the CLI is not able to reach the service. Use the '--debug' flag to print the raw error from the server: %v",
+		err.Error())
 }

@@ -3,16 +3,13 @@ package api_server
 import (
 	"fmt"
 
-	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/googleprivate/ml/backend/api/go_http_client/job_client"
 	params "github.com/googleprivate/ml/backend/api/go_http_client/job_client/job_service"
 	model "github.com/googleprivate/ml/backend/api/go_http_client/job_model"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -32,19 +29,15 @@ type JobClient struct {
 	apiClient *apiclient.Job
 }
 
-func NewJobClient(clientConfig clientcmd.ClientConfig) (
+func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*JobClient, error) {
-	// Creating k8 client
-	k8Client, config, namespace, err := util.GetKubernetesClientFromClientConfig(clientConfig)
+
+	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error while creating K8 client")
+		return nil, err
 	}
 
-	// Create API client
-	httpClient := k8Client.RESTClient().(*rest.RESTClient).Client
-	masterIPAndPort := util.ExtractMasterIPAndPort(config)
-	apiClient := apiclient.New(httptransport.NewWithClient(masterIPAndPort,
-		fmt.Sprintf(apiServerBasePath, namespace), nil, httpClient), strfmt.Default)
+	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating upload client
 	return &JobClient{
@@ -63,12 +56,14 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 	response, err := c.apiClient.JobService.CreateJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreateJobDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create job. Params: %+v. Body: %+v", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create job %v", parameters.Body.Name))
+			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
+			fmt.Sprintf("Failed to create job '%v'", parameters.Body.Name))
 	}
 
 	return response.Payload, nil
@@ -85,12 +80,14 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
 	response, err := c.apiClient.JobService.GetJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetJobDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to get job. Params: %+v", parameters),
-			fmt.Sprintf("Failed to get job %v", parameters.ID))
+			fmt.Sprintf("Failed to get job. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to get job '%v'", parameters.ID))
 	}
 
 	return response.Payload, nil
@@ -106,12 +103,14 @@ func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
 	_, err := c.apiClient.JobService.DeleteJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeleteJobDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
-			fmt.Sprintf("Failed to get job. Params: %+v", parameters),
-			fmt.Sprintf("Failed to get job %v", parameters.ID))
+			fmt.Sprintf("Failed to get job. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to get job '%v'", parameters.ID))
 	}
 
 	return nil
@@ -127,12 +126,14 @@ func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
 	_, err := c.apiClient.JobService.EnableJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.EnableJobDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
-			fmt.Sprintf("Failed to enable job. Params: %+v", parameters),
-			fmt.Sprintf("Failed to enable job %v", parameters.ID))
+			fmt.Sprintf("Failed to enable job. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to enable job '%v'", parameters.ID))
 	}
 
 	return nil
@@ -148,12 +149,14 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 	_, err := c.apiClient.JobService.DisableJob(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.DisableJobDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
-			fmt.Sprintf("Failed to disable job. Params: %+v", parameters),
-			fmt.Sprintf("Failed to disable job %v", parameters.ID))
+			fmt.Sprintf("Failed to disable job. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to disable job '%v'", parameters.ID))
 	}
 
 	return nil
@@ -170,11 +173,13 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 	response, err := c.apiClient.JobService.ListJobs(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListJobsDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, "", util.NewUserError(err,
-			fmt.Sprintf("Failed to list jobs. Params: %+v", parameters),
+			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list jobs"))
 	}
 
@@ -222,11 +227,13 @@ func (c *JobClient) ListRuns(parameters *params.ListJobRunsParams) (
 	response, err := c.apiClient.JobService.ListJobRuns(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListJobRunsDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, "", util.NewUserError(err,
-			fmt.Sprintf("Failed to list runs for job '%v'. Params: %+v", parameters.JobID, parameters),
+			fmt.Sprintf("Failed to list runs for job '%v'. Params: '%+v'", parameters.JobID, parameters),
 			fmt.Sprintf("Failed to list runs for job '%v'", parameters.JobID))
 	}
 

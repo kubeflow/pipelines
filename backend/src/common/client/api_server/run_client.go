@@ -5,16 +5,13 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
-	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/googleprivate/ml/backend/api/go_http_client/run_client"
 	params "github.com/googleprivate/ml/backend/api/go_http_client/run_client/run_service"
 	model "github.com/googleprivate/ml/backend/api/go_http_client/run_model"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -28,18 +25,15 @@ type RunClient struct {
 	apiClient *apiclient.Run
 }
 
-func NewRunClient(clientConfig clientcmd.ClientConfig) (*RunClient, error) {
-	// Creating k8 client
-	k8Client, config, namespace, err := util.GetKubernetesClientFromClientConfig(clientConfig)
+func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
+	*RunClient, error) {
+
+	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error while creating K8 client")
+		return nil, err
 	}
 
-	// Create API client
-	httpClient := k8Client.RESTClient().(*rest.RESTClient).Client
-	masterIPAndPort := util.ExtractMasterIPAndPort(config)
-	apiClient := apiclient.New(httptransport.NewWithClient(masterIPAndPort,
-		fmt.Sprintf(apiServerBasePath, namespace), nil, httpClient), strfmt.Default)
+	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating upload client
 	return &RunClient{
@@ -58,12 +52,14 @@ func (c *RunClient) Get(parameters *params.GetRunV2Params) (*model.APIRunDetail,
 	response, err := c.apiClient.RunService.GetRunV2(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetRunDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to get run. Params: %+v", parameters),
-			fmt.Sprintf("Failed to get run %v", parameters.RunID))
+			fmt.Sprintf("Failed to get run. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to get run '%v'", parameters.RunID))
 	}
 
 	// Unmarshal response
@@ -71,7 +67,7 @@ func (c *RunClient) Get(parameters *params.GetRunV2Params) (*model.APIRunDetail,
 	err = yaml.Unmarshal([]byte(response.Payload.Workflow), &workflow)
 	if err != nil {
 		return nil, nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to unmarshal reponse. Params: %+v. Response: %s", parameters,
+			fmt.Sprintf("Failed to unmarshal reponse. Params: '%+v'. Response: '%s'", parameters,
 				response.Payload.Workflow),
 			fmt.Sprintf("Failed to unmarshal reponse"))
 	}
@@ -91,11 +87,13 @@ func (c *RunClient) List(parameters *params.ListRunsParams) (
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, "", util.NewUserError(err,
-			fmt.Sprintf("Failed to list runs. Params: %+v", parameters),
+			fmt.Sprintf("Failed to list runs. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list runs"))
 	}
 

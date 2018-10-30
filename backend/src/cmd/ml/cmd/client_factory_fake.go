@@ -24,22 +24,22 @@ func NewClientFactoryFake() *ClientFactoryFake {
 	}
 }
 
-func (f *ClientFactoryFake) CreatePipelineUploadClient(config clientcmd.ClientConfig) (
+func (f *ClientFactoryFake) CreatePipelineUploadClient(config clientcmd.ClientConfig, debug bool) (
 	client.PipelineUploadInterface, error) {
 	return client.NewPipelineUploadClientFake(), nil
 }
 
-func (f *ClientFactoryFake) CreatePipelineClient(config clientcmd.ClientConfig) (
+func (f *ClientFactoryFake) CreatePipelineClient(config clientcmd.ClientConfig, debug bool) (
 	client.PipelineInterface, error) {
 	return client.NewPipelineClientFake(), nil
 }
 
-func (f *ClientFactoryFake) CreateJobClient(config clientcmd.ClientConfig) (
+func (f *ClientFactoryFake) CreateJobClient(config clientcmd.ClientConfig, debug bool) (
 	client.JobInterface, error) {
 	return client.NewJobClientFake(), nil
 }
 
-func (f *ClientFactoryFake) CreateRunClient(config clientcmd.ClientConfig) (
+func (f *ClientFactoryFake) CreateRunClient(config clientcmd.ClientConfig, debug bool) (
 	client.RunInterface, error) {
 	return client.NewRunClientFake(), nil
 }

@@ -6,15 +6,12 @@ import (
 	"os"
 
 	"github.com/go-openapi/runtime"
-	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_client"
 	params "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_model"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/pkg/errors"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -33,19 +30,15 @@ type PipelineUploadClient struct {
 	apiClient *apiclient.PipelineUpload
 }
 
-func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig) (
+func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*PipelineUploadClient, error) {
-	// Creating k8 client
-	k8Client, config, namespace, err := util.GetKubernetesClientFromClientConfig(clientConfig)
+
+	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error while creating K8 client")
+		return nil, err
 	}
 
-	// Create API client
-	httpClient := k8Client.RESTClient().(*rest.RESTClient).Client
-	masterIPAndPort := util.ExtractMasterIPAndPort(config)
-	apiClient := apiclient.New(httptransport.NewWithClient(masterIPAndPort,
-		fmt.Sprintf(apiServerBasePath, namespace), nil, httpClient), strfmt.Default)
+	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating upload client
 	return &PipelineUploadClient{
@@ -78,11 +71,13 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to upload pipeline. Params: %v", parameters),
+			fmt.Sprintf("Failed to upload pipeline. Params: '%v'", parameters),
 			fmt.Sprintf("Failed to upload pipeline"))
 	}
 

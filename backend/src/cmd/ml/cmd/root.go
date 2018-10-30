@@ -33,22 +33,23 @@ func NewRootCmd(factory ClientFactoryInterface) *RootCommand {
 		Use:   "ml",
 		Short: "This is the command line interface to manipulate pipelines.",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			pipelineUploadClient, err := factory.CreatePipelineUploadClient(root.ClientConfig())
+			pipelineUploadClient, err := factory.CreatePipelineUploadClient(root.ClientConfig(),
+				root.debug)
 			if err != nil {
 				return fmt.Errorf("Could not create pipelineUploadClient: %v", err)
 			}
 
-			pipelineClient, err := factory.CreatePipelineClient(root.ClientConfig())
+			pipelineClient, err := factory.CreatePipelineClient(root.ClientConfig(), root.debug)
 			if err != nil {
 				fmt.Errorf("Could not create pipelineClient: %v", err)
 			}
 
-			jobClient, err := factory.CreateJobClient(root.ClientConfig())
+			jobClient, err := factory.CreateJobClient(root.ClientConfig(), root.debug)
 			if err != nil {
 				fmt.Errorf("Could not create jobClient: %v", err)
 			}
 
-			runClient, err := factory.CreateRunClient(root.ClientConfig())
+			runClient, err := factory.CreateRunClient(root.ClientConfig(), root.debug)
 			if err != nil {
 				fmt.Errorf("Could not create runClient: %v", err)
 			}

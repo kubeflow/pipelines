@@ -5,16 +5,13 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
-	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_client"
 	params "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_model"
 	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -32,18 +29,15 @@ type PipelineClient struct {
 	apiClient *apiclient.Pipeline
 }
 
-func NewPipelineClient(clientConfig clientcmd.ClientConfig) (*PipelineClient, error) {
-	// Creating k8 client
-	k8Client, config, namespace, err := util.GetKubernetesClientFromClientConfig(clientConfig)
+func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
+	*PipelineClient, error) {
+
+	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error while creating K8 client")
+		return nil, err
 	}
 
-	// Create API client
-	httpClient := k8Client.RESTClient().(*rest.RESTClient).Client
-	masterIPAndPort := util.ExtractMasterIPAndPort(config)
-	apiClient := apiclient.New(httptransport.NewWithClient(masterIPAndPort,
-		fmt.Sprintf(apiServerBasePath, namespace), nil, httpClient), strfmt.Default)
+	apiClient := apiclient.New(runtime, strfmt.Default)
 
 	// Creating upload client
 	return &PipelineClient{
@@ -61,12 +55,14 @@ func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model
 	response, err := c.apiClient.PipelineService.CreatePipeline(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreatePipelineDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create pipeline. Params: %v", parameters),
-			fmt.Sprintf("Failed to create pipeline from URL %v", parameters.Body.PipelineURL))
+			fmt.Sprintf("Failed to create pipeline. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to create pipeline from URL '%v'", parameters.Body.PipelineURL))
 	}
 
 	return response.Payload, nil
@@ -83,12 +79,14 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.APIPi
 	response, err := c.apiClient.PipelineService.GetPipeline(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetPipelineDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to get pipeline. Params: %v", parameters),
-			fmt.Sprintf("Failed to get pipeline %v", parameters.ID))
+			fmt.Sprintf("Failed to get pipeline. Params: '%v'", parameters),
+			fmt.Sprintf("Failed to get pipeline '%v'", parameters.ID))
 	}
 
 	return response.Payload, nil
@@ -104,12 +102,14 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
 	_, err := c.apiClient.PipelineService.DeletePipeline(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeletePipelineDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return util.NewUserError(err,
-			fmt.Sprintf("Failed to delete pipeline. Params: %+v", parameters),
-			fmt.Sprintf("Failed to delete pipeline %v", parameters.ID))
+			fmt.Sprintf("Failed to delete pipeline. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to delete pipeline '%v'", parameters.ID))
 	}
 
 	return nil
@@ -126,12 +126,14 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (
 	response, err := c.apiClient.PipelineService.GetTemplate(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetTemplateDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to get template. Params: %+v", parameters),
-			fmt.Sprintf("Failed to get template for pipeline %v", parameters.ID))
+			fmt.Sprintf("Failed to get template. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to get template for pipeline '%v'", parameters.ID))
 	}
 
 	// Unmarshal response
@@ -139,7 +141,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (
 	err = yaml.Unmarshal([]byte(response.Payload.Template), &workflow)
 	if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to unmarshal reponse. Params: %+v. Response: %s", parameters,
+			fmt.Sprintf("Failed to unmarshal reponse. Params: '%+v'. Response: '%s'", parameters,
 				response.Payload.Template),
 			fmt.Sprintf("Failed to unmarshal reponse"))
 	}
@@ -158,11 +160,13 @@ func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 	response, err := c.apiClient.PipelineService.ListPipelines(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListPipelinesDefault); ok {
-			err = fmt.Errorf(defaultError.Payload.Error)
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, "", util.NewUserError(err,
-			fmt.Sprintf("Failed to list pipelines. Params: %+v", parameters),
+			fmt.Sprintf("Failed to list pipelines. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list pipelines"))
 	}
 

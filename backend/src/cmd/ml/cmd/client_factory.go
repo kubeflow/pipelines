@@ -10,13 +10,13 @@ import (
 )
 
 type ClientFactoryInterface interface {
-	CreatePipelineUploadClient(config clientcmd.ClientConfig) (
+	CreatePipelineUploadClient(config clientcmd.ClientConfig, debug bool) (
 		client.PipelineUploadInterface, error)
-	CreatePipelineClient(config clientcmd.ClientConfig) (
+	CreatePipelineClient(config clientcmd.ClientConfig, debug bool) (
 		client.PipelineInterface, error)
-	CreateJobClient(config clientcmd.ClientConfig) (
+	CreateJobClient(config clientcmd.ClientConfig, debug bool) (
 		client.JobInterface, error)
-	CreateRunClient(config clientcmd.ClientConfig) (
+	CreateRunClient(config clientcmd.ClientConfig, debug bool) (
 		client.RunInterface, error)
 	Time() util.TimeInterface
 	Writer() io.Writer
@@ -34,24 +34,24 @@ func NewClientFactory() *ClientFactory {
 	}
 }
 
-func (f *ClientFactory) CreatePipelineUploadClient(config clientcmd.ClientConfig) (
+func (f *ClientFactory) CreatePipelineUploadClient(config clientcmd.ClientConfig, debug bool) (
 	client.PipelineUploadInterface, error) {
-	return client.NewPipelineUploadClient(config)
+	return client.NewPipelineUploadClient(config, debug)
 }
 
-func (f *ClientFactory) CreatePipelineClient(config clientcmd.ClientConfig) (
+func (f *ClientFactory) CreatePipelineClient(config clientcmd.ClientConfig, debug bool) (
 	client.PipelineInterface, error) {
-	return client.NewPipelineClient(config)
+	return client.NewPipelineClient(config, debug)
 }
 
-func (f *ClientFactory) CreateJobClient(config clientcmd.ClientConfig) (
+func (f *ClientFactory) CreateJobClient(config clientcmd.ClientConfig, debug bool) (
 	client.JobInterface, error) {
-	return client.NewJobClient(config)
+	return client.NewJobClient(config, debug)
 }
 
-func (f *ClientFactory) CreateRunClient(config clientcmd.ClientConfig) (
+func (f *ClientFactory) CreateRunClient(config clientcmd.ClientConfig, debug bool) (
 	client.RunInterface, error) {
-	return client.NewRunClient(config)
+	return client.NewRunClient(config, debug)
 }
 
 func (f *ClientFactory) Time() util.TimeInterface {
