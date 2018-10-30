@@ -22,7 +22,6 @@ import os
 import tensorflow_data_validation as tfdv
 
 from apache_beam.options.pipeline_options import StandardOptions
-from google.protobuf.json_format import MessageToJson
 from tensorflow.python.lib.io import file_io
 from tensorflow_metadata.proto.v0 import schema_pb2
 
@@ -73,7 +72,7 @@ def convert_feature_to_json(feature, key_columns):
     if feature.name in key_columns:
         feature_json['type'] = 'KEY'
     elif (feature_type == 'INT' or feature_type == 'FLOAT' or
-        feature.HasField('int_domain') or feature.HasField('float_domain')):
+          feature.HasField('int_domain') or feature.HasField('float_domain')):
         feature_json['type'] = 'NUMBER'
     elif feature.HasField('bool_domain'):
         feature_json['type'] = 'CATEGORY'
@@ -90,10 +89,14 @@ def convert_feature_to_json(feature, key_columns):
     return feature_json
 
 
-def convert_scheme_proto_to_json(schema, key_columns):
-    schema_json = []
+def convert_schema_proto_to_json(schema, column_names, key_columns):
+    column_schemas = {}
     for feature in schema.feature:
-        schema_json.append(convert_feature_to_json(feature, key_columns))
+        column_schemas[feature.name] = (
+            convert_feature_to_json(feature, key_columns))
+    schema_json = []
+    for column_name in column_names:
+        schema_json.append(column_schemas[column_name])
     return schema_json
 
 
@@ -142,7 +145,8 @@ def run_validator(output_dir, column_names, key_columns, csv_data_file,
     with file_io.FileIO(os.path.join(output_dir, 'schema.pb2'), 'w+') as f:
         logging.getLogger().info('Writing schema to {}'.format(f.name))
         f.write(schema.SerializeToString())
-    schema_json = convert_scheme_proto_to_json(schema, key_columns)
+    schema_json = convert_schema_proto_to_json(
+        schema, column_names, key_columns)
     with open('/output_schema.json', 'w+') as f:
         json.dump(schema_json, f)
     with file_io.FileIO(os.path.join(output_dir, 'schema.json'), 'w+') as f:
