@@ -38,3 +38,6 @@ ml.iml
 
 *.pyc
 .DS_Store
+
+.ipynb_checkpoints
+*.egg-info
