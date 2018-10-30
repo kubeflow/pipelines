@@ -75,10 +75,10 @@ def main(argv=None):
   with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
-  accuracy = accuracy_score(df['target'], df['predicted'], labels=vocab)
+  accuracy = accuracy_score(df['target'], df['predicted'])
   metrics = {
     'metrics': [{
-      'name': 'accuracy_score',
+      'name': 'accuracy-score',
       'numberValue':  accuracy,
       'format': "PERCENTAGE",
     }]
