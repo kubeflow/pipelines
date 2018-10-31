@@ -95,7 +95,7 @@ SAMPLE_KUBEFLOW_TEST_RESULT=junit_SampleKubeflowOutput.xml
 SAMPLE_KUBEFLOW_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
 # Compile samples
-cd samples/
+cd ${BASE_DIR}/samples/
 cd kubeflow-tf
 DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
@@ -110,24 +110,8 @@ sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-
 dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
 
 # TODO: use python SDK instead of using generated python client.
-# Generate API Python library
-cd ${BASE_DIR}/backend/api
-echo "{\"packageName\": \"swagger_pipeline_upload\"}" > config.json
-java -jar /swagger-codegen-cli.jar generate -l python -i swagger/pipeline.upload.swagger.json -o ./swagger_pipeline_upload -c config.json
-pip3 install ./swagger_pipeline_upload/ --upgrade
-echo "{\"packageName\": \"swagger_pipeline\"}" > config.json
-java -jar /swagger-codegen-cli.jar generate -l python -i swagger/pipeline.swagger.json -o ./swagger_pipeline -c config.json
-pip3 install ./swagger_pipeline/ --upgrade
-echo "{\"packageName\": \"swagger_run\"}" > config.json
-java -jar /swagger-codegen-cli.jar generate -l python -i swagger/run.swagger.json -o ./swagger_run -c config.json
-pip3 install ./swagger_run/ --upgrade
-echo "{\"packageName\": \"swagger_job\"}" > config.json
-java -jar /swagger-codegen-cli.jar generate -l python -i swagger/job.swagger.json -o ./swagger_job -c config.json
-pip3 install ./swagger_job/ --upgrade
-rm -rf config.json swagger_pipeline_upload swagger_pipeline swagger_run swagger_job
 
 # Run the tests
-#TODO: update the job output directory
 cd /
 python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.tar.gz --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT
 

@@ -7,7 +7,7 @@ RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
 
 # Install swagger codegen
-RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /swagger-codegen-cli.jar
+RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
 
 RUN pip3 install wheel
 RUN pip3 install junit-xml
@@ -16,7 +16,6 @@ RUN pip3 install minio
 
 COPY ./run_test.sh /run_test.sh
 COPY ./run_kubeflow_test.py /run_kubeflow_test.py
-COPY ./api_client_helper.py /api_client_helper.py
 COPY ./utils.py /utils.py
 RUN chmod +x /run_test.sh
 

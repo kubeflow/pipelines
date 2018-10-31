@@ -16,11 +16,8 @@ import argparse
 import os
 import json
 import tarfile
-
-import swagger_job
-
-import api_client_helper
 import utils
+from kfp import Client
 
 ###### Input/Output Instruction ######
 # input: yaml
@@ -53,61 +50,50 @@ def main():
   test_name = 'Kubeflow Sample Test'
 
   ###### Initialization ######
-  config = api_client_helper.init_config()
-  pipeline_upload_service_api = api_client_helper.init_pipeline_upload_api(config)
-  job_service_api = api_client_helper.init_job_api(config)
-  run_service_api = api_client_helper.init_run_api(config)
+  client = Client()
 
+  ###### Check Input File ######
   utils.add_junit_test(test_cases, 'input generated yaml file', os.path.exists(args.input), 'yaml file is not generated')
   if not os.path.exists(args.input):
     utils.write_junit_xml(test_name, args.result, test_cases)
     exit()
 
   ###### Upload Pipeline ######
-  pipeline_id, succ = api_client_helper.upload_pipeline(pipeline_upload_service_api, args.input)
-  utils.add_junit_test(test_cases, 'upload pipeline yaml', succ, 'yaml file is not uploaded')
-  if not succ:
-    utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
+  response = client.upload_pipeline(args.input)
+  pipeline_id = response.id
+  utils.add_junit_test(test_cases, 'upload pipeline yaml', True)
 
   ###### Create Job ######
   job_name = 'kubeflow_sample'
-  params = [swagger_job.ApiParameter(name='output', value=args.output),
-            swagger_job.ApiParameter(name='project', value='ml-pipeline-test'),
-            swagger_job.ApiParameter(name='evaluation', value='gs://ml-pipeline-playground/IntegTest/flower/eval15.csv'),
-            swagger_job.ApiParameter(name='train', value='gs://ml-pipeline-playground/IntegTest/flower/train30.csv'),
-            swagger_job.ApiParameter(name='hidden-layer-size', value='10,5'),
-            swagger_job.ApiParameter(name='steps', value='5')]
-  job_id, succ = api_client_helper.create_job(job_service_api, pipeline_id, params, job_name)
-  utils.add_junit_test(test_cases, 'create pipeline job', succ, 'job creation failure')
-  if not succ:
-    utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
+  params = {'output': args.output,
+            'project': 'ml-pipeline-test',
+            'evaluation': 'gs://ml-pipeline-playground/IntegTest/flower/eval15.csv',
+            'train': 'gs://ml-pipeline-playground/IntegTest/flower/train30.csv',
+            'hidden-layer-size': '10,5',
+            'steps': '5'}
+  response = client.run_pipeline(job_name, pipeline_id, params)
+  job_id = response.id
+  utils.add_junit_test(test_cases, 'create pipeline job', True)
 
   ###### Monitor Job ######
-  status, elapsed_time = api_client_helper.wait_for_job_completion(job_service_api, job_id, timeout=1200)
-  utils.add_junit_test(test_cases, 'job completion', (status.lower() == 'succeeded:'), 'waiting for job completion failure', elapsed_time)
-  if status.lower() != 'succeeded:':
+  succ, elapsed_time = client._wait_for_job_completion(job_id, 1200)
+  utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
+  if not succ:
     utils.write_junit_xml(test_name, args.result, test_cases)
     exit()
 
   ###### Output Argo Log for Debugging ######
-  argo_log, succ = api_client_helper.get_argo_log(job_service_api, run_service_api, job_id)
-  if succ:
-    print("=========Argo Workflow Log=========")
-    print(argo_log)
-  else:
-    utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
+  workflow_json = client._get_workflow_json(job_id, 0)
+  workflow_id = workflow_json['metadata']['name']
+  argo_log, _ = utils.run_bash_command('argo logs -w {}'.format(workflow_id))
+  print("=========Argo Workflow Log=========")
+  print(argo_log)
+
   ###### Validate the results ######
   #   confusion matrix should show three columns for the flower data
   #     target, predicted, count
   cm_tar_path = './confusion_matrix.tar.gz'
   cm_filename = 'mlpipeline-ui-metadata.json'
-  workflow_json, succ = api_client_helper.get_workflow_json(job_service_api, run_service_api, job_id)
-  if not succ:
-    utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
   utils.get_artifact_in_minio(workflow_json, 'confusionmatrix', cm_tar_path)
   tar_handler = tarfile.open(cm_tar_path)
   tar_handler.extractall()
@@ -117,8 +103,8 @@ def main():
     utils.add_junit_test(test_cases, 'confusion matrix format', (len(cm_data['outputs'][0]['schema']) == 3), 'the column number of the confusion matrix output is not equal to three')
 
   ###### Delete Job ######
-  succ = api_client_helper.delete_job(job_service_api, job_id)
-  utils.add_junit_test(test_cases, 'delete pipeline job', succ, 'delete job failure')
+  client._delete_job(job_id)
+  utils.add_junit_test(test_cases, 'delete pipeline job', True)
 
   ###### Write out the test result in junit xml ######
   utils.write_junit_xml(test_name, args.result, test_cases)
