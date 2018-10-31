@@ -65,10 +65,13 @@ export const css = stylesheet({
     borderBottom: 'initial',
     color: color.foreground,
     fontSize: fontsize.base,
-    marginRight: 10,
+    marginRight: 6,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+  },
+  checkbox: {
+    marginRight: 10,
   },
   columnName: {
     fontSize: fontsize.medium,
@@ -79,7 +82,7 @@ export const css = stylesheet({
     textAlign: 'center',
   },
   expandButton: {
-    marginRight: 13,
+    marginRight: 10,
     padding: 3,
     transition: 'transform 0.3s',
   },
@@ -98,11 +101,12 @@ export const css = stylesheet({
     height: '34px !important',
   },
   footer: {
-    padding: '5px 10px',
+    borderBottom: '1px solid ' + color.divider,
     textAlign: 'right',
   },
   header: {
     borderBottom: 'solid 1px ' + color.divider,
+    color: color.strong,
     display: 'flex',
     flex: '0 0 50px',
     lineHeight: '50px', // must declare px
@@ -127,6 +131,7 @@ export const css = stylesheet({
     outline: 'none',
   },
   rowsPerPage: {
+    color: color.strong,
     height: dimension.xsmall,
     minWidth: dimension.base,
   },
@@ -154,7 +159,7 @@ interface CustomTableProps {
 
 interface CustomTableState {
   currentPage: number;
-  maxPageNumber: number;
+  maxPageIndex: number;
   tokenList: string[];
 }
 
@@ -164,7 +169,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
     this.state = {
       currentPage: 0,
-      maxPageNumber: Number.MAX_SAFE_INTEGER,
+      maxPageIndex: Number.MAX_SAFE_INTEGER,
       tokenList: [''],
     };
   }
@@ -174,7 +179,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       return;
     }
     const selectedIds =
-        (event.target as CheckboxProps).checked ? this.props.rows.map((v) => v.id) : [];
+      (event.target as CheckboxProps).checked ? this.props.rows.map((v) => v.id) : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }
@@ -215,9 +220,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       <div className={commonCss.pageOverflowHidden}>
 
         {/* Header */}
-        <div className={css.header}>
+        <div className={classes(css.header, this.props.disableSelection === true && padding(20, 'l'))}>
           {this.props.disableSelection !== true && (
-            <div className={classes(css.columnName, css.cell)}>
+            <div className={classes(css.columnName, css.cell, css.checkbox)}>
               <Checkbox indeterminate={!!numSelected && numSelected < this.props.rows.length}
                 color='primary' checked={!!numSelected && numSelected === this.props.rows.length}
                 onChange={this.handleSelectAllClick.bind(this)} />
@@ -261,13 +266,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 classes(
                   'tableRow',
                   css.row,
+                  this.props.disableSelection === true && padding(20, 'l'),
                   this.isSelected(row.id) && css.selected,
                   row.expandState === ExpandState.EXPANDED && css.expandedRow
                 )}
                 onClick={e => this.handleClick(e, row.id)}>
-                {this.props.disableSelection !== true && (
-                  <div className={css.cell}>
-                    <Checkbox color='primary' checked={this.isSelected(row.id)} />
+                {(this.props.disableSelection !== true || !!this.props.getExpandComponent) && (
+                  <div className={classes(css.cell, css.checkbox)}>
+                    {this.props.disableSelection !== true &&
+                      <Checkbox color='primary' checked={this.isSelected(row.id)} />}
                     {!!this.props.getExpandComponent && (
                       <IconButton className={classes(css.expandButton,
                         row.expandState === ExpandState.EXPANDED && css.expandButtonExpanded)}
@@ -297,40 +304,42 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         </div>
 
         {/* Footer */}
-        {!this.props.disablePaging && <div className={css.footer}>
-          <span className={padding()}>Rows per page:</span>
-          <TextField select={true} variant='standard' className={css.rowsPerPage}
+        {!this.props.disablePaging && (
+          <div className={css.footer}>
+            <span className={padding(10, 'r')}>Rows per page:</span>
+            <TextField select={true} variant='standard' className={css.rowsPerPage}
               InputProps={{ disableUnderline: true }} onChange={this._requestRowsPerPage.bind(this)}
               value={pageSize}>
-            {[10, 20, 50, 100].map((size, i) => (
-              <MenuItem key={i} value={size}>{size}</MenuItem>
-            ))}
-          </TextField>
+              {[10, 20, 50, 100].map((size, i) => (
+                <MenuItem key={i} value={size}>{size}</MenuItem>
+              ))}
+            </TextField>
 
-          <IconButton onClick={() => this._pageChanged(-1)} disabled={!this.state.currentPage}>
-            <ChevronLeft />
-          </IconButton>
-          <IconButton onClick={() => this._pageChanged(1)}
-            disabled={this.state.currentPage >= this.state.maxPageNumber}>
-            <ChevronRight />
-          </IconButton>
-        </div>}
+            <IconButton onClick={() => this._pageChanged(-1)} disabled={!this.state.currentPage}>
+              <ChevronLeft />
+            </IconButton>
+            <IconButton onClick={() => this._pageChanged(1)}
+              disabled={this.state.currentPage >= this.state.maxPageIndex}>
+              <ChevronRight />
+            </IconButton>
+          </div>
+        )}
       </div>
     );
   }
 
-  private _requestSort(sortBy?: string) {
+  private async _requestSort(sortBy?: string) {
     if (sortBy) {
       const orderAscending = this.props.sortBy === sortBy ? !this.props.orderAscending : true;
-      this.props.reload({ orderAscending, sortBy });
+      this._resetToFirstPage(await this.props.reload({ pageToken: '', orderAscending, sortBy }));
     }
   }
 
   private async _pageChanged(offset: number) {
     let newCurrentPage = this.state.currentPage + offset;
-    let maxPageNumber = this.state.maxPageNumber;
+    let maxPageIndex = this.state.maxPageIndex;
     newCurrentPage = Math.max(0, newCurrentPage);
-    newCurrentPage = Math.min(this.state.maxPageNumber, newCurrentPage);
+    newCurrentPage = Math.min(this.state.maxPageIndex, newCurrentPage);
 
     const newPageToken = await this.props.reload({
       pageToken: this.state.tokenList[newCurrentPage],
@@ -342,33 +351,36 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         this.state.tokenList.push(newPageToken);
       }
     } else {
-      maxPageNumber = newCurrentPage;
+      maxPageIndex = newCurrentPage;
     }
 
     // TODO: saw this warning:
     // Warning: Can't call setState (or forceUpdate) on an unmounted component.
     // This is a no-op, but it indicates a memory leak in your application.
     // To fix, cancel all subscriptions and asynchronous tasks in the componentWillUnmount method.
-    this.setState({ currentPage: newCurrentPage, maxPageNumber });
+    this.setState({ currentPage: newCurrentPage, maxPageIndex });
   }
 
   private async _requestRowsPerPage(event: React.ChangeEvent) {
     const pageSize = (event.target as TextFieldProps).value as number;
 
-    const newToken = await this.props.reload({
-      pageSize,
-      pageToken: '',
-    });
+    this._resetToFirstPage(await this.props.reload({ pageSize, pageToken: '' }));
+  }
 
+  private _resetToFirstPage(newPageToken?: string) {
+    let maxPageIndex = Number.MAX_SAFE_INTEGER;
     const newTokenList = [''];
-    if (newToken) {
-      newTokenList.push(newToken);
+
+    if (newPageToken) {
+      newTokenList.push(newPageToken);
+    } else {
+      maxPageIndex = 0;
     }
 
     // Reset state, since this invalidates the token list and page counter calculations
     this.setState({
       currentPage: 0,
-      maxPageNumber: Number.MAX_SAFE_INTEGER,
+      maxPageIndex,
       tokenList: newTokenList,
     });
   }

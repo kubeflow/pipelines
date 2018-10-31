@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
@@ -29,21 +28,13 @@ type RunServer struct {
 }
 
 func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
-	err := ValidateCreateRunRequest(request)
+	err := s.validateCreateRunRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
 	run, err := s.resourceManager.CreateRun(request.Run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new run.")
-	}
-	return ToApiRunDetail(run), nil
-}
-
-func (s *RunServer) GetRunV2(ctx context.Context, request *api.GetRunV2Request) (*api.RunDetail, error) {
-	run, err := s.resourceManager.GetRun(request.RunId)
-	if err != nil {
-		return nil, err
 	}
 	return ToApiRunDetail(run), nil
 }
@@ -57,15 +48,19 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 }
 
 func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
-	paginationContext, err := ValidateListRequest(
+	paginationContext, err := ValidatePagination(
 		request.PageToken, int(request.PageSize), model.GetRunTablePrimaryKeyColumn(),
 		request.SortBy, runModelFieldsBySortableAPIFields)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Validating pagination failed.")
 	}
-	runs, nextPageToken, err := s.resourceManager.ListRunsV2(paginationContext)
+	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Validating filter failed.")
+	}
+	runs, nextPageToken, err := s.resourceManager.ListRuns(filterContext, paginationContext)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list runs.")
 	}
 	return &api.ListRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
 }
@@ -102,57 +97,18 @@ func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactR
 	}, nil
 }
 
-func ValidateCreateRunRequest(request *api.CreateRunRequest) error {
+func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) error {
 	run := request.Run
 	if run.Name == "" {
 		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
 	}
-	if err := ValidateRunResourceReference(run.ResourceReferences); err != nil {
-		return util.Wrap(err, "The resource reference is invalid.")
+	// Run must be created under an experiment.
+	if err := ValidateExperimentResourceReference(s.resourceManager, run.ResourceReferences); err != nil {
+		return util.Wrap(err, "The run must have a valid experiment resource reference.")
 	}
 
-	if err := ValidatePipelineSpec(run.PipelineSpec); err != nil {
+	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {
 		return util.Wrap(err, "The pipeline spec is invalid.")
-	}
-	return nil
-}
-
-func ValidatePipelineSpec(spec *api.PipelineSpec) error {
-	if spec == nil || (spec.GetPipelineId() == "" && spec.GetWorkflowManifest() == "") {
-		return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline ID or workflow manifest.")
-	}
-	if spec.GetPipelineId() != "" && spec.GetWorkflowManifest() != "" {
-		return util.NewInvalidInputError("Please either specify a pipeline ID or a workflow manifest, not both.")
-	}
-	paramsBytes, err := json.Marshal(spec.Parameters)
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
-			printParameters(spec.Parameters))
-	}
-	if len(paramsBytes) > util.MaxParameterBytes {
-		return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
-	}
-	return nil
-}
-
-func ValidateRunResourceReference(references []*api.ResourceReference) error {
-	if references == nil || len(references) == 0 || references[0] == nil {
-		return util.NewInvalidInputError("The resource reference is empty. Please specify which experiment owns this run.")
-	}
-	if len(references) > 1 {
-		return util.NewInvalidInputError("Got more resource references than expected. Please only specify which experiment owns this run.")
-	}
-	if references[0].Key.Type != api.ResourceType_EXPERIMENT {
-		return util.NewInvalidInputError("Unexpected resource type. Expected:%v. Got: %v",
-			api.ResourceType_EXPERIMENT, references[0].Key.Type)
-	}
-	if references[0].Key.Id == "" {
-		return util.NewInvalidInputError("Resource ID is empty. Please specify a valid ID")
-	}
-	if references[0].Relationship != api.Relationship_OWNER {
-		return util.NewInvalidInputError("Unexpected relationship for the experiment. Expected: %v. Got: %v",
-			api.Relationship_OWNER, references[0].Relationship)
 	}
 	return nil
 }

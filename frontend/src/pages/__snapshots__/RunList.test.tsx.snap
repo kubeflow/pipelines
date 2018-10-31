@@ -17,18 +17,28 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
           "label": "Status",
         },
         Object {
-          "flex": 1,
+          "flex": 0.5,
           "label": "Duration",
         },
         Object {
-          "flex": 2,
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
           "label": "Start time",
           "sortKey": "created_at",
         },
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={true}
+    orderAscending={false}
     pageSize={10}
     reload={[Function]}
     rows={
@@ -40,7 +50,9 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
             undefined,
             "-",
             "-",
-            "",
+            undefined,
+            undefined,
+            "-",
           ],
         },
         Object {
@@ -50,7 +62,9 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
             undefined,
             "-",
             "-",
-            "",
+            undefined,
+            undefined,
+            "-",
           ],
         },
       ]
@@ -77,18 +91,28 @@ exports[`RunList displays error in run row if it failed to parse 1`] = `
           "label": "Status",
         },
         Object {
-          "flex": 1,
+          "flex": 0.5,
           "label": "Duration",
         },
         Object {
-          "flex": 2,
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
           "label": "Start time",
           "sortKey": "created_at",
         },
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={true}
+    orderAscending={false}
     pageSize={10}
     reload={[Function]}
     rows={
@@ -100,7 +124,9 @@ exports[`RunList displays error in run row if it failed to parse 1`] = `
             "test run1",
             "-",
             "-",
-            "",
+            undefined,
+            undefined,
+            "-",
           ],
         },
       ]
@@ -127,18 +153,28 @@ exports[`RunList loads all runs 1`] = `
           "label": "Status",
         },
         Object {
-          "flex": 1,
+          "flex": 0.5,
           "label": "Duration",
         },
         Object {
-          "flex": 2,
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
           "label": "Start time",
           "sortKey": "created_at",
         },
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={true}
+    orderAscending={false}
     pageSize={10}
     reload={[Function]}
     rows={
@@ -150,7 +186,9 @@ exports[`RunList loads all runs 1`] = `
             "test run1",
             "-",
             "-",
-            "",
+            undefined,
+            undefined,
+            "-",
           ],
         },
       ]
@@ -160,7 +198,7 @@ exports[`RunList loads all runs 1`] = `
 </div>
 `;
 
-exports[`RunList loads runs for a given job id 1`] = `
+exports[`RunList loads runs for a given experiment id 1`] = `
 <div>
   <CustomTable
     columns={
@@ -177,30 +215,42 @@ exports[`RunList loads runs for a given job id 1`] = `
           "label": "Status",
         },
         Object {
-          "flex": 1,
+          "flex": 0.5,
           "label": "Duration",
         },
         Object {
-          "flex": 2,
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
           "label": "Start time",
           "sortKey": "created_at",
         },
       ]
     }
-    emptyMessage="No runs found for this job."
-    orderAscending={true}
+    emptyMessage="No runs found for this experiment."
+    orderAscending={false}
     pageSize={10}
     reload={[Function]}
     rows={
       Array [
         Object {
           "error": undefined,
-          "id": "testrun1",
+          "id": "testRun1",
           "otherFields": Array [
-            "test run1",
+            undefined,
             "-",
             "-",
-            "",
+            undefined,
+            undefined,
+            "-",
           ],
         },
       ]
@@ -227,18 +277,28 @@ exports[`RunList renders the empty experience 1`] = `
           "label": "Status",
         },
         Object {
-          "flex": 1,
+          "flex": 0.5,
           "label": "Duration",
         },
         Object {
-          "flex": 2,
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
           "label": "Start time",
           "sortKey": "created_at",
         },
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={true}
+    orderAscending={false}
     pageSize={10}
     reload={[Function]}
     rows={Array []}
@@ -264,18 +324,28 @@ exports[`RunList shows run time for each run 1`] = `
           "label": "Status",
         },
         Object {
-          "flex": 1,
+          "flex": 0.5,
           "label": "Duration",
         },
         Object {
-          "flex": 2,
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
           "label": "Start time",
           "sortKey": "created_at",
         },
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={true}
+    orderAscending={false}
     pageSize={10}
     reload={[Function]}
     rows={
@@ -287,7 +357,9 @@ exports[`RunList shows run time for each run 1`] = `
             "test run1",
             "-",
             "1:01:01",
-            "",
+            undefined,
+            undefined,
+            "-",
           ],
         },
       ]

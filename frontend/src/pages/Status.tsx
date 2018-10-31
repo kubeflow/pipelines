@@ -32,13 +32,14 @@ export enum NodePhase {
   RUNNING = 'Running',
   SKIPPED = 'Skipped',
   SUCCEEDED = 'Succeeded',
+  UNKNOWN = 'Unknown',
 }
 
 export function statusToIcon(status: NodePhase) {
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
-  let title = '';
+  let title = 'Unknown status';
   switch (status) {
     case NodePhase.ERROR:
       IconComponent = ErrorIcon;
@@ -69,8 +70,10 @@ export function statusToIcon(status: NodePhase) {
       iconColor = color.success;
       title = 'Executed successfully';
       break;
+    case NodePhase.UNKNOWN:
+      break;
     default:
-      logger.error('Unknown node phase:', status);
+      logger.verbose('Unknown node phase:', status);
   }
 
   return <Tooltip title={title}><span>

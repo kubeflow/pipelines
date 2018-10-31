@@ -152,6 +152,14 @@ func NewResourceNotFoundError(resourceType string, resourceName string) *UserErr
 		codes.NotFound)
 }
 
+func NewResourcesNotFoundError(resourceTypesFormat string, resourceNames ...interface{}) *UserError {
+	externalMessage := fmt.Sprintf("%s not found.", fmt.Sprintf(resourceTypesFormat, resourceNames...))
+	return newUserError(
+		errors.New(fmt.Sprintf("ResourceNotFoundError: %v", externalMessage)),
+		externalMessage,
+		codes.NotFound)
+}
+
 func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {
 	message := fmt.Sprintf(messageFormat, a...)
 	return newUserError(errors.Errorf("Invalid input error: %v", message), message, codes.InvalidArgument)

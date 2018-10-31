@@ -13,12 +13,13 @@
 // limitations under the License.
 
 import * as Utils from './Utils';
-import { StoragePath } from './WorkflowParser';
+import { ExperimentServiceApi } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
 import { RunServiceApi } from '../apis/run';
 import { PipelineServiceApi, ApiPipeline } from '../apis/pipeline';
+import { StoragePath } from './WorkflowParser';
 
-const v1alpha2Prefix = 'apis/v1alpha2';
+const v1beta1Prefix = 'apis/v1beta1';
 
 export interface BaseListRequest {
   filterBy?: string;
@@ -41,6 +42,13 @@ export class Apis {
     const path = location.protocol + '//' + location.host + location.pathname;
     // Trim trailing '/' if exists
     return path.endsWith('/') ? path.substr(0, path.length - 1) : path;
+  }
+
+  public static get experimentServiceApi(): ExperimentServiceApi {
+    if (!this._experimentServiceApi) {
+      this._experimentServiceApi = new ExperimentServiceApi({ basePath: this.basePath });
+    }
+    return this._experimentServiceApi;
   }
 
   public static get jobServiceApi(): JobServiceApi {
@@ -69,7 +77,7 @@ export class Apis {
    */
   public static async isApiServerReady(): Promise<boolean> {
     try {
-      const healthStats = await this._fetchAndParse<any>('/healthz', v1alpha2Prefix);
+      const healthStats = await this._fetchAndParse<any>('/healthz', v1beta1Prefix);
       return healthStats.apiServerReady;
     } catch (_) {
       return false;
@@ -113,7 +121,7 @@ export class Apis {
     fd.append('uploadfile', pipelineData, pipelineData.name);
     return await this._fetchAndParse<ApiPipeline>(
       '/pipelines/upload',
-      v1alpha2Prefix,
+      v1beta1Prefix,
       `name=${encodeURIComponent(pipelineName)}`,
       {
         body: fd,
@@ -122,6 +130,7 @@ export class Apis {
       });
   }
 
+  private static _experimentServiceApi?: ExperimentServiceApi;
   private static _jobServiceApi?: JobServiceApi;
   private static _pipelineServiceApi?: PipelineServiceApi;
   private static _runServiceApi?: RunServiceApi;
@@ -160,7 +169,12 @@ export class Apis {
 }
 
 // tslint:disable-next-line:no-empty-interface
+export interface ListExperimentsRequest extends BaseListRequest {
+}
+
+// tslint:disable-next-line:no-empty-interface
 export interface ListJobsRequest extends BaseListRequest {
+  experimentId?: string;
 }
 
 // tslint:disable-next-line:no-empty-interface
@@ -168,7 +182,7 @@ export interface ListPipelinesRequest extends BaseListRequest {
 }
 
 export interface ListRunsRequest extends BaseListRequest {
-  jobId?: string;
+  experimentId?: string;
 }
 
 // Valid sortKeys as specified by the backend.
@@ -192,4 +206,11 @@ export enum JobSortKeys {
   ID = 'id',
   NAME = 'name',
   PIPELINE_ID = 'pipeline_id'
+}
+
+// Valid sortKeys as specified by the backend.
+export enum ExperimentSortKeys {
+  CREATED_AT = 'created_at',
+  ID = 'id',
+  NAME = 'name',
 }

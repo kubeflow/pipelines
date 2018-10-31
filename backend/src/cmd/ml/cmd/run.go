@@ -39,13 +39,13 @@ func NewRunGetCmd(root *RootCommand) *cobra.Command {
 
 		// Execute
 		RunE: func(cmd *cobra.Command, args []string) error {
-			params := params.NewGetRunV2Params()
+			params := params.NewGetRunParams()
 			params.RunID = runID
 			pkg, workflow, err := root.RunClient().Get(params)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			pkg.Workflow = ""
+			pkg.PipelineRuntime.WorkflowManifest = ""
 			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg,
 				&WorkflowForDisplay{Workflow: workflow})
 			return nil

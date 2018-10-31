@@ -72,7 +72,7 @@ type ReadArtifactOK struct {
 }
 
 func (o *ReadArtifactOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read][%d] readArtifactOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read][%d] readArtifactOK  %+v", 200, o.Payload)
 }
 
 func (o *ReadArtifactOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -110,7 +110,7 @@ func (o *ReadArtifactDefault) Code() int {
 }
 
 func (o *ReadArtifactDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read][%d] ReadArtifact default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read][%d] ReadArtifact default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *ReadArtifactDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

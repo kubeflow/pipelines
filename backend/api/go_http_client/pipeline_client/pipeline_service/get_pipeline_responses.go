@@ -72,7 +72,7 @@ type GetPipelineOK struct {
 }
 
 func (o *GetPipelineOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/pipelines/{id}][%d] getPipelineOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipelines/{id}][%d] getPipelineOK  %+v", 200, o.Payload)
 }
 
 func (o *GetPipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -110,7 +110,7 @@ func (o *GetPipelineDefault) Code() int {
 }
 
 func (o *GetPipelineDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/pipelines/{id}][%d] GetPipeline default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipelines/{id}][%d] GetPipeline default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *GetPipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

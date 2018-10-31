@@ -33,9 +33,6 @@ type APIResourceReference struct {
 	// key
 	Key *APIResourceKey `json:"key,omitempty"`
 
-	// Optional field. The name of the resource that referred to.
-	Name string `json:"name,omitempty"`
-
 	// Required field. The relationship from referred resource to the object.
 	Relationship APIRelationship `json:"relationship,omitempty"`
 }

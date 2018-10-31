@@ -22,15 +22,6 @@ func getDefaultJob(id string, name string) *jobmodel.APIJob {
 	}
 }
 
-func getDefaultJobRun(id string, name string) *jobmodel.APIRun {
-	return &jobmodel.APIRun{
-		CreatedAt: strfmt.NewDateTime(),
-		ID:        id,
-		Name:      name,
-		Metrics:   []*jobmodel.APIRunMetric{},
-	}
-}
-
 type JobClientFake struct{}
 
 func NewJobClientFake() *JobClientFake {
@@ -125,41 +116,4 @@ func (c *JobClientFake) List(params *jobparams.ListJobsParams) (
 func (c *JobClientFake) ListAll(params *jobparams.ListJobsParams,
 	maxResultSize int) ([]*jobmodel.APIJob, error) {
 	return listAllForJob(c, params, maxResultSize)
-}
-
-func (c *JobClientFake) ListRuns(params *jobparams.ListJobRunsParams) (
-	[]*jobmodel.APIRun, string, error) {
-	const (
-		FirstToken  = ""
-		SecondToken = "SECOND_TOKEN"
-		FinalToken  = ""
-	)
-
-	token := ""
-	if params.PageToken != nil {
-		token = *params.PageToken
-	}
-
-	if params.JobID == JobForClientErrorTest {
-		return nil, "", fmt.Errorf(ClientErrorString)
-	}
-
-	switch token {
-	case FirstToken:
-		return []*jobmodel.APIRun{
-			getDefaultJobRun("100", "MY_FIRST_RUN"),
-			getDefaultJobRun("101", "MY_SECOND_RUN"),
-		}, SecondToken, nil
-	case SecondToken:
-		return []*jobmodel.APIRun{
-			getDefaultJobRun("102", "MY_THIRD_RUN"),
-		}, FinalToken, nil
-	default:
-		return nil, "", fmt.Errorf(InvalidFakeRequest)
-	}
-}
-
-func (c *JobClientFake) ListAllRuns(params *jobparams.ListJobRunsParams, maxResultSize int) (
-	[]*jobmodel.APIRun, error) {
-	return listAllForJobRuns(c, params, maxResultSize)
 }

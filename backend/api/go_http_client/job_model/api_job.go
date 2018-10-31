@@ -61,12 +61,6 @@ type APIJob struct {
 	// Required input field. Job name provided by user. Not unique.
 	Name string `json:"name,omitempty"`
 
-	// parameters
-	Parameters []*APIParameter `json:"parameters"`
-
-	// TODO(yangpa): Following will be deprecated in v1beta1
-	PipelineID string `json:"pipeline_id,omitempty"`
-
 	// Required input field.
 	// Describing what the pipeline manifest and parameters to use
 	// for the scheduled job.
@@ -97,10 +91,6 @@ func (m *APIJob) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateMode(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateParameters(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -150,31 +140,6 @@ func (m *APIJob) validateMode(formats strfmt.Registry) error {
 			return ve.ValidateName("mode")
 		}
 		return err
-	}
-
-	return nil
-}
-
-func (m *APIJob) validateParameters(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Parameters) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.Parameters); i++ {
-		if swag.IsZero(m.Parameters[i]) { // not required
-			continue
-		}
-
-		if m.Parameters[i] != nil {
-			if err := m.Parameters[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("parameters" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
 	}
 
 	return nil

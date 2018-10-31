@@ -15,8 +15,11 @@
 const assert = require('assert');
 const URL = require('url').URL;
 
-const jobName = 'helloworld-' + Date.now();
-const jobDescription = 'test job description ' + jobName;
+const experimentName = 'helloworld-experiment-' + Date.now();
+const experimentDescription = 'hello world experiment description';
+const pipelineName = 'helloworld-pipeline-' + Date.now();
+const runName = 'helloworld-' + Date.now();
+const runDescription = 'test run description ' + runName;
 const waitTimeout = 5000;
 const outputParameterValue = 'Hello world in test'
 
@@ -27,7 +30,7 @@ function getValueFromDetailsTable(key) {
   return row.getText().substr(`${key}\n`.length);
 }
 
-describe('deploy helloworld sample job', () => {
+describe('deploy helloworld sample run', () => {
 
   before(() => {
     browser.url('/');
@@ -39,138 +42,131 @@ describe('deploy helloworld sample job', () => {
   });
 
   it('uploads the sample pipeline', () => {
-    browser.chooseFile('#uploadDialog input', './helloworld.yaml');
-    const input = $('#uploadDialog input[type="text"]');
+    browser.chooseFile('#uploadDialog input[type="file"]', './helloworld.yaml');
+    const input = $('#uploadDialog #uploadFileName');
     input.clearElement();
-    input.setValue('helloworld-pipeline');
+    input.setValue(pipelineName);
     $('#confirmUploadBtn').click();
     browser.waitForVisible('#uploadDialog', waitTimeout, true);
   });
 
-  it('uses the uploaded pipeline to create a new job', () => {
-    $('.tableRow').waitForVisible(waitTimeout);
-    $('.tableRow').click();
-    $('#createJobBtn').click();
-  });
-
-  it('populates job details and deploys', () => {
-    // Job name field should be selected by default
-    browser.keys(jobName);
-
-    browser.keys('Tab');
-    browser.keys(jobDescription);
-
-    // Skip over job trigger, go to the first input parameter
-    browser.keys('Tab');
-    browser.keys('Tab');
-
-    browser.keys(outputParameterValue);
-
-    // Deploy
-    $('#deployBtn').click();
-  });
-
-  it('redirects back to job list page', () => {
+  it('navigates to experiments page', () => {
+    $('#experimentsBtn').click();
     browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash === '#/jobs';
+      return new URL(browser.getUrl()).hash === '#/experiments';
     }, waitTimeout);
   });
 
-  it('finds the new job in the list of jobs', () => {
-    browser.waitForVisible('.tableRow', waitTimeout);
-    assert.equal($$('.tableRow').length, 1, 'should only show one job');
+  it('creates a new experiment', () => {
+    $('#newExperimentBtn').waitForVisible(waitTimeout);
+    $('#newExperimentBtn').click();
 
-    // Navigate to details of the deployed job, by finding the anchor element
-    // with the job's name as inner text
-    browser.waitForVisible('.tableRow a');
-    browser.execute('document.querySelector(".tableRow a").click()');
+    $('#experimentName').setValue(experimentName);
+    $('#experimentDescription').setValue(experimentDescription);
+
+    $('#createExperimentBtn').click();
   });
 
-  it('switches to config tab', () => {
-    browser.waitForVisible('button=Config', waitTimeout);
-    $('button=Config').click();
-  });
+  // it('redirects to the new experiment page', () => {
+  //   browser.waitUntil(() => {
+  //     return new URL(browser.getUrl()).hash.startsWith('#/experiments/details/');
+  //   }, waitTimeout);
+  // });
 
-  it('displays job description correctly', () => {
-    const description = getValueFromDetailsTable('Description');
-    assert(description.startsWith(jobDescription), 'job description is not shown correctly');
-  });
+  // it('displays experiment description correctly', () => {
+  //   $('#experimentDescriptionCard').waitForVisible();
+  //   const description = $('#experimentDescriptionCard').getText();
+  //   assert(description.indexOf(experimentDescription) > -1, 'experiment description is not shown correctly');
+  // });
 
-  it('displays job created at date correctly', () => {
-    const date = getValueFromDetailsTable('Created at');
-    assert(Date.now() - new Date(date) < 5 * 1000,
-      'job created date should be within the last five seconds');
-  });
+  // it('creates a new run in the experiment', () => {
+  //   $('#startNewRunBtn').click();
 
-  it('displays job inputs correctly', () => {
-    const paramValue = getValueFromDetailsTable('message');
-    assert.equal(paramValue, outputParameterValue, 'job message is not shown correctly');
-  });
+  //   $('.pipelinesDropdown').waitForVisible();
+  //   browser.execute('document.querySelector(".pipelinesDropdown").click()');
+  //   $('.pipelinesDropdownItem').waitForVisible();
+  //   browser.execute('document.querySelector(".pipelinesDropdownItem").click()');
+  //   $('.pipelinesDropdownItem').waitForVisible(waitTimeout, true);
 
-  it('switches to run list tab', () => {
-    $('button=Runs').click();
-  });
+  //   browser.keys(runName);
 
-  it('schedules and lists exactly one run', (done) => {
-    let attempts = 0;
+  //   browser.keys('Tab');
+  //   browser.keys(runDescription);
 
-    const selector = '.tableRow';
-    let items = $$(selector);
-    const maxAttempts = 80;
+  //   browser.keys('Tab');
+  //   browser.keys(outputParameterValue);
 
-    while (attempts < maxAttempts && (!items || items.length === 0)) {
-      $('#refreshBtn').click();
-      browser.pause(1000);
-      items = $$(selector);
-      attempts++;
-    }
+  //   // Deploy
+  //   $('#deployBtn').click();
+  // });
 
-    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not start`);
-    assert(items && items.length > 0, 'only one run should show up');
+  // it('redirects back to experiment page', () => {
+  //   browser.waitUntil(() => {
+  //     return new URL(browser.getUrl()).hash.startsWith('#/experiments/details/');
+  //   }, waitTimeout);
+  // });
 
-    const runName = browser.getText(selector + ' div')[1];
-    assert(runName.startsWith('helloworld'),
-      'run name should start with helloworld');
-  });
+  // it('finds the new run in the list of runs, navigates to it', () => {
+  //   $('.tableRow').waitForVisible(waitTimeout);
+  //   assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
-  it('opens run details', () => {
-    browser.waitForVisible('.tableRow a');
-    browser.execute('document.querySelector(".tableRow a").click()');
+  //   // Navigate to details of the deployed run by clicking its anchor element
+  //   $('.tableRow a').waitForVisible(waitTimeout);
+  //   browser.execute('document.querySelector(".tableRow a").click()');
+  // });
 
-    browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash.startsWith('#/runs/details/');
-    }, waitTimeout);
-  });
+  // it('switches to config tab', () => {
+  //   $('button=Config').waitForVisible(waitTimeout);
+  //   $('button=Config').click();
+  // });
 
-  it('waits until the whole run is complete', () => {
-    const nodeSelector = '.graphNode';
+  // it('waits for run to finish', () => {
+  //   let status = getValueFromDetailsTable('Status');
 
-    let attempts = 0;
+  //   let attempts = 0;
+  //   const maxAttempts = 30;
 
-    const maxAttempts = 30;
+  //   // Wait for a reasonable amount of time until the run is done
+  //   while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
+  //     browser.pause(1000);
+  //     $('#refreshBtn').click();
+  //     status = getValueFromDetailsTable('Status');
+  //     attempts++;
+  //   }
 
-    while (attempts < maxAttempts && $$(nodeSelector).length < 4) {
-      $('#refreshBtn').click();
-      // Wait for a reasonable amount of time until the run is done
-      browser.pause(1000);
-      attempts++;
-    }
+  //   assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not succeed. ` +
+  //     'Current status is: ' + status);
+  // });
 
-    assert(attempts < maxAttempts, `waited for ${maxAttempts} seconds but run did not finish`);
-  });
+  // // it('displays run description correctly', () => {
+  // //   const description = getValueFromDetailsTable('Description');
+  // //   assert(description.startsWith(runDescription),
+  // //     'run description is not shown correctly: ' + description);
+  // // });
 
-  it('deletes the job', () => {
-    $('#jobsButton').click();
+  // it('displays run created at date correctly', () => {
+  //   const date = getValueFromDetailsTable('Created at');
+  //   assert(Date.now() - new Date(date) < 10 * 60 * 1000,
+  //     'run created date should be within the last 10 minutes');
+  // });
 
-    browser.waitForVisible('.tableRow', waitTimeout);
-    $('.tableRow').click();
-    $('#deleteBtn').click();
-    $('.dialogButton').click();
-    $('.dialog').waitForVisible(waitTimeout, true);
-  });
+  // it('displays run inputs correctly', () => {
+  //   const paramValue = getValueFromDetailsTable('message');
+  //   assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
+  // });
+
+  // it('switches back to graph tab', () => {
+  //   $('button=Graph').click();
+  // });
+
+  // it('has a 4-node graph', () => {
+  //   const nodeSelector = '.graphNode';
+  //   const nodes = $$(nodeSelector).length;
+  //   assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
+  // });
 
   it('deletes the uploaded pipeline', () => {
-    $('#pipelinesButton').click();
+    $('#pipelinesBtn').click();
 
     browser.waitForVisible('.tableRow', waitTimeout);
     $('.tableRow').click();

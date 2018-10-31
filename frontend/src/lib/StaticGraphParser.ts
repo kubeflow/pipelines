@@ -201,7 +201,6 @@ export function getNodeInfo(workflow?: Workflow, nodeId?: string): SelectedNodeI
       info.stepsInfo.conditional = template.steps[0][0].when || '';
 
       if (template.steps[0][0].arguments) {
-        // TODO: not sure why the ! is needed after 'arguments'
         info.stepsInfo.parameters =
           (template.steps[0][0].arguments!.parameters || []).map(p => [p.name, p.value || '']);
       }

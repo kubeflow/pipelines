@@ -25,8 +25,7 @@ type PipelineSpec struct {
 	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; size:65535"`
 
 	// Argo workflow YAML definition. This is the Argo Spec converted from Pipeline YAML.
-	// TODO(yangpa) This should be "not null" in v1beta1
-	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; size:65535"`
+	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:65535"`
 
 	// Store parameters key-value pairs as serialized string.
 	Parameters string `gorm:"column:Parameters; size:65535"`

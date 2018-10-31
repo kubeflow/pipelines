@@ -15,28 +15,28 @@
  */
 
 import * as React from 'react';
+import ExperimentList from './JobList';
 import AllRunsList from './AllRunsList';
-import JobList from './JobList';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 
-export enum JobsAndRunsTab {
-  JOBS = 0,
+export enum ExperimentsAndRunsTab {
+  EXPERIMENTS = 0,
   RUNS = 1,
 }
 
-export interface JobsAndRunsProps extends PageProps {
-  view: JobsAndRunsTab;
+export interface ExperimentAndRunsProps extends PageProps {
+  view: ExperimentsAndRunsTab;
 }
 
-interface JobAndRunsState {
-  selectedTab: JobsAndRunsTab;
+interface ExperimentAndRunsState {
+  selectedTab: ExperimentsAndRunsTab;
 }
 
-class JobsAndRuns extends Page<JobsAndRunsProps, JobAndRunsState> {
+class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsState> {
 
   public getInitialToolbarState() {
     return { actions: [], breadcrumbs: [] };
@@ -44,11 +44,11 @@ class JobsAndRuns extends Page<JobsAndRunsProps, JobAndRunsState> {
 
   public render() {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <MD2Tabs tabs={['Group by job', 'Show all runs']} selectedTab={this.props.view}
+      <div className={classes(commonCss.page, padding(20, 't'))}>
+        <MD2Tabs tabs={['All experiments', 'All runs']} selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)} />
         {this.props.view === 0 && (
-          <JobList {...this.props} />
+          <ExperimentList {...this.props} />
         )}
 
         {this.props.view === 1 && (
@@ -62,9 +62,10 @@ class JobsAndRuns extends Page<JobsAndRunsProps, JobAndRunsState> {
     return;
   }
 
-  private _tabSwitched(newTab: JobsAndRunsTab) {
-    this.props.history.push(newTab === JobsAndRunsTab.JOBS ? RoutePage.JOBS : RoutePage.RUNS);
+  private _tabSwitched(newTab: ExperimentsAndRunsTab) {
+    this.props.history.push(
+      newTab === ExperimentsAndRunsTab.EXPERIMENTS ? RoutePage.EXPERIMENTS : RoutePage.RUNS);
   }
 }
 
-export default JobsAndRuns;
+export default ExperimentsAndRuns;

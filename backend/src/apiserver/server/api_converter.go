@@ -20,6 +20,7 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
@@ -73,6 +74,9 @@ func ToApiPipelines(pipelines []model.Pipeline) []*api.Pipeline {
 }
 
 func toApiParameters(paramsString string) ([]*api.Parameter, error) {
+	if paramsString == "" {
+		return nil, nil
+	}
 	apiParams := make([]*api.Parameter, 0)
 	var params []v1alpha1.Parameter
 	err := json.Unmarshal([]byte(paramsString), &params)
@@ -94,6 +98,13 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 }
 
 func toApiRun(run *model.Run) *api.Run {
+	params, err := toApiParameters(run.Parameters)
+	if err != nil {
+		return &api.Run{
+			Id:    run.UUID,
+			Error: err.Error(),
+		}
+	}
 	var metrics []*api.RunMetric
 	if run.Metrics != nil {
 		for _, metric := range run.Metrics {
@@ -103,16 +114,18 @@ func toApiRun(run *model.Run) *api.Run {
 	return &api.Run{
 		CreatedAt:   &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
 		Id:          run.UUID,
-		JobId:       run.JobID,
 		Metrics:     metrics,
-		Name:        run.Name,
+		Name:        run.DisplayName,
+		Description: run.Description,
 		ScheduledAt: &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
 		Status:      run.Conditions,
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       run.PipelineId,
 			WorkflowManifest: run.WorkflowSpecManifest,
 			PipelineManifest: run.PipelineSpecManifest,
+			Parameters:       params,
 		},
+		ResourceReferences: toApiResourceReferences(run.ResourceReferences),
 	}
 }
 
@@ -131,7 +144,6 @@ func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
 			WorkflowManifest: run.WorkflowRuntimeManifest,
 			PipelineManifest: run.PipelineRuntimeManifest,
 		},
-		Workflow: run.WorkflowRuntimeManifest,
 	}
 }
 
@@ -147,29 +159,28 @@ func ToApiJob(job *model.Job) *api.Job {
 		Id:             job.UUID,
 		Name:           job.DisplayName,
 		Description:    job.Description,
-		PipelineId:     job.PipelineId,
 		Enabled:        job.Enabled,
 		CreatedAt:      &timestamp.Timestamp{Seconds: job.CreatedAtInSec},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: job.UpdatedAtInSec},
 		Status:         job.Conditions,
 		MaxConcurrency: job.MaxConcurrency,
 		Trigger:        toApiTrigger(job.Trigger),
-		Parameters:     params,
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       job.PipelineId,
 			WorkflowManifest: job.WorkflowSpecManifest,
 			PipelineManifest: job.PipelineSpecManifest,
 			Parameters:       params,
 		},
+		ResourceReferences: toApiResourceReferences(job.ResourceReferences),
 	}
 }
 
-func ToApiJobs(jobs []model.Job) ([]*api.Job, error) {
+func ToApiJobs(jobs []model.Job) []*api.Job {
 	apiJobs := make([]*api.Job, 0)
 	for _, job := range jobs {
 		apiJobs = append(apiJobs, ToApiJob(&job))
 	}
-	return apiJobs, nil
+	return apiJobs
 }
 
 func ToApiRunMetric(metric *model.RunMetric) *api.RunMetric {
@@ -180,6 +191,42 @@ func ToApiRunMetric(metric *model.RunMetric) *api.RunMetric {
 			NumberValue: metric.NumberValue,
 		},
 		Format: api.RunMetric_Format(api.RunMetric_Format_value[metric.Format]),
+	}
+}
+
+func toApiResourceReferences(references []*model.ResourceReference) []*api.ResourceReference {
+	var apiReferences []*api.ResourceReference
+	for _, ref := range references {
+		apiReferences = append(apiReferences, &api.ResourceReference{
+			Key: &api.ResourceKey{
+				Type: toApiResourceType(ref.ReferenceType),
+				Id:   ref.ReferenceUUID,
+			},
+			Relationship: toApiRelationship(ref.Relationship),
+		})
+	}
+	return apiReferences
+}
+
+func toApiResourceType(modelType common.ResourceType) api.ResourceType {
+	switch modelType {
+	case common.Experiment:
+		return api.ResourceType_EXPERIMENT
+	case common.Job:
+		return api.ResourceType_JOB
+	default:
+		return api.ResourceType_UNKNOWN_RESOURCE_TYPE
+	}
+}
+
+func toApiRelationship(r common.Relationship) api.Relationship {
+	switch r {
+	case common.Creator:
+		return api.Relationship_CREATOR
+	case common.Owner:
+		return api.Relationship_OWNER
+	default:
+		return api.Relationship_UNKNOWN_RELATIONSHIP
 	}
 }
 

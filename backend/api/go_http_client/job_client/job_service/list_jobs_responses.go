@@ -72,7 +72,7 @@ type ListJobsOK struct {
 }
 
 func (o *ListJobsOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/jobs][%d] listJobsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/jobs][%d] listJobsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListJobsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -110,7 +110,7 @@ func (o *ListJobsDefault) Code() int {
 }
 
 func (o *ListJobsDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/jobs][%d] ListJobs default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/jobs][%d] ListJobs default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *ListJobsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

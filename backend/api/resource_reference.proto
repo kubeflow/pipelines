@@ -42,7 +42,4 @@ message ResourceReference {
 
   // Required field. The relationship from referred resource to the object.
   Relationship relationship = 2;
-
-  // Optional field. The name of the resource that referred to.
-  string name = 4;
 }

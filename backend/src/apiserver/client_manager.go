@@ -44,16 +44,17 @@ const (
 
 // Container for all service clients
 type ClientManager struct {
-	db              *storage.DB
-	experimentStore storage.ExperimentStoreInterface
-	pipelineStore   storage.PipelineStoreInterface
-	jobStore        storage.JobStoreInterface
-	runStore        storage.RunStoreInterface
-	objectStore     storage.ObjectStoreInterface
-	wfClient        workflowclient.WorkflowInterface
-	swfClient       scheduledworkflowclient.ScheduledWorkflowInterface
-	time            util.TimeInterface
-	uuid            util.UUIDGeneratorInterface
+	db                     *storage.DB
+	experimentStore        storage.ExperimentStoreInterface
+	pipelineStore          storage.PipelineStoreInterface
+	jobStore               storage.JobStoreInterface
+	runStore               storage.RunStoreInterface
+	resourceReferenceStore storage.ResourceReferenceStoreInterface
+	objectStore            storage.ObjectStoreInterface
+	wfClient               workflowclient.WorkflowInterface
+	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	time                   util.TimeInterface
+	uuid                   util.UUIDGeneratorInterface
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -70,6 +71,10 @@ func (c *ClientManager) JobStore() storage.JobStoreInterface {
 
 func (c *ClientManager) RunStore() storage.RunStoreInterface {
 	return c.runStore
+}
+
+func (c *ClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {
+	return c.resourceReferenceStore
 }
 
 func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
@@ -108,6 +113,7 @@ func (c *ClientManager) init() {
 	c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	c.jobStore = storage.NewJobStore(db, c.time)
 	c.runStore = storage.NewRunStore(db, c.time)
+	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
@@ -149,11 +155,6 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
-	}
-	response = db.Model(&model.RunDetail{}).
-		AddForeignKey("JobID", "jobs(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
-	if response.Error != nil {
-		glog.Fatalf("Failed to create a foreign key for JobID in run_details table. Error: %s", response.Error)
 	}
 	response = db.Model(&model.RunMetric{}).
 		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)

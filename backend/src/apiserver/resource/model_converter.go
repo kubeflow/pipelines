@@ -19,6 +19,7 @@ import (
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
@@ -35,40 +36,62 @@ func ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
 
 // The input run might not contain workflowSpecManifest, but instead a pipeline ID.
 // The caller would retrieve workflowSpecManifest and pass in.
-func ToModelRun(run *api.Run, workflowSpecManifest string) (*model.Run, error) {
+func ToModelRunDetail(run *api.Run, workflow *util.Workflow, workflowSpecManifest string) (*model.RunDetail, error) {
 	params, err := toModelParameters(run.PipelineSpec.Parameters)
 	if err != nil {
-		return nil, util.Wrap(err, "Error parsing the parameter.")
+		return nil, util.Wrap(err, "Unable to parse the parameter.")
+	}
+	resourceReferences, err := toModelResourceReferences(string(workflow.UID), common.Run, run.ResourceReferences)
+	if err != nil {
+		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
 
-	// Only convert input field. Any output specific field will be ignored.
-	return &model.Run{
-		DisplayName: run.Name,
-		Description: run.Description,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:           run.PipelineSpec.GetPipelineId(),
-			WorkflowSpecManifest: workflowSpecManifest,
-			Parameters:           params,
+	return &model.RunDetail{
+		Run: model.Run{
+			UUID:               string(workflow.UID),
+			DisplayName:        run.Name,
+			Name:               workflow.Name,
+			Namespace:          workflow.Namespace,
+			Conditions:         workflow.Condition(),
+			Description:        run.Description,
+			ResourceReferences: resourceReferences,
+			PipelineSpec: model.PipelineSpec{
+				PipelineId:           run.PipelineSpec.GetPipelineId(),
+				WorkflowSpecManifest: workflowSpecManifest,
+				Parameters:           params,
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: workflow.ToStringForStore(),
 		},
 	}, nil
 }
 
-func ToModelJob(job *api.Job) (*model.Job, error) {
-	params, err := toModelParameters(job.Parameters)
+func ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, workflowSpecManifest string) (*model.Job, error) {
+	params, err := toModelParameters(job.PipelineSpec.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Error parsing the input job.")
 	}
+	resourceReferences, err := toModelResourceReferences(string(swf.UID), common.Job, job.ResourceReferences)
+	if err != nil {
+		return nil, util.Wrap(err, "Error to convert resource references.")
+	}
 
-	// Only convert input field. Any output specific field will be ignored.
 	return &model.Job{
-		DisplayName:    job.Name,
-		Description:    job.Description,
-		Enabled:        job.Enabled,
-		Trigger:        toModelTrigger(job.Trigger),
-		MaxConcurrency: job.MaxConcurrency,
+		UUID:               string(swf.UID),
+		DisplayName:        job.Name,
+		Name:               swf.Name,
+		Namespace:          swf.Namespace,
+		Description:        job.Description,
+		Conditions:         swf.ConditionSummary(),
+		Enabled:            job.Enabled,
+		Trigger:            toModelTrigger(job.Trigger),
+		MaxConcurrency:     job.MaxConcurrency,
+		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: job.PipelineId,
-			Parameters: params,
+			PipelineId:           job.PipelineSpec.GetPipelineId(),
+			WorkflowSpecManifest: workflowSpecManifest,
+			Parameters:           params,
 		},
 	}, nil
 }
@@ -104,7 +127,10 @@ func toModelTrigger(trigger *api.Trigger) model.Trigger {
 }
 
 func toModelParameters(apiParams []*api.Parameter) (string, error) {
-	params := make([]v1alpha1.Parameter, 0)
+	if apiParams == nil || len(apiParams) == 0 {
+		return "", nil
+	}
+	var params []v1alpha1.Parameter
 	for _, apiParam := range apiParams {
 		param := v1alpha1.Parameter{
 			Name:  apiParam.Name,
@@ -117,4 +143,28 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}
 	return string(paramsBytes), nil
+}
+
+func toModelResourceReferences(
+	resourceId string, resourceType common.ResourceType, apiRefs []*api.ResourceReference) ([]*model.ResourceReference, error) {
+	var modelRefs []*model.ResourceReference
+	for _, apiRef := range apiRefs {
+		modelReferenceType, err := common.ToModelResourceType(apiRef.Key.Type)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to convert reference type")
+		}
+		modelRelationship, err := common.ToModelRelationship(apiRef.Relationship)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to convert relationship")
+		}
+		modelRef := &model.ResourceReference{
+			ResourceUUID:  resourceId,
+			ResourceType:  resourceType,
+			ReferenceUUID: apiRef.Key.Id,
+			ReferenceType: modelReferenceType,
+			Relationship:  modelRelationship,
+		}
+		modelRefs = append(modelRefs, modelRef)
+	}
+	return modelRefs, nil
 }

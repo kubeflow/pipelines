@@ -33,10 +33,6 @@ type DB struct {
 	SQLDialect
 }
 
-func (d *DB) GetDialect() SQLDialect {
-	return d.SQLDialect
-}
-
 // NewDB creates a DB
 func NewDB(db *sql.DB, dialect SQLDialect) *DB {
 	return &DB{db, dialect}

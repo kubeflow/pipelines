@@ -5,13 +5,14 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/url"
-
 	"strings"
 
 	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
 
@@ -110,4 +111,62 @@ func printParameters(params []*api.Parameter) string {
 		s.WriteString(p.String())
 	}
 	return s.String()
+}
+
+// Verify the input resource references has one and only reference which is owner experiment.
+func ValidateExperimentResourceReference(resourceManager *resource.ResourceManager, references []*api.ResourceReference) error {
+	if references == nil || len(references) == 0 || references[0] == nil {
+		return util.NewInvalidInputError("The resource reference is empty. Please specify which experiment owns this resource.")
+	}
+	if len(references) > 1 {
+		return util.NewInvalidInputError("Got more resource references than expected. Please only specify which experiment owns this resource.")
+	}
+	if references[0].Key.Type != api.ResourceType_EXPERIMENT {
+		return util.NewInvalidInputError("Unexpected resource type. Expected:%v. Got: %v",
+			api.ResourceType_EXPERIMENT, references[0].Key.Type)
+	}
+	if references[0].Key.Id == "" {
+		return util.NewInvalidInputError("Resource ID is empty. Please specify a valid ID")
+	}
+	if references[0].Relationship != api.Relationship_OWNER {
+		return util.NewInvalidInputError("Unexpected relationship for the experiment. Expected: %v. Got: %v",
+			api.Relationship_OWNER, references[0].Relationship)
+	}
+	if _, err := resourceManager.GetExperiment(references[0].Key.Id); err != nil {
+		return util.Wrap(err, "Failed to get experiment.")
+	}
+	return nil
+}
+
+func ValidatePipelineSpec(resourceManager *resource.ResourceManager, spec *api.PipelineSpec) error {
+	if spec == nil || (spec.GetPipelineId() == "" && spec.GetWorkflowManifest() == "") {
+		return util.NewInvalidInputError("Please specify a pipeline by providing a pipeline ID or workflow manifest.")
+	}
+	if spec.GetPipelineId() != "" && spec.GetWorkflowManifest() != "" {
+		return util.NewInvalidInputError("Please either specify a pipeline ID or a workflow manifest, not both.")
+	}
+	if spec.GetPipelineId() != "" {
+		// Verify pipeline exist
+		if _, err := resourceManager.GetPipeline(spec.GetPipelineId()); err != nil {
+			return util.Wrap(err, "Get pipeline failed.")
+		}
+	}
+	if spec.GetWorkflowManifest() != "" {
+		// Verify valid workflow template
+		var workflow util.Workflow
+		if err := json.Unmarshal([]byte(spec.GetWorkflowManifest()), &workflow); err != nil {
+			return util.NewInvalidInputErrorWithDetails(err,
+				"Invalid argo workflow format. Workflow: "+spec.GetWorkflowManifest())
+		}
+	}
+	paramsBytes, err := json.Marshal(spec.Parameters)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
+			printParameters(spec.Parameters))
+	}
+	if len(paramsBytes) > util.MaxParameterBytes {
+		return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+	}
+	return nil
 }

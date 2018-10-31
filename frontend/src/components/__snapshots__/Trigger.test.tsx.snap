@@ -20,7 +20,7 @@ exports[`Trigger enables a single day on click 1`] = `
           "hasStartDate": false,
           "intervalCategory": "Week",
           "intervalValue": 1,
-          "maxConcurrentJobs": "10",
+          "maxConcurrentRuns": "10",
           "selectedDays": Array [
             true,
             false,
@@ -50,7 +50,7 @@ exports[`Trigger enables a single day on click 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 false,
@@ -90,7 +90,7 @@ exports[`Trigger enables a single day on click 1`] = `
               </Unknown>
               <div>
                 <Unknown
-                  field="maxConcurrentJobs"
+                  field="maxConcurrentRuns"
                   instance={[Circular]}
                   label="Maximum concurrent jobs"
                   required={true}
@@ -216,7 +216,6 @@ exports[`Trigger enables a single day on click 1`] = `
               </div>
               <div>
                 <div>
-                  <br />
                   <span>
                     On:
                   </span>
@@ -357,7 +356,7 @@ exports[`Trigger enables a single day on click 1`] = `
   </Component>
   <div>
     <Component
-      field="maxConcurrentJobs"
+      field="maxConcurrentRuns"
       instance={
         Trigger {
           "context": Object {},
@@ -374,7 +373,7 @@ exports[`Trigger enables a single day on click 1`] = `
             "hasStartDate": false,
             "intervalCategory": "Week",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               true,
               false,
@@ -404,7 +403,7 @@ exports[`Trigger enables a single day on click 1`] = `
                 "hasStartDate": false,
                 "intervalCategory": "Week",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   true,
                   false,
@@ -444,7 +443,7 @@ exports[`Trigger enables a single day on click 1`] = `
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -570,7 +569,6 @@ exports[`Trigger enables a single day on click 1`] = `
                 </div>
                 <div>
                   <div>
-                    <br />
                     <span>
                       On:
                     </span>
@@ -720,7 +718,7 @@ exports[`Trigger enables a single day on click 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 false,
@@ -750,7 +748,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     false,
@@ -790,7 +788,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -916,7 +914,6 @@ exports[`Trigger enables a single day on click 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -1060,7 +1057,7 @@ exports[`Trigger enables a single day on click 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 false,
@@ -1090,7 +1087,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     false,
@@ -1130,7 +1127,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -1256,7 +1253,6 @@ exports[`Trigger enables a single day on click 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -1413,7 +1409,7 @@ exports[`Trigger enables a single day on click 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 false,
@@ -1443,7 +1439,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     false,
@@ -1483,7 +1479,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -1609,7 +1605,6 @@ exports[`Trigger enables a single day on click 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -1753,7 +1748,7 @@ exports[`Trigger enables a single day on click 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 false,
@@ -1783,7 +1778,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     false,
@@ -1823,7 +1818,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -1949,7 +1944,6 @@ exports[`Trigger enables a single day on click 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -2099,7 +2093,7 @@ exports[`Trigger enables a single day on click 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 false,
@@ -2129,7 +2123,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     false,
@@ -2169,7 +2163,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -2295,7 +2289,6 @@ exports[`Trigger enables a single day on click 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -2450,7 +2443,6 @@ exports[`Trigger enables a single day on click 1`] = `
   </div>
   <div>
     <div>
-      <br />
       <span>
         On:
       </span>
@@ -2572,7 +2564,7 @@ exports[`Trigger enables a single day on click 1`] = `
             "hasStartDate": false,
             "intervalCategory": "Week",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               true,
               false,
@@ -2602,7 +2594,7 @@ exports[`Trigger enables a single day on click 1`] = `
                 "hasStartDate": false,
                 "intervalCategory": "Week",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   true,
                   false,
@@ -2642,7 +2634,7 @@ exports[`Trigger enables a single day on click 1`] = `
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -2768,7 +2760,6 @@ exports[`Trigger enables a single day on click 1`] = `
                 </div>
                 <div>
                   <div>
-                    <br />
                     <span>
                       On:
                     </span>
@@ -2915,7 +2906,7 @@ exports[`Trigger renders all week days enabled 1`] = `
           "hasStartDate": false,
           "intervalCategory": "Week",
           "intervalValue": 1,
-          "maxConcurrentJobs": "10",
+          "maxConcurrentRuns": "10",
           "selectedDays": Array [
             false,
             false,
@@ -2945,7 +2936,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 false,
                 false,
@@ -2985,7 +2976,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               </Unknown>
               <div>
                 <Unknown
-                  field="maxConcurrentJobs"
+                  field="maxConcurrentRuns"
                   instance={[Circular]}
                   label="Maximum concurrent jobs"
                   required={true}
@@ -3111,7 +3102,6 @@ exports[`Trigger renders all week days enabled 1`] = `
               </div>
               <div>
                 <div>
-                  <br />
                   <span>
                     On:
                   </span>
@@ -3252,7 +3242,7 @@ exports[`Trigger renders all week days enabled 1`] = `
   </Component>
   <div>
     <Component
-      field="maxConcurrentJobs"
+      field="maxConcurrentRuns"
       instance={
         Trigger {
           "context": Object {},
@@ -3269,7 +3259,7 @@ exports[`Trigger renders all week days enabled 1`] = `
             "hasStartDate": false,
             "intervalCategory": "Week",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               false,
               false,
@@ -3299,7 +3289,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                 "hasStartDate": false,
                 "intervalCategory": "Week",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   false,
                   false,
@@ -3339,7 +3329,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -3465,7 +3455,6 @@ exports[`Trigger renders all week days enabled 1`] = `
                 </div>
                 <div>
                   <div>
-                    <br />
                     <span>
                       On:
                     </span>
@@ -3615,7 +3604,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 false,
                 false,
@@ -3645,7 +3634,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     false,
                     false,
@@ -3685,7 +3674,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -3811,7 +3800,6 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -3955,7 +3943,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 false,
                 false,
@@ -3985,7 +3973,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     false,
                     false,
@@ -4025,7 +4013,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -4151,7 +4139,6 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -4308,7 +4295,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 false,
                 false,
@@ -4338,7 +4325,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     false,
                     false,
@@ -4378,7 +4365,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -4504,7 +4491,6 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -4648,7 +4634,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 false,
                 false,
@@ -4678,7 +4664,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     false,
                     false,
@@ -4718,7 +4704,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -4844,7 +4830,6 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -4994,7 +4979,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 false,
                 false,
@@ -5024,7 +5009,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     false,
                     false,
@@ -5064,7 +5049,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -5190,7 +5175,6 @@ exports[`Trigger renders all week days enabled 1`] = `
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -5345,7 +5329,6 @@ exports[`Trigger renders all week days enabled 1`] = `
   </div>
   <div>
     <div>
-      <br />
       <span>
         On:
       </span>
@@ -5467,7 +5450,7 @@ exports[`Trigger renders all week days enabled 1`] = `
             "hasStartDate": false,
             "intervalCategory": "Week",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               false,
               false,
@@ -5497,7 +5480,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                 "hasStartDate": false,
                 "intervalCategory": "Week",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   false,
                   false,
@@ -5537,7 +5520,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -5663,7 +5646,6 @@ exports[`Trigger renders all week days enabled 1`] = `
                 </div>
                 <div>
                   <div>
-                    <br />
                     <span>
                       On:
                     </span>
@@ -5810,7 +5792,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
           "hasStartDate": false,
           "intervalCategory": "Minute",
           "intervalValue": 1,
-          "maxConcurrentJobs": "10",
+          "maxConcurrentRuns": "10",
           "selectedDays": Array [
             true,
             true,
@@ -5840,7 +5822,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -5880,7 +5862,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               </Unknown>
               <div>
                 <Unknown
-                  field="maxConcurrentJobs"
+                  field="maxConcurrentRuns"
                   instance={[Circular]}
                   label="Maximum concurrent jobs"
                   required={true}
@@ -6074,7 +6056,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
   </Component>
   <div>
     <Component
-      field="maxConcurrentJobs"
+      field="maxConcurrentRuns"
       instance={
         Trigger {
           "context": Object {},
@@ -6091,7 +6073,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
             "hasStartDate": false,
             "intervalCategory": "Minute",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               true,
               true,
@@ -6121,7 +6103,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                 "hasStartDate": false,
                 "intervalCategory": "Minute",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   true,
                   true,
@@ -6161,7 +6143,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -6364,7 +6346,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -6394,7 +6376,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -6434,7 +6416,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -6631,7 +6613,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -6661,7 +6643,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -6701,7 +6683,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -6911,7 +6893,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -6941,7 +6923,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -6981,7 +6963,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -7178,7 +7160,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -7208,7 +7190,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -7248,7 +7230,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -7451,7 +7433,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -7481,7 +7463,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -7521,7 +7503,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -7771,7 +7753,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
             "hasStartDate": false,
             "intervalCategory": "Minute",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               true,
               true,
@@ -7801,7 +7783,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                 "hasStartDate": false,
                 "intervalCategory": "Minute",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   true,
                   true,
@@ -7841,7 +7823,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -8041,7 +8023,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
           "hasStartDate": false,
           "intervalCategory": "Minute",
           "intervalValue": 1,
-          "maxConcurrentJobs": "10",
+          "maxConcurrentRuns": "10",
           "selectedDays": Array [
             true,
             true,
@@ -8071,7 +8053,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -8111,7 +8093,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
               </Unknown>
               <div>
                 <Unknown
-                  field="maxConcurrentJobs"
+                  field="maxConcurrentRuns"
                   instance={[Circular]}
                   label="Maximum concurrent jobs"
                   required={true}
@@ -8282,7 +8264,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
   </Component>
   <div>
     <Component
-      field="maxConcurrentJobs"
+      field="maxConcurrentRuns"
       instance={
         Trigger {
           "context": Object {},
@@ -8299,7 +8281,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
             "hasStartDate": false,
             "intervalCategory": "Minute",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               true,
               true,
@@ -8329,7 +8311,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                 "hasStartDate": false,
                 "intervalCategory": "Minute",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   true,
                   true,
@@ -8369,7 +8351,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -8549,7 +8531,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -8579,7 +8561,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -8619,7 +8601,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -8793,7 +8775,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -8823,7 +8805,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -8863,7 +8845,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -9050,7 +9032,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -9080,7 +9062,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -9120,7 +9102,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -9294,7 +9276,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -9324,7 +9306,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -9364,7 +9346,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -9548,7 +9530,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                 "hasStartDate": false,
                 "intervalCategory": "Minute",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   true,
                   true,
@@ -9578,7 +9560,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                     "hasStartDate": false,
                     "intervalCategory": "Minute",
                     "intervalValue": 1,
-                    "maxConcurrentJobs": "10",
+                    "maxConcurrentRuns": "10",
                     "selectedDays": Array [
                       true,
                       true,
@@ -9618,7 +9600,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                     </Unknown>
                     <div>
                       <Unknown
-                        field="maxConcurrentJobs"
+                        field="maxConcurrentRuns"
                         instance={[Circular]}
                         label="Maximum concurrent jobs"
                         required={true}
@@ -9789,7 +9771,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
               "hasStartDate": false,
               "intervalCategory": "Minute",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -9819,7 +9801,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   "hasStartDate": false,
                   "intervalCategory": "Minute",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -9859,7 +9841,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -10065,7 +10047,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
           "hasStartDate": false,
           "intervalCategory": "Week",
           "intervalValue": 1,
-          "maxConcurrentJobs": "10",
+          "maxConcurrentRuns": "10",
           "selectedDays": Array [
             true,
             true,
@@ -10095,7 +10077,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -10135,7 +10117,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               </Unknown>
               <div>
                 <Unknown
-                  field="maxConcurrentJobs"
+                  field="maxConcurrentRuns"
                   instance={[Circular]}
                   label="Maximum concurrent jobs"
                   required={true}
@@ -10261,7 +10243,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               </div>
               <div>
                 <div>
-                  <br />
                   <span>
                     On:
                   </span>
@@ -10402,7 +10383,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
   </Component>
   <div>
     <Component
-      field="maxConcurrentJobs"
+      field="maxConcurrentRuns"
       instance={
         Trigger {
           "context": Object {},
@@ -10419,7 +10400,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
             "hasStartDate": false,
             "intervalCategory": "Week",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               true,
               true,
@@ -10449,7 +10430,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 "hasStartDate": false,
                 "intervalCategory": "Week",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   true,
                   true,
@@ -10489,7 +10470,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -10615,7 +10596,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 </div>
                 <div>
                   <div>
-                    <br />
                     <span>
                       On:
                     </span>
@@ -10765,7 +10745,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -10795,7 +10775,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -10835,7 +10815,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -10961,7 +10941,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -11105,7 +11084,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -11135,7 +11114,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -11175,7 +11154,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -11301,7 +11280,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -11458,7 +11436,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -11488,7 +11466,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -11528,7 +11506,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -11654,7 +11632,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -11798,7 +11775,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -11828,7 +11805,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -11868,7 +11845,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -11994,7 +11971,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -12144,7 +12120,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               "hasStartDate": false,
               "intervalCategory": "Week",
               "intervalValue": 1,
-              "maxConcurrentJobs": "10",
+              "maxConcurrentRuns": "10",
               "selectedDays": Array [
                 true,
                 true,
@@ -12174,7 +12150,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   "hasStartDate": false,
                   "intervalCategory": "Week",
                   "intervalValue": 1,
-                  "maxConcurrentJobs": "10",
+                  "maxConcurrentRuns": "10",
                   "selectedDays": Array [
                     true,
                     true,
@@ -12214,7 +12190,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </Unknown>
                   <div>
                     <Unknown
-                      field="maxConcurrentJobs"
+                      field="maxConcurrentRuns"
                       instance={[Circular]}
                       label="Maximum concurrent jobs"
                       required={true}
@@ -12340,7 +12316,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   </div>
                   <div>
                     <div>
-                      <br />
                       <span>
                         On:
                       </span>
@@ -12495,7 +12470,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
   </div>
   <div>
     <div>
-      <br />
       <span>
         On:
       </span>
@@ -12617,7 +12591,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
             "hasStartDate": false,
             "intervalCategory": "Week",
             "intervalValue": 1,
-            "maxConcurrentJobs": "10",
+            "maxConcurrentRuns": "10",
             "selectedDays": Array [
               true,
               true,
@@ -12647,7 +12621,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 "hasStartDate": false,
                 "intervalCategory": "Week",
                 "intervalValue": 1,
-                "maxConcurrentJobs": "10",
+                "maxConcurrentRuns": "10",
                 "selectedDays": Array [
                   true,
                   true,
@@ -12687,7 +12661,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 </Unknown>
                 <div>
                   <Unknown
-                    field="maxConcurrentJobs"
+                    field="maxConcurrentRuns"
                     instance={[Circular]}
                     label="Maximum concurrent jobs"
                     required={true}
@@ -12813,7 +12787,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 </div>
                 <div>
                   <div>
-                    <br />
                     <span>
                       On:
                     </span>
@@ -12960,7 +12933,7 @@ exports[`Trigger shows empty fields for initial render 1`] = `
           "hasStartDate": false,
           "intervalCategory": "Minute",
           "intervalValue": 1,
-          "maxConcurrentJobs": "10",
+          "maxConcurrentRuns": "10",
           "selectedDays": Array [
             true,
             true,

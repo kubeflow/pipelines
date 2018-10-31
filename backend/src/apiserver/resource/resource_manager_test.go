@@ -58,23 +58,85 @@ func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) err
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
+var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1"},
+	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+})
+
+// Util function to create an initial state with pipeline uploaded
+func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+	p, err := manager.CreatePipeline("p1", []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+	return store, manager, p
+}
+
+func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+	experiment := &model.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(experiment)
+	assert.Nil(t, err)
+	return store, manager, experiment
+}
+
+// Util function to create an initial state with pipeline uploaded
+func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
+	store, manager, exp := initWithExperiment(t)
+	job := &api.Job{
+		Name:         "j1",
+		Enabled:      true,
+		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	j, err := manager.CreateJob(job)
+	assert.Nil(t, err)
+	return store, manager, j
+}
+
+func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
 func createPipeline(name string) *model.Pipeline {
 	return &model.Pipeline{Name: name, Status: model.PipelineReady}
 }
 
 func TestCreatePipeline(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, _, pipeline := initWithPipeline(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	pipeline, err := manager.CreatePipeline("pipeline1", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	pipelineExpected := &model.Pipeline{
 		UUID:           DefaultFakeUUID,
 		CreatedAtInSec: 1,
-		Name:           "pipeline1",
-		Parameters:     "[]",
+		Name:           "p1",
+		Parameters:     "[{\"name\":\"param1\"}]",
 		Status:         model.PipelineReady,
 	}
-	assert.Nil(t, err)
 	assert.Equal(t, pipelineExpected, pipeline)
 }
 
@@ -125,15 +187,11 @@ func TestCreatePipeline_CreatePipelineFileError(t *testing.T) {
 }
 
 func TestGetPipelineTemplate(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, p := initWithPipeline(t)
 	defer store.Close()
-	pipeline, _ := store.PipelineStore().CreatePipeline(createPipeline("pipeline1"))
-	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.CreatePipelinePath(fmt.Sprint(pipeline.UUID)))
-	manager := NewResourceManager(store)
-	actualTemplate, err := manager.GetPipelineTemplate(pipeline.UUID)
+	actualTemplate, err := manager.GetPipelineTemplate(p.UUID)
 	assert.Nil(t, err)
-	assert.Equal(t, template, actualTemplate)
+	assert.Equal(t, []byte(testWorkflow.ToStringForStore()), actualTemplate)
 }
 
 func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
@@ -157,48 +215,56 @@ func TestGetPipelineTemplate_PipelineFileNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "object not found")
 }
 
-func TestCreateRun(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+func TestCreateRun_ThroughPipelineID(t *testing.T) {
+	store, manager, p := initWithPipeline(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-		Spec: v1alpha1.WorkflowSpec{
-			Arguments: v1alpha1.Arguments{
-				Parameters: []v1alpha1.Parameter{
-					{Name: "param1"},
-				},
-			},
-		}}
-	workflowBytes, _ := json.Marshal(workflow)
+	experiment := &model.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(experiment)
+	assert.Nil(t, err)
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: string(workflowBytes),
+			PipelineId: p.UUID,
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
 			},
 		},
 	}
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
 
-	workflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
-	expectedWorkflowBytes, _ := json.Marshal(workflow)
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
+			UUID:           "workflow1",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
-			CreatedAtInSec: 1,
-			Conditions:     ":",
+			CreatedAtInSec: 3,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: string(workflowBytes),
+				PipelineId:           p.UUID,
+				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "workflow1",
+					ResourceType:  common.Run,
+					ReferenceUUID: experiment.UUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
 			},
 		},
 		PipelineRuntime: model.PipelineRuntime{
-			WorkflowRuntimeManifest: string(expectedWorkflowBytes),
+			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
@@ -206,6 +272,60 @@ func TestCreateRun(t *testing.T) {
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
+func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:           "workflow1",
+			DisplayName:    "run1",
+			Name:           "workflow-name",
+			CreatedAtInSec: 2,
+			Conditions:     "",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "workflow1",
+					ResourceType:  common.Run,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+		},
+	}
+	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
+	assert.Equal(t, 1, store.workflowClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	runDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
+func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateRun(apiRun)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
 }
 
 func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
@@ -230,20 +350,10 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-		Spec: v1alpha1.WorkflowSpec{
-			Arguments: v1alpha1.Arguments{
-				Parameters: []v1alpha1.Parameter{
-					{Name: "param1"},
-				},
-			},
-		}}
-	workflowBytes, _ := json.Marshal(workflow)
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: string(workflowBytes),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param2", Value: "world"},
 			},
@@ -253,26 +363,15 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unrecognized input parameter")
 }
-
 func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
 	manager.workflowClient = &storage.FakeBadWorkflowClient{}
-	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-		Spec: v1alpha1.WorkflowSpec{
-			Arguments: v1alpha1.Arguments{
-				Parameters: []v1alpha1.Parameter{
-					{Name: "param1"},
-				},
-			},
-		}}
-	workflowBytes, _ := json.Marshal(workflow)
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: string(workflowBytes),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -288,20 +387,10 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store)
 	store.DB().Close()
-	workflow := &v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-		Spec: v1alpha1.WorkflowSpec{
-			Arguments: v1alpha1.Arguments{
-				Parameters: []v1alpha1.Parameter{
-					{Name: "param1"},
-				},
-			},
-		}}
-	workflowBytes, _ := json.Marshal(workflow)
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: string(workflowBytes),
+			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
 			},
@@ -309,279 +398,169 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	}
 	_, err := manager.CreateRun(apiRun)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Error while creating run for workflow")
+	assert.Contains(t, err.Error(), "database is closed")
 }
 
-func TestListRun(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
+	store, _, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-
-	job1 := &model.Job{
-		UUID:           "1",
-		Name:           "pp1",
-		Namespace:      "n1",
+	expectedJob := &model.Job{
+		UUID:           "123",
+		DisplayName:    "j1",
+		Name:           "j1",
+		Namespace:      "default",
 		Enabled:        true,
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 0,
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
+		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 		},
-	}
-
-	_, err := manager.jobStore.CreateJob(job1)
-	assert.Nil(t, err)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "run1",
-			Namespace:         "n1",
-			UID:               "1",
-			CreationTimestamp: v1.Time{Time: time.Unix(1, 0)},
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID("1"),
-			}},
-		},
-	})
-	err = manager.runStore.ReportRun(workflow)
-	assert.Nil(t, err)
-	runs, newToken, err := manager.ListRuns("1",
-		&common.PaginationContext{
-			PageSize:        1,
-			KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-			IsDesc:          false,
-		})
-	workflowBytes, _ := json.Marshal(workflow)
-	runsExpected := []model.Run{{
-		UUID:           "1",
-		Name:           "run1",
-		Namespace:      "n1",
-		JobID:          "1",
-		CreatedAtInSec: 1,
-		Conditions:     ":",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: string(workflowBytes),
-		},
-	}}
-	assert.Nil(t, err)
-	assert.Equal(t, "", newToken)
-	assert.Equal(t, runsExpected, runs)
-}
-
-func TestListRun_JobNotFoundError(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	_, _, err := manager.ListRuns("1", &common.PaginationContext{
-		PageSize:        0,
-		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-		IsDesc:          false,
-	})
-	assert.Contains(t, err.Error(), "Job 1 not found")
-}
-
-func TestGetRun(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	job1 := &model.Job{
-		UUID:      "1",
-		Name:      "pp1",
-		Namespace: "n1",
-		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
-		},
-		Enabled:        true,
-		CreatedAtInSec: 0,
-		UpdatedAtInSec: 0,
-	}
-	_, err := manager.jobStore.CreateJob(job1)
-	assert.Nil(t, err)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "run1",
-			Namespace:         "n1",
-			UID:               "1",
-			CreationTimestamp: v1.Time{Time: time.Unix(1, 0)},
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID("1"),
-			}},
-		},
-	})
-	err = manager.runStore.ReportRun(workflow)
-	run, err := manager.GetRun("1")
-	workflowBytes, _ := json.Marshal(workflow)
-	runExpected := &model.RunDetail{
-		Run: model.Run{
-			UUID:           "1",
-			Name:           "run1",
-			Namespace:      "n1",
-			JobID:          "1",
-			CreatedAtInSec: 1,
-			Conditions:     ":",
-			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: string(workflowBytes),
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: DefaultFakeUUID,
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
 			},
 		},
-		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: string(workflowBytes)},
 	}
-	assert.Nil(t, err)
-	assert.Equal(t, runExpected, run)
+	assert.Equal(t, expectedJob, job)
 }
 
-func TestCreateJob(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+func TestCreateJob_ThroughPipelineID(t *testing.T) {
+	store, _, pipeline := initWithPipeline(t)
 	defer store.Close()
 	manager := NewResourceManager(store)
-
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-		Spec: v1alpha1.WorkflowSpec{
-			Arguments: v1alpha1.Arguments{
-				Parameters: []v1alpha1.Parameter{
-					{Name: "param1"},
-				},
-			},
-		}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
 	job := &api.Job{
-		Name:       "pp 1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-		Parameters: []*api.Parameter{
-			{Name: "param1", Value: "world"},
+		Name:    "j1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: pipeline.UUID,
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
 		},
 	}
 	newJob, err := manager.CreateJob(job)
 	expectedJob := &model.Job{
 		UUID:           "123",
-		DisplayName:    "pp 1",
-		Name:           "pp1",
+		DisplayName:    "j1",
+		Name:           "j1",
 		Namespace:      "default",
 		Enabled:        true,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
-		Conditions:     "NO_STATUS:",
+		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
-			Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
-			PipelineId: p.UUID,
+			PipelineId:           pipeline.UUID,
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},
 	}
-
 	assert.Nil(t, err)
 	assert.Equal(t, expectedJob, newJob)
 }
 
-func TestCreateJob_ExtraInputParameter(t *testing.T) {
+func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-		Spec: v1alpha1.WorkflowSpec{
-			Arguments: v1alpha1.Arguments{
-				Parameters: []v1alpha1.Parameter{
-					{Name: "param1"},
-				},
-			},
-		}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
 	job := &api.Job{
-		Name:       "pp 1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-		Parameters: []*api.Parameter{
-			{Name: "param2", Value: "world"},
+		Name:    "pp 1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
 		},
 	}
-	_, err = manager.CreateJob(job)
+	_, err := manager.CreateJob(job)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to fetch workflow spec")
+}
+
+func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	job := &api.Job{
+		Name:    "pp 1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string("I am invalid"),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateJob(job)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to unmarshal workflow spec manifest")
+}
+
+func TestCreateJob_ExtraInputParameterError(t *testing.T) {
+	store, manager, p := initWithPipeline(t)
+	defer store.Close()
+	job := &api.Job{
+		Name:    "pp 1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: p.UUID,
+			Parameters: []*api.Parameter{
+				{Name: "param2", Value: "world"},
+			},
+		},
+	}
+	_, err := manager.CreateJob(job)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Unrecognized input parameter: param2")
 }
 
 func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, p := initWithPipeline(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	// Use a bad object store
 	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
 	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
+		Name:         "pp1",
+		Enabled:      true,
+		PipelineSpec: &api.PipelineSpec{PipelineId: p.UUID},
 	}
-	_, err = manager.CreateJob(job)
+	_, err := manager.CreateJob(job)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to create a scheduled workflow")
 }
 
-func TestCreateJob_PipelineNotExist(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: "1",
-		Enabled:    true,
-	}
-	_, err := manager.CreateJob(job)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Pipeline 1 not found")
-}
-
 func TestEnableJob(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-	job := &api.Job{
-		Name:       "pp 1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-	}
-	newJob, err := manager.CreateJob(job)
-	assert.Nil(t, err)
-	err = manager.EnableJob(newJob.UUID, false)
-	assert.Nil(t, err)
-	newJob, err = manager.GetJob(newJob.UUID)
+	err := manager.EnableJob(job.UUID, false)
+	job, err = manager.GetJob(job.UUID)
 	expectedJob := &model.Job{
 		UUID:           "123",
-		DisplayName:    "pp 1",
-		Name:           "pp1",
+		DisplayName:    "j1",
+		Name:           "j1",
 		Namespace:      "default",
 		Enabled:        false,
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 3,
-		Conditions:     "NO_STATUS:",
+		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: p.UUID,
-			Parameters: "[]",
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: DefaultFakeUUID,
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
 		},
 	}
 	assert.Nil(t, err)
-	assert.Equal(t, expectedJob, newJob)
+	assert.Equal(t, expectedJob, job)
 }
 
 func TestEnableJob_JobNotExist(t *testing.T) {
@@ -594,72 +573,30 @@ func TestEnableJob_JobNotExist(t *testing.T) {
 }
 
 func TestEnableJob_CrdFailure(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-	}
-	newJob, err := manager.CreateJob(job)
-	assert.Nil(t, err)
-
 	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
-	err = manager.EnableJob(newJob.UUID, false)
+	err := manager.EnableJob(job.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
 }
 
 func TestEnableJob_DbFailure(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-	}
-	newJob, err := manager.CreateJob(job)
-	assert.Nil(t, err)
 	store.DB().Close()
-	err = manager.EnableJob(newJob.UUID, false)
+	err := manager.EnableJob(job.UUID, false)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
 func TestDeleteJob(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-	}
-	newJob, err := manager.CreateJob(job)
+	err := manager.DeleteJob(job.UUID)
 	assert.Nil(t, err)
 
-	err = manager.DeleteJob(newJob.UUID)
-	assert.Nil(t, err)
-
-	_, err = manager.GetJob(newJob.UUID)
+	_, err = manager.GetJob(job.UUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 123 not found")
 }
@@ -674,78 +611,137 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 }
 
 func TestDeleteJob_CrdFailure(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-	}
-	newJob, err := manager.CreateJob(job)
-	assert.Nil(t, err)
 
 	manager.scheduledWorkflowClient = &FakeBadScheduledWorkflowClient{}
-	err = manager.DeleteJob(newJob.UUID)
+	err := manager.DeleteJob(job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check job exist failed: some error")
 }
 
 func TestDeleteJob_DbFailure(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-	}
-	newJob, err := manager.CreateJob(job)
-	assert.Nil(t, err)
 
 	store.DB().Close()
-	err = manager.DeleteJob(newJob.UUID)
+	err := manager.DeleteJob(job.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
-func TestReportWorkflowResource_Success(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-
-	// Create pipeline
+	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
+		ObjectMeta: v1.ObjectMeta{
+			UID: types.UID(run.UUID),
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
+	})
+	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
-
-	// Create job
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
+	runDetail, err := manager.GetRun(run.UUID)
+	assert.Nil(t, err)
+	expectedRun := model.Run{
+		UUID:           "workflow1",
+		DisplayName:    "run1",
+		Name:           "workflow-name",
+		CreatedAtInSec: 2,
+		Conditions:     "Running",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "workflow1",
+				ResourceType:  common.Run,
+				ReferenceUUID: DefaultFakeUUID,
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
+		},
 	}
-	newJob, err := manager.CreateJob(job)
-	assert.Nil(t, err)
+	assert.Equal(t, expectedRun, runDetail.Run)
+}
+
+func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
 
 	// report workflow
-	workflow = util.NewWorkflow(&v1alpha1.Workflow{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
-			UID:       "MY_JOB_ID",
+			UID:       "WORKFLOW_1",
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID(job.UUID),
+			}},
+			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
+		},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.Nil(t, err)
+
+	runDetail, err := manager.GetRun("WORKFLOW_1")
+	assert.Nil(t, err)
+
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "WORKFLOW_1",
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 0,
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: job.UUID,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
+	}
+
+	assert.Equal(t, expectedRunDetail, runDetail)
+}
+
+func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	job := &api.Job{
+		Name:         "j1",
+		Enabled:      true,
+		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
+	}
+	newJob, err := manager.CreateJob(job)
+
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "MY_NAME",
+			Namespace: "MY_NAMESPACE",
+			UID:       "WORKFLOW_1",
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1alpha1",
 				Kind:       "ScheduledWorkflow",
@@ -756,116 +752,36 @@ func TestReportWorkflowResource_Success(t *testing.T) {
 		},
 	})
 	err = manager.ReportWorkflowResource(workflow)
-	assert.Nil(t, err)
-
-	runDetail, err := manager.GetRun("MY_JOB_ID")
-	assert.Nil(t, err)
-
-	workflowBytes, _ := json.Marshal(workflow)
-	expectedRunDetail := &model.RunDetail{
-		Run: model.Run{
-			UUID:             "MY_JOB_ID",
-			Name:             "MY_NAME",
-			Namespace:        "MY_NAMESPACE",
-			JobID:            "123",
-			CreatedAtInSec:   11,
-			ScheduledAtInSec: 0,
-			Conditions:       ":",
-			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: string(workflowBytes),
-			},
-		},
-		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
-	}
-
-	assert.Equal(t, expectedRunDetail, runDetail)
-}
-
-func TestReportWorkflowResource_Error(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store)
-
-	// Create pipeline
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-
-	// Create job
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-	}
-	newJob, err := manager.CreateJob(job)
-	assert.Nil(t, err)
-
-	store.Close()
-
-	// report workflow
-	workflow = util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
-			UID:       "MY_JOB_ID",
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(newJob.UUID),
-			}},
-		},
-	})
-	err = manager.ReportWorkflowResource(workflow)
+	println(err.Error())
 	assert.NotNil(t, err)
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Experiment not found")
 }
 
 func TestReportScheduledWorkflowResource_Success(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-
-	// Create pipeline
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-
-	// Create job
-	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
-	}
-	newJob, err := manager.CreateJob(job)
-	assert.Nil(t, err)
-
 	// report scheduled workflow
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
-			UID:       types.UID(newJob.UUID),
+			UID:       types.UID(job.UUID),
 		},
 	})
-	err = manager.ReportScheduledWorkflowResource(swf)
+	err := manager.ReportScheduledWorkflowResource(swf)
 	assert.Nil(t, err)
 
-	actualJob, err := manager.GetJob(newJob.UUID)
+	actualJob, err := manager.GetJob(job.UUID)
 	assert.Nil(t, err)
 
 	expectedJob := &model.Job{
 		Name:        "MY_NAME",
-		DisplayName: "pp1",
+		DisplayName: "j1",
 		Namespace:   "MY_NAMESPACE",
 		Enabled:     false,
-		UUID:        newJob.UUID,
-		Conditions:  "NO_STATUS:",
+		UUID:        job.UUID,
+		Conditions:  "NO_STATUS",
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				Cron: util.StringPointer(""),
@@ -875,8 +791,17 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 			},
 		},
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: p.UUID,
-			Parameters: "[]",
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			Parameters:           "[]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  job.UUID,
+				ResourceType:  common.Job,
+				ReferenceUUID: DefaultFakeUUID,
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
 		},
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 3,
@@ -898,9 +823,9 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 
 	// Create job
 	job := &api.Job{
-		Name:       "pp1",
-		PipelineId: p.UUID,
-		Enabled:    true,
+		Name:         "pp1",
+		Enabled:      true,
+		PipelineSpec: &api.PipelineSpec{PipelineId: p.UUID},
 	}
 	newJob, err := manager.CreateJob(job)
 	assert.Nil(t, err)
@@ -922,25 +847,10 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 }
 
 func TestGetWorkflowSpecBytes_ByPipelineID(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, pipeline := initWithPipeline(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
-		ObjectMeta: v1.ObjectMeta{Name: "workflow-name"},
-		Spec: v1alpha1.WorkflowSpec{
-			Arguments: v1alpha1.Arguments{
-				Parameters: []v1alpha1.Parameter{
-					{Name: "param1"},
-				},
-			},
-		}})
-	p, err := manager.CreatePipeline("1", []byte(workflow.ToStringForStore()))
-	assert.Nil(t, err)
-
 	spec := &api.PipelineSpec{
-		PipelineId: p.UUID,
+		PipelineId: pipeline.UUID,
 		Parameters: []*api.Parameter{
 			{Name: "param1", Value: "world"},
 		},
@@ -949,7 +859,7 @@ func TestGetWorkflowSpecBytes_ByPipelineID(t *testing.T) {
 	assert.Nil(t, err)
 	var actualWorkflow v1alpha1.Workflow
 	json.Unmarshal(workflowBytes, &actualWorkflow)
-	assert.Equal(t, workflow.Get(), &actualWorkflow)
+	assert.Equal(t, testWorkflow.Get(), &actualWorkflow)
 }
 
 func TestGetWorkflowSpecBytes_ByPipelineID_NotExist(t *testing.T) {
@@ -1000,9 +910,9 @@ func TestGetWorkflowSpecBytes_MissingSpec(t *testing.T) {
 }
 
 func TestReadArtifact_Succeed(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
+
 	expectedContent := "test"
 	filePath := "test/file.txt"
 	store.ObjectStore().AddFile([]byte(expectedContent), filePath)
@@ -1023,15 +933,15 @@ func TestReadArtifact_Succeed(t *testing.T) {
 				APIVersion: "kubeflow.org/v1alpha1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
-				UID:        types.UID("job-1"),
+				UID:        types.UID(job.UUID),
 			}},
 		},
 		Status: v1alpha1.WorkflowStatus{
 			Nodes: map[string]v1alpha1.NodeStatus{
-				"node-1": v1alpha1.NodeStatus{
+				"node-1": {
 					Outputs: &v1alpha1.Outputs{
 						Artifacts: []v1alpha1.Artifact{
-							v1alpha1.Artifact{
+							{
 								Name: "artifact-1",
 								ArtifactLocation: v1alpha1.ArtifactLocation{
 									S3: &v1alpha1.S3Artifact{
@@ -1054,10 +964,8 @@ func TestReadArtifact_Succeed(t *testing.T) {
 }
 
 func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store, manager, job := initWithJob(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
-
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
@@ -1065,8 +973,13 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 			Namespace:         "MY_NAMESPACE",
 			UID:               "run-1",
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-		},
-	})
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1alpha1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "SCHEDULE_NAME",
+				UID:        types.UID(job.UUID),
+			}},
+		}})
 	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
 

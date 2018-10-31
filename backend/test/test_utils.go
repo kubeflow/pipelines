@@ -36,7 +36,7 @@ import (
 
 const (
 	// ML pipeline API server root URL
-	mlPipelineAPIServerBase = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1alpha2/%s"
+	mlPipelineAPIServerBase = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1beta1/%s"
 )
 
 var namespace = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")

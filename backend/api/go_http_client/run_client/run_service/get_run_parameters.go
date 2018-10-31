@@ -76,8 +76,6 @@ for the get run operation typically these are written to a http.Request
 */
 type GetRunParams struct {
 
-	/*JobID*/
-	JobID string
 	/*RunID*/
 	RunID string
 
@@ -119,17 +117,6 @@ func (o *GetRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithJobID adds the jobID to the get run params
-func (o *GetRunParams) WithJobID(jobID string) *GetRunParams {
-	o.SetJobID(jobID)
-	return o
-}
-
-// SetJobID adds the jobId to the get run params
-func (o *GetRunParams) SetJobID(jobID string) {
-	o.JobID = jobID
-}
-
 // WithRunID adds the runID to the get run params
 func (o *GetRunParams) WithRunID(runID string) *GetRunParams {
 	o.SetRunID(runID)
@@ -148,11 +135,6 @@ func (o *GetRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regist
 		return err
 	}
 	var res []error
-
-	// path param job_id
-	if err := r.SetPathParam("job_id", o.JobID); err != nil {
-		return err
-	}
 
 	// path param run_id
 	if err := r.SetPathParam("run_id", o.RunID); err != nil {

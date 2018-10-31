@@ -21,7 +21,6 @@ created_at: "1970-01-01T00:00:00.000Z"
 description: JOB_DESCRIPTION
 id: "500"
 name: JOB_DEFAULT
-parameters: null
 resource_references: null
 updated_at: "0001-01-01T00:00:00.000Z"
 `
@@ -129,7 +128,6 @@ created_at: "1970-01-01T00:00:00.000Z"
 description: JOB_DESCRIPTION
 id: JOB_DEFAULT
 name: JOB_NAME
-parameters: null
 resource_references: null
 updated_at: "0001-01-01T00:00:00.000Z"
 `
@@ -166,21 +164,18 @@ SUCCESS
   description: JOB_DESCRIPTION
   id: "100"
   name: MY_FIRST_JOB
-  parameters: null
   resource_references: null
   updated_at: "0001-01-01T00:00:00.000Z"
 - created_at: "1970-01-01T00:00:00.000Z"
   description: JOB_DESCRIPTION
   id: "101"
   name: MY_SECOND_JOB
-  parameters: null
   resource_references: null
   updated_at: "0001-01-01T00:00:00.000Z"
 - created_at: "1970-01-01T00:00:00.000Z"
   description: JOB_DESCRIPTION
   id: "102"
   name: MY_THIRD_JOB
-  parameters: null
   resource_references: null
   updated_at: "0001-01-01T00:00:00.000Z"
 `
@@ -201,7 +196,6 @@ SUCCESS
   description: JOB_DESCRIPTION
   id: "100"
   name: MY_FIRST_JOB
-  parameters: null
   resource_references: null
   updated_at: "0001-01-01T00:00:00.000Z"
 `
@@ -317,81 +311,4 @@ func TestDeleteJobInvalidArgumentCount(t *testing.T) {
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Missing 'ID' argument")
-}
-
-func TestListJobRuns(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "list-runs", "--no-color", client.JobForDefaultTest})
-	_, err := rootCmd.Command().ExecuteC()
-	assert.Nil(t, err)
-
-	expected := `
-SUCCESS
-- created_at: "1970-01-01T00:00:00.000Z"
-  id: "100"
-  metrics: []
-  name: MY_FIRST_RUN
-  resource_references: null
-  scheduled_at: "0001-01-01T00:00:00.000Z"
-- created_at: "1970-01-01T00:00:00.000Z"
-  id: "101"
-  metrics: []
-  name: MY_SECOND_RUN
-  resource_references: null
-  scheduled_at: "0001-01-01T00:00:00.000Z"
-- created_at: "1970-01-01T00:00:00.000Z"
-  id: "102"
-  metrics: []
-  name: MY_THIRD_RUN
-  resource_references: null
-  scheduled_at: "0001-01-01T00:00:00.000Z"
-`
-	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
-	//To print the actual output, use: fmt.Println(factory.Result())
-}
-
-func TestListJobRunsClientError(t *testing.T) {
-	rootCmd, _ := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "list-runs", "--no-color", client.JobForClientErrorTest})
-	_, err := rootCmd.Command().ExecuteC()
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), client.ClientErrorString)
-}
-
-func TestListJobRunsMaxItems(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "list-runs", "--no-color",
-		"--max-items", "1", client.JobForDefaultTest})
-	_, err := rootCmd.Command().ExecuteC()
-	assert.Nil(t, err)
-
-	expected := `
-SUCCESS
-- created_at: "1970-01-01T00:00:00.000Z"
-  id: "100"
-  metrics: []
-  name: MY_FIRST_RUN
-  resource_references: null
-  scheduled_at: "0001-01-01T00:00:00.000Z"
-`
-	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
-	//To print the actual output, use: fmt.Println(factory.Result())
-}
-
-func TestListJobRunsInvalidMaxItems(t *testing.T) {
-	rootCmd, _ := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "list-runs", "--no-color",
-		"--max-items", "INVALID_MAX_ITEMS"})
-	_, err := rootCmd.Command().ExecuteC()
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "invalid argument \"INVALID_MAX_ITEMS\"")
-}
-
-func TestListJobRunsInvalidArgumentCount(t *testing.T) {
-	rootCmd, _ := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "list-runs", "--no-color", client.JobForDefaultTest,
-		"EXTRA_ARGUMENT"})
-	_, err := rootCmd.Command().ExecuteC()
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Too many arguments")
 }

@@ -70,7 +70,7 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
-	paginationContext, err := ValidateListRequest(
+	paginationContext, err := ValidatePagination(
 		request.PageToken, int(request.PageSize), model.GetPipelineTablePrimaryKeyColumn(),
 		request.SortBy, pipelineModelFieldsBySortableAPIFields)
 	if err != nil {

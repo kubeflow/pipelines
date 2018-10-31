@@ -16,7 +16,7 @@ const (
 
 func getDefaultRun(id string, name string) *runmodel.APIRunDetail {
 	return &runmodel.APIRunDetail{
-		Workflow: getDefaultWorkflowAsString(),
+		PipelineRuntime: &runmodel.APIPipelineRuntime{WorkflowManifest: getDefaultWorkflowAsString()},
 		Run: &runmodel.APIRun{
 			CreatedAt: strfmt.NewDateTime(),
 			ID:        id,
@@ -32,7 +32,7 @@ func NewRunClientFake() *RunClientFake {
 	return &RunClientFake{}
 }
 
-func (c *RunClientFake) Get(params *runparams.GetRunV2Params) (*runmodel.APIRunDetail,
+func (c *RunClientFake) Get(params *runparams.GetRunParams) (*runmodel.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	switch params.RunID {
 	case RunForClientErrorTest:

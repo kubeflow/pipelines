@@ -15,7 +15,7 @@
     "application/json"
   ],
   "paths": {
-    "/apis/v1alpha2/scheduledworkflows": {
+    "/apis/v1beta1/scheduledworkflows": {
       "post": {
         "operationId": "ReportScheduledWorkflow",
         "responses": {
@@ -42,7 +42,7 @@
         ]
       }
     },
-    "/apis/v1alpha2/workflows": {
+    "/apis/v1beta1/workflows": {
       "post": {
         "operationId": "ReportWorkflow",
         "responses": {

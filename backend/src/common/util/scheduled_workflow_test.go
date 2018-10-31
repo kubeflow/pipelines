@@ -80,7 +80,7 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 			},
 		},
 	})
-	assert.Equal(t, "Enabled:", workflow.ConditionSummary())
+	assert.Equal(t, "Enabled", workflow.ConditionSummary())
 
 	// Multiple conditions
 	workflow = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -103,7 +103,7 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 			},
 		},
 	})
-	assert.Equal(t, "Enabled:Disabled:", workflow.ConditionSummary())
+	assert.Equal(t, "Disabled", workflow.ConditionSummary())
 
 	// No conditions
 	workflow = NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -111,7 +111,7 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 			Conditions: []swfapi.ScheduledWorkflowCondition{},
 		},
 	})
-	assert.Equal(t, "NO_STATUS:", workflow.ConditionSummary())
+	assert.Equal(t, "NO_STATUS", workflow.ConditionSummary())
 }
 
 func TestScheduledWorkflow_ParametersAsString(t *testing.T) {

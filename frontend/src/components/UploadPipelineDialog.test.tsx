@@ -45,23 +45,23 @@ describe('UploadPipelineDialog', () => {
     const spy = jest.fn();
     const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     tree.find('#cancelUploadBtn').at(0).simulate('click');
-    expect(spy).toHaveBeenCalledWith('', null);
+    expect(spy).toHaveBeenCalledWith('', null, '');
   });
 
   it('calls close callback with null and empty string when dialog is closed', () => {
     const spy = jest.fn();
     const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     tree.find('WithStyles(Dialog)').at(0).simulate('close');
-    expect(spy).toHaveBeenCalledWith('', null);
+    expect(spy).toHaveBeenCalledWith('', null, '');
   });
 
-  it('calls close callback with file name and file object when confirmed', () => {
+  it('calls close callback with file name, file object, and descriptio when confirmed', () => {
     const spy = jest.fn();
     const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     (tree.instance() as any)._dropzoneRef = { current: { open: () => null } };
     (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({ target: { value: 'test name' } });
     tree.find('#confirmUploadBtn').at(0).simulate('click');
-    expect(spy).toHaveBeenLastCalledWith('test name', null);
+    expect(spy).toHaveBeenLastCalledWith('test name', null, '');
   });
 
   it('sets an active dropzone on drag', () => {
@@ -81,7 +81,6 @@ describe('UploadPipelineDialog', () => {
     const file = { name: 'test upload file' };
     tree.find('#dropZone').simulate('drop', [file]);
     expect(tree.state()).toHaveProperty('dropzoneActive', false);
-    expect(tree.state()).toHaveProperty('fileToUpload', file);
     expect(tree.state()).toHaveProperty('uploadPipelineName', file.name);
   });
 });

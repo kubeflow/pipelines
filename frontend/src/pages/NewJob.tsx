@@ -18,40 +18,37 @@ import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Input from '../atoms/Input';
-import MenuItem from '@material-ui/core/MenuItem';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
-import Trigger from '../components/Trigger';
-import { ApiJob, ApiTrigger } from '../apis/job';
-import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
+import { ApiExperiment } from '../apis/experiment';
 import { Page } from './Page';
 import { RoutePage } from '../components/Router';
+import { TextFieldProps } from '@material-ui/core/TextField';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
-import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { commonCss, padding, fontsize } from '../Css';
 import { logger } from '../lib/Utils';
 
-interface NewJobState {
+interface NewExperimentState {
   description: string;
   errorMessage: string;
-  isDeploying: boolean;
-  jobName: string;
-  maxConcurrentJobs?: string;
-  pipelineId: string;
-  pipelines: ApiPipeline[];
-  trigger: ApiTrigger | undefined;
+  isbeingCreated: boolean;
+  experimentName: string;
+  pipelineId?: string;
 }
 
 const css = stylesheet({
   errorMessage: {
     color: 'red',
   },
+  // TODO: move to Css.tsx and probably rename.
+  explanation: {
+    fontSize: fontsize.small,
+  },
 });
 
-class NewJob extends Page<{}, NewJobState> {
+class NewExperiment extends Page<{}, NewExperimentState> {
 
-  private _jobNameRef = React.createRef<HTMLInputElement>();
+  private _experimentNameRef = React.createRef<HTMLInputElement>();
 
   constructor(props: any) {
     super(props);
@@ -59,12 +56,8 @@ class NewJob extends Page<{}, NewJobState> {
     this.state = {
       description: '',
       errorMessage: '',
-      isDeploying: false,
-      jobName: '',
-      maxConcurrentJobs: undefined,
-      pipelineId: '',
-      pipelines: [],
-      trigger: undefined,
+      experimentName: '',
+      isbeingCreated: false,
     };
   }
 
@@ -72,59 +65,36 @@ class NewJob extends Page<{}, NewJobState> {
     return {
       actions: [],
       breadcrumbs: [
-        { displayName: 'Jobs', href: RoutePage.JOBS },
-        { displayName: 'New job', href: RoutePage.NEW_JOB }
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+        { displayName: 'New experiment', href: RoutePage.NEW_EXPERIMENT }
       ],
     };
   }
 
   public render() {
-    const { pipelines, pipelineId, errorMessage } = this.state;
-    const selectedPipeline = pipelines.find(p => p.id === pipelineId);
+    const { errorMessage } = this.state;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
 
         <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
-          <div className={commonCss.header}>Job details</div>
+          <div className={commonCss.header}>Experiment details</div>
+          {/* TODO: this description needs work. */}
+          <div className={css.explanation}>
+            Think of an Experiment as a space that contains the history of all pipelines and their
+            associated runs
+          </div>
 
-          <Input label='Pipeline' required={true} instance={this} field='pipelineId'
-            select={true} className='pipelineDropdown'>
-            {pipelines.map((pipeline, i) => (
-              <MenuItem key={i} value={pipeline.id}>
-                {pipeline.name}
-              </MenuItem>
-            ))}
-          </Input>
+          <Input id='experimentName' label='Experiment name' inputRef={this._experimentNameRef}
+            required={true} instance={this} field='experimentName' autoFocus={true} />
+          <Input id='experimentDescription' label='Description (optional)' multiline={true}
+            instance={this} field='description' height='auto' />
 
-          <Input label='Job name' inputRef={this._jobNameRef} required={true} instance={this}
-            field='jobName' autoFocus={true} />
-          <Input label='Description' instance={this} field='description' />
-
-          <br />
-
-          <div className={commonCss.header}>Job trigger</div>
-
-          <Trigger onChange={(trigger, maxConcurrentJobs) => this.setState({
-            maxConcurrentJobs,
-            trigger,
-          }, this._validate.bind(this))} />
-
-          {selectedPipeline && selectedPipeline.parameters &&
-            !!selectedPipeline.parameters.length && <div>
-              <div className={commonCss.header}>Input parameters</div>
-              {selectedPipeline && (selectedPipeline.parameters || []).map((param, i) =>
-                <TextField key={i} variant='outlined' label={param.name} value={param.value || ''}
-                  onChange={(ev) => this._handleParamChange(i, ev.target.value || '')}
-                  style={{ height: 40, maxWidth: 600 }} className={commonCss.textField} />)}
-            </div>}
-
-          <br />
           <div className={commonCss.flex}>
-            <BusyButton id='deployBtn' disabled={!!errorMessage} busy={this.state.isDeploying}
-              className={classes(commonCss.actionButton, commonCss.primaryButton)} title='Deploy'
-              onClick={this._deploy.bind(this)} />
-            <Button onClick={() => this.props.history.push(RoutePage.JOBS)}>Cancel</Button>
+            <BusyButton id='createExperimentBtn' disabled={!!errorMessage} busy={this.state.isbeingCreated}
+              className={commonCss.buttonAction} title={'Next'}
+              onClick={this._create.bind(this)} />
+            <Button onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>Cancel</Button>
             <div className={css.errorMessage}>{errorMessage}</div>
           </div>
         </div>
@@ -133,133 +103,49 @@ class NewJob extends Page<{}, NewJobState> {
   }
 
   public async load() {
-    let response;
-    try {
-      response = await Apis.pipelineServiceApi.listPipelines(undefined, 25);
-    } catch (err) {
-      this._handlePageError(
-        'Error: failed to fetch pipelines.', err.message, this.load.bind(this));
-      logger.error(`Cannot get the original job's data`);
-      // Nothing else to do here if we couldn't load any pipelines
-      return;
-    }
-    const pipelines = response.pipelines || [];
-    this.setState({ pipelines });
-
-    // Get clone job id from querystring if any
     const urlParser = new URLParser(this.props);
-    const originalJobId = urlParser.get(QUERY_PARAMS.cloneFromJob);
-    const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
-    if (originalJobId) {
-      try {
-        const job = await Apis.jobServiceApi.getJob(originalJobId);
-        const pipelineIndex = pipelines.findIndex(p => p.id === job.pipeline_id);
-        if (pipelineIndex === -1) {
-          this._handlePageError(
-            `Error: failed to find a pipeline corresponding to that of the original job: ${originalJobId}.`);
-          logger.error(`Cannot get the original job's data`);
-          return;
-        }
-        pipelines[pipelineIndex].parameters = job.parameters;
-        this.setState({
-          jobName: this._getCloneName(job.name!),
-          pipelineId: job.pipeline_id!,
-          pipelines,
-        }, () => this._jobNameRef.current!.select());
-        urlParser.clear(QUERY_PARAMS.pipelineId);
-      } catch (err) {
-        this._handlePageError(`Error: failed to get original job: ${originalJobId}.`, err);
-        logger.error(`Failed to get original job ${originalJobId}`, err);
-      }
-      // Get the original run's id from querystring if any, get its job, and copy pipeline id and
-      // parameters
-    } else if (originalRunId) {
-      try {
-        const runDetails = await Apis.runServiceApi.getRunV2(originalRunId);
-        const job = await Apis.jobServiceApi.getJob(runDetails.run!.job_id!);
-        const pipelineIndex = pipelines.findIndex(p => p.id === job.pipeline_id);
-        if (pipelineIndex === -1) {
-          this._handlePageError(`Error: failed to find a pipeline corresponding to that of the original run: ${originalRunId}.`);
-          logger.error(`Cannot get the original run's data`);
-          return;
-        }
-
-        const workflow = JSON.parse(runDetails.workflow || '{}') as Workflow;
-        if (workflow.spec.arguments) {
-          pipelines[pipelineIndex].parameters = workflow.spec.arguments.parameters;
-        }
-
-        this.setState({
-          jobName: this._getCloneName(job.name!),
-          pipelineId: job.pipeline_id!,
-          pipelines,
-        }, () => this._jobNameRef.current!.select());
-      } catch (err) {
-        this._handlePageError(`Error: failed to get original run: ${originalRunId}.`, err);
-        logger.error(`Failed to get original run ${originalRunId}`, err);
-      }
-    } else {
-      // Get pipeline id from querystring if any
-      let possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
-      if (!pipelines.find(p => p.id === possiblePipelineId)) {
-        possiblePipelineId = '';
-        urlParser.clear(QUERY_PARAMS.pipelineId);
-      }
-      this.setState({
-        pipelineId: possiblePipelineId,
-      });
-    }
+    this.setState({ pipelineId: urlParser.get(QUERY_PARAMS.pipelineId) });
 
     this._validate();
   }
 
   public handleChange = (name: string) => (event: any) => {
     const value = (event.target as TextFieldProps).value;
-    this.setState({
-      [name]: value,
-    } as any, () => {
-      // Set querystring if pipeline id has changed
-      if (name === 'pipelineId') {
-        const urlParser = new URLParser(this.props);
-        urlParser.set(QUERY_PARAMS.pipelineId, (value || '').toString());
-
-        // Clear other query params so as not to confuse the user
-        urlParser.clear(QUERY_PARAMS.cloneFromJob);
-      }
-
-      this._validate();
-    });
+    this.setState({ [name]: value } as any, this._validate.bind(this));
   }
 
-  private _deploy(): void {
-    const pipeline = this.state.pipelines.find(p => p.id === this.state.pipelineId);
-    if (!pipeline) {
-      this._showErrorDialog('Job deployment failed', `Could not find a pipeline with the selected id: ${this.state.pipelineId}`);
-      logger.error(`Could not find a pipeline with the selected id: ${this.state.pipelineId}`);
-      return;
-    }
-    const newJob: ApiJob = {
+  private _create(): void {
+    const newExperiment: ApiExperiment = {
       description: this.state.description,
-      enabled: true,
-      max_concurrency: this.state.maxConcurrentJobs || '1',
-      name: this.state.jobName,
-      parameters: pipeline.parameters,
-      pipeline_id: pipeline.id,
-      trigger: this.state.trigger,
+      name: this.state.experimentName,
     };
 
-    this.setState({ isDeploying: true }, async () => {
+    this.setState({ isbeingCreated: true }, async () => {
       try {
-        await Apis.jobServiceApi.createJob(newJob);
-        this.props.history.push(RoutePage.JOBS);
+        const response = await Apis.experimentServiceApi.createExperiment(newExperiment);
+        let searchString = '';
+        if (this.state.pipelineId) {
+          searchString = new URLParser(this.props).build({
+            [QUERY_PARAMS.experimentId]: response.id || '',
+            [QUERY_PARAMS.pipelineId]: this.state.pipelineId,
+            [QUERY_PARAMS.firstRunInExperiment]: '1',
+          });
+        } else {
+          searchString = new URLParser(this.props).build({
+            [QUERY_PARAMS.experimentId]: response.id || '',
+            [QUERY_PARAMS.firstRunInExperiment]: '1',
+          });
+        }
+        this.props.history.push(RoutePage.NEW_RUN + searchString);
         this.props.updateSnackbar({
-          message: `Successfully deployed new Job: ${newJob.name}`,
+          autoHideDuration: 10000,
+          message: `Successfully created new Experiment: ${newExperiment.name}`,
           open: true,
         });
       } catch (err) {
-        this._showErrorDialog('Job deployment failed', err.message);
-        logger.error('Error deploying job:', err);
-        this.setState({ isDeploying: false });
+        this._showErrorDialog('Experiment creation failed', err.message);
+        logger.error('Error creating experiment:', err);
+        this.setState({ isbeingCreated: false });
       }
     });
   }
@@ -272,65 +158,13 @@ class NewJob extends Page<{}, NewJobState> {
     });
   }
 
-  private _handleParamChange(index: number, value: string) {
-    const pipelines = this.state.pipelines;
-    const pipeline = pipelines.find(p => p.id === this.state.pipelineId);
-    if (!pipeline || !pipeline.parameters) {
-      return;
-    }
-    pipeline.parameters[index].value = value;
-    // TODO: is this doing anything?
-    this.setState({ pipelines });
-  }
-
-  private _getCloneName(oldName: string) {
-    const numberRegex = /Clone(?: \(([0-9]*)\))? of (.*)/;
-    const match = oldName.match(numberRegex);
-    if (!match) { // No match, add Clone prefix
-      return 'Clone of ' + oldName;
-    } else {
-      const cloneNumber = match[1] ? +match[1] : 1;
-      return `Clone (${cloneNumber + 1}) of ${match[2]}`;
-    }
-  }
-
-  private _handlePageError(message: string, error?: Error, refreshFunc?: () => void): void {
-    this.props.updateBanner({
-      additionalInfo: error ? error.message : undefined,
-      message: message + ((error && error.message) ? ' Click Details for more information.' : ''),
-      mode: 'error',
-      refresh: refreshFunc,
-    });
-  }
-
   private _validate() {
     // Validate state
-    const { pipelineId, jobName, maxConcurrentJobs, trigger } = this.state;
+    const { experimentName } = this.state;
     try {
-      if (!pipelineId) {
-        throw new Error('A pipeline must be selected');
+      if (!experimentName) {
+        throw new Error('Experiment name is required');
       }
-      if (!jobName) {
-        throw new Error('Job name is required');
-      }
-      const hasTrigger = trigger && (!!trigger.cron_schedule || !!trigger.periodic_schedule);
-      if (hasTrigger) {
-        const startDate = !!trigger!.cron_schedule ?
-          trigger!.cron_schedule!.start_time : trigger!.periodic_schedule!.start_time;
-        const endDate = !!trigger!.cron_schedule ?
-          trigger!.cron_schedule!.end_time : trigger!.periodic_schedule!.end_time;
-        if (startDate && endDate && startDate > endDate) {
-          throw new Error('End date/time cannot be earlier than start date/time');
-        }
-      }
-      const validMaxConcurrentJobs = (input: string) =>
-        !isNaN(Number.parseInt(input, 10)) && +input > 0;
-
-      if (hasTrigger && maxConcurrentJobs !== undefined &&
-        !validMaxConcurrentJobs(maxConcurrentJobs)) {
-        throw new Error('For triggered jobs, maximum concurrent jobs must be a positive number');
-      }
-
       this.setState({
         errorMessage: '',
       });
@@ -342,4 +176,4 @@ class NewJob extends Page<{}, NewJobState> {
   }
 }
 
-export default NewJob;
+export default NewExperiment;

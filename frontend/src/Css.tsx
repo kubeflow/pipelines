@@ -30,11 +30,11 @@ export const color = {
   graphBg: '#f5f5f5',
   hoverBg: '#eee',
   inactive: '#616161',
-  secondaryText: 'rgba(0, 0, 0, .66)',
+  secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
   strong: '#000',
   success: '#34a853',
-  theme: '#2979FF',
+  theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
   weak: '#999',
@@ -46,6 +46,7 @@ export const dimension = {
   jumbo: 64,
   large: 48,
   small: 36,
+  tiny: 24,
   xlarge: 56,
   xsmall: 32,
 };
@@ -88,19 +89,28 @@ export const theme = createMuiTheme({
       flat: {
         fontSize: fontsize.base,
         fontWeight: 'bold',
-        minHeight: 24,
-        padding: '4px 8px',
+        minHeight: dimension.tiny,
         textTransform: 'none',
       },
       flatPrimary: {
-        backgroundColor: palette.primary.main,
-        color: 'white',
+        border: '1px solid #ddd',
+        cursor: 'pointer',
+        fontSize: fontsize.base,
+        marginRight: 10,
+        textTransform: 'none',
       },
       flatSecondary: {
         color: color.theme,
       },
       root: {
+        color: color.theme,
         marginRight: 10,
+        padding: '0 8px'
+      },
+    },
+    MuiDialogActions: {
+      root: {
+        margin: 15,
       },
     },
     MuiDialogTitle: {
@@ -133,6 +143,16 @@ export const theme = createMuiTheme({
         padding: 9,
       },
     },
+    MuiInput: {
+      input: {padding: 0},
+      root: {padding: 0}
+    },
+    MuiInputAdornment: {
+      positionEnd: {
+        paddingRight: 0,
+      },
+      root: {padding: 0},
+    },
     MuiTooltip: {
       tooltip: {
         backgroundColor: '#666',
@@ -154,12 +174,17 @@ export const commonCss = stylesheet({
     position: 'absolute',
     top: 'calc(50% - 15px)',
   },
-  actionButton: {
-    fontSize: fontsize.base,
-    marginRight: 20,
-    minHeight: 30,
-    padding: '6px 8px',
-    textTransform: 'none',
+  buttonAction: {
+    $nest: {
+      '&:disabled': {
+        backgroundColor: color.background,
+      },
+      '&:hover': {
+        backgroundColor: theme.palette.primary.dark,
+      },
+    },
+    backgroundColor: palette.primary.main,
+    color: 'white',
   },
   ellipsis: {
     display: 'block',
@@ -181,10 +206,10 @@ export const commonCss = stylesheet({
     flexGrow: 1,
   },
   header: {
-    color: color.strong,
     fontSize: fontsize.large,
-    paddingBottom: spacing.units(-4),
-    paddingTop: spacing.units(-2),
+    fontWeight: 'bold',
+    paddingBottom: 16,
+    paddingTop: 20,
   },
   link: {
     $nest: {
@@ -216,19 +241,6 @@ export const commonCss = stylesheet({
   prewrap: {
     whiteSpace: 'pre-wrap',
   },
-  primaryButton: {
-    $nest: {
-      '&:disabled': {
-        backgroundColor: theme.palette.secondary.light,
-      },
-      '&:hover': {
-        backgroundColor: theme.palette.primary.dark,
-      },
-    },
-    backgroundColor: theme.palette.primary.main,
-    color: 'white',
-    fontWeight: 'lighter',
-  },
   scrollContainer: {
     background:
       `linear-gradient(white 30%, rgba(255,255,255,0)),
@@ -240,7 +252,6 @@ export const commonCss = stylesheet({
     backgroundRepeat: 'no-repeat',
     backgroundSize: '100% 40px, 100% 40px, 100% 2px, 100% 2px',
     overflow: 'auto',
-    paddingBottom: 20,
   },
   textField: {
     display: 'flex',

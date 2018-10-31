@@ -72,7 +72,7 @@ type DeleteJobOK struct {
 }
 
 func (o *DeleteJobOK) Error() string {
-	return fmt.Sprintf("[DELETE /apis/v1alpha2/jobs/{id}][%d] deleteJobOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[DELETE /apis/v1beta1/jobs/{id}][%d] deleteJobOK  %+v", 200, o.Payload)
 }
 
 func (o *DeleteJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -108,7 +108,7 @@ func (o *DeleteJobDefault) Code() int {
 }
 
 func (o *DeleteJobDefault) Error() string {
-	return fmt.Sprintf("[DELETE /apis/v1alpha2/jobs/{id}][%d] DeleteJob default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[DELETE /apis/v1beta1/jobs/{id}][%d] DeleteJob default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *DeleteJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

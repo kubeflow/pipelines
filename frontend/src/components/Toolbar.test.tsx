@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import { shallow } from 'enzyme';
+import { createBrowserHistory } from 'history';
 import Toolbar from './Toolbar';
 import HelpIcon from '@material-ui/icons/Help';
 import InfoIcon from '@material-ui/icons/Info';
@@ -25,7 +26,6 @@ const action2 = jest.fn();
 const actions = [
   {
     action: action1,
-    disabled: false,
     disabledTitle: 'test disabled title',
     icon: HelpIcon,
     id: 'test id',
@@ -54,41 +54,43 @@ const breadcrumbs = [
   },
 ];
 
+const history = createBrowserHistory({});
+
 describe('Toolbar', () => {
   it('renders without breadcrumbs or actions', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={[]} />);
+    const tree = shallow(<Toolbar breadcrumbs={[]} actions={[]} history={history} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders without breadcrumbs and one action', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={[actions[0]]} />);
+    const tree = shallow(<Toolbar breadcrumbs={[]} actions={[actions[0]]} history={history} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders without actions and one breadcrumb', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[breadcrumbs[0]]} actions={[]} />);
+    const tree = shallow(<Toolbar breadcrumbs={[breadcrumbs[0]]} actions={[]} history={history} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders without actions, one breadcrumb, and a page name', () => {
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={[]} />);
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={[]} history={history} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders without breadcrumbs and two actions', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={actions} />);
+    const tree = shallow(<Toolbar breadcrumbs={[]} actions={actions} history={history} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('fires the right action function when button is clicked', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={actions} />);
+    const tree = shallow(<Toolbar breadcrumbs={[]} actions={actions} history={history} />);
     tree.find('BusyButton').at(0).simulate('click');
     expect(action1).toHaveBeenCalled();
     action2.mockClear();
   });
 
   it('renders with two breadcrumbs and two actions', () => {
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} />);
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} history={history} />);
     expect(tree).toMatchSnapshot();
   });
 });

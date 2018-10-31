@@ -15,8 +15,6 @@
 package util
 
 import (
-	"bytes"
-
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
@@ -90,18 +88,11 @@ func (s *ScheduledWorkflow) IntervalSecondOr0() int64 {
 }
 
 func (s *ScheduledWorkflow) ConditionSummary() string {
-	return getCondition(s.ScheduledWorkflow)
-}
-
-func getCondition(workflow *swfapi.ScheduledWorkflow) string {
-	if workflow.Status.Conditions == nil || len(workflow.Status.Conditions) == 0 {
-		return "NO_STATUS:"
+	if s.Status.Conditions == nil || len(s.Status.Conditions) == 0 {
+		return "NO_STATUS"
 	}
-	var buffer bytes.Buffer
-	for _, condition := range workflow.Status.Conditions {
-		buffer.WriteString(string(condition.Type) + ":")
-	}
-	return buffer.String()
+	// Only return the latest status
+	return string(s.Status.Conditions[len(s.Status.Conditions)-1].Type)
 }
 
 func (s *ScheduledWorkflow) ParametersAsString() (string, error) {

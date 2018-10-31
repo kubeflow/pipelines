@@ -18,9 +18,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/googleprivate/ml/backend/api/go_client"
-	"github.com/googleprivate/ml/backend/src/apiserver/model"
-	"github.com/googleprivate/ml/backend/src/common/util"
 	scheduledworkflow "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,10 +50,10 @@ func TestToCrdParameter(t *testing.T) {
 }
 
 func TestToCrdCronSchedule(t *testing.T) {
-	actualCronSchedule := toCrdCronSchedule(model.CronSchedule{
-		Cron:                       util.StringPointer("123"),
-		CronScheduleStartTimeInSec: util.Int64Pointer(123),
-		CronScheduleEndTimeInSec:   util.Int64Pointer(456),
+	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
+		Cron:      "123",
+		StartTime: &timestamp.Timestamp{Seconds: 123},
+		EndTime:   &timestamp.Timestamp{Seconds: 456},
 	})
 	startTime := v1.NewTime(time.Unix(123, 0))
 	endTime := v1.NewTime(time.Unix(456, 0))
@@ -66,17 +65,17 @@ func TestToCrdCronSchedule(t *testing.T) {
 }
 
 func TestToCrdCronSchedule_NilCron(t *testing.T) {
-	actualCronSchedule := toCrdCronSchedule(model.CronSchedule{
-		CronScheduleStartTimeInSec: util.Int64Pointer(123),
-		CronScheduleEndTimeInSec:   util.Int64Pointer(456),
+	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
+		StartTime: &timestamp.Timestamp{Seconds: 123},
+		EndTime:   &timestamp.Timestamp{Seconds: 456},
 	})
 	assert.Nil(t, actualCronSchedule)
 }
 
 func TestToCrdCronSchedule_NilStartTime(t *testing.T) {
-	actualCronSchedule := toCrdCronSchedule(model.CronSchedule{
-		Cron:                     util.StringPointer("123"),
-		CronScheduleEndTimeInSec: util.Int64Pointer(456),
+	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
+		Cron:    "123",
+		EndTime: &timestamp.Timestamp{Seconds: 456},
 	})
 	endTime := v1.NewTime(time.Unix(456, 0))
 	assert.Equal(t, actualCronSchedule, &scheduledworkflow.CronSchedule{
@@ -86,9 +85,9 @@ func TestToCrdCronSchedule_NilStartTime(t *testing.T) {
 }
 
 func TestToCrdCronSchedule_NilEndTime(t *testing.T) {
-	actualCronSchedule := toCrdCronSchedule(model.CronSchedule{
-		Cron:                       util.StringPointer("123"),
-		CronScheduleStartTimeInSec: util.Int64Pointer(123),
+	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
+		Cron:      "123",
+		StartTime: &timestamp.Timestamp{Seconds: 123},
 	})
 	startTime := v1.NewTime(time.Unix(123, 0))
 	assert.Equal(t, actualCronSchedule, &scheduledworkflow.CronSchedule{
@@ -98,10 +97,10 @@ func TestToCrdCronSchedule_NilEndTime(t *testing.T) {
 }
 
 func TestToCrdPeriodicSchedule(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(model.PeriodicSchedule{
-		IntervalSecond:                 util.Int64Pointer(123),
-		PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
-		PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
+		IntervalSecond: 123,
+		StartTime:      &timestamp.Timestamp{Seconds: 1},
+		EndTime:        &timestamp.Timestamp{Seconds: 2},
 	})
 	startTime := v1.NewTime(time.Unix(1, 0))
 	endTime := v1.NewTime(time.Unix(2, 0))
@@ -113,17 +112,17 @@ func TestToCrdPeriodicSchedule(t *testing.T) {
 }
 
 func TestToCrdPeriodicSchedule_NilInterval(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(model.PeriodicSchedule{
-		PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
-		PeriodicScheduleEndTimeInSec:   util.Int64Pointer(2),
+	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
+		StartTime: &timestamp.Timestamp{Seconds: 1},
+		EndTime:   &timestamp.Timestamp{Seconds: 2},
 	})
 	assert.Nil(t, actualPeriodicSchedule)
 }
 
 func TestToCrdPeriodicSchedule_NilStartTime(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(model.PeriodicSchedule{
-		IntervalSecond:               util.Int64Pointer(123),
-		PeriodicScheduleEndTimeInSec: util.Int64Pointer(2),
+	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
+		IntervalSecond: 123,
+		EndTime:        &timestamp.Timestamp{Seconds: 2},
 	})
 	endTime := v1.NewTime(time.Unix(2, 0))
 	assert.Equal(t, actualPeriodicSchedule, &scheduledworkflow.PeriodicSchedule{
@@ -133,9 +132,9 @@ func TestToCrdPeriodicSchedule_NilStartTime(t *testing.T) {
 }
 
 func TestToCrdPeriodicSchedule_NilEndTime(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(model.PeriodicSchedule{
-		IntervalSecond:                 util.Int64Pointer(123),
-		PeriodicScheduleStartTimeInSec: util.Int64Pointer(1),
+	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
+		IntervalSecond: 123,
+		StartTime:      &timestamp.Timestamp{Seconds: 1},
 	})
 	startTime := v1.NewTime(time.Unix(1, 0))
 	assert.Equal(t, actualPeriodicSchedule, &scheduledworkflow.PeriodicSchedule{

@@ -50,7 +50,7 @@ func (a *Client) UploadPipeline(params *UploadPipelineParams, authInfo runtime.C
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "UploadPipeline",
 		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/pipelines/upload",
+		PathPattern:        "/apis/v1beta1/pipelines/upload",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"multipart/form-data"},
 		Schemes:            []string{"http", "https"},

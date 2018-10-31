@@ -35,9 +35,6 @@ type APIRunDetail struct {
 
 	// run
 	Run *APIRun `json:"run,omitempty"`
-
-	// TODO(yangpa): Following will be deprecated in v1beta1
-	Workflow string `json:"workflow,omitempty"`
 }
 
 // Validate validates this api run detail

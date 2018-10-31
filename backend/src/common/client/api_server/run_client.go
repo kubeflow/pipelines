@@ -16,7 +16,7 @@ import (
 )
 
 type RunInterface interface {
-	Get(params *params.GetRunV2Params) (*model.APIRunDetail, *workflowapi.Workflow, error)
+	Get(params *params.GetRunParams) (*model.APIRunDetail, *workflowapi.Workflow, error)
 	List(params *params.ListRunsParams) ([]*model.APIRun, string, error)
 	ListAll(params *params.ListRunsParams, maxResultSize int) ([]*model.APIRun, error)
 }
@@ -41,7 +41,7 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func (c *RunClient) Get(parameters *params.GetRunV2Params) (*model.APIRunDetail,
+func (c *RunClient) Get(parameters *params.GetRunParams) (*model.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -49,7 +49,7 @@ func (c *RunClient) Get(parameters *params.GetRunV2Params) (*model.APIRunDetail,
 
 	// Make service all
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.GetRunV2(parameters, PassThroughAuth)
+	response, err := c.apiClient.RunService.GetRun(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetRunDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -64,11 +64,11 @@ func (c *RunClient) Get(parameters *params.GetRunV2Params) (*model.APIRunDetail,
 
 	// Unmarshal response
 	var workflow workflowapi.Workflow
-	err = yaml.Unmarshal([]byte(response.Payload.Workflow), &workflow)
+	err = yaml.Unmarshal([]byte(response.Payload.PipelineRuntime.WorkflowManifest), &workflow)
 	if err != nil {
 		return nil, nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to unmarshal reponse. Params: '%+v'. Response: '%s'", parameters,
-				response.Payload.Workflow),
+			fmt.Sprintf("Failed to unmarshal reponse. Params: %+v. Response: %s", parameters,
+				response.Payload.PipelineRuntime.WorkflowManifest),
 			fmt.Sprintf("Failed to unmarshal reponse"))
 	}
 

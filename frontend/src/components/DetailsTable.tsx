@@ -20,6 +20,7 @@ import { color, spacing } from '../Css';
 
 export const css = stylesheet({
   key: {
+    color: color.strong,
     flex: '0 0 50%',
     fontWeight: 'bold',
   },

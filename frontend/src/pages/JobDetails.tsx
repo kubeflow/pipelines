@@ -15,43 +15,144 @@
  */
 
 import * as React from 'react';
-import CloneIcon from '@material-ui/icons/FileCopy';
-import CompareIcon from '@material-ui/icons/CompareArrows';
-import DeleteIcon from '@material-ui/icons/Delete';
-import DetailsTable from '../components/DetailsTable';
-import DisableIcon from '@material-ui/icons/Stop';
-import EnableIcon from '@material-ui/icons/PlayCircleFilled';
-import MD2Tabs from '../atoms/MD2Tabs';
-import RefreshIcon from '@material-ui/icons/Refresh';
+import AddIcon from '@material-ui/icons/Add';
+import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import Paper from '@material-ui/core/Paper';
+import PopOutIcon from '@material-ui/icons/Launch';
+import RecurringRunsManager from './RecurringRunsManager';
 import RunList from '../pages/RunList';
-import Separator from '../atoms/Separator';
-import { ApiJob } from '../apis/job';
+import Toolbar, { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import Tooltip from '@material-ui/core/Tooltip';
+import { ApiExperiment } from '../apis/experiment';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarActionConfig } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
-import { formatDateString, enabledDisplayString, logger } from '../lib/Utils';
-import { triggerDisplayString } from '../lib/TriggerUtils';
+import { classes, stylesheet } from 'typestyle';
+import { color, commonCss, padding } from '../Css';
+import { logger } from '../lib/Utils';
 
-interface JobDetailsState {
-  job: ApiJob | null;
+const css = stylesheet({
+  card: {
+    border: '1px solid #ddd',
+    borderRadius: 8,
+    height: 70,
+    marginRight: 24,
+    padding: '12px 20px 13px 24px',
+  },
+  cardActive: {
+    border: `1px solid ${color.success}`,
+  },
+  cardBtn: {
+    $nest: {
+      '&:hover': {
+        backgroundColor: 'initial',
+      },
+    },
+    color: color.theme,
+    fontSize: 12,
+    minHeight: 16,
+    paddingLeft: 0,
+  },
+  cardContent: {
+    color: color.secondaryText,
+    fontSize: 16,
+    lineHeight: '28px',
+  },
+  cardRow: {
+    borderBottom: '1px solid #eee',
+    display: 'flex',
+    flexFlow: 'row',
+    minHeight: 120,
+  },
+  cardTitle: {
+    color: color.strong,
+    display: 'flex',
+    fontSize: 12,
+    fontWeight: 'bold',
+    height: 20,
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  popOutIcon: {
+    color: color.secondaryText,
+    margin: -2,
+    minWidth: 0,
+    padding: 3,
+  },
+  recurringRunsActive: {
+    color: '#0d652d',
+  },
+  recurringRunsCard: {
+    width: 158,
+  },
+  recurringRunsDialog: {
+    minWidth: 600,
+  },
+  runStatsCard: {
+    width: 270,
+  },
+});
+
+interface ExperimentDetailsState {
+  activeRecurringRunsCount: number;
+  experiment: ApiExperiment | null;
+  recurringRunsManagerOpen: boolean;
   selectedRunIds: string[];
   selectedTab: number;
+  runListToolbarProps: ToolbarProps;
 }
 
-class JobDetails extends Page<{}, JobDetailsState> {
+class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   private _runlistRef = React.createRef<RunList>();
+
+  private _runListToolbarActions: ToolbarActionConfig[] = [{
+    action: () => this._startNewRun(false),
+    icon: AddIcon,
+    id: 'startNewRunBtn',
+    outlined: true,
+    title: 'Start new run',
+    tooltip: 'Start a new run within this experiment',
+  }, {
+    action: () => this._startNewRun(true),
+    icon: AddIcon,
+    id: 'startNewRecurringRunBtn',
+    outlined: true,
+    title: 'Start recurring run',
+    tooltip: 'Start a new recurring run in this experiment',
+  }, {
+    action: this._compareRuns.bind(this),
+    disabled: true,
+    disabledTitle: 'Select multiple runs to compare',
+    id: 'compareBtn',
+    title: 'Compare runs',
+    tooltip: 'Compare up to 10 selected runs',
+  }, {
+    action: this._cloneRun.bind(this),
+    disabled: true,
+    disabledTitle: 'Select a run to clone',
+    id: 'cloneBtn',
+    title: 'Clone',
+    tooltip: 'Create a copy from this run\s initial state',
+  }];
 
   constructor(props: any) {
     super(props);
 
-    // TODO: job status next to page name
     this.state = {
-      job: null,
+      activeRecurringRunsCount: 0,
+      experiment: null,
+      recurringRunsManagerOpen: false,
+      runListToolbarProps: {
+        actions: this._runListToolbarActions,
+        breadcrumbs: [{ displayName: 'Experiment runs', href: '' }],
+        topLevelToolbar: false,
+      },
+      // TODO: remove
       selectedRunIds: [],
       selectedTab: 0,
     };
@@ -59,124 +160,81 @@ class JobDetails extends Page<{}, JobDetailsState> {
 
   public getInitialToolbarState() {
     return {
-      actions: [
-        {
-          action: this._compareRuns.bind(this),
-          disabled: true,
-          icon: CompareIcon,
-          id: 'compareBtn',
-          title: 'Compare runs',
-          tooltip: 'Compare up to 10 selected runs',
-        },
-        {
-          action: this._cloneJob.bind(this),
-          disabled: true,
-          icon: CloneIcon,
-          id: 'cloneBtn',
-          title: 'Clone',
-          tooltip: 'Clone this job',
-        },
-        {
-          action: this.load.bind(this),
-          disabled: false,
-          icon: RefreshIcon,
-          id: 'refreshBtn',
-          title: 'Refresh',
-          tooltip: 'Refresh',
-        },
-        {
-          action: () => this._setEnabledState(true),
-          disabled: true,
-          disabledTitle: 'Job already enabled',
-          icon: EnableIcon,
-          id: 'enableBtn',
-          title: 'Enable',
-          tooltip: 'Enable the job\'s trigger',
-        },
-        {
-          action: () => this._setEnabledState(false),
-          disabled: true,
-          disabledTitle: 'Job already disabled',
-          icon: DisableIcon,
-          id: 'disableBtn',
-          title: 'Disable',
-          tooltip: 'Disable the job\'s trigger',
-        },
-        {
-          action: () => this.props.updateDialog({
-            buttons: [
-              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-            ],
-            onClose: () => this._deleteDialogClosed(false),
-            title: 'Delete this job?',
-          }),
-          disabled: false,
-          icon: DeleteIcon,
-          id: 'deleteBtn',
-          title: 'Delete',
-          tooltip: 'Delete this job',
-        },
-      ],
+      actions: [{
+        action: this.load.bind(this),
+        id: 'refreshBtn',
+        title: 'Refresh',
+        tooltip: 'Refresh',
+      }],
       breadcrumbs: [
-        { displayName: 'Jobs', href: RoutePage.JOBS },
-        { displayName: this.props.match.params[RouteParams.jobId], href: '' }
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+        { displayName: this.props.match.params[RouteParams.experimentId], href: '' }
       ],
     };
   }
 
   public render() {
-    const { job } = this.state;
-    const { selectedTab } = this.state;
-    let jobDetails: string[][] = [];
-    let inputParameters: string[][] = [];
-    let triggerDetails: string[][] = [];
-    if (job) {
-      jobDetails = [
-        ['Job pipeline ID', job.pipeline_id!],
-        ['Description', job.description!],
-        ['Created at', formatDateString(job.created_at)],
-      ];
-      inputParameters = (job.parameters || []).map(p => [p.name || '', p.value || '']);
-      if (job.trigger) {
-        triggerDetails = [
-          ['Trigger', triggerDisplayString(job.trigger)],
-          ['Enabled', enabledDisplayString(job.trigger, job.enabled!)],
-        ];
-      }
-    }
+    const { activeRecurringRunsCount, experiment } = this.state;
+    const description = experiment ? experiment.description || '' : '';
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className={classes(commonCss.page, padding(20, 'lrt'))}>
 
-        {job && (
+        {experiment && (
           <div className={commonCss.page}>
-            <MD2Tabs selectedTab={selectedTab} onSwitch={(tab: number) => this.setState({ selectedTab: tab })}
-              tabs={['Runs', 'Config']} />
-            <div className={commonCss.page}>
-
-              {selectedTab === 0 && <RunList onError={this._handlePageError.bind(this)}
-                jobIdMask={job.id} ref={this._runlistRef} selectedIds={this.state.selectedRunIds}
-                onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />}
-
-              {selectedTab === 1 && (<div className={padding()}>
-                <div className={commonCss.header}>Job details</div>
-                <DetailsTable fields={jobDetails} />
-
-                {!!inputParameters.length && <div>
-                  <Separator orientation='vertical' />
-                  <div className={commonCss.header}>Input parameters</div>
-                  <DetailsTable fields={inputParameters} />
-                </div>}
-
-                {!!triggerDetails.length && <div>
-                  <Separator orientation='vertical' />
-                  <div className={commonCss.header}>Job trigger</div>
-                  <DetailsTable fields={triggerDetails} />
-                </div>}
-              </div>
-              )}
+            <div className={css.cardRow}>
+              <Paper id='recurringRunsCard' className={classes(
+                css.card,
+                css.recurringRunsCard,
+                !!activeRecurringRunsCount && css.cardActive
+              )} elevation={0}>
+                <div>
+                  <div className={css.cardTitle}>Recurring runs</div>
+                  <div className={classes(css.cardContent, !!activeRecurringRunsCount && css.recurringRunsActive)}>
+                    {activeRecurringRunsCount + ' active'}
+                  </div>
+                  <Button className={css.cardBtn} disableRipple={true}
+                    onClick={() => this.setState({ recurringRunsManagerOpen: true })}>
+                    Manage
+                    </Button>
+                </div>
+              </Paper>
+              <Paper id='experimentDescriptionCard' className={classes(css.card, css.runStatsCard)} elevation={0}>
+                <div className={css.cardTitle}>
+                  <span>Experiment description</span>
+                  <Button onClick={() => this.props.updateDialog({ title: 'Experiment description', content: description })}
+                    className={classes(css.popOutIcon, 'popOutButton')}>
+                    <Tooltip title='Read more'>
+                      <PopOutIcon style={{ fontSize: 18 }} />
+                    </Tooltip>
+                  </Button>
+                </div>
+                {description.split('\n').slice(0, 2).map((line, i) =>
+                  <div key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {line}
+                  </div>)
+                }
+                {description.split('\n').length > 2 ? '...' : ''}
+              </Paper>
             </div>
+            <Toolbar {...this.state.runListToolbarProps} />
+            <RunList onError={this._handlePageError.bind(this)}
+              experimentIdMask={experiment.id} ref={this._runlistRef}
+              selectedIds={this.state.selectedRunIds}
+              onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
+
+            <Dialog open={this.state.recurringRunsManagerOpen} classes={{ paper: css.recurringRunsDialog }}
+              onClose={this._RecurringRunsManagerClosed.bind(this)}>
+              <DialogContent>
+                <RecurringRunsManager {...this.props}
+                  experimentId={this.props.match.params[RouteParams.experimentId]} />
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={this._RecurringRunsManagerClosed.bind(this)} color='secondary'>
+                  Close
+                </Button>
+              </DialogActions>
+            </Dialog>
           </div>
         )}
       </div>
@@ -184,27 +242,32 @@ class JobDetails extends Page<{}, JobDetailsState> {
   }
 
   public async load() {
-    const jobId = this.props.match.params[RouteParams.jobId];
+    const experimentId = this.props.match.params[RouteParams.experimentId];
 
     try {
-      const job = await Apis.jobServiceApi.getJob(jobId);
+      const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
 
-      const toolbarActions = [...this.props.toolbarProps.actions];
-      toolbarActions[3].disabled = job.enabled === true;
-      toolbarActions[4].disabled = job.enabled === false;
+      this.props.updateToolbar({
+        actions: this.props.toolbarProps.actions,
+        breadcrumbs: [
+          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+          {
+            displayName: experiment && experiment.name ? experiment.name : this.props.match.params[RouteParams.experimentId],
+            href: ''
+          }],
+      });
 
-      const breadcrumbs = [
-        { displayName: 'Jobs', href: RoutePage.JOBS },
-        { displayName: job.name!, href: '' },
-      ];
-
-      this.props.updateToolbar({ actions: toolbarActions, breadcrumbs });
-
-      this.setState({ job }, () => this._runlistRef.current && this._runlistRef.current.refresh());
+      // TODO: get ALL jobs in the experiment
+      const recurringRuns = await Apis.jobServiceApi.listJobs(undefined, 100);
+      const activeRecurringRunsCount =
+        (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
+      this.setState(
+        { activeRecurringRunsCount, experiment },
+        () => this._runlistRef.current && this._runlistRef.current.refresh()
+      );
     } catch (err) {
-      this._handlePageError(
-        `Error: failed to retrieve job: ${jobId}.`, err);
-      logger.error(`Error loading job: ${jobId}`, err);
+      this._handlePageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
+      logger.error(`Error loading experiment: ${experimentId}`, err);
     }
   }
 
@@ -221,17 +284,7 @@ class JobDetails extends Page<{}, JobDetailsState> {
     }
   }
 
-  private _selectionChanged(selectedRunIds: string[]) {
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    toolbarActions[0].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
-    // TODO: is this cloning a run, or a job? should be run.
-    toolbarActions[1].disabled = selectedRunIds.length !== 1;
-
-    this._updateToolbar(toolbarActions);
-    this.setState({ selectedRunIds });
-  }
-
-  private _compareRuns() {
+  private _compareRuns(): void {
     const indices = this.state.selectedRunIds;
     if (indices.length > 1 && indices.length <= 10) {
       const runIds = this.state.selectedRunIds.join(',');
@@ -242,64 +295,44 @@ class JobDetails extends Page<{}, JobDetailsState> {
     }
   }
 
-  private _cloneJob() {
-    if (this.state.job && this.state.job.id) {
+  private _startNewRun(isRecurring: boolean): void {
+    const searchString = new URLParser(this.props).build(Object.assign(
+      { [QUERY_PARAMS.experimentId]: this.state.experiment!.id || '', },
+      isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {}));
+    this.props.history.push(RoutePage.NEW_RUN + searchString);
+  }
+
+  private _cloneRun() {
+    if (this.state.selectedRunIds.length === 1) {
+      const runId = this.state.selectedRunIds[0];
       const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromJob]: this.state.job!.id || ''
+        [QUERY_PARAMS.cloneFromRun]: runId || ''
       });
-      this.props.history.push(RoutePage.NEW_JOB + searchString);
+      this.props.history.push(RoutePage.NEW_RUN + searchString);
     }
   }
 
-  private _showErrorDialog(title: string, content: string): void {
-    this.props.updateDialog({
-      buttons: [{ text: 'Dismiss' }],
-      content,
-      title,
+  private _selectionChanged(selectedRunIds: string[]) {
+    const toolbarActions = [...this.state.runListToolbarProps.actions];
+    // Compare runs button
+    toolbarActions[2].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
+    // Clone run button
+    toolbarActions[3].disabled = selectedRunIds.length !== 1;
+    this.setState({
+      runListToolbarProps: {
+        actions: toolbarActions,
+        breadcrumbs: this.state.runListToolbarProps.breadcrumbs,
+        topLevelToolbar: this.state.runListToolbarProps.topLevelToolbar,
+      },
+      selectedRunIds
     });
   }
 
-  private async _setEnabledState(enabled: boolean) {
-    if (this.state.job) {
-      const toolbarActions = [...this.props.toolbarProps.actions];
-
-      const buttonIndex = enabled ? 3 : 4;
-      const id = this.state.job.id!;
-
-      toolbarActions[buttonIndex].busy = true;
-      this._updateToolbar(toolbarActions);
-      try {
-        await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
-        this.load();
-      } catch (err) {
-        this._showErrorDialog(`Failed to ${enabled ? 'enable' : 'disable'} job`, err.message);
-      } finally {
-        toolbarActions[buttonIndex].busy = false;
-        this._updateToolbar(toolbarActions);
-      }
-    }
-  }
-
-  private _updateToolbar(actions: ToolbarActionConfig[]): void {
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions });
-  }
-
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      // TODO: Show spinner during wait.
-      try {
-        await Apis.jobServiceApi.deleteJob(this.state.job!.id!);
-        this.props.history.push(RoutePage.JOBS);
-        this.props.updateSnackbar({
-          message: `Successfully deleted job: ${this.state.job!.name}`,
-          open: true,
-        });
-      } catch (err) {
-        this._showErrorDialog('Failed to delete job', err.message);
-        logger.error('Deleting job failed with error:', err);
-      }
-    }
+  private _RecurringRunsManagerClosed() {
+    this.setState({ recurringRunsManagerOpen: false });
+    // Reload the details to get any updated recurring runs
+    this.load();
   }
 }
 
-export default JobDetails;
+export default ExperimentDetails;

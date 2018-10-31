@@ -15,7 +15,7 @@
     "application/json"
   ],
   "paths": {
-    "/apis/v1alpha2/pipelines": {
+    "/apis/v1beta1/pipelines": {
       "get": {
         "operationId": "ListPipelines",
         "responses": {
@@ -89,7 +89,7 @@
         ]
       }
     },
-    "/apis/v1alpha2/pipelines/{id}": {
+    "/apis/v1beta1/pipelines/{id}": {
       "get": {
         "operationId": "GetPipeline",
         "responses": {
@@ -147,7 +147,7 @@
         ]
       }
     },
-    "/apis/v1alpha2/pipelines/{id}/templates": {
+    "/apis/v1beta1/pipelines/{id}/templates": {
       "get": {
         "operationId": "GetTemplate",
         "responses": {

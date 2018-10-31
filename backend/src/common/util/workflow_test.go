@@ -140,13 +140,13 @@ func TestCondition(t *testing.T) {
 			Phase: workflowapi.NodeRunning,
 		},
 	})
-	assert.Equal(t, "Running:", workflow.Condition())
+	assert.Equal(t, "Running", workflow.Condition())
 
 	// No status
 	workflow = NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{},
 	})
-	assert.Equal(t, ":", workflow.Condition())
+	assert.Equal(t, "", workflow.Condition())
 }
 
 func TestToStringForStore(t *testing.T) {

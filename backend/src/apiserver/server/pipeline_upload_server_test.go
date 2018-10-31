@@ -44,7 +44,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
 	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipelines/upload", bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()
@@ -88,7 +88,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	fileReader, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
 	io.Copy(part, fileReader)
 	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipelines/upload", bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipelines/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()
@@ -132,7 +132,7 @@ func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	w := multipart.NewWriter(&b)
 	w.CreateFormFile("uploadfile", "hello-world.yaml")
 	w.Close()
-	req, _ := http.NewRequest("POST", "/apis/v1alpha2/pipeline/upload", bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", "/apis/v1beta1/pipeline/upload", bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()
@@ -151,7 +151,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	part, _ := w.CreateFormFile("uploadfile", "hello-world.yaml")
 	io.Copy(part, bytes.NewBufferString("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	w.Close()
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", url.PathEscape("foo bar")), bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", url.PathEscape("foo bar")), bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()
@@ -194,7 +194,7 @@ func TestUploadPipeline_FileNameTooLong(t *testing.T) {
 	w.Close()
 	encodedName := url.PathEscape(
 		"this is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooog name")
-	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1alpha2/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/apis/v1beta1/pipelines/upload?name=%s", encodedName), bytes.NewReader(b.Bytes()))
 	req.Header.Set("Content-Type", w.FormDataContentType())
 
 	rr := httptest.NewRecorder()

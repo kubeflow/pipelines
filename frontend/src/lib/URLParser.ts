@@ -19,6 +19,9 @@ import { RouteComponentProps } from 'react-router';
 export enum QUERY_PARAMS {
   cloneFromJob = 'cloneFromJob',
   cloneFromRun = 'cloneFromRun',
+  experimentId = 'experimentId',
+  isRecurring = 'recurring',
+  firstRunInExperiment = 'firstRunInExperiment',
   pipelineId = 'pipelineId',
   runlist = 'runlist',
   view = 'view',

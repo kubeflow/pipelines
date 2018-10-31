@@ -72,7 +72,7 @@ type EnableJobOK struct {
 }
 
 func (o *EnableJobOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/jobs/{id}/enable][%d] enableJobOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/enable][%d] enableJobOK  %+v", 200, o.Payload)
 }
 
 func (o *EnableJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -108,7 +108,7 @@ func (o *EnableJobDefault) Code() int {
 }
 
 func (o *EnableJobDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/jobs/{id}/enable][%d] EnableJob default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/enable][%d] EnableJob default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *EnableJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

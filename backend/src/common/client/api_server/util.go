@@ -9,8 +9,6 @@ import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	clientmodel "github.com/googleprivate/ml/backend/api/go_http_client/run_model"
-	servermodel "github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/pkg/errors"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -26,23 +24,6 @@ const (
 // PassThroughAuth never manipulates the request
 var PassThroughAuth runtime.ClientAuthInfoWriter = runtime.ClientAuthInfoWriterFunc(
 	func(_ runtime.ClientRequest, _ strfmt.Registry) error { return nil })
-
-func toClientJobDetail(runDetail *servermodel.RunDetail) *clientmodel.APIRunDetail {
-	return &clientmodel.APIRunDetail{
-		Run:      toClientAPIRun(runDetail.Run),
-		Workflow: runDetail.WorkflowRuntimeManifest,
-	}
-}
-
-func toClientAPIRun(run servermodel.Run) *clientmodel.APIRun {
-	return &clientmodel.APIRun{
-		CreatedAt:   toDateTimeTestOnly(run.CreatedAtInSec),
-		ID:          run.JobID,
-		Name:        run.Name,
-		ScheduledAt: toDateTimeTestOnly(run.ScheduledAtInSec),
-		Status:      run.Conditions,
-	}
-}
 
 func toDateTimeTestOnly(timeInSec int64) strfmt.DateTime {
 	result, err := strfmt.ParseDateTime(time.Unix(timeInSec, 0).String())

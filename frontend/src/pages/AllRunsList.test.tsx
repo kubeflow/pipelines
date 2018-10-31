@@ -84,11 +84,11 @@ describe('AllRunsList', () => {
     expect(spy).toHaveBeenLastCalledWith();
   });
 
-  it('naviagates to new job page when clone is clicked', () => {
+  it('navigates to new run page when clone is clicked', () => {
     const tree = mountComponent();
     tree.find('RunList').simulate('selectionChange', ['run1']);
-    _toolbarProps.actions.find((a: any) => a.title === 'Clone').action();
-    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_JOB + '?cloneFromRun=run1');
+    _toolbarProps.actions.find((a: any) => a.title === 'Clone run').action();
+    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_RUN + '?cloneFromRun=run1');
   });
 
   it('navigates to compare page when compare button is clicked', () => {

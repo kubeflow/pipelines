@@ -4,7 +4,7 @@ exports[`Tensorboard does not break on empty data 1`] = `
 <div>
   <BusyButton
     busy={true}
-    className="primaryButton"
+    className="buttonAction"
     onClick={[Function]}
     title="Start Tensorboard"
   />
@@ -15,7 +15,7 @@ exports[`Tensorboard does not break on empty data 2`] = `
 <div>
   <BusyButton
     busy={true}
-    className="primaryButton"
+    className="buttonAction"
     onClick={[Function]}
     title="Start Tensorboard"
   />
@@ -26,7 +26,7 @@ exports[`Tensorboard does not break on no config 1`] = `
 <div>
   <BusyButton
     busy={true}
-    className="primaryButton"
+    className="buttonAction"
     onClick={[Function]}
     title="Start Tensorboard"
   />
@@ -41,19 +41,18 @@ exports[`Tensorboard shows a link to the tensorboard instance if exists 1`] = `
     >
       Tensorboard is running for this output.
     </div>
-    <Link
+    <a
       className="unstyled"
-      replace={false}
+      href="apis/v1beta1/_proxy/test%2Faddress"
       target="_blank"
-      to="apis/v1alpha2/_proxy/test%2Faddress"
     >
       <WithStyles(Button)
-        className="primaryButton"
+        className="buttonAction"
         disabled={false}
       >
         Open Tensorboard
       </WithStyles(Button)>
-    </Link>
+    </a>
   </div>
 </div>
 `;
@@ -62,7 +61,7 @@ exports[`Tensorboard shows start button if no instance exists 1`] = `
 <div>
   <BusyButton
     busy={false}
-    className="primaryButton"
+    className="buttonAction"
     onClick={[Function]}
     title="Start Tensorboard"
   />

@@ -19,27 +19,26 @@ import 'codemirror/mode/yaml/yaml.js';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CloseIcon from '@material-ui/icons/Close';
-import DeleteIcon from '@material-ui/icons/Delete';
+import Collapse from '@material-ui/core/Collapse';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import MD2Tabs from '../atoms/MD2Tabs';
+import Paper from '@material-ui/core/Paper';
 import Resizable from 're-resizable';
 import Slide from '@material-ui/core/Slide';
 import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
-import { Paper, Collapse } from '@material-ui/core';
 import { RoutePage, RouteParams } from '../components/Router';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -93,7 +92,8 @@ const css = stylesheet({
     backgroundColor: color.background,
     bottom: 20,
     left: 20,
-    maxHeight: 250,
+    maxHeight: 350,
+    overflow: 'auto',
     padding: 10,
     position: 'absolute',
     width: 250,
@@ -124,14 +124,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return {
       actions: [
         {
-          action: () => this._newJobClicked(),
-          disabled: true,
-          disabledTitle: 'Must have a Pipeline to create a Job',
-          icon: AddIcon,
-          id: 'newJobBtn',
-          title: 'Create new Job',
-          tooltip: 'Create a new Job from this Pipeline',
-        }, {
+        action: this._createNewExperiment.bind(this),
+        id: 'startNewExperimentBtn',
+        // TODO: should be primary.
+        outlined: true,
+        title: 'Start an experiment',
+        tooltip: 'Create a new experiment beginning with this pipeline',
+        },
+        {
           action: () => this.props.updateDialog({
             buttons: [
               { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
@@ -140,12 +140,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             onClose: () => this._deleteDialogClosed(false),
             title: 'Delete this Pipeline?',
           }),
-          disabled: false,
-          icon: DeleteIcon,
           id: 'deleteBtn',
           title: 'Delete',
           tooltip: 'Delete this pipeline',
-        },
+        }
       ],
       breadcrumbs: [
         { displayName: 'Pipelines', href: RoutePage.PIPELINES },
@@ -158,14 +156,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     const { pipeline, selectedNodeInfo, selectedNodeId, selectedTab, summaryShown, templateYaml } = this.state;
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className={classes(commonCss.page, padding(20, 't'))}>
 
         {pipeline && (
           <div className={commonCss.page}>
             <MD2Tabs
               selectedTab={selectedTab}
               onSwitch={(tab: number) => this.setState({ selectedTab: tab })}
-              tabs={['Graph', 'Config']}
+              tabs={['Graph', 'Source']}
             />
             <div className={commonCss.page}>
               {selectedTab === 0 && <div className={commonCss.page}>
@@ -299,6 +297,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     });
   }
 
+  private _createNewExperiment(): void {
+    const searchString = new URLParser(this.props).build({
+      [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || ''
+    });
+    this.props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
+  }
+
   private _selectNode(id: string): void {
     let nodeInfoJsx: JSX.Element = <div>Unable to retrieve node info</div>;
     const nodeInfo = StaticGraphParser.getNodeInfo(this.state.template, id);
@@ -351,12 +356,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     });
   }
 
-  private _newJobClicked(): void {
-    const searchString = this.state.pipeline && this.state.pipeline.id ?
-      new URLParser(this.props).build({ [QUERY_PARAMS.pipelineId]: this.state.pipeline.id }) : '';
-    this.props.history.push(RoutePage.NEW_JOB + searchString);
-  }
-
   private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
     if (deleteConfirmed) {
       // TODO: Show spinner during wait.
@@ -376,5 +375,4 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 }
 
-// tslint:disable-next-line:no-default-export
 export default PipelineDetails;

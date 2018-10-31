@@ -18,6 +18,7 @@ metadata:
   generateName: hello-world-
 spec:
   entrypoint: whalesay
+  serviceAccountName: pipeline-runner
   templates:
   - name: whalesay
     container:

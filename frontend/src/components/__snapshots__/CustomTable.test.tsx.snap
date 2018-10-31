@@ -8,7 +8,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -76,7 +76,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -124,7 +124,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -225,7 +225,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -293,11 +293,173 @@ exports[`CustomTable renders a collapsed row 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
           />
+          <WithStyles(IconButton)
+            className="expandButton"
+            onClick={[Function]}
+          >
+            <pure(ArrowRightIcon) />
+          </WithStyles(IconButton)>
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
+      className="rowsPerPage"
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="standard"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={false}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName"
+      key="0"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col1
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+    <div
+      className="columnName"
+      key="1"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col2
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className=""
+      key="0"
+    >
+      <div
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
+      >
+        <div
+          className="cell checkbox"
+        >
           <WithStyles(IconButton)
             className="expandButton"
             onClick={[Function]}
@@ -400,7 +562,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -450,7 +612,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -491,7 +653,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -592,7 +754,7 @@ exports[`CustomTable renders an expanded row 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -660,7 +822,7 @@ exports[`CustomTable renders an expanded row 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -761,7 +923,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -829,7 +991,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -943,7 +1105,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1070,7 +1232,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1159,7 +1321,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1227,7 +1389,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -1328,7 +1490,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1396,7 +1558,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -1437,7 +1599,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -1538,7 +1700,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1666,7 +1828,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1793,7 +1955,7 @@ exports[`CustomTable renders some rows 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1861,7 +2023,7 @@ exports[`CustomTable renders some rows 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -1902,7 +2064,7 @@ exports[`CustomTable renders some rows 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -2003,7 +2165,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -2071,7 +2233,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -2114,7 +2276,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell"
+          className="cell checkbox"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -2217,7 +2379,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
     className="header"
   >
     <div
-      className="columnName cell"
+      className="columnName cell checkbox"
     >
       <WithStyles(Checkbox)
         checked={false}

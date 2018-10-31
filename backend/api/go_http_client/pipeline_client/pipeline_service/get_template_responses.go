@@ -72,7 +72,7 @@ type GetTemplateOK struct {
 }
 
 func (o *GetTemplateOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/pipelines/{id}/templates][%d] getTemplateOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipelines/{id}/templates][%d] getTemplateOK  %+v", 200, o.Payload)
 }
 
 func (o *GetTemplateOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -110,7 +110,7 @@ func (o *GetTemplateDefault) Code() int {
 }
 
 func (o *GetTemplateDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1alpha2/pipelines/{id}/templates][%d] GetTemplate default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipelines/{id}/templates][%d] GetTemplate default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *GetTemplateDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

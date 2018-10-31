@@ -18,7 +18,7 @@ import * as React from 'react';
 import RunList, { RunListProps } from './RunList';
 import { Apis } from '../lib/Apis';
 import { shallow } from 'enzyme';
-import { ApiRun, ApiRunDetail } from '../apis/run';
+import { ApiRun, ApiRunDetail, ApiResourceType } from '../apis/run';
 jest.mock('../lib/Apis');
 
 describe('RunList', () => {
@@ -42,9 +42,9 @@ describe('RunList', () => {
 
   it('loads all runs', async () => {
     (Apis as any).runServiceApi = {
-      getRunV2: () => Promise.resolve({
+      getRun: () => Promise.resolve({
+        pipeline_runtime: { workflow_manifest: '' },
         run: {},
-        workflow: '',
       } as ApiRunDetail),
       listRuns: () => Promise.resolve({
         runs: [{
@@ -62,7 +62,7 @@ describe('RunList', () => {
 
   it('calls error callback when loading runs fails', async () => {
     (Apis as any).runServiceApi = {
-      getRunV2: jest.fn(),
+      getRun: jest.fn(),
       listRuns: () => Promise.reject('bad stuff'),
     };
     const props = generateProps();
@@ -71,11 +71,13 @@ describe('RunList', () => {
     expect(props.onError).toHaveBeenLastCalledWith('Error: failed to fetch runs.', 'bad stuff');
   });
 
+  // TODO: Add tests for displaying associated Pipeline.
+
   it('displays error in run row if it failed to parse', async () => {
     (Apis as any).runServiceApi = {
-      getRunV2: jest.fn(() => Promise.resolve({
+      getRun: jest.fn(() => Promise.resolve({
+        pipeline_runtime: { workflow_manifest: 'bad json' },
         run: {},
-        workflow: 'bad json',
       })),
       listRuns: () => Promise.resolve({
         runs: [{
@@ -92,12 +94,12 @@ describe('RunList', () => {
 
   it('displays error in run row if it failed to parse (run list mask)', async () => {
     const listRunsSpy = jest.fn();
-    const getRunV2Spy = jest.fn(() => Promise.resolve({
+    const getRunSpy = jest.fn(() => Promise.resolve({
+      pipeline_runtime: { workflow_manifest: '' },
       run: {},
-      workflow: '',
     } as ApiRunDetail));
     (Apis as any).runServiceApi = {
-      getRunV2: getRunV2Spy,
+      getRun: getRunSpy,
       listRuns: listRunsSpy,
     };
     const props = generateProps();
@@ -109,15 +111,17 @@ describe('RunList', () => {
 
   it('shows run time for each run', async () => {
     (Apis as any).runServiceApi = {
-      getRunV2: () => Promise.resolve({
+      getRun: () => Promise.resolve({
+        pipeline_runtime: {
+          workflow_manifest: JSON.stringify({
+            status: {
+              finishedAt: new Date(2018, 10, 10, 11, 11, 11),
+              phase: 'Succeeded',
+              startedAt: new Date(2018, 10, 10, 10, 10, 10),
+            }
+          }),
+        },
         run: {},
-        workflow: JSON.stringify({
-          status: {
-            finishedAt: new Date(2018, 10, 10, 11, 11, 11),
-            phase: 'Succeeded',
-            startedAt: new Date(2018, 10, 10, 10, 10, 10),
-          }
-        }),
       } as ApiRunDetail),
       listRuns: () => Promise.resolve({
         runs: [{
@@ -133,42 +137,35 @@ describe('RunList', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('loads runs for a given job id', async () => {
-    const listRunsSpy = jest.fn();
+  it('loads runs for a given experiment id', async () => {
+    const listRunsSpy = jest.fn(() => Promise.resolve({
+      runs: [{ id: 'testRun1' }],
+    }));
     (Apis as any).runServiceApi = {
-      getRunV2: () => Promise.resolve({
+      getRun: () => Promise.resolve({
+        pipeline_runtime: { workflow_manifest: '' },
         run: {},
-        workflow: '',
       } as ApiRunDetail),
       listRuns: listRunsSpy,
     };
-    const listJobRunsSpy = jest.fn(() => Promise.resolve({
-      runs: [{
-        id: 'testrun1',
-        name: 'test run1',
-      } as ApiRun],
-    }));
-    (Apis as any).jobServiceApi = {
-      listJobRuns: listJobRunsSpy,
-    };
     const props = generateProps();
-    props.jobIdMask = 'testjob1';
+    props.experimentIdMask = 'experiment1';
     const tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunList).refresh();
     expect(props.onError).not.toHaveBeenCalled();
-    expect(listRunsSpy).not.toHaveBeenCalled();
-    expect(listJobRunsSpy).toHaveBeenLastCalledWith('testjob1', '', 10, 'created_at asc');
+    expect(listRunsSpy).toHaveBeenLastCalledWith(
+      '', 10, 'created_at desc', ApiResourceType.EXPERIMENT.toString(), 'experiment1');
     expect(tree).toMatchSnapshot();
   });
 
   it('loads given list of runs only', async () => {
     const listRunsSpy = jest.fn();
-    const getRunV2Spy = jest.fn(() => Promise.resolve({
+    const getRunSpy = jest.fn(() => Promise.resolve({
+      pipeline_runtime: { workflow_manifest: '' },
       run: {},
-      workflow: '',
     } as ApiRunDetail));
     (Apis as any).runServiceApi = {
-      getRunV2: getRunV2Spy,
+      getRun: getRunSpy,
       listRuns: listRunsSpy,
     };
     const props = generateProps();
@@ -177,8 +174,8 @@ describe('RunList', () => {
     await (tree.instance() as RunList).refresh();
     expect(props.onError).not.toHaveBeenCalled();
     expect(listRunsSpy).not.toHaveBeenCalled();
-    expect(getRunV2Spy).toHaveBeenCalledWith('run1');
-    expect(getRunV2Spy).toHaveBeenCalledWith('run2');
+    expect(getRunSpy).toHaveBeenCalledWith('run1');
+    expect(getRunSpy).toHaveBeenCalledWith('run2');
   });
 
 });

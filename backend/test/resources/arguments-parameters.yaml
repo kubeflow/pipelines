@@ -18,6 +18,7 @@ metadata:
   generateName: arguments-parameters-
 spec:
   entrypoint: whalesay
+  serviceAccountName: pipeline-runner
   arguments:
     parameters:
     - name: param1

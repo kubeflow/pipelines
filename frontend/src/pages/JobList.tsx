@@ -16,103 +16,84 @@
 
 import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
-import CloneIcon from '@material-ui/icons/FileCopy';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
-import DeleteIcon from '@material-ui/icons/Delete';
-import RefreshIcon from '@material-ui/icons/Refresh';
 import RunList from './RunList';
-import { ApiListJobsResponse, ApiJob } from '../apis/job';
-import { ApiRun } from '../apis/run';
-import { Apis, JobSortKeys, BaseListRequest, ListJobsRequest } from '../lib/Apis';
+import { Apis, ExperimentSortKeys, ListExperimentsRequest, BaseListRequest, RunSortKeys } from '../lib/Apis';
+import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
+import { ApiResourceType, ApiRun } from '../apis/run';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger, getLastInStatusList } from '../lib/Utils';
+import { logger } from '../lib/Utils';
 import { statusToIcon, NodePhase } from './Status';
-import { triggerDisplayString } from '../lib/TriggerUtils';
 
-interface DisplayJob extends ApiJob {
+interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
-  pipelineName?: string;
   error?: string;
   expandState?: ExpandState;
 }
 
-interface JobListState {
-  displayJobs: DisplayJob[];
+interface ExperimentListState {
+  displayExperiments: DisplayExperiment[];
   orderAscending: boolean;
   pageSize: number;
   pageToken: string;
-  selectedJobIds: string[];
+  selectedExperimentIds: string[];
+  selectedRunIds: string[];
   selectedTab: number;
   sortBy: string;
 }
 
-class JobList extends Page<{}, JobListState> {
+class ExperimentList extends Page<{}, ExperimentListState> {
 
   constructor(props: any) {
     super(props);
 
     this.state = {
-      displayJobs: [],
-      orderAscending: true,
+      displayExperiments: [],
+      orderAscending: false,
       pageSize: 10,
       pageToken: '',
-      selectedJobIds: [],
+      selectedExperimentIds: [],
+      selectedRunIds: [],
       selectedTab: 0,
-      sortBy: JobSortKeys.CREATED_AT,
+      sortBy: ExperimentSortKeys.CREATED_AT,
     };
   }
 
   public getInitialToolbarState() {
     return {
-      actions: [
-        {
-          action: this._newJobClicked.bind(this),
-          disabled: false,
-          icon: AddIcon,
-          id: 'newJobBtn',
-          title: 'New job',
-          tooltip: 'New job',
-        },
-        {
-          action: this.load.bind(this),
-          disabled: false,
-          icon: RefreshIcon,
-          id: 'refreshBtn',
-          title: 'Refresh',
-          tooltip: 'Refresh',
-        },
-        {
-          action: this._cloneJob.bind(this),
-          disabled: true,
-          disabledTitle: 'Select a job to clone',
-          icon: CloneIcon,
-          id: 'cloneBtn',
-          title: 'Clone',
-          tooltip: 'Clone',
-        },
-        {
-          action: () => this.props.updateDialog({
-            buttons: [
-              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-            ],
-            onClose: () => this._deleteDialogClosed(false),
-            title: `Delete ${this.state.selectedJobIds.length} job${this.state.selectedJobIds.length === 1 ? '' : 's'}?`,
-          }),
-          disabled: true,
-          disabledTitle: 'Select at least one job to delete',
-          icon: DeleteIcon,
-          id: 'deleteBtn',
-          title: 'Delete',
-          tooltip: 'Delete',
-        },
-      ],
-      breadcrumbs: [{ displayName: 'Jobs', href: RoutePage.JOBS }],
+      actions: [{
+        action: this._newExperimentClicked.bind(this),
+        icon: AddIcon,
+        id: 'newExperimentBtn',
+        outlined: true,
+        title: 'Create experiment',
+        tooltip: 'Create a new experiment',
+      }, {
+        action: this._compareRuns.bind(this),
+        disabled: true,
+        disabledTitle: 'Select multiple runs to compare',
+        id: 'compareBtn',
+        title: 'Compare runs',
+        tooltip: 'Compare up to 10 selected runs',
+      }, {
+        action: this._cloneRun.bind(this),
+        disabled: true,
+        disabledTitle: 'Select a run to clone',
+        id: 'cloneBtn',
+        title: 'Clone run',
+        tooltip: 'Create a copy from this run\s initial state',
+      }, {
+        action: this._reload.bind(this),
+        id: 'refreshBtn',
+        title: 'Refresh',
+        tooltip: 'Refresh the list of experiments',
+      }],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
     };
   }
 
@@ -121,104 +102,85 @@ class JobList extends Page<{}, JobListState> {
       {
         customRenderer: this._nameCustomRenderer.bind(this),
         flex: 2,
-        label: 'Job name',
-        sortKey: JobSortKeys.NAME,
+        label: 'Experiment name',
+        sortKey: ExperimentSortKeys.NAME,
       },
       {
         customRenderer: this._last5RunsCustomRenderer.bind(this),
         flex: 1,
         label: 'Last 5 runs',
       },
-      {
-        flex: 2,
-        label: 'Pipeline',
-      },
-      { label: 'Created at', sortKey: JobSortKeys.CREATED_AT, flex: 1 },
-      { label: 'Schedule', flex: 1 },
-      { label: 'Enabled', flex: 1 },
     ];
 
-    const rows: Row[] = this.state.displayJobs.map(j => {
+    const rows: Row[] = this.state.displayExperiments.map((exp) => {
       return {
-        error: j.error,
-        expandState: j.expandState,
-        id: j.id!,
+        error: exp.error,
+        expandState: exp.expandState,
+        id: exp.id!,
         otherFields: [
-          j.name!,
-          j.expandState === ExpandState.EXPANDED ? [] : j.last5Runs,
-          j.pipelineName,
-          j.created_at!.toLocaleString(),
-          triggerDisplayString(j.trigger),
-          j.enabled,
+          exp.name!,
+          exp.expandState === ExpandState.EXPANDED ? [] : exp.last5Runs,
         ]
-      } as Row;
+      };
     });
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
-          updateSelection={this._selectionChanged.bind(this)} sortBy={this.state.sortBy}
-          reload={this._reload.bind(this)} selectedIds={this.state.selectedJobIds}
-          toggleExpansion={this._toggleRowExpand.bind(this)}
-          pageSize={this.state.pageSize} getExpandComponent={this._getExpandedJobComponent.bind(this)}
-          emptyMessage='No jobs found. Click "New job" to start.' />
+          disableSelection={true} sortBy={this.state.sortBy}
+          reload={this._reload.bind(this)} selectedIds={this.state.selectedExperimentIds}
+          toggleExpansion={this._toggleRowExpand.bind(this)} pageSize={this.state.pageSize}
+          getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
+          emptyMessage='No experiments found. Click "Create experiment" to start.' />
       </div>
     );
   }
 
   public async load(loadRequest?: BaseListRequest): Promise<void> {
-    await this._reload();
+    await this._reload(loadRequest);
   }
 
   private async _reload(loadRequest?: BaseListRequest): Promise<string> {
     // Override the current state with incoming request
-    const request: ListJobsRequest = Object.assign({
+    const request: ListExperimentsRequest = Object.assign({
       orderAscending: this.state.orderAscending,
       pageSize: this.state.pageSize,
       pageToken: this.state.pageToken,
       sortBy: this.state.sortBy,
     }, loadRequest);
 
-    // Fetch the list of jobs
-    let response: ApiListJobsResponse;
-    let displayJobs: DisplayJob[];
+    // Fetch the list of experiments
+    let response: ApiListExperimentsResponse;
+    let displayExperiments: DisplayExperiment[];
     try {
-      response =
-        await Apis.jobServiceApi.listJobs(
-          request.pageToken,
-          request.pageSize,
-          request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : ''
-        );
-      displayJobs = response.jobs || [];
-      displayJobs.forEach(j => j.expandState = ExpandState.COLLAPSED);
+      response = await Apis.experimentServiceApi.listExperiment(
+        request.pageToken,
+        request.pageSize,
+        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '');
+      displayExperiments = response.experiments || [];
+      displayExperiments.forEach((exp) => exp.expandState = ExpandState.COLLAPSED);
     } catch (err) {
-      this._handlePageError('Error: failed to retrieve list of jobs.', err);
-      // No point in continuing if we couldn't retrieve any jobs.
+      this._handlePageError(
+        'Error: failed to retrieve list of experiments. Click Details for more information.', err);
+      // No point in continuing if we couldn't retrieve any experiments.
       return '';
     }
 
-    // Fetch and set last 5 runs' statuses for each job
-    await Promise.all(displayJobs.map(async job => {
+    // Fetch and set last 5 runs' statuses for each experiment
+    await Promise.all(displayExperiments.map(async experiment => {
       // TODO: should we aggregate errors here? What if they fail for different reasons?
       try {
-        const listRunsResponse = await Apis.jobServiceApi.listJobRuns(job.id!, '', 5, '');
-        job.last5Runs = listRunsResponse.runs || [];
+        const listRunsResponse = await Apis.runServiceApi.listRuns(
+          undefined /* pageToken */,
+          5 /* pageSize */,
+          RunSortKeys.CREATED_AT + ' asc',
+          ApiResourceType.EXPERIMENT.toString(),
+          experiment.id
+        );
+        experiment.last5Runs = listRunsResponse.runs || [];
       } catch (err) {
-        job.error = 'Failed to load the last 5 runs of this job';
-        logger.error(`Error: failed to retrieve run statuses for job: ${job.name}.`, err);
-      }
-    }));
-
-    // Fetch and set pipeline name for each job
-    await Promise.all(displayJobs.map(async job => {
-      // TODO: should we aggregate errors here? What if they fail for different reasons?
-      try {
-        const pipeline = await Apis.pipelineServiceApi.getPipeline(job.pipeline_id!);
-        job.pipelineName = pipeline.name;
-      } catch (err) {
-        // TODO: job name ideally needs padding-top 1px when there's an error like this.
-        job.error = 'Failed to load pipeline for this job';
-        logger.error(`Error: failed to retrieve pipeline for job: ${job.name}.`, err);
+        experiment.error = 'Failed to load the last 5 runs of this experiment';
+        logger.error(`Error: failed to retrieve run statuses for experiment: ${experiment.name}.`, err);
       }
     }));
 
@@ -227,7 +189,7 @@ class JobList extends Page<{}, JobListState> {
     // This is a no-op, but it indicates a memory leak in your application.
     // To fix, cancel all subscriptions and asynchronous tasks in the componentWillUnmount method.
     this.setState({
-      displayJobs,
+      displayExperiments,
       orderAscending: request.orderAscending!,
       pageSize: request.pageSize!,
       pageToken: request.pageToken!,
@@ -246,102 +208,72 @@ class JobList extends Page<{}, JobListState> {
     });
   }
 
-  private _cloneJob() {
-    if (this.state.selectedJobIds.length === 1) {
-      const job = this.state.displayJobs.find(j => j.id === this.state.selectedJobIds[0]);
-      if (!job) {
-        logger.error('Could not get a job with the id:', this.state.selectedJobIds[0]);
-        return;
-      }
-      const jobId = job.id;
+  private _cloneRun() {
+    if (this.state.selectedRunIds.length === 1) {
       const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromJob]: jobId || ''
+        [QUERY_PARAMS.cloneFromRun]: this.state.selectedRunIds[0] || ''
       });
-      this.props.history.push(RoutePage.NEW_JOB + searchString);
-    }
-  }
-
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      const unsuccessfulDeleteIds: string[] = [];
-      const errorMessages: string[] = [];
-      // TODO: Show spinner during wait.
-      await Promise.all(this.state.selectedJobIds.map(async (id) => {
-        try {
-          await Apis.jobServiceApi.deleteJob(id);
-        } catch (err) {
-          unsuccessfulDeleteIds.push(id);
-          const job = this.state.displayJobs.find((p) => p.id === id);
-          errorMessages.push(
-            `Deleting job${job ? ':' + job.name : ''} failed with error: "${err}"`);
-        }
-      }));
-
-      const successfulDeletes = this.state.selectedJobIds.length - unsuccessfulDeleteIds.length;
-      if (successfulDeletes > 0) {
-        this.props.updateSnackbar({
-          message: `Successfully deleted ${successfulDeletes} job${successfulDeletes === 1 ? '' : 's'}!`,
-          open: true,
-        });
-        this.load();
-      }
-
-      if (unsuccessfulDeleteIds.length > 0) {
-        this.props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
-          content: errorMessages.join('\n\n'),
-          title: `Failed to delete ${unsuccessfulDeleteIds.length} job${unsuccessfulDeleteIds.length === 1 ? '' : 's'}`,
-        });
-      }
-
-      this._selectionChanged(unsuccessfulDeleteIds);
+      this.props.history.push(RoutePage.NEW_RUN + searchString);
     }
   }
 
   private _nameCustomRenderer(value: string, id: string) {
     return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-      to={RoutePage.JOB_DETAILS.replace(':' + RouteParams.jobId, id)}>{value}</Link>;
+      to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, id)}>{value}</Link>;
   }
 
   private _last5RunsCustomRenderer(runs: ApiRun[]) {
     return <div className={commonCss.flex}>
       {runs.map((run, i) => (
         <span key={i} style={{ margin: '0 1px' }}>
-          {statusToIcon(getLastInStatusList(run.status || '') || NodePhase.ERROR)}
+          {statusToIcon(run.status as NodePhase || NodePhase.UNKNOWN)}
         </span>
       ))}
     </div>;
   }
 
-  private _selectionChanged(selectedJobIds: string[]) {
+  private _runSelectionChanged(selectedRunIds: string[]) {
     const toolbarActions = [...this.props.toolbarProps.actions];
-    toolbarActions[2].disabled = selectedJobIds.length !== 1;
-    toolbarActions[3].disabled = !selectedJobIds.length;
+    // Enable/Disable Run compare button
+    toolbarActions[1].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
+    // Enable/Disable Clone button
+    toolbarActions[2].disabled = selectedRunIds.length !== 1;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
-    this.setState({ selectedJobIds });
+    this.setState({ selectedRunIds });
   }
 
-  private _newJobClicked() {
-    this.props.history.push(RoutePage.NEW_JOB);
+  private _compareRuns() {
+    const indices = this.state.selectedRunIds;
+    if (indices.length > 1 && indices.length <= 10) {
+      const runIds = this.state.selectedRunIds.join(',');
+      const searchString = new URLParser(this.props).build({
+        [QUERY_PARAMS.runlist]: runIds,
+      });
+      this.props.history.push(RoutePage.COMPARE + searchString);
+    }
+  }
+
+  private _newExperimentClicked() {
+    this.props.history.push(RoutePage.NEW_EXPERIMENT);
   }
 
   private _toggleRowExpand(rowIndex: number) {
-    const displayJobs = this.state.displayJobs;
-    displayJobs[rowIndex].expandState =
-      displayJobs[rowIndex].expandState === ExpandState.COLLAPSED ?
+    const displayExperiments = this.state.displayExperiments;
+    displayExperiments[rowIndex].expandState =
+      displayExperiments[rowIndex].expandState === ExpandState.COLLAPSED ?
         ExpandState.EXPANDED :
         ExpandState.COLLAPSED;
 
-    this.setState({ displayJobs });
+    this.setState({ displayExperiments });
   }
 
-  private _getExpandedJobComponent(jobIndex: number) {
-    const job = this.state.displayJobs[jobIndex];
-    const runIds = (job.last5Runs || []).map(r => r.id!);
+  private _getExpandedExperimentComponent(experimentIndex: number) {
+    const experiment = this.state.displayExperiments[experimentIndex];
+    const runIds = (experiment.last5Runs || []).map((r) => r.id!);
     return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
-      disablePaging={true} selectedIds={this.state.selectedJobIds}
-      onSelectionChange={this._selectionChanged.bind(this)} disableSorting={true} />;
+      disablePaging={true} selectedIds={this.state.selectedRunIds}
+      onSelectionChange={this._runSelectionChanged.bind(this)} disableSorting={true} />;
   }
 }
 
-export default JobList;
+export default ExperimentList;

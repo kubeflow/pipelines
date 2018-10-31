@@ -2,9 +2,15 @@
 
 exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
 <div
-  className="root"
+  className="root topLevelToolbar"
 >
-  <div>
+  <div
+    style={
+      Object {
+        "minWidth": 100,
+      }
+    }
+  >
     <div
       className="breadcrumbs flex"
     >
@@ -27,17 +33,16 @@ exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
     >
       <WithStyles(Tooltip)
         enterDelay={300}
-        title="test display name"
+        title="Back"
       >
-        <Link
-          className="unstyled backLink"
-          replace={false}
-          to="/some/test/path"
+        <WithStyles(IconButton)
+          className="backLink"
+          onClick={[Function]}
         >
           <pure(ArrowBackIcon)
             className="backIcon"
           />
-        </Link>
+        </WithStyles(IconButton)>
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
@@ -59,7 +64,6 @@ exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
         <BusyButton
           busy={false}
           color="secondary"
-          disabled={false}
           icon={[Function]}
           id="test id"
           onClick={
@@ -69,6 +73,7 @@ exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
               ],
             }
           }
+          outlined={false}
           title="test title"
         />
       </div>
@@ -86,6 +91,7 @@ exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
           icon={[Function]}
           id="test id2"
           onClick={[MockFunction]}
+          outlined={false}
           title="test title2"
         />
       </div>
@@ -96,9 +102,15 @@ exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
 
 exports[`Toolbar renders without actions and one breadcrumb 1`] = `
 <div
-  className="root"
+  className="root topLevelToolbar"
 >
-  <div>
+  <div
+    style={
+      Object {
+        "minWidth": 100,
+      }
+    }
+  >
     <div
       className="breadcrumbs flex"
     />
@@ -121,9 +133,15 @@ exports[`Toolbar renders without actions and one breadcrumb 1`] = `
 
 exports[`Toolbar renders without actions, one breadcrumb, and a page name 1`] = `
 <div
-  className="root"
+  className="root topLevelToolbar"
 >
-  <div>
+  <div
+    style={
+      Object {
+        "minWidth": 100,
+      }
+    }
+  >
     <div
       className="breadcrumbs flex"
     >
@@ -146,17 +164,16 @@ exports[`Toolbar renders without actions, one breadcrumb, and a page name 1`] = 
     >
       <WithStyles(Tooltip)
         enterDelay={300}
-        title="test display name"
+        title="Back"
       >
-        <Link
-          className="unstyled backLink"
-          replace={false}
-          to="/some/test/path"
+        <WithStyles(IconButton)
+          className="backLink"
+          onClick={[Function]}
         >
           <pure(ArrowBackIcon)
             className="backIcon"
           />
-        </Link>
+        </WithStyles(IconButton)>
       </WithStyles(Tooltip)>
       <span
         className="pageName ellipsis"
@@ -174,9 +191,15 @@ exports[`Toolbar renders without actions, one breadcrumb, and a page name 1`] = 
 
 exports[`Toolbar renders without breadcrumbs and one action 1`] = `
 <div
-  className="root"
+  className="root topLevelToolbar"
 >
-  <div>
+  <div
+    style={
+      Object {
+        "minWidth": 100,
+      }
+    }
+  >
     <div
       className="breadcrumbs flex"
     />
@@ -201,10 +224,10 @@ exports[`Toolbar renders without breadcrumbs and one action 1`] = `
         <BusyButton
           busy={false}
           color="secondary"
-          disabled={false}
           icon={[Function]}
           id="test id"
           onClick={[MockFunction]}
+          outlined={false}
           title="test title"
         />
       </div>
@@ -215,9 +238,15 @@ exports[`Toolbar renders without breadcrumbs and one action 1`] = `
 
 exports[`Toolbar renders without breadcrumbs and two actions 1`] = `
 <div
-  className="root"
+  className="root topLevelToolbar"
 >
-  <div>
+  <div
+    style={
+      Object {
+        "minWidth": 100,
+      }
+    }
+  >
     <div
       className="breadcrumbs flex"
     />
@@ -242,10 +271,10 @@ exports[`Toolbar renders without breadcrumbs and two actions 1`] = `
         <BusyButton
           busy={false}
           color="secondary"
-          disabled={false}
           icon={[Function]}
           id="test id"
           onClick={[MockFunction]}
+          outlined={false}
           title="test title"
         />
       </div>
@@ -263,6 +292,7 @@ exports[`Toolbar renders without breadcrumbs and two actions 1`] = `
           icon={[Function]}
           id="test id2"
           onClick={[MockFunction]}
+          outlined={false}
           title="test title2"
         />
       </div>
@@ -273,9 +303,15 @@ exports[`Toolbar renders without breadcrumbs and two actions 1`] = `
 
 exports[`Toolbar renders without breadcrumbs or actions 1`] = `
 <div
-  className="root"
+  className="root topLevelToolbar"
 >
-  <div>
+  <div
+    style={
+      Object {
+        "minWidth": 100,
+      }
+    }
+  >
     <div
       className="breadcrumbs flex"
     />

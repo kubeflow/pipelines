@@ -262,7 +262,7 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
             if (body === null || body === undefined) {
                 throw new RequiredError('body','Required parameter body was null or undefined when calling createPipeline.');
             }
-            const localVarPath = `/apis/v1alpha2/pipelines`;
+            const localVarPath = `/apis/v1beta1/pipelines`;
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
             const localVarHeaderParameter = {} as any;
@@ -301,7 +301,7 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
             if (id === null || id === undefined) {
                 throw new RequiredError('id','Required parameter id was null or undefined when calling deletePipeline.');
             }
-            const localVarPath = `/apis/v1alpha2/pipelines/{id}`
+            const localVarPath = `/apis/v1beta1/pipelines/{id}`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'DELETE' }, options);
@@ -337,7 +337,7 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
             if (id === null || id === undefined) {
                 throw new RequiredError('id','Required parameter id was null or undefined when calling getPipeline.');
             }
-            const localVarPath = `/apis/v1alpha2/pipelines/{id}`
+            const localVarPath = `/apis/v1beta1/pipelines/{id}`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
@@ -373,7 +373,7 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
             if (id === null || id === undefined) {
                 throw new RequiredError('id','Required parameter id was null or undefined when calling getTemplate.');
             }
-            const localVarPath = `/apis/v1alpha2/pipelines/{id}/templates`
+            const localVarPath = `/apis/v1beta1/pipelines/{id}/templates`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)));
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
@@ -407,7 +407,7 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
          * @throws {RequiredError}
          */
         listPipelines(page_token?: string, page_size?: number, sort_by?: string, options: any = {}): FetchArgs {
-            const localVarPath = `/apis/v1alpha2/pipelines`;
+            const localVarPath = `/apis/v1beta1/pipelines`;
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
             const localVarHeaderParameter = {} as any;

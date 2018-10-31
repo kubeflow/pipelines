@@ -15,44 +15,7 @@
     "application/json"
   ],
   "paths": {
-    "/apis/v1alpha2/jobs/{job_id}/runs/{run_id}": {
-      "get": {
-        "summary": "TODO(yangpa): This will be deprecated in v1beta1",
-        "operationId": "GetRun",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiRunDetail"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "run_id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      }
-    },
-    "/apis/v1alpha2/runs": {
+    "/apis/v1beta1/runs": {
       "get": {
         "operationId": "ListRuns",
         "responses": {
@@ -146,9 +109,9 @@
         ]
       }
     },
-    "/apis/v1alpha2/runs/{run_id}": {
+    "/apis/v1beta1/runs/{run_id}": {
       "get": {
-        "operationId": "GetRunV2",
+        "operationId": "GetRun",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -176,7 +139,7 @@
         ]
       }
     },
-    "/apis/v1alpha2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
+    "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
         "operationId": "ReadArtifact",
         "responses": {
@@ -221,7 +184,7 @@
         ]
       }
     },
-    "/apis/v1alpha2/runs/{run_id}:reportMetrics": {
+    "/apis/v1beta1/runs/{run_id}:reportMetrics": {
       "post": {
         "summary": "ReportRunMetrics reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be uniquely\nidentified by (run_id, node_id, name). Duplicate reporting will be\nignored by the API. First reporting wins.",
         "operationId": "ReportRunMetrics",
@@ -436,10 +399,6 @@
         "relationship": {
           "$ref": "#/definitions/apiRelationship",
           "description": "Required field. The relationship from referred resource to the object."
-        },
-        "name": {
-          "type": "string",
-          "description": "Optional field. The name of the resource that referred to."
         }
       }
     },
@@ -503,10 +462,6 @@
           },
           "description": "Output. The metrics of the run. The metrics are reported by ReportMetrics\nAPI."
         },
-        "job_id": {
-          "type": "string",
-          "title": "TODO(yangpa): Following will be deprecated in v1beta1"
-        },
         "namespace": {
           "type": "string"
         }
@@ -520,10 +475,6 @@
         },
         "pipeline_runtime": {
           "$ref": "#/definitions/apiPipelineRuntime"
-        },
-        "workflow": {
-          "type": "string",
-          "title": "TODO(yangpa): Following will be deprecated in v1beta1"
         }
       }
     },

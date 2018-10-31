@@ -19,7 +19,7 @@ import { statusToIcon, NodePhase } from './Status';
 
 describe('Status', () => {
   it('handles an unknown phase', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
     const tree = shallow(statusToIcon('bad phase' as any));
     expect(tree).toMatchSnapshot();
     expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');

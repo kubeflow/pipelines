@@ -20,15 +20,21 @@
   },
   "exclude": [
     "__mocks__",
-    "analyze-bundle.js",
-    "node_modules",
-    "build",
-    "scripts",
     "acceptance-tests",
-    "webpack",
+    "analyze_bundle.js",
+    "backstop.ts",
+    "backstop_data",
+    "build",
+    "coverage",
+    "gen_licenses.js",
     "jest",
-    "src/setupTests.ts",
+    "mock-backend",
+    "node_modules",
+    "scripts",
     "server",
-    "src/api"
+    "src/api",
+    "src/setupTests.ts",
+    "third_party",
+    "webpack"
   ]
 }

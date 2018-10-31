@@ -50,7 +50,7 @@ func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthI
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "CreateJob",
 		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/jobs",
+		PathPattern:        "/apis/v1beta1/jobs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -79,7 +79,7 @@ func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthI
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DeleteJob",
 		Method:             "DELETE",
-		PathPattern:        "/apis/v1alpha2/jobs/{id}",
+		PathPattern:        "/apis/v1beta1/jobs/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -108,7 +108,7 @@ func (a *Client) DisableJob(params *DisableJobParams, authInfo runtime.ClientAut
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DisableJob",
 		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/jobs/{id}/disable",
+		PathPattern:        "/apis/v1beta1/jobs/{id}/disable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -137,7 +137,7 @@ func (a *Client) EnableJob(params *EnableJobParams, authInfo runtime.ClientAuthI
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "EnableJob",
 		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/jobs/{id}/enable",
+		PathPattern:        "/apis/v1beta1/jobs/{id}/enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -166,7 +166,7 @@ func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWri
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetJob",
 		Method:             "GET",
-		PathPattern:        "/apis/v1alpha2/jobs/{id}",
+		PathPattern:        "/apis/v1beta1/jobs/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -184,35 +184,6 @@ func (a *Client) GetJob(params *GetJobParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
-ListJobRuns ts o d o yangpa this will be deprecated in public beta
-*/
-func (a *Client) ListJobRuns(params *ListJobRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobRunsOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewListJobRunsParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListJobRuns",
-		Method:             "GET",
-		PathPattern:        "/apis/v1alpha2/jobs/{job_id}/runs",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &ListJobRunsReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*ListJobRunsOK), nil
-
-}
-
-/*
 ListJobs list jobs API
 */
 func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInfoWriter) (*ListJobsOK, error) {
@@ -224,7 +195,7 @@ func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInf
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListJobs",
 		Method:             "GET",
-		PathPattern:        "/apis/v1alpha2/jobs",
+		PathPattern:        "/apis/v1beta1/jobs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

@@ -15,9 +15,6 @@
  */
 
 import * as React from 'react';
-import CloneIcon from '@material-ui/icons/FileCopy';
-import CompareIcon from '@material-ui/icons/CompareArrows';
-import RefreshIcon from '@material-ui/icons/Refresh';
 import RunList from './RunList';
 import { Page } from './Page';
 import { RoutePage } from '../components/Router';
@@ -47,27 +44,24 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         {
           action: this._compareRuns.bind(this),
           disabled: true,
-          icon: CompareIcon,
+          disabledTitle: 'Select multiple runs to compare',
           id: 'compareBtn',
           title: 'Compare runs',
           tooltip: 'Compare up to 10 selected runs',
         },
         {
-          action: this.load.bind(this),
-          disabled: false,
-          icon: RefreshIcon,
-          id: 'refreshBtn',
-          title: 'Refresh',
-          tooltip: 'Refresh',
-        },
-        {
           action: this._cloneRun.bind(this),
           disabled: true,
           disabledTitle: 'Select a run to clone',
-          icon: CloneIcon,
           id: 'cloneBtn',
-          title: 'Clone',
-          tooltip: 'Clone',
+          title: 'Clone run',
+          tooltip: 'Create a copy from this run\s initial state',
+        },
+        {
+          action: this.load.bind(this),
+          id: 'refreshBtn',
+          title: 'Refresh',
+          tooltip: 'Refresh',
         },
       ],
       breadcrumbs: [{ displayName: 'All runs', href: '' }],
@@ -102,8 +96,10 @@ class AllRunsList extends Page<{}, AllRunsListState> {
 
   private _selectionChanged(selectedIds: string[]) {
     const toolbarActions = [...this.props.toolbarProps.actions];
+    // Compare runs button
     toolbarActions[0].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
-    toolbarActions[2].disabled = selectedIds.length !== 1;
+    // Clone run button
+    toolbarActions[1].disabled = selectedIds.length !== 1;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }
@@ -123,7 +119,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
       const searchString = new URLParser(this.props).build({
         [QUERY_PARAMS.cloneFromRun]: runId || ''
       });
-      this.props.history.push(RoutePage.NEW_JOB + searchString);
+      this.props.history.push(RoutePage.NEW_RUN + searchString);
     }
   }
 }

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { NodePhase } from '../pages/Status';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiTrigger } from '../apis/job';
 
@@ -28,11 +27,6 @@ export const logger = {
     console.log(...args);
   },
 };
-
-export function getLastInStatusList(statusList: string | undefined): NodePhase | null {
-  // Return only the last of the status list
-  return (statusList || '').split(':').filter((s) => !!s).pop() as NodePhase || null;
-}
 
 export function formatDateString(date: Date | string | undefined): string {
   if (typeof date === 'string') {
@@ -52,7 +46,7 @@ export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: b
 export function getRunTime(workflow?: Workflow): string {
   if (!workflow
       || !workflow.status
-      || !getLastInStatusList(workflow.status.phase)
+      || !workflow.status.phase
       || !workflow.status.startedAt
       || !workflow.status.finishedAt) {
     return '-';
@@ -72,4 +66,9 @@ export function getRunTime(workflow?: Workflow): string {
   // Hours are the largest denomination, so we don't pad them
   const hours = Math.floor((diff / HOUR) % 24).toString();
   return `${sign}${hours}:${minutes}:${seconds}`;
+}
+
+export function s(items: any[] | number) {
+  const length = Array.isArray(items) ? items.length : items;
+  return length === 1 ? '' : 's';
 }

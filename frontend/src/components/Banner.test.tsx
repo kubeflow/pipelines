@@ -30,6 +30,11 @@ describe('Banner', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('uses warning mode when instructed', () => {
+    const tree = shallow(<Banner message={'Some message'} mode={'warning'} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('shows "Details" button and has dialog when there is additional info', () => {
     const tree = shallow(<Banner message={'Some message'} additionalInfo={'More info'} />);
     expect(tree).toMatchSnapshot();

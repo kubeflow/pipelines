@@ -72,7 +72,7 @@ type UploadPipelineOK struct {
 }
 
 func (o *UploadPipelineOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/pipelines/upload][%d] uploadPipelineOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] uploadPipelineOK  %+v", 200, o.Payload)
 }
 
 func (o *UploadPipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -110,7 +110,7 @@ func (o *UploadPipelineDefault) Code() int {
 }
 
 func (o *UploadPipelineDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/pipelines/upload][%d] UploadPipeline default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] UploadPipeline default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *UploadPipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

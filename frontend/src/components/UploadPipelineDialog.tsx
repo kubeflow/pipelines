@@ -22,19 +22,18 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Dropzone from 'react-dropzone';
 import Input from '../atoms/Input';
+import { stylesheet } from 'typestyle';
+import { padding } from '../Css';
+import InputAdornment from '@material-ui/core/InputAdornment';
 import { TextFieldProps } from '@material-ui/core/TextField';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding } from '../Css';
 
 const css = stylesheet({
   dropOverlay: {
     backgroundColor: '#eee',
     border: '2px dashed #aaa',
-    borderRadius: 3,
     bottom: 0,
     left: 0,
     margin: 3,
-    maxWidth: 450,
     padding: '2.5em 0',
     position: 'absolute',
     right: 0,
@@ -42,25 +41,22 @@ const css = stylesheet({
     top: 0,
     zIndex: 1,
   },
-  uploadPipelineName: {
-    border: '1px solid #ddd',
-    display: 'inline-block',
-    height: 30,
-    lineHeight: '30px',
-    minWidth: 180,
-    paddingLeft: 5,
+  root: {
+    minWidth: 500,
   },
 });
 
 interface UploadPipelineDialogProps {
   open: boolean;
-  onClose: (name: string, file: File | null) => Promise<boolean>;
+  onClose: (name: string, file: File | null, description?: string) => Promise<boolean>;
 }
 
 interface UploadPipelineDialogState {
   busy: boolean;
   dropzoneActive: boolean;
-  fileToUpload: File | null;
+  file: File | null;
+  fileName: string;
+  uploadPipelineDescription: string;
   uploadPipelineName: string;
 }
 
@@ -73,41 +69,57 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
     this.state = {
       busy: false,
       dropzoneActive: false,
-      fileToUpload: null,
+      file: null,
+      fileName: '',
+      uploadPipelineDescription: '',
       uploadPipelineName: '',
     };
   }
 
   public render() {
+    const { dropzoneActive, file, uploadPipelineName, busy } = this.state;
     return (
-      <Dialog id='uploadDialog' onClose={() => this._uploadDialogClosed(false)} open={this.props.open}>
+      <Dialog id='uploadDialog' onClose={() => this._uploadDialogClosed(false)}
+        open={this.props.open} classes={{ paper: css.root }}>
         <DialogTitle>Upload and name your pipeline</DialogTitle>
         <Dropzone id='dropZone' disableClick={true} className={padding(20, 'lr')}
           onDrop={this._onDrop.bind(this)} onDragEnter={this._onDropzoneDragEnter.bind(this)}
           onDragLeave={this._onDropzoneDragLeave.bind(this)} style={{ position: 'relative' }}
           ref={this._dropzoneRef}>
 
-          {this.state.dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
+          {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
 
-          <div className={padding(10, 'b')}>Click choose file or just drop it here</div>
-          <div className={commonCss.flex}>
-            <Button id='chooseFileBtn' onClick={() => this._dropzoneRef.current!.open()}
-              className={classes(commonCss.actionButton, commonCss.primaryButton, commonCss.noShrink)}>
-              Choose file
-              </Button>
-            <span className={classes(css.uploadPipelineName, commonCss.ellipsis)}>
-              {this.state.fileToUpload && this.state.fileToUpload.name}
-            </span>
+          <div className={padding(10, 'b')}>
+            Choose a pipeline package file from your computer, and give the pipeline a unique name.
+            <br />
+            You can also drag and drop the file here.
           </div>
+          <Input field='fileName' instance={this} required={true} label='File'
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position='end'>
+                  <Button color='secondary' onClick={() => this._dropzoneRef.current!.open()}
+                    style={{ padding: '3px 5px', margin: 0 }}>
+                    Choose file
+               </Button>
+                </InputAdornment>
+              ),
+              readOnly: true,
+            }} />
 
-          <Input label='Pipeline name' instance={this} field='uploadPipelineName' />
+          <Input id='uploadFileName' label='Pipeline name' instance={this} required={true}
+            field='uploadPipelineName' />
+
+          {/* <Input label='Pipeline description' instance={this} field='uploadPipelineDescription'
+            multiline={true} height='auto' /> */}
         </Dropzone>
 
         <DialogActions>
           <BusyButton id='confirmUploadBtn' onClick={() => this._uploadDialogClosed.bind(this)(true)}
-            className={commonCss.actionButton} title='Upload' busy={this.state.busy} />
-          <Button id='cancelUploadBtn' onClick={() => this._uploadDialogClosed.bind(this)(false)}
-            className={commonCss.actionButton}>Cancel</Button>
+            title='Upload' busy={busy} disabled={!file || !uploadPipelineName} />
+          <Button id='cancelUploadBtn' onClick={() => this._uploadDialogClosed.bind(this)(false)}>
+            Cancel
+          </Button>
         </DialogActions>
       </Dialog>
     );
@@ -130,20 +142,23 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
   private _onDrop(files: File[]) {
     this.setState({
       dropzoneActive: false,
-      fileToUpload: files[0],
+      file: files[0],
+      fileName: files[0].name,
       uploadPipelineName: files[0].name,
     });
   }
 
   private _uploadDialogClosed(confirmed: boolean) {
-    const file = confirmed ? this.state.fileToUpload : null;
+    const file = confirmed ? this.state.file : null;
     this.setState({ busy: true }, async () => {
-      const success = await this.props.onClose(this.state.uploadPipelineName, file);
+      const success = await this.props.onClose(
+        this.state.uploadPipelineName, file, this.state.uploadPipelineDescription);
       if (success) {
         this.setState({
           busy: false,
           dropzoneActive: false,
-          fileToUpload: null,
+          file: null,
+          uploadPipelineDescription: '',
           uploadPipelineName: '',
         });
       } else {

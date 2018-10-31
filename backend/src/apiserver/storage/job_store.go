@@ -25,7 +25,7 @@ import (
 )
 
 type JobStoreInterface interface {
-	ListJobs(context *common.PaginationContext) ([]model.Job, string, error)
+	ListJobs(filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.Job, string, error)
 	GetJob(id string) (*model.Job, error)
 	CreateJob(*model.Job) (*model.Job, error)
 	DeleteJob(id string) error
@@ -34,25 +34,40 @@ type JobStoreInterface interface {
 }
 
 type JobStore struct {
-	db   *DB
-	time util.TimeInterface
+	db                     *DB
+	resourceReferenceStore *ResourceReferenceStore
+	time                   util.TimeInterface
 }
 
-func (s *JobStore) ListJobs(context *common.PaginationContext) ([]model.Job, string, error) {
-	models, pageToken, err := listModel(context, s.queryJobTable)
+func (s *JobStore) ListJobs(
+	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.Job, string, error) {
+	queryJobTable := func(request *common.PaginationContext) ([]model.ListableDataModel, error) {
+		return s.queryJobTable(filterContext, request)
+	}
+	models, pageToken, err := listModel(paginationContext, queryJobTable)
 	if err != nil {
 		return nil, "", util.Wrap(err, "List jobs failed.")
 	}
 	return s.toJobMetadatas(models), pageToken, err
 }
 
-func (s *JobStore) queryJobTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
-	sqlBuilder := sq.Select("*").From("jobs")
-	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
+func (s *JobStore) queryJobTable(
+	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.ListableDataModel, error) {
+	sqlBuilder := s.selectJob()
+
+	// Add filter condition
+	sqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create query to list job.")
+	}
+
+	// Add pagination condition
+	sql, args, err := toPaginationQuery(sqlBuilder, paginationContext).Limit(uint64(paginationContext.PageSize)).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
 			err.Error())
 	}
+
 	rows, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v",
@@ -67,10 +82,25 @@ func (s *JobStore) queryJobTable(context *common.PaginationContext) ([]model.Lis
 	return s.toListableModels(jobs), nil
 }
 
+func (s *JobStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	sql, args, err := selectBuilder.ToSql()
+	if err != nil {
+		return selectBuilder, util.NewInternalServerError(err, "Failed to append filter condition to list job: %v",
+			err.Error())
+	}
+	if filterContext.ReferenceKey != nil {
+		selectBuilder = sq.Select("list_job.*").
+			From("resource_references AS rf").
+			LeftJoin(fmt.Sprintf("(%s) as list_job on list_job.UUID=rf.ResourceUUID", sql), args...).
+			Where(sq.And{
+				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
+				sq.Eq{"rf.ReferenceType": filterContext.Type}})
+	}
+	return selectBuilder, nil
+}
+
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
-	sql, args, err := sq.
-		Select("*").
-		From("jobs").
+	sql, args, err := s.selectJob().
 		Where(sq.Eq{"uuid": id}).
 		Limit(1).
 		ToSql()
@@ -94,6 +124,16 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	return &jobs[0], nil
 }
 
+func (s *JobStore) selectJob() sq.SelectBuilder {
+	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("r.Payload", ","), `"]"`}, "")
+	return sq.
+		Select("jobs.*", resourceRefConcatQuery+" AS refs").
+		From("jobs").
+		// Append all the resource references for the run as a json column
+		LeftJoin("resource_references AS r ON jobs.UUID=r.ResourceUUID").
+		Where(sq.Eq{"r.ResourceType": common.Job}).GroupBy("jobs.UUID")
+}
+
 func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 	var jobs []model.Job
 	for r.Next() {
@@ -101,7 +141,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 			description, parameters, pipelineSpecManifest, workflowSpecManifest string
 		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec,
 			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
-		var cron sql.NullString
+		var cron, resourceReferencesInString sql.NullString
 		var enabled bool
 		var createdAtInSec, updatedAtInSec, maxConcurrency int64
 		err := r.Scan(
@@ -109,20 +149,21 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 			&maxConcurrency, &createdAtInSec, &updatedAtInSec, &enabled,
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
-			&pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions)
-
+			&pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions, &resourceReferencesInString)
 		if err != nil {
 			return nil, err
 		}
+		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
 		jobs = append(jobs, model.Job{
-			UUID:           uuid,
-			DisplayName:    displayName,
-			Name:           name,
-			Namespace:      namespace,
-			Description:    description,
-			Enabled:        enabled,
-			Conditions:     conditions,
-			MaxConcurrency: maxConcurrency,
+			UUID:               uuid,
+			DisplayName:        displayName,
+			Name:               name,
+			Namespace:          namespace,
+			Description:        description,
+			Enabled:            enabled,
+			Conditions:         conditions,
+			MaxConcurrency:     maxConcurrency,
+			ResourceReferences: resourceReferences,
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: NullInt64ToPointer(cronScheduleStartTimeInSec),
@@ -136,8 +177,10 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
-				PipelineId: pipelineId,
-				Parameters: parameters,
+				PipelineId:           pipelineId,
+				PipelineSpecManifest: pipelineSpecManifest,
+				WorkflowSpecManifest: workflowSpecManifest,
+				Parameters:           parameters,
 			},
 			CreatedAtInSec: createdAtInSec,
 			UpdatedAtInSec: updatedAtInSec,
@@ -147,15 +190,36 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 }
 
 func (s *JobStore) DeleteJob(id string) error {
-	_, err := s.db.Exec(`DELETE FROM jobs WHERE UUID=?`, id)
+	jobSql, jobArgs, err := sq.Delete("jobs").Where(sq.Eq{"UUID": id}).ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to delete job: %v", err.Error())
+		return util.NewInternalServerError(err,
+			"Failed to create query to delete job: %s", id)
+	}
+	// Use a transaction to make sure both run and its resource references are stored.
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create a new transaction to delete job.")
+	}
+	_, err = tx.Exec(jobSql, jobArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete job %s from table", id)
+	}
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, common.Job)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete resource references from table for job %v ", id)
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete job %v and its resource references from table", id)
 	}
 	return nil
 }
 
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
-	sql, args, err := sq.
+	jobSql, jobArgs, err := sq.
 		Insert("jobs").
 		SetMap(sq.Eq{
 			"UUID":                           j.UUID,
@@ -172,22 +236,38 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(j.PeriodicScheduleStartTimeInSec),
 			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(j.PeriodicScheduleEndTimeInSec),
 			"IntervalSecond":                 PointerToNullInt64(j.IntervalSecond),
-			"Parameters":                     j.Parameters,
 			"CreatedAtInSec":                 j.CreatedAtInSec,
 			"UpdatedAtInSec":                 j.UpdatedAtInSec,
 			"PipelineId":                     j.PipelineId,
-			// TODO(yangpa) store actual value instead before v1beta1
-			"PipelineSpecManifest": "",
-			"WorkflowSpecManifest": "",
+			"PipelineSpecManifest":           j.PipelineSpecManifest,
+			"WorkflowSpecManifest":           j.WorkflowSpecManifest,
+			"Parameters":                     j.Parameters,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to add job to job table: %v",
 			err.Error())
 	}
-	_, err = s.db.Exec(sql, args...)
+
+	// Use a transaction to make sure both job and its resource references are stored.
+	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to add job to job table: %v",
-			err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create job.")
+	}
+	_, err = tx.Exec(jobSql, jobArgs...)
+	if err != nil {
+		tx.Rollback()
+		return nil, util.NewInternalServerError(err, "Failed to store job %v to table", j.Name)
+	}
+	err = s.resourceReferenceStore.CreateResourceReferences(tx, j.ResourceReferences)
+	if err != nil {
+		tx.Rollback()
+		return nil, util.NewInternalServerError(err, "Failed to store resource references to table for job %v ", j.Name)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return nil, util.NewInternalServerError(err, "Failed to store job %v and its resource references to table", j.Name)
 	}
 	return j, nil
 }
@@ -284,7 +364,8 @@ func (s *JobStore) toJobMetadatas(models []model.ListableDataModel) []model.Job 
 // factory function for job store
 func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
 	return &JobStore{
-		db:   db,
-		time: time,
+		db:                     db,
+		resourceReferenceStore: NewResourceReferenceStore(db),
+		time:                   time,
 	}
 }

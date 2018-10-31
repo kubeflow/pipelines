@@ -20,7 +20,7 @@ import Button from '@material-ui/core/Button';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import CompareTable from '../components/CompareTable';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
-import ExpandedIcon from '@material-ui/icons/ExpandLess';
+import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
 import Hr from '../atoms/Hr';
 import PlotCard, { PlotCardProps } from '../components/PlotCard';
 import RunList from './RunList';
@@ -33,7 +33,7 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, fontsize, padding } from '../Css';
+import { commonCss, fontsize, padding, color } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { countBy, flatten } from 'lodash';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
@@ -41,17 +41,40 @@ import { logger } from '../lib/Utils';
 
 const css = stylesheet({
   collapseBtn: {
+    color: color.strong,
     fontSize: fontsize.title,
-    fontWeight: 'lighter',
+    fontWeight: 'bold',
     padding: 5,
   },
   collapsed: {
     transform: 'rotate(180deg)',
   },
   outputsRow: {
+    marginLeft: 15,
     overflowX: 'auto',
   },
 });
+
+interface CollapseButtonProps {
+  compareComponent: Compare;
+  sectionName: string;
+}
+
+// tslint:disable-next-line:variable-name
+const CollapseButton = (props: CollapseButtonProps) => {
+  const collapseSections = props.compareComponent.state.collapseSections;
+  const sectionName = props.sectionName;
+  return <div>
+    <Button onClick={() => {
+      collapseSections[sectionName] = !collapseSections[sectionName];
+      props.compareComponent.setState({ collapseSections });
+    }} title='Expand/Collapse this section' className={css.collapseBtn}>
+      <ExpandedIcon className={collapseSections[sectionName] ? css.collapsed : ''}
+        style={{ marginRight: 5, transition: 'transform 0.3s' }} />
+      {sectionName}
+    </Button>
+  </div>;
+};
 
 interface TaggedViewerConfig {
   config: ViewerConfig;
@@ -71,8 +94,8 @@ interface CompareState {
   workflowObjects: Workflow[];
 }
 
-const overviewSectionName = 'overview';
-const paramsSectionName = 'parameters';
+const overviewSectionName = 'Run overview';
+const paramsSectionName = 'Parameters';
 
 class Compare extends Page<{}, CompareState> {
 
@@ -94,26 +117,21 @@ class Compare extends Page<{}, CompareState> {
 
   public getInitialToolbarState() {
     return {
-      actions: [
-        {
-          action: () => this.setState({ collapseSections: {} }),
-          disabled: false,
-          icon: ExpandIcon,
-          id: 'expandBtn',
-          title: 'Expand all',
-          tooltip: 'Expand all sections',
-        },
-        {
-          action: this._collapseAllSections.bind(this),
-          disabled: false,
-          icon: CollapseIcon,
-          id: 'collapseBtn',
-          title: 'Collapse all',
-          tooltip: 'Collapse all sections',
-        },
-      ],
+      actions: [{
+        action: () => this.setState({ collapseSections: {} }),
+        icon: ExpandIcon,
+        id: 'expandBtn',
+        title: 'Expand all',
+        tooltip: 'Expand all sections',
+      }, {
+        action: this._collapseAllSections.bind(this),
+        icon: CollapseIcon,
+        id: 'collapseBtn',
+        title: 'Collapse all',
+        tooltip: 'Collapse all sections',
+      }],
       breadcrumbs: [
-        { displayName: 'Jobs', href: RoutePage.JOBS },
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
         { displayName: 'Compare runs', href: '' },
       ],
     };
@@ -131,21 +149,10 @@ class Compare extends Page<{}, CompareState> {
         .filter(el => selectedIds.indexOf(el.runId) > -1) : [];
     };
 
-    return (<div className={classes(commonCss.page, padding(20, 'lr'))}>
-
-      {/* Overview section expand/collapse button */}
-      <div>
-        <Button onClick={() => {
-          collapseSections[overviewSectionName] = !collapseSections[overviewSectionName];
-          this.setState({ collapseSections });
-        }} title='Expand/Collapse this section' className={css.collapseBtn}>
-          <ExpandedIcon className={collapseSections[overviewSectionName] ? css.collapsed : ''}
-            style={{ marginRight: 5, transition: 'transform 0.3s' }} />
-          Run overview
-        </Button>
-      </div>
+    return (<div className={classes(commonCss.page, padding(20, 'lrt'))}>
 
       {/* Overview section */}
+      <CollapseButton compareComponent={this} sectionName={overviewSectionName} />
       {!collapseSections[overviewSectionName] && (
         <div className={commonCss.noShrink}>
           <RunList onError={this._handlePageError.bind(this)} {...this.props}
@@ -156,41 +163,22 @@ class Compare extends Page<{}, CompareState> {
 
       <Separator orientation='vertical' />
 
-      {/* Parameters section expand/collapse button */}
-      <div>
-        <Button onClick={() => {
-          collapseSections[paramsSectionName] = !collapseSections[paramsSectionName];
-          this.setState({ collapseSections });
-        }} title='Expand/Collapse this section' className={css.collapseBtn}>
-          <ExpandedIcon className={collapseSections[paramsSectionName] ? css.collapsed : ''}
-            style={{ marginRight: 5, transition: 'transform 0.3s' }} />
-          Parameters
-        </Button>
-      </div>
-
       {/* Parameters section */}
+      <CollapseButton compareComponent={this} sectionName={paramsSectionName} />
       {!collapseSections[paramsSectionName] && (
-        <div className={commonCss.noShrink} style={{ overflowX: 'auto' }}>
+        <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
           <CompareTable rows={paramsTableRows} xLabels={paramsTableXLabels} yLabels={paramsTableYLabels} />
+          <Hr />
         </div>
       )}
 
       <Separator orientation='vertical' />
 
       {Array.from(viewersMap.keys()).map((viewerType, i) => <div key={i}>
-        <React.Fragment>
-          <Button onClick={() => {
-            collapseSections[viewerType] = !collapseSections[viewerType];
-            this.setState({ collapseSections });
-          }} title='Expand/Collapse this section' className={css.collapseBtn}>
-            <ExpandedIcon className={collapseSections[viewerType] ? css.collapsed : ''}
-              style={{ marginRight: 5, transition: 'transform 0.3s' }} />
-            {componentMap[viewerType].prototype.getDisplayName()}
-          </Button>
-        </React.Fragment>
-
-        {!collapseSections[viewerType] &&
+        <CollapseButton compareComponent={this}
+          sectionName={componentMap[viewerType].prototype.getDisplayName()} />
+        {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] &&
           <React.Fragment>
             <div className={classes(commonCss.flex, css.outputsRow)}>
               {/* If the component allows aggregation, add one more card for
@@ -228,9 +216,9 @@ class Compare extends Page<{}, CompareState> {
     let lastError = '';
     await Promise.all(runIdsQuery.map(async id => {
       try {
-        const run = await Apis.runServiceApi.getRunV2(id);
+        const run = await Apis.runServiceApi.getRun(id);
         runs.push(run);
-        workflowObjects.push(JSON.parse(run.workflow || '{}'));
+        workflowObjects.push(JSON.parse(run.pipeline_runtime!.workflow_manifest || '{}'));
       } catch (err) {
         failingRuns.push(id);
         lastError = err.message;
@@ -281,8 +269,11 @@ class Compare extends Page<{}, CompareState> {
   }
 
   private _collapseAllSections() {
-    const collapseSections = { [overviewSectionName]: true };
-    Array.from(this.state.viewersMap.keys()).map(t => collapseSections[t] = true);
+    const collapseSections = { [overviewSectionName]: true, [paramsSectionName]: true };
+    Array.from(this.state.viewersMap.keys()).map(t => {
+      const sectionName = componentMap[t].prototype.getDisplayName();
+      collapseSections[sectionName] = true;
+    });
     this.setState({
       collapseSections,
     });

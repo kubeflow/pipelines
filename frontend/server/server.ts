@@ -69,7 +69,7 @@ const apiServerHost = process.env.ML_PIPELINE_SERVICE_HOST || 'localhost';
 const apiServerPort = process.env.ML_PIPELINE_SERVICE_PORT || '3001';
 const apiServerAddress = `http://${apiServerHost}:${apiServerPort}`;
 
-const v1alpha2Prefix = 'apis/v1alpha2';
+const v1beta1Prefix = 'apis/v1beta1';
 
 const healthzStats = {
   apiServerCommitHash: '',
@@ -81,7 +81,7 @@ const healthzStats = {
 const healthzHandler = async (_, res) => {
   try {
     const response = await fetch(
-      `${apiServerAddress}/${v1alpha2Prefix}/healthz`, { timeout: 1000 });
+      `${apiServerAddress}/${v1beta1Prefix}/healthz`, { timeout: 1000 });
     healthzStats.apiServerReady = true;
     const serverStatus = await response.json();
     healthzStats.apiServerCommitHash = serverStatus.commit_sha;
@@ -234,8 +234,8 @@ const logsHandler = async (req, res) => {
   }
 };
 
-app.get('/' + v1alpha2Prefix + '/healthz', healthzHandler);
-app.get(BASEPATH + '/' + v1alpha2Prefix + '/healthz', healthzHandler);
+app.get('/' + v1beta1Prefix + '/healthz', healthzHandler);
+app.get(BASEPATH + '/' + v1beta1Prefix + '/healthz', healthzHandler);
 
 app.get('/artifacts/get', artifactsHandler);
 app.get(BASEPATH + '/artifacts/get', artifactsHandler);
@@ -249,9 +249,10 @@ app.post(BASEPATH + '/apps/tensorboard', createTensorboardHandler);
 app.get('/k8s/pod/logs', logsHandler);
 app.get(BASEPATH + '/k8s/pod/logs', logsHandler);
 
-proxyMiddleware(app, v1alpha2Prefix);
+proxyMiddleware(app, '/' + v1beta1Prefix);
+proxyMiddleware(app, BASEPATH + '/' + v1beta1Prefix);
 
-app.all('/' + v1alpha2Prefix + '/*', proxy({
+app.all('/' + v1beta1Prefix + '/*', proxy({
   changeOrigin: true,
   onProxyReq: proxyReq => {
     console.log('Proxied request: ', (proxyReq as any).path);
@@ -259,7 +260,7 @@ app.all('/' + v1alpha2Prefix + '/*', proxy({
   target: apiServerAddress,
 }));
 
-app.all(BASEPATH  + '/' + v1alpha2Prefix + '/*', proxy({
+app.all(BASEPATH  + '/' + v1beta1Prefix + '/*', proxy({
   changeOrigin: true,
   onProxyReq: proxyReq => {
     console.log('Proxied request: ', (proxyReq as any).path);

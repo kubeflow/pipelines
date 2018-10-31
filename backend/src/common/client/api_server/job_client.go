@@ -21,8 +21,6 @@ type JobInterface interface {
 	Disable(params *params.DisableJobParams) error
 	List(params *params.ListJobsParams) ([]*model.APIJob, string, error)
 	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.APIJob, error)
-	ListRuns(params *params.ListJobRunsParams) ([]*model.APIRun, string, error)
-	ListAllRuns(params *params.ListJobRunsParams, maxResultSize int) ([]*model.APIRun, error)
 }
 
 type JobClient struct {
@@ -202,60 +200,6 @@ func listAllForJob(client JobInterface, parameters *params.ListJobsParams,
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {
 		results, pageToken, err := client.List(parameters)
-		if err != nil {
-			return nil, err
-		}
-		allResults = append(allResults, results...)
-		parameters.PageToken = util.StringPointer(pageToken)
-		firstCall = false
-	}
-	if len(allResults) > maxResultSize {
-		allResults = allResults[0:maxResultSize]
-	}
-
-	return allResults, nil
-}
-
-func (c *JobClient) ListRuns(parameters *params.ListJobRunsParams) (
-	[]*model.APIRun, string, error) {
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
-	defer cancel()
-
-	// Make service all
-	parameters.Context = ctx
-	response, err := c.apiClient.JobService.ListJobRuns(parameters, PassThroughAuth)
-	if err != nil {
-		if defaultError, ok := err.(*params.ListJobRunsDefault); ok {
-			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
-		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
-		}
-
-		return nil, "", util.NewUserError(err,
-			fmt.Sprintf("Failed to list runs for job '%v'. Params: '%+v'", parameters.JobID, parameters),
-			fmt.Sprintf("Failed to list runs for job '%v'", parameters.JobID))
-	}
-
-	return response.Payload.Runs, response.Payload.NextPageToken, nil
-}
-
-func (c *JobClient) ListAllRuns(parameters *params.ListJobRunsParams, maxResultSize int) (
-	[]*model.APIRun, error) {
-	return listAllForJobRuns(c, parameters, maxResultSize)
-}
-
-func listAllForJobRuns(client JobInterface, parameters *params.ListJobRunsParams, maxResultSize int) (
-	[]*model.APIRun, error) {
-	if maxResultSize < 0 {
-		maxResultSize = 0
-	}
-
-	allResults := make([]*model.APIRun, 0)
-	firstCall := true
-	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
-		(len(allResults) < maxResultSize) {
-		results, pageToken, err := client.ListRuns(parameters)
 		if err != nil {
 			return nil, err
 		}

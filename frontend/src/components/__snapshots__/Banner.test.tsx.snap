@@ -54,7 +54,6 @@ exports[`Banner shows "Details" button and has dialog when there is additional i
     </WithStyles(DialogContent)>
     <WithStyles(DialogActions)>
       <WithStyles(Button)
-        className="actionButton"
         id="dismissDialogBtn"
         onClick={[Function]}
       >
@@ -98,6 +97,24 @@ exports[`Banner uses error mode when instructed 1`] = `
     className="message"
   >
     <pure(ErrorIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  />
+</div>
+`;
+
+exports[`Banner uses warning mode when instructed 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(WarningIcon)
       className="icon"
     />
     Some message

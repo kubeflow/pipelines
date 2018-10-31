@@ -15,7 +15,7 @@
     "application/json"
   ],
   "paths": {
-    "/apis/v1alpha2/pipelines/upload": {
+    "/apis/v1beta1/pipelines/upload": {
       "post": {
         "operationId": "UploadPipeline",
         "responses": {

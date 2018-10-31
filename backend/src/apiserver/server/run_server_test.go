@@ -2,135 +2,123 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/googleprivate/ml/backend/api/go_client"
-	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
-var validReference = []*api.ResourceReference{
-	{
-		Key: &api.ResourceKey{
-			Type: api.ResourceType_EXPERIMENT, Id: "123"},
-		Relationship: api.Relationship_OWNER,
-	},
-}
-
-var validRun = &api.Run{
-	Name:               "123",
-	PipelineSpec:       &api.PipelineSpec{PipelineId: "123"},
-	ResourceReferences: validReference,
-}
-
-func TestValidateRunResourceReference(t *testing.T) {
-	assert.Nil(t, ValidateRunResourceReference(validReference))
-}
-
-func TestValidateRunResourceReference_MoreThanOneRef(t *testing.T) {
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_OWNER,
-		},
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "456"},
-			Relationship: api.Relationship_OWNER,
+func TestCreateRun(t *testing.T) {
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "123",
+		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	err := ValidateRunResourceReference(references)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "more resource references than expected")
-}
+	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
 
-func TestValidateRunResourceReference_UnexpectedType(t *testing.T) {
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "123"},
-			Relationship: api.Relationship_OWNER,
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRunDetail := api.RunDetail{
+		Run: &api.Run{
+			Id:          "workflow1",
+			Name:        "123",
+			CreatedAt:   &timestamp.Timestamp{Seconds: 2},
+			ScheduledAt: &timestamp.Timestamp{},
+			PipelineSpec: &api.PipelineSpec{
+				WorkflowManifest: testWorkflow.ToStringForStore(),
+				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		PipelineRuntime: &api.PipelineRuntime{
+			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
-	err := ValidateRunResourceReference(references)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unexpected resource type")
-}
-
-func TestValidateRunResourceReference_EmptyID(t *testing.T) {
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT},
-			Relationship: api.Relationship_OWNER,
-		},
-	}
-	err := ValidateRunResourceReference(references)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Resource ID is empty")
-}
-
-func TestValidateRunResourceReference_UnexpectedRelationship(t *testing.T) {
-	references := []*api.ResourceReference{
-		{
-			Key: &api.ResourceKey{
-				Type: api.ResourceType_EXPERIMENT, Id: "123"},
-			Relationship: api.Relationship_CREATOR,
-		},
-	}
-	err := ValidateRunResourceReference(references)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Unexpected relationship for the experiment")
+	assert.Equal(t, expectedRunDetail, *runDetail)
 }
 
 func TestValidateCreateRunRequest(t *testing.T) {
-	err := ValidateCreateRunRequest(&api.CreateRunRequest{Run: validRun})
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "123",
+		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 }
 
 func TestValidateCreateRunRequest_EmptyName(t *testing.T) {
-	var run = &api.Run{
-		PipelineSpec:       &api.PipelineSpec{PipelineId: "123"},
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
 		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
 	}
-
-	err := ValidateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The run name is empty")
 }
 
 func TestValidateCreateRunRequest_EmptyPipelineSpec(t *testing.T) {
-	var run = &api.Run{
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
 		Name:               "123",
 		ResourceReferences: validReference,
 	}
-
-	err := ValidateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a pipeline ID or workflow manifest")
 }
 
 func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+
 	var params []*api.Parameter
 	// Create a long enough parameter string so it exceed the length limit of parameter.
 	for i := 0; i < 10000; i++ {
 		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
 	}
-	var run = &api.Run{
+	run := &api.Run{
 		Name:               "123",
-		PipelineSpec:       &api.PipelineSpec{PipelineId: "123", Parameters: params},
 		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       params,
+		},
 	}
 
-	err := ValidateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
 }
@@ -140,10 +128,10 @@ func TestReportRunMetrics_RunNotFound(t *testing.T) {
 	// Close the server when test finishes
 	defer httpServer.Close()
 
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-
+	clientManager, resourceManager, _ := initWithOneTimeRun(t)
+	defer clientManager.Close()
 	runServer := RunServer{resourceManager: resourceManager}
+
 	_, err := runServer.ReportRunMetrics(context.Background(), &api.ReportRunMetricsRequest{
 		RunId: "1",
 	})
@@ -155,28 +143,8 @@ func TestReportRunMetrics_Succeed(t *testing.T) {
 	// Close the server when test finishes
 	defer httpServer.Close()
 
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-
-	workflow, _ := json.Marshal(v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "run1",
-			Namespace:         "n1",
-			UID:               "1",
-			CreationTimestamp: v1.Time{Time: time.Unix(1, 0)},
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID("1"),
-			}},
-		},
-	})
-	reportServer := ReportServer{resourceManager: resourceManager}
-	_, err := reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
-		Workflow: string(workflow),
-	})
-	assert.Nil(t, err, "Unexpected error: %v", err)
+	clientManager, resourceManager, runDetails := initWithOneTimeRun(t)
+	defer clientManager.Close()
 	runServer := RunServer{resourceManager: resourceManager}
 
 	metric := &api.RunMetric{
@@ -188,7 +156,7 @@ func TestReportRunMetrics_Succeed(t *testing.T) {
 		Format: api.RunMetric_RAW,
 	}
 	response, err := runServer.ReportRunMetrics(context.Background(), &api.ReportRunMetricsRequest{
-		RunId:   "1",
+		RunId:   runDetails.UUID,
 		Metrics: []*api.RunMetric{metric},
 	})
 	assert.Nil(t, err)
@@ -204,7 +172,7 @@ func TestReportRunMetrics_Succeed(t *testing.T) {
 	assert.Equal(t, expectedResponse, response)
 
 	run, err := runServer.GetRun(context.Background(), &api.GetRunRequest{
-		RunId: "1",
+		RunId: runDetails.UUID,
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, []*api.RunMetric{metric}, run.GetRun().GetMetrics())
@@ -215,28 +183,8 @@ func TestReportRunMetrics_PartialFailures(t *testing.T) {
 	// Close the server when test finishes
 	defer httpServer.Close()
 
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-
-	workflow, _ := json.Marshal(v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "run1",
-			Namespace:         "n1",
-			UID:               "1",
-			CreationTimestamp: v1.Time{Time: time.Unix(1, 0)},
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID("1"),
-			}},
-		},
-	})
-	reportServer := ReportServer{resourceManager: resourceManager}
-	_, err := reportServer.ReportWorkflow(context.Background(), &api.ReportWorkflowRequest{
-		Workflow: string(workflow),
-	})
-	assert.Nil(t, err, "Unexpected error: %v", err)
+	clientManager, resourceManager, runDetail := initWithOneTimeRun(t)
+	defer clientManager.Close()
 	runServer := RunServer{resourceManager: resourceManager}
 
 	validMetric := &api.RunMetric{
@@ -255,7 +203,7 @@ func TestReportRunMetrics_PartialFailures(t *testing.T) {
 		Name: "metric-1",
 	}
 	response, err := runServer.ReportRunMetrics(context.Background(), &api.ReportRunMetricsRequest{
-		RunId:   "1",
+		RunId:   runDetail.UUID,
 		Metrics: []*api.RunMetric{validMetric, invalidNameMetric, invalidNodeIDMetric},
 	})
 	assert.Nil(t, err)

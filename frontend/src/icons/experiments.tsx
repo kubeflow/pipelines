@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 
-export default class PipelinesIcon extends React.Component<{color: string}> {
+export default class ExperimentsIcon extends React.Component<{color: string}> {
   public render() {
     return (
       <svg width='20' height='20' viewBox='0 0 20 12' xmlns='http://www.w3.org/2000/svg'>

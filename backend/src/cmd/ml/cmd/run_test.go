@@ -18,6 +18,7 @@ func TestGetRun(t *testing.T) {
 
 	expected := `
 SUCCESS
+pipeline_runtime: {}
 run:
   created_at: "1970-01-01T00:00:00.000Z"
   id: RUN_DEFAULT

@@ -21,7 +21,6 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
@@ -40,6 +39,7 @@ type ClientManagerInterface interface {
 	PipelineStore() storage.PipelineStoreInterface
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
+	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
@@ -52,6 +52,7 @@ type ResourceManager struct {
 	pipelineStore           storage.PipelineStoreInterface
 	jobStore                storage.JobStoreInterface
 	runStore                storage.RunStoreInterface
+	resourceReferenceStore  storage.ResourceReferenceStoreInterface
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
@@ -65,11 +66,12 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		pipelineStore:           clientManager.PipelineStore(),
 		jobStore:                clientManager.JobStore(),
 		runStore:                clientManager.RunStore(),
+		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time:                    clientManager.Time(),
-		uuid:                    clientManager.UUID(),
+		time: clientManager.Time(),
+		uuid: clientManager.UUID(),
 	}
 }
 
@@ -187,11 +189,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
-	// Append provided parameter
 	// Verify no additional parameter provided
 	if err := workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
+	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 
 	// Create argo workflow CRD resource
@@ -201,24 +203,13 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Store run metadata into database
-	run, err := ToModelRun(apiRun, string(workflowSpecManifestBytes))
+	runDetail, err := ToModelRunDetail(apiRun, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
 
-	run.UUID = string(newWorkflow.UID)
-	run.Name = newWorkflow.Name
-	run.Namespace = newWorkflow.Namespace
-	run.Conditions = util.NewWorkflow(newWorkflow).Condition()
-	run.CreatedAtInSec = r.time.Now().Unix()
-
-	runDetail := &model.RunDetail{Run: *run}
-	workflowRuntimeManifest, err := json.Marshal(newWorkflow)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Unable to marshal a workflow: %+v", newWorkflow)
-	}
-	runDetail.WorkflowRuntimeManifest = string(workflowRuntimeManifest)
-	// TODO: store the resource reference
+	// Assign the create at time.
+	runDetail.CreatedAtInSec = r.time.Now().Unix()
 	return r.runStore.CreateRun(runDetail)
 }
 
@@ -226,79 +217,62 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
 
-func (r *ResourceManager) ListRunsV2(context *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
-	return r.runStore.ListRuns(nil, context)
+func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, paginationContext *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
+	return r.runStore.ListRuns(filterContext, paginationContext)
 }
 
-func (r *ResourceManager) ListRuns(jobId string, context *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
-	_, err = r.jobStore.GetJob(jobId)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List runs failed")
-	}
-	return r.runStore.ListRuns(util.StringPointer(jobId), context)
-}
-
-func (r *ResourceManager) ListJobs(context *common.PaginationContext) (jobs []model.Job, nextPageToken string, err error) {
-	return r.jobStore.ListJobs(context)
+func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, context *common.PaginationContext) (jobs []model.Job, nextPageToken string, err error) {
+	return r.jobStore.ListJobs(filterContext, context)
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 	return r.jobStore.GetJob(id)
 }
 
-// TODO create resource reference for experiment-> job.
 func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
-	job, err := ToModelJob(apiJob)
+	// Get workflow from pipeline spec, which might be pipeline ID or an argo workflow
+	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiJob.GetPipelineSpec())
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed")
+		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 	}
-
-	// Verify pipeline exist
-	_, err = r.pipelineStore.GetPipeline(job.PipelineId)
-	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline failed")
-	}
-
 	var workflow util.Workflow
-	err = r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(job.PipelineId))
+	err = json.Unmarshal(workflowSpecManifestBytes, &workflow)
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed")
+		return nil, util.NewInternalServerError(err,
+			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
 	}
+
 	// Verify no additional parameter provided
-	err = workflow.VerifyParameters(toParametersMap(apiJob.GetParameters()))
+	err = workflow.VerifyParameters(toParametersMap(apiJob.PipelineSpec.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(job.DisplayName)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
+
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled: job.Enabled,
-			Trigger: scheduledworkflow.Trigger{
-				CronSchedule:     toCrdCronSchedule(job.CronSchedule),
-				PeriodicSchedule: toCRDPeriodicSchedule(job.PeriodicSchedule),
-			},
+			Enabled:        apiJob.Enabled,
+			MaxConcurrency: &apiJob.MaxConcurrency,
+			Trigger:        *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: toCRDParameter(apiJob.GetParameters()),
+				Parameters: toCRDParameter(apiJob.PipelineSpec.Parameters),
 				Spec:       workflow.Spec,
 			},
 		},
 	}
-	if job.MaxConcurrency != 0 {
-		scheduledWorkflow.Spec.MaxConcurrency = &job.MaxConcurrency
-	}
-
 	newScheduledWorkflow, err := r.scheduledWorkflowClient.Create(scheduledWorkflow)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
-	job.UUID = string(newScheduledWorkflow.UID)
-	job.Name = newScheduledWorkflow.Name
-	job.Namespace = newScheduledWorkflow.Namespace
-	job.Conditions = util.NewScheduledWorkflow(newScheduledWorkflow).ConditionSummary()
+	job, err := ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
+	if err != nil {
+		return nil, util.Wrap(err, "Create job failed")
+	}
+
 	now := r.time.Now().Unix()
 	job.CreatedAtInSec = now
 	job.UpdatedAtInSec = now
@@ -346,7 +320,52 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 }
 
 func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
-	return r.runStore.ReportRun(workflow)
+	runId := string(workflow.UID)
+	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+	if jobId == "" {
+		// If a run doesn't have owner UID, it's a one-time run created by Pipeline API server.
+		// In this case the DB entry should already been created when argo workflow CRD is created.
+		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.ToStringForStore())
+	}
+
+	// Get the experiment resource reference for job.
+	experimentRef, err := r.resourceReferenceStore.GetResourceReference(jobId, common.Job, common.Experiment)
+	if err != nil {
+		return util.Wrap(err, "Failed to retrieve the experiment ID for the job that created the run.")
+	}
+	runDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             runId,
+			Name:             workflow.Name,
+			Namespace:        workflow.Namespace,
+			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
+			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+			Conditions:       workflow.Condition(),
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  string(workflow.UID),
+					ResourceType:  common.Run,
+					ReferenceUUID: jobId,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
+				},
+				{
+					ResourceUUID:  string(workflow.UID),
+					ResourceType:  common.Run,
+					ReferenceUUID: experimentRef.ReferenceUUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: workflow.ToStringForStore(),
+		},
+	}
+	return r.runStore.CreateOrUpdateRun(runDetail)
 }
 
 func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWorkflow) error {
@@ -373,20 +392,13 @@ func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 
 func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, error) {
 	if spec.GetPipelineId() != "" {
-		// Verify pipeline exist
-		_, err := r.pipelineStore.GetPipeline(spec.GetPipelineId())
-		if err != nil {
-			return nil, util.Wrap(err, "Get pipeline failed")
-		}
-		workflowYAMLBytes, err := r.objectStore.GetFile(storage.CreatePipelinePath(spec.GetPipelineId()))
+		var workflow util.Workflow
+		err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(spec.GetPipelineId()))
 		if err != nil {
 			return nil, util.Wrap(err, "Get pipeline YAML failed.")
 		}
-		workflowJsonBytes, err := yaml.YAMLToJSON(workflowYAMLBytes)
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to convert workflow to JSON. Workflow: %s", string(workflowYAMLBytes))
-		}
-		return workflowJsonBytes, nil
+
+		return []byte(workflow.ToStringForStore()), nil
 	} else if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
 	}

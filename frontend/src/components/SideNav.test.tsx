@@ -48,8 +48,8 @@ describe('SideNav', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders Jobs as active page', () => {
-    const tree = shallow(<SideNav page={RoutePage.JOBS} {...routerProps} />);
+  it('renders experiments as active page', () => {
+    const tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -58,13 +58,19 @@ describe('SideNav', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders Jobs as active when on JobDetails page', () => {
-    const tree = shallow(<SideNav page={RoutePage.JOB_DETAILS} {...routerProps} />);
+  it('renders experiments as active when on ExperimentDetails page', () => {
+    const tree = shallow(<SideNav page={RoutePage.EXPERIMENT_DETAILS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders nothing as active page', () => {
     const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('show jupyterhub link if accessible', () => {
+    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree.setState({ jupyterHubAvailable: true });
     expect(tree).toMatchSnapshot();
   });
 

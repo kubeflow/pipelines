@@ -15,10 +15,10 @@
  */
 
 import * as React from 'react';
-import JobsAndRuns, { JobsAndRunsTab, JobsAndRunsProps } from './JobsAndRuns';
+import ExperimentsAndRuns, { ExperimentAndRunsProps, ExperimentsAndRunsTab } from './JobsAndRuns';
 import { shallow } from 'enzyme';
 
-function generateProps(): JobsAndRunsProps {
+function generateProps(): ExperimentAndRunsProps {
   return {
     history: {} as any,
     location: '' as any,
@@ -28,31 +28,31 @@ function generateProps(): JobsAndRunsProps {
     updateDialog: jest.fn(),
     updateSnackbar: jest.fn(),
     updateToolbar: () => null,
-    view: JobsAndRunsTab.JOBS,
+    view: ExperimentsAndRunsTab.EXPERIMENTS,
   };
 }
 
-describe('JobsAndRuns', () => {
-  it('renders jobs page', () => {
-    expect(shallow(<JobsAndRuns {...generateProps() as any} />)).toMatchSnapshot();
+describe('ExperimentsAndRuns', () => {
+  it('renders experiments page', () => {
+    expect(shallow(<ExperimentsAndRuns {...generateProps() as any} />)).toMatchSnapshot();
   });
 
   it('renders runs page', () => {
     const props = generateProps();
-    props.view = JobsAndRunsTab.RUNS;
-    expect(shallow(<JobsAndRuns {...props as any} />)).toMatchSnapshot();
+    props.view = ExperimentsAndRunsTab.RUNS;
+    expect(shallow(<ExperimentsAndRuns {...props as any} />)).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {
     const spy = jest.fn();
     const props = generateProps();
     props.history.push = spy;
-    const tree = shallow(<JobsAndRuns {...props as any} />);
+    const tree = shallow(<ExperimentsAndRuns {...props as any} />);
 
     tree.find('MD2Tabs').simulate('switch', 1);
     expect(spy).toHaveBeenCalledWith('/runs');
 
     tree.find('MD2Tabs').simulate('switch', 0);
-    expect(spy).toHaveBeenCalledWith('/jobs');
+    expect(spy).toHaveBeenCalledWith('/experiments');
   });
 });

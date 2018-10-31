@@ -158,7 +158,7 @@ func newCreateJobParams(validated *jobCreateParamsValidated) *params.CreateJobPa
 		Description:    validated.description,
 		Enabled:        validated.enabled,
 		MaxConcurrency: validated.maxConcurrency,
-		PipelineID:     validated.pipelineId,
+		PipelineSpec:   &model.APIPipelineSpec{PipelineID: validated.pipelineId},
 	}
 
 	var trigger *model.APITrigger
@@ -185,7 +185,7 @@ func newCreateJobParams(validated *jobCreateParamsValidated) *params.CreateJobPa
 		result.Body.Trigger = trigger
 	}
 
-	result.Body.Parameters = toAPIParameters(validated.parameters)
+	result.Body.PipelineSpec.Parameters = toAPIParameters(validated.parameters)
 	return result
 }
 
@@ -256,47 +256,6 @@ func NewJobListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 			params := params.NewListJobsParams()
 			params.PageSize = util.Int32Pointer(pageSize)
 			results, err := root.JobClient().ListAll(params, maxResultSize)
-			if err != nil {
-				return util.ExtractErrorForCLI(err, root.Debug())
-			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), results)
-			return nil
-		},
-	}
-	command.PersistentFlags().IntVarP(&maxResultSize, "max-items", "m", math.MaxInt32,
-		"Maximum number of items to list")
-	command.SetOutput(root.Writer())
-	return command
-}
-
-func NewJobListRunCmd(root *RootCommand, pageSize int32) *cobra.Command {
-	var (
-		maxResultSize int
-		id            string
-		err           error
-	)
-	var command = &cobra.Command{
-		Use:   "list-runs ID",
-		Short: "List all the runs of a job",
-
-		// Validation
-		Args: func(cmd *cobra.Command, args []string) error {
-			id, err = ValidateSingleString(args, "ID")
-			if err != nil {
-				return err
-			}
-			if maxResultSize < 0 {
-				return fmt.Errorf("The flag 'max-items' cannot be negative")
-			}
-			return nil
-		},
-
-		// Execution
-		RunE: func(cmd *cobra.Command, args []string) error {
-			params := params.NewListJobRunsParams()
-			params.PageSize = util.Int32Pointer(pageSize)
-			params.JobID = id
-			results, err := root.JobClient().ListAllRuns(params, maxResultSize)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}

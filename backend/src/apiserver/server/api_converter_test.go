@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/googleprivate/ml/backend/api/go_client"
+	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -58,13 +59,17 @@ func TestToApiRunDetail(t *testing.T) {
 		Run: model.Run{
 			UUID:             "run123",
 			Name:             "name123",
+			DisplayName:      "displayName123",
 			Namespace:        "ns123",
-			JobID:            "job123",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "manifest",
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{ResourceUUID: "run123", ResourceType: common.Run,
+					ReferenceUUID: "job123", ReferenceType: common.Job, Relationship: common.Creator},
 			},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
@@ -73,19 +78,21 @@ func TestToApiRunDetail(t *testing.T) {
 	expectedApiRun := &api.RunDetail{
 		Run: &api.Run{
 			Id:          "run123",
-			Name:        "name123",
+			Name:        "displayName123",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
 			Status:      "running",
-			JobId:       "job123",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
+					Relationship: api.Relationship_CREATOR},
 			},
 		},
 		PipelineRuntime: &api.PipelineRuntime{
 			WorkflowManifest: "workflow123",
 		},
-		Workflow: "workflow123",
 	}
 	assert.Equal(t, expectedApiRun, apiRun)
 }
@@ -118,26 +125,34 @@ func TestToApiRuns(t *testing.T) {
 	modelRun1 := model.Run{
 		UUID:             "run1",
 		Name:             "name1",
+		DisplayName:      "displayName1",
 		Namespace:        "ns1",
-		JobID:            "job1",
 		CreatedAtInSec:   1,
 		ScheduledAtInSec: 1,
 		Conditions:       "running",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: "manifest",
 		},
+		ResourceReferences: []*model.ResourceReference{
+			{ResourceUUID: "run1", ResourceType: common.Run,
+				ReferenceUUID: "job1", ReferenceType: common.Job, Relationship: common.Creator},
+		},
 		Metrics: []*model.RunMetric{metric1, metric2},
 	}
 	modelRun2 := model.Run{
 		UUID:             "run2",
 		Name:             "name2",
+		DisplayName:      "displayName2",
 		Namespace:        "ns2",
-		JobID:            "job2",
 		CreatedAtInSec:   2,
 		ScheduledAtInSec: 2,
 		Conditions:       "done",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: "manifest",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{ResourceUUID: "run2", ResourceType: common.Run,
+				ReferenceUUID: "job2", ReferenceType: common.Job, Relationship: common.Creator},
 		},
 		Metrics: []*model.RunMetric{metric2},
 	}
@@ -145,23 +160,29 @@ func TestToApiRuns(t *testing.T) {
 	expectedApiRun := []*api.Run{
 		{
 			Id:          "run1",
-			Name:        "name1",
+			Name:        "displayName1",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
 			Status:      "running",
-			JobId:       "job1",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
+					Relationship: api.Relationship_CREATOR},
 			},
 			Metrics: []*api.RunMetric{apiMetric1, apiMetric2},
 		},
 		{
 			Id:          "run2",
-			Name:        "name2",
+			Name:        "displayName2",
 			CreatedAt:   &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt: &timestamp.Timestamp{Seconds: 2},
 			Status:      "done",
-			JobId:       "job2",
+			ResourceReferences: []*api.ResourceReference{
+				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job2"},
+					Relationship: api.Relationship_CREATOR},
+			},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
 			},
@@ -180,7 +201,7 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron:                       util.StringPointer("1 * *"),
+				Cron: util.StringPointer("1 * *"),
 			},
 		},
 		MaxConcurrency: 1,
@@ -190,12 +211,15 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
+		ResourceReferences: []*model.ResourceReference{
+			{ResourceUUID: "job1", ResourceType: common.Job, ReferenceUUID: "experiment1",
+				ReferenceType: common.Experiment, Relationship: common.Owner},
+		},
 	}
 	apiJob := ToApiJob(&modelJob)
 	expectedJob := &api.Job{
 		Id:             "job1",
 		Name:           "name 1",
-		PipelineId:     "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -205,10 +229,13 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * *",
 			}}},
-		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 		PipelineSpec: &api.PipelineSpec{
 			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId: "1",
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
+				Relationship: api.Relationship_OWNER},
 		},
 	}
 	assert.Equal(t, expectedJob, apiJob)
@@ -238,7 +265,6 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 	expectedJob := &api.Job{
 		Id:             "job1",
 		Name:           "name 1",
-		PipelineId:     "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -248,7 +274,6 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 				StartTime:      &timestamp.Timestamp{Seconds: 1},
 				IntervalSecond: 3,
 			}}},
-		Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 		PipelineSpec: &api.PipelineSpec{
 			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId: "1",
@@ -275,13 +300,11 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 	expectedJob := &api.Job{
 		Id:             "job1",
 		Name:           "name1",
-		PipelineId:     "1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
 		MaxConcurrency: 1,
 		Trigger:        &api.Trigger{},
-		Parameters:     []*api.Parameter{{Name: "param2", Value: "world"}},
 		PipelineSpec: &api.PipelineSpec{
 			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId: "1",
@@ -322,7 +345,7 @@ func TestToApiJobs(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron:                       util.StringPointer("1 * *"),
+				Cron: util.StringPointer("1 * *"),
 			},
 		},
 		MaxConcurrency: 1,
@@ -341,7 +364,7 @@ func TestToApiJobs(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(2),
-				Cron:                       util.StringPointer("2 * *"),
+				Cron: util.StringPointer("2 * *"),
 			},
 		},
 		MaxConcurrency: 2,
@@ -352,13 +375,11 @@ func TestToApiJobs(t *testing.T) {
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
 	}
-	apiJobs, err := ToApiJobs([]model.Job{modelJob1, modeljob2})
-	assert.Nil(t, err)
+	apiJobs := ToApiJobs([]model.Job{modelJob1, modeljob2})
 	expectedJobs := []*api.Job{
 		{
 			Id:             "job1",
 			Name:           "name 1",
-			PipelineId:     "1",
 			Enabled:        true,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -368,7 +389,6 @@ func TestToApiJobs(t *testing.T) {
 					StartTime: &timestamp.Timestamp{Seconds: 1},
 					Cron:      "1 * *",
 				}}},
-			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 			PipelineSpec: &api.PipelineSpec{
 				Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 				PipelineId: "1",
@@ -377,7 +397,6 @@ func TestToApiJobs(t *testing.T) {
 		{
 			Id:             "job2",
 			Name:           "name 2",
-			PipelineId:     "2",
 			Enabled:        true,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
@@ -387,7 +406,6 @@ func TestToApiJobs(t *testing.T) {
 					StartTime: &timestamp.Timestamp{Seconds: 2},
 					Cron:      "2 * *",
 				}}},
-			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 			PipelineSpec: &api.PipelineSpec{
 				Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
 				PipelineId: "2",
@@ -439,4 +457,20 @@ func TestToApiRunMetric_UnknownFormat(t *testing.T) {
 		Format: api.RunMetric_UNSPECIFIED,
 	}
 	assert.Equal(t, expectedAPIRunMetric, actualAPIRunMetric)
+}
+
+func TestToApiResourceReferences(t *testing.T) {
+	resourceReferences := []*model.ResourceReference{
+		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "experiment1",
+			ReferenceType: common.Experiment, Relationship: common.Owner},
+		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "job1",
+			ReferenceType: common.Job, Relationship: common.Owner},
+	}
+	expectedApiResourceReferences := []*api.ResourceReference{
+		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
+			Relationship: api.Relationship_OWNER},
+		{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
+			Relationship: api.Relationship_OWNER},
+	}
+	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
 }

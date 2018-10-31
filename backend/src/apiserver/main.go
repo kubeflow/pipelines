@@ -95,8 +95,8 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	// accept pipeline url for importing.
 	// https://github.com/grpc-ecosystem/grpc-gateway/issues/410
 	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager)
-	topMux.HandleFunc("/apis/v1alpha2/pipelines/upload", pipelineUploadServer.UploadPipeline)
-	topMux.HandleFunc("/apis/v1alpha2/healthz", func(w http.ResponseWriter, r *http.Request) {
+	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
+	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `{"commit_sha":"`+getStringConfig("COMMIT_SHA")+`"}`)
 	})
 

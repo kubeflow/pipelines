@@ -109,7 +109,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
     return <div>
       <Paper {...otherProps} className={css.plotCard}>
         <div className={css.plotHeader}>
-          <div className={classes(css.plotTitle)} title={title}>{title}</div>
+          <div className={css.plotTitle} title={title}>{title}</div>
           <div>
             <Button onClick={() => this.setState({ fullscreenDialogOpen: true })}
               style={{ padding: 4, minHeight: 0, minWidth: 0 }} className='popOutButton'>

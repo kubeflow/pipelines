@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`JobsAndRuns renders jobs page 1`] = `
+exports[`ExperimentsAndRuns renders experiments page 1`] = `
 <div
   className="page"
 >
@@ -9,12 +9,12 @@ exports[`JobsAndRuns renders jobs page 1`] = `
     selectedTab={0}
     tabs={
       Array [
-        "Group by job",
-        "Show all runs",
+        "All experiments",
+        "All runs",
       ]
     }
   />
-  <JobList
+  <ExperimentList
     history={Object {}}
     location=""
     match=""
@@ -28,7 +28,7 @@ exports[`JobsAndRuns renders jobs page 1`] = `
 </div>
 `;
 
-exports[`JobsAndRuns renders runs page 1`] = `
+exports[`ExperimentsAndRuns renders runs page 1`] = `
 <div
   className="page"
 >
@@ -37,8 +37,8 @@ exports[`JobsAndRuns renders runs page 1`] = `
     selectedTab={1}
     tabs={
       Array [
-        "Group by job",
-        "Show all runs",
+        "All experiments",
+        "All runs",
       ]
     }
   />

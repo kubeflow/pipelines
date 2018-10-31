@@ -136,7 +136,7 @@ func (w *Workflow) ScheduledAtInSecOr0() int64 {
 }
 
 func (w *Workflow) Condition() string {
-	return string(w.Status.Phase) + ":"
+	return string(w.Status.Phase)
 }
 
 func (w *Workflow) ToStringForStore() string {

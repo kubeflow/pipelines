@@ -1,20 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CompareTable renders no data 1`] = `
-<table
-  className="root"
->
-  <tbody>
-    <tr
-      className="row"
-    >
-      <td
-        className="labelCell"
-      />
-    </tr>
-  </tbody>
-</table>
-`;
+exports[`CompareTable renders no data 1`] = `""`;
 
 exports[`CompareTable renders one row with three columns 1`] = `
 <table

@@ -14,16 +14,8 @@ exports[`Router initial render 1`] = `
       <div
         className="page"
       >
-        <Toolbar
-          actions={Array []}
-          breadcrumbs={
-            Array [
-              Object {
-                "displayName": "",
-                "href": "",
-              },
-            ]
-          }
+        <Route
+          render={[Function]}
         />
         <Switch>
           <Route
@@ -33,41 +25,61 @@ exports[`Router initial render 1`] = `
           />
           <Route
             exact={true}
-            path="/jobs"
+            key="0"
+            path="/experiments"
             render={[Function]}
           />
           <Route
             exact={true}
-            path="/jobs/details/:jid"
+            key="1"
+            path="/experiments/details/:eid"
             render={[Function]}
           />
           <Route
             exact={true}
-            path="/jobs/new"
+            key="2"
+            path="/experiments/new"
             render={[Function]}
           />
           <Route
             exact={true}
+            key="3"
+            path="/runs/new"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            key="4"
             path="/pipelines"
             render={[Function]}
           />
           <Route
             exact={true}
+            key="5"
             path="/pipelines/details/:pid"
             render={[Function]}
           />
           <Route
             exact={true}
+            key="6"
             path="/runs"
             render={[Function]}
           />
           <Route
             exact={true}
+            key="7"
+            path="/recurringrun/details/:rid"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            key="8"
             path="/runs/details/:rid"
             render={[Function]}
           />
           <Route
             exact={true}
+            key="9"
             path="/compare"
             render={[Function]}
           />

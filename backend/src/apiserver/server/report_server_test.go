@@ -7,38 +7,24 @@ import (
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	api "github.com/googleprivate/ml/backend/api/go_client"
-	"github.com/googleprivate/ml/backend/src/apiserver/resource"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestReportWorkflow(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
 	reportServer := NewReportServer(resourceManager)
-	gvk := schema.GroupVersionKind{
-		Group:   swfapi.SchemeGroupVersion.Group,
-		Version: swfapi.SchemeGroupVersion.Version,
-		Kind:    "ScheduledWorkflow",
-	}
 
-	workflow := &v1alpha1.Workflow{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "workflow-name",
+			Name:      "run1",
 			Namespace: "default",
-			UID:       "123",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: gvk.GroupVersion().String(),
-					Kind:       gvk.Kind,
-					UID:        "123",
-				},
-			},
+			UID:       types.UID(run.UUID),
 		},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{
@@ -46,33 +32,30 @@ func TestReportWorkflow(t *testing.T) {
 					{Name: "param1"},
 				},
 			},
-		}}
-	workflowBytes, _ := json.Marshal(workflow)
-
+		}})
 	_, err := reportServer.ReportWorkflow(nil, &api.ReportWorkflowRequest{
-		Workflow: string(workflowBytes),
+		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)
-	run, err := resourceManager.GetRun("123")
+	run, err = resourceManager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	assert.NotNil(t, run)
 }
 
 func TestReportWorkflow_ValidationFailed(t *testing.T) {
-	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
 	reportServer := NewReportServer(resourceManager)
 
-	workflow := &v1alpha1.Workflow{
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
-			UID:       "123",
+			UID:       types.UID(run.UUID),
 		},
-	}
-	workflowBytes, _ := json.Marshal(workflow)
+	})
 
 	_, err := reportServer.ReportWorkflow(nil, &api.ReportWorkflowRequest{
-		Workflow: string(workflowBytes),
+		Workflow: workflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "must have a name")

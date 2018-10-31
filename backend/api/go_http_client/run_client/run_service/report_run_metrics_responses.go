@@ -72,7 +72,7 @@ type ReportRunMetricsOK struct {
 }
 
 func (o *ReportRunMetricsOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/runs/{run_id}:reportMetrics][%d] reportRunMetricsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}:reportMetrics][%d] reportRunMetricsOK  %+v", 200, o.Payload)
 }
 
 func (o *ReportRunMetricsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -110,7 +110,7 @@ func (o *ReportRunMetricsDefault) Code() int {
 }
 
 func (o *ReportRunMetricsDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1alpha2/runs/{run_id}:reportMetrics][%d] ReportRunMetrics default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/runs/{run_id}:reportMetrics][%d] ReportRunMetrics default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *ReportRunMetricsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

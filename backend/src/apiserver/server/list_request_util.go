@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	api "github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/common/util"
 )
@@ -61,7 +62,19 @@ var runModelFieldsBySortableAPIFields = map[string]string{
 	"created_at": "CreatedAtInSec",
 }
 
-func ValidateListRequest(pageToken string, pageSize int, keyFieldName string, queryString string,
+func ValidateFilter(referenceKey *api.ResourceKey) (*common.FilterContext, error) {
+	filterContext := &common.FilterContext{}
+	if referenceKey != nil {
+		refType, err := common.ToModelResourceType(referenceKey.Type)
+		if err != nil {
+			return nil, util.Wrap(err, "Unrecognized resource reference type.")
+		}
+		filterContext.ReferenceKey = &common.ReferenceKey{Type: refType, ID: referenceKey.Id}
+	}
+	return filterContext, nil
+}
+
+func ValidatePagination(pageToken string, pageSize int, keyFieldName string, queryString string,
 	modelFieldByApiFieldMapping map[string]string) (*common.PaginationContext, error) {
 	sortByFieldName, isDesc, err := parseSortByQueryString(queryString, modelFieldByApiFieldMapping)
 	if err != nil {

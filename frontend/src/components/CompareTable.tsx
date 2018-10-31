@@ -19,7 +19,7 @@ import { logger } from '../lib/Utils';
 import { stylesheet, classes } from 'typestyle';
 import { color } from '../Css';
 
-const borderStyle = '1px solid ' + color.divider;
+const borderStyle = `1px solid ${color.divider}`;
 
 const css = stylesheet({
   cell: {
@@ -60,6 +60,9 @@ const CompareTable = ({ rows, xLabels, yLabels }: CompareTableProps) => {
   if (rows.length !== yLabels.length) {
     logger.error(
       `Number of rows (${rows.length}) should match the number of Y labels (${yLabels.length}).`);
+  }
+  if (!rows || rows.length === 0) {
+    return null;
   }
 
   return (

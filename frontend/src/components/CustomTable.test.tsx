@@ -123,7 +123,9 @@ describe('CustomTable', () => {
     expect(reload).toHaveBeenLastCalledWith({ pageToken: '' });
 
     tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({ orderAscending: true, sortBy: 'col1sortkey' });
+    expect(reload).toHaveBeenLastCalledWith({
+      orderAscending: true, pageToken: '', sortBy: 'col1sortkey'
+    });
   });
 
   it('calls reload function with same sort key in reverse order if same column is clicked twice', () => {
@@ -141,10 +143,14 @@ describe('CustomTable', () => {
     expect(reload).toHaveBeenLastCalledWith({ pageToken: '' });
 
     tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({ orderAscending: true, sortBy: 'col1sortkey' });
+        expect(reload).toHaveBeenLastCalledWith({
+      orderAscending: true, pageToken: '', sortBy: 'col1sortkey'
+    });
     tree.setProps({ sortBy: 'col1sortkey' });
     tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({ orderAscending: false, sortBy: 'col1sortkey' });
+    expect(reload).toHaveBeenLastCalledWith({
+      orderAscending: false, pageToken: '', sortBy: 'col1sortkey'
+    });
   });
 
   it('does not call reload if clicked column has no sort key', () => {
@@ -271,7 +277,7 @@ describe('CustomTable', () => {
     const spy = () => reloadResult;
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
     await reloadResult;
-    expect(tree.state()).toHaveProperty('maxPageNumber', 0);
+    expect(tree.state()).toHaveProperty('maxPageIndex', 0);
     expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
     expect(tree.find('WithStyles(IconButton)').at(1).prop('disabled')).toBeTruthy();
   });
@@ -281,7 +287,7 @@ describe('CustomTable', () => {
     const spy = () => reloadResult;
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
     await reloadResult;
-    expect(tree.state()).toHaveProperty('maxPageNumber', Number.MAX_SAFE_INTEGER);
+    expect(tree.state()).toHaveProperty('maxPageIndex', Number.MAX_SAFE_INTEGER);
     expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
     expect(tree.find('WithStyles(IconButton)').at(1).prop('disabled')).not.toBeTruthy();
   });
@@ -356,6 +362,14 @@ describe('CustomTable', () => {
     row.expandState = ExpandState.COLLAPSED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
       getExpandComponent={() => null} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a collapsed row when selection is disabled', () => {
+    const row = { ...rows[0] };
+    row.expandState = ExpandState.COLLAPSED;
+    const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
+      getExpandComponent={() => null} disableSelection={true} />);
     expect(tree).toMatchSnapshot();
   });
 

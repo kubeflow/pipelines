@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-import { Apis } from '../../lib/Apis';
 import * as React from 'react';
+import BusyButton from '../../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Viewer, { ViewerConfig } from './Viewer';
-import { Link } from 'react-router-dom';
+import { Apis } from '../../lib/Apis';
 import { commonCss, padding } from '../../Css';
-import BusyButton from '../../atoms/BusyButton';
 
 export interface TensorboardViewerConfig extends ViewerConfig {
   url: string;
@@ -65,13 +64,13 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     return <div>
       {this.state.podAddress && <div>
         <div className={padding(20, 'b')}>Tensorboard is running for this output.</div>
-        <Link to={'apis/v1alpha2/_proxy/' + podAddress} target='_blank' className={commonCss.unstyled}>
-          <Button className={commonCss.primaryButton} disabled={this.state.busy}>Open Tensorboard</Button>
-        </Link>
+        <a href={'apis/v1beta1/_proxy/' + podAddress} target='_blank' className={commonCss.unstyled}>
+          <Button className={commonCss.buttonAction} disabled={this.state.busy}>Open Tensorboard</Button>
+        </a>
       </div>}
 
       {!this.state.podAddress &&
-        <BusyButton className={commonCss.primaryButton} onClick={this._startTensorboard.bind(this)}
+        <BusyButton className={commonCss.buttonAction} onClick={this._startTensorboard.bind(this)}
           busy={this.state.busy}
           title={`Start ${this.props.configs.length > 1 ? 'Combined ' : ''}Tensorboard`} />
       }

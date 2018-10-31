@@ -16,12 +16,10 @@
 
 import {
   logger,
-  getLastInStatusList,
   formatDateString,
   enabledDisplayString,
   getRunTime,
 } from './Utils';
-import { NodePhase } from '../pages/Status';
 
 describe('Utils', () => {
   describe('log', () => {
@@ -43,38 +41,6 @@ describe('Utils', () => {
       // tslint:disable-next-line:no-console
       expect(console.error).toBeCalledWith('something to console error');
       global.console.error = backup;
-    });
-  });
-
-  describe('getLastInStatusList', () => {
-    it('returns only the last of the status list if they all followed by colon', () => {
-      const statuses = NodePhase.SUCCEEDED + ':' + NodePhase.FAILED + ':';
-      expect(getLastInStatusList(statuses)).toBe(NodePhase.FAILED);
-    });
-
-    it('returns only the last of the status list if they only separated by colons', () => {
-      const statuses = NodePhase.SUCCEEDED + ':' + NodePhase.FAILED;
-      expect(getLastInStatusList(statuses)).toBe(NodePhase.FAILED);
-    });
-
-    it('returns the one status if followed by colon', () => {
-      const statuses = NodePhase.SUCCEEDED + ':';
-      expect(getLastInStatusList(statuses)).toBe(NodePhase.SUCCEEDED);
-    });
-
-    it('returns the one status if not followed by colon', () => {
-      const statuses = NodePhase.PENDING;
-      expect(getLastInStatusList(statuses)).toBe(NodePhase.PENDING);
-    });
-
-    it('returns null if no statuses found', () => {
-      const statuses = '';
-      expect(getLastInStatusList(statuses)).toBeNull();
-    });
-
-    it('returns null if status is undefined', () => {
-      const statuses = undefined;
-      expect(getLastInStatusList(statuses)).toBeNull();
     });
   });
 

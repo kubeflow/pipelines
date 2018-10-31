@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/googleprivate/ml/backend/api/go_client"
@@ -31,7 +30,7 @@ type JobServer struct {
 }
 
 func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest) (*api.Job, error) {
-	err := ValidateCreateJobRequest(request.Job)
+	err := s.validateCreateJobRequest(request)
 	if err != nil {
 		return nil, err
 	}
@@ -51,35 +50,21 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {
-	paginationContext, err := ValidateListRequest(
+	paginationContext, err := ValidatePagination(
 		request.PageToken, int(request.PageSize), model.GetJobTablePrimaryKeyColumn(),
 		request.SortBy, jobModelFieldsBySortableAPIFields)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Validating pagination failed.")
 	}
-	jobs, nextPageToken, err := s.resourceManager.ListJobs(paginationContext)
+	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Validating filter failed.")
 	}
-	apiJobs, err := ToApiJobs(jobs)
+	jobs, nextPageToken, err := s.resourceManager.ListJobs(filterContext, paginationContext)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Failed to list jobs.")
 	}
-	return &api.ListJobsResponse{Jobs: apiJobs, NextPageToken: nextPageToken}, nil
-}
-
-func (s *JobServer) ListJobRuns(ctx context.Context, request *api.ListJobRunsRequest) (*api.ListJobRunsResponse, error) {
-	paginationContext, err := ValidateListRequest(
-		request.PageToken, int(request.PageSize), model.GetRunTablePrimaryKeyColumn(),
-		request.SortBy, runModelFieldsBySortableAPIFields)
-	if err != nil {
-		return nil, err
-	}
-	runs, nextPageToken, err := s.resourceManager.ListRuns(request.JobId, paginationContext)
-	if err != nil {
-		return nil, err
-	}
-	return &api.ListJobRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
+	return &api.ListJobsResponse{Jobs: ToApiJobs(jobs), NextPageToken: nextPageToken}, nil
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {
@@ -98,16 +83,19 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 	return &empty.Empty{}, nil
 }
 
-func ValidateCreateJobRequest(job *api.Job) error {
-	if job.MaxConcurrency != 0 && (job.MaxConcurrency > 10 || job.MaxConcurrency < 1) {
+func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) error {
+	job := request.Job
+	// Job must be created under an experiment.
+	if err := ValidateExperimentResourceReference(s.resourceManager, job.ResourceReferences); err != nil {
+		return util.Wrap(err, "The job must have a valid experiment resource reference.")
+	}
+
+	if err := ValidatePipelineSpec(s.resourceManager, job.PipelineSpec); err != nil {
+		return util.Wrap(err, "The pipeline spec is invalid.")
+	}
+
+	if job.MaxConcurrency > 10 || job.MaxConcurrency < 1 {
 		return util.NewInvalidInputError("The max concurrency of the job is out of range. Support 1-10. Received %v.", job.MaxConcurrency)
-	}
-	paramsBytes, err := json.Marshal(job.Parameters)
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to stream API parameter as string.")
-	}
-	if len(paramsBytes) > util.MaxParameterBytes {
-		return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
 	}
 	if job.Trigger != nil && job.Trigger.GetCronSchedule() != nil {
 		if _, err := cron.Parse(job.Trigger.GetCronSchedule().Cron); err != nil {

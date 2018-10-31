@@ -22,11 +22,13 @@ import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
-import JobDetails from '../pages/JobDetails';
-import JobsAndRuns, { JobsAndRunsTab } from '../pages/JobsAndRuns';
-import NewJob from '../pages/NewJob';
+import ExperimentDetails from '../pages/JobDetails';
+import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/JobsAndRuns';
+import NewExperiment from '../pages/NewJob';
+import NewRun from '../pages/NewRun';
 import PipelineDetails from '../pages/PipelineDetails';
 import PipelineList from '../pages/PipelineList';
+import RecurringRunConfig from '../pages/RecurringRunDetails';
 import RunDetails from '../pages/RunDetails';
 import SideNav from './SideNav';
 import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
@@ -42,7 +44,7 @@ const css = stylesheet({
 });
 
 export enum RouteParams {
-  jobId = 'jid',
+  experimentId = 'eid',
   pipelineId = 'pid',
   runId = 'rid',
 }
@@ -50,18 +52,19 @@ export enum RouteParams {
 // tslint:disable-next-line:variable-name
 export const RoutePage = {
   COMPARE: `/compare`,
-  JOBS: '/jobs',
-  JOB_DETAILS: `/jobs/details/:${RouteParams.jobId}`,
-  NEW_JOB: '/jobs/new',
+  EXPERIMENTS: '/experiments',
+  EXPERIMENT_DETAILS: `/experiments/details/:${RouteParams.experimentId}`,
+  NEW_EXPERIMENT: '/experiments/new',
+  NEW_RUN: '/runs/new',
   PIPELINES: '/pipelines',
   PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}`,
+  RECURRING_RUN: `/recurringrun/details/:${RouteParams.runId}`,
   RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
 };
 
 export interface DialogProps {
   buttons?: Array<{ onClick?: () => any, text: string }>;
-  // TODO: This can be generalized to React.ReactNode
   content?: string;
   onClose?: () => any;
   open?: boolean;
@@ -84,7 +87,7 @@ class Router extends React.Component<{}, RouteComponentState> {
       bannerProps: {},
       dialogProps: { open: false },
       snackbarProps: { autoHideDuration: 5000, open: false },
-      toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: [] },
+      toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: [], ...props },
     };
   }
 
@@ -97,13 +100,26 @@ class Router extends React.Component<{}, RouteComponentState> {
       updateToolbar: this._setToolbarActions.bind(this),
     };
 
+    const routes: Array<{ path: string, Component: React.ComponentClass, view?: any }> = [
+      { path: RoutePage.EXPERIMENTS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.EXPERIMENTS },
+      { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
+      { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
+      { path: RoutePage.NEW_RUN, Component: NewRun },
+      { path: RoutePage.PIPELINES, Component: PipelineList },
+      { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
+      { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
+      { path: RoutePage.RECURRING_RUN, Component: RecurringRunConfig },
+      { path: RoutePage.RUN_DETAILS, Component: RunDetails },
+      { path: RoutePage.COMPARE, Component: Compare },
+    ];
+
     return (
       <HashRouter>
         <div className={commonCss.page}>
           <div className={commonCss.flexGrow}>
             <Route render={({ ...props }) => (<SideNav page={props.location.pathname} {...props} />)} />
             <div className={classes(commonCss.page)}>
-              <Toolbar {...this.state.toolbarProps} />
+              <Route render={({ ...props }) => (<Toolbar {...this.state.toolbarProps} {...props} />)} />
               {this.state.bannerProps.message
                 && <Banner
                   message={this.state.bannerProps.message}
@@ -111,34 +127,15 @@ class Router extends React.Component<{}, RouteComponentState> {
                   additionalInfo={this.state.bannerProps.additionalInfo}
                   refresh={this.state.bannerProps.refresh} />}
               <Switch>
-                {/* TODO: clean this up using a for-loop + array or something */}
                 <Route exact={true} path={'/'} render={({ ...props }) => (
                   <Redirect to={RoutePage.PIPELINES} {...props} />
                 )} />
-                <Route exact={true} path={RoutePage.JOBS} render={({ ...props }) => (
-                  <JobsAndRuns {...props} {...childProps} view={JobsAndRunsTab.JOBS} />
-                )} />
-                <Route exact={true} path={RoutePage.JOB_DETAILS} render={({ ...props }) => (
-                  <JobDetails {...props} {...childProps} />
-                )} />
-                <Route exact={true} path={RoutePage.NEW_JOB} render={({ ...props }) => (
-                  <NewJob {...props} {...childProps} />
-                )} />
-                <Route exact={true} path={RoutePage.PIPELINES} render={({ ...props }) => (
-                  <PipelineList {...props} {...childProps} />
-                )} />
-                <Route exact={true} path={RoutePage.PIPELINE_DETAILS} render={({ ...props }) => (
-                  <PipelineDetails {...props} {...childProps} />
-                )} />
-                <Route exact={true} path={RoutePage.RUNS} render={({ ...props }) => (
-                  <JobsAndRuns {...props} {...childProps} view={JobsAndRunsTab.RUNS} />
-                )} />
-                <Route exact={true} path={RoutePage.RUN_DETAILS} render={({ ...props }) => (
-                  <RunDetails {...props} {...childProps} />
-                )} />
-                <Route exact={true} path={RoutePage.COMPARE} render={({ ...props }) => (
-                  <Compare {...props} {...childProps} />
-                )} />
+                {routes.map((route, i) => {
+                  const { path, Component, ...otherProps } = { ...route };
+                  return <Route key={i} exact={true} path={path} render={({ ...props }) => (
+                    <Component {...props} {...childProps} {...otherProps} />
+                  )} />;
+                })}
               </Switch>
 
               <Snackbar
@@ -214,5 +211,4 @@ class Router extends React.Component<{}, RouteComponentState> {
 
 // TODO: loading/error experience until backend is reachable
 
-// tslint:disable-next-line:no-default-export
 export default Router;

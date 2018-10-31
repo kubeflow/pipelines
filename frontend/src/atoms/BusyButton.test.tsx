@@ -34,4 +34,14 @@ describe('BusyButton', () => {
     const tree = create(<BusyButton title='test busy button' icon={TestIcon} busy={true} />);
     expect(tree).toMatchSnapshot();
   });
+
+  it('renders disabled', () => {
+    const tree = create(<BusyButton title='test busy button' icon={TestIcon} disabled={true} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders a primary outlined buton', () => {
+    const tree = create(<BusyButton title='test busy button' outlined={true} />);
+    expect(tree).toMatchSnapshot();
+  });
 });

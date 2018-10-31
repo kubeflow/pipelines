@@ -20,41 +20,52 @@ import (
 	"time"
 
 	api "github.com/googleprivate/ml/backend/api/go_client"
-	"github.com/googleprivate/ml/backend/src/apiserver/model"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	scheduledworkflow "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func toCrdCronSchedule(cronSchedule model.CronSchedule) *scheduledworkflow.CronSchedule {
-	if cronSchedule.Cron == nil {
+func toCRDTrigger(apiTrigger *api.Trigger) *scheduledworkflow.Trigger {
+	var crdTrigger scheduledworkflow.Trigger
+	if apiTrigger.GetCronSchedule() != nil {
+		crdTrigger.CronSchedule = toCRDCronSchedule(apiTrigger.GetCronSchedule())
+	}
+	if apiTrigger.GetPeriodicSchedule() != nil {
+		crdTrigger.PeriodicSchedule = toCRDPeriodicSchedule(apiTrigger.GetPeriodicSchedule())
+	}
+	return &crdTrigger
+}
+
+func toCRDCronSchedule(cronSchedule *api.CronSchedule) *scheduledworkflow.CronSchedule {
+	if cronSchedule == nil || cronSchedule.Cron == "" {
 		return nil
 	}
 	crdCronSchedule := scheduledworkflow.CronSchedule{}
-	crdCronSchedule.Cron = *cronSchedule.Cron
-	if cronSchedule.CronScheduleStartTimeInSec != nil {
-		startTime := v1.NewTime(time.Unix(*cronSchedule.CronScheduleStartTimeInSec, 0))
+	crdCronSchedule.Cron = cronSchedule.Cron
+
+	if cronSchedule.StartTime != nil {
+		startTime := v1.NewTime(time.Unix(cronSchedule.StartTime.Seconds, 0))
 		crdCronSchedule.StartTime = &startTime
 	}
-	if cronSchedule.CronScheduleEndTimeInSec != nil {
-		endTime := v1.NewTime(time.Unix(*cronSchedule.CronScheduleEndTimeInSec, 0))
+	if cronSchedule.EndTime != nil {
+		endTime := v1.NewTime(time.Unix(cronSchedule.EndTime.Seconds, 0))
 		crdCronSchedule.EndTime = &endTime
 	}
 	return &crdCronSchedule
 }
 
-func toCRDPeriodicSchedule(periodicSchedule model.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
-	if periodicSchedule.IntervalSecond == nil {
+func toCRDPeriodicSchedule(periodicSchedule *api.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
+	if periodicSchedule == nil || periodicSchedule.IntervalSecond == 0 {
 		return nil
 	}
 	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
-	crdPeriodicSchedule.IntervalSecond = *periodicSchedule.IntervalSecond
-	if periodicSchedule.PeriodicScheduleStartTimeInSec != nil {
-		startTime := v1.NewTime(time.Unix(*periodicSchedule.PeriodicScheduleStartTimeInSec, 0))
+	crdPeriodicSchedule.IntervalSecond = periodicSchedule.IntervalSecond
+	if periodicSchedule.StartTime != nil {
+		startTime := v1.NewTime(time.Unix(periodicSchedule.StartTime.Seconds, 0))
 		crdPeriodicSchedule.StartTime = &startTime
 	}
-	if periodicSchedule.PeriodicScheduleEndTimeInSec != nil {
-		endTime := v1.NewTime(time.Unix(*periodicSchedule.PeriodicScheduleEndTimeInSec, 0))
+	if periodicSchedule.EndTime != nil {
+		endTime := v1.NewTime(time.Unix(periodicSchedule.EndTime.Seconds, 0))
 		crdPeriodicSchedule.EndTime = &endTime
 	}
 	return &crdPeriodicSchedule

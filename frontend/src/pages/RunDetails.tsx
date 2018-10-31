@@ -19,7 +19,6 @@ import * as WorkflowParser from '../lib/WorkflowParser';
 import Banner, { Mode } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import CloneIcon from '@material-ui/icons/FileCopy';
 import CloseIcon from '@material-ui/icons/Close';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
@@ -27,12 +26,11 @@ import Hr from '../atoms/Hr';
 import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
 import PlotCard from '../components/PlotCard';
-import RefreshIcon from '@material-ui/icons/Refresh';
 import Resizable from 're-resizable';
+import RunUtils from '../lib/RunUtils';
 import Slide from '@material-ui/core/Slide';
-import { ApiJob } from '../apis/job';
-import { ApiRun } from '../apis/run';
 import { Apis } from '../lib/Apis';
+import { ApiRun } from '../apis/run';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
@@ -43,6 +41,8 @@ import { componentMap } from '../components/viewers/ViewerContainer';
 import { formatDateString, getRunTime, logger } from '../lib/Utils';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { stylesheet, classes } from 'typestyle';
+import { ApiExperiment } from '../apis/experiment';
+import { NodePhase } from './Status';
 
 const css = stylesheet({
   closeButton: {
@@ -86,7 +86,7 @@ interface RunDetailsProps {
 }
 
 interface RunDetailsState {
-  job?: ApiJob;
+  experiment?: ApiExperiment;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
   logsBannerMode: Mode;
@@ -117,36 +117,30 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
   public getInitialToolbarState() {
     return {
-      actions: [
-        {
-          action: this._cloneRun.bind(this),
-          disabled: false,
-          icon: CloneIcon,
-          id: 'cloneBtn',
-          title: 'Clone',
-          tooltip: 'Clone',
-        },
-        {
-          action: this.load.bind(this),
-          disabled: false,
-          icon: RefreshIcon,
-          id: 'refreshBtn',
-          title: 'Refresh',
-          tooltip: 'Refresh',
-        },
-      ],
+      actions: [{
+        action: this._cloneRun.bind(this),
+        id: 'cloneBtn',
+        title: 'Clone',
+        tooltip: 'Clone',
+      }, {
+        action: this.load.bind(this),
+        id: 'refreshBtn',
+        title: 'Refresh',
+        tooltip: 'Refresh',
+      }],
       breadcrumbs: [
-        { displayName: 'Jobs', href: RoutePage.JOBS },
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
         { displayName: this.props.runId!, href: '' },
       ],
     };
   }
 
   public render() {
-    const { graph, selectedTab, selectedNodeDetails, sidepanelSelectedTab, workflow } = this.state;
+    const { graph, runMetadata, selectedTab, selectedNodeDetails, sidepanelSelectedTab,
+      workflow } = this.state;
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className={classes(commonCss.page, padding(20, 't'))}>
 
         {workflow && (
           <div className={commonCss.page}>
@@ -243,22 +237,20 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
               {selectedTab === 1 && <div className={padding()}>
                 <div className={commonCss.header}>Run details</div>
+                {/* TODO: show description */}
                 <DetailsTable fields={[
                   ['Status', workflow.status.phase],
+                  ['Description', runMetadata ? runMetadata!.description! : ''],
                   ['Created at', formatDateString(workflow.metadata.creationTimestamp)],
                   ['Started at', formatDateString(workflow.status.startedAt)],
                   ['Finished at', formatDateString(workflow.status.finishedAt)],
                   ['Duration', getRunTime(workflow)],
                 ]} />
 
-                <br />
-                <br />
-
                 {workflow.spec.arguments && workflow.spec.arguments.parameters && (<div>
                   <div className={commonCss.header}>Run parameters</div>
                   <DetailsTable fields={workflow.spec.arguments.parameters.map(p => [p.name, p.value || ''])} />
                 </div>)}
-
               </div>}
             </div>
           </div>
@@ -271,10 +263,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     const runId = this.props.match.params[RouteParams.runId];
 
     try {
-      const runDetail = await Apis.runServiceApi.getRunV2(runId);
-      const job = await Apis.jobServiceApi.getJob(runDetail.run!.job_id!);
+      const runDetail = await Apis.runServiceApi.getRun(runId);
+      const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
+      let experiment: ApiExperiment | undefined;
+      if (relatedExperimentId) {
+        experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+      }
+      const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
       const runMetadata = runDetail.run;
-      const workflow = JSON.parse(runDetail.workflow || '{}') as Workflow;
 
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
@@ -292,20 +288,30 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       const graph = workflow && workflow.status && workflow.status.nodes ?
         WorkflowParser.createRuntimeGraph(workflow) : undefined;
 
-      const jobDetailsHref = RoutePage.JOB_DETAILS.replace(
-        ':' + RouteParams.jobId, runMetadata!.job_id!);
-      const breadcrumbs = [
-        { displayName: 'Jobs', href: RoutePage.JOBS },
-        { displayName: job ? job.name! : runMetadata!.job_id!, href: jobDetailsHref },
-        { displayName: runMetadata!.name!, href: '' },
-      ];
+      const breadcrumbs: Array<{ displayName: string, href: string }> = [];
+      if (experiment) {
+        breadcrumbs.push(
+          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+          {
+            displayName: experiment.name!,
+            href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+          });
+      } else {
+        breadcrumbs.push(
+          { displayName: 'All runs', href: RoutePage.RUNS }
+        );
+      }
+      breadcrumbs.push({
+        displayName: runMetadata ? runMetadata.name! : this.props.runId!,
+        href: '',
+      });
 
       // TODO: run status next to page name
       this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
 
       this.setState({
+        experiment,
         graph,
-        job,
         runMetadata,
         workflow,
       });
@@ -334,17 +340,21 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       if (node && node.message) {
         selectedNodeDetails.phaseMessage =
           `This step is in ${node.phase} state with this message: ` + node.message;
-        this.setState({ selectedNodeDetails });
       }
-    }
-    this.setState({ selectedNodeDetails, sidepanelSelectedTab: tab });
+      this.setState({ selectedNodeDetails, sidepanelSelectedTab: tab });
 
-    switch (tab) {
-      case SidePaneTab.ARTIFACTS:
-        this._loadSelectedNodeOutputs();
-        break;
-      case SidePaneTab.LOGS:
-        this._loadSelectedNodeLogs();
+      switch (tab) {
+        case SidePaneTab.ARTIFACTS:
+          this._loadSelectedNodeOutputs();
+          break;
+        case SidePaneTab.LOGS:
+          if (node.phase !== NodePhase.SKIPPED) {
+            this._loadSelectedNodeLogs();
+          } else {
+            // Clear logs
+            this.setState({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
+          }
+      }
     }
   }
 
@@ -384,7 +394,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     try {
       const logs = await Apis.getPodLogs(selectedNodeDetails.id);
       selectedNodeDetails.logs = logs;
-      this.setState({ selectedNodeDetails });
+      this.setState({ selectedNodeDetails, logsBannerAdditionalInfo: '', logsBannerMessage: '' });
     } catch (err) {
       this.setState({
         logsBannerAdditionalInfo: err.message,
@@ -403,7 +413,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       const searchString = new URLParser(this.props).build({
         [QUERY_PARAMS.cloneFromRun]: this.state.runMetadata.id || ''
       });
-      this.props.history.push(RoutePage.NEW_JOB + searchString);
+      this.props.history.push(RoutePage.NEW_RUN + searchString);
     }
   }
 }

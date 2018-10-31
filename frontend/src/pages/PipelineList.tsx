@@ -15,21 +15,17 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row } from '../components/CustomTable';
-import DeleteIcon from '@material-ui/icons/Delete';
-import RefreshIcon from '@material-ui/icons/Refresh';
-import UploadIcon from '@material-ui/icons/CloudUpload';
+import AddIcon from '@material-ui/icons/Add';
 import UploadPipelineDialog from '../components/UploadPipelineDialog';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
 import { Apis, PipelineSortKeys, BaseListRequest, ListPipelinesRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, formatDateString } from '../lib/Utils';
 
 interface PipelineListState {
   orderAscending: boolean;
@@ -47,61 +43,45 @@ class PipelineList extends Page<{}, PipelineListState> {
     super(props);
 
     this.state = {
-      orderAscending: true,
+      orderAscending: false,
       pageSize: 10,
       pageToken: '',
       pipelines: [],
       selectedIds: [],
-      sortBy: PipelineSortKeys.NAME,
+      sortBy: PipelineSortKeys.CREATED_AT,
       uploadDialogOpen: false,
     };
   }
 
   public getInitialToolbarState() {
     return {
-      actions: [
-        {
-          action: () => this.setState({ uploadDialogOpen: true }),
-          disabled: false,
-          icon: UploadIcon,
-          id: 'uploadBtn',
-          title: 'Upload pipeline',
-          tooltip: 'Upload pipeline',
-        },
-        {
-          action: this._createJob.bind(this),
-          disabled: true,
-          disabledTitle: 'Select a pipeline to create a job',
-          icon: AddIcon,
-          id: 'createJobBtn',
-          title: 'Create job',
-          tooltip: 'Create job',
-        },
-        {
-          action: () => this.load(),
-          disabled: false,
-          icon: RefreshIcon,
-          id: 'refreshBtn',
-          title: 'Refresh',
-          tooltip: 'Refresh',
-        },
-        {
-          action: () => this.props.updateDialog({
-            buttons: [
-              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-            ],
-            onClose: () => this._deleteDialogClosed(false),
-            title: `Delete ${this.state.selectedIds.length} Pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
-          }),
-          disabled: true,
-          disabledTitle: 'Select at least one pipeline to delete',
-          icon: DeleteIcon,
-          id: 'deleteBtn',
-          title: 'Delete',
-          tooltip: 'Delete',
-        },
-      ],
+      actions: [{
+        action: () => this.setState({ uploadDialogOpen: true }),
+        icon: AddIcon,
+        id: 'uploadBtn',
+        outlined: true,
+        title: 'Upload pipeline',
+        tooltip: 'Upload pipeline',
+      }, {
+        action: () => this._reload(),
+        id: 'refreshBtn',
+        title: 'Refresh',
+        tooltip: 'Refresh',
+      }, {
+        action: () => this.props.updateDialog({
+          buttons: [
+            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+          ],
+          onClose: () => this._deleteDialogClosed(false),
+          title: `Delete ${this.state.selectedIds.length} Pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
+        }),
+        disabled: true,
+        disabledTitle: 'Select at least one pipeline to delete',
+        id: 'deleteBtn',
+        title: 'Delete',
+        tooltip: 'Delete',
+      }],
       breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
     };
   }
@@ -121,7 +101,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     const rows: Row[] = this.state.pipelines.map((p) => {
       return {
         id: p.id!,
-        otherFields: [p.name!, p.description!, p.created_at!.toLocaleString()],
+        otherFields: [p.name!, p.description!, formatDateString(p.created_at!)],
       };
     });
 
@@ -140,7 +120,7 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   public async load(): Promise<void> {
-    await this._reload();
+    this._reload();
   }
 
   private _showErrorDialog(title: string, content: string): void {
@@ -160,8 +140,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       sortBy: this.state.sortBy,
     }, loadRequest);
 
-
-    let response: ApiListPipelinesResponse;
+    let response: ApiListPipelinesResponse | null = null;
     try {
       response = await Apis.pipelineServiceApi.listPipelines(
         request.pageToken,
@@ -176,19 +155,17 @@ class PipelineList extends Page<{}, PipelineListState> {
         mode: 'error',
         refresh: this.load.bind(this),
       });
-      // No point in continuing if we couldn't retrieve the pipelines.
-      return '';
     }
 
     this.setState({
       orderAscending: request.orderAscending!,
       pageSize: request.pageSize!,
       pageToken: request.pageToken!,
-      pipelines: response.pipelines || [],
+      pipelines: response ? response.pipelines || [] : [],
       sortBy: request.sortBy!,
     });
 
-    return response.next_page_token || '';
+    return response ? response.next_page_token || '' : '';
   }
 
   private _nameCustomRenderer(value: string, id: string): React.ReactElement<Link> {
@@ -202,8 +179,8 @@ class PipelineList extends Page<{}, PipelineListState> {
 
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = [...this.props.toolbarProps.actions];
-    toolbarActions[1].disabled = selectedIds.length !== 1;
-    toolbarActions[3].disabled = !selectedIds.length;
+    // Delete pipeline
+    toolbarActions[2].disabled = selectedIds.length < 1;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }
@@ -243,15 +220,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     }
   }
 
-  private _createJob() {
-    if (this.state.selectedIds.length === 1) {
-      const pipelineId = this.state.selectedIds[0];
-      const search = new URLParser(this.props).build({ [QUERY_PARAMS.pipelineId]: pipelineId });
-      this.props.history.push(RoutePage.NEW_JOB + search);
-    }
-  }
-
-  private async _uploadDialogClosed(name: string, file: File | null): Promise<boolean> {
+  private async _uploadDialogClosed(name: string, file: File | null, description?: string): Promise<boolean> {
     if (!!file) {
       try {
         await Apis.uploadPipeline(name, file);
@@ -270,5 +239,4 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 }
 
-// tslint:disable-next-line:no-default-export
 export default PipelineList;

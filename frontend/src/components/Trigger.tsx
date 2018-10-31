@@ -30,7 +30,7 @@ import {
 import { ApiTrigger } from '../apis/job';
 
 interface TriggerProps {
-  onChange?: (trigger?: ApiTrigger, maxConcurrentJobs?: string) => void;
+  onChange?: (trigger?: ApiTrigger, maxConcurrentRuns?: string) => void;
 }
 
 interface TriggerState {
@@ -42,7 +42,7 @@ interface TriggerState {
   hasStartDate: boolean;
   intervalCategory: PeriodicInterval;
   intervalValue: number;
-  maxConcurrentJobs: string;
+  maxConcurrentRuns: string;
   selectedDays: boolean[];
   startDate: string;
   startTime: string;
@@ -68,7 +68,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       hasStartDate: false,
       intervalCategory: PeriodicInterval.MINUTE,
       intervalValue: 1,
-      maxConcurrentJobs: '10',
+      maxConcurrentRuns: '10',
       selectedDays: new Array(7).fill(true),
       startDate,
       startTime,
@@ -90,7 +90,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       </Input>
 
       {type !== TriggerType.NOW && (<div>
-        <Input label='Maximum concurrent jobs' required={true} instance={this} field='maxConcurrentJobs' />
+        <Input label='Maximum concurrent jobs' required={true} instance={this} field='maxConcurrentRuns' />
 
         <div className={commonCss.flex}>
           <FormControlLabel control={
@@ -141,7 +141,6 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         <div>
           {intervalCategory === PeriodicInterval.WEEK && (
             <div>
-              <br />
               <span>On:</span>
               <FormControlLabel control={
                 <Checkbox checked={this._isAllDaysChecked()} color='primary'
@@ -202,7 +201,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         intervalCategory, intervalValue, startDateTime, endDateTime, type, this.state.cron);
 
       if (this.props.onChange) {
-        this.props.onChange(trigger, trigger ? this.state.maxConcurrentJobs : undefined);
+        this.props.onChange(trigger, trigger ? this.state.maxConcurrentRuns : undefined);
       }
     });
   }

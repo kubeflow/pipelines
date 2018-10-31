@@ -102,6 +102,12 @@ export interface ApiExperiment {
      * @memberof ApiExperiment
      */
     description?: string;
+    /**
+     * Output. The time that the experiment created.
+     * @type {Date}
+     * @memberof ApiExperiment
+     */
+    created_at?: Date;
 }
 
 /**

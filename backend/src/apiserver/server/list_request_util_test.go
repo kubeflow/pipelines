@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/googleprivate/ml/backend/api/go_client"
 	"github.com/googleprivate/ml/backend/src/apiserver/common"
 	"github.com/googleprivate/ml/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -41,9 +42,23 @@ func getFakeModelToken() string {
 	return base64.StdEncoding.EncodeToString(expectedJson)
 }
 
-func TestNewPaginationContext(t *testing.T) {
+func TestValidateFilter(t *testing.T) {
+	referenceKey := &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "123"}
+	ctx, err := ValidateFilter(referenceKey)
+	assert.Nil(t, err)
+	assert.Equal(t, &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: "123"}}, ctx)
+}
+
+func TestValidateFilter_ToModelResourceTypeFailed(t *testing.T) {
+	referenceKey := &api.ResourceKey{Type: api.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "123"}
+	_, err := ValidateFilter(referenceKey)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unrecognized resource reference type")
+}
+
+func TestValidatePagination(t *testing.T) {
 	token := getFakeModelToken()
-	context, err := ValidateListRequest(token, 3, "Name",
+	context, err := ValidatePagination(token, 3, "Name",
 		"", fakeModelFieldsBySortableAPIFields)
 	assert.Nil(t, err)
 	expected := &common.PaginationContext{
@@ -54,16 +69,16 @@ func TestNewPaginationContext(t *testing.T) {
 	assert.Equal(t, expected, context)
 }
 
-func TestNewPaginationContext_NegativePageSizeError(t *testing.T) {
+func TestValidatePagination_NegativePageSizeError(t *testing.T) {
 	token := getFakeModelToken()
-	_, err := ValidateListRequest(token, -1, "Name",
+	_, err := ValidatePagination(token, -1, "Name",
 		"", fakeModelFieldsBySortableAPIFields)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
 
-func TestNewPaginationContext_DefaultPageSize(t *testing.T) {
+func TestValidatePagination_DefaultPageSize(t *testing.T) {
 	token := getFakeModelToken()
-	context, err := ValidateListRequest(token, 0, "Name",
+	context, err := ValidatePagination(token, 0, "Name",
 		"", fakeModelFieldsBySortableAPIFields)
 	expected := &common.PaginationContext{
 		PageSize:        defaultPageSize,
@@ -74,9 +89,9 @@ func TestNewPaginationContext_DefaultPageSize(t *testing.T) {
 	assert.Equal(t, expected, context)
 }
 
-func TestNewPaginationContext_DefaultSorting(t *testing.T) {
+func TestValidatePagination_DefaultSorting(t *testing.T) {
 	token := getFakeModelToken()
-	context, err := ValidateListRequest(token, 0, "Name",
+	context, err := ValidatePagination(token, 0, "Name",
 		"", fakeModelFieldsBySortableAPIFields)
 	expected := &common.PaginationContext{
 		PageSize:        defaultPageSize,
@@ -87,8 +102,8 @@ func TestNewPaginationContext_DefaultSorting(t *testing.T) {
 	assert.Equal(t, expected, context)
 }
 
-func TestNewPaginationContext_InvalidToken(t *testing.T) {
-	_, err := ValidateListRequest("invalid token", 0, "",
+func TestValidatePagination_InvalidToken(t *testing.T) {
+	_, err := ValidatePagination("invalid token", 0, "",
 		"", fakeModelFieldsBySortableAPIFields)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }

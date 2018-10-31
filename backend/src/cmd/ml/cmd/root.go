@@ -167,7 +167,6 @@ func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 	jobEnableCmd := NewJobEnableCmd(rootCmd)
 	jobDisableCmd := NewJobDisableCmd(rootCmd)
 	jobDeleteCmd := NewJobDeleteCmd(rootCmd)
-	jobListRunsCmd := NewJobListRunCmd(rootCmd, pageSize)
 
 	// Specify subcommands
 	rootCmd.AddCommand(pipelineCmd)
@@ -177,7 +176,7 @@ func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 	runCmd.AddCommand(runGetCmd, runListCmd)
 	rootCmd.AddCommand(jobCmd)
 	jobCmd.AddCommand(jobCreateCmd, jobGetCmd, jobListCmd, jobEnableCmd,
-		jobDisableCmd, jobDeleteCmd, jobListRunsCmd)
+		jobDisableCmd, jobDeleteCmd)
 
 	return rootCmd
 }

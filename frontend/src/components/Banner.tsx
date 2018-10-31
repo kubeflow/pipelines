@@ -124,8 +124,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogContent className={commonCss.prewrap}>{this.props.additionalInfo}</DialogContent>
           <DialogActions>
-            <Button id='dismissDialogBtn' onClick={this._dialogClosed.bind(this)}
-              className={commonCss.actionButton}>Dismiss</Button>
+            <Button id='dismissDialogBtn' onClick={this._dialogClosed.bind(this)}>Dismiss</Button>
           </DialogActions>
         </Dialog>}
       </div>

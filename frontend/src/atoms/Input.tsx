@@ -20,7 +20,7 @@ import { commonCss } from '../Css';
 
 interface InputProps extends TextFieldProps {
   field: string;
-  height?: number;
+  height?: number | string;
   instance: any;
   width?: number;
 }
@@ -28,7 +28,7 @@ interface InputProps extends TextFieldProps {
 export default (props: InputProps) => {
   const { field, height, instance, width, ...rest } = props;
   return <TextField variant='outlined' value={instance.state[field]}
-    className={commonCss.textField}
+    className={commonCss.textField} spellCheck={false}
     style={{ height: height || 40, maxWidth: 600, width: width || '100%' }}
     onChange={instance.handleChange && instance.handleChange(field)} {...rest}>
     {props.children}

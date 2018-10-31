@@ -61,27 +61,20 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 service RunService {
   rpc CreateRun(CreateRunRequest) returns (RunDetail) {
     option (google.api.http) = {
-      post: "/apis/v1alpha2/runs"
+      post: "/apis/v1beta1/runs"
       body: "run"
     };
   }
 
-  rpc GetRunV2(GetRunV2Request) returns (RunDetail) {
+  rpc GetRun(GetRunRequest) returns (RunDetail) {
     option (google.api.http) = {
-      get: "/apis/v1alpha2/runs/{run_id}"
+      get: "/apis/v1beta1/runs/{run_id}"
     };
   }
 
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1alpha2/runs"
-    };
-  }
-
-  // TODO(yangpa): This will be deprecated in v1beta1
-  rpc GetRun(GetRunRequest) returns (RunDetail) {
-    option (google.api.http) = {
-      get: "/apis/v1alpha2/jobs/{job_id}/runs/{run_id}"
+      get: "/apis/v1beta1/runs"
     };
   }
 
@@ -91,14 +84,14 @@ service RunService {
   // ignored by the API. First reporting wins.
   rpc ReportRunMetrics(ReportRunMetricsRequest) returns (ReportRunMetricsResponse) {
     option (google.api.http) = {
-      post: "/apis/v1alpha2/runs/{run_id}:reportMetrics"
+      post: "/apis/v1beta1/runs/{run_id}:reportMetrics"
       body: "*"
     };
   }
 
   rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
-      get: "/apis/v1alpha2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
+      get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
 }
@@ -107,13 +100,8 @@ message CreateRunRequest{
   Run run = 1;
 }
 
-message GetRunV2Request{
+message GetRunRequest{
   string run_id = 1;
-}
-
-message GetRunRequest {
-  string job_id = 1;
-  string run_id = 2;
 }
 
 message ListRunsRequest{
@@ -173,10 +161,6 @@ message Run {
   // Output. The metrics of the run. The metrics are reported by ReportMetrics
   // API.
   repeated RunMetric metrics = 9;
-
-  // TODO(yangpa): Following will be deprecated in v1beta1
-  string job_id = 13;
-  string namespace = 14;
 }
 
 message PipelineRuntime {
@@ -192,9 +176,6 @@ message PipelineRuntime {
 message RunDetail {
   Run run = 1;
   PipelineRuntime pipeline_runtime = 2;
-
-  // TODO(yangpa): Following will be deprecated in v1beta1
-  string workflow = 3;
 }
 
 message RunMetric {

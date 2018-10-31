@@ -219,7 +219,7 @@ describe('Trigger', () => {
       const spy = jest.fn();
       const tree = shallow(<Trigger onChange={spy} />);
       (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
-      (tree.instance() as Trigger).handleChange('maxConcurrentJobs')({ target: { value: '3' } });
+      (tree.instance() as Trigger).handleChange('maxConcurrentRuns')({ target: { value: '3' } });
       expect(spy).toHaveBeenLastCalledWith(
         {
           periodic_schedule:

@@ -50,7 +50,7 @@ func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthI
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "CreateRun",
 		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/runs",
+		PathPattern:        "/apis/v1beta1/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -68,7 +68,7 @@ func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthI
 }
 
 /*
-GetRun ts o d o yangpa this will be deprecated in v1beta1
+GetRun get run API
 */
 func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWriter) (*GetRunOK, error) {
 	// TODO: Validate the params before sending
@@ -79,7 +79,7 @@ func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWri
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetRun",
 		Method:             "GET",
-		PathPattern:        "/apis/v1alpha2/jobs/{job_id}/runs/{run_id}",
+		PathPattern:        "/apis/v1beta1/runs/{run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -97,35 +97,6 @@ func (a *Client) GetRun(params *GetRunParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
-GetRunV2 get run v2 API
-*/
-func (a *Client) GetRunV2(params *GetRunV2Params, authInfo runtime.ClientAuthInfoWriter) (*GetRunV2OK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetRunV2Params()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetRunV2",
-		Method:             "GET",
-		PathPattern:        "/apis/v1alpha2/runs/{run_id}",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &GetRunV2Reader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetRunV2OK), nil
-
-}
-
-/*
 ListRuns list runs API
 */
 func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInfoWriter) (*ListRunsOK, error) {
@@ -137,7 +108,7 @@ func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInf
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListRuns",
 		Method:             "GET",
-		PathPattern:        "/apis/v1alpha2/runs",
+		PathPattern:        "/apis/v1beta1/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -166,7 +137,7 @@ func (a *Client) ReadArtifact(params *ReadArtifactParams, authInfo runtime.Clien
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ReadArtifact",
 		Method:             "GET",
-		PathPattern:        "/apis/v1alpha2/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read",
+		PathPattern:        "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -195,7 +166,7 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ReportRunMetrics",
 		Method:             "POST",
-		PathPattern:        "/apis/v1alpha2/runs/{run_id}:reportMetrics",
+		PathPattern:        "/apis/v1beta1/runs/{run_id}:reportMetrics",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

@@ -37,7 +37,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 
 func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.ListExperimentsRequest) (
 	*api.ListExperimentsResponse, error) {
-	paginationContext, err := ValidateListRequest(
+	paginationContext, err := ValidatePagination(
 		request.PageToken, int(request.PageSize), model.GetExperimentTablePrimaryKeyColumn(),
 		request.SortBy, experimentModelFieldsBySortableAPIFields)
 	if err != nil {

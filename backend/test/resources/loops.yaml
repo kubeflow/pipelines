@@ -18,6 +18,7 @@ metadata:
   generateName: loops-
 spec:
   entrypoint: loop-example
+  serviceAccountName: pipeline-runner
   templates:
   - name: loop-example
     steps:

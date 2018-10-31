@@ -18,12 +18,11 @@ import * as React from 'react';
 import Button, { ButtonProps } from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import { stylesheet, classes } from 'typestyle';
-import { spacing } from '../Css';
 
 const css = stylesheet({
   icon: {
     height: 20,
-    marginRight: spacing.units(-5),
+    marginRight: 4,
     width: 20,
   },
   root: {
@@ -50,18 +49,23 @@ interface BusyButtonProps extends ButtonProps {
   title: string;
   icon?: any;
   busy?: boolean;
+  outlined?: boolean;
 }
 
 class BusyButton extends React.Component<BusyButtonProps> {
   public render() {
-    const { title, icon, busy, className, ...rest } = this.props;
+    const { title, busy, className, disabled, icon, outlined, ...rest } = this.props;
 
-    return <Button {...rest} className={classes(css.root, this.props.busy && css.rootBusy, className)}
-      disabled={this.props.busy || this.props.disabled}>
+    return <Button {...rest} color={outlined ? 'primary' : 'secondary'}
+      className={classes(
+        css.root,
+        busy && css.rootBusy,
+        className)}
+      disabled={busy || disabled}>
       {!!icon && <this.props.icon className={css.icon} />}
       <span>{title}</span>
       {busy === true && <CircularProgress size={15}
-        className={classes(css.spinner, this.props.busy && css.spinnerBusy)} />}
+        className={classes(css.spinner, busy && css.spinnerBusy)} />}
     </Button>;
   }
 }

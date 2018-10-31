@@ -5,6 +5,7 @@ exports[`Input accepts height and width as prop overrides 1`] = `
   className="textField"
   required={false}
   select={false}
+  spellCheck={false}
   style={
     Object {
       "height": 123,
@@ -21,6 +22,7 @@ exports[`Input gets its value from the instance state field 1`] = `
   className="textField"
   required={false}
   select={false}
+  spellCheck={false}
   style={
     Object {
       "height": 40,
@@ -38,6 +40,7 @@ exports[`Input renders with the right styles by default 1`] = `
   className="textField"
   required={false}
   select={false}
+  spellCheck={false}
   style={
     Object {
       "height": 40,

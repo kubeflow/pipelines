@@ -35,6 +35,8 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
     this.props.updateToolbar(this.getInitialToolbarState());
   }
 
+  public abstract render(): JSX.Element;
+
   public abstract getInitialToolbarState(): ToolbarProps;
 
   public abstract load(): Promise<void>;

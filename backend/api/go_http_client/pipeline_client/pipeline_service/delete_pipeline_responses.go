@@ -72,7 +72,7 @@ type DeletePipelineOK struct {
 }
 
 func (o *DeletePipelineOK) Error() string {
-	return fmt.Sprintf("[DELETE /apis/v1alpha2/pipelines/{id}][%d] deletePipelineOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[DELETE /apis/v1beta1/pipelines/{id}][%d] deletePipelineOK  %+v", 200, o.Payload)
 }
 
 func (o *DeletePipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -108,7 +108,7 @@ func (o *DeletePipelineDefault) Code() int {
 }
 
 func (o *DeletePipelineDefault) Error() string {
-	return fmt.Sprintf("[DELETE /apis/v1alpha2/pipelines/{id}][%d] DeletePipeline default  %+v", o._statusCode, o.Payload)
+	return fmt.Sprintf("[DELETE /apis/v1beta1/pipelines/{id}][%d] DeletePipeline default  %+v", o._statusCode, o.Payload)
 }
 
 func (o *DeletePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
