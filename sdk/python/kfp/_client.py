@@ -76,7 +76,7 @@ class Client(object):
     return self._experiment_api.create_experiment(body=exp)
 
   def _extract_pipeline_yaml(self, tar_file):
-    with tarfile.open('./condition.py.tar.gz', "r:gz") as tar:
+    with tarfile.open(tar_file, "r:gz") as tar:
       all_yaml_files = [m for m in tar if m.isfile() and 
                         (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
       if len(all_yaml_files) == 0:
