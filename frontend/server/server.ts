@@ -249,8 +249,10 @@ app.post(BASEPATH + '/apps/tensorboard', createTensorboardHandler);
 app.get('/k8s/pod/logs', logsHandler);
 app.get(BASEPATH + '/k8s/pod/logs', logsHandler);
 
-proxyMiddleware(app, '/' + v1beta1Prefix);
+// Order matters here, since both handlers can match any proxied request with a referer,
+// and we prioritize the basepath-friendly handler
 proxyMiddleware(app, BASEPATH + '/' + v1beta1Prefix);
+proxyMiddleware(app, '/' + v1beta1Prefix);
 
 app.all('/' + v1beta1Prefix + '/*', proxy({
   changeOrigin: true,
