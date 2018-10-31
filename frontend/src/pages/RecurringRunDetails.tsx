@@ -15,11 +15,7 @@
  */
 
 import * as React from 'react';
-import DeleteIcon from '@material-ui/icons/Delete';
 import DetailsTable from '../components/DetailsTable';
-import DisableIcon from '@material-ui/icons/Stop';
-import EnableIcon from '@material-ui/icons/PlayCircleFilled';
-import RefreshIcon from '@material-ui/icons/Refresh';
 import RunUtils from '../lib/RunUtils';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiJob } from '../apis/job';
@@ -50,7 +46,6 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     return {
       actions: [{
         action: this.load.bind(this),
-        icon: RefreshIcon,
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -58,7 +53,6 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
         action: () => this._setEnabledState(true),
         disabled: true,
         disabledTitle: 'Run schedule already enabled',
-        icon: EnableIcon,
         id: 'enableBtn',
         title: 'Enable',
         tooltip: 'Enable the run\'s trigger',
@@ -66,7 +60,6 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
         action: () => this._setEnabledState(false),
         disabled: true,
         disabledTitle: 'Run schedule already disabled',
-        icon: DisableIcon,
         id: 'disableBtn',
         title: 'Disable',
         tooltip: 'Disable the run\'s trigger',
@@ -79,7 +72,6 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
           onClose: () => this._deleteDialogClosed(false),
           title: 'Delete this recurring run?',
         }),
-        icon: DeleteIcon,
         id: 'deleteBtn',
         title: 'Delete',
         tooltip: 'Delete this recurring run',

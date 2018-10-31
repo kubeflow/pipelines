@@ -16,17 +16,17 @@
 
 import * as React from 'react';
 import ArrowRight from '@material-ui/icons/ArrowRight';
-import Checkbox from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import IconButton from '@material-ui/core/IconButton';
 import MenuItem from '@material-ui/core/MenuItem';
+import Radio from '@material-ui/core/Radio';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
 import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import WarningIcon from '@material-ui/icons/WarningRounded';
 import { BaseListRequest } from '../lib/Apis';
-import { CheckboxProps } from '@material-ui/core/Checkbox';
+import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, dimension, commonCss, color, padding } from '../Css';
@@ -69,9 +69,6 @@ export const css = stylesheet({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-  },
-  checkbox: {
-    marginRight: 10,
   },
   columnName: {
     fontSize: fontsize.medium,
@@ -138,6 +135,9 @@ export const css = stylesheet({
   selected: {
     backgroundColor: color.activeBg,
   },
+  selectionToggle: {
+    marginRight: 10,
+  },
 });
 
 interface CustomTableProps {
@@ -155,6 +155,7 @@ interface CustomTableProps {
   sortBy: string;
   toggleExpansion?: (rowId: number) => void;
   updateSelection?: (selectedIds: string[]) => void;
+  useRadioButtons?: boolean;
 }
 
 interface CustomTableState {
@@ -189,11 +190,17 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     if (this.props.disableSelection === true) {
       return;
     }
-    const selectedIds = this.props.selectedIds || [];
-    const selectedIndex = selectedIds.indexOf(id);
-    const newSelected = selectedIndex === -1 ?
-      selectedIds.concat(id) :
-      selectedIds.slice(0, selectedIndex).concat(selectedIds.slice(selectedIndex + 1));
+
+    let newSelected = [];
+    if (this.props.useRadioButtons) {
+      newSelected = [id];
+    } else {
+      const selectedIds = this.props.selectedIds || [];
+      const selectedIndex = selectedIds.indexOf(id);
+      newSelected = selectedIndex === -1 ?
+        selectedIds.concat(id) :
+        selectedIds.slice(0, selectedIndex).concat(selectedIds.slice(selectedIndex + 1));
+    }
 
     if (this.props.updateSelection) {
       this.props.updateSelection(newSelected);
@@ -220,9 +227,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       <div className={commonCss.pageOverflowHidden}>
 
         {/* Header */}
-        <div className={classes(css.header, this.props.disableSelection === true && padding(20, 'l'))}>
-          {this.props.disableSelection !== true && (
-            <div className={classes(css.columnName, css.cell, css.checkbox)}>
+        <div className={classes(
+            css.header, (this.props.disableSelection || this.props.useRadioButtons) && padding(20, 'l'))}>
+          {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
+            <div className={classes(css.columnName, css.cell, css.selectionToggle)}>
               <Checkbox indeterminate={!!numSelected && numSelected < this.props.rows.length}
                 color='primary' checked={!!numSelected && numSelected === this.props.rows.length}
                 onChange={this.handleSelectAllClick.bind(this)} />
@@ -272,9 +280,13 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 )}
                 onClick={e => this.handleClick(e, row.id)}>
                 {(this.props.disableSelection !== true || !!this.props.getExpandComponent) && (
-                  <div className={classes(css.cell, css.checkbox)}>
-                    {this.props.disableSelection !== true &&
-                      <Checkbox color='primary' checked={this.isSelected(row.id)} />}
+                  <div className={classes(css.cell, css.selectionToggle)}>
+                    {/* If using checkboxes */}
+                    {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
+                      <Checkbox color='primary' checked={this.isSelected(row.id)} />)}
+                    {/* If using radio buttons */}
+                    {(this.props.disableSelection !== true && this.props.useRadioButtons) && (
+                      <Radio color='primary' checked={this.isSelected(row.id)} />)}
                     {!!this.props.getExpandComponent && (
                       <IconButton className={classes(css.expandButton,
                         row.expandState === ExpandState.EXPANDED && css.expandButtonExpanded)}

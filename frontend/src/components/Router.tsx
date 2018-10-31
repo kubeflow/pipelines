@@ -65,6 +65,7 @@ export const RoutePage = {
 
 export interface DialogProps {
   buttons?: Array<{ onClick?: () => any, text: string }>;
+  // TODO: This should be generalized to any react component.
   content?: string;
   onClose?: () => any;
   open?: boolean;

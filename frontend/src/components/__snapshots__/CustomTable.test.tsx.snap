@@ -8,7 +8,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -76,7 +76,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -124,7 +124,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -225,7 +225,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -293,7 +293,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -458,7 +458,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(IconButton)
             className="expandButton"
@@ -562,7 +562,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -612,7 +612,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -653,7 +653,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -754,7 +754,7 @@ exports[`CustomTable renders an expanded row 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -822,7 +822,7 @@ exports[`CustomTable renders an expanded row 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -923,7 +923,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -991,7 +991,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -1105,7 +1105,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1232,7 +1232,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1321,7 +1321,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1389,7 +1389,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -1490,7 +1490,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1558,7 +1558,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -1599,7 +1599,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -1700,7 +1700,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1828,7 +1828,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -1955,7 +1955,7 @@ exports[`CustomTable renders some rows 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -2023,7 +2023,7 @@ exports[`CustomTable renders some rows 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -2064,7 +2064,7 @@ exports[`CustomTable renders some rows 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -2165,7 +2165,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}
@@ -2233,7 +2233,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -2276,7 +2276,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
         tabIndex={-1}
       >
         <div
-          className="cell checkbox"
+          className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
             color="primary"
@@ -2379,7 +2379,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
     className="header"
   >
     <div
-      className="columnName cell checkbox"
+      className="columnName cell selectionToggle"
     >
       <WithStyles(Checkbox)
         checked={false}

@@ -224,13 +224,13 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
 
             <Dialog open={this.state.recurringRunsManagerOpen} classes={{ paper: css.recurringRunsDialog }}
-              onClose={this._RecurringRunsManagerClosed.bind(this)}>
+              onClose={this._recurringRunsManagerClosed.bind(this)}>
               <DialogContent>
                 <RecurringRunsManager {...this.props}
                   experimentId={this.props.match.params[RouteParams.experimentId]} />
               </DialogContent>
               <DialogActions>
-                <Button onClick={this._RecurringRunsManagerClosed.bind(this)} color='secondary'>
+                <Button onClick={this._recurringRunsManagerClosed.bind(this)} color='secondary'>
                   Close
                 </Button>
               </DialogActions>
@@ -328,7 +328,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     });
   }
 
-  private _RecurringRunsManagerClosed() {
+  private _recurringRunsManagerClosed() {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
     this.load();
