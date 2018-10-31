@@ -17,6 +17,24 @@
 import kfp.dsl as dsl
 import datetime
 
+def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
+    return dsl.ContainerOp(
+        name = step_name,
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:0.0.24',
+        arguments = [
+            '--csv-data-for-inference', inference_data,
+            '--csv-data-to-validate', validation_data,
+            '--column-names', column_names,
+            '--key-columns', key_columns,
+            '--project', project,
+            '--mode', mode,
+            '--output', validation_output,
+        ],
+        file_outputs = {
+            'output': '/output.txt',
+            'schema': '/output_schema.json',
+        }
+    )
 
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return dsl.ContainerOp(
@@ -104,15 +122,20 @@ def taxi_cab_classification(
     output: dsl.PipelineParam,
     project: dsl.PipelineParam,
 
-    schema: dsl.PipelineParam=dsl.PipelineParam(
-        name='schema',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json'),
+    column_names: dsl.PipelineParam=dsl.PipelineParam(
+        name='column-names',
+        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/column-names.json'),
+    key_columns: dsl.PipelineParam=dsl.PipelineParam(
+        name='key-columns',
+        value='trip_start_timestamp'),
     train: dsl.PipelineParam=dsl.PipelineParam(
         name='train',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv'),
     evaluation: dsl.PipelineParam=dsl.PipelineParam(
         name='evaluation',
         value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv'),
+    validation_mode: dsl.PipelineParam=dsl.PipelineParam(
+        name='validation-mode', value='local'),
     preprocess_mode: dsl.PipelineParam=dsl.PipelineParam(
         name='preprocess-mode', value='local'),
     preprocess_module: dsl.PipelineParam=dsl.PipelineParam(
@@ -127,11 +150,15 @@ def taxi_cab_classification(
     analyze_mode: dsl.PipelineParam=dsl.PipelineParam(name='analyze-mode', value='local'),
     analyze_slice_column: dsl.PipelineParam=dsl.PipelineParam(
         name='analyze-slice-column', value='trip_start_hour')):
+  validation_output = '%s/{{workflow.name}}/validation' % output
   transform_output = '%s/{{workflow.name}}/transformed' % output
   training_output = '%s/{{workflow.name}}/train' % output
   analysis_output = '%s/{{workflow.name}}/analysis' % output
   prediction_output = '%s/{{workflow.name}}/predict' % output
   tf_server_name = 'taxi-cab-classification-model-{{workflow.name}}'
+
+  validation = dataflow_tf_data_validation_op(train, evaluation, column_names, key_columns, project, validation_mode, validation_output)
+  schema = '%s/schema.json' % validation.outputs['output']
 
   preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, preprocess_module, transform_output)
   training = tf_train_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, preprocess_module, training_output)
