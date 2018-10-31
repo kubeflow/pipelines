@@ -17,6 +17,10 @@ import six
 import time
 import logging
 import json
+import os
+import tarfile
+import yaml
+
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -30,34 +34,25 @@ class Client(object):
     """
 
     try:
-      import kfp_upload
+      import kfp_experiment
     except ImportError:
-      raise Exception('This module requires installation of kfp_upload')
-
-    try:
-      import kfp_job
-    except ImportError:
-      raise Exception('This module requires installation of kfp_job')
+      raise Exception('This module requires installation of kfp_experiment')
 
     try:
       import kfp_run
     except ImportError:
       raise Exception('This module requires installation of kfp_run')
 
-    config = kfp_upload.configuration.Configuration()
-    config.host = host
-    api_client = kfp_upload.api_client.ApiClient(config)
-    self._upload_api = kfp_upload.api.pipeline_upload_service_api.PipelineUploadServiceApi(api_client)
-
-    config = kfp_job.configuration.Configuration()
-    config.host = host
-    api_client = kfp_job.api_client.ApiClient(config)
-    self._job_api = kfp_job.api.job_service_api.JobServiceApi(api_client)
-
     config = kfp_run.configuration.Configuration()
     config.host = host
     api_client = kfp_run.api_client.ApiClient(config)
     self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
+
+    config = kfp_experiment.configuration.Configuration()
+    config.host = host
+    api_client = kfp_experiment.api_client.ApiClient(config)
+    self._experiment_api = \
+        kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""
@@ -68,96 +63,58 @@ class Client(object):
 
     return True
 
-  def upload_pipeline(self, pipeline_path):
-    """Upload a pipeline package to local catalog.
-
+  def create_experiment(self, name):
+    """Create a new experiment.
     Args:
-      pipeline_path: a local path to the pipeline package.
+      name: the name of the experiment.
     Returns:
-      A pipeline object. Most important field is id.
+      An Experiment object. Most important field is id.
     """
+    import kfp_experiment
 
-    response = self._upload_api.upload_pipeline(pipeline_path)
-    if self._is_ipython():
-      import IPython
-      html = 'Pipeline link <a href=/pipeline/pipeline?id=%s>here</a>' % response.id
-      IPython.display.display(IPython.display.HTML(html))
-    return response
+    exp = kfp_experiment.models.ApiExperiment(name=name)
+    return self._experiment_api.create_experiment(body=exp)
 
-  def run_pipeline(self, job_name, pipeline_id, params={}):
+  def _extract_pipeline_yaml(self, tar_file):
+    with tarfile.open('./condition.py.tar.gz', "r:gz") as tar:
+      all_yaml_files = [m for m in tar if m.isfile() and 
+                        (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
+      if len(all_yaml_files) == 0:
+        raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
+        
+      if len(all_yaml_files) > 1:
+        raise ValueError('Invalid package. Multiple yaml files in the package.')
+        
+      with tar.extractfile(all_yaml_files[0]) as f:
+        return yaml.load(f)
+
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path, params={}):
     """Run a specified pipeline.
 
     Args:
+      experiment_id: The string id of an experiment.
       job_name: name of the job.
-      pipeline_id: a string returned by upload_pipeline.
+      pipeline_package_path: local path of the pipeline package(tar.gz file).
       params: a dictionary with key (string) as param name and value (string) as as param value.
 
     Returns:
-      A job object. Most important field is id.
+      A run object. Most important field is id.
     """
+    import kfp_run
 
-    import kfp_job
+    pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+    pipeline_json_string = json.dumps(pipeline_obj)
+    api_params = [kfp_run.ApiParameter(name=k, value=str(v)) for k,v in six.iteritems(params)]
+    key = kfp_run.models.ApiResourceKey(id=experiment_id,
+                                        type=kfp_run.models.ApiResourceType.EXPERIMENT)
+    reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
+    spec = kfp_run.models.ApiPipelineSpec(workflow_manifest=pipeline_json_string, parameters=api_params)
+    run_body = kfp_run.models.ApiRun(pipeline_spec=spec, resource_references=[reference], name=job_name)
 
-    api_params = [kfp_job.ApiParameter(name=k, value=str(v)) for k,v in six.iteritems(params)]
-    body = kfp_job.ApiJob(pipeline_id=pipeline_id, name=job_name, parameters=api_params,
-                            max_concurrency=10, enabled = True)
-    response = self._job_api.create_job(body)
+    response = self._run_api.create_run(body=run_body)
+    
     if self._is_ipython():
       import IPython
-      html = 'Job link <a href=/pipeline/job?id=%s>here</a>' % response.id
+      html = 'Job link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>' % response.run.id
       IPython.display.display(IPython.display.HTML(html))
-    return response
-
-  def _wait_for_job_completion(self, job_id, timeout):
-    """Wait for a job to complete.
-
-    Args:
-      job_id: job id, returned from run_pipeline.
-      timeout: timeout in seconds.
-
-    Returns:
-      success: boolean value of whether the job fails or succeeds
-      elapsed_time: elapsed time in seconds
-    """
-    #TODO: need to check the status of the runs because job status is always 'succeeded:'
-    #finished_at timestamp is only available in the runtime argo yaml(workflow json): workflow_json['status']['startedAt'] and workflow_json['status']['finishedAt']
-    status = 'Running:'
-    elapsed_time = 0
-    while status.lower() not in ['succeeded:', 'failed:']:
-      get_job_response = self._job_api.get_job(id=job_id)
-      status = get_job_response.status
-      created_at = get_job_response.created_at
-      updated_at = get_job_response.updated_at
-      elapsed_time = (updated_at - created_at).seconds
-      logging.getLogger(__name__).info('Waiting for the job to complete...')
-      if elapsed_time > timeout:
-        logging.getLogger(__name__).error('Job timeout')
-        return False, elapsed_time
-      time.sleep(5)
-    return (status.lower()=='succeeded'), elapsed_time
-
-  def _get_workflow_json(self, job_id, run_index):
-    """Get the workflow json.
-
-    Args:
-      job_id: job id, returned from run_pipeline.
-      run_index: the index of the run
-
-    Returns:
-      workflow: json workflow
-    """
-    #TODO: run_index should be changed to a more intuitive value.
-    list_job_response = self._job_api.list_job_runs(job_id=job_id)
-    run_id = list_job_response.runs[run_index].id
-    get_run_response = self._run_service_api.get_run(job_id, run_id)
-    workflow = get_run_response.workflow
-    workflow_json = json.loads(workflow)
-    return workflow_json
-
-
-  def _delete_job(self, job_id):
-    """Delete the job.
-
-    Args:
-      job_id: job id, returned from run_pipeline."""
-    self._job_api.delete_job(id=job_id)
+    return response.run
