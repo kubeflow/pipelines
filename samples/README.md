@@ -41,9 +41,7 @@ export PATH=MINICONDA_PATH/bin:$PATH
 * Install DSL library and DSL compiler
  
 ```bash
-cd [ML_REPO_DIRECTORY]
-pip install ./dsl/ --upgrade # The library to specify pipelines with Python.
-pip install ./dsl-compiler/ --upgrade # The compiler that converts pipeline code into the form required by the pipeline system.
+pip install https://storage.googleapis.com/ml-pipeline/release/0.0.26/kfp-0.0.26.tar.gz --upgrade
  ```
 After successful installation the command "dsl-compile" should be added to your PATH.
 
