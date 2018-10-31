@@ -149,7 +149,6 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_2_out_component_using_local_call(func, op)
 
-    @unittest.skip #TODO: FIX:
     def test_handling_same_input_output_names(self):
         from typing import NamedTuple
         def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('DummyName', [('a', float), ('b', float)]):
@@ -161,7 +160,6 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_2_out_component_using_local_call(func, op)
 
-    @unittest.skip #TODO: FIX:
     def test_handling_same_input_default_output_names(self):
         def add_two_numbers_indented(a: float, Output: float) -> float:
             '''Returns sum of two arguments'''

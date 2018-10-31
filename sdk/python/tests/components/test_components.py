@@ -123,7 +123,6 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.skip #TODO: FIX:
     def test_handle_similar_input_names(self):
         component_text = '''\
 inputs:
@@ -136,7 +135,6 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.skip #TODO: FIX:
     def test_handle_duplicate_input_output_names(self):
         component_text = '''\
 inputs:
@@ -163,7 +161,6 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.skip #TODO: FIX: late failure
     @unittest.expectedFailure
     def test_fail_on_unknown_file_output(self):
         component_text = '''\

@@ -237,7 +237,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     func_name = arg[0].lower()
                     func_arguments = arg[1:]
                 if isinstance(arg, dict):
-                    if len(dict) != 1:
+                    if len(arg) != 1:
                         raise ValueError('Failed to parse argiment dict: "{}"'.format(arg))
                     (func_name, func_arguments) = list(arg.items())[0]
                     if not isinstance(func_arguments, list):
@@ -260,7 +260,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     assert(len(func_arguments) == 1)
                     port_name = func_arguments[0]
                     pythonic_port_name = output_name_to_pythonic[port_name]
-                    if pythonic_port_name in pythonic_input_argument_values or pythonic_input_argument_values[pythonic_port_name] is not None:
+                    if pythonic_port_name in pythonic_input_argument_values and pythonic_input_argument_values[pythonic_port_name] is not None:
                         output_filename = str(pythonic_input_argument_values[pythonic_port_name])
                     else:
                         output_filename = _generate_output_file_name(port_name)
@@ -335,8 +335,8 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     from . import _dynamic
     
     #Still allowing to set the output parameters, but make them optional and auto-generate if missing.
-    input_parameters  = [_dynamic.KwParameter(_sanitize_python_function_name(port.name), annotation=(_try_get_object_by_name(port.type) if port.type else inspect.Parameter.empty)) for port in inputs_list]
-    output_parameters = [_dynamic.KwParameter(_sanitize_python_function_name(port.name), annotation=('OutputFile[{}]'.format(port.type) if port.type else inspect.Parameter.empty), default=None) for port in outputs_list]
+    input_parameters  = [_dynamic.KwParameter(input_name_to_pythonic[port.name], annotation=(_try_get_object_by_name(port.type) if port.type else inspect.Parameter.empty)) for port in inputs_list]
+    output_parameters = [_dynamic.KwParameter(output_name_to_pythonic[port.name], annotation=('OutputFile[{}]'.format(port.type) if port.type else inspect.Parameter.empty), default=None) for port in outputs_list]
 
     factory_function_parameters = input_parameters + output_parameters
     
