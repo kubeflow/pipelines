@@ -22,7 +22,8 @@ import logging
 from google.cloud import storage
 from pathlib import PurePath, Path
 from kfp import dsl
-from kfp import compiler
+from kfp.components._components import _create_task_factory_from_component_dict
+from ._k8s_helper import K8sHelper
 
 class GCSHelper(object):
   """ GCSHelper manages the connection with the GCS storage """
@@ -142,7 +143,7 @@ class ImageBuilder(object):
 
   def _check_gcs_path(self, gcs_path):
     """ _check_gcs_path check both the path validity and write permissions """
-    logging.getLogger(__name__).info('Checking path: {}...'.format(gcs_path))
+    logging.info('Checking path: {}...'.format(gcs_path))
     if gcs_path.startswith('gs://'):
       with tempfile.TemporaryDirectory() as local_build_dir:
         rand_filename = str(uuid.uuid4()) + '.txt'
@@ -153,7 +154,7 @@ class ImageBuilder(object):
         GCSHelper.remove_gcs_blob(random_gcs_bucket)
         return True
     else:
-      logging.getLogger(__name__).error('Error: {} should be a GCS path.'.format(gcs_path))
+      logging.error('Error: {} should be a GCS path.'.format(gcs_path))
       return False
 
   def _generate_kaniko_spec(self, namespace, arc_dockerfile_name, gcs_path, target_image):
@@ -187,11 +188,9 @@ class ImageBuilder(object):
     for key, value in annotations.items():
       if key != 'return':
         inputs[key] = value
-      else:
-        output = value
     if len(input_args) != len(inputs):
       raise Exception('Some input arguments do not contain annotations.')
-    if output is not None and output not in [int, float, str, bool]:
+    if 'return' in  annotations and annotations['return'] not in [int, float, str, bool]:
       raise Exception('Output type not supported and supported types are [int, float, str, bool]')
     # inputs is a dictionary with key of argument name and value of type class
     # output is a type class, e.g. str and int.
@@ -253,13 +252,13 @@ class ImageBuilder(object):
     # Generate entrypoint and serialization python codes
     with tempfile.TemporaryDirectory() as local_build_dir:
       local_python_filepath = os.path.join(local_build_dir, self._arc_python_filepath)
-      logging.getLogger(__name__).info('Generate entrypoint and serialization codes.')
+      logging.info('Generate entrypoint and serialization codes.')
       complete_component_code = self._generate_entrypoint(component_func)
       with open(local_python_filepath, 'w') as f:
         f.write(complete_component_code)
 
       # Prepare build files
-      logging.getLogger(__name__).info('Generate build files.')
+      logging.info('Generate build files.')
       docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name, gcs_path=self._gcs_path)
       docker_helper.prepare_docker_tarball_with_py(python_filepath=local_python_filepath,
                                                    arc_python_filename=self._arc_python_filepath,
@@ -270,36 +269,36 @@ class ImageBuilder(object):
                                                gcs_path=self._gcs_path,
                                                target_image=self._target_image)
       # Run kaniko job
-      logging.getLogger(__name__).info('Start a kaniko job for build.')
-      k8s_helper = compiler.K8sHelper()
+      logging.info('Start a kaniko job for build.')
+      k8s_helper = K8sHelper()
       k8s_helper.run_job(kaniko_spec, timeout)
-      logging.getLogger(__name__).info('Kaniko job complete.')
+      logging.info('Kaniko job complete.')
 
       # Clean up
       GCSHelper.remove_gcs_blob(self._gcs_path)
 
   def build_image_from_dockerfile(self, dockerfile_path, timeout, namespace):
     """ build_image_from_dockerfile builds an image directly """
-    logging.getLogger(__name__).info('Generate build files.')
+    logging.info('Generate build files.')
     docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name, gcs_path=self._gcs_path)
     docker_helper.prepare_docker_tarball(dockerfile_path)
 
     kaniko_spec = self._generate_kaniko_spec(namespace=namespace, arc_dockerfile_name=self._arc_dockerfile_name,
                                              gcs_path=self._gcs_path, target_image=self._target_image)
-    logging.getLogger(__name__).info('Start a kaniko job for build.')
-    k8s_helper = compiler.K8sHelper()
+    logging.info('Start a kaniko job for build.')
+    k8s_helper = K8sHelper()
     k8s_helper.run_job(kaniko_spec, timeout)
-    logging.getLogger(__name__).info('Kaniko job complete.')
+    logging.info('Kaniko job complete.')
 
     # Clean up
     GCSHelper.remove_gcs_blob(self._gcs_path)
 
-def generate_pythonop(component_func):
+def _generate_pythonop(component_func, target_image):
   """ Generate operator for the pipeline authors
   component_meta is a dict of name, description, base_image, target_image, input_list
   The returned value is in fact a function, which should generates a container_op instance. """
   component_meta = dsl.PythonComponent.get_python_component(component_func)
-  component_meta['inputs'] = inspect.getfullargspec(component_func)[0]
+  input_names = inspect.getfullargspec(component_func)[0]
 
   component_artifact = {}
   component_artifact['name'] = component_meta['name']
@@ -308,23 +307,22 @@ def generate_pythonop(component_func):
   component_artifact['inputs'] = []
   component_artifact['implementation'] = {
     'dockerContainer': {
-      'image': component_meta['target_image'],
-      'command': ['python','bash.sh'],
+      'image': target_image,
       'arguments': [],
       'fileOutputs': {
         'output': '/output.txt'
       }
     }
   }
-  for input in component_meta['inputs']:
+  for input in input_names:
     component_artifact['inputs'].append({
       'name': input,
       'type': 'str'
     })
     component_artifact['implementation']['dockerContainer']['arguments'].append(['Value', input])
-  #TODO: call load_module_from_component_dict when the pythonop codes are merged
+  return _create_task_factory_from_component_dict(component_artifact)
 
-def build_python_component(component_func, staging_gcs_path, timeout=600, namespace='kubeflow', image_build=True):
+def build_python_component(component_func, staging_gcs_path, target_image, build_image=True, timeout=600, namespace='kubeflow'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -333,25 +331,29 @@ def build_python_component(component_func, staging_gcs_path, timeout=600, namesp
     staging_gcs_path (str): GCS blob that can store temporary build files
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
-    image_build (bool): whether to build the image or not. Default is True.
+    build_image (bool): whether to build the image or not. Default is True.
 
   Raises:
     ValueError: The function is not decorated with python_component decorator
   """
+  logging.basicConfig()
+  logging.getLogger().setLevel('INFO')
   component_meta = dsl.PythonComponent.get_python_component(component_func)
   component_meta['inputs'] = inspect.getfullargspec(component_func)[0]
 
   if component_meta is None:
     raise ValueError('The function "%s" does not exist. '
                      'Did you forget @dsl.python_component decoration?' % component_func)
-  logging.getLogger(__name__).info('Build an image that is based on ' +
+  logging.info('Build an image that is based on ' +
                                    component_meta['base_image'] +
                                    ' and push the image to ' +
-                                   component_meta['target_image'])
-  builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=component_meta['target_image'])
-  builder.build_image_from_func(component_func, namespace=namespace,
-                                base_image=component_meta['base_image'], timeout=timeout)
-  logging.getLogger(__name__).info('Build component complete.')
+                                   target_image)
+  if build_image:
+    builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
+    builder.build_image_from_func(component_func, namespace=namespace,
+                                  base_image=component_meta['base_image'], timeout=timeout)
+    logging.info('Build component complete.')
+  return _generate_pythonop(component_func, target_image)
 
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
@@ -364,7 +366,8 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
-
+  logging.basicConfig()
+  logging.getLogger().setLevel('INFO')
   builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
   builder.build_image_from_dockerfile(dockerfile_path=dockerfile_path, timeout=timeout, namespace=namespace)
-  logging.getLogger(__name__).info('Build image complete.')
+  logging.info('Build image complete.')

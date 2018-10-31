@@ -28,7 +28,7 @@ class K8sHelper(object):
       from kubernetes import client as k8s_client
       from kubernetes import config
     except ImportError:
-      logging.getLogger(__name__).error('Kubernetes client is not installed')
+      logging.error('Kubernetes client is not installed')
       return False
     config.load_incluster_config()
     self._api_client = k8s_client.ApiClient()
@@ -41,7 +41,7 @@ class K8sHelper(object):
       from kubernetes import client as k8s_client
       from kubernetes import config
     except ImportError:
-      logging.getLogger(__name__).error('Kubernetes client is not installed')
+      logging.error('Kubernetes client is not installed')
       return '', False
     pod = k8s_client.V1Pod(metadata=k8s_client.V1ObjectMeta(generate_name=yaml_spec['metadata']['generateName']))
     container = k8s_client.V1Container(name = yaml_spec['spec']['containers'][0]['name'],
@@ -54,7 +54,7 @@ class K8sHelper(object):
       api_response = self._corev1.create_namespaced_pod(yaml_spec['metadata']['namespace'], pod)
       return api_response.metadata.name, True
     except k8s_client.rest.ApiException as e:
-      logging.getLogger(__name__).exception("Exception when calling CoreV1Api->create_namespaced_pod: {}\n".format(str(e)))
+      logging.exception("Exception when calling CoreV1Api->create_namespaced_pod: {}\n".format(str(e)))
       return '', False
 
   def _wait_for_k8s_job(self, pod_name, yaml_spec, timeout):
@@ -63,7 +63,7 @@ class K8sHelper(object):
       from kubernetes import client as k8s_client
       from kubernetes import config
     except ImportError:
-      logging.getLogger(__name__).error('Kubernetes client is not installed')
+      logging.error('Kubernetes client is not installed')
       return False
     status = 'running'
     start_time = datetime.now()
@@ -74,12 +74,12 @@ class K8sHelper(object):
         status = api_response.status.phase.lower()
         time.sleep(5)
         elapsed_time = (datetime.now() - start_time).seconds
-        logging.getLogger(__name__).info('{} seconds: waiting for job to complete'.format(elapsed_time))
+        logging.info('{} seconds: waiting for job to complete'.format(elapsed_time))
         if elapsed_time > timeout:
-          logging.getLogger(__name__).info('Kubernetes job timeout')
+          logging.info('Kubernetes job timeout')
           return False
       except k8s_client.rest.ApiException as e:
-        logging.getLogger(__name__).exception('Exception when calling CoreV1Api->read_namespaced_pod: {}\n'.format(str(e)))
+        logging.exception('Exception when calling CoreV1Api->read_namespaced_pod: {}\n'.format(str(e)))
         return False
     return status == 'succeeded'
 
@@ -89,24 +89,24 @@ class K8sHelper(object):
       from kubernetes import client as k8s_client
       from kubernetes import config
     except ImportError:
-      logging.getLogger(__name__).error('Kubernetes client is not installed')
+      logging.error('Kubernetes client is not installed')
       return False
     try:
       api_response = self._corev1.delete_namespaced_pod(pod_name, yaml_spec['metadata']['namespace'], k8s_client.V1DeleteOptions())
     except k8s_client.rest.ApiException as e:
-      logging.getLogger(__name__).exception('Exception when calling CoreV1Api->delete_namespaced_pod: {}\n'.format(str(e)))
+      logging.exception('Exception when calling CoreV1Api->delete_namespaced_pod: {}\n'.format(str(e)))
 
   def _read_pod_log(self, pod_name, yaml_spec):
     try:
       from kubernetes import client as k8s_client
       from kubernetes import config
     except ImportError:
-      logging.getLogger(__name__).error('Kubernetes client is not installed')
+      logging.error('Kubernetes client is not installed')
       return False
     try:
       api_response = self._corev1.read_namespaced_pod_log(pod_name, yaml_spec['metadata']['namespace'])
     except k8s_client.rest.ApiException as e:
-      logging.getLogger(__name__).exception('Exception when calling CoreV1Api->read_namespaced_pod_log: {}\n'.format(str(e)))
+      logging.exception('Exception when calling CoreV1Api->read_namespaced_pod_log: {}\n'.format(str(e)))
       return False
     return api_response
 
@@ -118,7 +118,8 @@ class K8sHelper(object):
     # timeout in seconds
     succ = self._wait_for_k8s_job(pod_name, yaml_spec, timeout)
     if not succ:
-      logging.getLogger(__name__).info('Kubernetes job failed.')
+      logging.info('Kubernetes job failed.')
+      return False
     #TODO: investigate the read log error
     # print(self._read_pod_log(pod_name, yaml_spec))
     self._delete_k8s_job(pod_name, yaml_spec)

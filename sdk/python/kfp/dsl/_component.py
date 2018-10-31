@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from kfp import dsl
-def python_component(name, description, base_image, target_image):
+def python_component(name, description, base_image):
   """Decorator of component functions.
 
   Usage:
@@ -22,14 +22,13 @@ def python_component(name, description, base_image, target_image):
     name='my awesome component',
     description='Come, Let's play'
     base_image='tensorflow/tensorflow'
-    target_image='gcr.io/component-project/awesome-component'
   )
   def my_component(a: str, b: int) -> str:
     ...
   ```
   """
   def _python_component(func):
-    dsl.PythonComponent.add_python_component(name, description, base_image, target_image, func)
+    dsl.PythonComponent.add_python_component(name, description, base_image, func)
     return func
 
   return _python_component
@@ -45,17 +44,16 @@ class PythonComponent():
 
 
   # All pipeline functions with @pipeline decorator that are imported.
-  # Each key is a pipeline function. Each value is a dictionary of name, description, base_image, target_image.
+  # Each key is a pipeline function. Each value is a dictionary of name, description, base_image.
   _component_functions = {}
 
   @staticmethod
-  def add_python_component(name, description, base_image, target_image, func):
+  def add_python_component(name, description, base_image, func):
     """ Add a python component """
     dsl.PythonComponent._component_functions[func] = {
       'name': name,
       'description': description,
-      'base_image': base_image,
-      'target_image': target_image
+      'base_image': base_image
     }
 
   @staticmethod
