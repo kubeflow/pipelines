@@ -76,8 +76,12 @@ def preprocess(inputs):
 
   for key in VOCAB_FEATURE_KEYS:
     # Build a vocabulary for this feature.
+    if inputs[key].dtype == tf.string:
+        vocab_tensor = inputs[key]
+    else:
+        vocab_tensor = tf.as_string(inputs[key])
     outputs[key] = transform.string_to_int(
-        inputs[key], vocab_filename='vocab_' + key,
+        vocab_tensor, vocab_filename='vocab_' + key,
         top_k=VOCAB_SIZE, num_oov_buckets=OOV_SIZE)
 
   for key in BUCKET_FEATURE_KEYS:
