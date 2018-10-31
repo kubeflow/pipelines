@@ -175,7 +175,7 @@ if ${UNINSTALL} ; then
   if [ "$WITH_KUBEFLOW" = true ]; then
     KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
     # Uninstall Kubeflow
-    (cd ${KUBEFLOW_REPO}/${KFAPP} && ks delete default)
+    (cd ${KUBEFLOW_REPO}${KFAPP} && ks delete default)
   fi
   exit 0
 fi

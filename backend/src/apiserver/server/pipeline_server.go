@@ -53,7 +53,7 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 		return nil, util.Wrap(err, "Invalid pipeline name.")
 	}
 
-	pipeline, err := s.resourceManager.CreatePipeline(pipelineName, pipelineFile)
+	pipeline, err := s.resourceManager.CreatePipeline(pipelineName, "", pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed.")
 	}

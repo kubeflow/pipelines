@@ -24,6 +24,7 @@ WORKDIR /bin
 COPY --from=builder /bin/apiserver /bin/apiserver
 COPY --from=builder /go/src/github.com/googleprivate/ml/third_party/license.txt /bin/license.txt
 COPY backend/src/apiserver/config/ /config
+COPY backend/src/apiserver/samples/ /samples
 
 # Adding CA certificate so API server can download pipeline through URL
 RUN apk add ca-certificates
@@ -32,4 +33,4 @@ RUN apk add ca-certificates
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/config
+CMD apiserver --config=/config --sampleconfig=/samples/sample_config.json

@@ -16,9 +16,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"io"
-	"log"
+	"io/ioutil"
 	"net"
 	"net/http"
 
@@ -32,9 +33,10 @@ import (
 )
 
 var (
-	rpcPortFlag  = flag.String("rpcPortFlag", ":8887", "RPC Port")
-	httpPortFlag = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
-	configPath   = flag.String("config", "", "Path to JSON file containing config")
+	rpcPortFlag      = flag.String("rpcPortFlag", ":8887", "RPC Port")
+	httpPortFlag     = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
+	configPath       = flag.String("config", "", "Path to JSON file containing config")
+	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -46,6 +48,7 @@ func main() {
 	initConfig()
 	clientManager := newClientManager()
 	resourceManager := resource.NewResourceManager(&clientManager)
+	loadSamples(resourceManager)
 	go startRpcServer(resourceManager)
 	startHttpProxy(resourceManager)
 
@@ -111,6 +114,34 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
 	if err := handler(ctx, mux, endpoint, opts); err != nil {
-		log.Fatalf("Failed to register %v handler: %v", serviceName, err)
+		glog.Fatalf("Failed to register %v handler: %v", serviceName, err)
 	}
+}
+
+// Preload a bunch of pipeline samples
+func loadSamples(resourceManager *resource.ResourceManager) {
+	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
+	if err != nil {
+		glog.Warningf("Failed to read sample configurations. Err: %v", err.Error())
+		return
+	}
+	type config struct {
+		Name        string
+		Description string
+		File        string
+	}
+	var configs []config
+	if json.Unmarshal(configBytes, &configs) != nil {
+		glog.Warningf("Failed to read sample configurations. Err: %v", err.Error())
+		return
+	}
+	for _, config := range configs {
+		sampleBytes, err := ioutil.ReadFile(config.File)
+		if err != nil {
+			glog.Warningf("Failed to load sample %s. Error: %v", config.Name, err.Error())
+			continue
+		}
+		resourceManager.CreatePipeline(config.Name, config.Description, sampleBytes)
+	}
+	glog.Info("All samples are loaded.")
 }

@@ -70,8 +70,8 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time: clientManager.Time(),
-		uuid: clientManager.UUID(),
+		time:                    clientManager.Time(),
+		uuid:                    clientManager.UUID(),
 	}
 }
 
@@ -128,7 +128,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	return nil
 }
 
-func (r *ResourceManager) CreatePipeline(name string, pipelineFile []byte) (*model.Pipeline, error) {
+func (r *ResourceManager) CreatePipeline(name string, description string, pipelineFile []byte) (*model.Pipeline, error) {
 	// Extract the parameter from the pipeline
 	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
@@ -136,7 +136,7 @@ func (r *ResourceManager) CreatePipeline(name string, pipelineFile []byte) (*mod
 	}
 
 	// Create an entry with status of creating the pipeline
-	pipeline := &model.Pipeline{Name: name, Parameters: params, Status: model.PipelineCreating}
+	pipeline := &model.Pipeline{Name: name, Description: description, Parameters: params, Status: model.PipelineCreating}
 	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")

@@ -63,7 +63,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Invalid pipeline name."))
 		return
 	}
-	newPipeline, err := s.resourceManager.CreatePipeline(pipelineName, pipelineFile)
+	newPipeline, err := s.resourceManager.CreatePipeline(pipelineName, "", pipelineFile)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return

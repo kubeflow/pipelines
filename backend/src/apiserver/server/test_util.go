@@ -76,7 +76,7 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 func initWithPipeline(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Pipeline) {
 	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := resource.NewResourceManager(store)
-	p, err := manager.CreatePipeline("p1", []byte(testWorkflow.ToStringForStore()))
+	p, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 	return store, manager, p
 }
