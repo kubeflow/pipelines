@@ -196,7 +196,7 @@ For more details, see [README.md](https://github.com/googleprivate/ml/blob/maste
  
 * Install a version of pipeline SDK:
 ```bash
-pip install https://storage.googleapis.com/ml-pipeline/release/0.0.25/kfp-0.0.25.tar.gz --upgrade
+pip install https://storage.googleapis.com/ml-pipeline/release/0.0.26/kfp-0.0.26.tar.gz --upgrade
 ```
 
 Note: if you prefer adding "--user" in installation of dsl-compiler, please also run "export PATH=~/.local/bin:$PATH".
