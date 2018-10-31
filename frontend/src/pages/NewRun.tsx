@@ -235,16 +235,18 @@ class NewRun extends Page<{}, NewRunState> {
     } else {
       // Get pipeline id from querystring if any
       const possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
-      try {
-        const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
-        this.setState({ pipeline, pipelineName: (pipeline && pipeline.name) || '' });
-      } catch (err) {
-        urlParser.clear(QUERY_PARAMS.pipelineId);
-        this._handlePageError(
-          'Error: failed to find a pipeline corresponding to that of the original run:'
-          + ` ${originalRunId}.`);
-        logger.error('Cannot get the original run\'s data');
-        return;
+      if (possiblePipelineId) {
+        try {
+          const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
+          this.setState({ pipeline, pipelineName: (pipeline && pipeline.name) || '' });
+        } catch (err) {
+          urlParser.clear(QUERY_PARAMS.pipelineId);
+          this._handlePageError(
+            'Error: failed to find a pipeline corresponding to that of the original run:'
+            + ` ${originalRunId}.`);
+          logger.error('Cannot get the original run\'s data');
+          return;
+        }
       }
     }
 
@@ -315,6 +317,9 @@ class NewRun extends Page<{}, NewRunState> {
       pipelineName: (pipeline && pipeline.name) || '',
       pipelineSelectorOpen: false
     });
+
+    // Now that we may have a pipeline, update the validation.
+    this._validate();
   }
 
   /* This function is passed as a callback to the PipelineSelector dialog. */
@@ -408,6 +413,7 @@ class NewRun extends Page<{}, NewRunState> {
       return;
     }
     pipeline.parameters[index].value = value;
+    // TODO: is this doing anything?
     this.setState({ pipeline });
   }
 
