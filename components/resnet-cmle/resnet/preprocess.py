@@ -32,10 +32,9 @@ def parse_arguments():
                       required = True,
                       default = '',
                       help = 'Pass in your project id.')
-  parser.add_argument('--bucket',
+  parser.add_argument('--output',
                       type = str,
-                      default = 'flowers_resnet',
-                      help = 'Path to GCS bucket.')
+                      help = 'Path to GCS location to store output.')
   parser.add_argument('--train_csv',
                       type = str,
                       default = 'gs://cloud-ml-data/img/flower_photos/train_set.csv',
@@ -55,7 +54,7 @@ def parse_arguments():
 if __name__== "__main__":
   args = parse_arguments()
 
-  output_dir = 'gs://' + args.bucket + '/tpu/preprocessed'
+  output_dir = args.output + '/tpu/preprocessed'
 
   with open("/output.txt", "w") as output_file:
     output_file.write(output_dir)

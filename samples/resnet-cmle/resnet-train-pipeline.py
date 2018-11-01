@@ -17,13 +17,13 @@
 import kfp.dsl as dsl
 import datetime
 
-def resnet_preprocess_op(project_id: 'GcpProject', bucket: 'GcsBucket', train_csv: 'GcsUri[text/csv]', validation_csv: 'GcsUri[text/csv]', labels, step_name='preprocess'):
+def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', train_csv: 'GcsUri[text/csv]', validation_csv: 'GcsUri[text/csv]', labels, step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-preprocess:0.0.18',
+        image = 'gcr.io/ml-pipeline/resnet-preprocess:dev', # TODO: update it with a version number after a new release.
         arguments = [
             '--project_id', project_id,
-            '--bucket', bucket,
+            '--output', output,
             '--train_csv', train_csv,
             '--validation_csv', validation_csv,
             '--labels', labels,
@@ -31,13 +31,13 @@ def resnet_preprocess_op(project_id: 'GcpProject', bucket: 'GcsBucket', train_cs
         file_outputs = {'preprocessed': '/output.txt'}
     )
 
-def resnet_train_op(data_dir, bucket: 'GcsBucket', region: 'GcpRegion', depth: int, train_batch_size: int, eval_batch_size: int, steps_per_eval: int, train_steps: int, num_train_images: int, num_eval_images: int, num_label_classes: int, tf_version, step_name='train'):
+def resnet_train_op(data_dir, output: 'GcsUri', region: 'GcpRegion', depth: int, train_batch_size: int, eval_batch_size: int, steps_per_eval: int, train_steps: int, num_train_images: int, num_eval_images: int, num_label_classes: int, tf_version, step_name='train'):
     return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/resnet-train:0.0.18',
         arguments = [
             '--data_dir', data_dir,
-            '--bucket', bucket,
+            '--output', output,
             '--region', region,
             '--depth', depth,
             '--train_batch_size', train_batch_size,
@@ -72,7 +72,7 @@ def resnet_deploy_op(model_dir, model, version, project_id: 'GcpProject', region
   description='Demonstrate the ResNet50 predict.'
 )
 def resnet_train(project_id: dsl.PipelineParam,
-  bucket: dsl.PipelineParam,
+  output: dsl.PipelineParam,
   region: dsl.PipelineParam=dsl.PipelineParam(name='region', value='us-central1'),
   model: dsl.PipelineParam=dsl.PipelineParam(name='model', value='bolts'),
   version: dsl.PipelineParam=dsl.PipelineParam(name='version', value='beta1'),
@@ -89,8 +89,8 @@ def resnet_train(project_id: dsl.PipelineParam,
   num_eval_images: dsl.PipelineParam=dsl.PipelineParam(name='num-eval-images', value=54648),
   num_label_classes: dsl.PipelineParam=dsl.PipelineParam(name='num-label-classes', value=10)):
 
-  preprocess = resnet_preprocess_op(project_id, bucket, train_csv, validation_csv, labels)
-  train = resnet_train_op(preprocess.output, bucket, region, depth, train_batch_size, eval_batch_size, steps_per_eval, train_steps, num_train_images, num_eval_images, num_label_classes, tf_version)
+  preprocess = resnet_preprocess_op(project_id, output, train_csv, validation_csv, labels)
+  train = resnet_train_op(preprocess.output, output, region, depth, train_batch_size, eval_batch_size, steps_per_eval, train_steps, num_train_images, num_eval_images, num_label_classes, tf_version)
   deploy = resnet_deploy_op(train.output, model, version, project_id, region, tf_version)
 
 if __name__ == '__main__':
