@@ -21,7 +21,11 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
     disabled={false}
     getDataTransferItems={[Function]}
     id="dropZone"
-    inputProps={Object {}}
+    inputProps={
+      Object {
+        "tabIndex": -1,
+      }
+    }
     maxSize={Infinity}
     minSize={0}
     multiple={true}
@@ -129,7 +133,11 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
                   disabled={false}
                   getDataTransferItems={[Function]}
                   id="dropZone"
-                  inputProps={Object {}}
+                  inputProps={
+                    Object {
+                      "tabIndex": -1,
+                    }
+                  }
                   maxSize={Infinity}
                   minSize={0}
                   multiple={true}
@@ -278,7 +286,11 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
                   disabled={false}
                   getDataTransferItems={[Function]}
                   id="dropZone"
-                  inputProps={Object {}}
+                  inputProps={
+                    Object {
+                      "tabIndex": -1,
+                    }
+                  }
                   maxSize={Infinity}
                   minSize={0}
                   multiple={true}
@@ -405,7 +417,11 @@ exports[`UploadPipelineDialog renders closed 1`] = `
     disabled={false}
     getDataTransferItems={[Function]}
     id="dropZone"
-    inputProps={Object {}}
+    inputProps={
+      Object {
+        "tabIndex": -1,
+      }
+    }
     maxSize={Infinity}
     minSize={0}
     multiple={true}
@@ -501,7 +517,11 @@ exports[`UploadPipelineDialog renders closed 1`] = `
                   disabled={false}
                   getDataTransferItems={[Function]}
                   id="dropZone"
-                  inputProps={Object {}}
+                  inputProps={
+                    Object {
+                      "tabIndex": -1,
+                    }
+                  }
                   maxSize={Infinity}
                   minSize={0}
                   multiple={true}
@@ -638,7 +658,11 @@ exports[`UploadPipelineDialog renders closed 1`] = `
                   disabled={false}
                   getDataTransferItems={[Function]}
                   id="dropZone"
-                  inputProps={Object {}}
+                  inputProps={
+                    Object {
+                      "tabIndex": -1,
+                    }
+                  }
                   maxSize={Infinity}
                   minSize={0}
                   multiple={true}
@@ -760,7 +784,11 @@ exports[`UploadPipelineDialog renders open 1`] = `
     disabled={false}
     getDataTransferItems={[Function]}
     id="dropZone"
-    inputProps={Object {}}
+    inputProps={
+      Object {
+        "tabIndex": -1,
+      }
+    }
     maxSize={Infinity}
     minSize={0}
     multiple={true}
@@ -856,7 +884,11 @@ exports[`UploadPipelineDialog renders open 1`] = `
                   disabled={false}
                   getDataTransferItems={[Function]}
                   id="dropZone"
-                  inputProps={Object {}}
+                  inputProps={
+                    Object {
+                      "tabIndex": -1,
+                    }
+                  }
                   maxSize={Infinity}
                   minSize={0}
                   multiple={true}
@@ -993,7 +1025,11 @@ exports[`UploadPipelineDialog renders open 1`] = `
                   disabled={false}
                   getDataTransferItems={[Function]}
                   id="dropZone"
-                  inputProps={Object {}}
+                  inputProps={
+                    Object {
+                      "tabIndex": -1,
+                    }
+                  }
                   maxSize={Infinity}
                   minSize={0}
                   multiple={true}
@@ -1115,7 +1151,11 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
     disabled={false}
     getDataTransferItems={[Function]}
     id="dropZone"
-    inputProps={Object {}}
+    inputProps={
+      Object {
+        "tabIndex": -1,
+      }
+    }
     maxSize={Infinity}
     minSize={0}
     multiple={true}
@@ -1220,7 +1260,11 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
                   disabled={false}
                   getDataTransferItems={[Function]}
                   id="dropZone"
-                  inputProps={Object {}}
+                  inputProps={
+                    Object {
+                      "tabIndex": -1,
+                    }
+                  }
                   maxSize={Infinity}
                   minSize={0}
                   multiple={true}
@@ -1366,7 +1410,11 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
                   disabled={false}
                   getDataTransferItems={[Function]}
                   id="dropZone"
-                  inputProps={Object {}}
+                  inputProps={
+                    Object {
+                      "tabIndex": -1,
+                    }
+                  }
                   maxSize={Infinity}
                   minSize={0}
                   multiple={true}

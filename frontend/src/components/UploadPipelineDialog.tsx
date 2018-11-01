@@ -85,7 +85,7 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
         <Dropzone id='dropZone' disableClick={true} className={padding(20, 'lr')}
           onDrop={this._onDrop.bind(this)} onDragEnter={this._onDropzoneDragEnter.bind(this)}
           onDragLeave={this._onDropzoneDragLeave.bind(this)} style={{ position: 'relative' }}
-          ref={this._dropzoneRef}>
+          ref={this._dropzoneRef} inputProps={{ tabIndex: -1 }}>
 
           {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
 

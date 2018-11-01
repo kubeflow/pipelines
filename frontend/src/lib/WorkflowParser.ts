@@ -217,9 +217,9 @@ export function isVirtual(node: NodeStatus): boolean {
 
 // Returns a workflow-level error string if found, empty string if none
 export function getWorkflowError(workflow: Workflow): string {
-  if (workflow && workflow.status && (
+  if (workflow && workflow.status && workflow.status.message && (
     workflow.status.phase === NodePhase.ERROR || workflow.status.phase === NodePhase.FAILED)) {
-    return workflow.status.message || 'Run failed for an unknown reason';
+    return workflow.status.message;
   } else {
     return '';
   }

@@ -92,7 +92,7 @@ exports[`Trigger enables a single day on click 1`] = `
                 <Unknown
                   field="maxConcurrentRuns"
                   instance={[Circular]}
-                  label="Maximum concurrent jobs"
+                  label="Maximum concurrent runs"
                   required={true}
                 />
                 <div
@@ -445,7 +445,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div
@@ -684,7 +684,7 @@ exports[`Trigger enables a single day on click 1`] = `
           Symbol(enzyme.__setState__): [Function],
         }
       }
-      label="Maximum concurrent jobs"
+      label="Maximum concurrent runs"
       required={true}
     />
     <div
@@ -790,7 +790,7 @@ exports[`Trigger enables a single day on click 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -1129,7 +1129,7 @@ exports[`Trigger enables a single day on click 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -1481,7 +1481,7 @@ exports[`Trigger enables a single day on click 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -1820,7 +1820,7 @@ exports[`Trigger enables a single day on click 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -2165,7 +2165,7 @@ exports[`Trigger enables a single day on click 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -2636,7 +2636,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div
@@ -2978,7 +2978,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                 <Unknown
                   field="maxConcurrentRuns"
                   instance={[Circular]}
-                  label="Maximum concurrent jobs"
+                  label="Maximum concurrent runs"
                   required={true}
                 />
                 <div
@@ -3331,7 +3331,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div
@@ -3570,7 +3570,7 @@ exports[`Trigger renders all week days enabled 1`] = `
           Symbol(enzyme.__setState__): [Function],
         }
       }
-      label="Maximum concurrent jobs"
+      label="Maximum concurrent runs"
       required={true}
     />
     <div
@@ -3676,7 +3676,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -4015,7 +4015,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -4367,7 +4367,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -4706,7 +4706,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -5051,7 +5051,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -5522,7 +5522,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div
@@ -5864,7 +5864,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                 <Unknown
                   field="maxConcurrentRuns"
                   instance={[Circular]}
-                  label="Maximum concurrent jobs"
+                  label="Maximum concurrent runs"
                   required={true}
                 />
                 <div
@@ -6145,7 +6145,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div
@@ -6312,7 +6312,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
           Symbol(enzyme.__setState__): [Function],
         }
       }
-      label="Maximum concurrent jobs"
+      label="Maximum concurrent runs"
       required={true}
     />
     <div
@@ -6418,7 +6418,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -6685,7 +6685,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -6965,7 +6965,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -7232,7 +7232,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -7505,7 +7505,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -7825,7 +7825,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div
@@ -8095,7 +8095,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                 <Unknown
                   field="maxConcurrentRuns"
                   instance={[Circular]}
-                  label="Maximum concurrent jobs"
+                  label="Maximum concurrent runs"
                   required={true}
                 />
                 <div
@@ -8353,7 +8353,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div
@@ -8497,7 +8497,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
           Symbol(enzyme.__setState__): [Function],
         }
       }
-      label="Maximum concurrent jobs"
+      label="Maximum concurrent runs"
       required={true}
     />
     <div
@@ -8603,7 +8603,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -8847,7 +8847,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -9104,7 +9104,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -9348,7 +9348,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -9602,7 +9602,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                       <Unknown
                         field="maxConcurrentRuns"
                         instance={[Circular]}
-                        label="Maximum concurrent jobs"
+                        label="Maximum concurrent runs"
                         required={true}
                       />
                       <div
@@ -9843,7 +9843,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is perio
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -10119,7 +10119,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 <Unknown
                   field="maxConcurrentRuns"
                   instance={[Circular]}
-                  label="Maximum concurrent jobs"
+                  label="Maximum concurrent runs"
                   required={true}
                 />
                 <div
@@ -10472,7 +10472,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div
@@ -10711,7 +10711,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
           Symbol(enzyme.__setState__): [Function],
         }
       }
-      label="Maximum concurrent jobs"
+      label="Maximum concurrent runs"
       required={true}
     />
     <div
@@ -10817,7 +10817,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -11156,7 +11156,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -11508,7 +11508,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -11847,7 +11847,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -12192,7 +12192,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <Unknown
                       field="maxConcurrentRuns"
                       instance={[Circular]}
-                      label="Maximum concurrent jobs"
+                      label="Maximum concurrent runs"
                       required={true}
                     />
                     <div
@@ -12663,7 +12663,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   <Unknown
                     field="maxConcurrentRuns"
                     instance={[Circular]}
-                    label="Maximum concurrent jobs"
+                    label="Maximum concurrent runs"
                     required={true}
                   />
                   <div

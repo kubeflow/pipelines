@@ -151,7 +151,7 @@ class NewRun extends Page<{}, NewRunState> {
 
           {isRecurringRun && (
             <React.Fragment>
-              <div className={commonCss.header}>Job trigger</div>
+              <div className={commonCss.header}>Run trigger</div>
 
               <Trigger onChange={(trigger, maxConcurrentRuns) => this.setState({
                 maxConcurrentRuns,
@@ -367,6 +367,7 @@ class NewRun extends Page<{}, NewRunState> {
       max_concurrency: this.state.maxConcurrentRuns || '1',
       name: this.state.runName,
       pipeline_spec: { parameters: pipeline.parameters, pipeline_id: pipeline.id },
+      resource_references: references,
       trigger: this.state.trigger,
     } : {
         description: this.state.description,
@@ -449,12 +450,12 @@ class NewRun extends Page<{}, NewRunState> {
           throw new Error('End date/time cannot be earlier than start date/time');
         }
       }
-      const validMaxConcurrentJobs = (input: string) =>
+      const validMaxConcurrentRuns = (input: string) =>
         !isNaN(Number.parseInt(input, 10)) && +input > 0;
 
       if (hasTrigger && maxConcurrentRuns !== undefined &&
-        !validMaxConcurrentJobs(maxConcurrentRuns)) {
-        throw new Error('For triggered jobs, maximum concurrent jobs must be a positive number');
+        !validMaxConcurrentRuns(maxConcurrentRuns)) {
+        throw new Error('For triggered runs, maximum concurrent runs must be a positive number');
       }
 
       this.setState({

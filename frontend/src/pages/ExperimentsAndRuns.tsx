@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import ExperimentList from './JobList';
+import ExperimentList from './ExperimentList';
 import AllRunsList from './AllRunsList';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Page, PageProps } from './Page';

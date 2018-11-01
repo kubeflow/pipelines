@@ -631,12 +631,12 @@ describe('WorkflowParser', () => {
     });
 
     [NodePhase.ERROR, NodePhase.FAILED].map(phase => {
-      it('returns message string for workflow with no message and phase: ' + phase, () => {
+      it('returns no error for workflow with no message and phase: ' + phase, () => {
         expect(getWorkflowError({
           status: {
             phase,
           },
-        } as any)).toEqual('Run failed for an unknown reason');
+        } as any)).toEqual('');
       });
     });
 

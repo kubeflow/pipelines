@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import ExperimentsAndRuns, { ExperimentAndRunsProps, ExperimentsAndRunsTab } from './JobsAndRuns';
+import ExperimentsAndRuns, { ExperimentAndRunsProps, ExperimentsAndRunsTab } from './ExperimentsAndRuns';
 import { shallow } from 'enzyme';
 
 function generateProps(): ExperimentAndRunsProps {

@@ -90,7 +90,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       </Input>
 
       {type !== TriggerType.NOW && (<div>
-        <Input label='Maximum concurrent jobs' required={true} instance={this} field='maxConcurrentRuns' />
+        <Input label='Maximum concurrent runs' required={true} instance={this} field='maxConcurrentRuns' />
 
         <div className={commonCss.flex}>
           <FormControlLabel control={

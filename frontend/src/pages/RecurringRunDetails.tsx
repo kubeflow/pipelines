@@ -233,8 +233,8 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
           open: true,
         });
       } catch (err) {
-        this._showErrorDialog('Failed to delete recurring runjob', err.message);
-        logger.error('Deleting recurring runjob failed with error:', err);
+        this._showErrorDialog('Failed to delete recurring run', err.message);
+        logger.error('Deleting recurring run failed with error:', err);
       }
     }
   }

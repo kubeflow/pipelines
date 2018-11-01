@@ -62,7 +62,6 @@ export interface RunListProps extends RouteComponentProps {
   disableSelection?: boolean;
   disableSorting?: boolean;
   experimentIdMask?: string;
-  jobIdMask?: string;
   runIdListMask?: string[];
   onError: (message: string, error: Error) => void;
   selectedIds?: string[];
