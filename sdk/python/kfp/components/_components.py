@@ -123,7 +123,7 @@ def _create_task_factory_from_component_dict(component_dict, component_filename=
 def _normalize_identifier_name(name):
     import re
     normalized_name = name.lower()
-    normalized_name = re.sub(r'\W', ' ', normalized_name)           #No non-word characters
+    normalized_name = re.sub(r'[\W_]', ' ', normalized_name)           #No non-word characters
     normalized_name = re.sub(' +', ' ', normalized_name).strip()    #No double spaces, leading or trailing spaces
     if re.match(r'\d', normalized_name):
         normalized_name = 'n' + normalized_name                     #No leading digits
