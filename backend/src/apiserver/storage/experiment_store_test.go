@@ -251,6 +251,7 @@ func TestCreateExperiment_DuplicatedKey(t *testing.T) {
 	_, err := experimentStore.CreateExperiment(experiment)
 	assert.Nil(t, err)
 
+	experimentStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil))
 	_, err = experimentStore.CreateExperiment(experiment)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The name experiment1 already exist")
