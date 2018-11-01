@@ -16,6 +16,7 @@ import argparse
 import os
 import json
 import tarfile
+from datetime import datetime
 import utils
 from kfp import Client
 
@@ -58,10 +59,11 @@ def main():
     utils.write_junit_xml(test_name, args.result, test_cases)
     exit()
 
-  ###### Upload Pipeline ######
-  response = client.upload_pipeline(args.input)
-  pipeline_id = response.id
-  utils.add_junit_test(test_cases, 'upload pipeline yaml', True)
+  ###### Create Experiment ######
+  experiment_name = 'kubeflow sample experiment'
+  response = client.create_experiment(experiment_name)
+  experiment_id = response.id
+  utils.add_junit_test(test_cases, 'create experiment', True)
 
   ###### Create Job ######
   job_name = 'kubeflow_sample'
@@ -71,21 +73,26 @@ def main():
             'train': 'gs://ml-pipeline-playground/IntegTest/flower/train30.csv',
             'hidden-layer-size': '10,5',
             'steps': '5'}
-  response = client.run_pipeline(job_name, pipeline_id, params)
-  job_id = response.id
-  utils.add_junit_test(test_cases, 'create pipeline job', True)
+  response = client.run_pipeline(experiment_id, job_name, args.input, params)
+  run_id = response.id
+  utils.add_junit_test(test_cases, 'create pipeline run', True)
 
   ###### Monitor Job ######
-  succ, elapsed_time = client._wait_for_job_completion(job_id, 1200)
+  start_time = datetime.now()
+  response = client.wait_for_run_completion(run_id, 1200)
+  succ = (response.run.status.lower()=='succeeded')
+  end_time = datetime.now()
+  elapsed_time = (end_time - start_time).seconds
   utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
   if not succ:
     utils.write_junit_xml(test_name, args.result, test_cases)
     exit()
 
   ###### Output Argo Log for Debugging ######
-  workflow_json = client._get_workflow_json(job_id, 0)
+  workflow_json = client._get_workflow_json(run_id)
   workflow_id = workflow_json['metadata']['name']
-  argo_log, _ = utils.run_bash_command('argo logs -w {}'.format(workflow_id))
+  #TODO: remove the namespace dependency or make is configurable.
+  argo_log, _ = utils.run_bash_command('argo logs -n kubeflow -w {}'.format(workflow_id))
   print("=========Argo Workflow Log=========")
   print(argo_log)
 
@@ -103,8 +110,7 @@ def main():
     utils.add_junit_test(test_cases, 'confusion matrix format', (len(cm_data['outputs'][0]['schema']) == 3), 'the column number of the confusion matrix output is not equal to three')
 
   ###### Delete Job ######
-  client._delete_job(job_id)
-  utils.add_junit_test(test_cases, 'delete pipeline job', True)
+  #TODO: add deletion when the backend API offers the interface.
 
   ###### Write out the test result in junit xml ######
   utils.write_junit_xml(test_name, args.result, test_cases)

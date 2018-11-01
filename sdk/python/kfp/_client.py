@@ -20,6 +20,7 @@ import json
 import os
 import tarfile
 import yaml
+from datetime import datetime
 
 
 class Client(object):
@@ -118,3 +119,35 @@ class Client(object):
       html = 'Job link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>' % response.run.id
       IPython.display.display(IPython.display.HTML(html))
     return response.run
+
+  def wait_for_run_completion(self, run_id, timeout):
+    """Wait for a run to complete.
+    Args:
+      run_id: run id, returned from run_pipeline.
+      timeout: timeout in seconds.
+    Returns:
+      A run detail object: Most important fields are run and pipeline_runtime
+    """
+    status = 'Running:'
+    start_time = datetime.now()
+    while status is None or status.lower() not in ['succeeded', 'failed', 'skipped', 'error']:
+      get_run_response = self._run_api.get_run(run_id=run_id)
+      status = get_run_response.run.status
+      elapsed_time = (datetime.now() - start_time).seconds
+      logging.info('Waiting for the job to complete...')
+      if elapsed_time > timeout:
+        raise TimeoutError('Run timeout')
+      time.sleep(5)
+    return get_run_response
+
+  def _get_workflow_json(self, run_id):
+    """Get the workflow json.
+    Args:
+      run_id: run id, returned from run_pipeline.
+    Returns:
+      workflow: json workflow
+    """
+    get_run_response = self._run_api.get_run(run_id=run_id)
+    workflow = get_run_response.pipeline_runtime.workflow_manifest
+    workflow_json = json.loads(workflow)
+    return workflow_json
