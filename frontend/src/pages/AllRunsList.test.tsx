@@ -104,7 +104,7 @@ describe('AllRunsList', () => {
     const lastCall = updateBannerSpy.mock.calls[0][0];
     expect(lastCall).toMatchObject({
       additionalInfo: 'error object message',
-      message: 'test error message',
+      message: 'test error message Click Details for more information.',
       mode: 'error',
     });
   });

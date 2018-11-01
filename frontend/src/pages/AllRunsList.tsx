@@ -70,7 +70,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
 
   public render() {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
-      <RunList onError={this._handlePageError.bind(this)} selectedIds={this.state.selectedIds}
+      <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
         onSelectionChange={this._selectionChanged.bind(this)}
         {...this.props} ref={this._runlistRef} />
     </div>;
@@ -102,15 +102,6 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     toolbarActions[1].disabled = selectedIds.length !== 1;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
-  }
-
-  private _handlePageError(message: string, error: Error): void {
-    this.props.updateBanner({
-      additionalInfo: error.message,
-      message,
-      mode: 'error',
-      refresh: this.load.bind(this),
-    });
   }
 
   private _cloneRun() {

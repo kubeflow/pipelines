@@ -221,7 +221,7 @@ class NewRun extends Page<{}, NewRunState> {
               runName: this._getCloneName(runDetail.run.name!)
             });
           } catch (err) {
-            this._handlePageError(
+            this.showPageError(
               'Error: failed to find a pipeline corresponding to that of the original run:'
               + ` ${originalRunId}.`);
             logger.error('Cannot get the original run\'s data');
@@ -229,7 +229,7 @@ class NewRun extends Page<{}, NewRunState> {
           }
         }
       } catch (err) {
-        this._handlePageError(`Error: failed to get original run: ${originalRunId}.`, err);
+        this.showPageError(`Error: failed to get original run: ${originalRunId}.`, err);
         logger.error(`Failed to get original run ${originalRunId}`, err);
       }
     } else {
@@ -241,7 +241,7 @@ class NewRun extends Page<{}, NewRunState> {
           this.setState({ pipeline, pipelineName: (pipeline && pipeline.name) || '' });
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
-          this._handlePageError(
+          this.showPageError(
             'Error: failed to find a pipeline corresponding to that of the original run:'
             + ` ${originalRunId}.`);
           logger.error('Cannot get the original run\'s data');
@@ -267,7 +267,7 @@ class NewRun extends Page<{}, NewRunState> {
         ];
         this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
       } catch (err) {
-        this._handlePageError(`Error: failed to get associated experiment: ${experimentId}.`, err);
+        this.showPageError(`Error: failed to get associated experiment: ${experimentId}.`, err);
         logger.error(`Failed to get associated experiment ${experimentId}`, err);
       }
     }
@@ -307,7 +307,7 @@ class NewRun extends Page<{}, NewRunState> {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
       } catch (err) {
-        this._handlePageError(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err.message);
+        this.showPageError(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err.message);
         logger.error(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
         return;
       }
@@ -426,15 +426,6 @@ class NewRun extends Page<{}, NewRunState> {
       const cloneNumber = match[1] ? +match[1] : 1;
       return `Clone (${cloneNumber + 1}) of ${match[2]}`;
     }
-  }
-
-  private _handlePageError(message: string, error?: Error, refreshFunc?: () => void): void {
-    this.props.updateBanner({
-      additionalInfo: error ? error.message : undefined,
-      message: message + ((error && error.message) ? ' Click Details for more information.' : ''),
-      mode: 'error',
-      refresh: refreshFunc,
-    });
   }
 
   private _validate(): void {

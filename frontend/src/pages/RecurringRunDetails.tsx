@@ -179,19 +179,10 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
 
       this.setState({ run });
     } catch (err) {
-      this._handlePageError(
+      this.showPageError(
         `Error: failed to retrieve recurring run: ${runId}.`, err);
       logger.error(`Error loading recurring run: ${runId}`, err);
     }
-  }
-
-  private _handlePageError(message: string, error: Error): void {
-    this.props.updateBanner({
-      additionalInfo: error.message,
-      message: message + (error.message ? ' Click Details for more information.' : ''),
-      mode: 'error',
-      refresh: this.load.bind(this),
-    });
   }
 
   private _showErrorDialog(title: string, content: string): void {

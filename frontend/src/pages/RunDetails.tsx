@@ -275,13 +275,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
       if (workflowError) {
-        this.props.updateBanner({
-          additionalInfo: workflowError,
-          message: `Error: found errors when executing run: ${runId}.`
-            + (workflowError ? ' Click Details for more information.' : ''),
-          mode: 'error',
-          refresh: this.load.bind(this)
-        });
+        this.showPageError(
+          `Error: found errors when executing run: ${runId}.`,
+          new Error(workflowError),
+        );
       }
 
       // Build runtime graph
@@ -316,13 +313,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         workflow,
       });
     } catch (err) {
-      this.props.updateBanner({
-        additionalInfo: err.message,
-        message: `Error: failed to retrieve run: ${runId}.`
-          + (err.message ? ' Click Details for more information.' : ''),
-        mode: 'error',
-        refresh: this.load.bind(this)
-      });
+      this.showPageError(
+        `Error: failed to retrieve run: ${runId}.`,
+        err,
+      );
       logger.error('Error loading run:', runId);
     }
   }

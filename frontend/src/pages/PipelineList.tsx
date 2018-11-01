@@ -148,13 +148,10 @@ class PipelineList extends Page<{}, PipelineListState> {
         request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : ''
       );
     } catch (err) {
-      this.props.updateBanner({
-        additionalInfo: err.message,
-        message: 'Error: failed to retrieve list of pipelines.'
-          + (err.message ? ' Click Details for more information.' : ''),
-        mode: 'error',
-        refresh: this.load.bind(this),
-      });
+      this.showPageError(
+        'Error: failed to retrieve list of pipelines.',
+        err,
+      );
     }
 
     this.setState({

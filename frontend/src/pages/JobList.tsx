@@ -160,8 +160,8 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => exp.expandState = ExpandState.COLLAPSED);
     } catch (err) {
-      this._handlePageError(
-        'Error: failed to retrieve list of experiments. Click Details for more information.', err);
+      this.showPageError(
+        'Error: failed to retrieve list of experiments.', err);
       // No point in continuing if we couldn't retrieve any experiments.
       return '';
     }
@@ -197,15 +197,6 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     });
 
     return response.next_page_token || '';
-  }
-
-  private _handlePageError(message: string, error: Error): void {
-    this.props.updateBanner({
-      additionalInfo: error.message,
-      message: message + (error.message ? ' Click Details for more information.' : ''),
-      mode: 'error',
-      refresh: this.load.bind(this),
-    });
   }
 
   private _cloneRun() {

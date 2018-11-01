@@ -48,4 +48,13 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
   public componentWillUnmount() {
     this.props.updateBanner({});
   }
+
+  public showPageError(message: string, error?: Error): void {
+    this.props.updateBanner({
+      additionalInfo: error ? error.message : undefined,
+      message: message + ((error && error.message) ? ' Click Details for more information.' : ''),
+      mode: 'error',
+      refresh: this.load.bind(this),
+    });
+  }
 }

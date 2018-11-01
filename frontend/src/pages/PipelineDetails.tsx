@@ -259,7 +259,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       try {
         g = StaticGraphParser.createGraph(template);
       } catch (err) {
-        this._handlePageError('Error: failed to generate Pipeline graph.', err.message);
+        this.showPageError('Error: failed to generate Pipeline graph.', err.message);
       }
 
       const breadcrumbs = [
@@ -279,22 +279,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       });
     }
     catch (err) {
-      this._handlePageError(
+      this.showPageError(
         `Error: failed to retrieve pipeline or template for ID: ${pipelineId}.`,
         err.message,
-        this.load.bind(this),
       );
       logger.error(`Error loading pipeline or template for ID: ${pipelineId}`, err);
     }
-  }
-
-  private _handlePageError(message: string, error?: Error, refreshFunc?: () => void): void {
-    this.props.updateBanner({
-      additionalInfo: error ? error.message : undefined,
-      message: message + ((error && error.message) ? ' Click Details for more information.' : ''),
-      mode: 'error',
-      refresh: refreshFunc,
-    });
   }
 
   private _createNewExperiment(): void {

@@ -16,11 +16,10 @@
 
 import * as React from 'react';
 import * as WorkflowParser from '../lib/WorkflowParser';
-import Button from '@material-ui/core/Button';
+import CollapseButton from '../components/CollapseButton';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import CompareTable from '../components/CompareTable';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
-import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
 import Hr from '../atoms/Hr';
 import PlotCard, { PlotCardProps } from '../components/PlotCard';
 import RunList from './RunList';
@@ -33,48 +32,18 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, fontsize, padding, color } from '../Css';
+import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { countBy, flatten } from 'lodash';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { logger } from '../lib/Utils';
 
 const css = stylesheet({
-  collapseBtn: {
-    color: color.strong,
-    fontSize: fontsize.title,
-    fontWeight: 'bold',
-    padding: 5,
-  },
-  collapsed: {
-    transform: 'rotate(180deg)',
-  },
   outputsRow: {
     marginLeft: 15,
     overflowX: 'auto',
   },
 });
-
-interface CollapseButtonProps {
-  compareComponent: Compare;
-  sectionName: string;
-}
-
-// tslint:disable-next-line:variable-name
-const CollapseButton = (props: CollapseButtonProps) => {
-  const collapseSections = props.compareComponent.state.collapseSections;
-  const sectionName = props.sectionName;
-  return <div>
-    <Button onClick={() => {
-      collapseSections[sectionName] = !collapseSections[sectionName];
-      props.compareComponent.setState({ collapseSections });
-    }} title='Expand/Collapse this section' className={css.collapseBtn}>
-      <ExpandedIcon className={collapseSections[sectionName] ? css.collapsed : ''}
-        style={{ marginRight: 5, transition: 'transform 0.3s' }} />
-      {sectionName}
-    </Button>
-  </div>;
-};
 
 interface TaggedViewerConfig {
   config: ViewerConfig;
@@ -155,7 +124,7 @@ class Compare extends Page<{}, CompareState> {
       <CollapseButton compareComponent={this} sectionName={overviewSectionName} />
       {!collapseSections[overviewSectionName] && (
         <div className={commonCss.noShrink}>
-          <RunList onError={this._handlePageError.bind(this)} {...this.props}
+          <RunList onError={this.showPageError.bind(this)} {...this.props}
             selectedIds={selectedIds} runIdListMask={runIds} disablePaging={true}
             onSelectionChange={this._selectionChanged.bind(this)} />
         </div>
@@ -213,7 +182,7 @@ class Compare extends Page<{}, CompareState> {
     const runs: ApiRunDetail[] = [];
     const workflowObjects: Workflow[] = [];
     const failingRuns: string[] = [];
-    let lastError = '';
+    let lastError: Error | null = null;
     await Promise.all(runIdsQuery.map(async id => {
       try {
         const run = await Apis.runServiceApi.getRun(id);
@@ -221,17 +190,15 @@ class Compare extends Page<{}, CompareState> {
         workflowObjects.push(JSON.parse(run.pipeline_runtime!.workflow_manifest || '{}'));
       } catch (err) {
         failingRuns.push(id);
-        lastError = err.message;
+        lastError = err;
       }
     }));
 
     if (lastError) {
-      this.props.updateBanner({
-        additionalInfo: `The last error was:\n\n${lastError}`,
-        message: `Error: failed loading ${failingRuns.length} runs. Click Details for more information.`,
-        mode: 'error',
-        refresh: this.load.bind(this),
-      });
+      this.showPageError(
+        `Error: failed loading ${failingRuns.length} runs.`,
+        lastError,
+      );
       logger.error(`Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`);
       return;
     }
@@ -308,15 +275,6 @@ class Compare extends Page<{}, CompareState> {
     });
 
     this.setState({ paramsTableRows, paramsTableXLabels, paramsTableYLabels });
-  }
-
-  private _handlePageError(message: string, error: Error): void {
-    this.props.updateBanner({
-      additionalInfo: error.message,
-      message,
-      mode: 'error',
-      refresh: this.load.bind(this),
-    });
   }
 }
 

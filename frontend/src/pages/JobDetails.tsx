@@ -218,7 +218,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               </Paper>
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
-            <RunList onError={this._handlePageError.bind(this)}
+            <RunList onError={this.showPageError.bind(this)}
               experimentIdMask={experiment.id} ref={this._runlistRef}
               selectedIds={this.state.selectedRunIds}
               onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
@@ -266,21 +266,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         () => this._runlistRef.current && this._runlistRef.current.refresh()
       );
     } catch (err) {
-      this._handlePageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
+      this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
-    }
-  }
-
-  private _handlePageError(message: string, error: Error): void {
-    this.props.updateBanner({
-      additionalInfo: error.message,
-      message: message + (error.message ? ' Click Details for more information.' : ''),
-      mode: 'error',
-      refresh: this.load.bind(this),
-    });
-
-    if (this._runlistRef.current) {
-      this._runlistRef.current.refresh();
     }
   }
 
