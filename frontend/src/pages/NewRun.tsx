@@ -113,7 +113,8 @@ class NewRun extends Page<{}, NewRunState> {
             InputProps={{
               endAdornment: (
                 <InputAdornment position='end'>
-                  <Button color='secondary' onClick={() => this.setState({ pipelineSelectorOpen: true })}
+                  <Button color='secondary' id='choosePipelineBtn'
+                    onClick={() => this.setState({ pipelineSelectorOpen: true })}
                     style={{ padding: '3px 5px', margin: 0 }}>
                     Choose
                 </Button>
@@ -123,7 +124,7 @@ class NewRun extends Page<{}, NewRunState> {
             }} />
 
           <Dialog open={pipelineSelectorOpen} classes={{ paper: css.pipelineSelectorDialog }}
-            onClose={() => this._pipelineSelectorClosed(false)}>
+            onClose={() => this._pipelineSelectorClosed(false)} PaperProps={{ id: 'pipelineSelectorDialog' }}>
             <DialogContent>
               <PipelineSelector {...this.props} pipelineSectionChanged={this._pipelineSelectionChanged.bind(this)} />
             </DialogContent>
@@ -131,8 +132,8 @@ class NewRun extends Page<{}, NewRunState> {
               <Button onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>
                 Cancel
               </Button>
-              <Button onClick={() => this._pipelineSelectorClosed(true)} color='secondary'
-                disabled={!unconfirmedDialogPipelineId}>
+              <Button id='usePipelineBtn' onClick={() => this._pipelineSelectorClosed(true)}
+                color='secondary' disabled={!unconfirmedDialogPipelineId}>
                 Use this pipeline
               </Button>
             </DialogActions>

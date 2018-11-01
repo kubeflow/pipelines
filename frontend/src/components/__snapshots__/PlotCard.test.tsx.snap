@@ -3,7 +3,7 @@
 exports[`PlotCard clicking outside full screen dialog closes it 1`] = `
 <div>
   <WithStyles(Paper)
-    className="plotCard"
+    className="plotCard plotCard"
   >
     <div
       className="plotHeader"
@@ -100,7 +100,7 @@ exports[`PlotCard clicking outside full screen dialog closes it 1`] = `
 exports[`PlotCard close button closes full screen dialog 1`] = `
 <div>
   <WithStyles(Paper)
-    className="plotCard"
+    className="plotCard plotCard"
   >
     <div
       className="plotHeader"
@@ -199,7 +199,7 @@ exports[`PlotCard handles no configs 1`] = `""`;
 exports[`PlotCard pops out a full screen view of the viewer 1`] = `
 <div>
   <WithStyles(Paper)
-    className="plotCard"
+    className="plotCard plotCard"
   >
     <div
       className="plotHeader"
@@ -296,7 +296,7 @@ exports[`PlotCard pops out a full screen view of the viewer 1`] = `
 exports[`PlotCard renders on confusion matrix viewer card 1`] = `
 <div>
   <WithStyles(Paper)
-    className="plotCard"
+    className="plotCard plotCard"
   >
     <div
       className="plotHeader"

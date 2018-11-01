@@ -79,7 +79,7 @@ class LogViewer extends React.Component<LogViewerProps> {
   public render() {
     return <AutoSizer>
       {({ height, width }) => (
-        <List width={width} height={height} rowCount={this.props.logLines.length}
+        <List id='logViewer' width={width} height={height} rowCount={this.props.logLines.length}
           rowHeight={15} className={css.root} ref={this._rootRef}
           rowRenderer={this._rowRenderer.bind(this)} />
       )}

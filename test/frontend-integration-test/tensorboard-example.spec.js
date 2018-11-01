@@ -15,13 +15,10 @@
 const assert = require('assert');
 const URL = require('url').URL;
 
-const experimentName = 'helloworld-experiment-' + Date.now();
-const experimentDescription = 'hello world experiment description';
-const pipelineName = 'helloworld-pipeline-' + Date.now();
-const runName = 'helloworld-' + Date.now();
-const runDescription = 'test run description ' + runName;
+const experimentName = 'tensorboard-example-experiment-' + Date.now();
+const pipelineName = 'tensorboard-example-pipeline-' + Date.now();
+const runName = 'tensorboard-example-' + Date.now();
 const waitTimeout = 5000;
-const outputParameterValue = 'Hello world in test'
 
 function getValueFromDetailsTable(key) {
   // Find the span that shows the key, get its parent div (the row), then
@@ -30,7 +27,7 @@ function getValueFromDetailsTable(key) {
   return row.getText().substr(`${key}\n`.length);
 }
 
-describe('deploy helloworld sample run', () => {
+describe('deploy tensorboard example run', () => {
 
   before(() => {
     browser.url('/');
@@ -42,7 +39,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('uploads the sample pipeline', () => {
-    browser.chooseFile('#uploadDialog input[type="file"]', './helloworld.yaml');
+    browser.chooseFile('#uploadDialog input[type="file"]', './tensorboard-example.yaml');
     const input = $('#uploadDialog #uploadFileName');
     input.clearElement();
     input.setValue(pipelineName);
@@ -55,11 +52,11 @@ describe('deploy helloworld sample run', () => {
     browser.execute('document.querySelector(".tableRow a").click()');
   });
 
-  it('shows a 4-node static graph', () => {
+  it('shows a 1-node static graph', () => {
     const nodeSelector = '.graphNode';
     $(nodeSelector).waitForVisible();
     const nodes = $$(nodeSelector).length;
-    assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
+    assert(nodes === 1, 'should have a 1-node graph, instead has: ' + nodes);
   });
 
   it('creates a new experiment out of this pipeline', () => {
@@ -69,8 +66,6 @@ describe('deploy helloworld sample run', () => {
     }, waitTimeout);
 
     $('#experimentName').setValue(experimentName);
-    $('#experimentDescription').setValue(experimentDescription);
-
     $('#createExperimentBtn').click();
   });
 
@@ -87,12 +82,6 @@ describe('deploy helloworld sample run', () => {
 
     browser.keys('Tab');
     browser.keys(runName);
-
-    browser.keys('Tab');
-    browser.keys(runDescription);
-
-    browser.keys('Tab');
-    browser.keys(outputParameterValue);
 
     // Deploy
     $('#createBtn').click();
@@ -136,38 +125,54 @@ describe('deploy helloworld sample run', () => {
       'Current status is: ' + status);
   });
 
-  it('displays run created at date correctly', () => {
-    const date = getValueFromDetailsTable('Created at');
-    assert(Date.now() - new Date(date) < 10 * 60 * 1000,
-      'run created date should be within the last 10 minutes');
-  });
-
-  it('displays run inputs correctly', () => {
-    const paramValue = getValueFromDetailsTable('message');
-    assert.equal(paramValue, outputParameterValue, 'run message is not shown correctly');
-  });
-
   it('switches back to graph tab', () => {
     $('button=Graph').click();
   });
 
-  it('has a 4-node graph', () => {
+  it('has a 1-node graph', () => {
     const nodeSelector = '.graphNode';
     const nodes = $$(nodeSelector).length;
-    assert(nodes === 4, 'should have a 4-node graph, instead has: ' + nodes);
+    assert(nodes === 1, 'should have a 1-node graph, instead has: ' + nodes);
   });
 
   it('opens the side panel when graph node is clicked', () => {
     $('.graphNode').click();
-    $('button=Logs').waitForVisible();
+    $('.plotCard').waitForVisible(waitTimeout);
   });
 
-  it('shows logs from node', () => {
-    $('button=Logs').click();
-    $('#logViewer').waitForVisible();
-    const logs = $('#logViewer').getText();
-    assert(logs.indexOf(outputParameterValue + ' from node: ') > -1,
-      'logs do not look right: ' + logs);
+  it('shows a Tensorboard plot card, and clicks its button to start Tensorboard', () => {
+    // First button is the popout button, second is the Tensoboard start button
+    const button = $$('.plotCard button')[1];
+    button.waitForVisible();
+    assert(button.getText().trim() === 'Start Tensorboard');
+    button.click();
+  });
+
+  it('waits until the button turns into Open Tensorboard', () => {
+    // First button is the popout button, second is the Tensoboard open button
+    browser.waitUntil(() => {
+      const button = $$('.plotCard button')[1];
+      button.waitForVisible();
+      return button.getText().trim() === 'Open Tensorboard';
+    }, 2 * 60 * 1000);
+  });
+
+  it('opens the Tensorboard app', () => {
+    const anchor = $('.plotCard a');
+    browser.url(anchor.getAttribute('href'));
+
+    let attempts = 0;
+    const maxAttempts = 60;
+
+    // Wait for a reasonable amount of time until Tensorboard app shows up
+    while (attempts < maxAttempts && !$('#topBar').isExisting()) {
+      browser.pause(1000);
+      browser.refresh();
+      attempts++;
+    }
+
+    assert($('#topBar').isVisible());
+    browser.back();
   });
 
   it('deletes the uploaded pipeline', () => {
