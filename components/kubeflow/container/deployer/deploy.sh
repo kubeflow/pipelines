@@ -111,6 +111,12 @@ ks apply default -c server
 
 # Wait for the deployment to have at least one available replica
 echo "Waiting for the TF Serving deployment to have at least one avialable replica..."
+#TODO: configure the timeout in the while loop
+# First, wait for the deploy job to show up
+while [[ $(kubectl get deploy --selector=app="${SERVER_NAME}" 2>&1|wc -l) != "2" ]];do
+  sleep 5
+done
+
 while [[ $(kubectl get deploy --selector=app="${SERVER_NAME}" --output=jsonpath='{.items[0].status.availableReplicas}') < "1" ]]; do
   sleep 5
 done
