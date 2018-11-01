@@ -75,13 +75,15 @@ if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   trap delete_cluster EXIT
 
   gcloud config set project ml-pipeline-test
-  gcloud config set compute/zone us-west1-a
+  gcloud config set compute/zone us-central1-a
   gcloud container clusters create ${TEST_CLUSTER} \
     --scopes cloud-platform \
     --enable-cloud-logging \
     --enable-cloud-monitoring \
     --machine-type n1-standard-2 \
-    --num-nodes 3
+    --num-nodes 3 \
+    --network test \
+    --subnetwork test-1
 
   gcloud container clusters get-credentials ${TEST_CLUSTER}
 fi
