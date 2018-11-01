@@ -1,6 +1,6 @@
 # Pipelines
 
-This repository provides Custom Resource Definitions and tools for ML pipeline orchestration.
+This repository provides Custom Resource Definitions and tools for ML pipeline orchestration
 
 ## Scheduled Workflow CRD/controller
 
