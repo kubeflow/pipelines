@@ -15,8 +15,8 @@
 package client
 
 import (
-	"github.com/googleprivate/ml/backend/src/common/util"
-	"github.com/googleprivate/ml/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1alpha1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 )

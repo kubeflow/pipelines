@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/googleprivate/ml/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
 )

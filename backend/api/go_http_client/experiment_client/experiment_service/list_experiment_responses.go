@@ -27,7 +27,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	experiment_model "github.com/googleprivate/ml/backend/api/go_http_client/experiment_model"
+	experiment_model "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 )
 
 // ListExperimentReader is a Reader for the ListExperiment structure.

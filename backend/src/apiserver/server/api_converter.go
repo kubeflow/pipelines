@@ -19,10 +19,10 @@ import (
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/googleprivate/ml/backend/api/go_client"
-	"github.com/googleprivate/ml/backend/src/apiserver/common"
-	"github.com/googleprivate/ml/backend/src/apiserver/model"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {

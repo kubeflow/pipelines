@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	controller "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow"
+	controller "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 )
 
 // SchemeGroupVersion is group version used to register these objects

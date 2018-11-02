@@ -5,10 +5,10 @@ import (
 	"math"
 	"net/url"
 
-	params "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_client/pipeline_service"
-	model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_model"
-	uploadparams "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/cobra"
 )
 
