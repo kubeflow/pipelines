@@ -45,7 +45,7 @@ spec:
       - name: commit-sha
       - name: test-results-gcs-dir
     container:
-      image: gcr.io/ml-pipeline-staging/backend-unit-test:v20180914-0.0.15-72-gd59126c4-e3b0c4
+      image: gcr.io/ml-pipeline-staging/backend-unit-test:v20181102-0.0.20-196-g4d66038f-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",

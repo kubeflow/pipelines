@@ -120,7 +120,7 @@ echo "Initialized ksonnet APP completed successfully"
 # an known issue: https://github.com/ksonnet/ksonnet/issues/232, we are working around by creating
 # a symbolic links in ./vendor and manually modifying app.yaml
 # when the repo is public we can do following:
-# ks registry add ml-pipeline github.com/googleprivate/ml/tree/master/ml-pipeline
+# ks registry add ml-pipeline github.com/kubeflow/pipelines/tree/master/ml-pipeline
 # ks pkg install ml-pipeline/ml-pipeline
 BASEDIR=$(cd $(dirname "$0") && pwd)
 ln -s ${BASEDIR} ${APP_DIR}/vendor/ml-pipeline

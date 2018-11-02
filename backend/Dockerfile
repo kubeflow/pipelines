@@ -7,7 +7,7 @@ RUN curl -fsSL -o /bin/dep https://github.com/golang/dep/releases/download/v0.5.
 ADD https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 /usr/bin/dep
 RUN chmod +x /usr/bin/dep
 
-WORKDIR /go/src/github.com/googleprivate/ml
+WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
 # Needed for github.com/mattn/go-sqlite3
@@ -22,7 +22,7 @@ ENV COMMIT_SHA=${COMMIT_SHA}
 WORKDIR /bin
 
 COPY --from=builder /bin/apiserver /bin/apiserver
-COPY --from=builder /go/src/github.com/googleprivate/ml/third_party/license.txt /bin/license.txt
+COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.txt /bin/license.txt
 COPY backend/src/apiserver/config/ /config
 COPY backend/src/apiserver/samples/ /samples
 

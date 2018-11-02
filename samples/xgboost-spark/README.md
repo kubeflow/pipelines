@@ -11,7 +11,7 @@ or not.
 Preprocessing uses Google Cloud DataProc. So the [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) needs to be enabled for the given project.
 
 ## Compile
-Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
+Follow [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/README.md) to install the compiler and 
 compile your sample python into workflow yaml.
 
 ## Deploy
@@ -25,31 +25,31 @@ is a GCP project.
 ## Components Source
 
 Create Cluster:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/create_cluster) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/create_cluster)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/create_cluster) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/containers/create_cluster)
 
 Analyze (step one for preprocessing):
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/analyze) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/analyze)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/analyze) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/containers/analyze)
 
 Transform (step two for preprocessing):
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/transform) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/transform)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/transform) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/containers/transform)
 
 Distributed Training:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/train) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/train)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/train) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/containers/train)
 
 Distributed Predictions:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/predict) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/predict) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/containers/predict)
 
 Confusion Matrix:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/local/evaluation) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/local/containers/confusion_matrix)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/evaluation) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/containers/confusion_matrix)
 
 Delete Cluster:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataproc/xgboost/delete_cluster) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataproc/containers/delete_cluster)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/delete_cluster) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/containers/delete_cluster)
 
 
