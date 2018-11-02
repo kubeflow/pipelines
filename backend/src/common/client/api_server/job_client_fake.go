@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
-	jobparams "github.com/googleprivate/ml/backend/api/go_http_client/job_client/job_service"
-	jobmodel "github.com/googleprivate/ml/backend/api/go_http_client/job_model"
+	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
+	jobmodel "github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
 )
 
 const (

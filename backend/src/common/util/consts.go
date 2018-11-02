@@ -14,7 +14,7 @@
 
 package util
 
-import constants "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow"
+import constants "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 
 const (
 	// LabelKeyScheduledWorkflowEnabled is a label on a ScheduledWorkflow.

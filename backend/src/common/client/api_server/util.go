@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"

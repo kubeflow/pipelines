@@ -18,8 +18,8 @@ import (
 	"context"
 	"time"
 
-	api "github.com/googleprivate/ml/backend/api/go_client"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

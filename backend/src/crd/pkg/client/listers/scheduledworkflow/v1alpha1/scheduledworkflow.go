@@ -16,7 +16,7 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	v1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

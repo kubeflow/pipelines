@@ -20,9 +20,9 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	"github.com/googleprivate/ml/backend/src/apiserver/common"
-	"github.com/googleprivate/ml/backend/src/apiserver/model"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 

@@ -27,7 +27,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	run_model "github.com/googleprivate/ml/backend/api/go_http_client/run_model"
+	run_model "github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 )
 
 // ListRunsReader is a Reader for the ListRuns structure.

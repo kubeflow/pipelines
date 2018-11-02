@@ -18,7 +18,7 @@ import (
 	"bytes"
 
 	"github.com/ghodss/yaml"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	minio "github.com/minio/minio-go"
 )
 
