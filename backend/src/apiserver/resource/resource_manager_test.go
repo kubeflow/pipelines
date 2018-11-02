@@ -695,6 +695,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "WORKFLOW_1",
+			DisplayName:      "MY_NAME",
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,
