@@ -1,6 +1,6 @@
 # ML Pipeline Development Guideline
 
-This document describes the development guideline to contribute to ML pipeline project. Please check the [main page](https://github.com/googleprivate/ml/blob/master/README.md) for instruction on how to deploy a ML pipeline system.
+This document describes the development guideline to contribute to ML pipeline project. Please check the [main page](https://github.com/kubeflow/pipelines/blob/master/README.md) for instruction on how to deploy a ML pipeline system.
 
 ## ML pipeline deployment
 
@@ -17,9 +17,9 @@ The docker container accepts various parameters to customize your deployment.
 - **--report_usage** whether to report usage for the deployment
 - **--uninstall** to uninstall everything.
 
-See [bootstrapper.yaml](https://github.com/googleprivate/ml/blob/master/bootstrapper.yaml) for examples on how to pass in parameter.
+See [bootstrapper.yaml](https://github.com/kubeflow/pipelines/blob/master/bootstrapper.yaml) for examples on how to pass in parameter.
 
-Alternatively, you can use [deploy.sh](https://github.com/googleprivate/ml/blob/master/ml-pipeline/deploy.sh) if you want to interact with Ksonnet directly.
+Alternatively, you can use [deploy.sh](https://github.com/kubeflow/pipelines/blob/master/ml-pipeline/deploy.sh) if you want to interact with Ksonnet directly.
 To deploy, run the script locally.
 ```bash
 $ ml-pipeline/deploy.sh
@@ -101,7 +101,7 @@ pip install ./dsl-compiler/ --upgrade && python ./dsl-compiler/tests/main.py
 ## Integration test
 
 ### API server
-Check [this](https://github.com/googleprivate/ml/blob/master/test/apiserver/README.md) page for more details.
+Check [this](https://github.com/kubeflow/pipelines/blob/master/test/apiserver/README.md) page for more details.
 
 ## E2E test
 TODO: Add instruction

@@ -71,7 +71,7 @@ Install [docker](https://www.docker.com/get-docker).
 
 ### Step One: Create A Container For Each Component
 In most cases, you need to create your own container image that includes your program. You can find container 
-building examples from [here](https://github.com/googleprivate/ml/blob/master/components)(in the directory, go to any subdirectory and then go to “containers” directory).
+building examples from [here](https://github.com/kubeflow/pipelines/blob/master/components)(in the directory, go to any subdirectory and then go to “containers” directory).
 
 If your component creates some outputs to be fed as inputs to the downstream components, each output has 
 to be a string and needs to be written to a separate local text file by the container image. 
@@ -155,4 +155,4 @@ args go first and keyword args go next.
 should all be of that type. The default values will show up in the Pipeline UI but can be overwritten.
 
 
-See an example [here](https://github.com/googleprivate/ml/blob/master/samples/xgboost-spark/xgboost-training-cm.py).
+See an example [here](https://github.com/kubeflow/pipelines/blob/master/samples/xgboost-spark/xgboost-training-cm.py).

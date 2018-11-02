@@ -77,7 +77,7 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
-GITHUB_REPO=googleprivate/ml
+GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/python/src/github.com/${GITHUB_REPO}
 
 # Add github to SSH known host.

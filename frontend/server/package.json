@@ -22,12 +22,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/googleprivate/ml.git"
+    "url": "git+https://github.com/kubeflow/pipelines.git"
   },
   "author": "",
   "license": "",
   "bugs": {
-    "url": "https://github.com/googleprivate/ml/issues"
+    "url": "https://github.com/kubeflow/pipelines/issues"
   },
-  "homepage": "https://github.com/googleprivate/ml#readme"
+  "homepage": "https://github.com/kubeflow/pipelines#readme"
 }
