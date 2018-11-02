@@ -234,22 +234,25 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             #(Union[str,List],Mapping[str, Any]) -> str
             if isinstance(arg, dict) or isinstance(arg, list):
                 if isinstance(arg, list):
-                    func_name = arg[0].lower()
-                    func_arguments = arg[1:]
-                if isinstance(arg, dict):
+                    (func_name, func_argument) = (arg[0], arg[1:])
+                    if len(func_argument) == 1:
+                        func_argument = func_argument[0]
+                elif isinstance(arg, dict):
                     if len(arg) != 1:
-                        raise ValueError('Failed to parse argiment dict: "{}"'.format(arg))
-                    (func_name, func_arguments) = list(arg.items())[0]
-                    if not isinstance(func_arguments, list):
-                        func_arguments = [func_arguments]
+                        raise ValueError('Failed to parse argument dict: "{}"'.format(arg))
+                    (func_name, func_argument) = list(arg.items())[0]
+                else:
+                    raise TypeError()
+                func_name=func_name.lower()
                 if func_name == 'value':
-                    assert(len(func_arguments) == 1)
-                    port_name = func_arguments[0]
+                    assert isinstance(func_argument, str)
+                    port_name = func_argument
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
                     return str(input_value)
 
-                elif func_name == 'file': #
-                    assert(len(func_arguments) == 1)
+                elif func_name == 'file':
+                    assert isinstance(func_argument, str)
+                    port_name = func_argument
                     input_filename = _generate_input_file_name(port_name)
                     input_key = input_name_to_kubernetes[port_name]
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
@@ -257,8 +260,8 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     return input_filename
 
                 elif func_name == 'output':
-                    assert(len(func_arguments) == 1)
-                    port_name = func_arguments[0]
+                    assert isinstance(func_argument, str)
+                    port_name = func_argument
                     pythonic_port_name = output_name_to_pythonic[port_name]
                     if pythonic_port_name in pythonic_input_argument_values and pythonic_input_argument_values[pythonic_port_name] is not None:
                         output_filename = str(pythonic_input_argument_values[pythonic_port_name])
@@ -275,27 +278,37 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     return output_filename
 
                 elif func_name == 'concat':
-                    expanded_arguments = [expand_command_part(arg1) for arg1 in func_arguments]
+                    assert isinstance(func_argument, list)
+                    items_to_concatenate = func_argument
+                    expanded_arguments = [expand_command_part(arg1) for arg1 in items_to_concatenate]
                     expanded_argument_strings = [str(arg2) for arg2 in expanded_arguments if arg2 is not None]
                     return ''.join(expanded_argument_strings)
                 
                 elif func_name == 'if':
-                    assert(len(func_arguments) in [2, 3])
-                    condition_node = func_arguments[0]
-                    then_node = func_arguments[1]
-                    else_node = func_arguments[2] or None
-                    condition_result = bool(expand_command_part(condition_node))
-                    if condition_result:
-                        return expand_command_part(then_node)
-                    elif else_node is not None:
-                        return expand_command_part(else_node)
+                    if isinstance(func_argument, dict):
+                        condition_node = func_argument['cond']
+                        then_node = func_argument['then']
+                        else_node = func_argument.get('else', None)
+                    elif isinstance(func_argument, list):
+                        assert len(func_argument) in [2, 3]
+                        condition_node = func_argument[0]
+                        then_node = func_argument[1]
+                        else_node = func_argument[2] if len(func_argument) == 3 else None
                     else:
-                        return None
-                
+                        raise TypeError()
+                    condition_result = bool(expand_command_part(condition_node))
+                    result_node = then_node if condition_result else else_node
+                    if isinstance(result_node, list):
+                        expanded_result = [expand_command_part(arg1) for arg1 in result_node]
+                    else:
+                        expanded_result = expand_command_part(result_node)
+                    print(expanded_result)
+                    return expanded_result
+
                 elif func_name == 'ispresent':
-                    assert(len(func_arguments) == 1)
-                    arg_to_test = func_arguments[0]
-                    pythonic_input_name = output_name_to_pythonic[arg_to_test]
+                    assert isinstance(func_argument, str)
+                    input_name = func_argument
+                    pythonic_input_name = input_name_to_pythonic[input_name]
                     argument_is_present = pythonic_input_name in pythonic_input_argument_values
                     return str(argument_is_present)
             else:
@@ -306,14 +319,20 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             for part in container_spec.command:
                 expanded_part = expand_command_part(part)
                 if expanded_part is not None:
-                    expanded_command.append(expanded_part)
+                    if isinstance(expanded_part, list):
+                        expanded_command.extend(expanded_part)
+                    else:
+                        expanded_command.append(str(expanded_part))
 
         expanded_args = []
         if container_spec.arguments != None:
             for part in container_spec.arguments:
                 expanded_part = expand_command_part(part)
                 if expanded_part is not None:
-                    expanded_args.append(expanded_part)
+                    if isinstance(expanded_part, list):
+                        expanded_args.extend(expanded_part)
+                    else:
+                        expanded_args.append(str(expanded_part))
 
         #Working around Python's variable scoping. Do not write to variable from global scope as that makes the variable local.
 

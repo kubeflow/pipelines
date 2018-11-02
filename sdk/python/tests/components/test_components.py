@@ -342,5 +342,88 @@ implementation:
 
         self.assertEqual(task1.arguments, ['somedata'])
 
+    def test_command_if_then_else_syntax1(self):
+        component_text = '''\
+inputs:
+- {name: In, required: false}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - [if, [isPresent, In], [--in, [value, In]], --no-in]
+'''
+        task_factory1 = comp.load_component(text=component_text)
+
+        task_then = task_factory1('data')
+        self.assertEqual(task_then.arguments, ['--in', 'data']) 
+        
+        #TODO: Fix optional arguments
+        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
+        #self.assertEqual(task_else.arguments, ['--no-in'])
+
+    def test_command_if_then_syntax1(self):
+        component_text = '''\
+inputs:
+- {name: In, required: false}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - [if, [isPresent, In], [--in, [value, In]]]
+'''
+        task_factory1 = comp.load_component(text=component_text)
+
+        task_then = task_factory1('data')
+        self.assertEqual(task_then.arguments, ['--in', 'data']) 
+        
+        #TODO: Fix optional arguments
+        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
+        #self.assertEqual(task_else.arguments, [])
+
+    def test_command_if_then(self):
+        component_text = '''\
+inputs:
+- {name: In, required: false}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: {isPresent: In}
+          then: [--in, {value: In}]
+          #else: --no-in
+'''
+        task_factory1 = comp.load_component(text=component_text)
+
+        task_then = task_factory1('data')
+        self.assertEqual(task_then.arguments, ['--in', 'data']) 
+        
+        #TODO: Fix optional arguments
+        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
+        #self.assertEqual(task_else.arguments, [])
+
+    def test_command_if_then_else(self):
+        component_text = '''\
+inputs:
+- {name: In, required: false}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: {isPresent: In}
+          then: [--in, {value: In}]
+          else: --no-in
+'''
+        task_factory1 = comp.load_component(text=component_text)
+
+        task_then = task_factory1('data')
+        self.assertEqual(task_then.arguments, ['--in', 'data']) 
+        
+        #TODO: Fix optional arguments
+        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
+        #self.assertEqual(task_else.arguments, ['--no-in'])
+
+
 if __name__ == '__main__':
     unittest.main()
