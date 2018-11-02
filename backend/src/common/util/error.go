@@ -19,7 +19,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/golang/glog"
-	api "github.com/googleprivate/ml/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	"github.com/googleprivate/ml/backend/src/agent/persistence/client"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"

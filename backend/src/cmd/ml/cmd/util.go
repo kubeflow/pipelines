@@ -12,7 +12,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/go-openapi/strfmt"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	crontab "github.com/robfig/cron"
 )
 
