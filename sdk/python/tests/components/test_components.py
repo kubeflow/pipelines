@@ -47,7 +47,7 @@ class LoadComponentTestCase(unittest.TestCase):
 
     @unittest.expectedFailure #The repo is non-public and will change soon. TODO: Update the URL and enable the test once we move to a public repo
     def test_load_component_from_url(self):
-        url = 'https://raw.githubusercontent.com/googleprivate/ml/638045974d688b473cda9f4516a2cf1d7d1e02dd/sdk/python/tests/components/test_data/python_add.component.yaml'
+        url = 'https://raw.githubusercontent.com/kubeflow/pipelines/638045974d688b473cda9f4516a2cf1d7d1e02dd/sdk/python/tests/components/test_data/python_add.component.yaml'
 
         import requests
         resp = requests.get(url)

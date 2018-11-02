@@ -1,5 +1,5 @@
 ## Compile
-Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
+Follow [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/README.md) to install the compiler and 
 compile the sample python into workflow yaml. 
 
 "sequential.yaml" is pre-generated for referencing purpose.

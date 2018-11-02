@@ -12,7 +12,7 @@ Note: The trainer depends on KubeFlow API Version v1alpha2.
 
 ## Compiling the pipeline template
 
-Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and then run the following command to compile the pipeline:
+Follow [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/README.md) to install the compiler and then run the following command to compile the pipeline:
 
 ```bash
 dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
@@ -29,17 +29,17 @@ The pipeline will require one argument:
 ## Components Source
 
 Preprocessing:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/tft), 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/tft)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tft)
 
 Training:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/kubeflow/launcher), 
-  [container](https://github.com/googleprivate/ml/tree/master/components/kubeflow/container/launcher)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/container/launcher)
 
 Prediction:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/predict), 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/predict)
 
 Confusion Matrix:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/local/evaluation), 
-  [container](https://github.com/googleprivate/ml/tree/master/components/local/containers/confusion_matrix)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/evaluation), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/containers/confusion_matrix)

@@ -61,7 +61,7 @@ ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts
 cp ~/.ssh/github/* ~/.ssh
 
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
-git clone git@github.com:googleprivate/ml.git ${BASE_DIR}
+git clone git@github.com:kubeflow/pipelines.git ${BASE_DIR}
 cd ${BASE_DIR}
 git checkout ${COMMIT_SHA}
 
