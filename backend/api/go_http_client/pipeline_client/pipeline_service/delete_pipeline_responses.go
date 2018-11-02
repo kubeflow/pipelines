@@ -27,7 +27,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	pipeline_model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_model"
+	pipeline_model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 )
 
 // DeletePipelineReader is a Reader for the DeletePipeline structure.

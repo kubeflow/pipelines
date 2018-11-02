@@ -17,7 +17,7 @@ package storage
 import (
 	"database/sql"
 
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 func NullStringToPointer(ns sql.NullString) *string {

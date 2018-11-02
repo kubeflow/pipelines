@@ -14,7 +14,7 @@
 
 package model
 
-import "github.com/googleprivate/ml/backend/src/apiserver/common"
+import "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 // Resource reference table models the relationship between resources in a loosely coupled way.
 type ResourceReference struct {

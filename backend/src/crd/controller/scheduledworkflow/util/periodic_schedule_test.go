@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	commonutil "github.com/googleprivate/ml/backend/src/common/util"
-	swfapi "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )

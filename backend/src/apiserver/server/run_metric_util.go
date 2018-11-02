@@ -18,8 +18,8 @@ import (
 	"regexp"
 
 	"github.com/golang/glog"
-	api "github.com/googleprivate/ml/backend/api/go_client"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/grpc/codes"
 )
 

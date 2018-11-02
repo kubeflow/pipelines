@@ -27,7 +27,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	pipeline_upload_model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_model"
+	pipeline_upload_model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_model"
 )
 
 // UploadPipelineReader is a Reader for the UploadPipeline structure.

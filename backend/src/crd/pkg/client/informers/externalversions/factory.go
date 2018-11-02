@@ -20,9 +20,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/googleprivate/ml/backend/src/crd/pkg/client/informers/externalversions/internalinterfaces"
-	scheduledworkflow "github.com/googleprivate/ml/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow"
+	versioned "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/internalinterfaces"
+	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

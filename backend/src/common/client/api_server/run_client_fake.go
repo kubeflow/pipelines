@@ -5,8 +5,8 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/go-openapi/strfmt"
-	runparams "github.com/googleprivate/ml/backend/api/go_http_client/run_client/run_service"
-	runmodel "github.com/googleprivate/ml/backend/api/go_http_client/run_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+	runmodel "github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 )
 
 const (
