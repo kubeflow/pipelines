@@ -74,12 +74,44 @@ class Client(object):
     import kfp_experiment
 
     exp = kfp_experiment.models.ApiExperiment(name=name)
-    return self._experiment_api.create_experiment(body=exp)
+    response = self._experiment_api.create_experiment(body=exp)
+    
+    if self._is_ipython():
+      import IPython
+      html = \
+          ('Experiment link <a href="/pipeline/#/experiments/details/%s" target="_blank" >here</a>'
+          % response.id)
+      IPython.display.display(IPython.display.HTML(html))
+    return response
+
+  def list_experiments(self, page_token='', page_size=10, sort_by=''):
+    """List experiments.
+    Args:
+      page_token: token for starting of the page.
+      page_size: size of the page.
+      sort_by: can be '[field_name]', '[field_name] des'. For example, 'name des'.
+    Returns:
+      A response object including a list of experiments and next page token.
+    """
+    response = self._experiment_api.list_experiment(
+        page_token=page_token, page_size=page_size, sort_by=sort_by)
+    return response
+
+  def get_experiment(self, experiment_id):
+    """Get details of an experiment
+    Args:
+      id of the experiment.
+    Returns:
+      A response object including details of a experiment.
+    Throws:
+      Exception if experiment is not found.        
+    """
+    return self._experiment_api.get_experiment(id=experiment_id)
 
   def _extract_pipeline_yaml(self, tar_file):
     with tarfile.open(tar_file, "r:gz") as tar:
       all_yaml_files = [m for m in tar if m.isfile() and 
-                        (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
+          (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
       if len(all_yaml_files) == 0:
         raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
         
@@ -109,16 +141,42 @@ class Client(object):
     key = kfp_run.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_run.models.ApiResourceType.EXPERIMENT)
     reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
-    spec = kfp_run.models.ApiPipelineSpec(workflow_manifest=pipeline_json_string, parameters=api_params)
-    run_body = kfp_run.models.ApiRun(pipeline_spec=spec, resource_references=[reference], name=job_name)
+    spec = kfp_run.models.ApiPipelineSpec(
+        workflow_manifest=pipeline_json_string, parameters=api_params)
+    run_body = kfp_run.models.ApiRun(
+        pipeline_spec=spec, resource_references=[reference], name=job_name)
 
     response = self._run_api.create_run(body=run_body)
     
     if self._is_ipython():
       import IPython
-      html = 'Job link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>' % response.run.id
+      html = ('Job link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
+              % response.run.id)
       IPython.display.display(IPython.display.HTML(html))
     return response.run
+
+  def list_runs(self, page_token='', page_size=10, sort_by=''):
+    """List runs.
+    Args:
+      page_token: token for starting of the page.
+      page_size: size of the page.
+      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+    Returns:
+      A response object including a list of experiments and next page token.
+    """
+    response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+    return response
+
+  def get_run(self, run_id):
+    """Get run details.
+    Args:
+      id of the run.
+    Returns:
+      A response object including details of a run.
+    Throws:
+      Exception if run is not found.
+    """
+    return self._run_api.get_run(run_id=run_id)
 
   def wait_for_run_completion(self, run_id, timeout):
     """Wait for a run to complete.
