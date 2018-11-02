@@ -26,6 +26,7 @@ import PipelineSelector from './PipelineSelector';
 import RunUtils from '../lib/RunUtils';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
+import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline } from '../apis/pipeline';
 import { ApiRun, ApiResourceReference, ApiRelationship, ApiResourceType, ApiRunDetail } from '../apis/run';
@@ -38,7 +39,6 @@ import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
-import { getParameters } from '../lib/WorkflowParser';
 
 interface NewRunState {
   description: string;
@@ -304,7 +304,7 @@ class NewRun extends Page<{}, NewRunState> {
         return;
       }
 
-      pipeline.parameters = getParameters(workflow);
+      pipeline.parameters = WorkflowParser.getParameters(workflow);
 
       this.setState({
         pipeline,
@@ -356,7 +356,7 @@ class NewRun extends Page<{}, NewRunState> {
   private _create(): void {
     const { pipeline } = this.state;
     if (!pipeline) {
-      this._showErrorDialog('Run creation failed', 'Cannot create run without pipeline');
+      this.showErrorDialog('Run creation failed', 'Cannot create run without pipeline');
       logger.error('Cannot create run without pipeline');
       return;
     }
@@ -399,7 +399,7 @@ class NewRun extends Page<{}, NewRunState> {
           : Apis.runServiceApi.createRun(newRun);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        this._showErrorDialog('Run creation failed', errorMessage);
+        this.showErrorDialog('Run creation failed', errorMessage);
         logger.error('Error creating Run:', err);
         this.setState({ isBeingCreated: false });
         return;
@@ -415,14 +415,6 @@ class NewRun extends Page<{}, NewRunState> {
         message: `Successfully created new Run: ${newRun.name}`,
         open: true,
       });
-    });
-  }
-
-  private _showErrorDialog(title: string, content: string): void {
-    this.props.updateDialog({
-      buttons: [{ text: 'Dismiss' }],
-      content,
-      title,
     });
   }
 

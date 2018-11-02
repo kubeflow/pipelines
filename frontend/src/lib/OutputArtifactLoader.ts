@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import WorkflowParser, { StoragePath } from './WorkflowParser';
 import { Apis } from '../lib/Apis';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
@@ -23,7 +24,6 @@ import { ROCCurveConfig } from '../components/viewers/ROCCurve';
 import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { csvParseRows } from 'd3-dsv';
 import { logger, errorToMessage } from './Utils';
-import { parseStoragePath, StoragePath } from './WorkflowParser';
 
 export interface PlotMetadata {
   format?: 'csv';
@@ -99,7 +99,7 @@ export async function buildConfusionMatrixConfig(metadata: PlotMetadata): Promis
     throw new Error('"schema" must be an array of {"name": string, "type": string} objects');
   }
 
-  const path = parseStoragePath(metadata.source);
+  const path = WorkflowParser.parseStoragePath(metadata.source);
   const csvRows = csvParseRows((await Apis.readFile(path)).trim());
   const labels = metadata.labels;
   const labelIndex: { [label: string]: number } = {};
@@ -151,7 +151,7 @@ export async function buildPagedTableConfig(metadata: PlotMetadata): Promise<Pag
 
   switch (metadata.format) {
     case 'csv':
-      const path = parseStoragePath(metadata.source);
+      const path = WorkflowParser.parseStoragePath(metadata.source);
       data = csvParseRows((await Apis.readFile(path)).trim()).map(r => r.map(c => c.trim()));
       break;
     default:
@@ -169,7 +169,7 @@ export async function buildTensorboardConfig(metadata: PlotMetadata): Promise<Te
   if (!metadata.source) {
     throw new Error('Malformed metadata, property "source" is required.');
   }
-  parseStoragePath(metadata.source);
+  WorkflowParser.parseStoragePath(metadata.source);
   return {
     type: PlotType.TENSORBOARD,
     url: metadata.source,
@@ -180,7 +180,7 @@ export async function buildHtmlViewerConfig(metadata: PlotMetadata): Promise<HTM
   if (!metadata.source) {
     throw new Error('Malformed metadata, property "source" is required.');
   }
-  const path = parseStoragePath(metadata.source);
+  const path = WorkflowParser.parseStoragePath(metadata.source);
   const htmlContent = await Apis.readFile(path);
 
   return {
@@ -200,7 +200,7 @@ export async function buildRocCurveConfig(metadata: PlotMetadata): Promise<ROCCu
     throw new Error('Malformed schema, must be an array of {"name": string, "type": string}');
   }
 
-  const path = parseStoragePath(metadata.source);
+  const path = WorkflowParser.parseStoragePath(metadata.source);
   const stringData = csvParseRows((await Apis.readFile(path)).trim());
 
   const fprIndex = metadata.schema.findIndex(field => field.name === 'fpr');

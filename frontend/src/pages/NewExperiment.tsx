@@ -146,18 +146,10 @@ class NewExperiment extends Page<{}, NewExperimentState> {
           open: true,
         });
       } catch (err) {
-        await this._showErrorDialog('Experiment creation failed', err);
+        await this.showErrorDialog('Experiment creation failed', err);
         logger.error('Error creating experiment:', err);
         this.setState({ isbeingCreated: false });
       }
-    });
-  }
-
-  private _showErrorDialog(title: string, content: string): void {
-    this.props.updateDialog({
-      buttons: [{ text: 'Dismiss' }],
-      content,
-      title,
     });
   }
 

@@ -56,6 +56,7 @@ const css = stylesheet({
     color: '#fff',
     fontFamily: fonts.code,
     fontSize: fontsize.small,
+    padding: '10px 0',
     whiteSpace: 'pre',
   },
 });

@@ -15,15 +15,16 @@
  */
 
 import * as React from 'react';
-import * as WorkflowParser from '../lib/WorkflowParser';
 import CollapseButton from '../components/CollapseButton';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
-import CompareTable from '../components/CompareTable';
+import CompareTable, { CompareTableProps } from '../components/CompareTable';
+import CompareUtils from '../lib/CompareUtils';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
 import Hr from '../atoms/Hr';
 import PlotCard, { PlotCardProps } from '../components/PlotCard';
 import RunList from './RunList';
 import Separator from '../atoms/Separator';
+import WorkflowParser from '../lib/WorkflowParser';
 import { ApiRunDetail } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
@@ -34,7 +35,6 @@ import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
-import { countBy, flatten } from 'lodash';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { logger } from '../lib/Utils';
 
@@ -54,9 +54,7 @@ interface TaggedViewerConfig {
 interface CompareState {
   collapseSections: { [key: string]: boolean };
   fullscreenViewerConfig: PlotCardProps | null;
-  paramsTableRows: string[][];
-  paramsTableXLabels: string[];
-  paramsTableYLabels: string[];
+  paramsCompareProps: CompareTableProps;
   runs: ApiRunDetail[];
   selectedIds: string[];
   viewersMap: Map<PlotType, TaggedViewerConfig[]>;
@@ -74,9 +72,7 @@ class Compare extends Page<{}, CompareState> {
     this.state = {
       collapseSections: {},
       fullscreenViewerConfig: null,
-      paramsTableRows: [],
-      paramsTableXLabels: [],
-      paramsTableYLabels: [],
+      paramsCompareProps: { rows: [], xLabels: [], yLabels: [] },
       runs: [],
       selectedIds: [],
       viewersMap: new Map(),
@@ -107,8 +103,7 @@ class Compare extends Page<{}, CompareState> {
   }
 
   public render() {
-    const { collapseSections, paramsTableRows, paramsTableXLabels, paramsTableYLabels,
-      selectedIds, viewersMap } = this.state;
+    const { collapseSections, selectedIds, viewersMap } = this.state;
 
     const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
     const runIds = queryParamRunIds ? queryParamRunIds.split(',') : [];
@@ -138,7 +133,7 @@ class Compare extends Page<{}, CompareState> {
       {!collapseSections[paramsSectionName] && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
-          <CompareTable rows={paramsTableRows} xLabels={paramsTableXLabels} yLabels={paramsTableYLabels} />
+          <CompareTable {...this.state.paramsCompareProps} />
           <Hr />
         </div>
       )}
@@ -257,27 +252,13 @@ class Compare extends Page<{}, CompareState> {
     const { runs, selectedIds, workflowObjects } = this.state;
 
     const selectedIndices = selectedIds.map(id => runs.findIndex(r => r.run!.id === id));
+    const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1);
+    const filteredWorkflows = workflowObjects.filter((_, i) => selectedIndices.indexOf(i) > -1);
 
-    const parameterNames = flatten(workflowObjects
-      .filter((_, i) => selectedIndices.indexOf(i) > -1)
-      .map(workflow => ((workflow.spec.arguments || {}).parameters || []).map(p => p.name)));
+    const paramsCompareProps = CompareUtils.getParamsCompareProps(
+      filteredRuns, filteredWorkflows);
 
-    const paramsTableXLabels = runs
-      .filter((_, i) => selectedIndices.indexOf(i) > -1)
-      .map(r => r.run!.name!);
-    const paramsTableYLabels = Object.keys(countBy(parameterNames));
-
-    const paramsTableRows = paramsTableYLabels.map(name => {
-      return workflowObjects
-        .filter((_, i) => selectedIndices.indexOf(i) > -1)
-        .map(w => {
-          const param =
-            ((w.spec.arguments || {}).parameters || []).find(p => p.name === name);
-          return param ? param.value || '' : '';
-        });
-    });
-
-    this.setState({ paramsTableRows, paramsTableXLabels, paramsTableYLabels });
+    this.setState({ paramsCompareProps });
   }
 }
 

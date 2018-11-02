@@ -59,4 +59,12 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
       refresh: this.load.bind(this),
     });
   }
+
+  public showErrorDialog(title: string, content: string): void {
+    this.props.updateDialog({
+      buttons: [{ text: 'Dismiss' }],
+      content,
+      title,
+    });
+  }
 }

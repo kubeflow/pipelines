@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import * as WorkflowParser from '../lib/WorkflowParser';
 import Banner, { Mode } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -29,8 +28,11 @@ import PlotCard from '../components/PlotCard';
 import Resizable from 're-resizable';
 import RunUtils from '../lib/RunUtils';
 import Slide from '@material-ui/core/Slide';
-import { Apis } from '../lib/Apis';
+import WorkflowParser from '../lib/WorkflowParser';
+import { ApiExperiment } from '../apis/experiment';
 import { ApiRun } from '../apis/run';
+import { Apis } from '../lib/Apis';
+import { NodePhase } from './Status';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
@@ -41,8 +43,6 @@ import { componentMap } from '../components/viewers/ViewerContainer';
 import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { stylesheet, classes } from 'typestyle';
-import { ApiExperiment } from '../apis/experiment';
-import { NodePhase } from './Status';
 
 const css = stylesheet({
   closeButton: {

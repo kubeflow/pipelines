@@ -123,14 +123,6 @@ class PipelineList extends Page<{}, PipelineListState> {
     this._reload();
   }
 
-  private _showErrorDialog(title: string, content: string): void {
-    this.props.updateDialog({
-      buttons: [{ text: 'Dismiss' }],
-      content,
-      title,
-    });
-  }
-
   private async _reload(loadRequest?: BaseListRequest): Promise<string> {
     // Override the current state with incoming request
     const request: ListPipelinesRequest = Object.assign({
@@ -206,7 +198,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       }
 
       if (unsuccessfulDeleteIds.length > 0) {
-        this._showErrorDialog(
+        this.showErrorDialog(
           `Failed to delete ${unsuccessfulDeleteIds.length} pipeline${unsuccessfulDeleteIds.length === 1 ? '' : 's'}`,
           errorMessages.join('\n\n'));
       }
@@ -224,7 +216,7 @@ class PipelineList extends Page<{}, PipelineListState> {
         return true;
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        this._showErrorDialog('Failed to upload pipeline', errorMessage);
+        this.showErrorDialog('Failed to upload pipeline', errorMessage);
         logger.error('Error uploading pipeline:', err);
         return false;
       }

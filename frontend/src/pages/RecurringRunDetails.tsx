@@ -184,14 +184,6 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     }
   }
 
-  private _showErrorDialog(title: string, content: string): void {
-    this.props.updateDialog({
-      buttons: [{ text: 'Dismiss' }],
-      content,
-      title,
-    });
-  }
-
   private async _setEnabledState(enabled: boolean) {
     if (this.state.run) {
       const toolbarActions = [...this.props.toolbarProps.actions];
@@ -206,7 +198,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
         this.load();
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        this._showErrorDialog(
+        this.showErrorDialog(
           `Failed to ${enabled ? 'enable' : 'disable'} recurring schedule`, errorMessage);
       } finally {
         toolbarActions[buttonIndex].busy = false;
@@ -234,7 +226,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
         });
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        this._showErrorDialog('Failed to delete recurring run', errorMessage);
+        this.showErrorDialog('Failed to delete recurring run', errorMessage);
         logger.error('Deleting recurring run failed with error:', err);
       }
     }

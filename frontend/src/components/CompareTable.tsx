@@ -49,14 +49,15 @@ const css = stylesheet({
   },
 });
 
-interface CompareTableProps {
+export interface CompareTableProps {
   rows: string[][];
   xLabels: string[];
   yLabels: string[];
 }
 
 // tslint:disable-next-line:variable-name
-const CompareTable = ({ rows, xLabels, yLabels }: CompareTableProps) => {
+const CompareTable = (compareProps: CompareTableProps) => {
+  const { rows, xLabels, yLabels } = compareProps;
   if (rows.length !== yLabels.length) {
     logger.error(
       `Number of rows (${rows.length}) should match the number of Y labels (${yLabels.length}).`);
