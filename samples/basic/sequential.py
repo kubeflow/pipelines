@@ -21,7 +21,7 @@ import kfp.dsl as dsl
   name='Sequential',
   description='Download a message and print it.'
 )
-def download_and_print(url: dsl.PipelineParam):
+def download_and_print(url: dsl.PipelineParam=dsl.PipelineParam(name='url', value='gs://ml-pipeline-playground/shakespeare1.txt')):
   """A very simple two-step pipeline."""
 
   op1 = dsl.ContainerOp(
