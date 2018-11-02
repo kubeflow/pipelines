@@ -31,7 +31,7 @@ Instructions for enabling that can be found [here](https://cloud.google.com/endp
 
 ## Compiling the pipeline template
 
-Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and then run the following to compile the pipeline:
+Follow [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/README.md) to install the compiler and then run the following to compile the pipeline:
 
 ```bash
 dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
@@ -49,17 +49,17 @@ The pipeline will require two arguments:
 ## Components Source
 
 Preprocessing:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/tft) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/tft)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tft)
 
 Training:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/kubeflow/launcher) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/kubeflow/container/launcher)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/container/launcher)
 
 Analysis:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/tfma) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/tfma)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tfma)
 
 Prediction:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/dataflow/predict) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/dataflow/containers/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/predict)

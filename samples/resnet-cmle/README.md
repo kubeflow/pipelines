@@ -8,7 +8,7 @@ Training and serving uses Google Cloud Machine Learning Engine. So [Cloud Machin
 given project. 
 
 ## Compile
-Follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md) to install the compiler and 
+Follow [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/README.md) to install the compiler and 
 compile your python sample into workflow yaml.
 
 ## Deploy
@@ -25,13 +25,13 @@ bucket: A Google storage bucket to store results.
 ## Components Source
 
 Preprocessing:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/resnet-cmle/resnet) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/resnet-cmle/containers/preprocess)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/resnet-cmle/resnet) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/resnet-cmle/containers/preprocess)
 
 Training:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/resnet-cmle/resnet) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/resnet-cmle/containers/train)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/resnet-cmle/resnet) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/resnet-cmle/containers/train)
 
 Deployment:
-  [source code](https://github.com/googleprivate/ml/tree/master/components/resnet-cmle/resnet) 
-  [container](https://github.com/googleprivate/ml/tree/master/components/resnet-cmle/containers/deploy)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/resnet-cmle/resnet) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/resnet-cmle/containers/deploy)

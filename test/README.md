@@ -25,7 +25,7 @@ You could run the tests against a specific commit.
 ### Setup
 
 Here are the one-time steps to prepare for your GKE testing cluster:
-- Follow the [main page](https://github.com/googleprivate/ml#setup-gke) to
+- Follow the [main page](https://github.com/kubeflow/pipelines#setup-gke) to
 create a GKE cluster.
 - Install [Argo](https://github.com/argoproj/argo/blob/master/demo.md#argo-v20-getting-started)
 in the cluster. If you have Argo CLI installed locally, just run
