@@ -1,0 +1,218 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BusyButton renders a primary outlined buton 1`] = `
+<button
+  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textPrimary-4 MuiButton-flat-6 MuiButton-flatPrimary-7 root"
+  disabled={false}
+  onBlur={[Function]}
+  onFocus={[Function]}
+  onKeyDown={[Function]}
+  onKeyUp={[Function]}
+  onMouseDown={[Function]}
+  onMouseLeave={[Function]}
+  onMouseUp={[Function]}
+  onTouchEnd={[Function]}
+  onTouchMove={[Function]}
+  onTouchStart={[Function]}
+  tabIndex="0"
+  type="button"
+>
+  <span
+    className="MuiButton-label-2"
+  >
+    <span>
+      test busy button
+    </span>
+  </span>
+  <span
+    className="MuiTouchRipple-root-30"
+  />
+</button>
+`;
+
+exports[`BusyButton renders disabled 1`] = `
+<button
+  className="MuiButtonBase-root-27 MuiButtonBase-disabled-28 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 MuiButton-disabled-21 root"
+  disabled={true}
+  onBlur={[Function]}
+  onFocus={[Function]}
+  onKeyDown={[Function]}
+  onKeyUp={[Function]}
+  onMouseDown={[Function]}
+  onMouseLeave={[Function]}
+  onMouseUp={[Function]}
+  onTouchEnd={[Function]}
+  onTouchMove={[Function]}
+  onTouchStart={[Function]}
+  tabIndex="-1"
+  type="button"
+>
+  <span
+    className="MuiButton-label-2"
+  >
+    <svg
+      aria-hidden="true"
+      className="MuiSvgIcon-root-37 icon"
+      color={undefined}
+      focusable="false"
+      role="presentation"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M0 0h24v24H0z"
+        fill="none"
+      />
+      <path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+      />
+    </svg>
+    <span>
+      test busy button
+    </span>
+  </span>
+</button>
+`;
+
+exports[`BusyButton renders with a title and icon 1`] = `
+<button
+  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 root"
+  disabled={false}
+  onBlur={[Function]}
+  onFocus={[Function]}
+  onKeyDown={[Function]}
+  onKeyUp={[Function]}
+  onMouseDown={[Function]}
+  onMouseLeave={[Function]}
+  onMouseUp={[Function]}
+  onTouchEnd={[Function]}
+  onTouchMove={[Function]}
+  onTouchStart={[Function]}
+  tabIndex="0"
+  type="button"
+>
+  <span
+    className="MuiButton-label-2"
+  >
+    <svg
+      aria-hidden="true"
+      className="MuiSvgIcon-root-37 icon"
+      color={undefined}
+      focusable="false"
+      role="presentation"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M0 0h24v24H0z"
+        fill="none"
+      />
+      <path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+      />
+    </svg>
+    <span>
+      test busy button
+    </span>
+  </span>
+  <span
+    className="MuiTouchRipple-root-30"
+  />
+</button>
+`;
+
+exports[`BusyButton renders with a title and icon, and busy 1`] = `
+<button
+  className="MuiButtonBase-root-27 MuiButtonBase-disabled-28 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 MuiButton-disabled-21 root rootBusy"
+  disabled={true}
+  onBlur={[Function]}
+  onFocus={[Function]}
+  onKeyDown={[Function]}
+  onKeyUp={[Function]}
+  onMouseDown={[Function]}
+  onMouseLeave={[Function]}
+  onMouseUp={[Function]}
+  onTouchEnd={[Function]}
+  onTouchMove={[Function]}
+  onTouchStart={[Function]}
+  tabIndex="-1"
+  type="button"
+>
+  <span
+    className="MuiButton-label-2"
+  >
+    <svg
+      aria-hidden="true"
+      className="MuiSvgIcon-root-37 icon"
+      color={undefined}
+      focusable="false"
+      role="presentation"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M0 0h24v24H0z"
+        fill="none"
+      />
+      <path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
+      />
+    </svg>
+    <span>
+      test busy button
+    </span>
+    <div
+      className="MuiCircularProgress-root-46 MuiCircularProgress-colorPrimary-49 MuiCircularProgress-indeterminate-48 spinner spinnerBusy"
+      role="progressbar"
+      style={
+        Object {
+          "height": 15,
+          "width": 15,
+        }
+      }
+    >
+      <svg
+        className="MuiCircularProgress-svg-51"
+        viewBox="22 22 44 44"
+      >
+        <circle
+          className="MuiCircularProgress-circle-52 MuiCircularProgress-circleIndeterminate-54"
+          cx={44}
+          cy={44}
+          fill="none"
+          r={20.2}
+          strokeWidth={3.6}
+          style={Object {}}
+        />
+      </svg>
+    </div>
+  </span>
+</button>
+`;
+
+exports[`BusyButton renders with just a title 1`] = `
+<button
+  className="MuiButtonBase-root-27 MuiButton-root-1 MuiButton-text-3 MuiButton-textSecondary-5 MuiButton-flat-6 MuiButton-flatSecondary-8 root"
+  disabled={false}
+  onBlur={[Function]}
+  onFocus={[Function]}
+  onKeyDown={[Function]}
+  onKeyUp={[Function]}
+  onMouseDown={[Function]}
+  onMouseLeave={[Function]}
+  onMouseUp={[Function]}
+  onTouchEnd={[Function]}
+  onTouchMove={[Function]}
+  onTouchStart={[Function]}
+  tabIndex="0"
+  type="button"
+>
+  <span
+    className="MuiButton-label-2"
+  >
+    <span>
+      test busy button
+    </span>
+  </span>
+  <span
+    className="MuiTouchRipple-root-30"
+  />
+</button>
+`;

@@ -1,0 +1,33 @@
+{
+  "description": "Frontend webserver package for ML Pipeline Management",
+  "main": "server.js",
+  "dependencies": {
+    "@google-cloud/storage": "^1.6.0",
+    "@kubernetes/client-node": "^0.5.2",
+    "express": "^4.16.3",
+    "http-proxy-middleware": "^0.18.0",
+    "minio": "^7.0.0",
+    "node-fetch": "^2.1.2",
+    "tar": "^4.4.6"
+  },
+  "devDependencies": {
+    "@types/express": "^4.11.1",
+    "@types/google-cloud__storage": "^1.1.7",
+    "@types/minio": "^6.0.2",
+    "@types/node-fetch": "^2.1.2",
+    "typescript": "3.0.1"
+  },
+  "scripts": {
+    "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types *.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/googleprivate/ml.git"
+  },
+  "author": "",
+  "license": "",
+  "bugs": {
+    "url": "https://github.com/googleprivate/ml/issues"
+  },
+  "homepage": "https://github.com/googleprivate/ml#readme"
+}

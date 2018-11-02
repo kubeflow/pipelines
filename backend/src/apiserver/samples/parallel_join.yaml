@@ -1,0 +1,168 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: parallel-and-join-
+spec:
+  arguments:
+    parameters:
+    - name: url1
+    - name: url2
+  entrypoint: parallel-and-join
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - gsutil cat {{inputs.parameters.url1}} | tee /tmp/results.txt
+      command:
+      - sh
+      - -c
+      image: google/cloud-sdk:216.0.0
+    inputs:
+      parameters:
+      - name: url1
+    name: download1
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: download1-downloaded
+        valueFrom:
+          path: /tmp/results.txt
+  - container:
+      args:
+      - gsutil cat {{inputs.parameters.url2}} | tee /tmp/results.txt
+      command:
+      - sh
+      - -c
+      image: google/cloud-sdk:216.0.0
+    inputs:
+      parameters:
+      - name: url2
+    name: download2
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: download2-downloaded
+        valueFrom:
+          path: /tmp/results.txt
+  - container:
+      args:
+      - echo {{inputs.parameters.download1-downloaded}} {{inputs.parameters.download2-downloaded}}
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - name: download1-downloaded
+      - name: download2-downloaded
+    name: echo
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: url1
+            value: '{{inputs.parameters.url1}}'
+        name: download1
+        template: download1
+      - arguments:
+          parameters:
+          - name: url2
+            value: '{{inputs.parameters.url2}}'
+        name: download2
+        template: download2
+      - arguments:
+          parameters:
+          - name: download1-downloaded
+            value: '{{tasks.download1.outputs.parameters.download1-downloaded}}'
+          - name: download2-downloaded
+            value: '{{tasks.download2.outputs.parameters.download2-downloaded}}'
+        dependencies:
+        - download1
+        - download2
+        name: echo
+        template: echo
+    inputs:
+      parameters:
+      - name: url1
+      - name: url2
+    name: parallel-and-join
