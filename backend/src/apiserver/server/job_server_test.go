@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/googleprivate/ml/backend/api/go_client"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 )

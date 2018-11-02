@@ -25,7 +25,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/googleprivate/ml/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
 )
 
 // Default pipeline upload HTTP client.

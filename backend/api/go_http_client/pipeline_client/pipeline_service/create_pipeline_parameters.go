@@ -31,7 +31,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	pipeline_model "github.com/googleprivate/ml/backend/api/go_http_client/pipeline_model"
+	pipeline_model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 )
 
 // NewCreatePipelineParams creates a new CreatePipelineParams object

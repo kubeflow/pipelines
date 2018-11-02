@@ -15,8 +15,8 @@
 package worker
 
 import (
-	"github.com/googleprivate/ml/backend/src/agent/persistence/client"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )

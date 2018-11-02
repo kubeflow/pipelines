@@ -16,8 +16,8 @@
 package scheduledworkflow
 
 import (
-	internalinterfaces "github.com/googleprivate/ml/backend/src/crd/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/googleprivate/ml/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1alpha1"
+	internalinterfaces "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

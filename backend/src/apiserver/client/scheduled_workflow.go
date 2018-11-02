@@ -19,8 +19,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	swfclient "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned"
-	"github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
+	swfclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
+	"github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	"k8s.io/client-go/rest"
 )
 
