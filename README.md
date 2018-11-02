@@ -159,11 +159,11 @@ then create job using the updated YAML by running ```kubectl create -f bootstrap
 
 When deployment is successful, forward its port to visit the ML pipeline UI. 
 ```bash
-kubectl port-forward $(kubectl get pods -n kubeflow -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}') -n kubeflow 8080:3000
+kubectl port-forward -n kubeflow `kubectl get pods -n kubeflow --selector=service=ambassador -o jsonpath='{.items[0].metadata.name}'` 8080:80
 ```
 If you are using Cloud Shell, you could view the UI by open the [web preview](https://cloud.google.com/shell/docs/using-web-preview#previewing_the_application) button ![alt text](https://cloud.google.com/shell/docs/images/web-preview-button.png). Make sure the it's preview on port 8080.
 
-If you are using local console instead of Cloud Shell, you can access the ML pipeline UI at [localhost:8080](http://localhost:8080).
+If you are using local console instead of Cloud Shell, you can access the ML pipeline UI at [localhost:8080/pipeline](http://localhost:8080/pipeline).
 
 ## Run your first TFJob pipeline
 See the following authoring guide on how to compile your python pipeline code into workflow tar file. Then, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
