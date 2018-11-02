@@ -181,7 +181,14 @@ def {wrapper_func_name}({external_annotated_parameters}):
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
         Path(filename).write_text(str(outputs[idx]))
 
-import fire
+try:
+    import fire
+except ImportError:
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'fire==0.1.3'])
+    import fire
+
 fire.Fire({wrapper_func_name})
 '''.format(
         wrapper_func_name=func_name + '_wrapper',
