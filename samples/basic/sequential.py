@@ -19,10 +19,11 @@ import kfp.dsl as dsl
 
 @dsl.pipeline(
   name='Sequential',
-  description='Download a message and print it.'
+  description='A pipeline with two sequential steps.'
 )
-def download_and_print(url: dsl.PipelineParam=dsl.PipelineParam(name='url', value='gs://ml-pipeline-playground/shakespeare1.txt')):
-  """A very simple two-step pipeline."""
+def sequential_pipeline(
+    url=dsl.PipelineParam(name='url', value='gs://ml-pipeline-playground/shakespeare1.txt')):
+  """A pipeline with two sequential steps."""
 
   op1 = dsl.ContainerOp(
      name='download',
@@ -30,7 +31,6 @@ def download_and_print(url: dsl.PipelineParam=dsl.PipelineParam(name='url', valu
      command=['sh', '-c'],
      arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
      file_outputs={'downloaded': '/tmp/results.txt'})
-
   op2 = dsl.ContainerOp(
      name='echo',
      image='library/bash:4.4.23',
@@ -39,4 +39,4 @@ def download_and_print(url: dsl.PipelineParam=dsl.PipelineParam(name='url', valu
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(download_and_print, __file__ + '.tar.gz')
+  compiler.Compiler().compile(sequential_pipeline, __file__ + '.tar.gz')

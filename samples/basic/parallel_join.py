@@ -21,8 +21,10 @@ import kfp.dsl as dsl
   name='Parallel_and_Join',
   description='Download two messages in parallel and print the concatenated result.'
 )
-def download_and_join(url1: dsl.PipelineParam, url2: dsl.PipelineParam):
-  """A very simple two-step pipeline."""
+def download_and_join(
+  url1=dsl.PipelineParam(name='url1', value='gs://ml-pipeline-playground/shakespeare1.txt'),
+  url2=dsl.PipelineParam(name='url2', value='gs://ml-pipeline-playground/shakespeare2.txt')):
+  """A three-step pipeline with first two running in parallel."""
 
   download1 = dsl.ContainerOp(
      name='download1',
