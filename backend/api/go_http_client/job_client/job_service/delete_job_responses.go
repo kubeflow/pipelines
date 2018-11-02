@@ -27,7 +27,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	job_model "github.com/googleprivate/ml/backend/api/go_http_client/job_model"
+	job_model "github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
 )
 
 // DeleteJobReader is a Reader for the DeleteJob structure.

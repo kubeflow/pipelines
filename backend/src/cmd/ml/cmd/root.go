@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	client "github.com/googleprivate/ml/backend/src/common/client/api_server"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	client "github.com/kubeflow/pipelines/backend/src/common/client/api_server"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 )

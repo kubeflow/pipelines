@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/googleprivate/ml/backend/src/cmd/ml/cmd"
+	"github.com/kubeflow/pipelines/backend/src/cmd/ml/cmd"
 )
 
 const (

@@ -31,7 +31,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	experiment_model "github.com/googleprivate/ml/backend/api/go_http_client/experiment_model"
+	experiment_model "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 )
 
 // NewCreateExperimentParams creates a new CreateExperimentParams object

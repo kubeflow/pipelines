@@ -15,7 +15,7 @@ package test
 //
 //	"github.com/golang/glog"
 //	"github.com/golang/protobuf/ptypes/timestamp"
-//	api "github.com/googleprivate/ml/backend/api/go_client"
+//	api "github.com/kubeflow/pipelines/backend/api/go_client"
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/suite"
 //	"google.golang.org/grpc"

@@ -27,11 +27,11 @@ import (
 
 	"os"
 
-	"github.com/googleprivate/ml/backend/src/apiserver/common"
-	"github.com/googleprivate/ml/backend/src/apiserver/model"
-	"github.com/googleprivate/ml/backend/src/apiserver/resource"
-	"github.com/googleprivate/ml/backend/src/apiserver/storage"
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 )
 

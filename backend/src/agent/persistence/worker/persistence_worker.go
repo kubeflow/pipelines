@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/googleprivate/ml/backend/src/common/util"
-	errorutil "github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	errorutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"

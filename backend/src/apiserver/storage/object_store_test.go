@@ -19,7 +19,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/googleprivate/ml/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	minio "github.com/minio/minio-go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"

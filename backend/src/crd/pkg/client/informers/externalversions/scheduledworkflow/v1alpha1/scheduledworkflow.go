@@ -18,10 +18,10 @@ package v1alpha1
 import (
 	time "time"
 
-	scheduledworkflowv1alpha1 "github.com/googleprivate/ml/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
-	versioned "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/googleprivate/ml/backend/src/crd/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/googleprivate/ml/backend/src/crd/pkg/client/listers/scheduledworkflow/v1alpha1"
+	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	versioned "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/listers/scheduledworkflow/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
