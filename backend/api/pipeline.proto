@@ -1,0 +1,144 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package api;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "parameter.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  responses: {
+    key: "default";
+    value: {
+      schema: {
+        json_schema: {
+          ref: ".api.Status";
+        }
+      }
+    }
+  }
+  // Use bearer token for authorizing access to job service.
+  // Kubernetes client library(https://kubernetes.io/docs/reference/using-api/client-libraries/)
+  // uses bearer token as default for authorization. The section below
+  // ensures security definition object is generated in the swagger definition.
+  // For more details see https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#securityDefinitionsObject
+  security_definitions: {
+    security: {
+      key: "Bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "authorization";
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "Bearer";
+      value: {};
+    }
+  }
+};
+
+service PipelineService {
+  rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/pipelines"
+      body: "url"
+    };
+  }
+
+  rpc GetPipeline(GetPipelineRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipelines/{id}"
+    };
+  }
+
+  rpc ListPipelines(ListPipelinesRequest) returns (ListPipelinesResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipelines"
+    };
+  }
+
+  rpc DeletePipeline(DeletePipelineRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/pipelines/{id}"
+    };
+  }
+
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipelines/{id}/templates"
+    };
+  }
+}
+
+message Url{
+  string pipeline_url = 1;
+}
+
+// Create pipeline by providing an URL pointing to the pipeline file,
+// and optionally a pipeline name. If name is not provided, file name is used as
+// pipeline name by default. Maximum size of 32MB is supported.
+message CreatePipelineRequest{
+  Url url = 1;
+  string name = 2;
+}
+
+message GetPipelineRequest {
+  string id = 1;
+}
+
+message ListPipelinesRequest {
+  string page_token = 1;
+  int32 page_size = 2;
+  // Can be format of "field_name", "field_name asc" or "field_name des"
+  // Ascending by default.
+  string sort_by = 3;
+}
+
+message ListPipelinesResponse {
+  repeated Pipeline pipelines = 1;
+  string next_page_token = 2;
+}
+
+message DeletePipelineRequest {
+  string id = 1;
+}
+
+message GetTemplateRequest {
+  string id = 1;
+}
+
+message GetTemplateResponse {
+  string template = 1;
+}
+
+message Pipeline{
+  string id = 1;
+  google.protobuf.Timestamp created_at =2;
+  string name = 3;
+  string description = 4;
+  repeated Parameter parameters = 5;
+
+  // In case any error happens retrieving a pipeline field, only pipeline ID
+  // and the error message is returned. Client has the flexibility of choosing
+  // how to handle error. This is especially useful during listing call.
+  string error = 6;
+}

@@ -1,0 +1,8 @@
+{
+  "extends": ["../tslint.json"],
+  "rules": {
+    "no-console": false,
+    "no-default-export": false,
+    "no-var-requires": false
+  }
+}

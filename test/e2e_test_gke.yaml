@@ -1,0 +1,209 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: integration-test-
+spec:
+  entrypoint: integration-test
+  arguments:
+    parameters:
+    - name: commit-sha
+    - name: test-results-gcs-dir
+    - name: bootstrapper-image
+    - name: api-image
+    - name: frontend-image
+    - name: scheduledworkflow-image
+    - name: persistenceagent-image
+    - name: api-integration-test-image-suffix
+      value: api_integration_test
+    - name: frontend-integration-tests-image-suffix
+      value: frontend-integration-tests
+    - name: cluster-type
+      value: gke
+  templates:
+  - name: integration-test
+    inputs:
+      parameters:
+      - name: commit-sha
+      - name: test-results-gcs-dir
+      - name: bootstrapper-image
+      - name: api-image
+      - name: frontend-image
+      - name: scheduledworkflow-image
+      - name: persistenceagent-image
+      - name: api-integration-test-image-suffix
+      - name: frontend-integration-tests-image-suffix
+    steps:
+    - - name: get-project
+        template: get-project
+    - - name: build-api-integration-test-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: test/api-integration-test
+          - name: image-suffix
+            value: "{{inputs.parameters.api-integration-test-image-suffix}}"
+      - name: build-frontend-integration-tests-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: test/frontend-integration-test
+          - name: image-suffix
+            value: "{{inputs.parameters.frontend-integration-tests-image-suffix}}"
+    - - name: deploy-ml-pipeline
+        template: deploy-ml-pipeline
+        arguments:
+          parameters:
+          - name: bootstrapper-image
+            value: "{{inputs.parameters.bootstrapper-image}}"
+          - name: api-image
+            value: "{{inputs.parameters.api-image}}"
+          - name: frontend-image
+            value: "{{inputs.parameters.frontend-image}}"
+          - name: scheduledworkflow-image
+            value: "{{inputs.parameters.scheduledworkflow-image}}"
+          - name: persistenceagent-image
+            value: "{{inputs.parameters.persistenceagent-image}}"
+    - - name: run-api-integration-tests
+        template: run-api-integration-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: api-integration-test-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-integration-test-image-suffix}}"
+    - - name: run-frontend-integration-tests
+        template: run-frontend-integration-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: frontend-integration-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-integration-tests-image-suffix}}"
+        #TODO: Uncomment to disable the test on Minikube
+        #TODO: Change the cluster-type to "minikube" once https://github.com/googleprivate/ml/pull/1285 and related PRs are merged.
+        #when: "{{workflow.parameters.cluster-type}} != none" #Do not run the test on Minikube
+
+  - name: get-project
+    script:
+      image: google/cloud-sdk
+      command: [bash]
+      source: |
+        gcloud config config-helper --format "value(configuration.properties.core.project)"
+
+  # Build image and upload to GCR in the specified project
+  - name: build-image
+    inputs:
+      parameters:
+      # The project that image deployed to
+      - name: project
+      # The github commit-sha to pull code from
+      - name: commit-sha
+      # The relative code path to the Dockerfile
+      - name: docker-path
+      # Name of the Docker file to use. "Dockerfile" by default
+      - name: docker-file
+        value: Dockerfile
+      - name: image-suffix
+    container:
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181011-0.0.20-18-g5ab78f1c-a9becd
+      imagePullPolicy: 'Always'
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--docker_path", "{{inputs.parameters.docker-path}}",
+        "--docker_file", "{{inputs.parameters.docker-file}}",
+        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh/github"
+      env:
+      - name: DOCKER_HOST
+        value: 127.0.0.1
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind
+      securityContext:
+        privileged: true
+      mirrorVolumeMounts: true
+
+  - name: deploy-ml-pipeline
+    inputs:
+      parameters:
+      - name: bootstrapper-image
+      - name: api-image
+      - name: frontend-image
+      - name: scheduledworkflow-image
+      - name: persistenceagent-image
+    container:
+      image: "{{inputs.parameters.bootstrapper-image}}"
+      args: [
+        "--api_image", "{{inputs.parameters.api-image}}",
+        "--ui_image", "{{inputs.parameters.frontend-image}}",
+        "--scheduled_workflow_image", "{{inputs.parameters.scheduledworkflow-image}}",
+        "--persistence_agent_image", "{{inputs.parameters.persistenceagent-image}}",
+        "--deploy_argo", "false", # Argo is already installed in the cluster. No need to install again.
+        "--report_usage", "false" # Skip reporting usage for test
+      ]
+
+  - name: run-api-integration-tests
+    inputs:
+      parameters:
+      - name: commit-sha
+      - name: test-results-gcs-dir
+      - name: api-integration-test-image
+    container:
+      image: "{{inputs.parameters.api-integration-test-image}}"
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh/github"
+
+  - name: run-frontend-integration-tests
+    inputs:
+      parameters:
+      - name: commit-sha
+      - name: test-results-gcs-dir
+      - name: frontend-integration-tests-image
+    container:
+      image: "{{inputs.parameters.frontend-integration-tests-image}}"
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+      ]
+
+  volumes:
+  - name: secret-volume
+    secret:
+      defaultMode: 256
+      secretName: ssh-key-secret
