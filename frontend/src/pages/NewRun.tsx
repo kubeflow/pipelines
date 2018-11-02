@@ -28,7 +28,7 @@ import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline } from '../apis/pipeline';
-import { ApiRun, ApiResourceReference, ApiRelationship, ApiResourceType } from '../apis/run';
+import { ApiRun, ApiResourceReference, ApiRelationship, ApiResourceType, ApiRunDetail } from '../apis/run';
 import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
@@ -37,7 +37,8 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, errorToMessage } from '../lib/Utils';
+import { getParameters } from '../lib/WorkflowParser';
 
 interface NewRunState {
   description: string;
@@ -126,7 +127,7 @@ class NewRun extends Page<{}, NewRunState> {
           <Dialog open={pipelineSelectorOpen} classes={{ paper: css.pipelineSelectorDialog }}
             onClose={() => this._pipelineSelectorClosed(false)} PaperProps={{ id: 'pipelineSelectorDialog' }}>
             <DialogContent>
-              <PipelineSelector {...this.props} pipelineSectionChanged={this._pipelineSelectionChanged.bind(this)} />
+              <PipelineSelector {...this.props} pipelineSelectionChanged={this._pipelineSelectionChanged.bind(this)} />
             </DialogContent>
             <DialogActions>
               <Button onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>
@@ -201,37 +202,14 @@ class NewRun extends Page<{}, NewRunState> {
     const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
     if (originalRunId) {
       try {
-        const runDetail = await Apis.runServiceApi.getRun(originalRunId);
-
+        const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+        await this._prepareFormFromClone(originalRun);
         // If the querystring did not contain an experiment ID, try to get one from the run.
         if (!experimentId) {
-          experimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
-        }
-
-        const associatedPipelineId = RunUtils.getPipelineId(runDetail.run);
-        if (runDetail.run && associatedPipelineId) {
-          try {
-            const pipeline = await Apis.pipelineServiceApi.getPipeline(associatedPipelineId);
-            const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
-            if (workflow.spec.arguments) {
-              pipeline.parameters = workflow.spec.arguments.parameters;
-            }
-            this.setState({
-              pipeline,
-              pipelineName: (pipeline && pipeline.name) || '',
-              runName: this._getCloneName(runDetail.run.name!)
-            });
-          } catch (err) {
-            this.showPageError(
-              'Error: failed to find a pipeline corresponding to that of the original run:'
-              + ` ${originalRunId}.`);
-            logger.error('Cannot get the original run\'s data');
-            return;
-          }
+          experimentId = RunUtils.getFirstExperimentReferenceId(originalRun.run);
         }
       } catch (err) {
-        this.showPageError(`Error: failed to get original run: ${originalRunId}.`, err);
-        logger.error(`Failed to get original run ${originalRunId}`, err);
+        await this.showPageError(`Error: failed to get original run: ${originalRunId}.`, err);
       }
     } else {
       // Get pipeline id from querystring if any
@@ -242,11 +220,9 @@ class NewRun extends Page<{}, NewRunState> {
           this.setState({ pipeline, pipelineName: (pipeline && pipeline.name) || '' });
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
-          this.showPageError(
+          await this.showPageError(
             'Error: failed to find a pipeline corresponding to that of the original run:'
-            + ` ${originalRunId}.`);
-          logger.error('Cannot get the original run\'s data');
-          return;
+            + ` ${originalRunId}.`, err);
         }
       }
     }
@@ -257,7 +233,6 @@ class NewRun extends Page<{}, NewRunState> {
       try {
         experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
         experimentName = experiment.name;
-
         const breadcrumbs = [
           { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
           {
@@ -268,7 +243,7 @@ class NewRun extends Page<{}, NewRunState> {
         ];
         this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
       } catch (err) {
-        this.showPageError(`Error: failed to get associated experiment: ${experimentId}.`, err);
+        await this.showPageError(`Error: failed to get associated experiment: ${experimentId}.`, err);
         logger.error(`Failed to get associated experiment ${experimentId}`, err);
       }
     }
@@ -301,6 +276,45 @@ class NewRun extends Page<{}, NewRunState> {
     });
   }
 
+  private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
+    const associatedPipelineId = RunUtils.getPipelineId(originalRun.run);
+    if (originalRun.run && associatedPipelineId) {
+      let pipeline: ApiPipeline;
+      let workflow: Workflow;
+
+      try {
+        pipeline = await Apis.pipelineServiceApi.getPipeline(associatedPipelineId);
+      } catch (err) {
+        await this.showPageError(
+          'Error: failed to find a pipeline corresponding to that of the original run:'
+          + ` ${originalRun.run.id}.`, err);
+        return;
+      }
+
+      if (originalRun.pipeline_runtime!.workflow_manifest === undefined) {
+        await this.showPageError(`Error: run ${originalRun.run.id} had no workflow manifest`);
+        logger.error(originalRun.pipeline_runtime!.workflow_manifest);
+        return;
+      }
+      try {
+        workflow = JSON.parse(originalRun.pipeline_runtime!.workflow_manifest!) as Workflow;
+      } catch (err) {
+        await this.showPageError('Error: failed to parse the original run\'s runtime', err);
+        logger.error(originalRun.pipeline_runtime!.workflow_manifest);
+        return;
+      }
+
+      pipeline.parameters = getParameters(workflow);
+
+      this.setState({
+        pipeline,
+        pipelineName: (pipeline && pipeline.name) || '',
+        runName: this._getCloneName(originalRun.run.name!)
+      });
+      return;
+    }
+  }
+
   private async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
     let { pipeline } = this.state;
     if (confirmed && this.state.unconfirmedDialogPipelineId) {
@@ -308,7 +322,7 @@ class NewRun extends Page<{}, NewRunState> {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
       } catch (err) {
-        this.showPageError(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err.message);
+        await this.showPageError(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
         logger.error(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
         return;
       }
@@ -324,12 +338,8 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   /* This function is passed as a callback to the PipelineSelector dialog. */
-  private _pipelineSelectionChanged(selectedIds: string[]): void {
-    if (selectedIds.length !== 1) {
-      logger.error(`${selectedIds.length} pipelines were selected somehow`, selectedIds);
-      return;
-    }
-    this.setState({ unconfirmedDialogPipelineId: selectedIds[0] });
+  private _pipelineSelectionChanged(selectedId: string): void {
+    this.setState({ unconfirmedDialogPipelineId: selectedId });
   }
 
   private _runParametersMessage(selectedPipeline: ApiPipeline | undefined): string {
@@ -362,42 +372,49 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     const isRecurringRun = this.state.isRecurringRun;
-    const newRun: ApiRun | ApiJob = isRecurringRun ? {
-      description: this.state.description,
-      enabled: true,
-      max_concurrency: this.state.maxConcurrentRuns || '1',
-      name: this.state.runName,
-      pipeline_spec: { parameters: pipeline.parameters, pipeline_id: pipeline.id },
-      resource_references: references,
-      trigger: this.state.trigger,
-    } : {
+    let newRun: ApiRun | ApiJob;
+    if (isRecurringRun) {
+      newRun = {
+        description: this.state.description,
+        enabled: true,
+        max_concurrency: this.state.maxConcurrentRuns || '1',
+        name: this.state.runName,
+        pipeline_spec: { parameters: pipeline.parameters, pipeline_id: pipeline.id },
+        resource_references: references,
+        trigger: this.state.trigger,
+      };
+    } else {
+      newRun = {
         description: this.state.description,
         name: this.state.runName,
         pipeline_spec: { parameters: pipeline.parameters, pipeline_id: pipeline.id },
         resource_references: references,
       };
+    }
 
     this.setState({ isBeingCreated: true }, async () => {
       try {
-        await isRecurringRun ?
-          Apis.jobServiceApi.createJob(newRun) :
-          Apis.runServiceApi.createRun(newRun);
-        if (this.state.experiment) {
-          this.props.history.push(
-            RoutePage.EXPERIMENT_DETAILS.replace(
-              ':' + RouteParams.experimentId, this.state.experiment.id!));
-        } else {
-          this.props.history.push(RoutePage.RUNS);
-        }
-        this.props.updateSnackbar({
-          message: `Successfully created new Run: ${newRun.name}`,
-          open: true,
-        });
+        await isRecurringRun
+          ? Apis.jobServiceApi.createJob(newRun)
+          : Apis.runServiceApi.createRun(newRun);
       } catch (err) {
-        this._showErrorDialog('Run creation failed', err.message);
+        const errorMessage = await errorToMessage(err);
+        this._showErrorDialog('Run creation failed', errorMessage);
         logger.error('Error creating Run:', err);
         this.setState({ isBeingCreated: false });
+        return;
       }
+      if (this.state.experiment) {
+        this.props.history.push(
+          RoutePage.EXPERIMENT_DETAILS.replace(
+            ':' + RouteParams.experimentId, this.state.experiment.id!));
+      } else {
+        this.props.history.push(RoutePage.RUNS);
+      }
+      this.props.updateSnackbar({
+        message: `Successfully created new Run: ${newRun.name}`,
+        open: true,
+      });
     });
   }
 
@@ -459,13 +476,9 @@ class NewRun extends Page<{}, NewRunState> {
         throw new Error('For triggered runs, maximum concurrent runs must be a positive number');
       }
 
-      this.setState({
-        errorMessage: '',
-      });
+      this.setState({ errorMessage: '' });
     } catch (err) {
-      this.setState({
-        errorMessage: err.message,
-      });
+      this.setState({ errorMessage: err.message });
     }
   }
 }

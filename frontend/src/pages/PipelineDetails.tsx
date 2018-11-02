@@ -37,7 +37,7 @@ import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, errorToMessage } from '../lib/Utils';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 
 interface PipelineDetailsState {
@@ -259,7 +259,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       try {
         g = StaticGraphParser.createGraph(template);
       } catch (err) {
-        this.showPageError('Error: failed to generate Pipeline graph.', err.message);
+        await this.showPageError('Error: failed to generate Pipeline graph.', err);
       }
 
       const breadcrumbs = [
@@ -279,9 +279,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       });
     }
     catch (err) {
-      this.showPageError(
+      await this.showPageError(
         `Error: failed to retrieve pipeline or template for ID: ${pipelineId}.`,
-        err.message,
+        err,
       );
       logger.error(`Error loading pipeline or template for ID: ${pipelineId}`, err);
     }
@@ -354,9 +354,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         // TODO: add success notification
         this.props.history.push(RoutePage.PIPELINES);
       } catch (err) {
+        const errorMessage = await errorToMessage(err);
         this.props.updateDialog({
           buttons: [{ text: 'Dismiss' }],
-          content: err.message,
+          content: errorMessage,
           title: 'Failed to delete pipeline',
         });
         logger.error('Deleting pipeline failed with error:', err);

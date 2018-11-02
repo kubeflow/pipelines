@@ -23,9 +23,7 @@ import { PageProps } from './Page';
 describe('AllRunsList', () => {
   const updateBannerSpy = jest.fn();
   let _toolbarProps: any = {};
-  const updateToolbarSpy = jest.fn(toolbarProps => {
-    _toolbarProps = toolbarProps;
-  });
+  const updateToolbarSpy = jest.fn(toolbarProps => _toolbarProps = toolbarProps);
   const historyPushSpy = jest.fn();
   const props: PageProps = {
     history: { push: historyPushSpy } as any,
@@ -100,12 +98,12 @@ describe('AllRunsList', () => {
 
   it('shows thrown error in error banner', () => {
     const tree = mountComponent();
-    tree.find('RunList').simulate('error', 'test error message', new Error('error object message'));
-    const lastCall = updateBannerSpy.mock.calls[0][0];
-    expect(lastCall).toMatchObject({
-      additionalInfo: 'error object message',
-      message: 'test error message Click Details for more information.',
-      mode: 'error',
-    });
+    const instance = tree.instance() as AllRunsList;
+    const spy = jest.spyOn(instance, 'showPageError');
+    instance.forceUpdate();
+    const errorMessage = 'test error message';
+    const error = new Error('error object message');
+    tree.find('RunList').simulate('error', errorMessage, error);
+    expect(spy).toHaveBeenLastCalledWith(errorMessage, error);
   });
 });

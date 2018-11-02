@@ -189,7 +189,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                 !!activeRecurringRunsCount && css.cardActive
               )} elevation={0}>
                 <div>
-                  <div className={css.cardTitle}>Recurring runs</div>
+                  <div className={css.cardTitle}>Recurring run configs</div>
                   <div className={classes(css.cardContent, !!activeRecurringRunsCount && css.recurringRunsActive)}>
                     {activeRecurringRunsCount + ' active'}
                   </div>
@@ -266,7 +266,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         () => this._runlistRef.current && this._runlistRef.current.refresh()
       );
     } catch (err) {
-      this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
+      await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
     }
   }

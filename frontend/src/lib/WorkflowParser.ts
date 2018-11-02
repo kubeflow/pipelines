@@ -15,7 +15,7 @@
  */
 
 import * as dagre from 'dagre';
-import { Workflow, NodeStatus } from '../../third_party/argo-ui/argo_template';
+import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
 import { statusToIcon, NodePhase } from '../pages/Status';
 
 export enum StorageService {
@@ -111,6 +111,13 @@ export function createRuntimeGraph(workflow: Workflow) {
   });
 
   return g;
+}
+
+export function getParameters(workflow?: Workflow): Parameter[] | undefined {
+  if (workflow && workflow.spec && workflow.spec.arguments) {
+    return workflow.spec.arguments.parameters;
+  }
+  return undefined;
 }
 
 // Makes sure the workflow object contains the node and returns its

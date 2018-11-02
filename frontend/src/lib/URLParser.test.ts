@@ -32,7 +32,7 @@ describe('URLParser', () => {
   });
 
   it('returns empty string when getting a nonexistent query string param', () => {
-    expect(new URLParser(routerProps).get('nonexistent' as any)).toEqual('');
+    expect(new URLParser(routerProps).get('nonexistent' as any)).toBeNull();
   });
 
   it('gets query string param by name where multiple keys defined', () => {

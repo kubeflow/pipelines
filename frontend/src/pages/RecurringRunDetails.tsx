@@ -25,7 +25,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarActionConfig } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { formatDateString, enabledDisplayString, logger } from '../lib/Utils';
+import { formatDateString, enabledDisplayString, logger, errorToMessage } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 
 interface RecurringRunConfigState {
@@ -179,8 +179,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
 
       this.setState({ run });
     } catch (err) {
-      this.showPageError(
-        `Error: failed to retrieve recurring run: ${runId}.`, err);
+      await this.showPageError(`Error: failed to retrieve recurring run: ${runId}.`, err);
       logger.error(`Error loading recurring run: ${runId}`, err);
     }
   }
@@ -206,8 +205,9 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
         await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
         this.load();
       } catch (err) {
+        const errorMessage = await errorToMessage(err);
         this._showErrorDialog(
-          `Failed to ${enabled ? 'enable' : 'disable'} recurring schedule`, err.message);
+          `Failed to ${enabled ? 'enable' : 'disable'} recurring schedule`, errorMessage);
       } finally {
         toolbarActions[buttonIndex].busy = false;
         this._updateToolbar(toolbarActions);
@@ -233,7 +233,8 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
           open: true,
         });
       } catch (err) {
-        this._showErrorDialog('Failed to delete recurring run', err.message);
+        const errorMessage = await errorToMessage(err);
+        this._showErrorDialog('Failed to delete recurring run', errorMessage);
         logger.error('Deleting recurring run failed with error:', err);
       }
     }

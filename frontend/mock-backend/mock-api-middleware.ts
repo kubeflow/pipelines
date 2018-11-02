@@ -199,7 +199,12 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/experiments/:eid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    res.json(fixedData.experiments.find((exp) => exp.id === req.params.eid));
+    const experiment = fixedData.experiments.find((exp) => exp.id === req.params.eid);
+    if (!experiment) {
+      res.status(404).send(`No experiment was found with ID: ${req.params.eid}`);
+      return;
+    }
+    res.json(experiment);
   });
 
   app.options(v1beta1Prefix + '/jobs', (req, res) => {
@@ -246,7 +251,12 @@ export default (app: express.Application) => {
         }
         break;
       case 'GET':
-        res.json(fixedData.jobs.find((j) => j.id === req.params.jid));
+        const job = fixedData.jobs.find((j) => j.id === req.params.jid);
+        if (job) {
+          res.json(job);
+        } else {
+          res.status(404).send(`No job was found with ID: ${req.params.jid}`);
+        }
         break;
       default:
         res.status(405).send('Unsupported request type: ' + req.method);
@@ -269,6 +279,12 @@ export default (app: express.Application) => {
       return;
     } else if (req.params.jid === '7fc01714-4a13-4c05-5902-a8a72c14253b') { // No runs job
       res.json(response);
+      return;
+    }
+
+    const job = fixedData.jobs.find((j) => j.id === req.params.jid);
+    if (!job) {
+      res.status(404).send(`No job was found with ID: ${req.params.jid}`);
       return;
     }
 
@@ -459,13 +475,19 @@ export default (app: express.Application) => {
   app.delete(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
     const i = fixedData.pipelines.findIndex((p) => p.id === req.params.pid);
+
+    if (i === -1) {
+      res.status(404).send(`No pipelines was found with ID: ${req.params.pid}`);
+      return;
+    }
+
     if (fixedData.pipelines[i].name!.startsWith('Cannot be deleted')) {
       res.status(502).send(`Deletion failed for pipeline: '${fixedData.pipelines[i].name}'`);
-    } else {
-      // Delete the pipelines from fixedData.
-      fixedData.pipelines.splice(i, 1);
-      res.json({});
+      return;
     }
+    // Delete the pipelines from fixedData.
+    fixedData.pipelines.splice(i, 1);
+    res.json({});
   });
 
   // Needed to avoid "Response for preflight does not have HTTP ok status." error.
@@ -476,11 +498,21 @@ export default (app: express.Application) => {
 
   app.get(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
     res.header('Content-Type', 'application/json');
-    res.json(fixedData.pipelines.find((p) => p.id === req.params.pid));
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
+    if (!pipeline) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
+    res.json(pipeline);
   });
 
   app.get(v1beta1Prefix + '/pipelines/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
+    const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
+    if (!pipeline) {
+      res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
+      return;
+    }
     const filePath = req.params.pid === namedPipelines.noParamsPipeline.id
       ? './mock-backend/mock-conditional-template.yaml'
       : './mock-backend/mock-template.yaml';

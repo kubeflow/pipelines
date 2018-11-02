@@ -24,7 +24,7 @@ import { NodePhase, statusToIcon } from './Status';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss, color } from '../Css';
-import { getRunTime, formatDateString, logger } from '../lib/Utils';
+import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
 import { orderBy } from 'lodash';
 
 interface ExperimentInfo {
@@ -290,7 +290,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
           JSON.parse(getRunResponse.pipeline_runtime!.workflow_manifest || '{}');
       } catch (err) {
         // This could be an API exception, or a JSON parse exception.
-        displayRun.error = err.message;
+        displayRun.error = await errorToMessage(err);
       }
     }));
 
@@ -324,7 +324,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
               displayRun.pipeline =  { displayName: pipeline.name || '', id: pipelineId };
             } catch (err) {
               // This could be an API exception, or a JSON parse exception.
-              displayRun.error = err.message;
+              displayRun.error = await errorToMessage(err);
             }
           }
           return displayRun;
@@ -364,7 +364,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
               displayRun.experiment =  { displayName: experiment.name || '', id: experimentId };
             } catch (err) {
               // This could be an API exception, or a JSON parse exception.
-              displayRun.error = err.message;
+              displayRun.error = await errorToMessage(err);
             }
           }
           return displayRun;

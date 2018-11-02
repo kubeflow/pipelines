@@ -30,7 +30,7 @@ import { logger } from '../lib/Utils';
 
 interface NewExperimentState {
   description: string;
-  errorMessage: string;
+  validationError: string;
   isbeingCreated: boolean;
   experimentName: string;
   pipelineId?: string;
@@ -55,9 +55,9 @@ class NewExperiment extends Page<{}, NewExperimentState> {
 
     this.state = {
       description: '',
-      errorMessage: '',
       experimentName: '',
       isbeingCreated: false,
+      validationError: '',
     };
   }
 
@@ -72,7 +72,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
   }
 
   public render() {
-    const { errorMessage } = this.state;
+    const { validationError } = this.state;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
@@ -91,11 +91,11 @@ class NewExperiment extends Page<{}, NewExperimentState> {
             instance={this} field='description' height='auto' />
 
           <div className={commonCss.flex}>
-            <BusyButton id='createExperimentBtn' disabled={!!errorMessage} busy={this.state.isbeingCreated}
+            <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={this.state.isbeingCreated}
               className={commonCss.buttonAction} title={'Next'}
               onClick={this._create.bind(this)} />
             <Button onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>Cancel</Button>
-            <div className={css.errorMessage}>{errorMessage}</div>
+            <div className={css.errorMessage}>{validationError}</div>
           </div>
         </div>
       </div>
@@ -104,7 +104,10 @@ class NewExperiment extends Page<{}, NewExperimentState> {
 
   public async load() {
     const urlParser = new URLParser(this.props);
-    this.setState({ pipelineId: urlParser.get(QUERY_PARAMS.pipelineId) });
+    const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
+    if (pipelineId) {
+      this.setState({ pipelineId });
+    }
 
     this._validate();
   }
@@ -143,7 +146,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
           open: true,
         });
       } catch (err) {
-        this._showErrorDialog('Experiment creation failed', err.message);
+        await this._showErrorDialog('Experiment creation failed', err);
         logger.error('Error creating experiment:', err);
         this.setState({ isbeingCreated: false });
       }
@@ -165,13 +168,9 @@ class NewExperiment extends Page<{}, NewExperimentState> {
       if (!experimentName) {
         throw new Error('Experiment name is required');
       }
-      this.setState({
-        errorMessage: '',
-      });
+      this.setState({ validationError: '' });
     } catch (err) {
-      this.setState({
-        errorMessage: err.message,
-      });
+      this.setState({ validationError: err.message });
     }
   }
 }

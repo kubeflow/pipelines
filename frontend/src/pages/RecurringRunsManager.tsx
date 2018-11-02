@@ -25,7 +25,7 @@ import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { commonCss } from '../Css';
-import { logger, formatDateString } from '../lib/Utils';
+import { logger, formatDateString, errorToMessage } from '../lib/Utils';
 
 interface RecurringRunListProps extends RouteComponentProps {
   experimentId: string;
@@ -42,7 +42,6 @@ interface RecurringRunListState {
   selectedIds: string[];
   sortBy: string;
   toolbarActions: ToolbarActionConfig[];
-  viewIndex: number;
 }
 
 class RecurringRunsManager extends React.Component<RecurringRunListProps, RecurringRunListState> {
@@ -59,7 +58,6 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       selectedIds: [],
       sortBy: JobSortKeys.CREATED_AT,
       toolbarActions: [],
-      viewIndex: 1,
     };
   }
 
@@ -123,8 +121,13 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       runs = response.jobs || [];
       nextPageToken = response.next_page_token || '';
     } catch (err) {
-      // TODO: better error experience here
-      logger.error('Could not get list of recurring runs');
+      const errorMessage = await errorToMessage(err);
+      this.props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        content: 'List recurring run configs request failed with:\n' + errorMessage,
+        title: 'Error retrieving recurring run configs',
+      });
+      logger.error('Could not get list of recurring runs', errorMessage);
     }
 
     this.setState({
@@ -147,11 +150,13 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     try {
       await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
     } catch (err) {
+      const errorMessage = await errorToMessage(err);
       this.props.updateDialog({
-        buttons: [{ text: 'Close' }],
-        content: 'Error changing enabled state of recurring run',
+        buttons: [{ text: 'Dismiss' }],
+        content: 'Error changing enabled state of recurring run:\n' + errorMessage,
         title: 'Error',
       });
+      logger.error('Error changing enabled state of recurring run', errorMessage);
     }
   }
 

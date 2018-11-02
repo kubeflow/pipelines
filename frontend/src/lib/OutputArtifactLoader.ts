@@ -22,7 +22,7 @@ import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { ROCCurveConfig } from '../components/viewers/ROCCurve';
 import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { csvParseRows } from 'd3-dsv';
-import { logger } from './Utils';
+import { logger, errorToMessage } from './Utils';
 import { parseStoragePath, StoragePath } from './WorkflowParser';
 
 export interface PlotMetadata {
@@ -57,7 +57,8 @@ export async function loadOutputArtifacts(outputPath: StoragePath): Promise<View
       }
     }
   } catch (err) {
-    logger.error('Error loading run outputs:', err.message);
+    const errorMessage = await errorToMessage(err);
+    logger.error('Error loading run outputs:', errorMessage);
     // TODO: error dialog
   }
 

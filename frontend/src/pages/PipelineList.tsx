@@ -25,7 +25,7 @@ import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger, formatDateString } from '../lib/Utils';
+import { logger, formatDateString, errorToMessage } from '../lib/Utils';
 
 interface PipelineListState {
   orderAscending: boolean;
@@ -148,10 +148,7 @@ class PipelineList extends Page<{}, PipelineListState> {
         request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : ''
       );
     } catch (err) {
-      this.showPageError(
-        'Error: failed to retrieve list of pipelines.',
-        err,
-      );
+      await this.showPageError('Error: failed to retrieve list of pipelines.', err);
     }
 
     this.setState({
@@ -193,8 +190,9 @@ class PipelineList extends Page<{}, PipelineListState> {
         } catch (err) {
           unsuccessfulDeleteIds.push(id);
           const pipeline = this.state.pipelines.find((p) => p.id === id);
+          const errorMessage = await errorToMessage(err);
           errorMessages.push(
-            `Deleting pipeline${pipeline ? ': ' + pipeline.name : ''} failed with error: "${err}"`);
+            `Deleting pipeline${pipeline ? ': ' + pipeline.name : ''} failed with error: "${errorMessage}"`);
         }
       }));
 
@@ -225,7 +223,8 @@ class PipelineList extends Page<{}, PipelineListState> {
         this.load();
         return true;
       } catch (err) {
-        this._showErrorDialog('Failed to upload pipeline', err.message);
+        const errorMessage = await errorToMessage(err);
+        this._showErrorDialog('Failed to upload pipeline', errorMessage);
         logger.error('Error uploading pipeline:', err);
         return false;
       }

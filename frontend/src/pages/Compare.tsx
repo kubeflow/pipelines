@@ -110,7 +110,8 @@ class Compare extends Page<{}, CompareState> {
     const { collapseSections, paramsTableRows, paramsTableXLabels, paramsTableYLabels,
       selectedIds, viewersMap } = this.state;
 
-    const runIds = new URLParser(this.props).get(QUERY_PARAMS.runlist).split(',');
+    const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
+    const runIds = queryParamRunIds ? queryParamRunIds.split(',') : [];
 
     const runsPerViewerType = (viewerType: PlotType) => {
       return viewersMap.get(viewerType) ? viewersMap
@@ -178,12 +179,13 @@ class Compare extends Page<{}, CompareState> {
   }
 
   public async load() {
-    const runIdsQuery = new URLParser(this.props).get(QUERY_PARAMS.runlist).split(',');
+    const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
+    const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
     const runs: ApiRunDetail[] = [];
     const workflowObjects: Workflow[] = [];
     const failingRuns: string[] = [];
     let lastError: Error | null = null;
-    await Promise.all(runIdsQuery.map(async id => {
+    await Promise.all(runIds.map(async id => {
       try {
         const run = await Apis.runServiceApi.getRun(id);
         runs.push(run);
@@ -195,11 +197,12 @@ class Compare extends Page<{}, CompareState> {
     }));
 
     if (lastError) {
-      this.showPageError(
+      await this.showPageError(
         `Error: failed loading ${failingRuns.length} runs.`,
         lastError,
       );
-      logger.error(`Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`);
+      logger.error(
+        `Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`);
       return;
     }
 

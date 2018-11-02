@@ -38,7 +38,7 @@ import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { commonCss, color, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
-import { formatDateString, getRunTime, logger } from '../lib/Utils';
+import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
 import { stylesheet, classes } from 'typestyle';
 import { ApiExperiment } from '../apis/experiment';
@@ -138,6 +138,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   public render() {
     const { graph, runMetadata, selectedTab, selectedNodeDetails, sidepanelSelectedTab,
       workflow } = this.state;
+
+    const workflowParameters = WorkflowParser.getParameters(workflow);
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
@@ -247,9 +249,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                   ['Duration', getRunTime(workflow)],
                 ]} />
 
-                {workflow.spec.arguments && workflow.spec.arguments.parameters && (<div>
+                {workflowParameters && workflowParameters.length && (<div>
                   <div className={commonCss.header}>Run parameters</div>
-                  <DetailsTable fields={workflow.spec.arguments.parameters.map(p => [p.name, p.value || ''])} />
+                  <DetailsTable fields={workflowParameters.map(p => [p.name, p.value || ''])} />
                 </div>)}
               </div>}
             </div>
@@ -313,10 +315,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         workflow,
       });
     } catch (err) {
-      this.showPageError(
-        `Error: failed to retrieve run: ${runId}.`,
-        err,
-      );
+      await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
       logger.error('Error loading run:', runId);
     }
   }
@@ -390,10 +389,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       selectedNodeDetails.logs = logs;
       this.setState({ selectedNodeDetails, logsBannerAdditionalInfo: '', logsBannerMessage: '' });
     } catch (err) {
+      const errorMessage = await errorToMessage(err);
       this.setState({
-        logsBannerAdditionalInfo: err.message,
+        logsBannerAdditionalInfo: errorMessage,
         logsBannerMessage: 'Error: failed to retrieve logs.'
-          + (err.message ? ' Click Details for more information.' : ''),
+          + (errorMessage ? ' Click Details for more information.' : ''),
         logsBannerMode: 'error',
       });
       logger.error('Error loading logs for node:', selectedNodeDetails.id);

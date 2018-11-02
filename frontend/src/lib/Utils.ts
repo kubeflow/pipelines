@@ -16,6 +16,7 @@
 
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { ApiTrigger } from '../apis/job';
+import { isFunction } from 'lodash';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -34,6 +35,18 @@ export function formatDateString(date: Date | string | undefined): string {
   } else {
     return date ? date.toLocaleString() : '-';
   }
+}
+
+export async function errorToMessage(error: any): Promise<string> {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && error.text && isFunction(error.text)) {
+    return await error.text();
+  }
+
+  return JSON.stringify(error || '');
 }
 
 export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: boolean): string {

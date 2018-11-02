@@ -36,8 +36,8 @@ export class URLParser {
     this._paramMap = new URLSearchParams(routeProps.location.search);
   }
 
-  public get(key: QUERY_PARAMS): string {
-    return this._paramMap.get(key) || '';
+  public get(key: QUERY_PARAMS): string | null {
+    return this._paramMap.get(key);
   }
 
   public set(key: QUERY_PARAMS, value: string): void {

@@ -19,15 +19,16 @@ import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
 import { Apis, BaseListRequest, ListPipelinesRequest, PipelineSortKeys } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
-import { logger, formatDateString } from '../lib/Utils';
+import { logger, formatDateString, errorToMessage } from '../lib/Utils';
 import { ApiPipeline } from '../apis/pipeline';
+import { DialogProps } from '../components/Router';
 
 interface PipelineSelectorProps extends RouteComponentProps {
-  pipelineSectionChanged: (selectedPipelineId: string[]) => void;
+  pipelineSelectionChanged: (selectedPipelineId: string) => void;
+  updateDialog: (dialogProps: DialogProps) => void;
 }
 
 interface PipelineSelectorState {
-  busyIds: Set<string>;
   orderAscending: boolean;
   pageSize: number;
   pageToken: string;
@@ -35,7 +36,6 @@ interface PipelineSelectorState {
   selectedIds: string[];
   sortBy: string;
   toolbarActions: ToolbarActionConfig[];
-  viewIndex: number;
 }
 
 class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSelectorState> {
@@ -44,7 +44,6 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     super(props);
 
     this.state = {
-      busyIds: new Set(),
       orderAscending: false,
       pageSize: 10,
       pageToken: '',
@@ -52,7 +51,6 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       selectedIds: [],
       sortBy: PipelineSortKeys.CREATED_AT,
       toolbarActions: [],
-      viewIndex: 1,
     };
   }
 
@@ -77,17 +75,27 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       };
     });
 
-    return (<React.Fragment>
-      <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
-      <CustomTable columns={columns} rows={rows} orderAscending={orderAscending}
-        pageSize={pageSize} selectedIds={selectedIds} useRadioButtons={true}
-        updateSelection={ids => { this.props.pipelineSectionChanged(ids); this.setState({ selectedIds: ids });}} sortBy={sortBy}
-        reload={this._loadPipelines.bind(this)} emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
-    </React.Fragment>);
+    return (
+      <React.Fragment>
+        <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
+        <CustomTable columns={columns} rows={rows} orderAscending={orderAscending}
+          pageSize={pageSize} selectedIds={selectedIds} useRadioButtons={true}
+          updateSelection={ids => { this._pipelineSelectionChanged(ids); this.setState({ selectedIds: ids });}} sortBy={sortBy}
+          reload={this._loadPipelines.bind(this)} emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
+      </React.Fragment>
+    );
   }
 
   public async load() {
     await this._loadPipelines();
+  }
+
+  private _pipelineSelectionChanged(selectedIds: string[]): void {
+    if (!Array.isArray(selectedIds) || selectedIds.length !== 1) {
+      logger.error(`${selectedIds.length} pipelines were selected somehow`, selectedIds);
+      return;
+    }
+    this.props.pipelineSelectionChanged(selectedIds[0]);
   }
 
   private async _loadPipelines(loadRequest?: BaseListRequest): Promise<string> {
@@ -110,8 +118,13 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       pipelines = response.pipelines || [];
       nextPageToken = response.next_page_token || '';
     } catch (err) {
-      // TODO: better error experience here
-      logger.error('Could not get list of pipelines');
+      const errorMessage = await errorToMessage(err);
+      this.props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        content: 'List pipelines request failed with:\n' + errorMessage,
+        title: 'Error retrieving pipelines',
+      });
+      logger.error('Could not get list of pipelines', errorMessage);
     }
 
     this.setState({

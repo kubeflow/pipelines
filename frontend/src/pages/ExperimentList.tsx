@@ -160,8 +160,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => exp.expandState = ExpandState.COLLAPSED);
     } catch (err) {
-      this.showPageError(
-        'Error: failed to retrieve list of experiments.', err);
+      await this.showPageError('Error: failed to retrieve list of experiments.', err);
       // No point in continuing if we couldn't retrieve any experiments.
       return '';
     }
@@ -180,7 +179,9 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         experiment.last5Runs = listRunsResponse.runs || [];
       } catch (err) {
         experiment.error = 'Failed to load the last 5 runs of this experiment';
-        logger.error(`Error: failed to retrieve run statuses for experiment: ${experiment.name}.`, err);
+        logger.error(
+          `Error: failed to retrieve run statuses for experiment: ${experiment.name}.`,
+          err);
       }
     }));
 
