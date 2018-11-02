@@ -123,6 +123,38 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
+    def test_handle_input_names_with_spaces(self):
+        component_text = '''\
+inputs:
+- {name: Training data}
+implementation:
+  dockerContainer:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+
+    def test_handle_output_names_with_spaces(self):
+        component_text = '''\
+outputs:
+- {name: Training data}
+implementation:
+  dockerContainer:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+
+    def test_handle_file_outputs_with_spaces(self):
+        component_text = '''\
+outputs:
+- {name: Output data}
+implementation:
+  dockerContainer:
+    image: busybox
+    fileOutputs:
+      Output data: /outputs/output-data
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+
     def test_handle_similar_input_names(self):
         component_text = '''\
 inputs:
@@ -198,6 +230,117 @@ implementation:
     def test_load_component_from_text_fail_on_none_arg(self):
         comp.load_component_from_text(None)
 
+    def test_input_value_resolving_syntax1(self):
+        component_text = '''\
+inputs:
+- {name: Data}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - --data
+      - [value, Data]
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task1 = task_factory1('some-data')
+
+        self.assertEqual(task1.arguments, ['--data', 'some-data'])
+
+    def test_input_value_resolving_syntax3(self):
+        component_text = '''\
+inputs:
+- {name: Data}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - --data
+      - value: Data
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task1 = task_factory1('some-data')
+
+        self.assertEqual(task1.arguments, ['--data', 'some-data'])
+
+    def test_output_resolving_syntax1(self):
+        component_text = '''\
+outputs:
+- {name: Data}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - --output-data
+      - [output, Data]
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task1 = task_factory1(data='/outputs/some-data')
+
+        self.assertEqual(task1.arguments, ['--output-data', '/outputs/some-data'])
+
+    def test_output_resolving(self):
+        component_text = '''\
+outputs:
+- {name: Data}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - --output-data
+      - output: Data
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task1 = task_factory1(data='/outputs/some-data')
+
+        self.assertEqual(task1.arguments, ['--output-data', '/outputs/some-data'])
+
+    def test_automatic_output_resolving_syntax1(self):
+        component_text = '''\
+outputs:
+- {name: Data}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - --output-data
+      - [output, Data]
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task1 = task_factory1()
+
+        self.assertEqual(len(task1.arguments), 2)
+
+    def test_automatic_output_resolving(self):
+        component_text = '''\
+outputs:
+- {name: Data}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - --output-data
+      - {output: Data}
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task1 = task_factory1()
+
+        self.assertEqual(len(task1.arguments), 2)
+
+    def test_command_concat(self):
+        component_text = '''\
+inputs:
+- {name: In1}
+- {name: In2}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - concat: [{value: In1}, {value: In2}]
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task1 = task_factory1('some', 'data')
+
+        self.assertEqual(task1.arguments, ['somedata'])
 
 if __name__ == '__main__':
     unittest.main()

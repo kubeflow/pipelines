@@ -51,6 +51,8 @@ class PythonOpTestCase(unittest.TestCase):
         arg2 = 5
 
         expected = func(arg1, arg2)
+        if isinstance(expected, tuple):
+            expected = expected[0]
         expected_str = str(expected)
 
         output_file_obj = tempfile.NamedTemporaryFile()
@@ -138,7 +140,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_2_out_component_using_local_call(func, op)
 
-    @unittest.expectedFailure #Simplified multi-output syntax is not implemented yet
+    @unittest.skip #TODO: #Simplified multi-output syntax is not implemented yet
     def test_func_to_container_op_multiple_named_typed_outputs_using_list_syntax(self):
         def add_multiply_two_numbers(a: float, b: float) -> [('sum', float), ('product', float)]:
             '''Returns sum and product of two arguments'''
@@ -148,6 +150,29 @@ class PythonOpTestCase(unittest.TestCase):
         op = comp.func_to_container_op(func)
 
         self.helper_test_2_in_2_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_named_typed_outputs_with_underscores(self):
+        from typing import NamedTuple
+        def add_two_numbers_name2(a: float, b: float) -> NamedTuple('DummyName', [('output_data', float)]):
+            '''Returns sum of two arguments'''
+            return (a + b,)
+
+        func = add_two_numbers_name2
+        op = comp.func_to_container_op(func)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    @unittest.skip #Python does not allow NamedTuple with spaces in names: ValueError: Type names and field names must be valid identifiers: 'Output data'
+    def test_func_to_container_op_named_typed_outputs_with_spaces(self):
+        from typing import NamedTuple
+        def add_two_numbers_name3(a: float, b: float) -> NamedTuple('DummyName', [('Output data', float)]):
+            '''Returns sum of two arguments'''
+            return (a + b,)
+
+        func = add_two_numbers_name3
+        op = comp.func_to_container_op(func)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
     def test_handling_same_input_output_names(self):
         from typing import NamedTuple
