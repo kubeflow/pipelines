@@ -26,10 +26,10 @@
    ],
    "repository": {
       "type": "git",
-      "url": "https://github.com/googleprivate/ml"
+      "url": "https://github.com/kubeflow/pipelines"
    },
    "bugs": {
-      "url": "https://github.com/googleprivate/ml/issues"
+      "url": "https://github.com/kubeflow/pipelines/issues"
    },
    "keywords": [
       "ml-pipeline"
