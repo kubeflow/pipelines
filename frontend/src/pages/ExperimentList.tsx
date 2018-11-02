@@ -172,7 +172,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         const listRunsResponse = await Apis.runServiceApi.listRuns(
           undefined /* pageToken */,
           5 /* pageSize */,
-          RunSortKeys.CREATED_AT + ' asc',
+          RunSortKeys.CREATED_AT + ' desc',
           ApiResourceType.EXPERIMENT.toString(),
           experiment.id
         );
