@@ -8,7 +8,7 @@ This repository provides Custom Resource Definitions and tools for ML pipeline o
 
 The following assumes that your Kubernetes configuration file is located at '$HOME/.kube/config'.
 
-To create the resource for the CRD, execute: 
+To create the resource for the CRD, execute the following command: 
 
 ```
 kubectl create -f ./install/manifests/scheduledworkflow-crd.yaml
