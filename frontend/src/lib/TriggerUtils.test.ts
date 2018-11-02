@@ -159,11 +159,6 @@ describe('TriggerUtils', () => {
   });
 
   describe('buildTrigger', () => {
-    it('returns undefined for a non-recurring trigger', () => {
-      expect(buildTrigger(
-        PeriodicInterval.DAY, 1, undefined, undefined, TriggerType.NOW, '')).toBeUndefined();
-    });
-
     it('returns a cron trigger object if type is so set', () => {
       expect(buildTrigger(
         PeriodicInterval.DAY, 1, undefined, undefined, TriggerType.CRON, 'some cron')).toEqual({
@@ -207,6 +202,13 @@ describe('TriggerUtils', () => {
             start_time: startDate,
           },
         });
+    });
+
+    it('throws if passed an unrecognized trigger type', () => {
+      expect(() =>
+        buildTrigger(
+          PeriodicInterval.DAY, 1, undefined, undefined, 'not a trigger type' as any, '')
+        ).toThrowError('Invalid TriggerType: ' + 'not a trigger type');
     });
   });
 

@@ -32,7 +32,7 @@ exports[`Trigger enables a single day on click 1`] = `
           ],
           "startDate": "2018-12-21",
           "startTime": "07:53",
-          "type": 2,
+          "type": 1,
         },
         "updater": Updater {
           "_callbacks": Array [],
@@ -62,7 +62,7 @@ exports[`Trigger enables a single day on click 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "_rendered": <div>
               <Unknown
@@ -75,15 +75,10 @@ exports[`Trigger enables a single day on click 1`] = `
                 <WithStyles(MenuItem)
                   value={0}
                 >
-                  Run right away
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value={1}
-                >
                   Periodic
                 </WithStyles(MenuItem)>
                 <WithStyles(MenuItem)
-                  value={2}
+                  value={1}
                 >
                   Cron
                 </WithStyles(MenuItem)>
@@ -339,17 +334,11 @@ exports[`Trigger enables a single day on click 1`] = `
       key="0"
       value={0}
     >
-      Run right away
+      Periodic
     </WithStyles(MenuItem)>
     <WithStyles(MenuItem)
       key="1"
       value={1}
-    >
-      Periodic
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="2"
-      value={2}
     >
       Cron
     </WithStyles(MenuItem)>
@@ -385,7 +374,7 @@ exports[`Trigger enables a single day on click 1`] = `
             ],
             "startDate": "2018-12-21",
             "startTime": "07:53",
-            "type": 2,
+            "type": 1,
           },
           "updater": Updater {
             "_callbacks": Array [],
@@ -415,7 +404,7 @@ exports[`Trigger enables a single day on click 1`] = `
                 ],
                 "startDate": "2018-12-21",
                 "startTime": "07:53",
-                "type": 2,
+                "type": 1,
               },
               "_rendered": <div>
                 <Unknown
@@ -428,15 +417,10 @@ exports[`Trigger enables a single day on click 1`] = `
                   <WithStyles(MenuItem)
                     value={0}
                   >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
                     Periodic
                   </WithStyles(MenuItem)>
                   <WithStyles(MenuItem)
-                    value={2}
+                    value={1}
                   >
                     Cron
                   </WithStyles(MenuItem)>
@@ -730,7 +714,7 @@ exports[`Trigger enables a single day on click 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -760,7 +744,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -773,15 +757,10 @@ exports[`Trigger enables a single day on click 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -1069,7 +1048,7 @@ exports[`Trigger enables a single day on click 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -1099,7 +1078,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -1112,15 +1091,10 @@ exports[`Trigger enables a single day on click 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -1421,7 +1395,7 @@ exports[`Trigger enables a single day on click 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -1451,7 +1425,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -1464,15 +1438,10 @@ exports[`Trigger enables a single day on click 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -1760,7 +1729,7 @@ exports[`Trigger enables a single day on click 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -1790,7 +1759,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -1803,15 +1772,10 @@ exports[`Trigger enables a single day on click 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -2105,7 +2069,7 @@ exports[`Trigger enables a single day on click 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -2135,7 +2099,7 @@ exports[`Trigger enables a single day on click 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -2148,15 +2112,10 @@ exports[`Trigger enables a single day on click 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -2576,7 +2535,7 @@ exports[`Trigger enables a single day on click 1`] = `
             ],
             "startDate": "2018-12-21",
             "startTime": "07:53",
-            "type": 2,
+            "type": 1,
           },
           "updater": Updater {
             "_callbacks": Array [],
@@ -2606,7 +2565,7 @@ exports[`Trigger enables a single day on click 1`] = `
                 ],
                 "startDate": "2018-12-21",
                 "startTime": "07:53",
-                "type": 2,
+                "type": 1,
               },
               "_rendered": <div>
                 <Unknown
@@ -2619,15 +2578,10 @@ exports[`Trigger enables a single day on click 1`] = `
                   <WithStyles(MenuItem)
                     value={0}
                   >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
                     Periodic
                   </WithStyles(MenuItem)>
                   <WithStyles(MenuItem)
-                    value={2}
+                    value={1}
                   >
                     Cron
                   </WithStyles(MenuItem)>
@@ -2918,7 +2872,7 @@ exports[`Trigger renders all week days enabled 1`] = `
           ],
           "startDate": "2018-12-21",
           "startTime": "07:53",
-          "type": 2,
+          "type": 1,
         },
         "updater": Updater {
           "_callbacks": Array [],
@@ -2948,7 +2902,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "_rendered": <div>
               <Unknown
@@ -2961,15 +2915,10 @@ exports[`Trigger renders all week days enabled 1`] = `
                 <WithStyles(MenuItem)
                   value={0}
                 >
-                  Run right away
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value={1}
-                >
                   Periodic
                 </WithStyles(MenuItem)>
                 <WithStyles(MenuItem)
-                  value={2}
+                  value={1}
                 >
                   Cron
                 </WithStyles(MenuItem)>
@@ -3225,17 +3174,11 @@ exports[`Trigger renders all week days enabled 1`] = `
       key="0"
       value={0}
     >
-      Run right away
+      Periodic
     </WithStyles(MenuItem)>
     <WithStyles(MenuItem)
       key="1"
       value={1}
-    >
-      Periodic
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="2"
-      value={2}
     >
       Cron
     </WithStyles(MenuItem)>
@@ -3271,7 +3214,7 @@ exports[`Trigger renders all week days enabled 1`] = `
             ],
             "startDate": "2018-12-21",
             "startTime": "07:53",
-            "type": 2,
+            "type": 1,
           },
           "updater": Updater {
             "_callbacks": Array [],
@@ -3301,7 +3244,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                 ],
                 "startDate": "2018-12-21",
                 "startTime": "07:53",
-                "type": 2,
+                "type": 1,
               },
               "_rendered": <div>
                 <Unknown
@@ -3314,15 +3257,10 @@ exports[`Trigger renders all week days enabled 1`] = `
                   <WithStyles(MenuItem)
                     value={0}
                   >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
                     Periodic
                   </WithStyles(MenuItem)>
                   <WithStyles(MenuItem)
-                    value={2}
+                    value={1}
                   >
                     Cron
                   </WithStyles(MenuItem)>
@@ -3616,7 +3554,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -3646,7 +3584,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -3659,15 +3597,10 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -3955,7 +3888,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -3985,7 +3918,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -3998,15 +3931,10 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -4307,7 +4235,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -4337,7 +4265,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -4350,15 +4278,10 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -4646,7 +4569,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -4676,7 +4599,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -4689,15 +4612,10 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -4991,7 +4909,7 @@ exports[`Trigger renders all week days enabled 1`] = `
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -5021,7 +4939,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -5034,15 +4952,10 @@ exports[`Trigger renders all week days enabled 1`] = `
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -5462,7 +5375,7 @@ exports[`Trigger renders all week days enabled 1`] = `
             ],
             "startDate": "2018-12-21",
             "startTime": "07:53",
-            "type": 2,
+            "type": 1,
           },
           "updater": Updater {
             "_callbacks": Array [],
@@ -5492,7 +5405,7 @@ exports[`Trigger renders all week days enabled 1`] = `
                 ],
                 "startDate": "2018-12-21",
                 "startTime": "07:53",
-                "type": 2,
+                "type": 1,
               },
               "_rendered": <div>
                 <Unknown
@@ -5505,15 +5418,10 @@ exports[`Trigger renders all week days enabled 1`] = `
                   <WithStyles(MenuItem)
                     value={0}
                   >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
                     Periodic
                   </WithStyles(MenuItem)>
                   <WithStyles(MenuItem)
-                    value={2}
+                    value={1}
                   >
                     Cron
                   </WithStyles(MenuItem)>
@@ -5772,6 +5680,1808 @@ exports[`Trigger renders all week days enabled 1`] = `
 </div>
 `;
 
+exports[`Trigger renders periodic schedule controls for initial render 1`] = `
+<div>
+  <Component
+    field="type"
+    instance={
+      Trigger {
+        "context": Object {},
+        "handleChange": [Function],
+        "props": Object {},
+        "refs": Object {},
+        "setState": [Function],
+        "state": Object {
+          "cron": "",
+          "editCron": false,
+          "endDate": "2018-12-21",
+          "endTime": "07:53",
+          "hasEndDate": false,
+          "hasStartDate": false,
+          "intervalCategory": "Minute",
+          "intervalValue": 1,
+          "maxConcurrentRuns": "10",
+          "selectedDays": Array [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+          ],
+          "startDate": "2018-12-21",
+          "startTime": "07:53",
+          "type": 0,
+        },
+        "updater": Updater {
+          "_callbacks": Array [],
+          "_renderer": ReactShallowRenderer {
+            "_context": Object {},
+            "_element": <Trigger />,
+            "_forcedUpdate": false,
+            "_instance": [Circular],
+            "_newState": null,
+            "_rendered": <div>
+              <Unknown
+                field="type"
+                instance={[Circular]}
+                label="Trigger type"
+                required={true}
+                select={true}
+              >
+                <WithStyles(MenuItem)
+                  value={0}
+                >
+                  Periodic
+                </WithStyles(MenuItem)>
+                <WithStyles(MenuItem)
+                  value={1}
+                >
+                  Cron
+                </WithStyles(MenuItem)>
+              </Unknown>
+              <div>
+                <Unknown
+                  field="maxConcurrentRuns"
+                  instance={[Circular]}
+                  label="Maximum concurrent runs"
+                  required={true}
+                />
+                <div
+                  className="flex"
+                >
+                  <WithStyles(FormControlLabel)
+                    control={
+                      <WithStyles(Checkbox)
+                        checked={false}
+                        color="primary"
+                        onClick={[Function]}
+                      />
+                    }
+                    label="Has start date"
+                  />
+                  <Unknown
+                    field="startDate"
+                    instance={[Circular]}
+                    label="Start date"
+                    style={
+                      Object {
+                        "visibility": "hidden",
+                      }
+                    }
+                    type="date"
+                    width={160}
+                  />
+                  <Unknown />
+                  <Unknown
+                    field="startTime"
+                    instance={[Circular]}
+                    label="Start time"
+                    style={
+                      Object {
+                        "visibility": "hidden",
+                      }
+                    }
+                    type="time"
+                    width={120}
+                  />
+                </div>
+                <div
+                  className="flex"
+                >
+                  <WithStyles(FormControlLabel)
+                    control={
+                      <WithStyles(Checkbox)
+                        checked={false}
+                        color="primary"
+                        onClick={[Function]}
+                      />
+                    }
+                    label="Has end date"
+                  />
+                  <Unknown
+                    field="endDate"
+                    instance={[Circular]}
+                    label="End date"
+                    style={
+                      Object {
+                        "visibility": "hidden",
+                      }
+                    }
+                    type="date"
+                    width={160}
+                  />
+                  <Unknown />
+                  <Unknown
+                    field="endTime"
+                    instance={[Circular]}
+                    label="End time"
+                    style={
+                      Object {
+                        "visibility": "hidden",
+                      }
+                    }
+                    type="time"
+                    width={120}
+                  />
+                </div>
+                <span
+                  className="flex"
+                >
+                  Run every
+                  <div
+                    className="flex"
+                  >
+                    <Unknown />
+                    <Unknown
+                      error={false}
+                      field="intervalValue"
+                      height={30}
+                      instance={[Circular]}
+                      required={true}
+                      type="number"
+                      width={65}
+                    />
+                  </div>
+                  <Unknown />
+                  <Unknown
+                    field="intervalCategory"
+                    height={30}
+                    instance={[Circular]}
+                    required={true}
+                    select={true}
+                    width={95}
+                  >
+                    <WithStyles(MenuItem)
+                      value="Minute"
+                    >
+                      Minutes
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value="Hour"
+                    >
+                      Hours
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value="Day"
+                    >
+                      Days
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value="Week"
+                    >
+                      Weeks
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value="Month"
+                    >
+                      Months
+                    </WithStyles(MenuItem)>
+                  </Unknown>
+                </span>
+              </div>
+            </div>,
+            "_rendering": false,
+            "_updater": [Circular],
+          },
+        },
+        Symbol(enzyme.__setState__): [Function],
+      }
+    }
+    label="Trigger type"
+    required={true}
+    select={true}
+  >
+    <WithStyles(MenuItem)
+      key="0"
+      value={0}
+    >
+      Periodic
+    </WithStyles(MenuItem)>
+    <WithStyles(MenuItem)
+      key="1"
+      value={1}
+    >
+      Cron
+    </WithStyles(MenuItem)>
+  </Component>
+  <div>
+    <Component
+      field="maxConcurrentRuns"
+      instance={
+        Trigger {
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {},
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "cron": "",
+            "editCron": false,
+            "endDate": "2018-12-21",
+            "endTime": "07:53",
+            "hasEndDate": false,
+            "hasStartDate": false,
+            "intervalCategory": "Minute",
+            "intervalValue": 1,
+            "maxConcurrentRuns": "10",
+            "selectedDays": Array [
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+            ],
+            "startDate": "2018-12-21",
+            "startTime": "07:53",
+            "type": 0,
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <Trigger />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": null,
+              "_rendered": <div>
+                <Unknown
+                  field="type"
+                  instance={[Circular]}
+                  label="Trigger type"
+                  required={true}
+                  select={true}
+                >
+                  <WithStyles(MenuItem)
+                    value={0}
+                  >
+                    Periodic
+                  </WithStyles(MenuItem)>
+                  <WithStyles(MenuItem)
+                    value={1}
+                  >
+                    Cron
+                  </WithStyles(MenuItem)>
+                </Unknown>
+                <div>
+                  <Unknown
+                    field="maxConcurrentRuns"
+                    instance={[Circular]}
+                    label="Maximum concurrent runs"
+                    required={true}
+                  />
+                  <div
+                    className="flex"
+                  >
+                    <WithStyles(FormControlLabel)
+                      control={
+                        <WithStyles(Checkbox)
+                          checked={false}
+                          color="primary"
+                          onClick={[Function]}
+                        />
+                      }
+                      label="Has start date"
+                    />
+                    <Unknown
+                      field="startDate"
+                      instance={[Circular]}
+                      label="Start date"
+                      style={
+                        Object {
+                          "visibility": "hidden",
+                        }
+                      }
+                      type="date"
+                      width={160}
+                    />
+                    <Unknown />
+                    <Unknown
+                      field="startTime"
+                      instance={[Circular]}
+                      label="Start time"
+                      style={
+                        Object {
+                          "visibility": "hidden",
+                        }
+                      }
+                      type="time"
+                      width={120}
+                    />
+                  </div>
+                  <div
+                    className="flex"
+                  >
+                    <WithStyles(FormControlLabel)
+                      control={
+                        <WithStyles(Checkbox)
+                          checked={false}
+                          color="primary"
+                          onClick={[Function]}
+                        />
+                      }
+                      label="Has end date"
+                    />
+                    <Unknown
+                      field="endDate"
+                      instance={[Circular]}
+                      label="End date"
+                      style={
+                        Object {
+                          "visibility": "hidden",
+                        }
+                      }
+                      type="date"
+                      width={160}
+                    />
+                    <Unknown />
+                    <Unknown
+                      field="endTime"
+                      instance={[Circular]}
+                      label="End time"
+                      style={
+                        Object {
+                          "visibility": "hidden",
+                        }
+                      }
+                      type="time"
+                      width={120}
+                    />
+                  </div>
+                  <span
+                    className="flex"
+                  >
+                    Run every
+                    <div
+                      className="flex"
+                    >
+                      <Unknown />
+                      <Unknown
+                        error={false}
+                        field="intervalValue"
+                        height={30}
+                        instance={[Circular]}
+                        required={true}
+                        type="number"
+                        width={65}
+                      />
+                    </div>
+                    <Unknown />
+                    <Unknown
+                      field="intervalCategory"
+                      height={30}
+                      instance={[Circular]}
+                      required={true}
+                      select={true}
+                      width={95}
+                    >
+                      <WithStyles(MenuItem)
+                        value="Minute"
+                      >
+                        Minutes
+                      </WithStyles(MenuItem)>
+                      <WithStyles(MenuItem)
+                        value="Hour"
+                      >
+                        Hours
+                      </WithStyles(MenuItem)>
+                      <WithStyles(MenuItem)
+                        value="Day"
+                      >
+                        Days
+                      </WithStyles(MenuItem)>
+                      <WithStyles(MenuItem)
+                        value="Week"
+                      >
+                        Weeks
+                      </WithStyles(MenuItem)>
+                      <WithStyles(MenuItem)
+                        value="Month"
+                      >
+                        Months
+                      </WithStyles(MenuItem)>
+                    </Unknown>
+                  </span>
+                </div>
+              </div>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Maximum concurrent runs"
+      required={true}
+    />
+    <div
+      className="flex"
+    >
+      <WithStyles(FormControlLabel)
+        control={
+          <WithStyles(Checkbox)
+            checked={false}
+            color="primary"
+            onClick={[Function]}
+          />
+        }
+        label="Has start date"
+      />
+      <Component
+        field="startDate"
+        instance={
+          Trigger {
+            "context": Object {},
+            "handleChange": [Function],
+            "props": Object {},
+            "refs": Object {},
+            "setState": [Function],
+            "state": Object {
+              "cron": "",
+              "editCron": false,
+              "endDate": "2018-12-21",
+              "endTime": "07:53",
+              "hasEndDate": false,
+              "hasStartDate": false,
+              "intervalCategory": "Minute",
+              "intervalValue": 1,
+              "maxConcurrentRuns": "10",
+              "selectedDays": Array [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+              ],
+              "startDate": "2018-12-21",
+              "startTime": "07:53",
+              "type": 0,
+            },
+            "updater": Updater {
+              "_callbacks": Array [],
+              "_renderer": ReactShallowRenderer {
+                "_context": Object {},
+                "_element": <Trigger />,
+                "_forcedUpdate": false,
+                "_instance": [Circular],
+                "_newState": null,
+                "_rendered": <div>
+                  <Unknown
+                    field="type"
+                    instance={[Circular]}
+                    label="Trigger type"
+                    required={true}
+                    select={true}
+                  >
+                    <WithStyles(MenuItem)
+                      value={0}
+                    >
+                      Periodic
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value={1}
+                    >
+                      Cron
+                    </WithStyles(MenuItem)>
+                  </Unknown>
+                  <div>
+                    <Unknown
+                      field="maxConcurrentRuns"
+                      instance={[Circular]}
+                      label="Maximum concurrent runs"
+                      required={true}
+                    />
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has start date"
+                      />
+                      <Unknown
+                        field="startDate"
+                        instance={[Circular]}
+                        label="Start date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="startTime"
+                        instance={[Circular]}
+                        label="Start time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has end date"
+                      />
+                      <Unknown
+                        field="endDate"
+                        instance={[Circular]}
+                        label="End date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="endTime"
+                        instance={[Circular]}
+                        label="End time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <span
+                      className="flex"
+                    >
+                      Run every
+                      <div
+                        className="flex"
+                      >
+                        <Unknown />
+                        <Unknown
+                          error={false}
+                          field="intervalValue"
+                          height={30}
+                          instance={[Circular]}
+                          required={true}
+                          type="number"
+                          width={65}
+                        />
+                      </div>
+                      <Unknown />
+                      <Unknown
+                        field="intervalCategory"
+                        height={30}
+                        instance={[Circular]}
+                        required={true}
+                        select={true}
+                        width={95}
+                      >
+                        <WithStyles(MenuItem)
+                          value="Minute"
+                        >
+                          Minutes
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Hour"
+                        >
+                          Hours
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Day"
+                        >
+                          Days
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Week"
+                        >
+                          Weeks
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Month"
+                        >
+                          Months
+                        </WithStyles(MenuItem)>
+                      </Unknown>
+                    </span>
+                  </div>
+                </div>,
+                "_rendering": false,
+                "_updater": [Circular],
+              },
+            },
+            Symbol(enzyme.__setState__): [Function],
+          }
+        }
+        label="Start date"
+        style={
+          Object {
+            "visibility": "hidden",
+          }
+        }
+        type="date"
+        width={160}
+      />
+      <Component />
+      <Component
+        field="startTime"
+        instance={
+          Trigger {
+            "context": Object {},
+            "handleChange": [Function],
+            "props": Object {},
+            "refs": Object {},
+            "setState": [Function],
+            "state": Object {
+              "cron": "",
+              "editCron": false,
+              "endDate": "2018-12-21",
+              "endTime": "07:53",
+              "hasEndDate": false,
+              "hasStartDate": false,
+              "intervalCategory": "Minute",
+              "intervalValue": 1,
+              "maxConcurrentRuns": "10",
+              "selectedDays": Array [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+              ],
+              "startDate": "2018-12-21",
+              "startTime": "07:53",
+              "type": 0,
+            },
+            "updater": Updater {
+              "_callbacks": Array [],
+              "_renderer": ReactShallowRenderer {
+                "_context": Object {},
+                "_element": <Trigger />,
+                "_forcedUpdate": false,
+                "_instance": [Circular],
+                "_newState": null,
+                "_rendered": <div>
+                  <Unknown
+                    field="type"
+                    instance={[Circular]}
+                    label="Trigger type"
+                    required={true}
+                    select={true}
+                  >
+                    <WithStyles(MenuItem)
+                      value={0}
+                    >
+                      Periodic
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value={1}
+                    >
+                      Cron
+                    </WithStyles(MenuItem)>
+                  </Unknown>
+                  <div>
+                    <Unknown
+                      field="maxConcurrentRuns"
+                      instance={[Circular]}
+                      label="Maximum concurrent runs"
+                      required={true}
+                    />
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has start date"
+                      />
+                      <Unknown
+                        field="startDate"
+                        instance={[Circular]}
+                        label="Start date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="startTime"
+                        instance={[Circular]}
+                        label="Start time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has end date"
+                      />
+                      <Unknown
+                        field="endDate"
+                        instance={[Circular]}
+                        label="End date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="endTime"
+                        instance={[Circular]}
+                        label="End time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <span
+                      className="flex"
+                    >
+                      Run every
+                      <div
+                        className="flex"
+                      >
+                        <Unknown />
+                        <Unknown
+                          error={false}
+                          field="intervalValue"
+                          height={30}
+                          instance={[Circular]}
+                          required={true}
+                          type="number"
+                          width={65}
+                        />
+                      </div>
+                      <Unknown />
+                      <Unknown
+                        field="intervalCategory"
+                        height={30}
+                        instance={[Circular]}
+                        required={true}
+                        select={true}
+                        width={95}
+                      >
+                        <WithStyles(MenuItem)
+                          value="Minute"
+                        >
+                          Minutes
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Hour"
+                        >
+                          Hours
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Day"
+                        >
+                          Days
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Week"
+                        >
+                          Weeks
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Month"
+                        >
+                          Months
+                        </WithStyles(MenuItem)>
+                      </Unknown>
+                    </span>
+                  </div>
+                </div>,
+                "_rendering": false,
+                "_updater": [Circular],
+              },
+            },
+            Symbol(enzyme.__setState__): [Function],
+          }
+        }
+        label="Start time"
+        style={
+          Object {
+            "visibility": "hidden",
+          }
+        }
+        type="time"
+        width={120}
+      />
+    </div>
+    <div
+      className="flex"
+    >
+      <WithStyles(FormControlLabel)
+        control={
+          <WithStyles(Checkbox)
+            checked={false}
+            color="primary"
+            onClick={[Function]}
+          />
+        }
+        label="Has end date"
+      />
+      <Component
+        field="endDate"
+        instance={
+          Trigger {
+            "context": Object {},
+            "handleChange": [Function],
+            "props": Object {},
+            "refs": Object {},
+            "setState": [Function],
+            "state": Object {
+              "cron": "",
+              "editCron": false,
+              "endDate": "2018-12-21",
+              "endTime": "07:53",
+              "hasEndDate": false,
+              "hasStartDate": false,
+              "intervalCategory": "Minute",
+              "intervalValue": 1,
+              "maxConcurrentRuns": "10",
+              "selectedDays": Array [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+              ],
+              "startDate": "2018-12-21",
+              "startTime": "07:53",
+              "type": 0,
+            },
+            "updater": Updater {
+              "_callbacks": Array [],
+              "_renderer": ReactShallowRenderer {
+                "_context": Object {},
+                "_element": <Trigger />,
+                "_forcedUpdate": false,
+                "_instance": [Circular],
+                "_newState": null,
+                "_rendered": <div>
+                  <Unknown
+                    field="type"
+                    instance={[Circular]}
+                    label="Trigger type"
+                    required={true}
+                    select={true}
+                  >
+                    <WithStyles(MenuItem)
+                      value={0}
+                    >
+                      Periodic
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value={1}
+                    >
+                      Cron
+                    </WithStyles(MenuItem)>
+                  </Unknown>
+                  <div>
+                    <Unknown
+                      field="maxConcurrentRuns"
+                      instance={[Circular]}
+                      label="Maximum concurrent runs"
+                      required={true}
+                    />
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has start date"
+                      />
+                      <Unknown
+                        field="startDate"
+                        instance={[Circular]}
+                        label="Start date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="startTime"
+                        instance={[Circular]}
+                        label="Start time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has end date"
+                      />
+                      <Unknown
+                        field="endDate"
+                        instance={[Circular]}
+                        label="End date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="endTime"
+                        instance={[Circular]}
+                        label="End time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <span
+                      className="flex"
+                    >
+                      Run every
+                      <div
+                        className="flex"
+                      >
+                        <Unknown />
+                        <Unknown
+                          error={false}
+                          field="intervalValue"
+                          height={30}
+                          instance={[Circular]}
+                          required={true}
+                          type="number"
+                          width={65}
+                        />
+                      </div>
+                      <Unknown />
+                      <Unknown
+                        field="intervalCategory"
+                        height={30}
+                        instance={[Circular]}
+                        required={true}
+                        select={true}
+                        width={95}
+                      >
+                        <WithStyles(MenuItem)
+                          value="Minute"
+                        >
+                          Minutes
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Hour"
+                        >
+                          Hours
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Day"
+                        >
+                          Days
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Week"
+                        >
+                          Weeks
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Month"
+                        >
+                          Months
+                        </WithStyles(MenuItem)>
+                      </Unknown>
+                    </span>
+                  </div>
+                </div>,
+                "_rendering": false,
+                "_updater": [Circular],
+              },
+            },
+            Symbol(enzyme.__setState__): [Function],
+          }
+        }
+        label="End date"
+        style={
+          Object {
+            "visibility": "hidden",
+          }
+        }
+        type="date"
+        width={160}
+      />
+      <Component />
+      <Component
+        field="endTime"
+        instance={
+          Trigger {
+            "context": Object {},
+            "handleChange": [Function],
+            "props": Object {},
+            "refs": Object {},
+            "setState": [Function],
+            "state": Object {
+              "cron": "",
+              "editCron": false,
+              "endDate": "2018-12-21",
+              "endTime": "07:53",
+              "hasEndDate": false,
+              "hasStartDate": false,
+              "intervalCategory": "Minute",
+              "intervalValue": 1,
+              "maxConcurrentRuns": "10",
+              "selectedDays": Array [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+              ],
+              "startDate": "2018-12-21",
+              "startTime": "07:53",
+              "type": 0,
+            },
+            "updater": Updater {
+              "_callbacks": Array [],
+              "_renderer": ReactShallowRenderer {
+                "_context": Object {},
+                "_element": <Trigger />,
+                "_forcedUpdate": false,
+                "_instance": [Circular],
+                "_newState": null,
+                "_rendered": <div>
+                  <Unknown
+                    field="type"
+                    instance={[Circular]}
+                    label="Trigger type"
+                    required={true}
+                    select={true}
+                  >
+                    <WithStyles(MenuItem)
+                      value={0}
+                    >
+                      Periodic
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value={1}
+                    >
+                      Cron
+                    </WithStyles(MenuItem)>
+                  </Unknown>
+                  <div>
+                    <Unknown
+                      field="maxConcurrentRuns"
+                      instance={[Circular]}
+                      label="Maximum concurrent runs"
+                      required={true}
+                    />
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has start date"
+                      />
+                      <Unknown
+                        field="startDate"
+                        instance={[Circular]}
+                        label="Start date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="startTime"
+                        instance={[Circular]}
+                        label="Start time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has end date"
+                      />
+                      <Unknown
+                        field="endDate"
+                        instance={[Circular]}
+                        label="End date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="endTime"
+                        instance={[Circular]}
+                        label="End time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <span
+                      className="flex"
+                    >
+                      Run every
+                      <div
+                        className="flex"
+                      >
+                        <Unknown />
+                        <Unknown
+                          error={false}
+                          field="intervalValue"
+                          height={30}
+                          instance={[Circular]}
+                          required={true}
+                          type="number"
+                          width={65}
+                        />
+                      </div>
+                      <Unknown />
+                      <Unknown
+                        field="intervalCategory"
+                        height={30}
+                        instance={[Circular]}
+                        required={true}
+                        select={true}
+                        width={95}
+                      >
+                        <WithStyles(MenuItem)
+                          value="Minute"
+                        >
+                          Minutes
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Hour"
+                        >
+                          Hours
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Day"
+                        >
+                          Days
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Week"
+                        >
+                          Weeks
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Month"
+                        >
+                          Months
+                        </WithStyles(MenuItem)>
+                      </Unknown>
+                    </span>
+                  </div>
+                </div>,
+                "_rendering": false,
+                "_updater": [Circular],
+              },
+            },
+            Symbol(enzyme.__setState__): [Function],
+          }
+        }
+        label="End time"
+        style={
+          Object {
+            "visibility": "hidden",
+          }
+        }
+        type="time"
+        width={120}
+      />
+    </div>
+    <span
+      className="flex"
+    >
+      Run every
+      <div
+        className="flex"
+      >
+        <Component />
+        <Component
+          error={false}
+          field="intervalValue"
+          height={30}
+          instance={
+            Trigger {
+              "context": Object {},
+              "handleChange": [Function],
+              "props": Object {},
+              "refs": Object {},
+              "setState": [Function],
+              "state": Object {
+                "cron": "",
+                "editCron": false,
+                "endDate": "2018-12-21",
+                "endTime": "07:53",
+                "hasEndDate": false,
+                "hasStartDate": false,
+                "intervalCategory": "Minute",
+                "intervalValue": 1,
+                "maxConcurrentRuns": "10",
+                "selectedDays": Array [
+                  true,
+                  true,
+                  true,
+                  true,
+                  true,
+                  true,
+                  true,
+                ],
+                "startDate": "2018-12-21",
+                "startTime": "07:53",
+                "type": 0,
+              },
+              "updater": Updater {
+                "_callbacks": Array [],
+                "_renderer": ReactShallowRenderer {
+                  "_context": Object {},
+                  "_element": <Trigger />,
+                  "_forcedUpdate": false,
+                  "_instance": [Circular],
+                  "_newState": null,
+                  "_rendered": <div>
+                    <Unknown
+                      field="type"
+                      instance={[Circular]}
+                      label="Trigger type"
+                      required={true}
+                      select={true}
+                    >
+                      <WithStyles(MenuItem)
+                        value={0}
+                      >
+                        Periodic
+                      </WithStyles(MenuItem)>
+                      <WithStyles(MenuItem)
+                        value={1}
+                      >
+                        Cron
+                      </WithStyles(MenuItem)>
+                    </Unknown>
+                    <div>
+                      <Unknown
+                        field="maxConcurrentRuns"
+                        instance={[Circular]}
+                        label="Maximum concurrent runs"
+                        required={true}
+                      />
+                      <div
+                        className="flex"
+                      >
+                        <WithStyles(FormControlLabel)
+                          control={
+                            <WithStyles(Checkbox)
+                              checked={false}
+                              color="primary"
+                              onClick={[Function]}
+                            />
+                          }
+                          label="Has start date"
+                        />
+                        <Unknown
+                          field="startDate"
+                          instance={[Circular]}
+                          label="Start date"
+                          style={
+                            Object {
+                              "visibility": "hidden",
+                            }
+                          }
+                          type="date"
+                          width={160}
+                        />
+                        <Unknown />
+                        <Unknown
+                          field="startTime"
+                          instance={[Circular]}
+                          label="Start time"
+                          style={
+                            Object {
+                              "visibility": "hidden",
+                            }
+                          }
+                          type="time"
+                          width={120}
+                        />
+                      </div>
+                      <div
+                        className="flex"
+                      >
+                        <WithStyles(FormControlLabel)
+                          control={
+                            <WithStyles(Checkbox)
+                              checked={false}
+                              color="primary"
+                              onClick={[Function]}
+                            />
+                          }
+                          label="Has end date"
+                        />
+                        <Unknown
+                          field="endDate"
+                          instance={[Circular]}
+                          label="End date"
+                          style={
+                            Object {
+                              "visibility": "hidden",
+                            }
+                          }
+                          type="date"
+                          width={160}
+                        />
+                        <Unknown />
+                        <Unknown
+                          field="endTime"
+                          instance={[Circular]}
+                          label="End time"
+                          style={
+                            Object {
+                              "visibility": "hidden",
+                            }
+                          }
+                          type="time"
+                          width={120}
+                        />
+                      </div>
+                      <span
+                        className="flex"
+                      >
+                        Run every
+                        <div
+                          className="flex"
+                        >
+                          <Unknown />
+                          <Unknown
+                            error={false}
+                            field="intervalValue"
+                            height={30}
+                            instance={[Circular]}
+                            required={true}
+                            type="number"
+                            width={65}
+                          />
+                        </div>
+                        <Unknown />
+                        <Unknown
+                          field="intervalCategory"
+                          height={30}
+                          instance={[Circular]}
+                          required={true}
+                          select={true}
+                          width={95}
+                        >
+                          <WithStyles(MenuItem)
+                            value="Minute"
+                          >
+                            Minutes
+                          </WithStyles(MenuItem)>
+                          <WithStyles(MenuItem)
+                            value="Hour"
+                          >
+                            Hours
+                          </WithStyles(MenuItem)>
+                          <WithStyles(MenuItem)
+                            value="Day"
+                          >
+                            Days
+                          </WithStyles(MenuItem)>
+                          <WithStyles(MenuItem)
+                            value="Week"
+                          >
+                            Weeks
+                          </WithStyles(MenuItem)>
+                          <WithStyles(MenuItem)
+                            value="Month"
+                          >
+                            Months
+                          </WithStyles(MenuItem)>
+                        </Unknown>
+                      </span>
+                    </div>
+                  </div>,
+                  "_rendering": false,
+                  "_updater": [Circular],
+                },
+              },
+              Symbol(enzyme.__setState__): [Function],
+            }
+          }
+          required={true}
+          type="number"
+          width={65}
+        />
+      </div>
+      <Component />
+      <Component
+        field="intervalCategory"
+        height={30}
+        instance={
+          Trigger {
+            "context": Object {},
+            "handleChange": [Function],
+            "props": Object {},
+            "refs": Object {},
+            "setState": [Function],
+            "state": Object {
+              "cron": "",
+              "editCron": false,
+              "endDate": "2018-12-21",
+              "endTime": "07:53",
+              "hasEndDate": false,
+              "hasStartDate": false,
+              "intervalCategory": "Minute",
+              "intervalValue": 1,
+              "maxConcurrentRuns": "10",
+              "selectedDays": Array [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+              ],
+              "startDate": "2018-12-21",
+              "startTime": "07:53",
+              "type": 0,
+            },
+            "updater": Updater {
+              "_callbacks": Array [],
+              "_renderer": ReactShallowRenderer {
+                "_context": Object {},
+                "_element": <Trigger />,
+                "_forcedUpdate": false,
+                "_instance": [Circular],
+                "_newState": null,
+                "_rendered": <div>
+                  <Unknown
+                    field="type"
+                    instance={[Circular]}
+                    label="Trigger type"
+                    required={true}
+                    select={true}
+                  >
+                    <WithStyles(MenuItem)
+                      value={0}
+                    >
+                      Periodic
+                    </WithStyles(MenuItem)>
+                    <WithStyles(MenuItem)
+                      value={1}
+                    >
+                      Cron
+                    </WithStyles(MenuItem)>
+                  </Unknown>
+                  <div>
+                    <Unknown
+                      field="maxConcurrentRuns"
+                      instance={[Circular]}
+                      label="Maximum concurrent runs"
+                      required={true}
+                    />
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has start date"
+                      />
+                      <Unknown
+                        field="startDate"
+                        instance={[Circular]}
+                        label="Start date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="startTime"
+                        instance={[Circular]}
+                        label="Start time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <div
+                      className="flex"
+                    >
+                      <WithStyles(FormControlLabel)
+                        control={
+                          <WithStyles(Checkbox)
+                            checked={false}
+                            color="primary"
+                            onClick={[Function]}
+                          />
+                        }
+                        label="Has end date"
+                      />
+                      <Unknown
+                        field="endDate"
+                        instance={[Circular]}
+                        label="End date"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="date"
+                        width={160}
+                      />
+                      <Unknown />
+                      <Unknown
+                        field="endTime"
+                        instance={[Circular]}
+                        label="End time"
+                        style={
+                          Object {
+                            "visibility": "hidden",
+                          }
+                        }
+                        type="time"
+                        width={120}
+                      />
+                    </div>
+                    <span
+                      className="flex"
+                    >
+                      Run every
+                      <div
+                        className="flex"
+                      >
+                        <Unknown />
+                        <Unknown
+                          error={false}
+                          field="intervalValue"
+                          height={30}
+                          instance={[Circular]}
+                          required={true}
+                          type="number"
+                          width={65}
+                        />
+                      </div>
+                      <Unknown />
+                      <Unknown
+                        field="intervalCategory"
+                        height={30}
+                        instance={[Circular]}
+                        required={true}
+                        select={true}
+                        width={95}
+                      >
+                        <WithStyles(MenuItem)
+                          value="Minute"
+                        >
+                          Minutes
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Hour"
+                        >
+                          Hours
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Day"
+                        >
+                          Days
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Week"
+                        >
+                          Weeks
+                        </WithStyles(MenuItem)>
+                        <WithStyles(MenuItem)
+                          value="Month"
+                        >
+                          Months
+                        </WithStyles(MenuItem)>
+                      </Unknown>
+                    </span>
+                  </div>
+                </div>,
+                "_rendering": false,
+                "_updater": [Circular],
+              },
+            },
+            Symbol(enzyme.__setState__): [Function],
+          }
+        }
+        required={true}
+        select={true}
+        width={95}
+      >
+        <WithStyles(MenuItem)
+          key="0"
+          value="Minute"
+        >
+          Minutes
+        </WithStyles(MenuItem)>
+        <WithStyles(MenuItem)
+          key="1"
+          value="Hour"
+        >
+          Hours
+        </WithStyles(MenuItem)>
+        <WithStyles(MenuItem)
+          key="2"
+          value="Day"
+        >
+          Days
+        </WithStyles(MenuItem)>
+        <WithStyles(MenuItem)
+          key="3"
+          value="Week"
+        >
+          Weeks
+        </WithStyles(MenuItem)>
+        <WithStyles(MenuItem)
+          key="4"
+          value="Month"
+        >
+          Months
+        </WithStyles(MenuItem)>
+      </Component>
+    </span>
+  </div>
+</div>
+`;
+
 exports[`Trigger renders periodic schedule controls if the trigger type is CRON 1`] = `
 <div>
   <Component
@@ -5804,7 +7514,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
           ],
           "startDate": "2018-12-21",
           "startTime": "07:53",
-          "type": 2,
+          "type": 1,
         },
         "updater": Updater {
           "_callbacks": Array [],
@@ -5834,7 +7544,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "_rendered": <div>
               <Unknown
@@ -5847,15 +7557,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                 <WithStyles(MenuItem)
                   value={0}
                 >
-                  Run right away
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value={1}
-                >
                   Periodic
                 </WithStyles(MenuItem)>
                 <WithStyles(MenuItem)
-                  value={2}
+                  value={1}
                 >
                   Cron
                 </WithStyles(MenuItem)>
@@ -6039,17 +7744,11 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       key="0"
       value={0}
     >
-      Run right away
+      Periodic
     </WithStyles(MenuItem)>
     <WithStyles(MenuItem)
       key="1"
       value={1}
-    >
-      Periodic
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="2"
-      value={2}
     >
       Cron
     </WithStyles(MenuItem)>
@@ -6085,7 +7784,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
             ],
             "startDate": "2018-12-21",
             "startTime": "07:53",
-            "type": 2,
+            "type": 1,
           },
           "updater": Updater {
             "_callbacks": Array [],
@@ -6115,7 +7814,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                 ],
                 "startDate": "2018-12-21",
                 "startTime": "07:53",
-                "type": 2,
+                "type": 1,
               },
               "_rendered": <div>
                 <Unknown
@@ -6128,15 +7827,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   <WithStyles(MenuItem)
                     value={0}
                   >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
                     Periodic
                   </WithStyles(MenuItem)>
                   <WithStyles(MenuItem)
-                    value={2}
+                    value={1}
                   >
                     Cron
                   </WithStyles(MenuItem)>
@@ -6358,7 +8052,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -6388,7 +8082,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -6401,15 +8095,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -6625,7 +8314,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -6655,7 +8344,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -6668,15 +8357,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -6905,7 +8589,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -6935,7 +8619,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -6948,15 +8632,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -7172,7 +8851,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -7202,7 +8881,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -7215,15 +8894,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -7445,7 +9119,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -7475,7 +9149,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -7488,15 +9162,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -7765,7 +9434,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
             ],
             "startDate": "2018-12-21",
             "startTime": "07:53",
-            "type": 2,
+            "type": 1,
           },
           "updater": Updater {
             "_callbacks": Array [],
@@ -7795,7 +9464,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                 ],
                 "startDate": "2018-12-21",
                 "startTime": "07:53",
-                "type": 2,
+                "type": 1,
               },
               "_rendered": <div>
                 <Unknown
@@ -7808,15 +9477,10 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
                   <WithStyles(MenuItem)
                     value={0}
                   >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
                     Periodic
                   </WithStyles(MenuItem)>
                   <WithStyles(MenuItem)
-                    value={2}
+                    value={1}
                   >
                     Cron
                   </WithStyles(MenuItem)>
@@ -8003,2030 +9667,6 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
 </div>
 `;
 
-exports[`Trigger renders periodic schedule controls if the trigger type is periodic 1`] = `
-<div>
-  <Component
-    field="type"
-    instance={
-      Trigger {
-        "context": Object {},
-        "handleChange": [Function],
-        "props": Object {},
-        "refs": Object {},
-        "setState": [Function],
-        "state": Object {
-          "cron": "0 * * * * ?",
-          "editCron": false,
-          "endDate": "2018-12-21",
-          "endTime": "07:53",
-          "hasEndDate": false,
-          "hasStartDate": false,
-          "intervalCategory": "Minute",
-          "intervalValue": 1,
-          "maxConcurrentRuns": "10",
-          "selectedDays": Array [
-            true,
-            true,
-            true,
-            true,
-            true,
-            true,
-            true,
-          ],
-          "startDate": "2018-12-21",
-          "startTime": "07:53",
-          "type": 1,
-        },
-        "updater": Updater {
-          "_callbacks": Array [],
-          "_renderer": ReactShallowRenderer {
-            "_context": Object {},
-            "_element": <Trigger />,
-            "_forcedUpdate": false,
-            "_instance": [Circular],
-            "_newState": Object {
-              "cron": "0 * * * * ?",
-              "editCron": false,
-              "endDate": "2018-12-21",
-              "endTime": "07:53",
-              "hasEndDate": false,
-              "hasStartDate": false,
-              "intervalCategory": "Minute",
-              "intervalValue": 1,
-              "maxConcurrentRuns": "10",
-              "selectedDays": Array [
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-              ],
-              "startDate": "2018-12-21",
-              "startTime": "07:53",
-              "type": 1,
-            },
-            "_rendered": <div>
-              <Unknown
-                field="type"
-                instance={[Circular]}
-                label="Trigger type"
-                required={true}
-                select={true}
-              >
-                <WithStyles(MenuItem)
-                  value={0}
-                >
-                  Run right away
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value={1}
-                >
-                  Periodic
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value={2}
-                >
-                  Cron
-                </WithStyles(MenuItem)>
-              </Unknown>
-              <div>
-                <Unknown
-                  field="maxConcurrentRuns"
-                  instance={[Circular]}
-                  label="Maximum concurrent runs"
-                  required={true}
-                />
-                <div
-                  className="flex"
-                >
-                  <WithStyles(FormControlLabel)
-                    control={
-                      <WithStyles(Checkbox)
-                        checked={false}
-                        color="primary"
-                        onClick={[Function]}
-                      />
-                    }
-                    label="Has start date"
-                  />
-                  <Unknown
-                    field="startDate"
-                    instance={[Circular]}
-                    label="Start date"
-                    style={
-                      Object {
-                        "visibility": "hidden",
-                      }
-                    }
-                    type="date"
-                    width={160}
-                  />
-                  <Unknown />
-                  <Unknown
-                    field="startTime"
-                    instance={[Circular]}
-                    label="Start time"
-                    style={
-                      Object {
-                        "visibility": "hidden",
-                      }
-                    }
-                    type="time"
-                    width={120}
-                  />
-                </div>
-                <div
-                  className="flex"
-                >
-                  <WithStyles(FormControlLabel)
-                    control={
-                      <WithStyles(Checkbox)
-                        checked={false}
-                        color="primary"
-                        onClick={[Function]}
-                      />
-                    }
-                    label="Has end date"
-                  />
-                  <Unknown
-                    field="endDate"
-                    instance={[Circular]}
-                    label="End date"
-                    style={
-                      Object {
-                        "visibility": "hidden",
-                      }
-                    }
-                    type="date"
-                    width={160}
-                  />
-                  <Unknown />
-                  <Unknown
-                    field="endTime"
-                    instance={[Circular]}
-                    label="End time"
-                    style={
-                      Object {
-                        "visibility": "hidden",
-                      }
-                    }
-                    type="time"
-                    width={120}
-                  />
-                </div>
-                <span
-                  className="flex"
-                >
-                  Run every
-                  <div
-                    className="flex"
-                  >
-                    <Unknown />
-                    <Unknown
-                      error={false}
-                      field="intervalValue"
-                      height={30}
-                      instance={[Circular]}
-                      required={true}
-                      type="number"
-                      width={65}
-                    />
-                  </div>
-                  <Unknown />
-                  <Unknown
-                    field="intervalCategory"
-                    height={30}
-                    instance={[Circular]}
-                    required={true}
-                    select={true}
-                    width={95}
-                  >
-                    <WithStyles(MenuItem)
-                      value="Minute"
-                    >
-                      Minutes
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value="Hour"
-                    >
-                      Hours
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value="Day"
-                    >
-                      Days
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value="Week"
-                    >
-                      Weeks
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value="Month"
-                    >
-                      Months
-                    </WithStyles(MenuItem)>
-                  </Unknown>
-                </span>
-              </div>
-            </div>,
-            "_rendering": false,
-            "_updater": [Circular],
-          },
-        },
-        Symbol(enzyme.__setState__): [Function],
-      }
-    }
-    label="Trigger type"
-    required={true}
-    select={true}
-  >
-    <WithStyles(MenuItem)
-      key="0"
-      value={0}
-    >
-      Run right away
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="1"
-      value={1}
-    >
-      Periodic
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="2"
-      value={2}
-    >
-      Cron
-    </WithStyles(MenuItem)>
-  </Component>
-  <div>
-    <Component
-      field="maxConcurrentRuns"
-      instance={
-        Trigger {
-          "context": Object {},
-          "handleChange": [Function],
-          "props": Object {},
-          "refs": Object {},
-          "setState": [Function],
-          "state": Object {
-            "cron": "0 * * * * ?",
-            "editCron": false,
-            "endDate": "2018-12-21",
-            "endTime": "07:53",
-            "hasEndDate": false,
-            "hasStartDate": false,
-            "intervalCategory": "Minute",
-            "intervalValue": 1,
-            "maxConcurrentRuns": "10",
-            "selectedDays": Array [
-              true,
-              true,
-              true,
-              true,
-              true,
-              true,
-              true,
-            ],
-            "startDate": "2018-12-21",
-            "startTime": "07:53",
-            "type": 1,
-          },
-          "updater": Updater {
-            "_callbacks": Array [],
-            "_renderer": ReactShallowRenderer {
-              "_context": Object {},
-              "_element": <Trigger />,
-              "_forcedUpdate": false,
-              "_instance": [Circular],
-              "_newState": Object {
-                "cron": "0 * * * * ?",
-                "editCron": false,
-                "endDate": "2018-12-21",
-                "endTime": "07:53",
-                "hasEndDate": false,
-                "hasStartDate": false,
-                "intervalCategory": "Minute",
-                "intervalValue": 1,
-                "maxConcurrentRuns": "10",
-                "selectedDays": Array [
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                ],
-                "startDate": "2018-12-21",
-                "startTime": "07:53",
-                "type": 1,
-              },
-              "_rendered": <div>
-                <Unknown
-                  field="type"
-                  instance={[Circular]}
-                  label="Trigger type"
-                  required={true}
-                  select={true}
-                >
-                  <WithStyles(MenuItem)
-                    value={0}
-                  >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
-                    Periodic
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={2}
-                  >
-                    Cron
-                  </WithStyles(MenuItem)>
-                </Unknown>
-                <div>
-                  <Unknown
-                    field="maxConcurrentRuns"
-                    instance={[Circular]}
-                    label="Maximum concurrent runs"
-                    required={true}
-                  />
-                  <div
-                    className="flex"
-                  >
-                    <WithStyles(FormControlLabel)
-                      control={
-                        <WithStyles(Checkbox)
-                          checked={false}
-                          color="primary"
-                          onClick={[Function]}
-                        />
-                      }
-                      label="Has start date"
-                    />
-                    <Unknown
-                      field="startDate"
-                      instance={[Circular]}
-                      label="Start date"
-                      style={
-                        Object {
-                          "visibility": "hidden",
-                        }
-                      }
-                      type="date"
-                      width={160}
-                    />
-                    <Unknown />
-                    <Unknown
-                      field="startTime"
-                      instance={[Circular]}
-                      label="Start time"
-                      style={
-                        Object {
-                          "visibility": "hidden",
-                        }
-                      }
-                      type="time"
-                      width={120}
-                    />
-                  </div>
-                  <div
-                    className="flex"
-                  >
-                    <WithStyles(FormControlLabel)
-                      control={
-                        <WithStyles(Checkbox)
-                          checked={false}
-                          color="primary"
-                          onClick={[Function]}
-                        />
-                      }
-                      label="Has end date"
-                    />
-                    <Unknown
-                      field="endDate"
-                      instance={[Circular]}
-                      label="End date"
-                      style={
-                        Object {
-                          "visibility": "hidden",
-                        }
-                      }
-                      type="date"
-                      width={160}
-                    />
-                    <Unknown />
-                    <Unknown
-                      field="endTime"
-                      instance={[Circular]}
-                      label="End time"
-                      style={
-                        Object {
-                          "visibility": "hidden",
-                        }
-                      }
-                      type="time"
-                      width={120}
-                    />
-                  </div>
-                  <span
-                    className="flex"
-                  >
-                    Run every
-                    <div
-                      className="flex"
-                    >
-                      <Unknown />
-                      <Unknown
-                        error={false}
-                        field="intervalValue"
-                        height={30}
-                        instance={[Circular]}
-                        required={true}
-                        type="number"
-                        width={65}
-                      />
-                    </div>
-                    <Unknown />
-                    <Unknown
-                      field="intervalCategory"
-                      height={30}
-                      instance={[Circular]}
-                      required={true}
-                      select={true}
-                      width={95}
-                    >
-                      <WithStyles(MenuItem)
-                        value="Minute"
-                      >
-                        Minutes
-                      </WithStyles(MenuItem)>
-                      <WithStyles(MenuItem)
-                        value="Hour"
-                      >
-                        Hours
-                      </WithStyles(MenuItem)>
-                      <WithStyles(MenuItem)
-                        value="Day"
-                      >
-                        Days
-                      </WithStyles(MenuItem)>
-                      <WithStyles(MenuItem)
-                        value="Week"
-                      >
-                        Weeks
-                      </WithStyles(MenuItem)>
-                      <WithStyles(MenuItem)
-                        value="Month"
-                      >
-                        Months
-                      </WithStyles(MenuItem)>
-                    </Unknown>
-                  </span>
-                </div>
-              </div>,
-              "_rendering": false,
-              "_updater": [Circular],
-            },
-          },
-          Symbol(enzyme.__setState__): [Function],
-        }
-      }
-      label="Maximum concurrent runs"
-      required={true}
-    />
-    <div
-      className="flex"
-    >
-      <WithStyles(FormControlLabel)
-        control={
-          <WithStyles(Checkbox)
-            checked={false}
-            color="primary"
-            onClick={[Function]}
-          />
-        }
-        label="Has start date"
-      />
-      <Component
-        field="startDate"
-        instance={
-          Trigger {
-            "context": Object {},
-            "handleChange": [Function],
-            "props": Object {},
-            "refs": Object {},
-            "setState": [Function],
-            "state": Object {
-              "cron": "0 * * * * ?",
-              "editCron": false,
-              "endDate": "2018-12-21",
-              "endTime": "07:53",
-              "hasEndDate": false,
-              "hasStartDate": false,
-              "intervalCategory": "Minute",
-              "intervalValue": 1,
-              "maxConcurrentRuns": "10",
-              "selectedDays": Array [
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-              ],
-              "startDate": "2018-12-21",
-              "startTime": "07:53",
-              "type": 1,
-            },
-            "updater": Updater {
-              "_callbacks": Array [],
-              "_renderer": ReactShallowRenderer {
-                "_context": Object {},
-                "_element": <Trigger />,
-                "_forcedUpdate": false,
-                "_instance": [Circular],
-                "_newState": Object {
-                  "cron": "0 * * * * ?",
-                  "editCron": false,
-                  "endDate": "2018-12-21",
-                  "endTime": "07:53",
-                  "hasEndDate": false,
-                  "hasStartDate": false,
-                  "intervalCategory": "Minute",
-                  "intervalValue": 1,
-                  "maxConcurrentRuns": "10",
-                  "selectedDays": Array [
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                  ],
-                  "startDate": "2018-12-21",
-                  "startTime": "07:53",
-                  "type": 1,
-                },
-                "_rendered": <div>
-                  <Unknown
-                    field="type"
-                    instance={[Circular]}
-                    label="Trigger type"
-                    required={true}
-                    select={true}
-                  >
-                    <WithStyles(MenuItem)
-                      value={0}
-                    >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
-                      Periodic
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={2}
-                    >
-                      Cron
-                    </WithStyles(MenuItem)>
-                  </Unknown>
-                  <div>
-                    <Unknown
-                      field="maxConcurrentRuns"
-                      instance={[Circular]}
-                      label="Maximum concurrent runs"
-                      required={true}
-                    />
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has start date"
-                      />
-                      <Unknown
-                        field="startDate"
-                        instance={[Circular]}
-                        label="Start date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="startTime"
-                        instance={[Circular]}
-                        label="Start time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has end date"
-                      />
-                      <Unknown
-                        field="endDate"
-                        instance={[Circular]}
-                        label="End date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="endTime"
-                        instance={[Circular]}
-                        label="End time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <span
-                      className="flex"
-                    >
-                      Run every
-                      <div
-                        className="flex"
-                      >
-                        <Unknown />
-                        <Unknown
-                          error={false}
-                          field="intervalValue"
-                          height={30}
-                          instance={[Circular]}
-                          required={true}
-                          type="number"
-                          width={65}
-                        />
-                      </div>
-                      <Unknown />
-                      <Unknown
-                        field="intervalCategory"
-                        height={30}
-                        instance={[Circular]}
-                        required={true}
-                        select={true}
-                        width={95}
-                      >
-                        <WithStyles(MenuItem)
-                          value="Minute"
-                        >
-                          Minutes
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Hour"
-                        >
-                          Hours
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Day"
-                        >
-                          Days
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Week"
-                        >
-                          Weeks
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Month"
-                        >
-                          Months
-                        </WithStyles(MenuItem)>
-                      </Unknown>
-                    </span>
-                  </div>
-                </div>,
-                "_rendering": false,
-                "_updater": [Circular],
-              },
-            },
-            Symbol(enzyme.__setState__): [Function],
-          }
-        }
-        label="Start date"
-        style={
-          Object {
-            "visibility": "hidden",
-          }
-        }
-        type="date"
-        width={160}
-      />
-      <Component />
-      <Component
-        field="startTime"
-        instance={
-          Trigger {
-            "context": Object {},
-            "handleChange": [Function],
-            "props": Object {},
-            "refs": Object {},
-            "setState": [Function],
-            "state": Object {
-              "cron": "0 * * * * ?",
-              "editCron": false,
-              "endDate": "2018-12-21",
-              "endTime": "07:53",
-              "hasEndDate": false,
-              "hasStartDate": false,
-              "intervalCategory": "Minute",
-              "intervalValue": 1,
-              "maxConcurrentRuns": "10",
-              "selectedDays": Array [
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-              ],
-              "startDate": "2018-12-21",
-              "startTime": "07:53",
-              "type": 1,
-            },
-            "updater": Updater {
-              "_callbacks": Array [],
-              "_renderer": ReactShallowRenderer {
-                "_context": Object {},
-                "_element": <Trigger />,
-                "_forcedUpdate": false,
-                "_instance": [Circular],
-                "_newState": Object {
-                  "cron": "0 * * * * ?",
-                  "editCron": false,
-                  "endDate": "2018-12-21",
-                  "endTime": "07:53",
-                  "hasEndDate": false,
-                  "hasStartDate": false,
-                  "intervalCategory": "Minute",
-                  "intervalValue": 1,
-                  "maxConcurrentRuns": "10",
-                  "selectedDays": Array [
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                  ],
-                  "startDate": "2018-12-21",
-                  "startTime": "07:53",
-                  "type": 1,
-                },
-                "_rendered": <div>
-                  <Unknown
-                    field="type"
-                    instance={[Circular]}
-                    label="Trigger type"
-                    required={true}
-                    select={true}
-                  >
-                    <WithStyles(MenuItem)
-                      value={0}
-                    >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
-                      Periodic
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={2}
-                    >
-                      Cron
-                    </WithStyles(MenuItem)>
-                  </Unknown>
-                  <div>
-                    <Unknown
-                      field="maxConcurrentRuns"
-                      instance={[Circular]}
-                      label="Maximum concurrent runs"
-                      required={true}
-                    />
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has start date"
-                      />
-                      <Unknown
-                        field="startDate"
-                        instance={[Circular]}
-                        label="Start date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="startTime"
-                        instance={[Circular]}
-                        label="Start time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has end date"
-                      />
-                      <Unknown
-                        field="endDate"
-                        instance={[Circular]}
-                        label="End date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="endTime"
-                        instance={[Circular]}
-                        label="End time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <span
-                      className="flex"
-                    >
-                      Run every
-                      <div
-                        className="flex"
-                      >
-                        <Unknown />
-                        <Unknown
-                          error={false}
-                          field="intervalValue"
-                          height={30}
-                          instance={[Circular]}
-                          required={true}
-                          type="number"
-                          width={65}
-                        />
-                      </div>
-                      <Unknown />
-                      <Unknown
-                        field="intervalCategory"
-                        height={30}
-                        instance={[Circular]}
-                        required={true}
-                        select={true}
-                        width={95}
-                      >
-                        <WithStyles(MenuItem)
-                          value="Minute"
-                        >
-                          Minutes
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Hour"
-                        >
-                          Hours
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Day"
-                        >
-                          Days
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Week"
-                        >
-                          Weeks
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Month"
-                        >
-                          Months
-                        </WithStyles(MenuItem)>
-                      </Unknown>
-                    </span>
-                  </div>
-                </div>,
-                "_rendering": false,
-                "_updater": [Circular],
-              },
-            },
-            Symbol(enzyme.__setState__): [Function],
-          }
-        }
-        label="Start time"
-        style={
-          Object {
-            "visibility": "hidden",
-          }
-        }
-        type="time"
-        width={120}
-      />
-    </div>
-    <div
-      className="flex"
-    >
-      <WithStyles(FormControlLabel)
-        control={
-          <WithStyles(Checkbox)
-            checked={false}
-            color="primary"
-            onClick={[Function]}
-          />
-        }
-        label="Has end date"
-      />
-      <Component
-        field="endDate"
-        instance={
-          Trigger {
-            "context": Object {},
-            "handleChange": [Function],
-            "props": Object {},
-            "refs": Object {},
-            "setState": [Function],
-            "state": Object {
-              "cron": "0 * * * * ?",
-              "editCron": false,
-              "endDate": "2018-12-21",
-              "endTime": "07:53",
-              "hasEndDate": false,
-              "hasStartDate": false,
-              "intervalCategory": "Minute",
-              "intervalValue": 1,
-              "maxConcurrentRuns": "10",
-              "selectedDays": Array [
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-              ],
-              "startDate": "2018-12-21",
-              "startTime": "07:53",
-              "type": 1,
-            },
-            "updater": Updater {
-              "_callbacks": Array [],
-              "_renderer": ReactShallowRenderer {
-                "_context": Object {},
-                "_element": <Trigger />,
-                "_forcedUpdate": false,
-                "_instance": [Circular],
-                "_newState": Object {
-                  "cron": "0 * * * * ?",
-                  "editCron": false,
-                  "endDate": "2018-12-21",
-                  "endTime": "07:53",
-                  "hasEndDate": false,
-                  "hasStartDate": false,
-                  "intervalCategory": "Minute",
-                  "intervalValue": 1,
-                  "maxConcurrentRuns": "10",
-                  "selectedDays": Array [
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                  ],
-                  "startDate": "2018-12-21",
-                  "startTime": "07:53",
-                  "type": 1,
-                },
-                "_rendered": <div>
-                  <Unknown
-                    field="type"
-                    instance={[Circular]}
-                    label="Trigger type"
-                    required={true}
-                    select={true}
-                  >
-                    <WithStyles(MenuItem)
-                      value={0}
-                    >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
-                      Periodic
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={2}
-                    >
-                      Cron
-                    </WithStyles(MenuItem)>
-                  </Unknown>
-                  <div>
-                    <Unknown
-                      field="maxConcurrentRuns"
-                      instance={[Circular]}
-                      label="Maximum concurrent runs"
-                      required={true}
-                    />
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has start date"
-                      />
-                      <Unknown
-                        field="startDate"
-                        instance={[Circular]}
-                        label="Start date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="startTime"
-                        instance={[Circular]}
-                        label="Start time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has end date"
-                      />
-                      <Unknown
-                        field="endDate"
-                        instance={[Circular]}
-                        label="End date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="endTime"
-                        instance={[Circular]}
-                        label="End time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <span
-                      className="flex"
-                    >
-                      Run every
-                      <div
-                        className="flex"
-                      >
-                        <Unknown />
-                        <Unknown
-                          error={false}
-                          field="intervalValue"
-                          height={30}
-                          instance={[Circular]}
-                          required={true}
-                          type="number"
-                          width={65}
-                        />
-                      </div>
-                      <Unknown />
-                      <Unknown
-                        field="intervalCategory"
-                        height={30}
-                        instance={[Circular]}
-                        required={true}
-                        select={true}
-                        width={95}
-                      >
-                        <WithStyles(MenuItem)
-                          value="Minute"
-                        >
-                          Minutes
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Hour"
-                        >
-                          Hours
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Day"
-                        >
-                          Days
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Week"
-                        >
-                          Weeks
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Month"
-                        >
-                          Months
-                        </WithStyles(MenuItem)>
-                      </Unknown>
-                    </span>
-                  </div>
-                </div>,
-                "_rendering": false,
-                "_updater": [Circular],
-              },
-            },
-            Symbol(enzyme.__setState__): [Function],
-          }
-        }
-        label="End date"
-        style={
-          Object {
-            "visibility": "hidden",
-          }
-        }
-        type="date"
-        width={160}
-      />
-      <Component />
-      <Component
-        field="endTime"
-        instance={
-          Trigger {
-            "context": Object {},
-            "handleChange": [Function],
-            "props": Object {},
-            "refs": Object {},
-            "setState": [Function],
-            "state": Object {
-              "cron": "0 * * * * ?",
-              "editCron": false,
-              "endDate": "2018-12-21",
-              "endTime": "07:53",
-              "hasEndDate": false,
-              "hasStartDate": false,
-              "intervalCategory": "Minute",
-              "intervalValue": 1,
-              "maxConcurrentRuns": "10",
-              "selectedDays": Array [
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-              ],
-              "startDate": "2018-12-21",
-              "startTime": "07:53",
-              "type": 1,
-            },
-            "updater": Updater {
-              "_callbacks": Array [],
-              "_renderer": ReactShallowRenderer {
-                "_context": Object {},
-                "_element": <Trigger />,
-                "_forcedUpdate": false,
-                "_instance": [Circular],
-                "_newState": Object {
-                  "cron": "0 * * * * ?",
-                  "editCron": false,
-                  "endDate": "2018-12-21",
-                  "endTime": "07:53",
-                  "hasEndDate": false,
-                  "hasStartDate": false,
-                  "intervalCategory": "Minute",
-                  "intervalValue": 1,
-                  "maxConcurrentRuns": "10",
-                  "selectedDays": Array [
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                  ],
-                  "startDate": "2018-12-21",
-                  "startTime": "07:53",
-                  "type": 1,
-                },
-                "_rendered": <div>
-                  <Unknown
-                    field="type"
-                    instance={[Circular]}
-                    label="Trigger type"
-                    required={true}
-                    select={true}
-                  >
-                    <WithStyles(MenuItem)
-                      value={0}
-                    >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
-                      Periodic
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={2}
-                    >
-                      Cron
-                    </WithStyles(MenuItem)>
-                  </Unknown>
-                  <div>
-                    <Unknown
-                      field="maxConcurrentRuns"
-                      instance={[Circular]}
-                      label="Maximum concurrent runs"
-                      required={true}
-                    />
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has start date"
-                      />
-                      <Unknown
-                        field="startDate"
-                        instance={[Circular]}
-                        label="Start date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="startTime"
-                        instance={[Circular]}
-                        label="Start time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has end date"
-                      />
-                      <Unknown
-                        field="endDate"
-                        instance={[Circular]}
-                        label="End date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="endTime"
-                        instance={[Circular]}
-                        label="End time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <span
-                      className="flex"
-                    >
-                      Run every
-                      <div
-                        className="flex"
-                      >
-                        <Unknown />
-                        <Unknown
-                          error={false}
-                          field="intervalValue"
-                          height={30}
-                          instance={[Circular]}
-                          required={true}
-                          type="number"
-                          width={65}
-                        />
-                      </div>
-                      <Unknown />
-                      <Unknown
-                        field="intervalCategory"
-                        height={30}
-                        instance={[Circular]}
-                        required={true}
-                        select={true}
-                        width={95}
-                      >
-                        <WithStyles(MenuItem)
-                          value="Minute"
-                        >
-                          Minutes
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Hour"
-                        >
-                          Hours
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Day"
-                        >
-                          Days
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Week"
-                        >
-                          Weeks
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Month"
-                        >
-                          Months
-                        </WithStyles(MenuItem)>
-                      </Unknown>
-                    </span>
-                  </div>
-                </div>,
-                "_rendering": false,
-                "_updater": [Circular],
-              },
-            },
-            Symbol(enzyme.__setState__): [Function],
-          }
-        }
-        label="End time"
-        style={
-          Object {
-            "visibility": "hidden",
-          }
-        }
-        type="time"
-        width={120}
-      />
-    </div>
-    <span
-      className="flex"
-    >
-      Run every
-      <div
-        className="flex"
-      >
-        <Component />
-        <Component
-          error={false}
-          field="intervalValue"
-          height={30}
-          instance={
-            Trigger {
-              "context": Object {},
-              "handleChange": [Function],
-              "props": Object {},
-              "refs": Object {},
-              "setState": [Function],
-              "state": Object {
-                "cron": "0 * * * * ?",
-                "editCron": false,
-                "endDate": "2018-12-21",
-                "endTime": "07:53",
-                "hasEndDate": false,
-                "hasStartDate": false,
-                "intervalCategory": "Minute",
-                "intervalValue": 1,
-                "maxConcurrentRuns": "10",
-                "selectedDays": Array [
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                  true,
-                ],
-                "startDate": "2018-12-21",
-                "startTime": "07:53",
-                "type": 1,
-              },
-              "updater": Updater {
-                "_callbacks": Array [],
-                "_renderer": ReactShallowRenderer {
-                  "_context": Object {},
-                  "_element": <Trigger />,
-                  "_forcedUpdate": false,
-                  "_instance": [Circular],
-                  "_newState": Object {
-                    "cron": "0 * * * * ?",
-                    "editCron": false,
-                    "endDate": "2018-12-21",
-                    "endTime": "07:53",
-                    "hasEndDate": false,
-                    "hasStartDate": false,
-                    "intervalCategory": "Minute",
-                    "intervalValue": 1,
-                    "maxConcurrentRuns": "10",
-                    "selectedDays": Array [
-                      true,
-                      true,
-                      true,
-                      true,
-                      true,
-                      true,
-                      true,
-                    ],
-                    "startDate": "2018-12-21",
-                    "startTime": "07:53",
-                    "type": 1,
-                  },
-                  "_rendered": <div>
-                    <Unknown
-                      field="type"
-                      instance={[Circular]}
-                      label="Trigger type"
-                      required={true}
-                      select={true}
-                    >
-                      <WithStyles(MenuItem)
-                        value={0}
-                      >
-                        Run right away
-                      </WithStyles(MenuItem)>
-                      <WithStyles(MenuItem)
-                        value={1}
-                      >
-                        Periodic
-                      </WithStyles(MenuItem)>
-                      <WithStyles(MenuItem)
-                        value={2}
-                      >
-                        Cron
-                      </WithStyles(MenuItem)>
-                    </Unknown>
-                    <div>
-                      <Unknown
-                        field="maxConcurrentRuns"
-                        instance={[Circular]}
-                        label="Maximum concurrent runs"
-                        required={true}
-                      />
-                      <div
-                        className="flex"
-                      >
-                        <WithStyles(FormControlLabel)
-                          control={
-                            <WithStyles(Checkbox)
-                              checked={false}
-                              color="primary"
-                              onClick={[Function]}
-                            />
-                          }
-                          label="Has start date"
-                        />
-                        <Unknown
-                          field="startDate"
-                          instance={[Circular]}
-                          label="Start date"
-                          style={
-                            Object {
-                              "visibility": "hidden",
-                            }
-                          }
-                          type="date"
-                          width={160}
-                        />
-                        <Unknown />
-                        <Unknown
-                          field="startTime"
-                          instance={[Circular]}
-                          label="Start time"
-                          style={
-                            Object {
-                              "visibility": "hidden",
-                            }
-                          }
-                          type="time"
-                          width={120}
-                        />
-                      </div>
-                      <div
-                        className="flex"
-                      >
-                        <WithStyles(FormControlLabel)
-                          control={
-                            <WithStyles(Checkbox)
-                              checked={false}
-                              color="primary"
-                              onClick={[Function]}
-                            />
-                          }
-                          label="Has end date"
-                        />
-                        <Unknown
-                          field="endDate"
-                          instance={[Circular]}
-                          label="End date"
-                          style={
-                            Object {
-                              "visibility": "hidden",
-                            }
-                          }
-                          type="date"
-                          width={160}
-                        />
-                        <Unknown />
-                        <Unknown
-                          field="endTime"
-                          instance={[Circular]}
-                          label="End time"
-                          style={
-                            Object {
-                              "visibility": "hidden",
-                            }
-                          }
-                          type="time"
-                          width={120}
-                        />
-                      </div>
-                      <span
-                        className="flex"
-                      >
-                        Run every
-                        <div
-                          className="flex"
-                        >
-                          <Unknown />
-                          <Unknown
-                            error={false}
-                            field="intervalValue"
-                            height={30}
-                            instance={[Circular]}
-                            required={true}
-                            type="number"
-                            width={65}
-                          />
-                        </div>
-                        <Unknown />
-                        <Unknown
-                          field="intervalCategory"
-                          height={30}
-                          instance={[Circular]}
-                          required={true}
-                          select={true}
-                          width={95}
-                        >
-                          <WithStyles(MenuItem)
-                            value="Minute"
-                          >
-                            Minutes
-                          </WithStyles(MenuItem)>
-                          <WithStyles(MenuItem)
-                            value="Hour"
-                          >
-                            Hours
-                          </WithStyles(MenuItem)>
-                          <WithStyles(MenuItem)
-                            value="Day"
-                          >
-                            Days
-                          </WithStyles(MenuItem)>
-                          <WithStyles(MenuItem)
-                            value="Week"
-                          >
-                            Weeks
-                          </WithStyles(MenuItem)>
-                          <WithStyles(MenuItem)
-                            value="Month"
-                          >
-                            Months
-                          </WithStyles(MenuItem)>
-                        </Unknown>
-                      </span>
-                    </div>
-                  </div>,
-                  "_rendering": false,
-                  "_updater": [Circular],
-                },
-              },
-              Symbol(enzyme.__setState__): [Function],
-            }
-          }
-          required={true}
-          type="number"
-          width={65}
-        />
-      </div>
-      <Component />
-      <Component
-        field="intervalCategory"
-        height={30}
-        instance={
-          Trigger {
-            "context": Object {},
-            "handleChange": [Function],
-            "props": Object {},
-            "refs": Object {},
-            "setState": [Function],
-            "state": Object {
-              "cron": "0 * * * * ?",
-              "editCron": false,
-              "endDate": "2018-12-21",
-              "endTime": "07:53",
-              "hasEndDate": false,
-              "hasStartDate": false,
-              "intervalCategory": "Minute",
-              "intervalValue": 1,
-              "maxConcurrentRuns": "10",
-              "selectedDays": Array [
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-                true,
-              ],
-              "startDate": "2018-12-21",
-              "startTime": "07:53",
-              "type": 1,
-            },
-            "updater": Updater {
-              "_callbacks": Array [],
-              "_renderer": ReactShallowRenderer {
-                "_context": Object {},
-                "_element": <Trigger />,
-                "_forcedUpdate": false,
-                "_instance": [Circular],
-                "_newState": Object {
-                  "cron": "0 * * * * ?",
-                  "editCron": false,
-                  "endDate": "2018-12-21",
-                  "endTime": "07:53",
-                  "hasEndDate": false,
-                  "hasStartDate": false,
-                  "intervalCategory": "Minute",
-                  "intervalValue": 1,
-                  "maxConcurrentRuns": "10",
-                  "selectedDays": Array [
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                    true,
-                  ],
-                  "startDate": "2018-12-21",
-                  "startTime": "07:53",
-                  "type": 1,
-                },
-                "_rendered": <div>
-                  <Unknown
-                    field="type"
-                    instance={[Circular]}
-                    label="Trigger type"
-                    required={true}
-                    select={true}
-                  >
-                    <WithStyles(MenuItem)
-                      value={0}
-                    >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
-                      Periodic
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={2}
-                    >
-                      Cron
-                    </WithStyles(MenuItem)>
-                  </Unknown>
-                  <div>
-                    <Unknown
-                      field="maxConcurrentRuns"
-                      instance={[Circular]}
-                      label="Maximum concurrent runs"
-                      required={true}
-                    />
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has start date"
-                      />
-                      <Unknown
-                        field="startDate"
-                        instance={[Circular]}
-                        label="Start date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="startTime"
-                        instance={[Circular]}
-                        label="Start time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <div
-                      className="flex"
-                    >
-                      <WithStyles(FormControlLabel)
-                        control={
-                          <WithStyles(Checkbox)
-                            checked={false}
-                            color="primary"
-                            onClick={[Function]}
-                          />
-                        }
-                        label="Has end date"
-                      />
-                      <Unknown
-                        field="endDate"
-                        instance={[Circular]}
-                        label="End date"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="date"
-                        width={160}
-                      />
-                      <Unknown />
-                      <Unknown
-                        field="endTime"
-                        instance={[Circular]}
-                        label="End time"
-                        style={
-                          Object {
-                            "visibility": "hidden",
-                          }
-                        }
-                        type="time"
-                        width={120}
-                      />
-                    </div>
-                    <span
-                      className="flex"
-                    >
-                      Run every
-                      <div
-                        className="flex"
-                      >
-                        <Unknown />
-                        <Unknown
-                          error={false}
-                          field="intervalValue"
-                          height={30}
-                          instance={[Circular]}
-                          required={true}
-                          type="number"
-                          width={65}
-                        />
-                      </div>
-                      <Unknown />
-                      <Unknown
-                        field="intervalCategory"
-                        height={30}
-                        instance={[Circular]}
-                        required={true}
-                        select={true}
-                        width={95}
-                      >
-                        <WithStyles(MenuItem)
-                          value="Minute"
-                        >
-                          Minutes
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Hour"
-                        >
-                          Hours
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Day"
-                        >
-                          Days
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Week"
-                        >
-                          Weeks
-                        </WithStyles(MenuItem)>
-                        <WithStyles(MenuItem)
-                          value="Month"
-                        >
-                          Months
-                        </WithStyles(MenuItem)>
-                      </Unknown>
-                    </span>
-                  </div>
-                </div>,
-                "_rendering": false,
-                "_updater": [Circular],
-              },
-            },
-            Symbol(enzyme.__setState__): [Function],
-          }
-        }
-        required={true}
-        select={true}
-        width={95}
-      >
-        <WithStyles(MenuItem)
-          key="0"
-          value="Minute"
-        >
-          Minutes
-        </WithStyles(MenuItem)>
-        <WithStyles(MenuItem)
-          key="1"
-          value="Hour"
-        >
-          Hours
-        </WithStyles(MenuItem)>
-        <WithStyles(MenuItem)
-          key="2"
-          value="Day"
-        >
-          Days
-        </WithStyles(MenuItem)>
-        <WithStyles(MenuItem)
-          key="3"
-          value="Week"
-        >
-          Weeks
-        </WithStyles(MenuItem)>
-        <WithStyles(MenuItem)
-          key="4"
-          value="Month"
-        >
-          Months
-        </WithStyles(MenuItem)>
-      </Component>
-    </span>
-  </div>
-</div>
-`;
-
 exports[`Trigger renders week days if the trigger type is CRON and interval is weekly 1`] = `
 <div>
   <Component
@@ -10059,7 +9699,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
           ],
           "startDate": "2018-12-21",
           "startTime": "07:53",
-          "type": 2,
+          "type": 1,
         },
         "updater": Updater {
           "_callbacks": Array [],
@@ -10089,7 +9729,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "_rendered": <div>
               <Unknown
@@ -10102,15 +9742,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 <WithStyles(MenuItem)
                   value={0}
                 >
-                  Run right away
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value={1}
-                >
                   Periodic
                 </WithStyles(MenuItem)>
                 <WithStyles(MenuItem)
-                  value={2}
+                  value={1}
                 >
                   Cron
                 </WithStyles(MenuItem)>
@@ -10366,17 +10001,11 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       key="0"
       value={0}
     >
-      Run right away
+      Periodic
     </WithStyles(MenuItem)>
     <WithStyles(MenuItem)
       key="1"
       value={1}
-    >
-      Periodic
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="2"
-      value={2}
     >
       Cron
     </WithStyles(MenuItem)>
@@ -10412,7 +10041,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
             ],
             "startDate": "2018-12-21",
             "startTime": "07:53",
-            "type": 2,
+            "type": 1,
           },
           "updater": Updater {
             "_callbacks": Array [],
@@ -10442,7 +10071,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 ],
                 "startDate": "2018-12-21",
                 "startTime": "07:53",
-                "type": 2,
+                "type": 1,
               },
               "_rendered": <div>
                 <Unknown
@@ -10455,15 +10084,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   <WithStyles(MenuItem)
                     value={0}
                   >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
                     Periodic
                   </WithStyles(MenuItem)>
                   <WithStyles(MenuItem)
-                    value={2}
+                    value={1}
                   >
                     Cron
                   </WithStyles(MenuItem)>
@@ -10757,7 +10381,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -10787,7 +10411,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -10800,15 +10424,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -11096,7 +10715,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -11126,7 +10745,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -11139,15 +10758,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -11448,7 +11062,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -11478,7 +11092,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -11491,15 +11105,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -11787,7 +11396,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -11817,7 +11426,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -11830,15 +11439,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -12132,7 +11736,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               ],
               "startDate": "2018-12-21",
               "startTime": "07:53",
-              "type": 2,
+              "type": 1,
             },
             "updater": Updater {
               "_callbacks": Array [],
@@ -12162,7 +11766,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   ],
                   "startDate": "2018-12-21",
                   "startTime": "07:53",
-                  "type": 2,
+                  "type": 1,
                 },
                 "_rendered": <div>
                   <Unknown
@@ -12175,15 +11779,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                     <WithStyles(MenuItem)
                       value={0}
                     >
-                      Run right away
-                    </WithStyles(MenuItem)>
-                    <WithStyles(MenuItem)
-                      value={1}
-                    >
                       Periodic
                     </WithStyles(MenuItem)>
                     <WithStyles(MenuItem)
-                      value={2}
+                      value={1}
                     >
                       Cron
                     </WithStyles(MenuItem)>
@@ -12603,7 +12202,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
             ],
             "startDate": "2018-12-21",
             "startTime": "07:53",
-            "type": 2,
+            "type": 1,
           },
           "updater": Updater {
             "_callbacks": Array [],
@@ -12633,7 +12232,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                 ],
                 "startDate": "2018-12-21",
                 "startTime": "07:53",
-                "type": 2,
+                "type": 1,
               },
               "_rendered": <div>
                 <Unknown
@@ -12646,15 +12245,10 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
                   <WithStyles(MenuItem)
                     value={0}
                   >
-                    Run right away
-                  </WithStyles(MenuItem)>
-                  <WithStyles(MenuItem)
-                    value={1}
-                  >
                     Periodic
                   </WithStyles(MenuItem)>
                   <WithStyles(MenuItem)
-                    value={2}
+                    value={1}
                   >
                     Cron
                   </WithStyles(MenuItem)>
@@ -12910,105 +12504,5 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       Note: Start and end dates/times are handled outside of cron.
     </div>
   </div>
-</div>
-`;
-
-exports[`Trigger shows empty fields for initial render 1`] = `
-<div>
-  <Component
-    field="type"
-    instance={
-      Trigger {
-        "context": Object {},
-        "handleChange": [Function],
-        "props": Object {},
-        "refs": Object {},
-        "setState": [Function],
-        "state": Object {
-          "cron": "",
-          "editCron": false,
-          "endDate": "2018-12-21",
-          "endTime": "07:53",
-          "hasEndDate": false,
-          "hasStartDate": false,
-          "intervalCategory": "Minute",
-          "intervalValue": 1,
-          "maxConcurrentRuns": "10",
-          "selectedDays": Array [
-            true,
-            true,
-            true,
-            true,
-            true,
-            true,
-            true,
-          ],
-          "startDate": "2018-12-21",
-          "startTime": "07:53",
-          "type": 0,
-        },
-        "updater": Updater {
-          "_callbacks": Array [],
-          "_renderer": ReactShallowRenderer {
-            "_context": Object {},
-            "_element": <Trigger />,
-            "_forcedUpdate": false,
-            "_instance": [Circular],
-            "_newState": null,
-            "_rendered": <div>
-              <Unknown
-                field="type"
-                instance={[Circular]}
-                label="Trigger type"
-                required={true}
-                select={true}
-              >
-                <WithStyles(MenuItem)
-                  value={0}
-                >
-                  Run right away
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value={1}
-                >
-                  Periodic
-                </WithStyles(MenuItem)>
-                <WithStyles(MenuItem)
-                  value={2}
-                >
-                  Cron
-                </WithStyles(MenuItem)>
-              </Unknown>
-            </div>,
-            "_rendering": false,
-            "_updater": [Circular],
-          },
-        },
-        Symbol(enzyme.__setState__): [Function],
-      }
-    }
-    label="Trigger type"
-    required={true}
-    select={true}
-  >
-    <WithStyles(MenuItem)
-      key="0"
-      value={0}
-    >
-      Run right away
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="1"
-      value={1}
-    >
-      Periodic
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="2"
-      value={2}
-    >
-      Cron
-    </WithStyles(MenuItem)>
-  </Component>
 </div>
 `;

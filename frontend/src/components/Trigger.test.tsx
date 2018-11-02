@@ -34,14 +34,8 @@ describe('Trigger', () => {
   const testDate = new Date(2018, 11, 21, 7, 53);
   mockDate(testDate);
 
-  it('shows empty fields for initial render', () => {
+  it('renders periodic schedule controls for initial render', () => {
     const tree = shallow(<Trigger />);
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('renders periodic schedule controls if the trigger type is periodic', () => {
-    const tree = shallow(<Trigger />);
-    (tree.instance() as Trigger).handleChange('type')({ target: { value: TriggerType.INTERVALED } });
     expect(tree).toMatchSnapshot();
   });
 

@@ -72,7 +72,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       selectedDays: new Array(7).fill(true),
       startDate,
       startTime,
-      type: TriggerType.NOW,
+      type: TriggerType.INTERVALED,
     };
   }
 
@@ -89,7 +89,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         ))}
       </Input>
 
-      {type !== TriggerType.NOW && (<div>
+      <div>
         <Input label='Maximum concurrent runs' required={true} instance={this} field='maxConcurrentRuns' />
 
         <div className={commonCss.flex}>
@@ -135,7 +135,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             ))}
           </Input>
         </span>
-      </div>)}
+      </div>
 
       {type === TriggerType.CRON && (
         <div>
@@ -194,8 +194,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     // Unless cron editing is enabled, calculate the new cron string, set it in state,
     // then use it to build new trigger object and notify the parent
     this.setState({
-      cron: editCron ? cron :
-        buildCron(startDateTime, intervalCategory, selectedDays),
+      cron: editCron ? cron : buildCron(startDateTime, intervalCategory, selectedDays),
     }, () => {
       const trigger = buildTrigger(
         intervalCategory, intervalValue, startDateTime, endDateTime, type, this.state.cron);

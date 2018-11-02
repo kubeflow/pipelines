@@ -17,7 +17,6 @@
 import { ApiTrigger, ApiPeriodicSchedule, ApiCronSchedule } from '../../src/apis/job';
 
 export enum TriggerType {
-  NOW,
   INTERVALED,
   CRON,
 }
@@ -31,7 +30,6 @@ export enum PeriodicInterval {
 }
 
 export const triggers = new Map<TriggerType, { displayName: string }>([
-  [TriggerType.NOW, { displayName: 'Run right away', }],
   [TriggerType.INTERVALED, { displayName: 'Periodic', }],
   [TriggerType.CRON, { displayName: 'Cron', }],
 ]);
@@ -133,30 +131,35 @@ export function pickersToDate(hasDate: boolean, dateStr: string, timeStr: string
 }
 
 export function buildTrigger(intervalCategory: PeriodicInterval, intervalValue: number,
-  startDateTime: Date | undefined, endDateTime: Date | undefined, type: TriggerType, cron: string) {
-  let trigger: ApiTrigger | undefined;
-  if (type === TriggerType.INTERVALED) {
-    trigger = {
-      periodic_schedule: {
-        interval_second: getPeriodInSeconds(intervalCategory, intervalValue).toString(),
-      } as ApiPeriodicSchedule,
-    };
-    trigger.periodic_schedule!.start_time = startDateTime;
-    trigger.periodic_schedule!.end_time = endDateTime;
-  } else if (type === TriggerType.CRON) {
-    trigger = {
-      cron_schedule: {
-        cron,
-      } as ApiCronSchedule,
-    };
-    trigger.cron_schedule!.start_time = startDateTime;
-    trigger.cron_schedule!.end_time = endDateTime;
+  startDateTime: Date | undefined, endDateTime: Date | undefined, type: TriggerType, cron: string): ApiTrigger {
+  let trigger: ApiTrigger;
+  switch (type) {
+    case TriggerType.INTERVALED:
+      trigger = {
+        periodic_schedule: {
+          interval_second: getPeriodInSeconds(intervalCategory, intervalValue).toString(),
+        } as ApiPeriodicSchedule,
+      };
+      trigger.periodic_schedule!.start_time = startDateTime;
+      trigger.periodic_schedule!.end_time = endDateTime;
+      break;
+    case TriggerType.CRON:
+      trigger = {
+        cron_schedule: {
+          cron,
+        } as ApiCronSchedule,
+      };
+      trigger.cron_schedule!.start_time = startDateTime;
+      trigger.cron_schedule!.end_time = endDateTime;
+      break;
+    default:
+      throw new Error(`Invalid TriggerType: ${type}`);
   }
 
   return trigger;
 }
 
-export function dateToPickerFormat(d: Date) {
+export function dateToPickerFormat(d: Date): [string, string] {
   const year = d.getFullYear();
   const month = ('0' + (d.getMonth() + 1)).slice(-2);
   const date = ('0' + d.getDate()).slice(-2);
