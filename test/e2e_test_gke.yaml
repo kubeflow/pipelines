@@ -31,6 +31,8 @@ spec:
       value: api_integration_test
     - name: frontend-integration-tests-image-suffix
       value: frontend-integration-tests
+    - name: cluster-type
+      value: gke
   templates:
   - name: integration-test
     inputs:
@@ -105,6 +107,9 @@ spec:
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: frontend-integration-tests-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-integration-tests-image-suffix}}"
+        #TODO: Uncomment to disable the test on Minikube
+        #TODO: Change the cluster-type to "minikube" once https://github.com/googleprivate/ml/pull/1285 and related PRs are merged.
+        #when: "{{workflow.parameters.cluster-type}} != none" #Do not run the test on Minikube
 
   - name: get-project
     script:

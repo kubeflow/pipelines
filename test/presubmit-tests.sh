@@ -114,6 +114,7 @@ echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
 -p commit-sha="${PULL_PULL_SHA}" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p cluster-type="${CLUSTER_TYPE}" \
 -p bootstrapper-image="${GCR_IMAGE_BASE_DIR}/bootstrapper" \
 -p api-image="${GCR_IMAGE_BASE_DIR}/api" \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
