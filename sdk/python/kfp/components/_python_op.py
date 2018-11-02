@@ -38,7 +38,7 @@ class OutputFile(Generic[T], str):
     pass
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
-_default_base_image='ark7/python-fire'
+_default_base_image='tensorflow/tensorflow:1.11.0-py3'
 
 
 def _python_function_name_to_component_name(name):
@@ -321,7 +321,7 @@ def python_op(func=None, base_image=_default_base_image, output_component_file=N
     To declare a function with multiple return values, use the NamedTuple return annotation syntax:
 
         from typing import NamedTuple
-        @python_op(base_image='ark7/python-fire')
+        @python_op(base_image='tensorflow/tensorflow:1.11.0-py3')
         def add_multiply_two_numbers_op(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
             """Returns sum and product of two arguments"""
             return (a + b, a * b)
