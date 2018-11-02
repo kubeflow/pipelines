@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "name": "vscode-jest-tests",
+      "request": "launch",
+      "args": [
+        "test",
+        "--env=jsdom",
+        "--runInBand"
+      ],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "${workspaceFolder}/frontend/node_modules/.bin/react-scripts-ts",
+      "protocol": "inspector"
+    }
+  ]
+}

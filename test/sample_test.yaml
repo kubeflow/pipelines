@@ -1,0 +1,360 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: sample-test-
+spec:
+  entrypoint: sample-test
+  arguments:
+    parameters:
+    - name: commit-sha
+    - name: test-results-gcs-dir
+    - name: bootstrapper-image
+    - name: api-image
+    - name: frontend-image
+    - name: scheduledworkflow-image
+    - name: persistenceagent-image
+    - name: dataflow-tft-image-suffix
+      value: dataflow-tft
+    - name: dataflow-tfma-image-suffix
+      value: dataflow-tfma
+    - name: dataflow-tfdv-image-suffix
+      value: dataflow-tfdv
+    - name: dataflow-predict-image-suffix
+      value: dataflow-predict
+    - name: kubeflow-dnntrainer-image-suffix
+      value: kubeflow-dnntrainer
+    - name: kubeflow-deployer-image-suffix
+      value: kubeflow-deployer
+    - name: local-confusionmatrix-image-suffix
+      value: local-confusionmatrix
+    - name: sample-tests-image-suffix
+      value: sample-tests
+  templates:
+  - name: sample-test
+    inputs:
+      parameters:
+      - name: commit-sha
+      - name: test-results-gcs-dir
+      - name: bootstrapper-image
+      - name: api-image
+      - name: frontend-image
+      - name: scheduledworkflow-image
+      - name: persistenceagent-image
+      - name: dataflow-tft-image-suffix
+      - name: dataflow-tfma-image-suffix
+      - name: dataflow-tfdv-image-suffix
+      - name: dataflow-predict-image-suffix
+      - name: kubeflow-dnntrainer-image-suffix
+      - name: kubeflow-deployer-image-suffix
+      - name: local-confusionmatrix-image-suffix
+      - name: sample-tests-image-suffix
+    steps:
+    - - name: get-project
+        template: get-project
+    - - name: build-sample-tests-image
+        template: build-image-by-dockerfile
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: test/sample-test
+          - name: image-suffix
+            value: "{{inputs.parameters.sample-tests-image-suffix}}"
+      - name: build-dataflow-tft-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataflow-tft-image-suffix}}"
+          - name: build-script
+            value: components/dataflow/containers/tft/build.sh
+      - name: build-dataflow-tfma-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
+          - name: build-script
+            value: components/dataflow/containers/tfma/build.sh
+      - name: build-dataflow-tfdv-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+          - name: build-script
+            value: components/dataflow/containers/tfdv/build.sh
+      - name: build-dataflow-predict-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataflow-predict-image-suffix}}"
+          - name: build-script
+            value: components/dataflow/containers/predict/build.sh
+      - name: build-kubeflow-dnntrainer-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+          - name: build-script
+            value: components/kubeflow/container/trainer/build.sh
+      - name: build-kubeflow-deployer-image
+        template: build-image-by-dockerfile
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: components/kubeflow/container/deployer
+          - name: image-suffix
+            value: "{{inputs.parameters.kubeflow-deployer-image-suffix}}"
+      - name: build-local-confusion-matrix
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+          - name: build-script
+            value: components/local/containers/confusion_matrix/build.sh
+    - - name: deploy-ml-pipeline
+        template: deploy-ml-pipeline
+        arguments:
+          parameters:
+          - name: bootstrapper-image
+            value: "{{inputs.parameters.bootstrapper-image}}"
+          - name: api-image
+            value: "{{inputs.parameters.api-image}}"
+          - name: frontend-image
+            value: "{{inputs.parameters.frontend-image}}"
+          - name: scheduledworkflow-image
+            value: "{{inputs.parameters.scheduledworkflow-image}}"
+          - name: persistenceagent-image
+            value: "{{inputs.parameters.persistenceagent-image}}"
+    - - name: run-tf-training-tests
+        template: run-sample-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: dataflow-tft-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tft-image-suffix}}"
+          - name: dataflow-predict-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-predict-image-suffix}}"
+          - name: dataflow-tfma-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfma-image-suffix}}"
+          - name: dataflow-tfdv-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+          - name: kubeflow-dnntrainer-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+          - name: kubeflow-deployer-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-deployer-image-suffix}}"
+          - name: local-confusionmatrix-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+          - name: sample-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: test-name
+            value: "tf-training"
+      - name: run-tfma-tests
+        template: run-sample-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: dataflow-tft-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tft-image-suffix}}"
+          - name: dataflow-predict-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-predict-image-suffix}}"
+          - name: dataflow-tfma-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfma-image-suffix}}"
+          - name: dataflow-tfdv-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+          - name: kubeflow-dnntrainer-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+          - name: kubeflow-deployer-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-deployer-image-suffix}}"
+          - name: local-confusionmatrix-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+          - name: sample-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: test-name
+            value: "tfma"
+
+  - name: get-project
+    script:
+      image: google/cloud-sdk
+      command: [bash]
+      source: |
+        gcloud config config-helper --format "value(configuration.properties.core.project)"
+
+  # Build image and upload to GCR in the specified project
+  - name: build-image-by-dockerfile
+    inputs:
+      parameters:
+      # The project that image deployed to
+      - name: project
+      # The github commit-sha to pull code from
+      - name: commit-sha
+      # The relative code path to the Dockerfile
+      - name: docker-path
+      # Name of the Docker file to use. "Dockerfile" by default
+      - name: docker-file
+        value: Dockerfile
+      - name: image-suffix
+    container:
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181011-0.0.20-18-g5ab78f1c-a9becd
+      imagePullPolicy: 'Always'
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--docker_path", "{{inputs.parameters.docker-path}}",
+        "--docker_file", "{{inputs.parameters.docker-file}}",
+        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh/github"
+      env:
+      - name: DOCKER_HOST
+        value: 127.0.0.1
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind
+      securityContext:
+        privileged: true
+      mirrorVolumeMounts: true
+
+  - name: build-image-by-script
+    inputs:
+      parameters:
+      # The project that image deployed to
+      - name: project
+      # The github commit-sha to pull code from
+      - name: commit-sha
+      # the path to the build script
+      - name: build-script
+      - name: image-suffix
+    container:
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181011-0.0.20-18-g5ab78f1c-a9becd
+      imagePullPolicy: 'Always'
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--build_script", "{{inputs.parameters.build-script}}",
+        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh/github"
+      env:
+      - name: DOCKER_HOST
+        value: 127.0.0.1
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind
+      securityContext:
+        privileged: true
+      mirrorVolumeMounts: true
+
+  - name: deploy-ml-pipeline
+    inputs:
+      parameters:
+      - name: bootstrapper-image
+      - name: api-image
+      - name: frontend-image
+      - name: scheduledworkflow-image
+      - name: persistenceagent-image
+    container:
+      image: "{{inputs.parameters.bootstrapper-image}}"
+      args: [
+        "--api_image", "{{inputs.parameters.api-image}}",
+        "--ui_image", "{{inputs.parameters.frontend-image}}",
+        "--scheduled_workflow_image", "{{inputs.parameters.scheduledworkflow-image}}",
+        "--persistence_agent_image", "{{inputs.parameters.persistenceagent-image}}",
+        "--deploy_argo", "false", # Argo is already installed in the cluster. No need to install again.
+        "--report_usage", "false" # Skip reporting usage for test
+      ]
+
+  - name: run-sample-tests
+    inputs:
+      parameters:
+      - name: commit-sha
+      - name: test-results-gcs-dir
+      - name: dataflow-tft-image
+      - name: dataflow-tfma-image
+      - name: dataflow-tfdv-image
+      - name: kubeflow-dnntrainer-image
+      - name: kubeflow-deployer-image
+      - name: dataflow-predict-image
+      - name: local-confusionmatrix-image
+      - name: sample-tests-image
+      - name: test-name
+    container:
+      image: "{{inputs.parameters.sample-tests-image}}"
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
+        "--dataflow-tfma-image","{{inputs.parameters.dataflow-tfma-image}}",
+        "--dataflow-tfdv-image","{{inputs.parameters.dataflow-tfdv-image}}",
+        "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
+        "--kubeflow-dnntrainer-image","{{inputs.parameters.kubeflow-dnntrainer-image}}",
+        "--kubeflow-deployer-image","{{inputs.parameters.kubeflow-deployer-image}}",
+        "--local-confusionmatrix-image", "{{inputs.parameters.local-confusionmatrix-image}}",
+        "--test-name", "{{inputs.parameters.test-name}}",
+      ]
+      volumeMounts:
+      - name: secret-volume
+        mountPath: "/root/.ssh/github"
+
+  volumes:
+  - name: secret-volume
+    secret:
+      defaultMode: 256
+      secretName: ssh-key-secret

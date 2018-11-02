@@ -1,0 +1,16 @@
+{
+  "outputs": [
+    {
+      "type": "roc",
+      "format": "csv",
+      "source": "gs://bucket/roc/roc2.csv",
+      "schema": [
+        {"name": "fpr", "type": "NUMBER"},
+        {"name": "tpr", "type": "NUMBER"},
+        {"name": "thresholds", "type": "NUMBER"}
+      ],
+      "predicted_col": "column1",
+      "target_col": "column2"
+    }
+  ]
+}

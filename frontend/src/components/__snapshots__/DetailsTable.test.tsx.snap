@@ -1,0 +1,163 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DetailsTable shows key and value for large values 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key
+    </span>
+    <span>
+      Lorem Ipsum is simply dummy text of the printing and typesetting
+      industry. Lorem Ipsum has been the industry's standard dummy text ever
+      since the 1500s, when an unknown printer took a galley of type and
+      scrambled it to make a type specimen book. It has survived not only five
+      centuries, but also the leap into electronic typesetting, remaining
+      essentially unchanged. It was popularised in the 1960s with the release
+      of Letraset sheets containing Lorem Ipsum passages, and more recently
+      with desktop publishing software like Aldus PageMaker including versions
+      of Lorem Ipsum.
+    </span>
+  </div>
+</div>
+`;
+
+exports[`DetailsTable shows key and value in row 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key
+    </span>
+    <span>
+      value
+    </span>
+  </div>
+</div>
+`;
+
+exports[`DetailsTable shows keys and values in a bunch of rows 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key1
+    </span>
+    <span>
+      value1
+    </span>
+  </div>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key2
+    </span>
+    <span>
+      value2
+    </span>
+  </div>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key3
+    </span>
+    <span>
+      value3
+    </span>
+  </div>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key4
+    </span>
+    <span>
+      value4
+    </span>
+  </div>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key5
+    </span>
+    <span>
+      value5
+    </span>
+  </div>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key6
+    </span>
+    <span>
+      value6
+    </span>
+  </div>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key6
+    </span>
+    <span>
+      value7
+    </span>
+  </div>
+</div>
+`;
+
+exports[`DetailsTable shows no rows 1`] = `
+<div
+  className="root"
+/>
+`;
+
+exports[`DetailsTable shows one row 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="row"
+  >
+    <span
+      className="key"
+    >
+      key
+    </span>
+    <span>
+      value
+    </span>
+  </div>
+</div>
+`;

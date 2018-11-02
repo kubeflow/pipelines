@@ -1,0 +1,443 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PagedTable does not break on empty data 1`] = `
+<div
+  className="page"
+  style={
+    Object {
+      "width": "100%",
+    }
+  }
+>
+  <WithStyles(Table)
+    style={
+      Object {
+        "display": "block",
+        "overflow": "auto",
+      }
+    }
+  >
+    <WithStyles(TableHead)>
+      <WithStyles(TableRow) />
+    </WithStyles(TableHead)>
+    <WithStyles(TableBody)>
+      <WithStyles(TableRow)
+        style={
+          Object {
+            "height": 300,
+          }
+        }
+      >
+        <WithStyles(TableCell)
+          colSpan={6}
+        />
+      </WithStyles(TableRow)>
+    </WithStyles(TableBody)>
+  </WithStyles(Table)>
+  <WithStyles(TablePagination)
+    component="div"
+    count={0}
+    onChangePage={[Function]}
+    onChangeRowsPerPage={[Function]}
+    page={0}
+    rowsPerPage={10}
+  />
+</div>
+`;
+
+exports[`PagedTable does not break on no config 1`] = `""`;
+
+exports[`PagedTable renders simple data 1`] = `
+<div
+  className="page"
+  style={
+    Object {
+      "width": "100%",
+    }
+  }
+>
+  <WithStyles(Table)
+    style={
+      Object {
+        "display": "block",
+        "overflow": "auto",
+      }
+    }
+  >
+    <WithStyles(TableHead)>
+      <WithStyles(TableRow)>
+        <WithStyles(TableCell)
+          className="columnName"
+          key="0"
+          sortDirection="asc"
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            title="Sort"
+          >
+            <WithStyles(TableSortLabel)
+              active={true}
+              direction="asc"
+              onClick={[Function]}
+            >
+              field1
+            </WithStyles(TableSortLabel)>
+          </WithStyles(Tooltip)>
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="columnName"
+          key="1"
+          sortDirection={false}
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            title="Sort"
+          >
+            <WithStyles(TableSortLabel)
+              active={false}
+              direction="asc"
+              onClick={[Function]}
+            >
+              field2
+            </WithStyles(TableSortLabel)>
+          </WithStyles(Tooltip)>
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="columnName"
+          key="2"
+          sortDirection={false}
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            title="Sort"
+          >
+            <WithStyles(TableSortLabel)
+              active={false}
+              direction="asc"
+              onClick={[Function]}
+            >
+              field3
+            </WithStyles(TableSortLabel)>
+          </WithStyles(Tooltip)>
+        </WithStyles(TableCell)>
+      </WithStyles(TableRow)>
+    </WithStyles(TableHead)>
+    <WithStyles(TableBody)>
+      <WithStyles(TableRow)
+        className="row"
+        hover={true}
+        key="col1"
+        tabIndex={-1}
+      >
+        <WithStyles(TableCell)
+          className="cell"
+          key="0"
+        >
+          col1
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="1"
+        >
+          col2
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="2"
+        >
+          col3
+        </WithStyles(TableCell)>
+      </WithStyles(TableRow)>
+      <WithStyles(TableRow)
+        className="row"
+        hover={true}
+        key="col4"
+        tabIndex={-1}
+      >
+        <WithStyles(TableCell)
+          className="cell"
+          key="0"
+        >
+          col4
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="1"
+        >
+          col5
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="2"
+        >
+          col6
+        </WithStyles(TableCell)>
+      </WithStyles(TableRow)>
+      <WithStyles(TableRow)
+        style={
+          Object {
+            "height": 240,
+          }
+        }
+      >
+        <WithStyles(TableCell)
+          colSpan={6}
+        />
+      </WithStyles(TableRow)>
+    </WithStyles(TableBody)>
+  </WithStyles(Table)>
+  <WithStyles(TablePagination)
+    component="div"
+    count={2}
+    onChangePage={[Function]}
+    onChangeRowsPerPage={[Function]}
+    page={0}
+    rowsPerPage={10}
+  />
+</div>
+`;
+
+exports[`PagedTable renders simple data without labels 1`] = `
+<div
+  className="page"
+  style={
+    Object {
+      "width": "100%",
+    }
+  }
+>
+  <WithStyles(Table)
+    style={
+      Object {
+        "display": "block",
+        "overflow": "auto",
+      }
+    }
+  >
+    <WithStyles(TableHead)>
+      <WithStyles(TableRow) />
+    </WithStyles(TableHead)>
+    <WithStyles(TableBody)>
+      <WithStyles(TableRow)
+        className="row"
+        hover={true}
+        key="col1"
+        tabIndex={-1}
+      >
+        <WithStyles(TableCell)
+          className="cell"
+          key="0"
+        >
+          col1
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="1"
+        >
+          col2
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="2"
+        >
+          col3
+        </WithStyles(TableCell)>
+      </WithStyles(TableRow)>
+      <WithStyles(TableRow)
+        className="row"
+        hover={true}
+        key="col4"
+        tabIndex={-1}
+      >
+        <WithStyles(TableCell)
+          className="cell"
+          key="0"
+        >
+          col4
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="1"
+        >
+          col5
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="2"
+        >
+          col6
+        </WithStyles(TableCell)>
+      </WithStyles(TableRow)>
+      <WithStyles(TableRow)
+        style={
+          Object {
+            "height": 240,
+          }
+        }
+      >
+        <WithStyles(TableCell)
+          colSpan={6}
+        />
+      </WithStyles(TableRow)>
+    </WithStyles(TableBody)>
+  </WithStyles(Table)>
+  <WithStyles(TablePagination)
+    component="div"
+    count={2}
+    onChangePage={[Function]}
+    onChangeRowsPerPage={[Function]}
+    page={0}
+    rowsPerPage={10}
+  />
+</div>
+`;
+
+exports[`PagedTable sorts on first column descending 1`] = `
+<div
+  className="page"
+  style={
+    Object {
+      "width": "100%",
+    }
+  }
+>
+  <WithStyles(Table)
+    style={
+      Object {
+        "display": "block",
+        "overflow": "auto",
+      }
+    }
+  >
+    <WithStyles(TableHead)>
+      <WithStyles(TableRow)>
+        <WithStyles(TableCell)
+          className="columnName"
+          key="0"
+          sortDirection="desc"
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            title="Sort"
+          >
+            <WithStyles(TableSortLabel)
+              active={true}
+              direction="desc"
+              onClick={[Function]}
+            >
+              field1
+            </WithStyles(TableSortLabel)>
+          </WithStyles(Tooltip)>
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="columnName"
+          key="1"
+          sortDirection={false}
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            title="Sort"
+          >
+            <WithStyles(TableSortLabel)
+              active={false}
+              direction="desc"
+              onClick={[Function]}
+            >
+              field2
+            </WithStyles(TableSortLabel)>
+          </WithStyles(Tooltip)>
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="columnName"
+          key="2"
+          sortDirection={false}
+        >
+          <WithStyles(Tooltip)
+            enterDelay={300}
+            title="Sort"
+          >
+            <WithStyles(TableSortLabel)
+              active={false}
+              direction="desc"
+              onClick={[Function]}
+            >
+              field3
+            </WithStyles(TableSortLabel)>
+          </WithStyles(Tooltip)>
+        </WithStyles(TableCell)>
+      </WithStyles(TableRow)>
+    </WithStyles(TableHead)>
+    <WithStyles(TableBody)>
+      <WithStyles(TableRow)
+        className="row"
+        hover={true}
+        key="col4"
+        tabIndex={-1}
+      >
+        <WithStyles(TableCell)
+          className="cell"
+          key="0"
+        >
+          col4
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="1"
+        >
+          col5
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="2"
+        >
+          col6
+        </WithStyles(TableCell)>
+      </WithStyles(TableRow)>
+      <WithStyles(TableRow)
+        className="row"
+        hover={true}
+        key="col1"
+        tabIndex={-1}
+      >
+        <WithStyles(TableCell)
+          className="cell"
+          key="0"
+        >
+          col1
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="1"
+        >
+          col2
+        </WithStyles(TableCell)>
+        <WithStyles(TableCell)
+          className="cell"
+          key="2"
+        >
+          col3
+        </WithStyles(TableCell)>
+      </WithStyles(TableRow)>
+      <WithStyles(TableRow)
+        style={
+          Object {
+            "height": 240,
+          }
+        }
+      >
+        <WithStyles(TableCell)
+          colSpan={6}
+        />
+      </WithStyles(TableRow)>
+    </WithStyles(TableBody)>
+  </WithStyles(Table)>
+  <WithStyles(TablePagination)
+    component="div"
+    count={2}
+    onChangePage={[Function]}
+    onChangeRowsPerPage={[Function]}
+    page={0}
+    rowsPerPage={10}
+  />
+</div>
+`;

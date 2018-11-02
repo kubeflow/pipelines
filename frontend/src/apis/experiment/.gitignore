@@ -1,0 +1,6 @@
+wwwroot/*.js
+node_modules
+typings
+
+# Ignore git_push script
+git_push.sh

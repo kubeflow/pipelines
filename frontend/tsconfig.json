@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "build/dist",
+    "module": "esnext",
+    "target": "es5",
+    "lib": ["es6", "dom"],
+    "sourceMap": true,
+    "allowJs": true,
+    "jsx": "react",
+    "moduleResolution": "node",
+    "rootDir": "src",
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "noUnusedLocals": true
+  },
+  "exclude": [
+    "__mocks__",
+    "acceptance-tests",
+    "analyze_bundle.js",
+    "backstop.ts",
+    "backstop_data",
+    "build",
+    "coverage",
+    "gen_licenses.js",
+    "jest",
+    "mock-backend",
+    "node_modules",
+    "scripts",
+    "server",
+    "src/api",
+    "src/setupTests.ts",
+    "third_party",
+    "webpack"
+  ]
+}
