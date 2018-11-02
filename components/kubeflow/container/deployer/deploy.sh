@@ -110,22 +110,79 @@ echo "Deploying the TF Serving service..."
 ks apply default -c server
 
 # Wait for the deployment to have at least one available replica
-echo "Waiting for the TF Serving deployment to have at least one avialable replica..."
-#TODO: configure the timeout in the while loop
-# First, wait for the deploy job to show up
+echo "Waiting for the TF Serving deployment to show up..."
+timeout="1000"
+start_time=`date +%s`
 while [[ $(kubectl get deploy --selector=app="${SERVER_NAME}" 2>&1|wc -l) != "2" ]];do
-  sleep 5
+  current_time=`date +%s`
+  elapsed_time=$(expr $current_time - $start_time)
+  if [[ $elapsed_time > $timeout ]];then
+    exit 1
+  fi
+  sleep 2
 done
 
+echo "Waiting for the valid workflow json..."
+start_time=`date +%s`
+exit_code="1"
+while [[ $exit_code != "0" ]];do
+  kubectl get deploy --selector=app="${SERVER_NAME}" --output=jsonpath='{.items[0].status.availableReplicas}'
+  exit_code = $?
+  current_time=`date +%s`
+  elapsed_time=$(expr $current_time - $start_time)
+  if [[ $elapsed_time > $timeout ]];then
+    exit 1
+  fi
+  sleep 2
+done
+
+echo "Waiting for the TF Serving deployment to have at least one available replica..."
+start_time=`date +%s`
 while [[ $(kubectl get deploy --selector=app="${SERVER_NAME}" --output=jsonpath='{.items[0].status.availableReplicas}') < "1" ]]; do
+  current_time=`date +%s`
+  elapsed_time=$(expr $current_time - $start_time)
+  if [[ $elapsed_time > $timeout ]];then
+    exit 1
+  fi
   sleep 5
 done
 
-pod_name=$(kubectl get pods --selector=app=${SERVER_NAME} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
+echo "Obtaining the pod name..."
+start_time=`date +%s`
+pod_name=""
+while [[ $pod_name == "" ]];do
+  pod_name=$(kubectl get pods --selector=app=${SERVER_NAME} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
+  current_time=`date +%s`
+  elapsed_time=$(expr $current_time - start_time)
+  if [[ $elapsed_time > $timeout ]];then
+    exit 1
+  fi
+  sleep 2
+done
+echo "Pod name is: " $pod_name
 
 # Wait for the pod container to start running
 echo "Waiting for the TF Serving pod to start running..."
+start_time=`date +%s`
+exit_code="1"
+while [[ $exit_code != "0" ]];do
+  kubectl get po ${pod_name} -o jsonpath='{.status.containerStatuses[0].state.running}'
+  exit_code = $?
+  current_time=`date +%s`
+  elapsed_time=$(expr $current_time - $start_time)
+  if [[ $elapsed_time > $timeout ]];then
+    exit 1
+  fi
+  sleep 2
+done
+
+start_time=`date +%s`
 while [ -z "$(kubectl get po ${pod_name} -o jsonpath='{.status.containerStatuses[0].state.running}')" ]; do
+  current_time=`date +%s`
+  elapsed_time=$(expr $current_time - $start_time)
+  if [[ $elapsed_time > $timeout ]];then
+    exit 1
+  fi
   sleep 5
 done
 
