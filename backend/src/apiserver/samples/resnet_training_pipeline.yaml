@@ -1,0 +1,305 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: resnet-train-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: project-id
+    - name: bucket
+    - name: region
+      value: us-central1
+    - name: model
+      value: bolts
+    - name: version
+      value: beta1
+    - name: tf-version
+      value: '1.8'
+    - name: train-csv
+      value: gs://bolts_image_dataset/bolt_images_train.csv
+    - name: validation-csv
+      value: gs://bolts_image_dataset/bolt_images_validate.csv
+    - name: labels
+      value: gs://bolts_image_dataset/labels.txt
+    - name: depth
+      value: '50'
+    - name: train-batch-size
+      value: '1024'
+    - name: eval-batch-size
+      value: '1024'
+    - name: steps-per-eval
+      value: '250'
+    - name: train-steps
+      value: '10000'
+    - name: num-train-images
+      value: '218593'
+    - name: num-eval-images
+      value: '54648'
+    - name: num-label-classes
+      value: '10'
+  entrypoint: resnet-train-pipeline
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --model
+      - '{{inputs.parameters.model}}'
+      - --version
+      - '{{inputs.parameters.version}}'
+      - --project_id
+      - '{{inputs.parameters.project-id}}'
+      - --region
+      - '{{inputs.parameters.region}}'
+      - --model_dir
+      - '{{inputs.parameters.train-trained}}'
+      - --TFVERSION
+      - '{{inputs.parameters.tf-version}}'
+      image: gcr.io/ml-pipeline/resnet-deploy:0.0.18
+    inputs:
+      parameters:
+      - name: model
+      - name: project-id
+      - name: region
+      - name: tf-version
+      - name: train-trained
+      - name: version
+    name: deploy
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+  - container:
+      args:
+      - --project_id
+      - '{{inputs.parameters.project-id}}'
+      - --bucket
+      - '{{inputs.parameters.bucket}}'
+      - --train_csv
+      - '{{inputs.parameters.train-csv}}'
+      - --validation_csv
+      - '{{inputs.parameters.validation-csv}}'
+      - --labels
+      - '{{inputs.parameters.labels}}'
+      image: gcr.io/ml-pipeline/resnet-preprocess:0.0.18
+    inputs:
+      parameters:
+      - name: bucket
+      - name: labels
+      - name: project-id
+      - name: train-csv
+      - name: validation-csv
+    name: preprocess
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: preprocess-preprocessed
+        valueFrom:
+          path: /output.txt
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: model
+            value: '{{inputs.parameters.model}}'
+          - name: project-id
+            value: '{{inputs.parameters.project-id}}'
+          - name: region
+            value: '{{inputs.parameters.region}}'
+          - name: tf-version
+            value: '{{inputs.parameters.tf-version}}'
+          - name: train-trained
+            value: '{{tasks.train.outputs.parameters.train-trained}}'
+          - name: version
+            value: '{{inputs.parameters.version}}'
+        dependencies:
+        - train
+        name: deploy
+        template: deploy
+      - arguments:
+          parameters:
+          - name: bucket
+            value: '{{inputs.parameters.bucket}}'
+          - name: labels
+            value: '{{inputs.parameters.labels}}'
+          - name: project-id
+            value: '{{inputs.parameters.project-id}}'
+          - name: train-csv
+            value: '{{inputs.parameters.train-csv}}'
+          - name: validation-csv
+            value: '{{inputs.parameters.validation-csv}}'
+        name: preprocess
+        template: preprocess
+      - arguments:
+          parameters:
+          - name: bucket
+            value: '{{inputs.parameters.bucket}}'
+          - name: depth
+            value: '{{inputs.parameters.depth}}'
+          - name: eval-batch-size
+            value: '{{inputs.parameters.eval-batch-size}}'
+          - name: num-eval-images
+            value: '{{inputs.parameters.num-eval-images}}'
+          - name: num-label-classes
+            value: '{{inputs.parameters.num-label-classes}}'
+          - name: num-train-images
+            value: '{{inputs.parameters.num-train-images}}'
+          - name: preprocess-preprocessed
+            value: '{{tasks.preprocess.outputs.parameters.preprocess-preprocessed}}'
+          - name: region
+            value: '{{inputs.parameters.region}}'
+          - name: steps-per-eval
+            value: '{{inputs.parameters.steps-per-eval}}'
+          - name: tf-version
+            value: '{{inputs.parameters.tf-version}}'
+          - name: train-batch-size
+            value: '{{inputs.parameters.train-batch-size}}'
+          - name: train-steps
+            value: '{{inputs.parameters.train-steps}}'
+        dependencies:
+        - preprocess
+        name: train
+        template: train
+    inputs:
+      parameters:
+      - name: bucket
+      - name: depth
+      - name: eval-batch-size
+      - name: labels
+      - name: model
+      - name: num-eval-images
+      - name: num-label-classes
+      - name: num-train-images
+      - name: project-id
+      - name: region
+      - name: steps-per-eval
+      - name: tf-version
+      - name: train-batch-size
+      - name: train-csv
+      - name: train-steps
+      - name: validation-csv
+      - name: version
+    name: resnet-train-pipeline
+  - container:
+      args:
+      - --data_dir
+      - '{{inputs.parameters.preprocess-preprocessed}}'
+      - --bucket
+      - '{{inputs.parameters.bucket}}'
+      - --region
+      - '{{inputs.parameters.region}}'
+      - --depth
+      - '{{inputs.parameters.depth}}'
+      - --train_batch_size
+      - '{{inputs.parameters.train-batch-size}}'
+      - --eval_batch_size
+      - '{{inputs.parameters.eval-batch-size}}'
+      - --steps_per_eval
+      - '{{inputs.parameters.steps-per-eval}}'
+      - --train_steps
+      - '{{inputs.parameters.train-steps}}'
+      - --num_train_images
+      - '{{inputs.parameters.num-train-images}}'
+      - --num_eval_images
+      - '{{inputs.parameters.num-eval-images}}'
+      - --num_label_classes
+      - '{{inputs.parameters.num-label-classes}}'
+      - --TFVERSION
+      - '{{inputs.parameters.tf-version}}'
+      image: gcr.io/ml-pipeline/resnet-train:0.0.18
+    inputs:
+      parameters:
+      - name: bucket
+      - name: depth
+      - name: eval-batch-size
+      - name: num-eval-images
+      - name: num-label-classes
+      - name: num-train-images
+      - name: preprocess-preprocessed
+      - name: region
+      - name: steps-per-eval
+      - name: tf-version
+      - name: train-batch-size
+      - name: train-steps
+    name: train
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: train-trained
+        valueFrom:
+          path: /output.txt

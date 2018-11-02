@@ -1,0 +1,136 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CompareTable renders no data 1`] = `""`;
+
+exports[`CompareTable renders one row with three columns 1`] = `
+<table
+  className="root"
+>
+  <tbody>
+    <tr
+      className="row"
+    >
+      <td
+        className="labelCell"
+      />
+      <td
+        className="cell labelCell"
+        key="0"
+        title="col1"
+      >
+        col1
+      </td>
+      <td
+        className="cell labelCell"
+        key="1"
+        title="col2"
+      >
+        col2
+      </td>
+      <td
+        className="cell labelCell"
+        key="2"
+        title="col3"
+      >
+        col3
+      </td>
+    </tr>
+    <tr
+      className="row"
+      key="0"
+    >
+      <td
+        className="cell labelCell"
+        title="row1"
+      >
+        row1
+      </td>
+      <td
+        className="cell"
+        key="0"
+        title="1"
+      >
+        1
+      </td>
+      <td
+        className="cell"
+        key="1"
+        title="2"
+      >
+        2
+      </td>
+      <td
+        className="cell"
+        key="2"
+        title="3"
+      >
+        3
+      </td>
+    </tr>
+    <tr
+      className="row"
+      key="1"
+    >
+      <td
+        className="cell labelCell"
+        title="row2"
+      >
+        row2
+      </td>
+      <td
+        className="cell"
+        key="0"
+        title="4"
+      >
+        4
+      </td>
+      <td
+        className="cell"
+        key="1"
+        title="5"
+      >
+        5
+      </td>
+      <td
+        className="cell"
+        key="2"
+        title="6"
+      >
+        6
+      </td>
+    </tr>
+    <tr
+      className="row"
+      key="2"
+    >
+      <td
+        className="cell labelCell"
+        title="row3"
+      >
+        row3
+      </td>
+      <td
+        className="cell"
+        key="0"
+        title="cell7"
+      >
+        cell7
+      </td>
+      <td
+        className="cell"
+        key="1"
+        title="cell8"
+      >
+        cell8
+      </td>
+      <td
+        className="cell"
+        key="2"
+        title="cell9"
+      >
+        cell9
+      </td>
+    </tr>
+  </tbody>
+</table>
+`;

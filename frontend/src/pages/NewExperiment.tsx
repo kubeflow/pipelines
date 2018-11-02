@@ -1,0 +1,170 @@
+/*
+ * Copyright 2018 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import * as React from 'react';
+import BusyButton from '../atoms/BusyButton';
+import Button from '@material-ui/core/Button';
+import Input from '../atoms/Input';
+import { Apis } from '../lib/Apis';
+import { ApiExperiment } from '../apis/experiment';
+import { Page } from './Page';
+import { RoutePage } from '../components/Router';
+import { TextFieldProps } from '@material-ui/core/TextField';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { classes, stylesheet } from 'typestyle';
+import { commonCss, padding, fontsize } from '../Css';
+import { logger } from '../lib/Utils';
+
+interface NewExperimentState {
+  description: string;
+  validationError: string;
+  isbeingCreated: boolean;
+  experimentName: string;
+  pipelineId?: string;
+}
+
+const css = stylesheet({
+  errorMessage: {
+    color: 'red',
+  },
+  // TODO: move to Css.tsx and probably rename.
+  explanation: {
+    fontSize: fontsize.small,
+  },
+});
+
+class NewExperiment extends Page<{}, NewExperimentState> {
+
+  private _experimentNameRef = React.createRef<HTMLInputElement>();
+
+  constructor(props: any) {
+    super(props);
+
+    this.state = {
+      description: '',
+      experimentName: '',
+      isbeingCreated: false,
+      validationError: '',
+    };
+  }
+
+  public getInitialToolbarState() {
+    return {
+      actions: [],
+      breadcrumbs: [
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+        { displayName: 'New experiment', href: RoutePage.NEW_EXPERIMENT }
+      ],
+    };
+  }
+
+  public render() {
+    const { validationError } = this.state;
+
+    return (
+      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+
+        <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
+          <div className={commonCss.header}>Experiment details</div>
+          {/* TODO: this description needs work. */}
+          <div className={css.explanation}>
+            Think of an Experiment as a space that contains the history of all pipelines and their
+            associated runs
+          </div>
+
+          <Input id='experimentName' label='Experiment name' inputRef={this._experimentNameRef}
+            required={true} instance={this} field='experimentName' autoFocus={true} />
+          <Input id='experimentDescription' label='Description (optional)' multiline={true}
+            instance={this} field='description' height='auto' />
+
+          <div className={commonCss.flex}>
+            <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={this.state.isbeingCreated}
+              className={commonCss.buttonAction} title={'Next'}
+              onClick={this._create.bind(this)} />
+            <Button onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>Cancel</Button>
+            <div className={css.errorMessage}>{validationError}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  public async load() {
+    const urlParser = new URLParser(this.props);
+    const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
+    if (pipelineId) {
+      this.setState({ pipelineId });
+    }
+
+    this._validate();
+  }
+
+  public handleChange = (name: string) => (event: any) => {
+    const value = (event.target as TextFieldProps).value;
+    this.setState({ [name]: value } as any, this._validate.bind(this));
+  }
+
+  private _create(): void {
+    const newExperiment: ApiExperiment = {
+      description: this.state.description,
+      name: this.state.experimentName,
+    };
+
+    this.setState({ isbeingCreated: true }, async () => {
+      try {
+        const response = await Apis.experimentServiceApi.createExperiment(newExperiment);
+        let searchString = '';
+        if (this.state.pipelineId) {
+          searchString = new URLParser(this.props).build({
+            [QUERY_PARAMS.experimentId]: response.id || '',
+            [QUERY_PARAMS.pipelineId]: this.state.pipelineId,
+            [QUERY_PARAMS.firstRunInExperiment]: '1',
+          });
+        } else {
+          searchString = new URLParser(this.props).build({
+            [QUERY_PARAMS.experimentId]: response.id || '',
+            [QUERY_PARAMS.firstRunInExperiment]: '1',
+          });
+        }
+        this.props.history.push(RoutePage.NEW_RUN + searchString);
+        this.props.updateSnackbar({
+          autoHideDuration: 10000,
+          message: `Successfully created new Experiment: ${newExperiment.name}`,
+          open: true,
+        });
+      } catch (err) {
+        await this.showErrorDialog('Experiment creation failed', err);
+        logger.error('Error creating experiment:', err);
+        this.setState({ isbeingCreated: false });
+      }
+    });
+  }
+
+  private _validate() {
+    // Validate state
+    const { experimentName } = this.state;
+    try {
+      if (!experimentName) {
+        throw new Error('Experiment name is required');
+      }
+      this.setState({ validationError: '' });
+    } catch (err) {
+      this.setState({ validationError: err.message });
+    }
+  }
+}
+
+export default NewExperiment;

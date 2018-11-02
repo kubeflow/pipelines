@@ -1,0 +1,37 @@
+{
+  "outputs": [
+    {
+      "type": "roc",
+      "format": "csv",
+      "source": "gs://bucket/roc/roc.csv",
+      "schema": [
+        {"name": "fpr", "type": "NUMBER"},
+        {"name": "tpr", "type": "NUMBER"},
+        {"name": "thresholds", "type": "NUMBER"}
+      ],
+      "predicted_col": "column1",
+      "target_col": "column2"
+    },
+    {
+      "type": "tensorboard",
+      "source": "gs://path/to/logdir"
+    },
+    {
+      "format": "csv",
+      "header": [
+        "id",
+        "category",
+        "description",
+        "district",
+        "resolution",
+        "long",
+        "lat",
+        "hour",
+        "weekday",
+        "dayinyear"
+      ],
+      "source": "gs://bucket/table.csv",
+      "type": "table"
+    }
+  ]
+}

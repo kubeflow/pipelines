@@ -1,0 +1,62 @@
+{
+  "id": "pipelines",
+  "viewports": [
+    {
+      "width": 1024,
+      "height": 768
+    }
+  ],
+  "onReadyScript": "steps.js",
+  "scenarios": [
+    {
+      "label": "initial state",
+      "url": "http://localhost:3000"
+    },
+    {
+      "label": "hover on first row",
+      "url": "http://localhost:3000",
+      "steps": [
+        { "action": "hover", "selector": ".row" }
+      ]
+    },
+    {
+      "label": "select one row",
+      "url": "http://localhost:3000",
+      "steps": [
+        { "action": "click", "selector": ".row" }
+      ]
+    },
+    {
+      "label": "select multiple rows",
+      "url": "http://localhost:3000",
+      "steps": [
+        { "action": "click", "selector": ".row" },
+        { "action": "click", "selector": ".row:nth-of-type(2) td" },
+        { "action": "click", "selector": ".row:nth-of-type(5) td" }
+      ]
+    },
+    {
+      "label": "open upload dialog",
+      "url": "http://localhost:3000",
+      "steps": [
+        { "action": "click", "selector": "#uploadBtn" }
+      ]
+    }
+  ],
+  "paths": {
+    "bitmaps_reference": "backstop_data/bitmaps_reference",
+    "bitmaps_test": "backstop_data/bitmaps_test",
+    "engine_scripts": "backstop_data/engine_scripts",
+    "html_report": "backstop_data/html_report",
+    "ci_report": "backstop_data/ci_report"
+  },
+  "report": ["browser"],
+  "engine": "puppeteer",
+  "engineOptions": {
+    "args": ["--no-sandbox"]
+  },
+  "asyncCaptureLimit": 5,
+  "asyncCompareLimit": 5,
+  "debug": false,
+  "debugWindow": false
+}

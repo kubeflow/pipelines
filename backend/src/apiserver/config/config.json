@@ -1,0 +1,12 @@
+{
+  "DBConfig": {
+    "DriverName": "mysql",
+    "DataSourceName": ""
+  },
+  "ObjectStoreConfig":{
+    "AccessKey": "minio",
+    "SecretAccessKey": "minio123",
+    "BucketName": "mlpipeline"
+  },
+  "InitConnectionTimeout": "3m"
+}

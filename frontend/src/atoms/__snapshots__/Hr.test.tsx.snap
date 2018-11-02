@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Hr renders with the right styles 1`] = `
+<hr
+  fields={Array []}
+  style={
+    Object {
+      "border": "0px none transparent",
+      "borderTop": "1px solid #e0e0e0",
+      "margin": "24px 0",
+    }
+  }
+/>
+`;

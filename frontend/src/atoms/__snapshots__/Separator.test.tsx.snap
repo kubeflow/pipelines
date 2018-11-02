@@ -1,0 +1,38 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Separator renders with the right styles by default 1`] = `
+<span
+  style={
+    Object {
+      "display": "inline-block",
+      "minWidth": 10,
+      "width": 10,
+    }
+  }
+/>
+`;
+
+exports[`Separator renders with the specified orientation 1`] = `
+<span
+  style={
+    Object {
+      "display": "block",
+      "flexShrink": 0,
+      "height": 10,
+      "minHeight": 10,
+    }
+  }
+/>
+`;
+
+exports[`Separator renders with the specified units 1`] = `
+<span
+  style={
+    Object {
+      "display": "inline-block",
+      "minWidth": 123,
+      "width": 123,
+    }
+  }
+/>
+`;

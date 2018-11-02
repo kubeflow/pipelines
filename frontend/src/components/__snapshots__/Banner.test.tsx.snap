@@ -1,0 +1,126 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Banner defaults to error mode 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(ErrorIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  />
+</div>
+`;
+
+exports[`Banner shows "Details" button and has dialog when there is additional info 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(ErrorIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  >
+    <WithStyles(Button)
+      className="button"
+      onClick={[Function]}
+    >
+      Details
+    </WithStyles(Button)>
+  </div>
+  <WithStyles(Dialog)
+    onClose={[Function]}
+    open={false}
+  >
+    <WithStyles(DialogTitle)>
+      An error occurred
+    </WithStyles(DialogTitle)>
+    <WithStyles(DialogContent)
+      className="prewrap"
+    >
+      More info
+    </WithStyles(DialogContent)>
+    <WithStyles(DialogActions)>
+      <WithStyles(Button)
+        id="dismissDialogBtn"
+        onClick={[Function]}
+      >
+        Dismiss
+      </WithStyles(Button)>
+    </WithStyles(DialogActions)>
+  </WithStyles(Dialog)>
+</div>
+`;
+
+exports[`Banner shows "Refresh" button when passed a refresh function 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(ErrorIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  >
+    <WithStyles(Button)
+      className="button refreshButton"
+      onClick={[Function]}
+    >
+      Refresh
+    </WithStyles(Button)>
+  </div>
+</div>
+`;
+
+exports[`Banner uses error mode when instructed 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(ErrorIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  />
+</div>
+`;
+
+exports[`Banner uses warning mode when instructed 1`] = `
+<div
+  className="flex banner mode"
+>
+  <div
+    className="message"
+  >
+    <pure(WarningIcon)
+      className="icon"
+    />
+    Some message
+  </div>
+  <div
+    className="flex"
+  />
+</div>
+`;

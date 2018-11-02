@@ -1,0 +1,76 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This manifest file creates a cluster admin role and bind to default service account in default namespace,
+# before starting the deployment job. This is needed since the deployment job runs a pod that creates
+# more cluster roles in the cluster. The pod is ran by the default service account so this account needs
+# additional permission to finish the deployment job successfully.
+#
+# If you think the default service account shouldn't need that level of RBAC permission in the future,
+# it's safe to delete the mlpipeline-admin-role-binding after deployment succeeded:
+# kubectl delete ClusterRoleBinding mlpipeline-admin-role-binding
+# Or you can run the deployment job with service account you would like to use.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mlpipeline-deploy-admin
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- nonResourceURLs:
+  - '*'
+  verbs:
+  - '*'
+
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: mlpipeline-admin-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mlpipeline-deploy-admin
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: deploy-ml-pipeline-
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      name: deploy-ml-pipeline
+    spec:
+      containers:
+      - name: deploy
+        image: gcr.io/ml-pipeline/bootstrapper:0.0.20
+        imagePullPolicy: 'Always'
+        # Additional parameter available:
+        args: [
+          # "--namespace", "foo",
+          # "--report_usage", "false",
+          # "--uninstall",
+        ]
+      restartPolicy: Never
