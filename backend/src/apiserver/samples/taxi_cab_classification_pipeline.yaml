@@ -1,4 +1,4 @@
-piVersion: argoproj.io/v1alpha1
+apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: tfma-taxi-cab-classification-pipeline-example-
