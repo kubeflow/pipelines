@@ -1,11 +1,43 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# JS Sourcemaps
+*.js.map
+
+# Dependencies
+node_modules/
+bower_components/
+
+# Build output
+dist
+ml-pipeline/ml-pipeline-app
+ml-pipeline/kf-app
+
+# Web server
+frontend/server/*.js
+
+# Python built package
+*.egg-info
+
+# UI test outputs
+frontend/test/ui/visual-regression/errorShots
+frontend/test/ui/visual-regression/screenshots/diff
+frontend/test/ui/visual-regression/screenshots/screen
+
+# sqlite db
+*.db
+
 # IDE
 .idea/
-
-# Vendor
-vendor/
+ml.iml
 
 # Merge files
 *.orig
 
-# Bin
-bin/
+*.pyc
+.DS_Store
+
+.ipynb_checkpoints
+*.egg-info

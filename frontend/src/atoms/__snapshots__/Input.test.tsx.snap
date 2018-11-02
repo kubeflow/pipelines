@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Input accepts height and width as prop overrides 1`] = `
+<TextField
+  className="textField"
+  required={false}
+  select={false}
+  spellCheck={false}
+  style={
+    Object {
+      "height": 123,
+      "maxWidth": 600,
+      "width": 456,
+    }
+  }
+  variant="outlined"
+/>
+`;
+
+exports[`Input gets its value from the instance state field 1`] = `
+<TextField
+  className="textField"
+  required={false}
+  select={false}
+  spellCheck={false}
+  style={
+    Object {
+      "height": 40,
+      "maxWidth": 600,
+      "width": "100%",
+    }
+  }
+  value="field value"
+  variant="outlined"
+/>
+`;
+
+exports[`Input renders with the right styles by default 1`] = `
+<TextField
+  className="textField"
+  required={false}
+  select={false}
+  spellCheck={false}
+  style={
+    Object {
+      "height": 40,
+      "maxWidth": 600,
+      "width": "100%",
+    }
+  }
+  variant="outlined"
+/>
+`;

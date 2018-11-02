@@ -1,0 +1,63 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ViewerContainer does not break on empty configs 1`] = `""`;
+
+exports[`ViewerContainer renders a viewer of type CONFUSION_MATRIX 1`] = `
+<ConfusionMatrix
+  configs={
+    Array [
+      Object {
+        "type": "confusion_matrix",
+      },
+    ]
+  }
+/>
+`;
+
+exports[`ViewerContainer renders a viewer of type ROC 1`] = `
+<ROCCurve
+  configs={
+    Array [
+      Object {
+        "type": "roc",
+      },
+    ]
+  }
+/>
+`;
+
+exports[`ViewerContainer renders a viewer of type TABLE 1`] = `
+<PagedTable
+  configs={
+    Array [
+      Object {
+        "type": "table",
+      },
+    ]
+  }
+/>
+`;
+
+exports[`ViewerContainer renders a viewer of type TENSORBOARD 1`] = `
+<TensorboardViewer
+  configs={
+    Array [
+      Object {
+        "type": "tensorboard",
+      },
+    ]
+  }
+/>
+`;
+
+exports[`ViewerContainer renders a viewer of type WEB_APP 1`] = `
+<HTMLViewer
+  configs={
+    Array [
+      Object {
+        "type": "web-app",
+      },
+    ]
+  }
+/>
+`;

@@ -1,0 +1,17 @@
+{
+  "name": "pipelines-frontend-integration-test",
+  "version": "0.0.1",
+  "description": "Visual regression end to end test package for ML Pipelines",
+  "dependencies": {
+    "mocha": "^5.2.0",
+    "wait-port": "^0.2.2",
+    "wdio-junit-reporter": "^0.4.4",
+    "wdio-mocha-framework": "^0.6.2",
+    "wdio-selenium-standalone-service": "0.0.10",
+    "webdriverio": "^4.12.0"
+  },
+  "scripts": {
+    "docker": "docker build -t gcr.io/ml-pipeline/e2e-tests .",
+    "test": "wdio wdio.conf.js"
+  }
+}

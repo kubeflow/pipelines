@@ -1,0 +1,1235 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ConfusionMatrix does not break on asymetric data 1`] = `
+<div
+  className="flex root"
+>
+  <table>
+    <tbody>
+      <tr>
+        <td
+          className="yAxisLabel"
+        >
+          test y axis
+        </td>
+      </tr>
+      <tr
+        key="0"
+      >
+        <td>
+          <div
+            className="ylabel"
+          >
+            label1
+          </div>
+        </td>
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          3
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.5)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          4
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.625)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          5
+        </td>
+      </tr>
+      <tr
+        key="1"
+      >
+        <td>
+          <div
+            className="ylabel"
+          >
+            label2
+          </div>
+        </td>
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.75)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          6
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.875)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          7
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 1)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          8
+        </td>
+      </tr>
+      <tr>
+        <th
+          className="xlabel"
+        />
+        <th
+          key="0"
+        >
+          <div
+            className="xlabel"
+          >
+            label1
+          </div>
+        </th>
+        <th
+          key="1"
+        >
+          <div
+            className="xlabel"
+          >
+            label2
+          </div>
+        </th>
+        <td
+          className="xAxisLabel"
+        >
+          test x axis
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div
+    className="legend"
+    style={
+      Object {
+        "height": 118.5,
+      }
+    }
+  >
+    <div
+      className="legendNotch"
+      style={
+        Object {
+          "top": 0,
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        8
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="0"
+      style={
+        Object {
+          "top": "100%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        0
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="1"
+      style={
+        Object {
+          "top": "80%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        1
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="2"
+      style={
+        Object {
+          "top": "60%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        3
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="3"
+      style={
+        Object {
+          "top": "40%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        4
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="4"
+      style={
+        Object {
+          "top": "20%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        6
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ConfusionMatrix does not break on empty data 1`] = `""`;
+
+exports[`ConfusionMatrix renders a basic confusion matrix 1`] = `
+<div
+  className="flex root"
+>
+  <table>
+    <tbody>
+      <tr>
+        <td
+          className="yAxisLabel"
+        >
+          test y axis
+        </td>
+      </tr>
+      <tr
+        key="0"
+      >
+        <td>
+          <div
+            className="ylabel"
+          >
+            label1
+          </div>
+        </td>
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          0
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.125)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          1
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.25)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          2
+        </td>
+      </tr>
+      <tr
+        key="1"
+      >
+        <td>
+          <div
+            className="ylabel"
+          >
+            label2
+          </div>
+        </td>
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          3
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.5)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          4
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.625)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          5
+        </td>
+      </tr>
+      <tr
+        key="2"
+      >
+        <td>
+          <div
+            className="ylabel"
+          />
+        </td>
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.75)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          6
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.875)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          7
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 1)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          8
+        </td>
+      </tr>
+      <tr>
+        <th
+          className="xlabel"
+        />
+        <th
+          key="0"
+        >
+          <div
+            className="xlabel"
+          >
+            label1
+          </div>
+        </th>
+        <th
+          key="1"
+        >
+          <div
+            className="xlabel"
+          >
+            label2
+          </div>
+        </th>
+        <td
+          className="xAxisLabel"
+        >
+          test x axis
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div
+    className="legend"
+    style={
+      Object {
+        "height": 177.75,
+      }
+    }
+  >
+    <div
+      className="legendNotch"
+      style={
+        Object {
+          "top": 0,
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        8
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="0"
+      style={
+        Object {
+          "top": "100%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        0
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="1"
+      style={
+        Object {
+          "top": "80%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        1
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="2"
+      style={
+        Object {
+          "top": "60%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        3
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="3"
+      style={
+        Object {
+          "top": "40%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        4
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="4"
+      style={
+        Object {
+          "top": "20%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        6
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`ConfusionMatrix renders a small confusion matrix snapshot, with no labels or footer 1`] = `
+<div
+  className="flex root"
+>
+  <table>
+    <tbody>
+      <tr
+        key="0"
+      >
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          0
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.125)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          1
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.25)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          2
+        </td>
+      </tr>
+      <tr
+        key="1"
+      >
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          3
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.5)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          4
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.625)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          5
+        </td>
+      </tr>
+      <tr
+        key="2"
+      >
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.75)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          6
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.875)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          7
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 1)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          8
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;
+
+exports[`ConfusionMatrix renders only one of the given list of configs 1`] = `
+<div
+  className="flex root"
+>
+  <table>
+    <tbody>
+      <tr>
+        <td
+          className="yAxisLabel"
+        >
+          test y axis
+        </td>
+      </tr>
+      <tr
+        key="0"
+      >
+        <td>
+          <div
+            className="ylabel"
+          >
+            label1
+          </div>
+        </td>
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          0
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.125)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          1
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.25)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          2
+        </td>
+      </tr>
+      <tr
+        key="1"
+      >
+        <td>
+          <div
+            className="ylabel"
+          >
+            label2
+          </div>
+        </td>
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.375)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          3
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.5)",
+              "color": "#000",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          4
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.625)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          5
+        </td>
+      </tr>
+      <tr
+        key="2"
+      >
+        <td>
+          <div
+            className="ylabel"
+          />
+        </td>
+        <td
+          className="cell"
+          key="0"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.75)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          6
+        </td>
+        <td
+          className="cell"
+          key="1"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 0.875)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          7
+        </td>
+        <td
+          className="cell"
+          key="2"
+          onMouseOver={[Function]}
+          style={
+            Object {
+              "backgroundColor": "rgba(41, 121, 255, 1)",
+              "color": "#fff",
+            }
+          }
+        >
+          <div
+            className="overlay"
+            style={
+              Object {
+                "opacity": 0,
+              }
+            }
+          />
+          8
+        </td>
+      </tr>
+      <tr>
+        <th
+          className="xlabel"
+        />
+        <th
+          key="0"
+        >
+          <div
+            className="xlabel"
+          >
+            label1
+          </div>
+        </th>
+        <th
+          key="1"
+        >
+          <div
+            className="xlabel"
+          >
+            label2
+          </div>
+        </th>
+        <td
+          className="xAxisLabel"
+        >
+          test x axis
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div
+    className="legend"
+    style={
+      Object {
+        "height": 177.75,
+      }
+    }
+  >
+    <div
+      className="legendNotch"
+      style={
+        Object {
+          "top": 0,
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        8
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="0"
+      style={
+        Object {
+          "top": "100%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        0
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="1"
+      style={
+        Object {
+          "top": "80%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        1
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="2"
+      style={
+        Object {
+          "top": "60%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        3
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="3"
+      style={
+        Object {
+          "top": "40%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        4
+      </span>
+    </div>
+    <div
+      className="legendNotch"
+      key="4"
+      style={
+        Object {
+          "top": "20%",
+        }
+      }
+    >
+      <span
+        className="legendLabel"
+      >
+        6
+      </span>
+    </div>
+  </div>
+</div>
+`;

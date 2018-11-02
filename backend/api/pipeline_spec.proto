@@ -1,0 +1,36 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package api;
+
+import "parameter.proto";
+
+message PipelineSpec {
+  // Optional input field. The ID of the pipeline user uploaded before.
+  string pipeline_id = 1;
+
+  // Optional input field. The marshalled raw argo JSON workflow.
+  // This will be deprecated when pipeline_manifest is in use.
+  string workflow_manifest = 2;
+
+  // Optional input field. The raw pipeline JSON spec.
+  string pipeline_manifest = 3;
+
+  // The parameter user provide to inject to the pipeline JSON.
+  // If a default value of a parameter exist in the JSON,
+  // the value user provided here will replace.
+  repeated Parameter parameters = 4;
+}
