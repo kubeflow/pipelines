@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CollapseButton initial render 1`] = `
+<div>
+  <WithStyles(Button)
+    className="collapseBtn"
+    onClick={[Function]}
+    title="Expand/Collapse this section"
+  >
+    <pure(ArrowDropUpIcon)
+      className="icon"
+    />
+    testSection
+  </WithStyles(Button)>
+</div>
+`;
+
+exports[`CollapseButton renders the button collapsed if in collapsedSections 1`] = `
+<div>
+  <WithStyles(Button)
+    className="collapseBtn"
+    onClick={[Function]}
+    title="Expand/Collapse this section"
+  >
+    <pure(ArrowDropUpIcon)
+      className="icon collapsed"
+    />
+    testSection
+  </WithStyles(Button)>
+</div>
+`;

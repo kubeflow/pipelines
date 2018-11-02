@@ -1,0 +1,58 @@
+<!--
+  Copyright 2018 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+
+<head>
+  <style>
+    .message {
+      color: #666;
+      font-family: monospace;
+      line-height: 22px;
+      padding: 10px;
+      text-align: center;
+    }
+    .error.message {
+      color: red;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="error message">Hello World!</div>
+
+  <script>
+    const message = document.querySelector('.message');
+    message.innerText += '\nI can run Javascript.';
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const parentCookie = window.parent.document.cookie;
+        message.innerText += '\nWARNING! I can see parent\'s cookies!';
+      } catch (_) {
+        message.innerText += '\nI can\'t see parent\'s cookies!';
+        message.classList.remove('error');
+      }
+    });
+  </script>
+  <noscript>
+    <div class="error message">
+      WARNING: I can't run Javascript.
+    </div>
+  </noscript>
+
+</body>
+
+</html>

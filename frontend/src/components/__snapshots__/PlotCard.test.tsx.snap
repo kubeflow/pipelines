@@ -1,0 +1,394 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PlotCard clicking outside full screen dialog closes it 1`] = `
+<div>
+  <WithStyles(Paper)
+    className="plotCard plotCard"
+  >
+    <div
+      className="plotHeader"
+    >
+      <div
+        className="plotTitle"
+        title=""
+      />
+      <div>
+        <WithStyles(Button)
+          className="popOutButton"
+          onClick={[Function]}
+          style={
+            Object {
+              "minHeight": 0,
+              "minWidth": 0,
+              "padding": 4,
+            }
+          }
+        >
+          <WithStyles(Tooltip)
+            title="Pop out"
+          >
+            <pure(LaunchIcon)
+              classes={
+                Object {
+                  "root": "popoutIcon",
+                }
+              }
+            />
+          </WithStyles(Tooltip)>
+        </WithStyles(Button)>
+      </div>
+    </div>
+    <ViewerContainer
+      configs={
+        Array [
+          Object {
+            "type": "confusion_matrix",
+          },
+        ]
+      }
+      maxDimension={100}
+    />
+  </WithStyles(Paper)>
+  <WithStyles(Dialog)
+    classes={
+      Object {
+        "paper": "fullscreenDialog",
+      }
+    }
+    onClose={[Function]}
+    open={false}
+  >
+    <div
+      className="dialogTitle"
+    >
+      <WithStyles(Button)
+        className="fullscreenCloseBtn fullscreenCloseButton"
+        onClick={[Function]}
+      >
+        <pure(CloseIcon) />
+      </WithStyles(Button)>
+      Confusion matrix
+      <Component />
+      <span
+        style={
+          Object {
+            "color": "#616161",
+          }
+        }
+      >
+        (
+        )
+      </span>
+    </div>
+    <div
+      className="fullscreenViewerContainer"
+    >
+      <ViewerContainer
+        configs={
+          Array [
+            Object {
+              "type": "confusion_matrix",
+            },
+          ]
+        }
+      />
+    </div>
+  </WithStyles(Dialog)>
+</div>
+`;
+
+exports[`PlotCard close button closes full screen dialog 1`] = `
+<div>
+  <WithStyles(Paper)
+    className="plotCard plotCard"
+  >
+    <div
+      className="plotHeader"
+    >
+      <div
+        className="plotTitle"
+        title=""
+      />
+      <div>
+        <WithStyles(Button)
+          className="popOutButton"
+          onClick={[Function]}
+          style={
+            Object {
+              "minHeight": 0,
+              "minWidth": 0,
+              "padding": 4,
+            }
+          }
+        >
+          <WithStyles(Tooltip)
+            title="Pop out"
+          >
+            <pure(LaunchIcon)
+              classes={
+                Object {
+                  "root": "popoutIcon",
+                }
+              }
+            />
+          </WithStyles(Tooltip)>
+        </WithStyles(Button)>
+      </div>
+    </div>
+    <ViewerContainer
+      configs={
+        Array [
+          Object {
+            "type": "confusion_matrix",
+          },
+        ]
+      }
+      maxDimension={100}
+    />
+  </WithStyles(Paper)>
+  <WithStyles(Dialog)
+    classes={
+      Object {
+        "paper": "fullscreenDialog",
+      }
+    }
+    onClose={[Function]}
+    open={false}
+  >
+    <div
+      className="dialogTitle"
+    >
+      <WithStyles(Button)
+        className="fullscreenCloseBtn fullscreenCloseButton"
+        onClick={[Function]}
+      >
+        <pure(CloseIcon) />
+      </WithStyles(Button)>
+      Confusion matrix
+      <Component />
+      <span
+        style={
+          Object {
+            "color": "#616161",
+          }
+        }
+      >
+        (
+        )
+      </span>
+    </div>
+    <div
+      className="fullscreenViewerContainer"
+    >
+      <ViewerContainer
+        configs={
+          Array [
+            Object {
+              "type": "confusion_matrix",
+            },
+          ]
+        }
+      />
+    </div>
+  </WithStyles(Dialog)>
+</div>
+`;
+
+exports[`PlotCard handles no configs 1`] = `""`;
+
+exports[`PlotCard pops out a full screen view of the viewer 1`] = `
+<div>
+  <WithStyles(Paper)
+    className="plotCard plotCard"
+  >
+    <div
+      className="plotHeader"
+    >
+      <div
+        className="plotTitle"
+        title=""
+      />
+      <div>
+        <WithStyles(Button)
+          className="popOutButton"
+          onClick={[Function]}
+          style={
+            Object {
+              "minHeight": 0,
+              "minWidth": 0,
+              "padding": 4,
+            }
+          }
+        >
+          <WithStyles(Tooltip)
+            title="Pop out"
+          >
+            <pure(LaunchIcon)
+              classes={
+                Object {
+                  "root": "popoutIcon",
+                }
+              }
+            />
+          </WithStyles(Tooltip)>
+        </WithStyles(Button)>
+      </div>
+    </div>
+    <ViewerContainer
+      configs={
+        Array [
+          Object {
+            "type": "confusion_matrix",
+          },
+        ]
+      }
+      maxDimension={100}
+    />
+  </WithStyles(Paper)>
+  <WithStyles(Dialog)
+    classes={
+      Object {
+        "paper": "fullscreenDialog",
+      }
+    }
+    onClose={[Function]}
+    open={true}
+  >
+    <div
+      className="dialogTitle"
+    >
+      <WithStyles(Button)
+        className="fullscreenCloseBtn fullscreenCloseButton"
+        onClick={[Function]}
+      >
+        <pure(CloseIcon) />
+      </WithStyles(Button)>
+      Confusion matrix
+      <Component />
+      <span
+        style={
+          Object {
+            "color": "#616161",
+          }
+        }
+      >
+        (
+        )
+      </span>
+    </div>
+    <div
+      className="fullscreenViewerContainer"
+    >
+      <ViewerContainer
+        configs={
+          Array [
+            Object {
+              "type": "confusion_matrix",
+            },
+          ]
+        }
+      />
+    </div>
+  </WithStyles(Dialog)>
+</div>
+`;
+
+exports[`PlotCard renders on confusion matrix viewer card 1`] = `
+<div>
+  <WithStyles(Paper)
+    className="plotCard plotCard"
+  >
+    <div
+      className="plotHeader"
+    >
+      <div
+        className="plotTitle"
+        title="test title"
+      >
+        test title
+      </div>
+      <div>
+        <WithStyles(Button)
+          className="popOutButton"
+          onClick={[Function]}
+          style={
+            Object {
+              "minHeight": 0,
+              "minWidth": 0,
+              "padding": 4,
+            }
+          }
+        >
+          <WithStyles(Tooltip)
+            title="Pop out"
+          >
+            <pure(LaunchIcon)
+              classes={
+                Object {
+                  "root": "popoutIcon",
+                }
+              }
+            />
+          </WithStyles(Tooltip)>
+        </WithStyles(Button)>
+      </div>
+    </div>
+    <ViewerContainer
+      configs={
+        Array [
+          Object {
+            "type": "confusion_matrix",
+          },
+        ]
+      }
+      maxDimension={100}
+    />
+  </WithStyles(Paper)>
+  <WithStyles(Dialog)
+    classes={
+      Object {
+        "paper": "fullscreenDialog",
+      }
+    }
+    onClose={[Function]}
+    open={false}
+  >
+    <div
+      className="dialogTitle"
+    >
+      <WithStyles(Button)
+        className="fullscreenCloseBtn fullscreenCloseButton"
+        onClick={[Function]}
+      >
+        <pure(CloseIcon) />
+      </WithStyles(Button)>
+      Confusion matrix
+      <Component />
+      <span
+        style={
+          Object {
+            "color": "#616161",
+          }
+        }
+      >
+        (
+        test title
+        )
+      </span>
+    </div>
+    <div
+      className="fullscreenViewerContainer"
+    >
+      <ViewerContainer
+        configs={
+          Array [
+            Object {
+              "type": "confusion_matrix",
+            },
+          ]
+        }
+      />
+    </div>
+  </WithStyles(Dialog)>
+</div>
+`;

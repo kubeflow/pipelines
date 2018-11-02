@@ -1,0 +1,49 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: "kubeflow.org/v1alpha1"
+kind: ScheduledWorkflow
+metadata:
+  name: parameterized
+spec:
+  description: "parameterized"
+  enabled: true
+  maxHistory: 10
+  trigger:
+    cronSchedule:
+      cron: 1 * * * * *
+  workflow:
+    parameters:
+    - name: message
+      # [[ScheduledTime]] is substituted by the scheduled time of the workflow (default format)
+      # [[CurrentTime]] is substituted by the current time (default format)
+      # [[Index]] is substituted by the index of the workflow (e.g. 3 mins that it was the 3rd workflow created)
+      # [[ScheduledTime.15-04-05]] is substituted by the sheduled time (custom format specified as a Go time format: https://golang.org/pkg/time/#Parse)
+      # [[CurrentTime.15-04-05]] is substituted by the current time (custom format specified as a Go time format: https://golang.org/pkg/time/#Parse)
+      value: "hello world [[ScheduledTime]] - [[CurrentTime]] - [[Index]] - [[ScheduledTime.Mon Jan]] - [[CurrentTime.15-04-05]]"
+    spec:
+      entrypoint: whalesay
+      arguments:
+        parameters:
+        - name: message
+          value: "my message"
+      templates:
+      - name: whalesay
+        inputs:
+          parameters:
+          - name: message
+        container:
+          image: docker/whalesay
+          command: [cowsay]
+          args: ["{{inputs.parameters.message}}"]

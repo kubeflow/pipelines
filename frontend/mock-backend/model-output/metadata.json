@@ -1,0 +1,53 @@
+{
+  "outputs": [{
+      "format": "csv",
+      "labels": [
+        "rec.sport.hockey",
+        "soc.religion.christian",
+        "rec.motorcycles",
+        "rec.sport.baseball",
+        "sci.crypt",
+        "rec.autos",
+        "sci.med",
+        "comp.windows.x",
+        "sci.space",
+        "comp.os.ms-windows.misc",
+        "sci.electronics",
+        "comp.sys.ibm.pc.hardware",
+        "misc.forsale",
+        "comp.graphics",
+        "comp.sys.mac.hardware",
+        "talk.politics.mideast",
+        "talk.politics.guns",
+        "alt.atheism",
+        "talk.politics.misc",
+        "talk.religion.misc"
+      ],
+      "storage": "gcs",
+      "source": "gs://bucket/confusionmatrix/confusion_matrix.csv",
+      "type": "confusion_matrix",
+      "schema": [
+        {
+          "type": "CATEGORY",
+          "name": "target"
+        },
+        {
+          "type": "CATEGORY",
+          "name": "predicted"
+        },
+        {
+          "type": "NUMBER",
+          "name": "count"
+        }
+      ]
+    }, {
+      "storage": "gcs",
+      "source": "gs://some/path/hello-world.html",
+      "type": "web-app"
+    }, {
+      "storage": "gcs",
+      "source": "gs://some/path/hello-world-big.html",
+      "type": "web-app"
+    }
+  ]
+}
