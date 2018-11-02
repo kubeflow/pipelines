@@ -77,6 +77,8 @@ fi
 
 # Ensure the server name is not more than 63 characters.
 SERVER_NAME="${SERVER_NAME:0:63}"
+# Trim any trailing hyphens from the server name.
+while [[ "${SERVER_NAME:(-1)}" == "-" ]]; do SERVER_NAME="${SERVER_NAME::-1}"; done
 
 echo "Deploying ${SERVER_NAME} to the cluster ${CLUSTER_NAME} in the project ${PROJECT} and the zone ${ZONE}..."
 
