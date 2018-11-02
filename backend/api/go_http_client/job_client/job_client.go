@@ -25,7 +25,7 @@ import (
 
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/googleprivate/ml/backend/api/go_http_client/job_client/job_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
 )
 
 // Default job HTTP client.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	client "github.com/googleprivate/ml/backend/src/common/client/api_server"
+	client "github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/stretchr/testify/assert"
 )
 

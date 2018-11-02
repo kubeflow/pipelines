@@ -16,9 +16,9 @@
 package fake
 
 import (
-	clientset "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned"
-	scheduledworkflowv1alpha1 "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
-	fakescheduledworkflowv1alpha1 "github.com/googleprivate/ml/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1/fake"
+	clientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
+	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
+	fakescheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
