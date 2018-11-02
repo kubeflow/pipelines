@@ -54,7 +54,7 @@ spec:
       - '{{inputs.parameters.train-data}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:0.0.42
     inputs:
       parameters:
       - name: create-cluster-output
@@ -89,7 +89,7 @@ spec:
       - '{{inputs.parameters.output}}/{{workflow.name}}/confusionmatrix'
       - --predictions
       - '{{inputs.parameters.predict-output}}'
-      image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.0.42
     inputs:
       parameters:
       - name: output
@@ -120,7 +120,7 @@ spec:
       - xgb-{{workflow.name}}
       - --staging
       - '{{inputs.parameters.output}}'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:0.0.42
     inputs:
       parameters:
       - name: output
@@ -154,7 +154,7 @@ spec:
       - '{{inputs.parameters.region}}'
       - --name
       - xgb-{{workflow.name}}
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:0.0.42
     inputs:
       parameters:
       - name: project
@@ -336,7 +336,7 @@ spec:
       - '{{inputs.parameters.train-output}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/predict'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:0.0.42
     inputs:
       parameters:
       - name: analyze-output
@@ -375,7 +375,7 @@ spec:
       - '{{inputs.parameters.predict-output}}'
       - --trueclass
       - '{{inputs.parameters.true-label}}'
-      image: gcr.io/ml-pipeline/ml-pipeline-local-roc:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-local-roc:0.0.42
     inputs:
       parameters:
       - name: output
@@ -423,7 +423,7 @@ spec:
       - gs://ml-pipeline-playground/trainconfcla.json
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/model'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-train:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-train:0.0.42
     inputs:
       parameters:
       - name: analyze-output
@@ -474,7 +474,7 @@ spec:
       - '{{inputs.parameters.target}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/transform'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:0.0.42
     inputs:
       parameters:
       - name: analyze-output
