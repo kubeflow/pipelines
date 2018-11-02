@@ -20,7 +20,7 @@ import datetime
 def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', train_csv: 'GcsUri[text/csv]', validation_csv: 'GcsUri[text/csv]', labels, step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-preprocess:dev', # TODO: update it with a version number after a new release.
+        image = 'gcr.io/ml-pipeline/resnet-preprocess:0.0.42', # TODO: update it with a version number after a new release.
         arguments = [
             '--project_id', project_id,
             '--output', output,
@@ -34,7 +34,7 @@ def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', train_csv: 
 def resnet_train_op(data_dir, output: 'GcsUri', region: 'GcpRegion', depth: int, train_batch_size: int, eval_batch_size: int, steps_per_eval: int, train_steps: int, num_train_images: int, num_eval_images: int, num_label_classes: int, tf_version, step_name='train'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-train:0.0.18',
+        image = 'gcr.io/ml-pipeline/resnet-train:0.0.42',
         arguments = [
             '--data_dir', data_dir,
             '--output', output,
@@ -55,7 +55,7 @@ def resnet_train_op(data_dir, output: 'GcsUri', region: 'GcpRegion', depth: int,
 def resnet_deploy_op(model_dir, model, version, project_id: 'GcpProject', region: 'GcpRegion', tf_version, step_name='deploy'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-deploy:0.0.18',
+        image = 'gcr.io/ml-pipeline/resnet-deploy:0.0.42',
         arguments = [
             '--model', model,
             '--version', version,
