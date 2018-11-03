@@ -25,7 +25,7 @@ import TableSortLabel from '@material-ui/core/TableSortLabel';
 import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import WarningIcon from '@material-ui/icons/WarningRounded';
-import { BaseListRequest } from '../lib/Apis';
+import { ListRequest } from '../lib/Apis';
 import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { classes, stylesheet } from 'typestyle';
@@ -140,16 +140,16 @@ export const css = stylesheet({
   },
 });
 
-export interface CustomTableProps {
+interface CustomTableProps {
   columns: Column[];
   disablePaging?: boolean;
   disableSelection?: boolean;
   disableSorting?: boolean;
-  getExpandComponent?: (index: number) => React.ReactNode;
   emptyMessage?: string;
+  getExpandComponent?: (index: number) => React.ReactNode;
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
-  reload: (request: BaseListRequest) => Promise<string>;
+  reload: (request: ListRequest) => Promise<string>;
   rows: Row[];
   selectedIds?: string[];
   toggleExpansion?: (rowId: number) => void;
@@ -223,7 +223,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public render() {
-    const { disableSorting, disableSelection, disablePaging, useRadioButtons } = this.props;
     const { pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => total += (c.flex || 1), 0);
@@ -234,8 +233,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
         {/* Header */}
         <div className={classes(
-          css.header, (disableSelection || useRadioButtons) && padding(20, 'l'))}>
-          {(disableSelection !== true && useRadioButtons !== true) && (
+          css.header, (this.props.disableSelection || this.props.useRadioButtons) && padding(20, 'l'))}>
+          {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
             <div className={classes(css.columnName, css.cell, css.selectionToggle)}>
               <Checkbox indeterminate={!!numSelected && numSelected < this.props.rows.length}
                 color='primary' checked={!!numSelected && numSelected === this.props.rows.length}
@@ -248,8 +247,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             return (
               <div key={i} style={{ width: widths[i] + '%' }}
                 className={css.columnName}>
-                {disableSorting === true && <div>{col.label}</div>}
-                {!disableSorting && (
+                {this.props.disableSorting === true && <div>{col.label}</div>}
+                {!this.props.disableSorting && (
                   <Tooltip title={isColumnSortable ? 'Sort' : 'Cannot sort by this column'}
                     enterDelay={300}>
                     <TableSortLabel active={isCurrentSortColumn} className={commonCss.ellipsis}
@@ -280,18 +279,18 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 classes(
                   'tableRow',
                   css.row,
-                  disableSelection === true && padding(20, 'l'),
+                  this.props.disableSelection === true && padding(20, 'l'),
                   this.isSelected(row.id) && css.selected,
                   row.expandState === ExpandState.EXPANDED && css.expandedRow
                 )}
                 onClick={e => this.handleClick(e, row.id)}>
-                {(disableSelection !== true || !!this.props.getExpandComponent) && (
+                {(this.props.disableSelection !== true || !!this.props.getExpandComponent) && (
                   <div className={classes(css.cell, css.selectionToggle)}>
                     {/* If using checkboxes */}
-                    {(disableSelection !== true && useRadioButtons !== true) && (
+                    {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
                       <Checkbox color='primary' checked={this.isSelected(row.id)} />)}
                     {/* If using radio buttons */}
-                    {(disableSelection !== true && useRadioButtons) && (
+                    {(this.props.disableSelection !== true && this.props.useRadioButtons) && (
                       <Radio color='primary' checked={this.isSelected(row.id)} />)}
                     {!!this.props.getExpandComponent && (
                       <IconButton className={classes(css.expandButton,
@@ -322,7 +321,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         </div>
 
         {/* Footer */}
-        {!disablePaging && (
+        {!this.props.disablePaging && (
           <div className={css.footer}>
             <span className={padding(10, 'r')}>Rows per page:</span>
             <TextField select={true} variant='standard' className={css.rowsPerPage}
@@ -346,9 +345,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     );
   }
 
-  public reload(loadRequest?: BaseListRequest): Promise<string> {
+  public reload(loadRequest?: ListRequest): Promise<string> {
     // Override the current state with incoming request
-    const request: BaseListRequest = Object.assign({
+    const request: ListRequest = Object.assign({
       orderAscending: this.state.sortOrder === 'asc',
       pageSize: this.state.pageSize,
       pageToken: this.state.tokenList[this.state.currentPage],

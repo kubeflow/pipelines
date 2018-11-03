@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import RunUtils from '../../src/lib/RunUtils';
-import { Apis, RunSortKeys, BaseListRequest } from '../lib/Apis';
+import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { ApiListRunsResponse, ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric } from '../../src/apis/run';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
@@ -222,7 +222,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private async _loadRuns(loadRequest: BaseListRequest): Promise<string> {
+  private async _loadRuns(loadRequest: ListRequest): Promise<string> {
     if (Array.isArray(this.props.runIdListMask)) {
       return await this._loadSpecificRuns(this.props.runIdListMask);
     }
@@ -249,7 +249,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     return '';
   }
 
-  private async _loadAllRuns(request: BaseListRequest): Promise<string> {
+  private async _loadAllRuns(request: ListRequest): Promise<string> {
     let response: ApiListRunsResponse;
     try {
       response = await Apis.runServiceApi.listRuns(

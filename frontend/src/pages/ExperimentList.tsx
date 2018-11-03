@@ -18,7 +18,7 @@ import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import RunList from './RunList';
-import { Apis, ExperimentSortKeys, BaseListRequest, RunSortKeys } from '../lib/Apis';
+import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
 import { ApiResourceType, ApiRun } from '../apis/run';
 import { Link } from 'react-router-dom';
@@ -137,7 +137,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     }
   }
 
-  private async _reload(request: BaseListRequest): Promise<string> {
+  private async _reload(request: ListRequest): Promise<string> {
     // Fetch the list of experiments
     let response: ApiListExperimentsResponse;
     let displayExperiments: DisplayExperiment[];

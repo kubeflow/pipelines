@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
-import { Apis, BaseListRequest, PipelineSortKeys } from '../lib/Apis';
+import { Apis, ListRequest, PipelineSortKeys } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
 import { logger, formatDateString, errorToMessage } from '../lib/Utils';
 import { ApiPipeline } from '../apis/pipeline';
@@ -95,7 +95,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     this.props.pipelineSelectionChanged(selectedIds[0]);
   }
 
-  private async _loadPipelines(request: BaseListRequest): Promise<string> {
+  private async _loadPipelines(request: ListRequest): Promise<string> {
     let pipelines: ApiPipeline[] = [];
     let nextPageToken = '';
     try {

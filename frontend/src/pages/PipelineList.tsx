@@ -19,7 +19,7 @@ import CustomTable, { Column, Row } from '../components/CustomTable';
 import AddIcon from '@material-ui/icons/Add';
 import UploadPipelineDialog from '../components/UploadPipelineDialog';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
-import { Apis, PipelineSortKeys, BaseListRequest } from '../lib/Apis';
+import { Apis, PipelineSortKeys, ListRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -117,7 +117,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     }
   }
 
-  private async _reload(request: BaseListRequest): Promise<string> {
+  private async _reload(request: ListRequest): Promise<string> {
     let response: ApiListPipelinesResponse | null = null;
     try {
       response = await Apis.pipelineServiceApi.listPipelines(
