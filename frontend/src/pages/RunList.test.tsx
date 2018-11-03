@@ -46,16 +46,17 @@ describe('RunList', () => {
         pipeline_runtime: { workflow_manifest: '' },
         run: {},
       } as ApiRunDetail),
-      listRuns: () => Promise.resolve({
+      listRuns: jest.fn(() => Promise.resolve({
         runs: [{
           id: 'testrun1',
           name: 'test run1',
         } as ApiRun],
-      }),
+      })),
     };
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunList).refresh();
+    await (tree.instance() as any)._loadRuns({});
+    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined, undefined);
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
@@ -67,7 +68,7 @@ describe('RunList', () => {
     };
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunList).refresh();
+    await (tree.instance() as any)._loadRuns({});
     expect(props.onError).toHaveBeenLastCalledWith('Error: failed to fetch runs.', 'bad stuff');
   });
 
@@ -88,7 +89,7 @@ describe('RunList', () => {
     };
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunList).refresh();
+    await (tree.instance() as any)._loadRuns({});
     expect(tree).toMatchSnapshot();
   });
 
@@ -105,7 +106,7 @@ describe('RunList', () => {
     const props = generateProps();
     props.runIdListMask = ['run1', 'run2'];
     const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunList).refresh();
+    await (tree.instance() as any)._loadRuns({});
     expect(tree).toMatchSnapshot();
   });
 
@@ -132,29 +133,28 @@ describe('RunList', () => {
     };
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunList).refresh();
+    await (tree.instance() as any)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
 
   it('loads runs for a given experiment id', async () => {
-    const listRunsSpy = jest.fn(() => Promise.resolve({
-      runs: [{ id: 'testRun1' }],
-    }));
     (Apis as any).runServiceApi = {
       getRun: () => Promise.resolve({
         pipeline_runtime: { workflow_manifest: '' },
         run: {},
       } as ApiRunDetail),
-      listRuns: listRunsSpy,
+      listRuns: jest.fn(() => Promise.resolve({
+        runs: [{ id: 'testRun1' }],
+      })),
     };
     const props = generateProps();
     props.experimentIdMask = 'experiment1';
     const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunList).refresh();
+    await (tree.instance() as any)._loadRuns({ pageSize: 10, pageToken: '', orderAscending: true });
     expect(props.onError).not.toHaveBeenCalled();
-    expect(listRunsSpy).toHaveBeenLastCalledWith(
-      '', 10, 'created_at desc', ApiResourceType.EXPERIMENT.toString(), 'experiment1');
+    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+      '', 10, undefined, ApiResourceType.EXPERIMENT.toString(), 'experiment1');
     expect(tree).toMatchSnapshot();
   });
 
@@ -171,7 +171,7 @@ describe('RunList', () => {
     const props = generateProps();
     props.runIdListMask = ['run1', 'run2'];
     const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunList).refresh();
+    await (tree.instance() as any)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(listRunsSpy).not.toHaveBeenCalled();
     expect(getRunSpy).toHaveBeenCalledWith('run1');

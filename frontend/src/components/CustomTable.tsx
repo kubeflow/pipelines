@@ -174,7 +174,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       currentPage: 0,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
-      sortBy: props.initialSortColumn || props.columns[0].sortKey || '',
+      sortBy: props.initialSortColumn || props.columns.length ? props.columns[0].sortKey || '' : '',
       sortOrder: props.initialSortOrder || 'desc',
       tokenList: [''],
     };

@@ -152,7 +152,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
       return row;
     });
 
-    return (
+    return (<div>
       <CustomTable columns={columns} rows={rows}
         initialSortColumn={this.state.sortBy}
         updateSelection={this.props.onSelectionChange} selectedIds={this.props.selectedIds}
@@ -160,7 +160,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
         disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
         emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
       />
-    );
+    </div>);
   }
 
   public async refresh() {
