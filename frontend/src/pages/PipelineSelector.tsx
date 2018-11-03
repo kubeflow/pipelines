@@ -80,7 +80,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
         <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
         <CustomTable columns={columns} rows={rows} orderAscending={orderAscending}
           pageSize={pageSize} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={ids => { this._pipelineSelectionChanged(ids); this.setState({ selectedIds: ids });}} sortBy={sortBy}
+          updateSelection={ids => { this._pipelineSelectionChanged(ids); this.setState({ selectedIds: ids }); }} initialSortColumn={sortBy}
           reload={this._loadPipelines.bind(this)} emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
       </React.Fragment>
     );

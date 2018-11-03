@@ -127,7 +127,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
-          disableSelection={true} sortBy={this.state.sortBy}
+          disableSelection={true} initialSortColumn={this.state.sortBy}
           reload={this._reload.bind(this)} selectedIds={this.state.selectedExperimentIds}
           toggleExpansion={this._toggleRowExpand.bind(this)} pageSize={this.state.pageSize}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}

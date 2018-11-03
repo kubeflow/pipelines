@@ -140,19 +140,21 @@ export const css = stylesheet({
   },
 });
 
-interface CustomTableProps {
+export interface CustomTableProps {
   columns: Column[];
   disablePaging?: boolean;
   disableSelection?: boolean;
   disableSorting?: boolean;
   getExpandComponent?: (index: number) => React.ReactNode;
   emptyMessage?: string;
-  orderAscending: boolean;
-  pageSize: number;
+  // TODO: Remove!
+  orderAscending?: boolean;
+  initialSortColumn?: string;
+  initialSortOrder?: 'asc' | 'desc';
+  pageSize?: number;
   reload: (request: BaseListRequest) => Promise<string>;
   rows: Row[];
   selectedIds?: string[];
-  sortBy: string;
   toggleExpansion?: (rowId: number) => void;
   updateSelection?: (selectedIds: string[]) => void;
   useRadioButtons?: boolean;
@@ -161,16 +163,22 @@ interface CustomTableProps {
 interface CustomTableState {
   currentPage: number;
   maxPageIndex: number;
+  sortOrder: 'asc' | 'desc';
+  pageSize: number;
+  sortBy: string;
   tokenList: string[];
 }
 
 export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
-  constructor(props: any) {
+  constructor(props: CustomTableProps) {
     super(props);
 
     this.state = {
       currentPage: 0,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
+      pageSize: 10,
+      sortBy: props.initialSortColumn || props.columns[0].sortKey || '',
+      sortOrder: props.initialSortOrder || 'desc',
       tokenList: [''],
     };
   }
@@ -218,7 +226,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public render() {
-    const { disableSorting, orderAscending, sortBy, pageSize } = this.props;
+    const { disableSorting, disableSelection, disablePaging, useRadioButtons } = this.props;
+    const { pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => total += (c.flex || 1), 0);
     const widths = this.props.columns.map(c => (c.flex || 1) / totalFlex * 100);
@@ -228,8 +237,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
         {/* Header */}
         <div className={classes(
-            css.header, (this.props.disableSelection || this.props.useRadioButtons) && padding(20, 'l'))}>
-          {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
+          css.header, (disableSelection || useRadioButtons) && padding(20, 'l'))}>
+          {(disableSelection !== true && useRadioButtons !== true) && (
             <div className={classes(css.columnName, css.cell, css.selectionToggle)}>
               <Checkbox indeterminate={!!numSelected && numSelected < this.props.rows.length}
                 color='primary' checked={!!numSelected && numSelected === this.props.rows.length}
@@ -247,7 +256,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   <Tooltip title={isColumnSortable ? 'Sort' : 'Cannot sort by this column'}
                     enterDelay={300}>
                     <TableSortLabel active={isCurrentSortColumn} className={commonCss.ellipsis}
-                      direction={isColumnSortable ? (orderAscending ? 'asc' : 'desc') : undefined}
+                      direction={isColumnSortable ? sortOrder : undefined}
                       onClick={() => this._requestSort(this.props.columns[i].sortKey)}>
                       {col.label}
                     </TableSortLabel>
@@ -274,18 +283,18 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 classes(
                   'tableRow',
                   css.row,
-                  this.props.disableSelection === true && padding(20, 'l'),
+                  disableSelection === true && padding(20, 'l'),
                   this.isSelected(row.id) && css.selected,
                   row.expandState === ExpandState.EXPANDED && css.expandedRow
                 )}
                 onClick={e => this.handleClick(e, row.id)}>
-                {(this.props.disableSelection !== true || !!this.props.getExpandComponent) && (
+                {(disableSelection !== true || !!this.props.getExpandComponent) && (
                   <div className={classes(css.cell, css.selectionToggle)}>
                     {/* If using checkboxes */}
-                    {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
+                    {(disableSelection !== true && useRadioButtons !== true) && (
                       <Checkbox color='primary' checked={this.isSelected(row.id)} />)}
                     {/* If using radio buttons */}
-                    {(this.props.disableSelection !== true && this.props.useRadioButtons) && (
+                    {(disableSelection !== true && useRadioButtons) && (
                       <Radio color='primary' checked={this.isSelected(row.id)} />)}
                     {!!this.props.getExpandComponent && (
                       <IconButton className={classes(css.expandButton,
@@ -316,7 +325,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         </div>
 
         {/* Footer */}
-        {!this.props.disablePaging && (
+        {!disablePaging && (
           <div className={css.footer}>
             <span className={padding(10, 'r')}>Rows per page:</span>
             <TextField select={true} variant='standard' className={css.rowsPerPage}
@@ -340,10 +349,36 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     );
   }
 
-  private async _requestSort(sortBy?: string) {
+  public reload(loadRequest?: BaseListRequest): Promise<string> {
+    // Override the current state with incoming request
+    const request: BaseListRequest = Object.assign({
+      orderAscending: this.state.sortOrder === 'asc',
+      pageSize: this.state.pageSize,
+      pageToken: this.state.tokenList[this.state.currentPage],
+      sortBy: this.state.sortBy,
+    }, loadRequest);
+
+    this.setState({
+      pageSize: request.pageSize!,
+      sortBy: request.sortBy!,
+      sortOrder: request.orderAscending ? 'asc' : 'desc',
+    });
+
+    if (request.sortBy && !request.orderAscending) {
+      request.sortBy += ' desc';
+    }
+
+    return this.props.reload(request);
+  }
+
+  private _requestSort(sortBy?: string) {
     if (sortBy) {
-      const orderAscending = this.props.sortBy === sortBy ? !this.props.orderAscending : true;
-      this._resetToFirstPage(await this.props.reload({ pageToken: '', orderAscending, sortBy }));
+      const sortOrder = this.state.sortBy === sortBy ?
+        (this.state.sortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
+      this.setState({ sortOrder, sortBy }, async () => {
+        this._resetToFirstPage(
+          await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }));
+      });
     }
   }
 
@@ -353,7 +388,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     newCurrentPage = Math.max(0, newCurrentPage);
     newCurrentPage = Math.min(this.state.maxPageIndex, newCurrentPage);
 
-    const newPageToken = await this.props.reload({
+    const newPageToken = await this.reload({
       pageToken: this.state.tokenList[newCurrentPage],
     });
 
@@ -376,7 +411,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   private async _requestRowsPerPage(event: React.ChangeEvent) {
     const pageSize = (event.target as TextFieldProps).value as number;
 
-    this._resetToFirstPage(await this.props.reload({ pageSize, pageToken: '' }));
+    this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
   }
 
   private _resetToFirstPage(newPageToken?: string) {
