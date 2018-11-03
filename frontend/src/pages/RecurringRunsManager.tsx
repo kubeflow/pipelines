@@ -104,7 +104,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       const response = await Apis.jobServiceApi.listJobs(
         request.pageToken,
         request.pageSize,
-        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '',
+        request.sortBy,
         ApiResourceType.EXPERIMENT.toString(),
         this.props.experimentId,
       );

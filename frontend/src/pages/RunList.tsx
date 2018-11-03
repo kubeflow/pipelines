@@ -255,7 +255,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
       response = await Apis.runServiceApi.listRuns(
         request.pageToken,
         request.pageSize,
-        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '',
+        request.sortBy,
         this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
         this.props.experimentIdMask,
       );

@@ -143,9 +143,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     let displayExperiments: DisplayExperiment[];
     try {
       response = await Apis.experimentServiceApi.listExperiment(
-        request.pageToken,
-        request.pageSize,
-        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '');
+        request.pageToken, request.pageSize, request.sortBy);
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => exp.expandState = ExpandState.COLLAPSED);
     } catch (err) {

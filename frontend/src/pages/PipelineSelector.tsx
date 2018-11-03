@@ -100,10 +100,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     let nextPageToken = '';
     try {
       const response = await Apis.pipelineServiceApi.listPipelines(
-        request.pageToken,
-        request.pageSize,
-        request.sortBy,
-      );
+        request.pageToken, request.pageSize, request.sortBy);
       pipelines = response.pipelines || [];
       nextPageToken = response.next_page_token || '';
     } catch (err) {
