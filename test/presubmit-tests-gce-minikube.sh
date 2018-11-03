@@ -44,7 +44,7 @@ function delete_vm {
 }
 
 #Setting the exit handler to delete VM. The VM will be deleted when the script exists (either completes or fails)
-#TODO: Find a more resilent way to clean up VMs. Right now the VM is not deleted if the machine running this script fails. (See https://github.com/googleprivate/ml/issues/1064)
+#TODO: Find a more resilent way to clean up VMs. Right now the VM is not deleted if the machine running this script fails. (See https://github.com/kubeflow/pipelines/issues/1064)
 trap delete_vm EXIT
 
 #Creating the VM
@@ -75,7 +75,7 @@ gcloud compute scp --zone=$ZONE "$ssh_key_file" $instance_name:/etc/ssh-knative/
 #Copy repo
 git_root=$(git rev-parse --show-toplevel)
 git_root_parent=$(dirname "$git_root")
-gcloud compute scp --zone=$ZONE --verbosity=error --recurse "$git_root" $instance_name:'~' >/dev/null || true #Do not fail on error here because of broken symlinks until this is fixed: https://github.com/googleprivate/ml/issues/1084
+gcloud compute scp --zone=$ZONE --verbosity=error --recurse "$git_root" $instance_name:'~' >/dev/null || true #Do not fail on error here because of broken symlinks until this is fixed: https://github.com/kubeflow/pipelines/issues/1084
 
 #Installing software on VM
 gcloud compute ssh --zone=$ZONE $instance_name -- "~/ml/test/minikube/install_docker_minikube_argo.sh"

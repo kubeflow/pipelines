@@ -108,7 +108,7 @@ spec:
           - name: frontend-integration-tests-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-integration-tests-image-suffix}}"
         #TODO: Uncomment to disable the test on Minikube
-        #TODO: Change the cluster-type to "minikube" once https://github.com/googleprivate/ml/pull/1285 and related PRs are merged.
+        #TODO: Change the cluster-type to "minikube" once https://github.com/kubeflow/pipelines/pull/1285 and related PRs are merged.
         #when: "{{workflow.parameters.cluster-type}} != none" #Do not run the test on Minikube
 
   - name: get-project
@@ -133,7 +133,7 @@ spec:
         value: Dockerfile
       - name: image-suffix
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181011-0.0.20-18-g5ab78f1c-a9becd
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181102-0.0.20-195-g2c8e37ab-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
