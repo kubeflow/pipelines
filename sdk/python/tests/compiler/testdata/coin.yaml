@@ -21,18 +21,6 @@ spec:
   entrypoint: pipeline-flip-coin
   serviceAccountName: pipeline-runner
   templates:
-  - inputs:
-      parameters:
-      - name: flip-output
-    name: condition-1
-    steps:
-    - - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: condition-1-child
-        template: condition-1-child
-        when: '{{inputs.parameters.flip-output}} == heads'
   - dag:
       tasks:
       - arguments:
@@ -44,7 +32,8 @@ spec:
         dependencies:
         - flip-again
         name: condition-2
-        template: condition-2
+        template: condition-2-child
+        when: '{{tasks.flip-again.outputs.parameters.flip-again-output}} == tails'
       - arguments:
           parameters:
           - name: flip-output
@@ -55,21 +44,6 @@ spec:
       parameters:
       - name: flip-output
     name: condition-1-child
-  - inputs:
-      parameters:
-      - name: flip-again-output
-      - name: flip-output
-    name: condition-2
-    steps:
-    - - arguments:
-          parameters:
-          - name: flip-again-output
-            value: '{{inputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: condition-2-child
-        template: condition-2-child
-        when: '{{inputs.parameters.flip-again-output}} == tails'
   - dag:
       tasks:
       - arguments:
@@ -85,18 +59,6 @@ spec:
       - name: flip-again-output
       - name: flip-output
     name: condition-2-child
-  - inputs:
-      parameters:
-      - name: flip-output
-    name: condition-3
-    steps:
-    - - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: condition-3-child
-        template: condition-3-child
-        when: '{{inputs.parameters.flip-output}} == tails'
   - dag:
       tasks:
       - arguments:
@@ -200,7 +162,8 @@ spec:
         dependencies:
         - flip
         name: condition-1
-        template: condition-1
+        template: condition-1-child
+        when: '{{tasks.flip.outputs.parameters.flip-output}} == heads'
       - arguments:
           parameters:
           - name: flip-output
@@ -208,7 +171,8 @@ spec:
         dependencies:
         - flip
         name: condition-3
-        template: condition-3
+        template: condition-3-child
+        when: '{{tasks.flip.outputs.parameters.flip-output}} == tails'
       - name: flip
         template: flip
     name: pipeline-flip-coin
