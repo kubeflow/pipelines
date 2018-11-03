@@ -54,7 +54,7 @@ spec:
       - '{{inputs.parameters.train-trained}}'
       - --TFVERSION
       - '{{inputs.parameters.tf-version}}'
-      image: gcr.io/ml-pipeline/resnet-deploy:0.0.18
+      image: gcr.io/ml-pipeline/resnet-deploy:0.0.42
     inputs:
       parameters:
       - name: model
@@ -104,7 +104,7 @@ spec:
       - '{{inputs.parameters.validation-csv}}'
       - --labels
       - '{{inputs.parameters.labels}}'
-      image: gcr.io/ml-pipeline/resnet-preprocess:0.0.18
+      image: gcr.io/ml-pipeline/resnet-preprocess:0.0.42
     inputs:
       parameters:
       - name: bucket
@@ -255,7 +255,7 @@ spec:
       - '{{inputs.parameters.num-label-classes}}'
       - --TFVERSION
       - '{{inputs.parameters.tf-version}}'
-      image: gcr.io/ml-pipeline/resnet-train:0.0.18
+      image: gcr.io/ml-pipeline/resnet-train:0.0.42
     inputs:
       parameters:
       - name: bucket
