@@ -174,7 +174,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       currentPage: 0,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
-      sortBy: props.initialSortColumn || props.columns.length ? props.columns[0].sortKey || '' : '',
+      sortBy: props.initialSortColumn ||
+        (props.columns.length ? props.columns[0].sortKey || '' : ''),
       sortOrder: props.initialSortOrder || 'desc',
       tokenList: [''],
     };
@@ -369,6 +370,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   private _requestSort(sortBy?: string) {
     if (sortBy) {
+      // Set the sort column to the provided column if it's different, and
+      // invert the sort order it if it's the same column
       const sortOrder = this.state.sortBy === sortBy ?
         (this.state.sortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
       this.setState({ sortOrder, sortBy }, async () => {
