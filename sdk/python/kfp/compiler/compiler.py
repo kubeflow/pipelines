@@ -289,14 +289,17 @@ class Compiler(object):
         dependencies[downstream_groups[0]].add(upstream_groups[0])
     return dependencies
 
-  def _create_condition(self, condition):
-    left = ('{{inputs.parameters.%s}}' % self._param_full_name(condition.operand1)
-            if isinstance(condition.operand1, dsl.PipelineParam)
-            else str(condition.operand1))
-    right = ('{{inputs.parameters.%s}}' % self._param_full_name(condition.operand2)
-             if isinstance(condition.operand2, dsl.PipelineParam)
-             else str(condition.operand2))
-    return ('%s == %s' % (left, right))
+  def _resolve_value_or_reference(self, value_or_reference, inputs):
+    if isinstance(value_or_reference, dsl.PipelineParam):
+      parameter_name = self._param_full_name(value_or_reference)
+      task_names = [task_name for param_name, task_name in inputs if param_name == parameter_name]
+      if task_names:
+        task_name = task_names[0]
+        return '{{tasks.%s.outputs.parameters.%s}}' % (task_name, parameter_name)
+      else:
+        return '{{inputs.parameters.%s}}' % parameter_name
+    else:
+      return str(value_or_reference)
 
   def _group_to_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
@@ -327,25 +330,7 @@ class Compiler(object):
       template['outputs'] = {'parameters': template_outputs}
 
     if group.type == 'condition':
-      # This is a workaround for the fact that argo does not support conditions in DAG mode.
-      # Basically, we insert an extra group that contains only the original group. The extra group
-      # operates in "step" mode where condition is supported.
-      only_child = group.groups[0]
-      step = {
-          'name': only_child.name,
-          'template': only_child.name,
-      }
-      if inputs.get(only_child.name, None):
-        arguments = []
-        for param_name, dependent_name in inputs[only_child.name]:
-          arguments.append({
-              'name': param_name,
-              'value': '{{inputs.parameters.%s}}' % param_name
-          })
-        arguments.sort(key=lambda x: x['name'])
-        step['arguments'] = {'parameters': arguments}
-        step['when'] = self._create_condition(group.condition)
-      template['steps'] = [[step]]
+      raise ValueError('The condition groups should not be handled directly')
     else:
       # Generate tasks section.
       tasks = []
@@ -354,6 +339,16 @@ class Compiler(object):
           'name': sub_group.name,
           'template': sub_group.name,
         }
+
+        if getattr(sub_group, 'type', None) == 'condition':
+          subgroup_inputs = inputs.get(sub_group.name, [])
+          condition = sub_group.condition
+          condition_operation = '=='
+          operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
+          operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
+          task['when'] = '{} {} {}'.format(operand1_value, condition_operation, operand2_value)
+          task['template'] = sub_group.groups[0].name
+
         # Generate dependencies section for this task.
         if dependencies.get(sub_group.name, None):
           group_dependencies = list(dependencies[sub_group.name])
@@ -417,7 +412,8 @@ class Compiler(object):
 
     templates = []
     for g in groups:
-      templates.append(self._group_to_template(g, inputs, outputs, dependencies))
+      if g.type != 'condition':
+        templates.append(self._group_to_template(g, inputs, outputs, dependencies))
 
     for op in pipeline.ops.values():
       templates.append(self._op_to_template(op))
