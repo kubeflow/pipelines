@@ -250,7 +250,7 @@ spec:
         value: Dockerfile
       - name: image-suffix
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181011-0.0.20-18-g5ab78f1c-a9becd
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181102-0.0.20-195-g2c8e37ab-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
@@ -282,7 +282,7 @@ spec:
       - name: build-script
       - name: image-suffix
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181011-0.0.20-18-g5ab78f1c-a9becd
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181102-0.0.20-195-g2c8e37ab-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",

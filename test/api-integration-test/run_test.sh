@@ -53,7 +53,7 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
-GITHUB_REPO=googleprivate/ml
+GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/go/src/github.com/${GITHUB_REPO}
 JUNIT_TEST_RESULT=junit_ApiIntegrationTestOutput.xml
 TEST_DIR=backend/test

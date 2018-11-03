@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#This test endpoint is not used yet. See https://github.com/googleprivate/ml/issues/1499
+#This test endpoint is not used yet. See https://github.com/kubeflow/pipelines/issues/1499
 #Due to the way Prow testing scripts are called, any big change needs to be done in multiple steps/check-ins so that nothing breaks.
 #Here is the sequence of check-ins:
 #New entry-point script (this script - presubmit-tests.gke.sh)

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/googleprivate/ml.svg?token=JjfzFsYGxZwkHvXFCpwt&branch=master)](https://travis-ci.com/googleprivate/ml)
+[![Build Status](https://travis-ci.com/kubeflow/pipelines.svg?token=JjfzFsYGxZwkHvXFCpwt&branch=master)](https://travis-ci.com/kubeflow/pipelines)
 
 # ML Pipeline Services - Overview
 
@@ -112,14 +112,14 @@ gcloud container clusters create $CLUSTER_NAME \
 ```
 Here we choose the cloud-platform scope so the cluster can invoke GCP APIs. You can find all the options for creating a cluster in [here](https://cloud.google.com/sdk/gcloud/reference/container/clusters/create). 
 
-Next, grant your user account permission to create new cluster roles. This step is necessary because installing ML Pipelines Services inlcudes installing a few [clusterroles](https://github.com/googleprivate/ml/search?utf8=%E2%9C%93&q=clusterrole+path%3Aml-pipeline%2Fml-pipeline&type=). 
+Next, grant your user account permission to create new cluster roles. This step is necessary because installing ML Pipelines Services inlcudes installing a few [clusterroles](https://github.com/kubeflow/pipelines/search?utf8=%E2%9C%93&q=clusterrole+path%3Aml-pipeline%2Fml-pipeline&type=). 
 ```bash
 kubectl create clusterrolebinding ml-pipeline-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value account)
 ```
  
 ## Deploy ML Pipeline Services and Kubeflow 
 
-Go to [release page](https://github.com/googleprivate/ml/releases) to find a version of ML Pipeline Services. Deploy the ML Pipeline Services and Kubeflow to your cluster.
+Go to [release page](https://github.com/kubeflow/pipelines/releases) to find a version of ML Pipeline Services. Deploy the ML Pipeline Services and Kubeflow to your cluster.
 
 For example:
 ```bash
@@ -166,7 +166,7 @@ If you are using Cloud Shell, you could view the UI by open the [web preview](ht
 If you are using local console instead of Cloud Shell, you can access the ML pipeline UI at [localhost:8080/pipeline](http://localhost:8080/pipeline).
 
 ## Run your first TFJob pipeline
-See the following authoring guide on how to compile your python pipeline code into workflow tar file. Then, follow [README.md](https://github.com/googleprivate/ml/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
+See the following authoring guide on how to compile your python pipeline code into workflow tar file. Then, follow [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/kubeflow-tf/README.md) to deploy your first TFJob pipeline.  
 
 ## Uninstall
 To uninstall ML pipeline, download the bootstrapper file and change the arguments to the deployment job.
@@ -189,7 +189,7 @@ then create job using the updated YAML by running ```kubectl create -f bootstrap
 
 # ML Pipeline Services - Authoring Guideline
 
-For more details, see [README.md](https://github.com/googleprivate/ml/blob/master/samples/README.md).
+For more details, see [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/README.md).
 
 ## Setup
 * Create a python3 environment.
