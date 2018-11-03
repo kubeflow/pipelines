@@ -147,11 +147,8 @@ export interface CustomTableProps {
   disableSorting?: boolean;
   getExpandComponent?: (index: number) => React.ReactNode;
   emptyMessage?: string;
-  // TODO: Remove!
-  orderAscending?: boolean;
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
-  pageSize?: number;
   reload: (request: BaseListRequest) => Promise<string>;
   rows: Row[];
   selectedIds?: string[];

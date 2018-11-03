@@ -34,7 +34,6 @@ interface PipelineListState {
 }
 
 class PipelineList extends Page<{}, PipelineListState> {
-
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -118,11 +117,11 @@ class PipelineList extends Page<{}, PipelineListState> {
     }
   }
 
-  private async _reload(loadRequest: BaseListRequest): Promise<string> {
+  private async _reload(request: BaseListRequest): Promise<string> {
     let response: ApiListPipelinesResponse | null = null;
     try {
       response = await Apis.pipelineServiceApi.listPipelines(
-        loadRequest.pageToken, loadRequest.pageSize, loadRequest.sortBy);
+        request.pageToken, request.pageSize, request.sortBy);
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
     }

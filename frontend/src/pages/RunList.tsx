@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import RunUtils from '../../src/lib/RunUtils';
-import { Apis, RunSortKeys, BaseListRequest, ListRunsRequest } from '../lib/Apis';
+import { Apis, RunSortKeys, BaseListRequest } from '../lib/Apis';
 import { ApiListRunsResponse, ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric } from '../../src/apis/run';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
@@ -70,23 +70,18 @@ export interface RunListProps extends RouteComponentProps {
 
 interface RunListState {
   metrics: MetricMetadata[];
-  orderAscending: boolean;
-  pageSize: number;
-  pageToken: string;
   runs: DisplayRun[];
   sortBy: string;
 }
 
 class RunList extends React.Component<RunListProps, RunListState> {
+  private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
 
     this.state = {
       metrics: [],
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
       runs: [],
       sortBy: RunSortKeys.CREATED_AT,
     };
@@ -158,8 +153,8 @@ class RunList extends React.Component<RunListProps, RunListState> {
     });
 
     return (
-      <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
-        pageSize={this.state.pageSize} initialSortColumn={this.state.sortBy}
+      <CustomTable columns={columns} rows={rows}
+        initialSortColumn={this.state.sortBy}
         updateSelection={this.props.onSelectionChange} selectedIds={this.props.selectedIds}
         disablePaging={this.props.disablePaging} reload={this._loadRuns.bind(this)}
         disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
@@ -169,7 +164,9 @@ class RunList extends React.Component<RunListProps, RunListState> {
   }
 
   public async refresh() {
-    await this._loadRuns();
+    if (this._tableRef.current) {
+      this._tableRef.current.reload();
+    }
   }
 
   private _metricBufferCustomRenderer() {
@@ -225,7 +222,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private async _loadRuns(loadRequest?: BaseListRequest): Promise<string> {
+  private async _loadRuns(loadRequest: BaseListRequest): Promise<string> {
     if (Array.isArray(this.props.runIdListMask)) {
       return await this._loadSpecificRuns(this.props.runIdListMask);
     }
@@ -252,24 +249,15 @@ class RunList extends React.Component<RunListProps, RunListState> {
     return '';
   }
 
-  private async _loadAllRuns(loadRequest?: BaseListRequest): Promise<string> {
-    // Override the current state with incoming request
-    const request: ListRunsRequest = Object.assign({
-      experimentId: this.props.experimentIdMask,
-      orderAscending: this.state.orderAscending,
-      pageSize: this.state.pageSize,
-      pageToken: this.state.pageToken,
-      sortBy: this.state.sortBy,
-    }, loadRequest);
-
+  private async _loadAllRuns(request: BaseListRequest): Promise<string> {
     let response: ApiListRunsResponse;
     try {
       response = await Apis.runServiceApi.listRuns(
         request.pageToken,
         request.pageSize,
         request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '',
-        request.experimentId ? ApiResourceType.EXPERIMENT.toString() : undefined,
-        request.experimentId,
+        this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
+        this.props.experimentIdMask,
       );
     } catch (err) {
       this.props.onError('Error: failed to fetch runs.', err);
@@ -297,9 +285,6 @@ class RunList extends React.Component<RunListProps, RunListState> {
 
     this.setState({
       metrics: this._extractMetricMetadata(displayRuns),
-      orderAscending: request.orderAscending!,
-      pageSize: request.pageSize!,
-      pageToken: request.pageToken!,
       runs: displayRuns,
       sortBy: request.sortBy!,
     });
