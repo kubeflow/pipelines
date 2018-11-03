@@ -1,0 +1,41 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PipelineList renders an empty list with empty state message 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 3,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Uploaded on",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    orderAscending={false}
+    pageSize={10}
+    reload={[Function]}
+    rows={Array []}
+    selectedIds={Array []}
+    sortBy="created_at"
+    updateSelection={[Function]}
+  />
+  <UploadPipelineDialog
+    onClose={[Function]}
+    open={false}
+  />
+</div>
+`;
