@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import RunUtils from '../../src/lib/RunUtils';
-import { Apis, RunSortKeys, BaseListRequest, ListRunsRequest } from '../lib/Apis';
+import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { ApiListRunsResponse, ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric } from '../../src/apis/run';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
@@ -70,23 +70,18 @@ export interface RunListProps extends RouteComponentProps {
 
 interface RunListState {
   metrics: MetricMetadata[];
-  orderAscending: boolean;
-  pageSize: number;
-  pageToken: string;
   runs: DisplayRun[];
   sortBy: string;
 }
 
 class RunList extends React.Component<RunListProps, RunListState> {
+  private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
 
     this.state = {
       metrics: [],
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
       runs: [],
       sortBy: RunSortKeys.CREATED_AT,
     };
@@ -157,21 +152,21 @@ class RunList extends React.Component<RunListProps, RunListState> {
       return row;
     });
 
-    return (
-      <div>
-        <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
-          pageSize={this.state.pageSize} sortBy={this.state.sortBy}
-          updateSelection={this.props.onSelectionChange} selectedIds={this.props.selectedIds}
-          disablePaging={this.props.disablePaging} reload={this._loadRuns.bind(this)}
-          disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
-          emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
-        />
-      </div>
-    );
+    return (<div>
+      <CustomTable columns={columns} rows={rows}
+        initialSortColumn={this.state.sortBy}
+        updateSelection={this.props.onSelectionChange} selectedIds={this.props.selectedIds}
+        disablePaging={this.props.disablePaging} reload={this._loadRuns.bind(this)}
+        disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
+        emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
+      />
+    </div>);
   }
 
   public async refresh() {
-    await this._loadRuns();
+    if (this._tableRef.current) {
+      this._tableRef.current.reload();
+    }
   }
 
   private _metricBufferCustomRenderer() {
@@ -199,15 +194,15 @@ class RunList extends React.Component<RunListProps, RunListState> {
 
       if (displayMetric.metric.number_value - displayMetric.metadata.minValue < 0) {
         logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
-        + ` ${displayMetric.metric.number_value}) was lower than the supposed minimum of`
-        + ` ${displayMetric.metadata.minValue})`);
+          + ` ${displayMetric.metric.number_value}) was lower than the supposed minimum of`
+          + ` ${displayMetric.metadata.minValue})`);
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
       }
 
       if (displayMetric.metadata.maxValue - displayMetric.metric.number_value < 0) {
         logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
-        + ` ${displayMetric.metric.number_value}) was greater than the supposed maximum of`
-        + ` ${displayMetric.metadata.maxValue})`);
+          + ` ${displayMetric.metric.number_value}) was greater than the supposed maximum of`
+          + ` ${displayMetric.metadata.maxValue})`);
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
       }
 
@@ -227,7 +222,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private async _loadRuns(loadRequest?: BaseListRequest): Promise<string> {
+  private async _loadRuns(loadRequest: ListRequest): Promise<string> {
     if (Array.isArray(this.props.runIdListMask)) {
       return await this._loadSpecificRuns(this.props.runIdListMask);
     }
@@ -254,24 +249,15 @@ class RunList extends React.Component<RunListProps, RunListState> {
     return '';
   }
 
-  private async _loadAllRuns(loadRequest?: BaseListRequest): Promise<string> {
-    // Override the current state with incoming request
-    const request: ListRunsRequest = Object.assign({
-      experimentId: this.props.experimentIdMask,
-      orderAscending: this.state.orderAscending,
-      pageSize: this.state.pageSize,
-      pageToken: this.state.pageToken,
-      sortBy: this.state.sortBy,
-    }, loadRequest);
-
+  private async _loadAllRuns(request: ListRequest): Promise<string> {
     let response: ApiListRunsResponse;
     try {
       response = await Apis.runServiceApi.listRuns(
         request.pageToken,
         request.pageSize,
-        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '',
-        request.experimentId ? ApiResourceType.EXPERIMENT.toString() : undefined,
-        request.experimentId,
+        request.sortBy,
+        this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
+        this.props.experimentIdMask,
       );
     } catch (err) {
       this.props.onError('Error: failed to fetch runs.', err);
@@ -299,9 +285,6 @@ class RunList extends React.Component<RunListProps, RunListState> {
 
     this.setState({
       metrics: this._extractMetricMetadata(displayRuns),
-      orderAscending: request.orderAscending!,
-      pageSize: request.pageSize!,
-      pageToken: request.pageToken!,
       runs: displayRuns,
       sortBy: request.sortBy!,
     });
@@ -318,17 +301,17 @@ class RunList extends React.Component<RunListProps, RunListState> {
     return await Promise.all(
       displayRuns.map(async (displayRun) => {
         const pipelineId = RunUtils.getPipelineId(displayRun.metadata);
-          if (pipelineId) {
-            try {
-              const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-              displayRun.pipeline =  { displayName: pipeline.name || '', id: pipelineId };
-            } catch (err) {
-              // This could be an API exception, or a JSON parse exception.
-              displayRun.error = await errorToMessage(err);
-            }
+        if (pipelineId) {
+          try {
+            const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
+            displayRun.pipeline = { displayName: pipeline.name || '', id: pipelineId };
+          } catch (err) {
+            // This could be an API exception, or a JSON parse exception.
+            displayRun.error = await errorToMessage(err);
           }
-          return displayRun;
-        })
+        }
+        return displayRun;
+      })
     );
   }
 
@@ -339,7 +322,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     }
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-          to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id)}>
+        to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id)}>
         {pipelineInfo.displayName}
       </Link>
     );
@@ -355,20 +338,20 @@ class RunList extends React.Component<RunListProps, RunListState> {
     return await Promise.all(
       displayRuns.map(async (displayRun) => {
         const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.metadata);
-          if (experimentId) {
-            try {
-              // TODO: Experiment could be an optional field in state since whenever the RunList is
-              // created from the ExperimentDetails page, we already have the experiment (and will)
-              // be fetching the same one over and over here.
-              const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-              displayRun.experiment =  { displayName: experiment.name || '', id: experimentId };
-            } catch (err) {
-              // This could be an API exception, or a JSON parse exception.
-              displayRun.error = await errorToMessage(err);
-            }
+        if (experimentId) {
+          try {
+            // TODO: Experiment could be an optional field in state since whenever the RunList is
+            // created from the ExperimentDetails page, we already have the experiment (and will)
+            // be fetching the same one over and over here.
+            const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+            displayRun.experiment = { displayName: experiment.name || '', id: experimentId };
+          } catch (err) {
+            // This could be an API exception, or a JSON parse exception.
+            displayRun.error = await errorToMessage(err);
           }
-          return displayRun;
-        })
+        }
+        return displayRun;
+      })
     );
   }
 
@@ -379,7 +362,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     }
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-          to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentInfo.id)}>
+        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentInfo.id)}>
         {experimentInfo.displayName}
       </Link>
     );

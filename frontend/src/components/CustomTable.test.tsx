@@ -85,7 +85,7 @@ describe('CustomTable', () => {
   });
 
   it('renders some columns with descending sort order on first column', () => {
-    const tree = shallow(<CustomTable {...props} orderAscending={false}
+    const tree = shallow(<CustomTable {...props} initialSortOrder='desc'
       columns={[{ label: 'col1', sortKey: 'col1sortkey' }, { label: 'col2' }]} />);
     expect(tree).toMatchSnapshot();
   });
@@ -105,7 +105,7 @@ describe('CustomTable', () => {
   it('calls reload function with an empty page token to get rows', () => {
     const reload = jest.fn();
     shallow(<CustomTable {...props} reload={reload} />);
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '' });
+    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', pageSize: 10, orderAscending: false, sortBy: '' });
   });
 
   it('calls reload function with sort key of clicked column, while keeping same page', () => {
@@ -120,11 +120,11 @@ describe('CustomTable', () => {
     }];
     const reload = jest.fn();
     const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '' });
+    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', pageSize: 10, sortBy: 'col1sortkey desc', orderAscending: false });
 
-    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
+    tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
-      orderAscending: true, pageToken: '', sortBy: 'col1sortkey'
+      orderAscending: true, pageSize: 10, pageToken: '', sortBy: 'col2sortkey',
     });
   });
 
@@ -140,16 +140,16 @@ describe('CustomTable', () => {
     }];
     const reload = jest.fn();
     const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '' });
+    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', orderAscending: false, pageSize: 10, sortBy: 'col1sortkey desc' });
 
-    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
-        expect(reload).toHaveBeenLastCalledWith({
-      orderAscending: true, pageToken: '', sortBy: 'col1sortkey'
+    tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
+    expect(reload).toHaveBeenLastCalledWith({
+      orderAscending: true, pageSize: 10, pageToken: '', sortBy: 'col2sortkey',
     });
     tree.setProps({ sortBy: 'col1sortkey' });
-    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
+    tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
-      orderAscending: false, pageToken: '', sortBy: 'col1sortkey'
+      orderAscending: false, pageSize: 10, pageToken: '', sortBy: 'col2sortkey desc'
     });
   });
 
@@ -163,10 +163,10 @@ describe('CustomTable', () => {
     }];
     const reload = jest.fn();
     const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '' });
+    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', pageSize: 10, orderAscending: false, sortBy: '' });
 
     tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '' });
+    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', pageSize: 10, orderAscending: false, sortBy: '' });
   });
 
   it('logs error if row has more cells than columns', () => {
@@ -299,7 +299,7 @@ describe('CustomTable', () => {
     await reloadResult;
 
     tree.find('WithStyles(IconButton)').at(1).simulate('click');
-    expect(spy).toHaveBeenLastCalledWith({ pageToken: 'some token' });
+    expect(spy).toHaveBeenLastCalledWith({ pageToken: 'some token', pageSize: 10, orderAscending: false, sortBy: '' });
   });
 
   it('renders new rows after clicking next page, and enables previous page button', async () => {
@@ -310,7 +310,7 @@ describe('CustomTable', () => {
 
     tree.find('WithStyles(IconButton)').at(1).simulate('click');
     await reloadResult;
-    expect(spy).toHaveBeenLastCalledWith({ pageToken: 'some token' });
+    expect(spy).toHaveBeenLastCalledWith({ pageToken: 'some token', pageSize: 10, sortBy: '', orderAscending: false });
     expect(tree.state()).toHaveProperty('currentPage', 1);
     tree.setProps({ rows: [rows[1]] });
     expect(tree).toMatchSnapshot();
@@ -328,7 +328,7 @@ describe('CustomTable', () => {
 
     tree.find('WithStyles(IconButton)').at(0).simulate('click');
     await reloadResult;
-    expect(spy).toHaveBeenLastCalledWith({ pageToken: '' });
+    expect(spy).toHaveBeenLastCalledWith({ pageToken: '', orderAscending: false, sortBy: '', pageSize: 10 });
 
     tree.setProps({ rows });
     expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
@@ -342,7 +342,7 @@ describe('CustomTable', () => {
 
     tree.find('.' + css.rowsPerPage).simulate('change', { target: { value: 1234 } });
     await reloadResult;
-    expect(spy).toHaveBeenLastCalledWith({ pageSize: 1234, pageToken: '' });
+    expect(spy).toHaveBeenLastCalledWith({ pageSize: 1234, pageToken: '', orderAscending: false, sortBy: '' });
     expect(tree.state()).toHaveProperty('tokenList', ['', 'some token']);
   });
 
@@ -353,7 +353,7 @@ describe('CustomTable', () => {
 
     tree.find('.' + css.rowsPerPage).simulate('change', { target: { value: 1234 } });
     await reloadResult;
-    expect(spy).toHaveBeenLastCalledWith({ pageSize: 1234, pageToken: '' });
+    expect(spy).toHaveBeenLastCalledWith({ pageSize: 1234, pageToken: '', orderAscending: false, sortBy: '' });
     expect(tree.state()).toHaveProperty('tokenList', ['']);
   });
 
