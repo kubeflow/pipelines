@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/experiments": {
       "get": {
-        "operationId": "ListExperiment",
+        "operationId": "ListExperiments",
         "responses": {
           "200": {
             "description": "A successful response.",

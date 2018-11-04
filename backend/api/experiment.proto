@@ -68,7 +68,7 @@ service ExperimentService {
     };
   }
 
-  rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
+  rpc ListExperiments(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments"
     };

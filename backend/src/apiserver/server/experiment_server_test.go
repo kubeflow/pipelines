@@ -67,7 +67,7 @@ func TestGetExperiment_Failed(t *testing.T) {
 	assert.Contains(t, err.Error(), "Get experiment failed.")
 }
 
-func TestListExperiment(t *testing.T) {
+func TestListExperiments(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager}
@@ -75,7 +75,7 @@ func TestListExperiment(t *testing.T) {
 
 	createResult, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.ListExperiment(nil, &api.ListExperimentsRequest{})
+	result, err := server.ListExperiments(nil, &api.ListExperimentsRequest{})
 	expectedExperiment := []*api.Experiment{{
 		Id:          createResult.Id,
 		Name:        "ex1",
@@ -83,7 +83,7 @@ func TestListExperiment(t *testing.T) {
 	assert.Equal(t, expectedExperiment, result.Experiments)
 }
 
-func TestListExperiment_Failed(t *testing.T) {
+func TestListExperiments_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager}
@@ -92,7 +92,7 @@ func TestListExperiment_Failed(t *testing.T) {
 	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.ListExperiment(nil, &api.ListExperimentsRequest{})
+	_, err = server.ListExperiments(nil, &api.ListExperimentsRequest{})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "List experiments failed.")
 }

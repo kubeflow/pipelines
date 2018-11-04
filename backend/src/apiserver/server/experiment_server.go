@@ -35,7 +35,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 	return ToApiExperiment(experiment), nil
 }
 
-func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.ListExperimentsRequest) (
+func (s *ExperimentServer) ListExperiments(ctx context.Context, request *api.ListExperimentsRequest) (
 	*api.ListExperimentsResponse, error) {
 	paginationContext, err := ValidatePagination(
 		request.PageToken, int(request.PageSize), model.GetExperimentTablePrimaryKeyColumn(),
