@@ -21,7 +21,7 @@ import { StoragePath } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
-export interface BaseListRequest {
+export interface ListRequest {
   filterBy?: string;
   orderAscending?: boolean;
   pageSize?: number;
@@ -166,23 +166,6 @@ export class Apis {
       throw new Error(responseText);
     }
   }
-}
-
-// tslint:disable-next-line:no-empty-interface
-export interface ListExperimentsRequest extends BaseListRequest {
-}
-
-// tslint:disable-next-line:no-empty-interface
-export interface ListJobsRequest extends BaseListRequest {
-  experimentId?: string;
-}
-
-// tslint:disable-next-line:no-empty-interface
-export interface ListPipelinesRequest extends BaseListRequest {
-}
-
-export interface ListRunsRequest extends BaseListRequest {
-  experimentId?: string;
 }
 
 // Valid sortKeys as specified by the backend.
