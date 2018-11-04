@@ -17,7 +17,8 @@
 set -xe
 
 REGISTRY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+K8S_NAMESPACE=${K8S_NAMESPACE:-"kubeflow"}
 
 ks registry add ml-pipeline "${REGISTRY}"
 ks pkg install ml-pipeline/ml-pipeline
-ks generate ml-pipeline ml-pipeline
+ks generate ml-pipeline ml-pipeline --namespace=${K8S_NAMESPACE}
