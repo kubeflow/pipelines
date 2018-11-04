@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
-import { Apis, BaseListRequest, ListPipelinesRequest, PipelineSortKeys } from '../lib/Apis';
+import { Apis, ListRequest, PipelineSortKeys } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
 import { logger, formatDateString, errorToMessage } from '../lib/Utils';
 import { ApiPipeline } from '../apis/pipeline';
@@ -29,9 +29,6 @@ interface PipelineSelectorProps extends RouteComponentProps {
 }
 
 interface PipelineSelectorState {
-  orderAscending: boolean;
-  pageSize: number;
-  pageToken: string;
   pipelines: ApiPipeline[];
   selectedIds: string[];
   sortBy: string;
@@ -39,14 +36,12 @@ interface PipelineSelectorState {
 }
 
 class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSelectorState> {
+  private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
 
     this.state = {
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
       pipelines: [],
       selectedIds: [],
       sortBy: PipelineSortKeys.CREATED_AT,
@@ -55,7 +50,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
   }
 
   public render() {
-    const { pipelines, orderAscending, pageSize, selectedIds, sortBy, toolbarActions } = this.state;
+    const { pipelines, selectedIds, sortBy, toolbarActions } = this.state;
 
     const columns: Column[] = [
       { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
@@ -78,16 +73,18 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     return (
       <React.Fragment>
         <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
-        <CustomTable columns={columns} rows={rows} orderAscending={orderAscending}
-          pageSize={pageSize} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={ids => { this._pipelineSelectionChanged(ids); this.setState({ selectedIds: ids });}} sortBy={sortBy}
+        <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
+          updateSelection={ids => { this._pipelineSelectionChanged(ids); this.setState({ selectedIds: ids }); }}
+          initialSortColumn={sortBy}
           reload={this._loadPipelines.bind(this)} emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
       </React.Fragment>
     );
   }
 
   public async load() {
-    await this._loadPipelines();
+    if (this._tableRef.current) {
+      this._tableRef.current.reload();
+    }
   }
 
   private _pipelineSelectionChanged(selectedIds: string[]): void {
@@ -98,23 +95,12 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     this.props.pipelineSelectionChanged(selectedIds[0]);
   }
 
-  private async _loadPipelines(loadRequest?: BaseListRequest): Promise<string> {
-    // Override the current state with incoming request
-    const request: ListPipelinesRequest = Object.assign({
-      orderAscending: this.state.orderAscending,
-      pageSize: this.state.pageSize,
-      pageToken: this.state.pageToken,
-      sortBy: this.state.sortBy,
-    }, loadRequest);
-
+  private async _loadPipelines(request: ListRequest): Promise<string> {
     let pipelines: ApiPipeline[] = [];
     let nextPageToken = '';
     try {
       const response = await Apis.pipelineServiceApi.listPipelines(
-        request.pageToken,
-        request.pageSize,
-        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '',
-      );
+        request.pageToken, request.pageSize, request.sortBy);
       pipelines = response.pipelines || [];
       nextPageToken = response.next_page_token || '';
     } catch (err) {
@@ -127,14 +113,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       logger.error('Could not get list of pipelines', errorMessage);
     }
 
-    this.setState({
-      orderAscending: request.orderAscending!,
-      pageSize: request.pageSize!,
-      pageToken: request.pageToken!,
-      pipelines,
-      sortBy: request.sortBy!,
-    });
-
+    this.setState({ pipelines, sortBy: request.sortBy! });
     return nextPageToken;
   }
 }

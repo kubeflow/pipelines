@@ -19,7 +19,7 @@ import CustomTable, { Column, Row } from '../components/CustomTable';
 import AddIcon from '@material-ui/icons/Add';
 import UploadPipelineDialog from '../components/UploadPipelineDialog';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
-import { Apis, PipelineSortKeys, BaseListRequest, ListPipelinesRequest } from '../lib/Apis';
+import { Apis, PipelineSortKeys, ListRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -28,27 +28,20 @@ import { commonCss, padding } from '../Css';
 import { logger, formatDateString, errorToMessage } from '../lib/Utils';
 
 interface PipelineListState {
-  orderAscending: boolean;
-  pageSize: number;
-  pageToken: string;
   pipelines: ApiPipeline[];
   selectedIds: string[];
-  sortBy: string;
   uploadDialogOpen: boolean;
 }
 
 class PipelineList extends Page<{}, PipelineListState> {
+  private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
 
     this.state = {
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
       pipelines: [],
       selectedIds: [],
-      sortBy: PipelineSortKeys.CREATED_AT,
       uploadDialogOpen: false,
     };
   }
@@ -63,7 +56,7 @@ class PipelineList extends Page<{}, PipelineListState> {
         title: 'Upload pipeline',
         tooltip: 'Upload pipeline',
       }, {
-        action: () => this._reload(),
+        action: () => this.load(),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -107,8 +100,7 @@ class PipelineList extends Page<{}, PipelineListState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
-          pageSize={this.state.pageSize} sortBy={this.state.sortBy}
+        <CustomTable ref={this._tableRef} columns={columns} rows={rows} initialSortColumn={PipelineSortKeys.CREATED_AT}
           updateSelection={this._selectionChanged.bind(this)} selectedIds={this.state.selectedIds}
           reload={this._reload.bind(this)}
           emptyMessage='No pipelines found. Click "Upload pipeline" to start.' />
@@ -120,36 +112,21 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   public async load(): Promise<void> {
-    this._reload();
+    if (this._tableRef.current) {
+      this._tableRef.current.reload();
+    }
   }
 
-  private async _reload(loadRequest?: BaseListRequest): Promise<string> {
-    // Override the current state with incoming request
-    const request: ListPipelinesRequest = Object.assign({
-      orderAscending: this.state.orderAscending,
-      pageSize: this.state.pageSize,
-      pageToken: this.state.pageToken,
-      sortBy: this.state.sortBy,
-    }, loadRequest);
-
+  private async _reload(request: ListRequest): Promise<string> {
     let response: ApiListPipelinesResponse | null = null;
     try {
       response = await Apis.pipelineServiceApi.listPipelines(
-        request.pageToken,
-        request.pageSize,
-        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : ''
-      );
+        request.pageToken, request.pageSize, request.sortBy);
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
     }
 
-    this.setState({
-      orderAscending: request.orderAscending!,
-      pageSize: request.pageSize!,
-      pageToken: request.pageToken!,
-      pipelines: response ? response.pipelines || [] : [],
-      sortBy: request.sortBy!,
-    });
+    this.setState({ pipelines: response ? response.pipelines || [] : [] });
 
     return response ? response.next_page_token || '' : '';
   }
