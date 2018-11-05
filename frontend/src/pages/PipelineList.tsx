@@ -49,7 +49,7 @@ class PipelineList extends Page<{}, PipelineListState> {
   public getInitialToolbarState() {
     return {
       actions: [{
-        action: () => this.setState({ uploadDialogOpen: true }),
+        action: () => this.setStateSafe({ uploadDialogOpen: true }),
         icon: AddIcon,
         id: 'uploadBtn',
         outlined: true,
@@ -127,7 +127,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
     }
 
-    this.setState({ pipelines: response ? response.pipelines || [] : [] });
+    this.setStateSafe({ pipelines: response ? response.pipelines || [] : [] });
 
     return response ? response.next_page_token || '' : '';
   }
@@ -146,7 +146,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     // Delete pipeline
     toolbarActions[2].disabled = selectedIds.length < 1;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
-    this.setState({ selectedIds });
+    this.setStateSafe({ selectedIds });
   }
 
   private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
@@ -189,17 +189,20 @@ class PipelineList extends Page<{}, PipelineListState> {
     if (!!file) {
       try {
         await Apis.uploadPipeline(name, file);
-        this.setState({ uploadDialogOpen: false });
-        this.refresh();
+        if (this._isMounted) {
+          this.setStateSafe({ uploadDialogOpen: false });
+          this.refresh();
+        }
         return true;
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         this.showErrorDialog('Failed to upload pipeline', errorMessage);
-        logger.error('Error uploading pipeline:', err);
         return false;
       }
     } else {
-      this.setState({ uploadDialogOpen: false });
+      if (this._isMounted) {
+        this.setStateSafe({ uploadDialogOpen: false });
+      }
       return false;
     }
   }

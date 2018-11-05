@@ -31,6 +31,8 @@ export interface PageProps extends RouteComponentProps {
 }
 
 export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
+  protected _isMounted = true;
+
   constructor(props: any) {
     super(props);
     this.props.updateToolbar(this.getInitialToolbarState());
@@ -44,6 +46,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
 
   public componentWillUnmount() {
     this.clearPageError();
+    this._isMounted = false;
   }
 
   public async clearPageError() {
@@ -66,5 +69,9 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
       content,
       title,
     });
+  }
+
+  protected setStateSafe(newState: Partial<S>, cb?: () => void) {
+    this.setState(newState as any, cb);
   }
 }

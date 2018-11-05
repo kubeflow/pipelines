@@ -21,6 +21,9 @@ import { mount } from 'enzyme';
 import { object } from 'prop-types';
 
 export default class TestUtils {
+  /**
+   * Mounts the given component with a fake router and returns the mounted tree
+   */
   // tslint:disable-next-line:variable-name
   public static mountWithRouter(ComponentClass: React.ComponentClass, props: any) {
     const childContextTypes = {
@@ -31,10 +34,19 @@ export default class TestUtils {
     return tree;
   }
 
+  /**
+   * Flushes all already queued promises and returns a promise. Note this will
+   * only work if the promises have already been queued, so it cannot be used to
+   * wait on a promise that hasn't been dispatched yet.
+   */
   public static flushPromises() {
     return new Promise(resolve => setImmediate(resolve));
   }
 
+  /**
+   * Adds a one-time mock implementation to the provided spy that mimics an error
+   * network response
+   */
   public static makeErrorResponseOnce(spy: jest.SpyInstance, message: string) {
     spy.mockImplementationOnce(() => {
       throw {
