@@ -1723,7 +1723,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
         title="Sort"
       >
         <WithStyles(TableSortLabel)
-          active={false}
+          active={true}
           className="ellipsis"
           direction="desc"
           onClick={[Function]}
