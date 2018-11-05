@@ -145,59 +145,55 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
     
     func_code = ''.join(func_code_lines) #Lines retain their \n endings
 
-    input_parameters = parameters
-    internal_args = [param.name for param in input_parameters]
     extra_output_external_names = [name + '_file' for name in extra_output_names]
-    external_annotated_parameters = [name + ':' + type_name if type_name else name for name, type_name in parameter_to_type_name.items()] + extra_output_external_names
 
-    #Unised at this moment
-    typing_code = \
-'''\
-from typing import TypeVar, Generic
+    input_args_parsing_code_lines =(
+        "    '{arg_name}': {arg_type}(sys.argv[{arg_idx}]),".format(
+            arg_name=name_type[0],
+            arg_type=name_type[1] if name_type[1] in ['int', 'float', 'bool'] else 'str',
+            arg_idx=idx + 1
+        )
+        for idx, name_type in enumerate(parameter_to_type_name.items())
+    )
 
-T = TypeVar('T')
+    output_files_parsing_code_lines = (
+        '    sys.argv[{}],'.format(idx + len(parameter_to_type_name) + 1)
+        for idx in range(len(extra_output_external_names))
+    )
 
-class InputFile(Generic[T], str):
-    pass
-
-class OutputFile(Generic[T], str):
-    pass
-'''
-    
     full_source = \
 '''\
-from pathlib import Path
 from typing import NamedTuple
 
 {extra_code}
 
 {func_code}
 
-def {wrapper_func_name}({external_annotated_parameters}):
-    outputs = {func_name}({internal_args})
-    if not isinstance(outputs, tuple):
-        outputs = (outputs,)
-    for idx, filename in enumerate([{output_external_names}]):
-        Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        Path(filename).write_text(str(outputs[idx]))
+import sys
+_args = {{
+{input_args_parsing_code}
+}}
+_output_files = [
+{output_files_parsing_code}
+]
 
-try:
-    import fire
-except ImportError:
-    import subprocess
-    import sys
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'fire==0.1.3'])
-    import fire
+_outputs = {func_name}(**_args)
 
-fire.Fire({wrapper_func_name})
+from collections.abc import Sequence
+if not isinstance(_outputs, Sequence) or isinstance(_outputs, str):
+    _outputs = [_outputs]
+
+from pathlib import Path
+for idx, filename in enumerate(_output_files):
+    _output_path = Path(filename)
+    _output_path.parent.mkdir(parents=True, exist_ok=True)
+    _output_path.write_text(str(_outputs[idx]))
 '''.format(
-        wrapper_func_name=func_name + '_wrapper',
         func_name=func_name,
-        external_annotated_parameters=', '.join(external_annotated_parameters),
-        internal_args=', '.join(internal_args),
-        output_external_names=', '.join(extra_output_external_names),
         func_code=func_code,
         extra_code=extra_code,
+        input_args_parsing_code='\n'.join(input_args_parsing_code_lines),
+        output_files_parsing_code='\n'.join(output_files_parsing_code_lines),
     )
 
     #Removing consecutive blank lines
