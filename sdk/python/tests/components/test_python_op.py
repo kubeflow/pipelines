@@ -58,13 +58,13 @@ class PythonOpTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir_name:
             output_path = Path(temp_dir_name).joinpath('output1')
 
-            task = op(arg1, arg2, output_path)
+            task = op(arg1, arg2, str(output_path))
 
             full_command = task.command + task.arguments
 
             process = subprocess.run(full_command)
 
-            actual_str = Path(output_path).read_text()
+            actual_str = output_path.read_text()
 
         self.assertEqual(actual_str, expected_str)
 
@@ -80,14 +80,14 @@ class PythonOpTestCase(unittest.TestCase):
             output_path1 = Path(temp_dir_name).joinpath('output1')
             output_path2 = Path(temp_dir_name).joinpath('output2')
 
-            task = op(arg1, arg2, output_path1, output_path2)
+            task = op(arg1, arg2, str(output_path1), str(output_path2))
 
             full_command = task.command + task.arguments
 
             process = subprocess.run(full_command)
 
-            actual1_str = Path(output_path1).read_text()
-            actual2_str = Path(output_path2).read_text()
+            actual1_str = output_path1.read_text()
+            actual2_str = output_path2.read_text()
 
         self.assertEqual(actual1_str, expected1_str)
         self.assertEqual(actual2_str, expected2_str)
