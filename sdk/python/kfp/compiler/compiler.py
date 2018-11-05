@@ -329,81 +329,56 @@ class Compiler(object):
       template_outputs.sort(key=lambda x: x['name'])
       template['outputs'] = {'parameters': template_outputs}
 
-    if group.type == 'condition':
-      raise ValueError('The condition groups should not be handled directly')
-    else:
-      # Generate tasks section.
-      tasks = []
-      for sub_group in group.groups + group.ops:
-        task = {
-          'name': sub_group.name,
-          'template': sub_group.name,
-        }
+    # Generate tasks section.
+    tasks = []
+    for sub_group in group.groups + group.ops:
+      task = {
+        'name': sub_group.name,
+        'template': sub_group.name,
+      }
 
-        if getattr(sub_group, 'type', None) == 'condition':
-          subgroup_inputs = inputs.get(sub_group.name, [])
-          condition = sub_group.condition
-          condition_operation = '=='
-          operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
-          operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
-          task['when'] = '{} {} {}'.format(operand1_value, condition_operation, operand2_value)
-          task['template'] = sub_group.groups[0].name
+      if getattr(sub_group, 'type', None) == 'condition':
+        subgroup_inputs = inputs.get(sub_group.name, [])
+        condition = sub_group.condition
+        condition_operation = '=='
+        operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
+        operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
+        task['when'] = '{} {} {}'.format(operand1_value, condition_operation, operand2_value)
 
-        # Generate dependencies section for this task.
-        if dependencies.get(sub_group.name, None):
-          group_dependencies = list(dependencies[sub_group.name])
-          group_dependencies.sort()
-          task['dependencies'] = group_dependencies
+      # Generate dependencies section for this task.
+      if dependencies.get(sub_group.name, None):
+        group_dependencies = list(dependencies[sub_group.name])
+        group_dependencies.sort()
+        task['dependencies'] = group_dependencies
 
-        # Generate arguments section for this task.
-        if inputs.get(sub_group.name, None):
-          arguments = []
-          for param_name, dependent_name in inputs[sub_group.name]:
-            if dependent_name:
-              # The value comes from an upstream sibling.
-              arguments.append({
-                'name': param_name,
-                'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-              })
-            else:
-              # The value comes from its parent.
-              arguments.append({
-                'name': param_name,
-                'value': '{{inputs.parameters.%s}}' % param_name
-              })
-          arguments.sort(key=lambda x: x['name'])
-          task['arguments'] = {'parameters': arguments}
-        tasks.append(task)
-      tasks.sort(key=lambda x: x['name'])
-      template['dag'] = {'tasks': tasks}
+      # Generate arguments section for this task.
+      if inputs.get(sub_group.name, None):
+        arguments = []
+        for param_name, dependent_name in inputs[sub_group.name]:
+          if dependent_name:
+            # The value comes from an upstream sibling.
+            arguments.append({
+              'name': param_name,
+              'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+            })
+          else:
+            # The value comes from its parent.
+            arguments.append({
+              'name': param_name,
+              'value': '{{inputs.parameters.%s}}' % param_name
+            })
+        arguments.sort(key=lambda x: x['name'])
+        task['arguments'] = {'parameters': arguments}
+      tasks.append(task)
+    tasks.sort(key=lambda x: x['name'])
+    template['dag'] = {'tasks': tasks}
     return template     
 
-  def _create_new_groups(self, root_group):
-    """Create a copy of the input group, and insert extra groups for conditions."""
-
-    new_group = copy.deepcopy(root_group)
-    
-    def _insert_group_for_condition_helper(group):
-      for i, g in enumerate(group.groups):
-        if g.type == 'condition':
-          child_condition_group = dsl.OpsGroup('condition-child', g.name + '-child')
-          child_condition_group.ops = g.ops
-          child_condition_group.groups = g.groups
-          g.groups = [child_condition_group]
-          g.ops = list()
-          _insert_group_for_condition_helper(child_condition_group)
-        else:
-          _insert_group_for_condition_helper(g)
-
-    _insert_group_for_condition_helper(new_group)
-    return new_group
     
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
-    # This is needed only because Argo does not support condition in DAG mode.
-    # Revisit when https://github.com/argoproj/argo/issues/921 is fixed.
-    new_root_group = self._create_new_groups(pipeline.groups[0])
+    new_root_group = pipeline.groups[0]
 
     op_groups = self._get_groups_for_ops(new_root_group)
     inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups)
@@ -412,8 +387,7 @@ class Compiler(object):
 
     templates = []
     for g in groups:
-      if g.type != 'condition':
-        templates.append(self._group_to_template(g, inputs, outputs, dependencies))
+      templates.append(self._group_to_template(g, inputs, outputs, dependencies))
 
     for op in pipeline.ops.values():
       templates.append(self._op_to_template(op))
