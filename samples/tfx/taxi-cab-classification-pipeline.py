@@ -106,7 +106,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
 def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='deploy'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.42',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:dev', #TODO: change the tag to the release versions when new releases are built with the updated image
         arguments = [
             '--model-path', model,
             '--server-name', tf_server_name
