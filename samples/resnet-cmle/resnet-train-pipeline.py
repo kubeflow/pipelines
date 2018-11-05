@@ -20,7 +20,7 @@ import datetime
 def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', train_csv: 'GcsUri[text/csv]', validation_csv: 'GcsUri[text/csv]', labels, step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-preprocess:0.0.42', # TODO: update it with a version number after a new release.
+        image = 'gcr.io/ml-pipeline/resnet-preprocess:staging', # TODO: update it with a version number after a new release.
         arguments = [
             '--project_id', project_id,
             '--output', output,
@@ -34,7 +34,7 @@ def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', train_csv: 
 def resnet_train_op(data_dir, output: 'GcsUri', region: 'GcpRegion', depth: int, train_batch_size: int, eval_batch_size: int, steps_per_eval: int, train_steps: int, num_train_images: int, num_eval_images: int, num_label_classes: int, tf_version, step_name='train'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-train:0.0.42',
+        image = 'gcr.io/ml-pipeline/resnet-train:staging', # TODO: update it with a version number after a new release.
         arguments = [
             '--data_dir', data_dir,
             '--output', output,
@@ -76,7 +76,7 @@ def resnet_train(project_id: dsl.PipelineParam,
   region: dsl.PipelineParam=dsl.PipelineParam(name='region', value='us-central1'),
   model: dsl.PipelineParam=dsl.PipelineParam(name='model', value='bolts'),
   version: dsl.PipelineParam=dsl.PipelineParam(name='version', value='beta1'),
-  tf_version: dsl.PipelineParam=dsl.PipelineParam(name='tf-version', value='1.8'),
+  tf_version: dsl.PipelineParam=dsl.PipelineParam(name='tf-version', value='1.9'), # TODO: CMLE TPU doesn't work with 1.9. Waiting for 1.11.
   train_csv: dsl.PipelineParam=dsl.PipelineParam(name='train-csv', value='gs://bolts_image_dataset/bolt_images_train.csv'),
   validation_csv: dsl.PipelineParam=dsl.PipelineParam(name='validation-csv', value='gs://bolts_image_dataset/bolt_images_validate.csv'),
   labels: dsl.PipelineParam=dsl.PipelineParam(name='labels', value='gs://bolts_image_dataset/labels.txt'),
