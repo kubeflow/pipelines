@@ -1,8 +1,10 @@
 approvers:
   - vicaire
-  - jlewi
   - IronPan
-  - paveldournov
+  - qimingj
+  - yebrahim
 reviewers:
   - vicaire
+  - yebrahim
   - IronPan
+  - qimingj
