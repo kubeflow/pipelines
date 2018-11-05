@@ -165,7 +165,7 @@ class NewRun extends Page<{}, NewRunState> {
           <div className={commonCss.header}>Run parameters</div>
           <div>{this._runParametersMessage(pipeline)}</div>
 
-          {pipeline && pipeline.parameters && pipeline.parameters.length && (
+          {pipeline && pipeline.parameters && !!pipeline.parameters.length && (
             <div>
               {pipeline && (pipeline.parameters || []).map((param, i) =>
                 <TextField key={i} variant='outlined' label={param.name} value={param.value || ''}
