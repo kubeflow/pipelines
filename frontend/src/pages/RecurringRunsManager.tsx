@@ -18,8 +18,8 @@ import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
-import { ApiJob } from '../apis/job';
-import { Apis, JobSortKeys, BaseListRequest, ListJobsRequest } from '../lib/Apis';
+import { ApiJob, ApiResourceType } from '../apis/job';
+import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
 import { DialogProps, RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
@@ -35,9 +35,6 @@ interface RecurringRunListProps extends RouteComponentProps {
 
 interface RecurringRunListState {
   busyIds: Set<string>;
-  orderAscending: boolean;
-  pageSize: number;
-  pageToken: string;
   runs: ApiJob[];
   selectedIds: string[];
   sortBy: string;
@@ -45,15 +42,13 @@ interface RecurringRunListState {
 }
 
 class RecurringRunsManager extends React.Component<RecurringRunListProps, RecurringRunListState> {
+  private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
 
     this.state = {
       busyIds: new Set(),
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
       runs: [],
       selectedIds: [],
       sortBy: JobSortKeys.CREATED_AT,
@@ -62,7 +57,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
   }
 
   public render() {
-    const { runs, orderAscending, pageSize, selectedIds, sortBy, toolbarActions } = this.state;
+    const { runs, selectedIds, sortBy, toolbarActions } = this.state;
 
     const columns: Column[] = [
       {
@@ -89,34 +84,29 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
 
     return (<React.Fragment>
       <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Recurring runs', href: '' }]} />
-      <CustomTable columns={columns} rows={rows} orderAscending={orderAscending}
-        pageSize={pageSize} selectedIds={selectedIds} disableSelection={true}
-        updateSelection={ids => this.setState({ selectedIds: ids })} sortBy={sortBy}
+      <CustomTable columns={columns} rows={rows}
+        selectedIds={selectedIds} disableSelection={true}
+        updateSelection={ids => this.setState({ selectedIds: ids })} initialSortColumn={sortBy}
         reload={this._loadRuns.bind(this)} emptyMessage={'No recurring runs found in this experiment.'} />
     </React.Fragment>);
   }
 
   public async load() {
-    await this._loadRuns();
+    if (this._tableRef.current) {
+      this._tableRef.current.reload();
+    }
   }
 
-  private async _loadRuns(loadRequest?: BaseListRequest): Promise<string> {
-    // Override the current state with incoming request
-    const request: ListJobsRequest = Object.assign({
-      experimentId: this.props.experimentId,
-      orderAscending: this.state.orderAscending,
-      pageSize: this.state.pageSize,
-      pageToken: this.state.pageToken,
-      sortBy: this.state.sortBy,
-    }, loadRequest);
-
+  private async _loadRuns(request: ListRequest): Promise<string> {
     let runs: ApiJob[] = [];
     let nextPageToken = '';
     try {
       const response = await Apis.jobServiceApi.listJobs(
         request.pageToken,
         request.pageSize,
-        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '',
+        request.sortBy,
+        ApiResourceType.EXPERIMENT.toString(),
+        this.props.experimentId,
       );
       runs = response.jobs || [];
       nextPageToken = response.next_page_token || '';
@@ -130,14 +120,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       logger.error('Could not get list of recurring runs', errorMessage);
     }
 
-    this.setState({
-      orderAscending: request.orderAscending!,
-      pageSize: request.pageSize!,
-      pageToken: request.pageToken!,
-      runs,
-      sortBy: request.sortBy!,
-    });
-
+    this.setState({ runs, sortBy: request.sortBy! });
     return nextPageToken;
   }
 

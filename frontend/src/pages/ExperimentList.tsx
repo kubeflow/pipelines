@@ -18,7 +18,7 @@ import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import RunList from './RunList';
-import { Apis, ExperimentSortKeys, ListExperimentsRequest, BaseListRequest, RunSortKeys } from '../lib/Apis';
+import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
 import { ApiResourceType, ApiRun } from '../apis/run';
 import { Link } from 'react-router-dom';
@@ -38,9 +38,6 @@ interface DisplayExperiment extends ApiExperiment {
 
 interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
-  orderAscending: boolean;
-  pageSize: number;
-  pageToken: string;
   selectedExperimentIds: string[];
   selectedRunIds: string[];
   selectedTab: number;
@@ -48,15 +45,13 @@ interface ExperimentListState {
 }
 
 class ExperimentList extends Page<{}, ExperimentListState> {
+  private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
 
     this.state = {
       displayExperiments: [],
-      orderAscending: false,
-      pageSize: 10,
-      pageToken: '',
       selectedExperimentIds: [],
       selectedRunIds: [],
       selectedTab: 0,
@@ -126,37 +121,29 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <CustomTable columns={columns} rows={rows} orderAscending={this.state.orderAscending}
-          disableSelection={true} sortBy={this.state.sortBy}
+        <CustomTable columns={columns} rows={rows}
+          disableSelection={true} initialSortColumn={this.state.sortBy}
           reload={this._reload.bind(this)} selectedIds={this.state.selectedExperimentIds}
-          toggleExpansion={this._toggleRowExpand.bind(this)} pageSize={this.state.pageSize}
+          toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
           emptyMessage='No experiments found. Click "Create experiment" to start.' />
       </div>
     );
   }
 
-  public async load(loadRequest?: BaseListRequest): Promise<void> {
-    await this._reload(loadRequest);
+  public async load() {
+    if (this._tableRef.current) {
+      this._tableRef.current.reload();
+    }
   }
 
-  private async _reload(loadRequest?: BaseListRequest): Promise<string> {
-    // Override the current state with incoming request
-    const request: ListExperimentsRequest = Object.assign({
-      orderAscending: this.state.orderAscending,
-      pageSize: this.state.pageSize,
-      pageToken: this.state.pageToken,
-      sortBy: this.state.sortBy,
-    }, loadRequest);
-
+  private async _reload(request: ListRequest): Promise<string> {
     // Fetch the list of experiments
     let response: ApiListExperimentsResponse;
     let displayExperiments: DisplayExperiment[];
     try {
       response = await Apis.experimentServiceApi.listExperiment(
-        request.pageToken,
-        request.pageSize,
-        request.sortBy ? request.sortBy + (request.orderAscending ? ' asc' : ' desc') : '');
+        request.pageToken, request.pageSize, request.sortBy);
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => exp.expandState = ExpandState.COLLAPSED);
     } catch (err) {
@@ -185,18 +172,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       }
     }));
 
-    // TODO: saw this warning:
-    // Warning: Can't call setState (or forceUpdate) on an unmounted component.
-    // This is a no-op, but it indicates a memory leak in your application.
-    // To fix, cancel all subscriptions and asynchronous tasks in the componentWillUnmount method.
-    this.setState({
-      displayExperiments,
-      orderAscending: request.orderAscending!,
-      pageSize: request.pageSize!,
-      pageToken: request.pageToken!,
-      sortBy: request.sortBy!,
-    });
-
+    this.setState({ displayExperiments, sortBy: request.sortBy! });
     return response.next_page_token || '';
   }
 
