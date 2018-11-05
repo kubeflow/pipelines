@@ -130,12 +130,12 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
-elif [ "$TEST_NAME" == "tfma" ]; then
-  SAMPLE_TFMA_TEST_RESULT=junit_SampleTFMAOutput.xml
-  SAMPLE_TFMA_TEST_OUTPUT=${RESULTS_GCS_DIR}
+elif [ "$TEST_NAME" == "tfx" ]; then
+  SAMPLE_TFX_TEST_RESULT=junit_SampleTFXOutput.xml
+  SAMPLE_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
   # Compile samples
-  cd ${BASE_DIR}/samples/tfma
+  cd ${BASE_DIR}/samples/tfx
   DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
   DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
   DATAFLOW_TFDV_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFDV_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
@@ -153,8 +153,8 @@ elif [ "$TEST_NAME" == "tfma" ]; then
   dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
 
   cd /
-  python3 run_tfma_test.py --input ${BASE_DIR}/samples/tfma/taxi-cab-classification-pipeline.tar.gz --result $SAMPLE_TFMA_TEST_RESULT --output $SAMPLE_TFMA_TEST_OUTPUT
+  python3 run_tfx_test.py --input ${BASE_DIR}/samples/tfx/taxi-cab-classification-pipeline.tar.gz --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp ${SAMPLE_TFMA_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFMA_TEST_RESULT}
+  gsutil cp ${SAMPLE_TFX_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFX_TEST_RESULT}
 fi
