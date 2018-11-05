@@ -63,11 +63,11 @@ class PipelineList extends Page<{}, PipelineListState> {
       }, {
         action: () => this.props.updateDialog({
           buttons: [
-            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+            { onClick: async () => await this._deleteDialogClosed(true), text: 'Delete' },
+            { onClick: async () => await this._deleteDialogClosed(false), text: 'Cancel' },
           ],
-          onClose: () => this._deleteDialogClosed(false),
-          title: `Delete ${this.state.selectedIds.length} Pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
+          onClose: async () => await this._deleteDialogClosed(false),
+          title: `Delete ${this.state.selectedIds.length} pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
         }),
         disabled: true,
         disabledTitle: 'Select at least one pipeline to delete',
