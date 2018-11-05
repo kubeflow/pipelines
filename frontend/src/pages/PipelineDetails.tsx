@@ -298,6 +298,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let nodeInfoJsx: JSX.Element = <div>Unable to retrieve node info</div>;
     const nodeInfo = StaticGraphParser.getNodeInfo(this.state.template, id);
 
+    if (!nodeInfo) {
+      logger.error(`Node with ID: ${id} was not found in the graph`);
+      return;
+    }
+
     switch (nodeInfo.nodeType) {
       case 'container':
         if (nodeInfo.containerInfo) {

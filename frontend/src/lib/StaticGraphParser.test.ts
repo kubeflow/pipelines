@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { createGraph, getNodeInfo } from './StaticGraphParser';
+import { createGraph, getNodeInfo, SelectedNodeInfo } from './StaticGraphParser';
 
 describe('StaticGraphParser', () => {
 
@@ -244,33 +244,33 @@ describe('StaticGraphParser', () => {
   });
 
   describe('getNodeInfo', () => {
-    it('Returns nodeInfo containing only \'unknown\' nodeType if nodeId is undefined', () => {
+    it('Returns null if nodeId is undefined', () => {
       const nodeInfo = getNodeInfo(newWorkflow(), undefined);
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+      expect(nodeInfo).toBeNull();
     });
 
-    it('Returns nodeInfo containing only \'unknown\' nodeType if nodeId is empty', () => {
+    it('Returns null if nodeId is empty', () => {
       const nodeInfo = getNodeInfo(newWorkflow(), '');
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+      expect(nodeInfo).toBeNull();
     });
 
-    it('Returns nodeInfo containing only \'unknown\' nodeType if workflow is undefined', () => {
+    it('Returns null if workflow is undefined', () => {
       const nodeInfo = getNodeInfo(undefined, 'someId');
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+      expect(nodeInfo).toBeNull();
     });
 
-    it('Returns nodeInfo containing only \'unknown\' nodeType if workflow.spec is undefined', () => {
+    it('Returns null if workflow.spec is undefined', () => {
       const workflow = newWorkflow();
       workflow.spec = undefined;
       const nodeInfo = getNodeInfo(workflow, 'someId');
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+      expect(nodeInfo).toBeNull();
     });
 
-    it('Returns nodeInfo containing only \'unknown\' nodeType if workflow.spec.templates is undefined', () => {
+    it('Returns null if workflow.spec.templates is undefined', () => {
       const workflow = newWorkflow();
       workflow.spec.templates = undefined;
       const nodeInfo = getNodeInfo(workflow, 'someId');
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+      expect(nodeInfo).toBeNull();
     });
 
     it('Returns nodeInfo containing only \'unknown\' nodeType if no template matches provided ID', () => {
@@ -353,7 +353,7 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('container');
       expect(nodeInfo.containerInfo!.args).toEqual(['arg1', 'arg2']);
     });
@@ -372,7 +372,7 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('container');
       expect(nodeInfo.containerInfo!.command).toEqual(['command1', 'command2']);
     });
@@ -391,12 +391,12 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('container');
       expect(nodeInfo.containerInfo!.image).toBe('someImageID');
     });
 
-    it('Returns nodeInfo containing container inputs as list of name/value duples', () => {
+    it('Returns nodeInfo containing container inputs as list of name/value tuples', () => {
       const workflow = {
         spec: {
           entrypoint: 'template-1',
@@ -414,7 +414,7 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('container');
       expect(nodeInfo.containerInfo!.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
     });
@@ -437,12 +437,12 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('container');
       expect(nodeInfo.containerInfo!.inputs).toEqual([['param1', ''], ['param2', '']]);
     });
 
-    it('Returns nodeInfo containing container outputs as list of name/value duples, pulling from valueFrom if necessary', () => {
+    it('Returns nodeInfo containing container outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
       const workflow = {
         spec: {
           entrypoint: 'template-1',
@@ -463,7 +463,7 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('container');
       expect(nodeInfo.containerInfo!.outputs).toEqual([
         ['param1', 'val1'],
@@ -492,7 +492,7 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('container');
       expect(nodeInfo.containerInfo!.outputs).toEqual([['param1', ''], ['param2', '']]);
     });
@@ -511,9 +511,9 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('steps');
-      expect(nodeInfo.stepsInfo).toEqual({ conditional: '', parameters: [[]]);
+      expect(nodeInfo.stepsInfo).toEqual({ conditional: '', parameters: [[]] });
     });
 
     it('Returns nodeInfo with step template\'s conditional when node template has \'when\' property', () => {
@@ -528,12 +528,12 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('steps');
-      expect(nodeInfo.stepsInfo).toEqual({ conditional: '{{someVar}} == something', parameters: [[]]);
+      expect(nodeInfo.stepsInfo).toEqual({ conditional: '{{someVar}} == something', parameters: [[]] });
     });
 
-    it('Returns nodeInfo with step template\'s arguments when node template has \'when\' property', () => {
+    it('Returns nodeInfo with step template\'s arguments', () => {
       const workflow = {
         spec: {
           entrypoint: 'template-1',
@@ -552,10 +552,15 @@ describe('StaticGraphParser', () => {
           ],
         },
       } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
+      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       expect(nodeInfo.nodeType).toBe('steps');
       expect(nodeInfo.stepsInfo)
-        .toEqual({ conditional: '', parameters: [['param1', 'val1'], ['param2', 'val2']]);
+        .toEqual({ conditional: '', parameters: [['param1', 'val1'], ['param2', 'val2']] });
     });
   });
+
+  function verifyNodeInfoNotNull(nodeInfo: SelectedNodeInfo | null): SelectedNodeInfo {
+    expect(nodeInfo).not.toBeNull();
+    return nodeInfo!;
+  }
 });
