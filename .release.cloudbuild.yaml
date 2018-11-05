@@ -103,6 +103,19 @@ steps:
   id:   'copyUninstallerYAMLToLatest'
   waitFor: ['prepareUninstallerYAML']
 
+# Copy the Python SDK
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz', '/workspace/']
+  id:   'copyPythonSDKLocal'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp.tar.gz', 'gs://ml-pipeline/release/$TAG_NAME/kfp.tar.gz']
+  id:   'copyPythonSDK'
+  waitFor: ['copyPythonSDKLocal']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp.tar.gz', 'gs://ml-pipeline/release/latest/kfp.tar.gz']
+  id:   'copyPythonSDKToLatest'
+  waitFor: ['copyPythonSDKLocal']
+
 # Pull and retag the images for the Dataflow-based pipeline components
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA']
