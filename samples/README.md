@@ -125,17 +125,17 @@ Each pipeline is identified as a python function. For example:
 
 ```python
 @kfp.dsl.pipeline(
-  name='TFMA Trainer',
-  description='A trainer that does end-to-end training for TFMA models.'
+  name='TFX Trainer',
+  description='A trainer that does end-to-end training for TFX models.'
 )
 def train(
     output_path,
     train_data=kfp.dsl.PipelineParam('train-data',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv'),
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv'),
     eval_data=kfp.dsl.PipelineParam('eval-data',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv'),
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv'),
     schema=kfp.dsl.PipelineParam('schema',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json'),
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/schema.json'),
     target=kfp.dsl.PipelineParam('target', value='tips'),
     learning_rate=kfp.dsl.PipelineParam('learning-rate', value=0.1),
     hidden_layer_size=kfp.dsl.PipelineParam('hidden-layer-size', value='100,50'),
