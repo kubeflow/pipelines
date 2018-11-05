@@ -115,7 +115,7 @@ def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='dep
 
 
 @dsl.pipeline(
-  name='TFMA Taxi Cab Classification Pipeline Example',
+  name='TFX Taxi Cab Classification Pipeline Example',
   description='Example pipeline that does classification with model analysis based on a public BigQuery dataset.'
 )
 def taxi_cab_classification(
@@ -124,23 +124,23 @@ def taxi_cab_classification(
 
     column_names: dsl.PipelineParam=dsl.PipelineParam(
         name='column-names',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/column-names.json'),
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json'),
     key_columns: dsl.PipelineParam=dsl.PipelineParam(
         name='key-columns',
         value='trip_start_timestamp'),
     train: dsl.PipelineParam=dsl.PipelineParam(
         name='train',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv'),
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv'),
     evaluation: dsl.PipelineParam=dsl.PipelineParam(
         name='evaluation',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv'),
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv'),
     validation_mode: dsl.PipelineParam=dsl.PipelineParam(
         name='validation-mode', value='local'),
     preprocess_mode: dsl.PipelineParam=dsl.PipelineParam(
         name='preprocess-mode', value='local'),
     preprocess_module: dsl.PipelineParam=dsl.PipelineParam(
         name='preprocess-module',
-        value='gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py'),
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py'),
     target: dsl.PipelineParam=dsl.PipelineParam(
         name='target', value='tips'),
     learning_rate: dsl.PipelineParam=dsl.PipelineParam(name='learning-rate', value=0.1),
