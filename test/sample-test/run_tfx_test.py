@@ -47,7 +47,7 @@ def parse_arguments():
 def main():
   args = parse_arguments()
   test_cases = []
-  test_name = 'TFMA Sample Test'
+  test_name = 'TFX Sample Test'
 
   ###### Initialization ######
   client = Client()
@@ -59,13 +59,13 @@ def main():
     exit()
 
   ###### Create Experiment ######
-  experiment_name = 'TFMA sample experiment'
+  experiment_name = 'TFX sample experiment'
   response = client.create_experiment(experiment_name)
   experiment_id = response.id
   utils.add_junit_test(test_cases, 'create experiment', True)
 
   ###### Create Job ######
-  job_name = 'TFMA_sample'
+  job_name = 'TFX_sample'
   params = {'output': args.output,
             'project': 'ml-pipeline-test',
             'column-names': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json',
