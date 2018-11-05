@@ -47,8 +47,8 @@ def add_two_numbers_decorated_with_parameters(a: float, b: float) -> float:
 
 class PythonOpTestCase(unittest.TestCase):
     def helper_test_2_in_1_out_component_using_local_call(self, func, op):
-        arg1 = 3
-        arg2 = 5
+        arg1 = float(3)
+        arg2 = float(5)
 
         expected = func(arg1, arg2)
         if isinstance(expected, tuple):
@@ -69,8 +69,8 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(actual_str, expected_str)
 
     def helper_test_2_in_2_out_component_using_local_call(self, func, op):
-        arg1 = 3
-        arg2 = 5
+        arg1 = float(3)
+        arg2 = float(5)
 
         expected_tuple = func(arg1, arg2)
         expected1_str = str(expected_tuple[0])
