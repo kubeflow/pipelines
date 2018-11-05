@@ -23,6 +23,8 @@ usage()
     [--commit_sha                   commit SHA to pull code from]
     [--dataflow-tft-image           image path to the dataflow tft]
     [--dataflow-predict-image       image path to the dataflow predict]
+    [--dataflow-tfma-image          image path to the dataflow tfma]
+    [--dataflow-tfdv-image          image path to the dataflow tfdv]
     [--dataproc-create-cluster-image        image path to the dataproc create cluster]
     [--dataproc-delete-cluster-image        image path to the dataproc delete cluster]
     [--dataproc-analyze-image               image path to the dataproc analyze]
@@ -30,6 +32,7 @@ usage()
     [--dataproc-train-image                 image path to the dataproc train]
     [--dataproc-predict-image       image path to the dataproc predict]
     [--kubeflow-dnntrainer-image    image path to the kubeflow dnntrainer]
+    [--kubeflow-deployer-image      image path to the kubeflow deployer]
     [--local-confusionmatrix-image  image path to the confusion matrix]
     [--local-roc-image              image path to the roc]
     [--test-name                    test name: tf-training, xgboost]
@@ -49,6 +52,12 @@ while [ "$1" != "" ]; do
                                                 ;;
              --dataflow-predict-image )         shift
                                                 DATAFLOW_PREDICT_IMAGE=$1
+                                                ;;
+             --dataflow-tfma-image )            shift
+                                                DATAFLOW_TFMA_IMAGE=$1
+                                                ;;
+             --dataflow-tfdv-image )            shift
+                                                DATAFLOW_TFDV_IMAGE=$1
                                                 ;;
              --dataproc-create-cluster-image )  shift
                                                 DATAPROC_CREATE_CLUSTER_IMAGE=$1
@@ -70,6 +79,9 @@ while [ "$1" != "" ]; do
                                                 ;;
              --kubeflow-dnntrainer-image )      shift
                                                 KUBEFLOW_DNNTRAINER_IMAGE=$1
+                                                ;;
+             --kubeflow-deployer-image )        shift
+                                                KUBEFLOW_DEPLOYER_IMAGE=$1
                                                 ;;
              --local-confusionmatrix-image )    shift
                                                 LOCAL_CONFUSIONMATRIX_IMAGE=$1
@@ -94,7 +106,7 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
-GITHUB_REPO=googleprivate/ml
+GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/python/src/github.com/${GITHUB_REPO}
 
 # Add github to SSH known host.
@@ -148,6 +160,31 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
+elif [ "$TEST_NAME" == "tfma" ]; then
+  SAMPLE_TFMA_TEST_RESULT=junit_SampleTFMAOutput.xml
+  SAMPLE_TFMA_TEST_OUTPUT=${RESULTS_GCS_DIR}
+  # Compile samples
+  cd ${BASE_DIR}/samples/tfma	  cd ${BASE_DIR}/samples/xgboost-spark
+  DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  DATAFLOW_TFDV_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFDV_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  DATAFLOW_TFMA_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFMA_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DNNTRAINER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  KUBEFLOW_DEPLOYER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DEPLOYER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFT_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_PREDICT_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFDV_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFMA_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DEPLOYER_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
+
+  dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
+  cd /
+  python3 run_tfma_test.py --input ${BASE_DIR}/samples/tfma/taxi-cab-classification-pipeline.tar.gz --result $SAMPLE_TFMA_TEST_RESULT --output $SAMPLE_TFMA_TEST_OUTPUT
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_TFMA_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFMA_TEST_RESULT}
+
 elif [ "$TEST_NAME" == "xgboost" ]; then
   SAMPLE_XGBOOST_TEST_RESULT=junit_SampleXGBoostOutput.xml
   SAMPLE_XGBOOST_TEST_OUTPUT=${RESULTS_GCS_DIR}
