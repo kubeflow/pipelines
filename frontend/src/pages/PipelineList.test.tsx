@@ -20,7 +20,9 @@ import TestUtils from '../TestUtils';
 import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
+import { RoutePage, RouteParams } from '../components/Router';
 import { shallow } from 'enzyme';
+import { range } from 'lodash';
 
 describe('PipelineList', () => {
   const updateBannerSpy = jest.fn();
@@ -34,12 +36,23 @@ describe('PipelineList', () => {
       history: {} as any,
       location: '' as any,
       match: '' as any,
-      toolbarProps: { actions: [], breadcrumbs: [] },
+      toolbarProps: PipelineList.prototype.getInitialToolbarState(),
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
       updateToolbar: updateToolbarSpy,
     };
+  }
+
+  async function mountWithNPipelines(n: number) {
+    listPipelinesSpy.mockImplementationOnce(() => ({
+      pipelines: range(n).map(i => ({ id: 'test-pipeline-id' + i, name: 'test pipeline name' + i })),
+    }));
+    const tree = TestUtils.mountWithRouter(PipelineList, generateProps());
+    await listPipelinesSpy;
+    await TestUtils.flushPromises();
+    tree.update(); // Make sure the tree is updated before searching it
+    return tree;
   }
 
   beforeEach(() => {
@@ -121,11 +134,7 @@ describe('PipelineList', () => {
   });
 
   it('shows error banner when listing pipelines fails', async () => {
-    listPipelinesSpy.mockImplementationOnce(() => {
-      throw {
-        text: () => Promise.resolve('bad stuff happened'),
-      };
-    });
+    TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     TestUtils.mountWithRouter(PipelineList, generateProps());
     await listPipelinesSpy;
     await TestUtils.flushPromises();
@@ -141,11 +150,7 @@ describe('PipelineList', () => {
       .instance() as PipelineList;
     const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
     expect(refreshBtn).toBeDefined();
-    listPipelinesSpy.mockImplementationOnce(() => {
-      throw {
-        text: () => Promise.resolve('bad stuff happened'),
-      };
-    });
+    TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
     expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
@@ -157,11 +162,7 @@ describe('PipelineList', () => {
   });
 
   it('hides error banner when listing pipelines fails then succeeds', async () => {
-    listPipelinesSpy.mockImplementationOnce(() => {
-      throw {
-        text: () => Promise.resolve('bad stuff happened'),
-      };
-    });
+    TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     const instance = TestUtils.mountWithRouter(PipelineList, generateProps())
       .instance() as PipelineList;
     await listPipelinesSpy;
@@ -178,6 +179,63 @@ describe('PipelineList', () => {
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+  });
+
+  it('renders pipeline names as links to their details pages', async () => {
+    const tree = await mountWithNPipelines(1);
+    const link = tree.find('a[children="test pipeline name0"]');
+    expect(link).toHaveLength(1);
+    expect(link.prop('href')).toBe(RoutePage.PIPELINE_DETAILS.replace(
+      ':' + RouteParams.pipelineId, 'test-pipeline-id0'
+    ));
+  });
+
+  it('enables delete button when one pipeline is selected', async () => {
+    const tree = await mountWithNPipelines(1);
+    tree.find('.tableRow').simulate('click');
+    expect(updateToolbarSpy.mock.calls).toHaveLength(2); // Initial call, then selection update
+    const calls = updateToolbarSpy.mock.calls[1];
+    expect(calls[0].actions.find((b: any) => b.title === 'Delete')).toHaveProperty('disabled', false);
+  });
+
+  it('enables delete button when two pipelines are selected', async () => {
+    const tree = await mountWithNPipelines(2);
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(1).simulate('click');
+    expect(updateToolbarSpy.mock.calls).toHaveLength(3); // Initial call, then selection updates
+    const calls = updateToolbarSpy.mock.calls[2];
+    expect(calls[0].actions.find((b: any) => b.title === 'Delete')).toHaveProperty('disabled', false);
+  });
+
+  it('re-disables delete button pipelines are unselected', async () => {
+    const tree = await mountWithNPipelines(1);
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(0).simulate('click');
+    expect(updateToolbarSpy.mock.calls).toHaveLength(3); // Initial call, then selection updates
+    const calls = updateToolbarSpy.mock.calls[2];
+    expect(calls[0].actions.find((b: any) => b.title === 'Delete')).toHaveProperty('disabled', true);
+  });
+
+  it('shows delete dialog when delete button is clicked', async () => {
+    const tree = await mountWithNPipelines(1);
+    tree.find('.tableRow').at(0).simulate('click');
+    const deleteBtn = (tree.instance() as PipelineList)
+      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    expect(call).toHaveProperty('title', 'Delete 1 Pipeline?');
+  });
+
+  it('shows delete dialog when delete button is clicked, indicating several pipelines to delete', async () => {
+    const tree = await mountWithNPipelines(5);
+    tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(2).simulate('click');
+    tree.find('.tableRow').at(3).simulate('click');
+    const deleteBtn = (tree.instance() as PipelineList)
+      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    expect(call).toHaveProperty('title', 'Delete 3 Pipelines?');
   });
 
 });

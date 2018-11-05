@@ -34,4 +34,12 @@ export default class TestUtils {
   public static flushPromises() {
     return new Promise(resolve => setImmediate(resolve));
   }
+
+  public static makeErrorResponseOnce(spy: jest.SpyInstance, message: string) {
+    spy.mockImplementationOnce(() => {
+      throw {
+        text: () => Promise.resolve(message),
+      };
+    });
+  }
 }
