@@ -123,7 +123,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         title: 'Clone',
         tooltip: 'Clone',
       }, {
-        action: this.load.bind(this),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -259,6 +259,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         )}
       </div>
     );
+  }
+
+  public async jcomponentDidMount() {
+    await this.load();
+  }
+
+  public async refresh() {
+    await this.load();
   }
 
   public async load() {

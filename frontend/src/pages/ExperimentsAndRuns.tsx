@@ -58,7 +58,7 @@ class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsS
     );
   }
 
-  public async load(): Promise<void> {
+  public async refresh(): Promise<void> {
     return;
   }
 

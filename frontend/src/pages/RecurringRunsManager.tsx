@@ -91,7 +91,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     </React.Fragment>);
   }
 
-  public async load() {
+  public async refresh() {
     if (this._tableRef.current) {
       this._tableRef.current.reload();
     }
@@ -154,7 +154,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
           busyIds = this.state.busyIds;
           busyIds.delete(id);
           this.setState({ busyIds });
-          await this.load();
+          await this.refresh();
         });
       }} />;
   }

@@ -81,7 +81,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     );
   }
 
-  public async load() {
+  public async refresh() {
     if (this._tableRef.current) {
       this._tableRef.current.reload();
     }

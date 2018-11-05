@@ -56,7 +56,7 @@ class PipelineList extends Page<{}, PipelineListState> {
         title: 'Upload pipeline',
         tooltip: 'Upload pipeline',
       }, {
-        action: () => this.load(),
+        action: () => this.refresh(),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -111,9 +111,9 @@ class PipelineList extends Page<{}, PipelineListState> {
     );
   }
 
-  public async load(): Promise<void> {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
-      this._tableRef.current.reload();
+      await this._tableRef.current.reload();
     }
   }
 
@@ -122,6 +122,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     try {
       response = await Apis.pipelineServiceApi.listPipelines(
         request.pageToken, request.pageSize, request.sortBy);
+      this.clearPageError();
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
     }
@@ -171,7 +172,7 @@ class PipelineList extends Page<{}, PipelineListState> {
           message: `Successfully deleted ${successfulDeletes} pipeline${successfulDeletes === 1 ? '' : 's'}!`,
           open: true,
         });
-        this.load();
+        this.refresh();
       }
 
       if (unsuccessfulDeleteIds.length > 0) {
@@ -189,7 +190,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       try {
         await Apis.uploadPipeline(name, file);
         this.setState({ uploadDialogOpen: false });
-        this.load();
+        this.refresh();
         return true;
       } catch (err) {
         const errorMessage = await errorToMessage(err);

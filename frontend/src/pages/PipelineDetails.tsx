@@ -124,12 +124,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return {
       actions: [
         {
-        action: this._createNewExperiment.bind(this),
-        id: 'startNewExperimentBtn',
-        // TODO: should be primary.
-        outlined: true,
-        title: 'Start an experiment',
-        tooltip: 'Create a new experiment beginning with this pipeline',
+          action: this._createNewExperiment.bind(this),
+          id: 'startNewExperimentBtn',
+          // TODO: should be primary.
+          outlined: true,
+          title: 'Start an experiment',
+          tooltip: 'Create a new experiment beginning with this pipeline',
         },
         {
           action: () => this.props.updateDialog({
@@ -244,7 +244,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     );
   }
 
-  public async load(): Promise<void> {
+  public async refresh() {
+    return;
+  }
+
+  public async componentDidMount(): Promise<void> {
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
     // TODO: Show spinner while waiting for responses

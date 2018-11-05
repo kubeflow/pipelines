@@ -45,7 +45,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
   public getInitialToolbarState() {
     return {
       actions: [{
-        action: this.load.bind(this),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -143,6 +143,14 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     );
   }
 
+  public componentDidMount() {
+    this.load();
+  }
+
+  public async refresh() {
+    await this.load();
+  }
+
   public async load() {
     const runId = this.props.match.params[RouteParams.runId];
 
@@ -195,7 +203,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
       this._updateToolbar(toolbarActions);
       try {
         await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
-        this.load();
+        this.refresh();
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         this.showErrorDialog(

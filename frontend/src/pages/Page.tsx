@@ -40,13 +40,13 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
 
   public abstract getInitialToolbarState(): ToolbarProps;
 
-  public abstract load(): Promise<void>;
-
-  public async componentDidMount() {
-    await this.load();
-  }
+  public abstract refresh(): Promise<void>;
 
   public componentWillUnmount() {
+    this.clearPageError();
+  }
+
+  public async clearPageError() {
     this.props.updateBanner({});
   }
 
@@ -56,7 +56,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
       additionalInfo: errorMessage ? errorMessage : undefined,
       message: message + (errorMessage ? ' Click Details for more information.' : ''),
       mode: 'error',
-      refresh: this.load.bind(this),
+      refresh: this.refresh.bind(this),
     });
   }
 

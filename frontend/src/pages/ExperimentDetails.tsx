@@ -161,7 +161,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   public getInitialToolbarState() {
     return {
       actions: [{
-        action: this.load.bind(this),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -239,6 +239,14 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         )}
       </div>
     );
+  }
+
+  public async refresh() {
+    return;
+  }
+
+  public componentDidMount() {
+    this.load();
   }
 
   public async load() {
