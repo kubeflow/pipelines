@@ -72,7 +72,7 @@ if [ "$CLUSTER_TYPE" == "create-gke" ]; then
     echo "Delete cluster..."
     gcloud container clusters delete ${TEST_CLUSTER} --async
   }
-  #trap delete_cluster EXIT
+  trap delete_cluster EXIT
 
   gcloud config set project ml-pipeline-test
   gcloud config set compute/zone us-central1-a
