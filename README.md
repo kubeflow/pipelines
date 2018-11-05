@@ -4,7 +4,7 @@
 
 This project is aimed at:
 
-* End to end orchestration: enabling and simplifying the orchestration of end to end machine learning pipelines
+* End to end orchestration: enabling and simplifying the orchestration of end to end machine learning pipelines.
 * Easy Experimentation: making it easy for users to try numerous ideas and techniques, and manage the various trials/experiments.
 * Easy Re-Use: enabling users to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
 
