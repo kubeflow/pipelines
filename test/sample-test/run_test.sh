@@ -164,7 +164,7 @@ elif [ "$TEST_NAME" == "tfma" ]; then
   SAMPLE_TFMA_TEST_RESULT=junit_SampleTFMAOutput.xml
   SAMPLE_TFMA_TEST_OUTPUT=${RESULTS_GCS_DIR}
   # Compile samples
-  cd ${BASE_DIR}/samples/tfma	  cd ${BASE_DIR}/samples/xgboost-spark
+  cd ${BASE_DIR}/samples/tfma
   DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
   DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
   DATAFLOW_TFDV_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFDV_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
