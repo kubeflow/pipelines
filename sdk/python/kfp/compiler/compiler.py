@@ -337,7 +337,7 @@ class Compiler(object):
         'template': sub_group.name,
       }
 
-      if getattr(sub_group, 'type', None) == 'condition':
+      if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
         condition_operation = '=='
