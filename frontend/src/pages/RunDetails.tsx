@@ -261,7 +261,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     );
   }
 
-  public async jcomponentDidMount() {
+  public async componentDidMount() {
     await this.load();
   }
 

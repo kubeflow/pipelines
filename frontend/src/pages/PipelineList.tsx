@@ -25,7 +25,7 @@ import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger, formatDateString, errorToMessage } from '../lib/Utils';
+import { formatDateString, errorToMessage } from '../lib/Utils';
 
 interface PipelineListState {
   pipelines: ApiPipeline[];
@@ -189,10 +189,8 @@ class PipelineList extends Page<{}, PipelineListState> {
     if (!!file) {
       try {
         await Apis.uploadPipeline(name, file);
-        if (this._isMounted) {
-          this.setStateSafe({ uploadDialogOpen: false });
-          this.refresh();
-        }
+        this.setStateSafe({ uploadDialogOpen: false });
+        this.refresh();
         return true;
       } catch (err) {
         const errorMessage = await errorToMessage(err);
@@ -200,9 +198,7 @@ class PipelineList extends Page<{}, PipelineListState> {
         return false;
       }
     } else {
-      if (this._isMounted) {
-        this.setStateSafe({ uploadDialogOpen: false });
-      }
+      this.setStateSafe({ uploadDialogOpen: false });
       return false;
     }
   }

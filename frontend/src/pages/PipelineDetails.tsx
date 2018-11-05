@@ -122,29 +122,26 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public getInitialToolbarState() {
     return {
-      actions: [
-        {
-          action: this._createNewExperiment.bind(this),
-          id: 'startNewExperimentBtn',
-          // TODO: should be primary.
-          outlined: true,
-          title: 'Start an experiment',
-          tooltip: 'Create a new experiment beginning with this pipeline',
-        },
-        {
-          action: () => this.props.updateDialog({
-            buttons: [
-              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-            ],
-            onClose: () => this._deleteDialogClosed(false),
-            title: 'Delete this Pipeline?',
-          }),
-          id: 'deleteBtn',
-          title: 'Delete',
-          tooltip: 'Delete this pipeline',
-        }
-      ],
+      actions: [{
+        action: this._createNewExperiment.bind(this),
+        id: 'startNewExperimentBtn',
+        // TODO: should be primary.
+        outlined: true,
+        title: 'Start an experiment',
+        tooltip: 'Create a new experiment beginning with this pipeline',
+      }, {
+        action: () => this.props.updateDialog({
+          buttons: [
+            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+          ],
+          onClose: () => this._deleteDialogClosed(false),
+          title: 'Delete this Pipeline?',
+        }),
+        id: 'deleteBtn',
+        title: 'Delete',
+        tooltip: 'Delete this pipeline',
+      }],
       breadcrumbs: [
         { displayName: 'Pipelines', href: RoutePage.PIPELINES },
         { displayName: this.props.match.params[RouteParams.pipelineId], href: '' }

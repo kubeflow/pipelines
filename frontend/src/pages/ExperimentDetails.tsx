@@ -326,7 +326,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _recurringRunsManagerClosed() {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
-    this.load();
+    this.refresh();
   }
 }
 
