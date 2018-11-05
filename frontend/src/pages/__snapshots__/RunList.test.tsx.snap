@@ -38,8 +38,7 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={false}
-    pageSize={10}
+    initialSortColumn="created_at"
     reload={[Function]}
     rows={
       Array [
@@ -69,7 +68,6 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
         },
       ]
     }
-    sortBy="created_at"
   />
 </div>
 `;
@@ -112,8 +110,6 @@ exports[`RunList displays error in run row if it failed to parse 1`] = `
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={false}
-    pageSize={10}
     reload={[Function]}
     rows={
       Array [
@@ -131,7 +127,6 @@ exports[`RunList displays error in run row if it failed to parse 1`] = `
         },
       ]
     }
-    sortBy="created_at"
   />
 </div>
 `;
@@ -174,8 +169,6 @@ exports[`RunList loads all runs 1`] = `
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={false}
-    pageSize={10}
     reload={[Function]}
     rows={
       Array [
@@ -193,7 +186,6 @@ exports[`RunList loads all runs 1`] = `
         },
       ]
     }
-    sortBy="created_at"
   />
 </div>
 `;
@@ -236,8 +228,6 @@ exports[`RunList loads runs for a given experiment id 1`] = `
       ]
     }
     emptyMessage="No runs found for this experiment."
-    orderAscending={false}
-    pageSize={10}
     reload={[Function]}
     rows={
       Array [
@@ -255,7 +245,6 @@ exports[`RunList loads runs for a given experiment id 1`] = `
         },
       ]
     }
-    sortBy="created_at"
   />
 </div>
 `;
@@ -298,11 +287,9 @@ exports[`RunList renders the empty experience 1`] = `
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={false}
-    pageSize={10}
+    initialSortColumn="created_at"
     reload={[Function]}
     rows={Array []}
-    sortBy="created_at"
   />
 </div>
 `;
@@ -345,8 +332,6 @@ exports[`RunList shows run time for each run 1`] = `
       ]
     }
     emptyMessage="No runs found."
-    orderAscending={false}
-    pageSize={10}
     reload={[Function]}
     rows={
       Array [
@@ -364,7 +349,6 @@ exports[`RunList shows run time for each run 1`] = `
         },
       ]
     }
-    sortBy="created_at"
   />
 </div>
 `;

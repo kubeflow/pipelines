@@ -336,6 +336,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	runDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             runId,
+			DisplayName:      workflow.Name,
 			Name:             workflow.Name,
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),

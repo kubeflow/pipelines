@@ -50,7 +50,7 @@ spec:
       - '{{inputs.parameters.analyze-slice-column}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/analysis'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.0.42
     inputs:
       parameters:
       - name: analyze-mode
@@ -99,7 +99,7 @@ spec:
       - '{{inputs.parameters.training-train}}'
       - --server-name
       - taxi-cab-classification-model-{{workflow.name}}
-      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.0.42
     inputs:
       parameters:
       - name: training-train
@@ -148,7 +148,7 @@ spec:
       - '{{inputs.parameters.project}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/predict'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.42
     inputs:
       parameters:
       - name: evaluation
@@ -207,7 +207,7 @@ spec:
       - '{{inputs.parameters.preprocess-module}}'
       - --output
       - '{{inputs.parameters.output}}/{{workflow.name}}/transformed'
-      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.18
+      image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.42
     inputs:
       parameters:
       - name: evaluation
@@ -375,7 +375,7 @@ spec:
       - '{{inputs.parameters.preprocess-module}}'
       - --job-dir
       - '{{inputs.parameters.output}}/{{workflow.name}}/train'
-      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:dev
+      image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.0.42
     inputs:
       parameters:
       - name: hidden-layer-size

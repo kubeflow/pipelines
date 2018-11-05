@@ -123,7 +123,7 @@ Go to [release page](https://github.com/kubeflow/pipelines/releases) to find a v
 
 For example:
 ```bash
-PIPELINE_VERSION=0.0.26
+PIPELINE_VERSION=0.0.42
 kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml
 ```
 And by running `kubectl get job`, you should see a job created that deploys ML pipeline along with all dependencies in the cluster.
@@ -143,7 +143,7 @@ If you want to turn off the usage report, you can download the bootstrapper file
 
 For example, download bootstrapper
 ```bash
-PIPELINE_VERSION=0.0.26
+PIPELINE_VERSION=0.0.42
 curl https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml --output bootstrapper.yaml
 ```
 and then update argument in the file
@@ -173,7 +173,7 @@ To uninstall ML pipeline, download the bootstrapper file and change the argument
 
 For example, download bootstrapper
 ```bash
-PIPELINE_VERSION=0.0.26
+PIPELINE_VERSION=0.0.42
 curl https://storage.googleapis.com/ml-pipeline/release/$PIPELINE_VERSION/bootstrapper.yaml --output bootstrapper.yaml
 ```
 and then update argument in the file
