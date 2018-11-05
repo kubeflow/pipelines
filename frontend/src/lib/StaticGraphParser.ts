@@ -160,12 +160,12 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
   return g;
 }
 
-export function getNodeInfo(workflow?: Workflow, nodeId?: string): SelectedNodeInfo {
-  const info: SelectedNodeInfo = { nodeType: 'unknown' };
+export function getNodeInfo(workflow?: Workflow, nodeId?: string): SelectedNodeInfo | null {
   if (!nodeId || !workflow || !workflow.spec || !workflow.spec.templates) {
-    return info;
+    return null;
   }
 
+  const info: SelectedNodeInfo = { nodeType: 'unknown' };
   const template = workflow.spec.templates.find((t) => t.name === nodeId);
   if (template) {
     if (template.container) {
