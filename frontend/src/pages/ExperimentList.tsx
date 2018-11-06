@@ -18,6 +18,7 @@ import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import RunList from './RunList';
+import produce from 'immer';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
 import { ApiResourceType, ApiRun } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
@@ -29,7 +30,6 @@ import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import { statusToIcon, NodePhase } from './Status';
-import { produce } from 'immer';
 
 interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
@@ -82,7 +82,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         title: 'Clone run',
         tooltip: 'Create a copy from this run\s initial state',
       }, {
-        action: async () => await this.refresh(),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh the list of experiments',
@@ -227,11 +227,12 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   }
 
   private _toggleRowExpand(rowIndex: number) {
-    const displayExperiments = this.state.displayExperiments;
-    displayExperiments[rowIndex].expandState =
-      displayExperiments[rowIndex].expandState === ExpandState.COLLAPSED ?
-        ExpandState.EXPANDED :
-        ExpandState.COLLAPSED;
+    const displayExperiments = produce(this.state.displayExperiments, draft => {
+      draft[rowIndex].expandState =
+        draft[rowIndex].expandState === ExpandState.COLLAPSED ?
+          ExpandState.EXPANDED :
+          ExpandState.COLLAPSED;
+    });
 
     this.setState({ displayExperiments });
   }

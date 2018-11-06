@@ -201,7 +201,7 @@ describe('PipelineList', () => {
     tree.unmount();
   });
 
-  it('always has new experiment button enabled', async () => {
+  it('always has upload pipeline button enabled', async () => {
     const tree = await mountWithNPipelines(1);
     const calls = updateToolbarSpy.mock.calls[0];
     expect(calls[0].actions.find((b: any) => b.title === 'Upload pipeline')).not.toHaveProperty('disabled');
