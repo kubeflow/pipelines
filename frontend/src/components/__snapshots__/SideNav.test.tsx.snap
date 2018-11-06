@@ -5,6 +5,23 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   className="root noShrink"
   id="sideNav"
 >
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
   <Link
     className="unstyled"
     id="pipelinesBtn"
@@ -15,7 +32,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       className="button active"
     >
       <PipelinesIcon
-        color="rgb(227, 233, 237, 1)"
+        color="#fff"
       />
       <span
         className="label"
@@ -60,6 +77,23 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
   className="root noShrink"
   id="sideNav"
 >
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
   <Link
     className="unstyled"
     id="pipelinesBtn"
@@ -70,7 +104,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       className="button active"
     >
       <PipelinesIcon
-        color="rgb(227, 233, 237, 1)"
+        color="#fff"
       />
       <span
         className="label"
@@ -115,6 +149,23 @@ exports[`SideNav renders collapsed state 1`] = `
   className="root noShrink collapsedRoot"
   id="sideNav"
 >
+  <div
+    className="button collapsedButton logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="collapsedLabel label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
   <Link
     className="unstyled"
     id="pipelinesBtn"
@@ -125,7 +176,7 @@ exports[`SideNav renders collapsed state 1`] = `
       className="button active collapsedButton"
     >
       <PipelinesIcon
-        color="rgb(227, 233, 237, 1)"
+        color="#fff"
       />
       <span
         className="collapsedLabel label"
@@ -170,6 +221,23 @@ exports[`SideNav renders expanded state 1`] = `
   className="root noShrink"
   id="sideNav"
 >
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
   <Link
     className="unstyled"
     id="pipelinesBtn"
@@ -180,7 +248,7 @@ exports[`SideNav renders expanded state 1`] = `
       className="button active"
     >
       <PipelinesIcon
-        color="rgb(227, 233, 237, 1)"
+        color="#fff"
       />
       <span
         className="label"
@@ -225,6 +293,23 @@ exports[`SideNav renders experiments as active page 1`] = `
   className="root noShrink"
   id="sideNav"
 >
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
   <Link
     className="unstyled"
     id="pipelinesBtn"
@@ -254,7 +339,7 @@ exports[`SideNav renders experiments as active page 1`] = `
       className="button active"
     >
       <ExperimentsIcon
-        color="rgb(227, 233, 237, 1)"
+        color="#fff"
       />
       <span
         className="label"
@@ -280,6 +365,23 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
   className="root noShrink"
   id="sideNav"
 >
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
   <Link
     className="unstyled"
     id="pipelinesBtn"
@@ -309,7 +411,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       className="button active"
     >
       <ExperimentsIcon
-        color="rgb(227, 233, 237, 1)"
+        color="#fff"
       />
       <span
         className="label"
@@ -335,6 +437,23 @@ exports[`SideNav renders nothing as active page 1`] = `
   className="root noShrink"
   id="sideNav"
 >
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
   <Link
     className="unstyled"
     id="pipelinesBtn"
@@ -390,6 +509,23 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   className="root noShrink"
   id="sideNav"
 >
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
   <Link
     className="unstyled"
     id="pipelinesBtn"
