@@ -44,15 +44,15 @@ func (c *CLIIntegrationTest) TearDownTest() {
 func (c *CLIIntegrationTest) TestPipelineListSuccess() {
 	t := c.T()
 	rootCmd, _ := GetRealRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "list"})
+	rootCmd.Command().SetArgs([]string{"pipeline", "list", "--debug"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 }
 
-func (c *CLIIntegrationTest) TestPipelineListFailureWrongCommand() {
+func (c *CLIIntegrationTest) TestPipelineListFailureInvalidArgument() {
 	t := c.T()
 	rootCmd, _ := GetRealRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "asfasdfsdf"})
+	rootCmd.Command().SetArgs([]string{"pipeline", "list", "askjdfskldjf", "--debug"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
 }
