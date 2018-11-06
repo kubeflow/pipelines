@@ -159,7 +159,7 @@ if [ "$WITH_KUBEFLOW" = true ]; then
   # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
   mkdir -p ${KF_DIR}
   # We use kubeflow v0.3.0 by default
-  KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.3.0"}
+  KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.3.2"}
   (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
   tar -xzf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
   KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
