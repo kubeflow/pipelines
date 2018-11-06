@@ -194,7 +194,16 @@ class NewRun extends Page<{}, NewRunState> {
     );
   }
 
-  public async load(): Promise<void> {
+  public async refresh() {
+    return this.load();
+  }
+
+  public async componentDidMount(): Promise<void> {
+    return this.load();
+  }
+
+  public async load() {
+    this.clearBanner();
     const urlParser = new URLParser(this.props);
     let experimentId: string | null = urlParser.get(QUERY_PARAMS.experimentId);
 
