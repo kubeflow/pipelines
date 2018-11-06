@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mlp
+from kfp import dsl
 
 def kubeflow_tfjob_launcher_op(container_image, command, number_of_workers: int, number_of_parameter_servers: int, tfjob_timeout_minutes: int, output_dir=None, step_name='TFJob-launcher'):
-    return mlp.ContainerOp(
+    return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:0.0.42', #TODO: Update the name in next release.
         arguments = [
