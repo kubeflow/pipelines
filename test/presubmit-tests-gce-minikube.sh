@@ -78,10 +78,10 @@ git_root_parent=$(dirname "$git_root")
 gcloud compute scp --zone=$ZONE --verbosity=error --recurse "$git_root" $instance_name:'~' >/dev/null || true #Do not fail on error here because of broken symlinks until this is fixed: https://github.com/kubeflow/pipelines/issues/1084
 
 #Installing software on VM
-gcloud compute ssh --zone=$ZONE $instance_name -- "~/ml/test/minikube/install_docker_minikube_argo.sh"
+gcloud compute ssh --zone=$ZONE $instance_name -- "~/pipelines/test/minikube/install_docker_minikube_argo.sh"
 
 #Running the presubmit tests
-gcloud compute ssh --zone=$ZONE $instance_name -- PULL_PULL_SHA="$PULL_PULL_SHA" WORKSPACE="~/${WORKSPACE}" "~/ml/test/presubmit-tests.sh" --cluster-type none "$@"
+gcloud compute ssh --zone=$ZONE $instance_name -- PULL_PULL_SHA="$PULL_PULL_SHA" WORKSPACE="~/${WORKSPACE}" "~/pipelines/test/presubmit-tests.sh" --cluster-type none "$@"
 
 #Copy back the artifacts
 mkdir -p "${ARTIFACT_DIR}"
