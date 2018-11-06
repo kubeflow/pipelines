@@ -1,0 +1,1646 @@
+    1  [2018-09-10 01:14:38] argo list
+    2  [2018-09-10 01:21:18] export HISTFILESIZE=
+    3  [2018-09-10 01:21:18] export HISTSIZE=
+    4  [2018-09-10 01:21:19] export HISTTIMEFORMAT="[%F %T] "
+    5  [2018-09-10 01:21:19] # Change the file location because certain bash sessions truncate .bash_history file upon close.
+    6  [2018-09-10 01:21:19] # http://superuser.com/questions/575479/bash-history-truncated-to-500-lines-on-each-login
+    7  [2018-09-10 01:21:19] export HISTFILE=~/.bash_eternal_history
+    8  [2018-09-10 01:21:19] # Force prompt to write history after every command.
+    9  [2018-09-10 01:21:19] # http://superuser.com/questions/20900/bash-history-loss
+   10  [2018-09-10 01:21:19] PROMPT_COMMAND="history -a; $PROMPT_COMMAND"
+   11  [2018-09-10 01:21:34] history | grep argo
+   12  [2018-09-10 01:22:22] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml
+   13  [2018-09-10 02:11:17] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml -o
+   14  [2018-09-10 02:13:04] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml
+   15  [2018-09-10 02:13:23] argo get argo get 
+   16  [2018-09-10 02:13:39] argo get coinflip-jcfbl
+   17  [2018-09-10 09:28:51] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml | cat -
+   18  [2018-09-10 09:29:09] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml | cat - | grep .*
+   19  [2018-09-10 09:29:19] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml | cat - | grep .* | less
+   20  [2018-09-10 09:29:46] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml | cat - | grep . | less
+   21  [2018-09-10 09:29:59] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml | cat - | grep . | tail
+   22  [2018-09-10 09:30:14] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml | cat - | grep . | tail -n 40
+   23  [2018-09-10 10:22:46] Gnubby_ssh_diagnose_me 
+   24  [2018-09-10 10:22:47] gnubby_ssh_diagnose_me 
+   25  [2018-09-10 10:22:59] gnubby_ssh_diagnose_me --touchid
+   26  [2018-09-10 10:23:19] gnubby_ssh_diagnose_me --debug
+   27  [2018-09-10 10:24:31] gcert
+   28  [2018-09-10 10:24:48] eval $(ssh-agent)
+   29  [2018-09-10 10:28:21] gcert
+   30  [2018-09-11 15:01:13] htop
+   31  [2018-09-11 15:01:15] top
+   32  [2018-09-11 15:02:10] top >top.2018-09-11_1.txt
+   33  [2018-09-11 15:02:27] head top.2018-09-11_1.txt
+   34  [2018-09-11 15:03:24] argo list
+   35  [2018-09-11 15:03:39] top
+   36  [2018-09-11 15:04:36] head top.2018-09-11_1.txt
+   37  [2018-09-11 15:05:05] kill -HUP 124139
+   38  [2018-09-11 15:07:31] kill -HUP 126034
+   39  [2018-09-11 15:08:01] kill -HUP 172762
+   40  [2018-09-11 15:08:09] kill -hup 16129
+   41  [2018-09-11 15:08:13] kill -HUP 16129
+   42  [2018-09-11 15:08:16] kill -HUP 18727
+   43  [2018-09-11 15:08:16] top
+   44  [2018-09-11 15:08:48] docker ps
+   45  [2018-09-11 15:09:12] top
+   46  [2018-09-11 15:09:20] exit
+   47  [2018-09-11 16:44:21] git push -f
+   48  [2018-09-11 16:45:12] git log
+   49  [2018-09-11 16:46:12] git push -f
+   50  [2018-09-12 12:06:51] git push --force
+   51  [2018-09-11 13:10:10] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 46029 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   52  [2018-09-11 13:10:26] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 33501 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   53  [2018-09-11 13:30:43] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 40089 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   54  [2018-09-11 13:41:10] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 36843 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   55  [2018-09-11 13:41:29] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 38413 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   56  [2018-09-11 13:47:32] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 34611 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   57  [2018-09-11 13:47:48] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 42029 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   58  [2018-09-11 13:47:51] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 39229 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   59  [2018-09-11 13:48:07] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 42141 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   60  [2018-09-11 13:48:33] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 44811 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   61  [2018-09-11 13:48:36] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 34391 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   62  [2018-09-11 13:49:00] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 35303 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   63  [2018-09-11 13:49:32] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 38977 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   64  [2018-09-11 13:49:40] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" python /usr/local/google/home/avolkov/.vscode/extensions/ms-python.python-2018.7.1/pythonFiles/PythonTools/visualstudio_py_launcher.py /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle 46047 34806ad9-833a-4524-8cd6-18ca4aa74f14 RedirectOutput,RedirectOutput /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/notebooks/tangle/tangle.py 
+   65  [2018-09-12 14:13:51] kubectl config
+   66  [2018-09-12 14:14:02] kubectl get-contexts
+   67  [2018-09-12 14:14:16] kubectl config get-contexts
+   68  [2018-09-12 14:14:25] kubectl run -i --tty busybox --image=busybox --restart=Never -- sh
+   69  [2018-09-12 14:24:00] kubectl run -i --tty alpine -- bahs
+   70  [2018-09-12 14:24:02] kubectl run -i --tty alpine -- bash
+   71  [2018-09-12 14:24:10] kubectl run -it alpine -- bash
+   72  [2018-09-12 14:24:45] kubectl run -i --tty alpine --image=alpine --restart=Never -- sh
+   73  [2018-09-12 14:25:56] kubectl run -i --tty --image=ubuntu:18.04 --restart=Never -- sh
+   74  [2018-09-12 14:31:29] kubectl run -i --tty busybox --image=busybox --restart=Never -- sh
+   75  [2018-09-12 14:31:42] kubectl run -i --tty --image=busybox --restart=Never -- sh
+   76  [2018-09-12 14:31:48] kubectl run -i --tty bb1 --image=busybox --restart=Never -- sh
+   77  [2018-09-11 15:12:10] docker --help
+   78  [2018-09-11 15:12:28] docker top
+   79  [2018-09-11 15:13:06] docker ps --help
+   80  [2018-09-11 15:13:28] docker ps
+   81  [2018-09-11 15:13:53] kubectl get pods
+   82  [2018-09-11 15:14:12] docker ps --no-trunc
+   83  [2018-09-11 15:15:06] kubectl get jobs
+   84  [2018-09-11 15:15:09] kubectl get wf
+   85  [2018-09-11 15:15:25] kubectl delete coinflip-5ctdv
+   86  [2018-09-11 15:15:33] kubectl delete wf coinflip-5ctdv
+   87  [2018-09-11 15:15:43] kubectl delete wf coinflip-dd9kt coinflip-hlpdk  coinflip-pjtdw coinflip-s9c6d
+   88  [2018-09-11 15:15:47] kubectl get wf
+   89  [2018-09-11 15:16:10] kubectl delete wf build-images-wlvmq coinflip-cvr4j coinflip-q2bvc coinflip-qbwqb coinflip-vgsql coinflip-vmgq9 coinflip-zdw66 dag-fail-r4gvc unit-test-7q48v unit-test-dwvd9 unit-test-hl2t7
+   90  [2018-09-11 15:16:14] kubectl get wf
+   91  [2018-09-11 15:16:17] kubectl get nodes
+   92  [2018-09-11 15:16:27] kubectl config
+   93  [2018-09-11 15:16:37] kubectl config view
+   94  [2018-09-11 15:16:55] kubectl config use-context minikube
+   95  [2018-09-11 15:16:59] kubectl get wf
+   96  [2018-09-11 15:17:04] kubectl get pods
+   97  [2018-09-11 15:17:28] kubectl logs deploy-ml-pipeline-chgkg-2244r
+   98  [2018-09-11 15:23:37] locate ml-pipeline-app
+   99  [2018-09-11 15:24:28] kubectl get pods
+  100  [2018-09-11 15:25:08] kubectl get jobs
+  101  [2018-09-11 15:25:14] kubectl get nodes
+  102  [2018-09-11 15:25:15] kubectl get jobs
+  103  [2018-09-11 15:25:32] kubectl logs deploy-ml-pipeline-chgkg | head
+  104  [2018-09-11 15:25:37] kubectl logs job deploy-ml-pipeline-chgkg | head
+  105  [2018-09-11 15:25:45] argo logs deploy-ml-pipeline-chgkg | head
+  106  [2018-09-11 15:26:03] argo logs deploy-ml-pipeline-chgkg-zxs4b | head
+  107  [2018-09-11 15:26:23] argo logs -w deploy-ml-pipeline | head
+  108  [2018-09-11 15:26:32] argo logs -w deploy-ml-pipeline-chgkg | head
+  109  [2018-09-11 15:26:36] argo list
+  110  [2018-09-11 15:48:01] kubectl get secret mlpipeline-minio-artifact
+  111  [2018-09-11 16:13:01] ARGO_VERSION=v2.2.0
+  112  [2018-09-11 16:13:17] sudo curl -sSL -o /usr/local/bin/argo.2.2.0 https://github.com/argoproj/argo/releases/download/v2.2.0/argo-linux-amd64
+  113  [2018-09-11 16:20:18] gcloud compute ssh debug-a
+  114  [2018-09-11 16:20:29] gcloud compute ssh debug-wm-6
+  115  [2018-09-11 16:20:34] gcloud compute ssh debug-wm-6 -- hostname
+  116  [2018-09-11 16:21:16] gcloud compute ssh debug-wm -- hostname
+  117  [2018-09-11 16:22:05] gcloud compute instances list
+  118  [2018-09-11 16:22:15] gcloud compute ssh debug-vm -- hostname
+  119  [2018-09-11 16:22:37] gcloud compute ssh debug-vm-6 -- curl -sSL -o /usr/local/bin/argo.2.2.0 https://github.com/argoproj/argo/releases/download/v2.2.0/argo-linux-amd64
+  120  [2018-09-11 16:23:03] gcloud compute ssh debug-vm-6 -- curl https://github.com/argoproj/argo/releases/download/v2.2.0/argo-linux-amd64
+  121  [2018-09-11 16:23:47] gcloud compute ssh debug-vm-6 -- curl -L https://github.com/argoproj/argo/releases/download/v2.2.0/argo-linux-amd64
+  122  [2018-09-11 16:23:56] gcloud compute ssh debug-vm-6 -- curl -sSL https://github.com/argoproj/argo/releases/download/v2.2.0/argo-linux-amd64
+  123  [2018-09-11 16:24:03] gcloud compute ssh debug-vm-6 -- curl -sSL -o /usr/local/bin/argo.2.2.0 https://github.com/argoproj/argo/releases/download/v2.2.0/argo-linux-amd64
+  124  [2018-09-11 16:24:12] gcloud compute ssh debug-vm-6 -- curl -sSL -o argo.2.2.0 https://github.com/argoproj/argo/releases/download/v2.2.0/argo-linux-amd64
+  125  [2018-09-11 16:24:27] gcloud compute ssh debug-vm-6 -- curl -sSL -o /usr/local/bin/argo.2.2.0 https://github.com/argoproj/argo/releases/download/v2.2.0/argo-linux-amd64
+  126  [2018-09-11 16:24:44] gcloud compute ssh debug-vm-6 -- ls -la /usr/local/bin/
+  127  [2018-09-11 16:24:51] gcloud compute ssh debug-vm-6 -- ls -la /usr/local/bin
+  128  [2018-09-11 16:25:17] gcloud compute ssh debug-vm-6 -- touch -la /usr/local/bin/argo.x.x.x
+  129  [2018-09-11 16:25:24] gcloud compute ssh debug-vm-6 -- touch /usr/local/bin/argo.x.x.x
+  130  [2018-09-11 16:28:25] gcloud compute ssh debug-vm-6 -- 'echo $PATH'
+  131  [2018-09-11 16:28:29] gcloud compute ssh debug-vm -- 'echo $PATH'
+  132  [2018-09-11 17:30:39] gcloud iam service-accounts list
+  133  [2018-09-11 17:31:19] gcloud compute instances list --project=gke-prow
+  134  [2018-09-11 17:35:38] ip=1.2.3.4
+  135  [2018-09-11 17:35:45] echo ${ip/./_/}
+  136  [2018-09-11 17:35:48] echo ${ip/./_/g}
+  137  [2018-09-11 17:35:51] echo ${ip/./_//}
+  138  [2018-09-11 17:35:53] echo ${ip/./_}
+  139  [2018-09-11 17:35:55] echo ${ip//./_}
+  140  [2018-09-11 17:41:18] ssh 35.197.79.120
+  141  [2018-09-11 17:41:43] telnet 35.197.79.120:22
+  142  [2018-09-11 17:41:51] curl 35.197.79.120:22
+  143  [2018-09-11 17:41:54] curl 35.197.79.120:23
+  144  [2018-09-11 17:42:01] curl 35.197.79.120:80
+  145  [2018-09-11 17:42:04] curl 35.197.79.120:22
+  146  [2018-09-11 18:17:57] gcloud compute instances network-interfaces
+  147  [2018-09-11 18:19:41] gcloud compute instances describe debug-vm --format="value(name)"
+  148  [2018-09-11 18:19:49] gcloud compute instances describe debug-vm --format="value(networkInterfaces)"
+  149  [2018-09-11 18:20:08] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs)"
+  150  [2018-09-11 18:20:30] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP)"
+  151  [2018-09-11 18:20:39] gcloud compute instances describe debug-vm --format="networkInterfaces.accessConfigs.natIP"
+  152  [2018-09-11 18:20:42] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP)"
+  153  [2018-09-11 18:22:19] gcloud compute instances describe debug-vm --format="flatten(networkInterfaces.accessConfigs.natIP)"
+  154  [2018-09-11 18:22:27] gcloud compute instances describe debug-vm --format="test(networkInterfaces.accessConfigs.natIP)"
+  155  [2018-09-11 18:22:34] gcloud compute instances describe debug-vm --format="text(networkInterfaces.accessConfigs.natIP)"
+  156  [2018-09-11 18:22:51] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP)"
+  157  [2018-09-11 18:22:57] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP[0])"
+  158  [2018-09-11 18:23:02] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP)"
+  159  [2018-09-11 18:24:15] gcloud compute instances describe debug-vm --format="yaml(networkInterfaces.accessConfigs.natIP)"
+  160  [2018-09-11 18:24:26] gcloud compute instances describe debug-vm --format="yaml(networkInterfaces.accessConfigs.natIP.)"
+  161  [2018-09-11 18:24:32] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP)"
+  162  [2018-09-11 18:24:36] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs)"
+  163  [2018-09-11 18:25:16] gcloud compute instances describe debug-vm --format="text(networkInterfaces.accessConfigs)"
+  164  [2018-09-11 18:25:23] gcloud compute instances describe debug-vm --format="csv(networkInterfaces.accessConfigs)"
+  165  [2018-09-11 18:25:28] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs)"
+  166  [2018-09-11 18:25:37] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP)"
+  167  [2018-09-11 18:27:15] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP.scope())"
+  168  [2018-09-11 18:27:21] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP)"
+  169  [2018-09-11 18:27:29] gcloud compute instances describe debug-vm --format="json(networkInterfaces.accessConfigs.natIP)"
+  170  [2018-09-11 18:27:33] gcloud compute instances describe debug-vm --format="value(networkInterfaces.accessConfigs.natIP)"
+  171  [2018-09-11 18:27:49] gcloud compute instances describe debug-vm --format="json(networkInterfaces.accessConfigs.natIP)"
+  172  [2018-09-11 18:27:52] gcloud compute instances describe debug-vm --format="json(networkInterfaces.accessConfigs)"
+  173  [2018-09-11 18:27:55] gcloud compute instances describe debug-vm --format="json(networkInterfaces)"
+  174  [2018-09-11 18:28:40] gcloud compute instances describe debug-vm --format="json(networkInterfaces[0])"
+  175  [2018-09-11 18:28:53] gcloud compute instances describe debug-vm --format="json(networkInterfaces.0)"
+  176  [2018-09-11 18:29:02] gcloud compute instances describe debug-vm --format="json(networkInterfaces[0].accessConfigs)"
+  177  [2018-09-11 18:29:14] gcloud compute instances describe debug-vm --format="json(networkInterfaces[0].accessConfigs.natIP)"
+  178  [2018-09-11 18:29:18] gcloud compute instances describe debug-vm --format="json(networkInterfaces[0].accessConfigs[0].natIP)"
+  179  [2018-09-11 18:29:29] gcloud compute instances describe debug-vm --format="value(networkInterfaces[0].accessConfigs[0].natIP)"
+  180  [2018-09-11 18:29:42] gcloud compute instances describe debug-vm --format="text(networkInterfaces[0].accessConfigs[0].natIP)"
+  181  [2018-09-11 19:11:26] gcloud compute firewall-rules create allow-prow-ssh-test-minikube-99df73-1536718118-c06818 --allow tcp:22 --source-ranges=35.232.19.29/32 --target-tags=presubmit-test-vm
+  182  [2018-09-11 19:12:46] gcloud compute firewall-rules delete allow-prow-ssh-test-minikube-99df73-1536718118-c06818
+  183  [2018-09-11 19:14:10] gcloud compute firewall-rules create --project=ml-pipeline-test allow-prow-ssh-test-minikube-99df73-1536718118-c06818 --allow tcp:22 --source-ranges=35.232.19.29/32 --target-tags=presubmit-test-vm
+  184  [2018-09-12 13:39:05] cd 2018-08_Minikube_tests/
+  185  [2018-09-12 13:39:08] cd ml
+  186  [2018-09-12 13:39:36] find .  *.sh | head
+  187  [2018-09-12 13:39:41] find . --name  *.sh | head
+  188  [2018-09-12 13:39:49] find --name *.sh . | head
+  189  [2018-09-12 13:39:53] man find
+  190  [2018-09-12 13:40:06] find -name *.sh . | head
+  191  [2018-09-12 13:40:14] find . -name *.sh | head
+  192  [2018-09-12 13:40:25] find . -name *.sh -exec head -n 1 | head
+  193  [2018-09-12 13:40:33] find . -name *.sh -exec 'head -n 1 @@' | head
+  194  [2018-09-12 13:40:37] man find
+  195  [2018-09-12 13:41:55] find . -name *.sh -exec 'head -n 1' | head
+  196  [2018-09-12 13:41:59] find . -name *.sh -exec='head -n 1' | head
+  197  [2018-09-12 13:42:03] find . -name *.sh -exec 'head -n 1' | head
+  198  [2018-09-12 13:42:07] man find
+  199  [2018-09-12 13:42:31] find . -name *.sh -exec head -n 1 {} | head
+  200  [2018-09-12 13:42:37] man find
+  201  [2018-09-12 13:43:21] find . -name *.sh -exec head -n 1 ; | head
+  202  [2018-09-12 13:43:26] find . -name *.sh -exec head -n 1 
+  203  [2018-09-12 13:43:29] find . -name *.sh -exec head
+  204  [2018-09-12 13:44:10] find . -name *.sh -exec head -n 1 +
+  205  [2018-09-12 13:44:15] find . -name *.sh -exec head -n 1 {} + | head
+  206  [2018-09-12 13:44:51] find . -name *.sh -exec head -n 1 {} + | grep -v bash -A 2 | head
+  207  [2018-09-12 13:44:56] find . -name *.sh -exec head -n 1 {} + | grep -v bash | head
+  208  [2018-09-12 13:45:09] find . -name *.sh -exec head -n 1 {} + | grep -A 2 -v bash | head
+  209  [2018-09-12 13:45:11] find . -name *.sh -exec head -n 1 {} + | grep -C 2 -v bash | head
+  210  [2018-09-12 13:45:13] find . -name *.sh -exec head -n 1 {} + | grep -A 2 -v bash | head
+  211  [2018-09-12 13:45:18] find . -name *.sh -exec head -n 1 {} + | grep -v bash | head
+  212  [2018-09-12 13:46:17] find . -name *.sh -type f -printf "%p\t" -exec head -n 1 {} + | | grep -C 2 -v bash | head
+  213  [2018-09-12 13:46:26] find . -name *.sh -type f -printf "%p\t" -exec head -n 1 {} + | grep -v bash | head
+  214  [2018-09-12 13:46:29] find . -name *.sh -type f -printf "%p\t" -exec head -n 1 {} + | head
+  215  [2018-09-12 13:48:14] head -n 1 $(find . -name *.sh) | head
+  216  [2018-09-12 13:48:37] head -q -n 1 $(find . -name *.sh) | head
+  217  [2018-09-12 13:48:51] head -q -n 1 $(find . -name *.sh) | grep -v bash | head
+  218  [2018-09-12 13:49:03] head -q -n 1 $(find . -name *.sh) | grep -v bash | sort -u | head
+  219  [2018-09-12 13:49:06] head -q -n 1 $(find . -name *.sh) | grep -v bash | sort -u
+  220  [2018-09-12 13:51:22] head -q -n 1 $(find . -name *.sh) | grep -B 1 '# Copyright 2018 Google LLC' | head
+  221  [2018-09-12 13:51:27] head -n 1 $(find . -name *.sh) | grep -B 1 '# Copyright 2018 Google LLC' | head
+  222  [2018-09-12 13:51:33] head -n 1 $(find . -name *.sh) | grep -B 1 '# Copyright 2018 Google LLC' 
+  223  [2018-09-12 13:54:41] head -q -n 1 $(find . -name *.sh) | grep -B 1 'bash' | head
+  224  [2018-09-12 13:54:51] head -q -n 1 $(find . -name *.sh) | grep -v bash -e | head
+  225  [2018-09-12 13:54:57] head -q -n 1 $(find . -name *.sh) | grep -v 'bash -e' | head
+  226  [2018-09-11 14:26:23] sudo apt-get update
+  227  [2018-09-11 14:26:33] sudo apt-get install dotnet-sdk-2.1
+  228  [2018-09-11 14:27:21] sudo apt-get install curl libunwind8 gettext
+  229  [2018-09-11 14:29:11] export SDK_URL=https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
+  230  [2018-09-11 14:30:06] export SDK_VERSION=2.1.402
+  231  [2018-09-11 14:30:35] export SDK_URL=https://www.microsoft.com/net/download/thank-you/dotnet-sdk-${SDK_VERSION}-linux-x64-binaries
+  232  [2018-09-11 14:30:58] curl -sSL -o dotnet.tar.gz ${SDK_URL}
+  233  [2018-09-11 14:31:41] dotnet
+  234  [2018-09-11 14:31:49] ls -la
+  235  [2018-09-11 14:31:59] ls -la .local/
+  236  [2018-09-11 14:32:03] ls -la .local/bin/
+  237  [2018-09-11 14:32:35] install_path=$HOME/.local/DotnetSDK-${SDK_VERSION}
+  238  [2018-09-11 14:32:50] mkdir -p ${install_path} && tar zxf dotnet.tar.gz -C ${install_path}
+  239  [2018-09-11 14:32:57] curl -sSL -o dotnet.tar.gz ${SDK_URL}
+  240  [2018-09-11 14:33:01] curl -o dotnet.tar.gz ${SDK_URL}
+  241  [2018-09-11 14:34:03] export SDK_URL=https://download.microsoft.com/download/8/A/7/8A765126-50CA-4C6F-890B-19AE47961E4B/dotnet-sdk-2.1.402-linux-x64.tar.gz
+  242  [2018-09-11 14:34:16] mkdir -p ${install_path} && tar zxf dotnet.tar.gz -C ${install_path}
+  243  [2018-09-11 14:34:29] curl -sSL -o dotnet.tar.gz ${SDK_URL}
+  244  [2018-09-11 16:05:52] mkdir -p ${install_path} && tar zxf dotnet.tar.gz -C ${install_path}
+  245  [2018-09-11 16:06:19] sudo ln -s ${install_path}/dotnet /usr/local/bin
+  246  [2018-09-11 16:06:28] dotnet --version
+  247  [2018-09-11 16:06:33] export DOTNET_CLI_TELEMETRY_OPTOUT=true
+  248  [2018-09-11 16:06:45] echo export DOTNET_CLI_TELEMETRY_OPTOUT=true >>~/.bashrc
+  249  [2018-09-12 14:32:47] kubectl exec busybox cat /etc/resolv.conf
+  250  [2018-09-12 14:32:53] kubectl exec bb1 cat /etc/resolv.conf
+  251  [2018-09-12 14:33:16] kubectl exec -ti busybox -- nslookup kubernetes.default
+  252  [2018-09-12 14:33:22] kubectl exec -ti bb1 -- nslookup kubernetes.default
+  253  [2018-09-12 14:34:51] kubectl get pods --namespace=kube-system -l k8s-app=kube-dns
+  254  [2018-09-12 14:35:03] kubectl logs --namespace=kube-system $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name | head -1) -c kubedns
+  255  [2018-09-12 14:39:28] /usr/local/bin/minikube stop
+  256  [2018-09-12 14:39:54] /usr/local/bin/minikube delete
+  257  [2018-09-12 14:41:20] ccurl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
+  258  [2018-09-12 14:41:20] curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo cp kubectl /usr/local/bin/ && rm kubectl
+  259  [2018-09-12 14:41:21] export MINIKUBE_WANTUPDATENOTIFICATION=false
+  260  [2018-09-12 14:41:21] export MINIKUBE_WANTREPORTERRORPROMPT=false
+  261  [2018-09-12 14:41:21] export MINIKUBE_HOME=$HOME
+  262  [2018-09-12 14:41:21] export CHANGE_MINIKUBE_NONE_USER=true
+  263  [2018-09-12 14:41:26] curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo cp minikube /usr/local/bin/ && rm minikube
+  264  [2018-09-12 14:41:27] curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo cp kubectl /usr/local/bin/ && rm kubectl
+  265  [2018-09-12 14:41:28] export MINIKUBE_WANTUPDATENOTIFICATION=false
+  266  [2018-09-12 14:41:28] export MINIKUBE_WANTREPORTERRORPROMPT=false
+  267  [2018-09-12 14:41:28] export MINIKUBE_HOME=$HOME
+  268  [2018-09-12 14:41:28] export CHANGE_MINIKUBE_NONE_USER=true
+  269  [2018-09-12 14:41:37] mkdir -p $HOME/.kube
+  270  [2018-09-12 14:41:37] touch $HOME/.kube/config
+  271  [2018-09-12 14:41:45] export KUBECONFIG=$HOME/.kube/config
+  272  [2018-09-12 14:41:51] sudo -E minikube start --vm-driver=none
+  273  [2018-09-12 14:42:04] sudo -E /usr/local/bin/minikube start --vm-driver=none
+  274  [2018-09-12 14:46:27] kubectl exec -ti busybox -- nslookup kubernetes.default
+  275  [2018-09-12 14:46:58] kubectl create -f https://k8s.io/examples/admin/dns/busybox.yaml
+  276  [2018-09-12 14:47:06] kubectl get pods busybox
+  277  [2018-09-12 14:47:13] kubectl exec -ti busybox -- nslookup kubernetes.default
+  278  [2018-09-12 14:47:21] kubectl exec busybox cat /etc/resolv.conf
+  279  [2018-09-12 14:47:48] kubectl get pods --namespace=kube-system -l k8s-app=kube-dns
+  280  [2018-09-12 14:47:59] kubectl logs --namespace=kube-system $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name | head -1) -c sidecar | less
+  281  [2018-09-12 14:48:21] kubectl logs --namespace=kube-system $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name | head -1) -c sidecar
+  282  [2018-09-12 14:48:35] kubectl get service
+  283  [2018-09-12 14:48:42] kubectl get svc --namespace=kube-system
+  284  [2018-09-12 14:48:59] kubectl get ep kube-dns --namespace=kube-system
+  285  [2018-09-12 14:49:39] kubectl logs --namespace=kube-system $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name | head -1) -c dnsmasq | wc -l
+  286  [2018-09-12 14:49:42] kubectl logs --namespace=kube-system $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name | head -1) -c dnsmasq
+  287  [2018-09-12 14:50:01] kubectl logs --namespace=kube-system $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name | head -1) -c kubedns
+  288  [2018-09-12 14:54:09] kubectl get service
+  289  [2018-09-12 14:54:25] kubectl get svc --namespace=kube-system
+  290  [2018-09-12 14:55:50] kubectl run hello-minikube --image=gcr.io/google_containers/echoserver:1.4 --port=8080
+  291  [2018-09-12 14:55:58] kubectl expose deployment hello-minikube --type=NodePort
+  292  [2018-09-12 14:56:05] kubectl get svc
+  293  [2018-09-12 14:56:12] minikube service hello-minikube
+  294  [2018-09-12 14:57:04] minikube ip
+  295  [2018-09-12 14:57:22] kubectl cluster-info
+  296  [2018-09-12 15:02:52] kubectl logs --namespace=kube-system $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name | head -1) -c kubedns
+  297  [2018-09-12 15:03:05] kubectl exec -ti busybox -- nslookup kubernetes.default
+  298  [2018-09-12 15:03:12] kubectl logs --namespace=kube-system $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name | head -1) -c kubedns
+  299  [2018-09-12 15:03:35] kubectl exec -ti busybox -- nslookup google.com
+  300  [2018-09-10 10:37:13] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml && ech $?
+  301  [2018-09-10 10:37:30] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml && echo $?
+  302  [2018-09-10 10:48:04] argo submit --watch https://github.com/argoproj/argo/blob/master/workflow/controller/testdata/dag_xfail.yaml && echo $?
+  303  [2018-09-10 10:48:31] argo submit --watch https://raw.githubusercontent.com/argoproj/argo/master/workflow/controller/testdata/dag_xfail.yaml && echo $?
+  304  [2018-09-10 10:50:25] argo submit --watch ~/fail.yaml && echo $?
+  305  [2018-09-10 10:51:34] argo submit --wait ~/fail.yaml && echo $?
+  306  [2018-09-10 10:51:45] argo submit --watch ~/fail.yaml && echo $?
+  307  [2018-09-10 10:52:05] argo list
+  308  [2018-09-10 10:52:09] argo 
+  309  [2018-09-10 10:52:18] argo delete dag-fail-r4gvc
+  310  [2018-09-10 10:52:23] argo submit --wait ~/fail.yaml && echo $?
+  311  [2018-09-10 10:52:37] argo list
+  312  [2018-09-10 10:53:20] argo wait dag-fail-r4gvc && echo $?
+  313  [2018-09-10 10:53:25] argo watch dag-fail-r4gvc && echo $?
+  314  [2018-09-10 10:53:30] argo 
+  315  [2018-09-10 10:54:02] argo logs dag-fail-r4gvc && echo $?
+  316  [2018-09-10 10:54:26] argo logs -w dag-fail-r4gvc && echo $?
+  317  [2018-09-10 10:54:42] argo get dag-fail-r4gvc
+  318  [2018-09-10 10:54:49] argo get dag-fail-r4gvc --help
+  319  [2018-09-10 10:55:40] argo get dag-fail-r4gvc | grep Status:
+  320  [2018-09-10 10:55:56] argo get dag-fail-r4gvc --output wide
+  321  [2018-09-10 10:56:04] argo get dag-fail-r4gvc --output json
+  322  [2018-09-10 10:56:11] argo get dag-fail-r4gvc --output yaml
+  323  [2018-09-10 10:56:15] argo get dag-fail-r4gvc --output json | jq
+  324  [2018-09-10 10:56:18] jq
+  325  [2018-09-10 10:56:41] argo get dag-fail-r4gvc | grep Status:
+  326  [2018-09-10 10:56:45] argo get dag-fail-r4gvc | grep Status: | cut -f 2
+  327  [2018-09-10 10:56:52] argo get dag-fail-r4gvc | grep Status: | cut -f 3
+  328  [2018-09-10 10:56:53] argo get dag-fail-r4gvc | grep Status: | cut -f 2
+  329  [2018-09-10 10:57:00] argo get dag-fail-r4gvc | grep Status: | cut -d " " -f 2
+  330  [2018-09-10 10:57:03] argo get dag-fail-r4gvc | grep Status: | cut -d " " -f 1
+  331  [2018-09-10 10:57:05] argo get dag-fail-r4gvc | grep Status: | cut -d " " -f 2
+  332  [2018-09-10 10:57:06] argo get dag-fail-r4gvc | grep Status: | cut -d " " -f 3
+  333  [2018-09-10 10:57:07] argo get dag-fail-r4gvc | grep Status: | cut -d " " -f 4
+  334  [2018-09-10 10:57:08] argo get dag-fail-r4gvc | grep Status: | cut -d " " -f 5
+  335  [2018-09-10 10:57:10] argo get dag-fail-r4gvc | grep Status: | cut -d " " -f 6-
+  336  [2018-09-10 10:57:13] argo get dag-fail-r4gvc | grep Status: | cut -d " " -f 9-
+  337  [2018-09-10 10:57:37] argo get dag-fail-r4gvc | grep Status: | awk '{print $2}'
+  338  [2018-09-10 10:58:32] argo delete dag-fail-r4gvc
+  339  [2018-09-10 10:58:56] argo submit --wait ~/fail.yaml --help
+  340  [2018-09-10 10:59:32] argo submit --wait ~/fail.yaml --output name
+  341  [2018-09-10 10:59:44] argo submit --wait ~/fail.yaml --output name 2>/dev/null
+  342  [2018-09-10 10:59:49] argo submit --wait ~/fail.yaml --output name 1>/dev/null
+  343  [2018-09-10 10:59:56] argo delete dag-fail-r4gvc
+  344  [2018-09-10 11:00:04] aaa=$(argo submit --wait ~/fail.yaml --output name)
+  345  [2018-09-10 11:00:08] echo $aaa
+  346  [2018-09-10 11:00:50] aaa2=$(argo submit ~/fail.yaml --output name)
+  347  [2018-09-10 11:00:58] argo delete dag-fail-r4gvc
+  348  [2018-09-10 11:01:01] aaa2=$(argo submit ~/fail.yaml --output name)
+  349  [2018-09-10 11:01:05] echo $aaa2
+  350  [2018-09-10 11:06:47] echo $(argo submit ~/fail.yaml --output yaml)
+  351  [2018-09-10 11:07:41] argo version
+  352  [2018-09-10 11:09:34] wf1=$(argo submit ~/fail.yaml --output name)
+  353  [2018-09-10 11:09:40] argo delete dag-fail-r4gvc
+  354  [2018-09-10 11:09:42] wf1=$(argo submit ~/fail.yaml --output name)
+  355  [2018-09-10 11:09:52] argo --watch $wf1
+  356  [2018-09-10 11:09:55] argo watch $wf1
+  357  [2018-09-10 11:11:42] argo get dag-fail-r4gvc | grep Status: | awk '{print $2}'
+  358  [2018-09-10 11:12:56] argo logs $wf1 --follow
+  359  [2018-09-10 11:13:03] wf1=$(argo submit ~/fail.yaml --output name)
+  360  [2018-09-10 11:13:06] argo delete dag-fail-r4gvc
+  361  [2018-09-10 11:13:13] wf1=$(argo submit ~/fail.yaml --output name)
+  362  [2018-09-10 11:13:17] argo logs $wf1 --follow
+  363  [2018-09-10 11:13:24] argo logs -w $wf1 --follow
+  364  [2018-09-10 11:13:33] argo logs -w $wf1
+  365  [2018-09-10 11:13:42] argo logs
+  366  [2018-09-10 11:13:59] kubectl get pods
+  367  [2018-09-10 11:14:32] argo delete dag-fail-r4gvc
+  368  [2018-09-10 11:14:39] argo submit ~/fail.yaml
+  369  [2018-09-10 11:14:59] argo delete dag-fail-r4gvc
+  370  [2018-09-10 11:15:02] argo submit ~/fail.yaml
+  371  [2018-09-10 11:16:06] argo logs -w dag-fail-r4gvc
+  372  [2018-09-10 11:18:12] argo logs
+  373  [2018-09-10 11:18:26] argo logs --follow --workflow  dag-fail-r4gvc
+  374  [2018-09-10 11:19:37] argo get dag-fail-r4gvc | grep Status: | awk '{print $2}'
+  375  [2018-09-10 12:54:44] argo logs --follow -w $(argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml)
+  376  [2018-09-10 12:55:02] argo logs --follow -w $(argo submit 201 --output name)
+  377  [2018-09-10 12:57:06] ls -la 2018-08_Minikube_tests/ml/test/
+  378  [2018-09-10 12:57:23] argo logs --follow -w $(argo submit 2018-08_Minikube_tests/ml/test/unit_test_gke.yaml)
+  379  [2018-09-10 12:57:50] argo logs --follow -w $(argo submit 2018-08_Minikube_tests/ml/test/unit_test_gke.yaml --output name)
+  380  [2018-09-10 12:58:24] argo logs --follow -w $(argo submit 2018-08_Minikube_tests/ml/test/unit_test_gke.yaml -p test-results-gcs-dir=bla --output name)
+  381  [2018-09-10 13:04:38] argo version
+  382  [2018-09-10 13:05:29] argo logs --follow -w $(argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml)
+  383  [2018-09-10 13:05:42] argo logs --follow -w $(argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml --output name)
+  384  [2018-09-10 13:06:52] wf=argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml --output name && argo logs --follow -w $wf && argo get $wf
+  385  [2018-09-10 13:07:02] wf=$(argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml --output name) && argo logs --follow -w $wf && argo get $wf
+  386  [2018-09-10 13:07:30] wf=$(argo submit 2018-08_Minikube_tests/ml/test/unit_test_gke.yaml -p test-results-gcs-dir=bla --output name) && argo logs --follow -w $wf && argo get $wf
+  387  [2018-09-10 13:12:07] argo version
+  388  [2018-09-10 13:31:20] wf=argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml --output name && argo logs --follow --workflow $wf && argo get $wf
+  389  [2018-09-10 13:31:32] wf=$(argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml --output name) && argo logs --follow --workflow $wf && argo get $wf
+  390  [2018-09-10 13:35:47] argo logs --follow --workflow $wf
+  391  [2018-09-10 13:36:02] argo logs
+  392  [2018-09-10 14:01:20] wf=$(argo submit https://raw.githubusercontent.com/argoproj/argo/master/examples/coinflip.yaml --output name) && argo get $wf && argo logs --follow --workflow $wf && argo get $wf
+  393  [2018-09-10 14:02:43] wf=$(argo submit 2018-08_Minikube_tests/ml/test/unit_test_gke.yaml -p test-results-gcs-dir=bla --output name) && argo get $wf && argo logs --follow --workflow $wf && argo get $wf
+  394  [2018-09-10 14:03:07] ls -l /
+  395  [2018-09-10 14:03:22] ls -l /go/src/github.com/googleprivate/ml/backend/src
+  396  [2018-09-10 18:46:35] mkdir 2018-09-10_Pipeline_modules
+  397  [2018-09-10 18:46:43] cd 2018-09-10_Pipeline_modules/
+  398  [2018-09-10 18:47:11] git clone https://github.com/googleprivate/ml
+  399  [2018-09-10 18:47:20] git clone git://github.com/googleprivate/ml
+  400  [2018-09-10 18:47:37] git clone git://github/googleprivate/ml
+  401  [2018-09-11 12:02:36] grep -R ContainerOp | head
+  402  [2018-09-11 12:02:38] grep -R ContainerOp . | head
+  403  [2018-09-11 12:02:59] grep -r ContainerOp . | head
+  404  [2018-09-11 12:03:02] grep -r ContainerOp ./ | head
+  405  [2018-09-11 12:03:08] ls -l
+  406  [2018-09-11 12:03:55] git clone git@github.com:googleprivate/ml.git
+  407  [2018-09-11 12:04:05] grep -r ContainerOp . | head
+  408  [2018-09-11 12:04:40] grep -r ContainerOp . | wc -l
+  409  [2018-09-11 12:05:01] grep -r image= . | wc -l
+  410  [2018-09-11 12:05:05] grep -r image= . | head
+  411  [2018-09-11 12:05:13] grep -r image= . | sort -u | head
+  412  [2018-09-11 12:05:16] grep -r image= . | sort -u | wc -l
+  413  [2018-09-11 12:05:37] grep -r image= . | sed 's/ //g' | sort -u | wc -l
+  414  [2018-09-11 12:05:40] grep -r image= . | sed 's/ //g' | sort -u | head
+  415  [2018-09-11 12:05:51] man grep
+  416  [2018-09-11 12:06:19] grep --recurse --no-filename image= . | sed 's/ //g' | sort -u | head
+  417  [2018-09-11 12:06:23] grep --recursive --no-filename image= . | sed 's/ //g' | sort -u | head
+  418  [2018-09-11 12:06:28] grep --recursive --no-filename image= . | sed 's/ //g' | sort -u | wc -l
+  419  [2018-09-11 12:06:32] grep --recursive --no-filename image= . | sed 's/ //g' | sort -u
+  420  [2018-09-11 12:10:51] cd ..
+  421  [2018-09-11 12:11:55] cd 2018-09_Pipeline_modules/
+  422  [2018-09-11 12:12:23] cd ..
+  423  [2018-09-11 12:13:53] cd 2018-09_Interactive_pipelines/
+  424  [2018-09-11 12:14:01] mkdir notebooks
+  425  [2018-09-11 12:14:05] cd notebooks/
+  426  [2018-09-11 12:14:31] jupyter notebook
+  427  [2018-09-11 12:14:39] pip3 install jupyter
+  428  [2018-09-11 12:14:58] pip3 install tensorflow
+  429  [2018-09-11 12:15:21] pip3 install pandas
+  430  [2018-09-11 12:15:33] pip3 install cntk
+  431  [2018-09-11 12:16:30] python -c 'import tensorflow as tf'
+  432  [2018-09-11 12:16:35] python3 -c 'import tensorflow as tf'
+  433  [2018-09-11 12:16:47] python3 -c 'import tensorflow as tf;tf.__version__'
+  434  [2018-09-11 12:16:53] python3 -c 'import tensorflow as tf;print(tf.__version__)'
+  435  [2018-09-11 12:17:08] python3 -c 'import cntk as c;print(c.__version__)'
+  436  [2018-09-11 12:21:02] sudo apt-get install openmpi-bin
+  437  [2018-09-11 12:21:39] python3 -c 'import cntk as c;print(c.__version__)'
+  438  [2018-09-11 12:23:18] sudo apt-get uninstall openmpi-bin
+  439  [2018-09-11 12:23:24] sudo apt uninstall openmpi-bin
+  440  [2018-09-11 12:23:32] sudo apt-get remove openmpi-bin
+  441  [2018-09-11 12:23:52] OPENMPI_VERSION=1.10.3 &&     wget -q -O - https://www.open-mpi.org/software/ompi/v1.10/downloads/openmpi-${OPENMPI_VERSION}.tar.gz | tar -xzf - &&     cd openmpi-${OPENMPI_VERSION} &&     ./configure --prefix=/usr/local/mpi &&     make -j"$(nproc)" install &&     rm -rf /openmpi-${OPENMPI_VERSION}
+  442  [2018-09-11 12:31:32] cd ..
+  443  [2018-09-11 12:31:50] cd openmpi-1.10.3/
+  444  [2018-09-11 12:32:10] ls -l /usr/local/mpi
+  445  [2018-09-11 12:32:14] sudo ls -l /usr/local/mpi
+  446  [2018-09-11 12:32:21] sudo ls -l /usr/local/
+  447  [2018-09-11 12:32:26] sudo ls -la /usr/local/
+  448  [2018-09-11 12:32:53] sudo make install
+  449  [2018-09-11 12:46:44] python3 -c 'import cntk as c;print(c.__version__)'
+  450  [2018-09-11 12:46:49] cd ..
+  451  [2018-09-11 12:46:52] rm -rf openmpi-1.10.3/
+  452  [2018-09-11 12:46:55] rm -rf openmpi-1.10.3
+  453  [2018-09-11 12:46:57] sudo rm -rf openmpi-1.10.3
+  454  [2018-09-11 12:47:17] mkdir tangle
+  455  [2018-09-11 12:47:19] cd tangle/
+  456  [2018-09-11 12:47:23] git init
+  457  [2018-09-11 12:47:28] cd ..
+  458  [2018-09-11 12:47:35] jupyter notebook
+  459  [2018-09-11 12:47:50] apt-get install jupyter
+  460  [2018-09-11 12:47:52] sudo apt-get install jupyter
+  461  [2018-09-11 12:48:00] jupyter notebook
+  462  [2018-09-11 12:48:51] python3 -m pip install --upgrade pip
+  463  [2018-09-11 12:48:58] python3 -m pip install jupyter
+  464  [2018-09-11 12:49:06] jupyter notebook
+  465  [2018-09-11 12:49:33] ls -la ~/.local/bin
+  466  [2018-09-11 12:49:51] export PATH="$PATH:~/.local/bin"
+  467  [2018-09-11 12:49:54] jupyter notebook
+  468  [2018-09-10 01:51:35] docker run --rm microsoft/dotnet-samples
+  469  [2018-09-10 09:38:56] kubectl --help
+  470  [2018-09-10 09:39:17] kubectl options
+  471  [2018-09-10 09:39:27] kubectl config
+  472  [2018-09-10 09:39:45] kubectl get-clusters
+  473  [2018-09-10 09:40:09] kubectl config get-clusters
+  474  [2018-09-10 09:44:33] gcloud container clusters get-credentials buildimage-394ea1f231-14179	
+  475  [2018-09-10 09:44:38] kubectl config get-clusters
+  476  [2018-09-10 09:45:04] kubectl get pods --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  477  [2018-09-10 09:45:15] kubectl get logs --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  478  [2018-09-10 09:45:23] kubectl logs --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  479  [2018-09-10 09:45:39] argo logs --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  480  [2018-09-10 09:45:58] argo logs -w --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  481  [2018-09-10 09:47:06] argo logs build-images-wlvmq -w --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  482  [2018-09-10 09:47:34] kubectl get pods --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  483  [2018-09-10 09:47:42] kubectl get jobs --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  484  [2018-09-10 09:47:53] kubectl get pods --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  485  [2018-09-10 09:50:49] argo get build-images-wlvmq -w --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  486  [2018-09-10 09:50:57] argo get build-images-wlvmq --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  487  [2018-09-10 09:56:28] argo version
+  488  [2018-09-10 09:56:53] kubectl version -o yaml
+  489  [2018-09-10 10:14:28]  kubectl logs -n kube-system $(kubectl get pods -l app=workflow-controller -n kube-system -o name)
+  490  [2018-09-10 10:14:57]  kubectl logs -n kube-system $(kubectl get pods -l app=workflow-controller -n kube-system -o name  --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179)  --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179 
+  491  [2018-09-10 10:15:22] kubectl get pods -l app=workflow-controller -n kube-system -o name  --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  492  [2018-09-10 10:15:32] kubectl get pods -l app=workflow-controller -n kube-system --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  493  [2018-09-10 10:15:42] kubectl get pods -l app=workflow-controller--cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  494  [2018-09-10 10:15:50] kubectl get pods -n kube-system --cluster gke_ml-pipeline-test_us-west1-a_buildimage-394ea1f231-14179
+  495  [2018-09-13 15:45:07] exit
+  496  [2018-09-13 17:02:54] docker ps
+  497  [2018-09-13 17:03:13] docker stop 8c811b4aec35
+  498  [2018-09-13 17:03:18] docker delete 8c811b4aec35
+  499  [2018-09-13 17:03:24] docker remove 8c811b4aec35
+  500  [2018-09-13 17:03:28] docker stop 8c811b4aec35
+  501  [2018-09-13 17:03:38] docker stop 920c9ab3a2bc
+  502  [2018-09-13 17:04:14] docker ps
+  503  [2018-09-13 17:04:34] kubectl list jobs
+  504  [2018-09-13 17:04:41] kubectl get jobs
+  505  [2018-09-13 17:04:45] kubectl get pods
+  506  [2018-09-13 17:04:54] kubectl remove busybox
+  507  [2018-09-13 17:05:01] kubectl stop busybox
+  508  [2018-09-13 17:05:04] kubectl
+  509  [2018-09-13 17:05:13] kubectl delete busybox
+  510  [2018-09-13 17:05:17] kubectl delete pod busybox
+  511  [2018-09-13 17:05:39] kubectl get pods
+  512  [2018-09-13 17:06:14] kubectl get jobs
+  513  [2018-09-13 17:06:24] kubectl delete pod hello-minikube-c8b6b4fdc-nmxk9
+  514  [2018-09-13 17:06:34] kubectl get pods
+  515  [2018-09-13 17:06:49] kubectl get nodes
+  516  [2018-09-13 17:06:52] kubectl get jobs
+  517  [2018-09-13 17:06:56] kubectl get
+  518  [2018-09-13 17:07:09] kubectl api-resources
+  519  [2018-09-13 17:07:20] kubectl get wf
+  520  [2018-09-13 17:07:24] kubectl get jo
+  521  [2018-09-13 17:07:27] kubectl get job
+  522  [2018-09-13 17:07:31] kubectl get nodes
+  523  [2018-09-13 17:07:34] kubectl get pods
+  524  [2018-09-13 17:07:44] kubectl
+  525  [2018-09-13 17:08:18] kubectl get pods
+  526  [2018-09-13 17:08:26] kubectl delete pods hello-minikube-c8b6b4fdc-chrvs
+  527  [2018-09-13 17:08:38] kubectl get pods
+  528  [2018-09-13 17:09:06] kubectl get deployments --all-namespaces
+  529  [2018-09-13 17:09:21] kubectl delete deployments hello-minikube
+  530  [2018-09-13 17:09:25] kubectl get pods
+  531  [2018-09-13 14:22:42] python -myaml
+  532  [2018-09-13 14:22:45] python -m yaml
+  533  [2018-09-13 14:22:53] python -c 'import yaml'
+  534  [2018-09-13 14:27:05] jupyter nbextension list
+  535  [2018-09-13 14:27:40] jupyter nbextension install --py widgetsnbextension --user
+  536  [2018-09-13 14:27:55] jupyter nbextension list
+  537  [2018-09-13 14:28:50] pip3 remove jupyter
+  538  [2018-09-13 14:29:27] pip3 uninstall jupyter_core
+  539  [2018-09-13 14:29:35] which pip3
+  540  [2018-09-13 14:29:41] pip3 uninstall jupyter
+  541  [2018-09-13 14:29:43] pip uninstall jupyter
+  542  [2018-09-13 14:29:47] pip uninstall jupyter_core
+  543  [2018-09-13 14:30:39] pip3 uninstall jupyter
+  544  [2018-09-13 15:42:20] source ~/envs/ml/bin/activate
+  545  [2018-09-13 15:43:01] echo '#!/user/bin/bash -ex' > ~/ml.sh
+  546  [2018-09-13 15:43:13] echo 'source ~/envs/ml/bin/activate' >> ~/ml.sh
+  547  [2018-09-13 15:43:19] chmod +x ~/ml.sh
+  548  [2018-09-13 15:43:25] deactivate
+  549  [2018-09-13 15:43:29] ~/ml.sh 
+  550  [2018-09-13 15:43:35] cat ~/ml.sh 
+  551  [2018-09-13 15:44:14] ~/ml.sh 
+  552  [2018-09-13 15:44:42] echo $SHELL
+  553  [2018-09-13 15:44:57] /bin/env
+  554  [2018-09-13 15:45:01] /usr/bin/env
+  555  [2018-09-13 15:45:06] /usr/bin/env bash
+  556  [2018-09-13 15:45:27] ~/ml.sh 
+  557  [2018-09-13 15:45:39] ~/ml.sh
+  558  [2018-09-13 15:46:33] source ~/ml.sh
+  559  [2018-09-13 15:46:44] pip install yaml
+  560  [2018-09-13 15:46:49] pip install pyyaml
+  561  [2018-09-13 15:47:51] ip install pyyaml
+  562  [2018-09-13 15:47:54] pip install pyyaml
+  563  [2018-09-14 15:58:21] gcloud compute ssh test-minikube-947404-1536965850-c06818
+  564  [2018-09-14 15:59:58] gcloud compute ssh not-root@test-minikube-947404-1536965850-c06818
+  565  [2018-09-14 16:09:16] kubectl logs --follow --pod-running-timeout 20s workflow/
+  566  [2018-09-14 16:09:18] kubectl logs --follow --pod-running-timeout 20s workflow/bla
+  567  [2018-09-14 16:09:29] kubectl list pods
+  568  [2018-09-14 16:09:33] kubectl get pods
+  569  [2018-09-14 16:09:36] kubectl get nodes
+  570  [2018-09-14 16:09:48] kubectl create ns argo
+  571  [2018-09-14 16:09:48] kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+  572  [2018-09-14 16:10:06] ARGO_VERSION=v2.2.0
+  573  [2018-09-14 16:10:07] kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+  574  [2018-09-14 16:10:13] kubectl get 
+  575  [2018-09-14 16:10:19] kubectl logs --follow --pod-running-timeout 20s workflow/bla
+  576  [2018-09-17 11:23:06] 35btTNG)*g
+  577  [2018-09-17 11:19:51] df -h
+  578  [2018-09-17 11:20:07] cat /etc/fstab
+  579  [2018-09-17 11:22:09] free -h
+  580  [2018-09-17 11:22:40] fdisk -l /dev/nmve0n1
+  581  [2018-09-17 11:22:46] fdisk -l /dev/nmve0
+  582  [2018-09-17 11:22:56] fdisk -l /dev/nvme0n1
+  583  [2018-09-17 11:22:58] sudo fdisk -l /dev/nvme0n1
+  584  [2018-09-17 11:28:11] sudo glinux-backups status
+  585  [2018-09-17 11:29:45] free -h
+  586  [2018-09-17 11:30:04] ls -l top
+  587  [2018-09-17 11:30:11] ls -l top*
+  588  [2018-09-17 11:30:16] head top3.txt 
+  589  [2018-09-17 11:30:26] head top2.txt 
+  590  [2018-09-17 11:30:36] head top1.txt 
+  591  [2018-09-17 11:30:40] ls -l top*\
+  592  [2018-09-17 11:30:42] ls -l top*
+  593  [2018-09-17 11:30:48] ls -l top.2018-09-11_1.txt 
+  594  [2018-09-17 11:30:52] head top.2018-09-11_1.txt 
+  595  [2018-09-17 14:24:20] gcert
+  596  [2018-09-17 14:00:22] ssh avolkov.c.googlers.com
+  597  [2018-09-17 14:24:04] gcert
+  598  [2018-09-17 14:41:15] ssh avolkov.c.googlers.com
+  599  [2018-09-17 11:54:28] git fetch
+  600  [2018-09-17 11:54:37] git pull
+  601  [2018-09-17 11:56:38] git rebase origin master
+  602  [2018-09-17 11:56:42] git rebase  master
+  603  [2018-09-17 11:58:36] git pull
+  604  [2018-09-17 11:58:51] git push
+  605  [2018-09-17 12:01:42] git push -f
+  606  [2018-09-17 17:51:01] cd 2018-09_Interactive_pipelines/
+  607  [2018-09-17 17:51:09] cd notebooks/
+  608  [2018-09-17 17:51:23] jupyter notebook
+  609  [2018-09-17 17:57:39] pip install jupyterlab
+  610  [2018-09-17 17:57:55] jupyter notebook
+  611  [2018-09-17 17:58:26] which pip
+  612  [2018-09-17 17:58:31] pip3 install jupyterlab
+  613  [2018-09-17 17:58:41] jupyter notebook
+  614  [2018-09-17 18:05:58] sudo glinux-backups run
+  615  [2018-09-17 15:00:38] ping http://104.196.241.211
+  616  [2018-09-17 15:00:44] ping 104.196.241.211
+  617  [2018-09-17 15:02:45] ping 104.196.241.211 -t
+  618  [2018-09-17 15:02:51] ping -t 104.196.241.211
+  619  [2018-09-17 15:02:58] ping 104.196.241.211
+  620  [2018-09-17 15:13:57] clear
+  621  [2018-09-17 15:17:15] gcloud compute --project "ml-pipeline-dogfood-avolkov" ssh --zone "us-west1-a" "debug-a" -- -L 18080:localhost:8080
+  622  [2018-09-17 15:19:32] mkdir 2018-09-17_googleprivate_ml_pull_1162
+  623  [2018-09-17 15:19:38] cd 2018-09-17_googleprivate_ml_pull_1162/
+  624  [2018-09-17 15:20:21] ls -l
+  625  [2018-09-17 15:20:36] gunzip ml-0.0.16.zip
+  626  [2018-09-17 15:31:42] unzip ml-0.0.16.zip
+  627  [2018-09-17 15:31:48] ls -l
+  628  [2018-09-17 16:19:44] pip install https://github.com/googleprivate/ml/tree/0.0.16/dsl
+  629  [2018-09-17 16:20:58] pip install git://github.com/googleprivate/ml/dsl
+  630  [2018-09-17 16:21:33] pip install git@github.com:googleprivate/ml.git/dsl
+  631  [2018-09-17 16:22:15] pip install git://github.com/googleprivate/ml.git/dsl
+  632  [2018-09-17 16:22:45] pip install git://github.com/googleprivate/ml.git
+  633  [2018-09-17 16:22:53] pip install git://git.github.com/googleprivate/ml.git
+  634  [2018-09-17 16:24:08] pip install https://github.com/googleprivate/ml.git/dsl
+  635  [2018-09-17 16:24:20] pip install https://github.com/googleprivate/ml.git
+  636  [2018-09-17 16:24:36] curl https://github.com/googleprivate/ml.gi
+  637  [2018-09-17 16:24:57] pip install https://github.com/googleprivate/ml
+  638  [2018-09-17 16:25:08] curl https://github.com/googleprivate/ml
+  639  [2018-09-17 16:25:16] pip install https://github.com/googleprivate/ml
+  640  [2018-09-17 16:25:45] pip install git+https://github.com/googleprivate/ml
+  641  [2018-09-17 16:26:03] pip install git+git@github.com:googleprivate/ml.git
+  642  [2018-09-17 16:26:08] pip install git+git@github.com:googleprivate/ml
+  643  [2018-09-17 16:26:14] pip install git@github.com:googleprivate/ml.git
+  644  [2018-09-17 16:26:46] pip install https://github.com/googleprivate/ml
+  645  [2018-09-17 16:26:50] pip install https://github.com/googleprivate/ml.git
+  646  [2018-09-17 16:26:56] pip install git+https://github.com/googleprivate/ml.git
+  647  [2018-09-17 16:27:10] pip install git+ssh://github.com/googleprivate/ml.git
+  648  [2018-09-17 16:27:29] git clone ssh://github.com/googleprivate/ml.git /tmp/pip-eFbqaE-build
+  649  [2018-09-17 16:27:35] git clone git@github.com:googleprivate/ml.git
+  650  [2018-09-17 16:28:13] git clone git@github.com:googleprivate/ml.git /tmp/pip-eFbqaE-build
+  651  [2018-09-17 16:28:25] pip install git+git@github.com:googleprivate/ml.git
+  652  [2018-09-17 16:28:30] pip install ssh+git@github.com:googleprivate/ml.git
+  653  [2018-09-17 16:28:37] pip install git+ssh@github.com:googleprivate/ml.git
+  654  [2018-09-17 16:29:03] pip install git+ssh@github.com:googleprivate/ml
+  655  [2018-09-17 16:29:09] pip install git+git@github.com:googleprivate/ml
+  656  [2018-09-17 16:29:15] pip install git+git@github.com:googleprivate
+  657  [2018-09-17 16:29:25] pip install git+git@git.github.com:googleprivate
+  658  [2018-09-17 16:30:06] pip install git+ssh://git@github.com:googleprivate/ml.git
+  659  [2018-09-17 16:30:37] pip install git+ssh://git@github.com/googleprivate/ml.git
+  660  [2018-09-17 16:31:26] pip install git+ssh://git@github.com/googleprivate/ml.git/dsl@0.0.16
+  661  [2018-09-17 16:31:47] pip install git+ssh://git@github.com/googleprivate/ml.git@0.0.16/dsl
+  662  [2018-09-17 16:31:59] pip install git+ssh://git@github.com/googleprivate/ml.git@0.0.16
+  663  [2018-09-17 16:32:24] pip install git+ssh://git@github.com/googleprivate/ml.git@0.0.16#egg=dsl
+  664  [2018-09-17 16:33:10] pip install git+ssh://git@github.com/googleprivate/ml.git@0.0.16#egg=ml/dsl
+  665  [2018-09-17 16:33:56] pip install git+ssh://git@github.com/googleprivate/ml.git@0.0.16#subdirectory==ml/dsl
+  666  [2018-09-17 16:34:06] pip install git+ssh://git@github.com/googleprivate/ml.git@0.0.16#subdirectory=ml/dsl
+  667  [2018-09-17 16:34:37] ls -l /tmp/pip-XDwTXi-build/
+  668  [2018-09-17 16:34:49] pip install git+ssh://git@github.com/googleprivate/ml.git@0.0.16#subdirectory=dsl
+  669  [2018-09-17 16:35:09] pip list | grep dsl
+  670  [2018-09-17 16:35:20] pip list | less
+  671  [2018-09-17 18:03:35] dsl-compile --py ml-0.0.16/samples/kubeflow-tf/kubeflow-training-classification.py
+  672  [2018-09-17 18:03:52] locate dsl-compile
+  673  [2018-09-17 18:04:43] cd ml-0.0.16/
+  674  [2018-09-17 18:05:30] dsl-compiler/mlpc/main.py  dsl-compile --py samples/kubeflow-tf/kubeflow-training-classification.py
+  675  [2018-09-17 18:09:20] sudo service lightdm stop
+  676  [2018-09-17 18:09:40] ps aux | grep xorg
+  677  [2018-09-17 18:09:49] cd /
+  678  [2018-09-17 18:09:52] mount
+  679  [2018-09-17 18:10:20] docker
+  680  [2018-09-17 18:10:27] docker stop
+  681  [2018-09-17 18:10:56] docker ps
+  682  [2018-09-17 18:11:01] docker
+  683  [2018-09-17 18:11:43] minikube stop
+  684  [2018-09-17 18:11:56] mount
+  685  [2018-09-17 18:13:31] mount | grep home
+  686  [2018-09-17 18:13:50] sudo service gvfs stop
+  687  [2018-09-17 18:13:53] sudo service gvfsd stop
+  688  [2018-09-17 18:13:59] sudo service --status-all
+  689  [2018-09-17 18:15:55] sudo service autofs stop
+  690  [2018-09-17 18:15:58] mount
+  691  [2018-09-17 18:16:08] mount | grep home
+  692  [2018-09-17 18:16:22] mount | grep -i home
+  693  [2018-09-17 18:16:30] cd /usr/local/google/home/avolkov/
+  694  [2018-09-17 18:16:31] ls
+  695  [2018-09-17 18:16:33] cd ~
+  696  [2018-09-17 18:16:34] mount
+  697  [2018-09-17 18:17:06] mount | grep -i mapper
+  698  [2018-09-17 18:17:09] cd /
+  699  [2018-09-17 18:17:24] ls /dev/mapper
+  700  [2018-09-17 18:17:56] mount | grep -i nvme
+  701  [2018-09-17 18:18:06] cat /etc/crypttab 
+  702  [2018-09-17 18:18:19] pvdisplay
+  703  [2018-09-17 18:18:24] sudo pvdisplay
+  704  [2018-09-17 18:19:19] sudo lvdisplay
+  705  [2018-09-17 18:20:01] sudo vgdisplay
+  706  [2018-09-17 18:21:29] mount
+  707  [2018-09-17 18:21:41] cat /etc/fstab
+  708  [2018-09-17 18:22:33] sudo pvdisplay
+  709  [2018-09-17 18:22:44] sudo vgdisplay
+  710  [2018-09-17 18:23:01] sudo lvdisplay
+  711  [2018-09-17 18:23:51] sudo fdisk -l
+  712  [2018-09-17 18:30:15] kubectl get pods
+  713  [2018-09-17 18:30:28] minikube
+  714  [2018-09-17 18:30:41] minikube status
+  715  [2018-09-17 18:41:50] go build
+  716  [2018-09-17 18:41:55] cd backend/
+  717  [2018-09-17 18:41:56] go build
+  718  [2018-09-17 18:42:06] go build ./...
+  719  [2018-09-17 18:43:43] cd api
+  720  [2018-09-17 18:43:44] make
+  721  [2018-09-19 18:47:40] cp google /usr/local/include
+  722  [2018-09-19 18:47:43] cp -r google /usr/local/include
+  723  [2018-09-19 18:47:46] sudo cp -r google /usr/local/include
+  724  [2018-09-19 18:48:15] sudo chmod O+r /usr/local/include
+  725  [2018-09-19 18:48:19] sudo chmod o+r /usr/local/include
+  726  [2018-09-19 18:55:51] autogen
+  727  [2018-09-21 15:18:02] command -v
+  728  [2018-09-21 15:18:07] command -v kubectl
+  729  [2018-09-21 15:19:23] kubectl --version
+  730  [2018-09-21 15:19:27] kubectl version
+  731  [2018-09-21 15:39:22] kubectl get nodes
+  732  [2018-09-21 15:39:27] kubectl get pods
+  733  [2018-09-24 13:14:30] minikube
+  734  [2018-09-24 13:14:43] kubectl list nodes
+  735  [2018-09-24 13:14:48] kubectl get nodes
+  736  [2018-09-24 13:14:54] kubectl get pods
+  737  [2018-09-24 13:16:26] kubectl get deployments
+  738  [2018-09-24 13:17:22] PIPELINES_VERSION=${PIPELINES_VERSION:-0.0.18}
+  739  [2018-09-24 13:19:16] kubectl get de
+  740  [2018-09-24 13:19:19] kubectl get deployments
+  741  [2018-09-24 13:19:27] kubectl get jobs
+  742  [2018-09-24 13:20:21] kubectl get pods
+  743  [2018-09-24 13:21:37] kubectl get pods/deploy-ml-pipeline-gqr5s-shzqj
+  744  [2018-09-24 13:21:41] kubectl get pod deploy-ml-pipeline-gqr5s-shzqj
+  745  [2018-09-24 13:21:48] kubectl describe pod deploy-ml-pipeline-gqr5s-shzqj
+  746  [2018-09-24 13:24:07] minikube delete
+  747  [2018-09-24 13:24:19] kubectl describe pod deploy-ml-pipeline-gqr5s-shzqj
+  748  [2018-09-24 13:24:26] kubectl get nodes
+  749  [2018-09-24 13:17:46] bootstrapper_job=$(kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$PIPELINES_VERSION/bootstrapper.yaml --output=name)
+  750  [2018-09-24 13:18:51] kubectl wait deployment/$bootstrapper_job --for condition=available --timeout=100s
+  751  [2018-09-24 13:19:01] kubectl wait $bootstrapper_job --for condition=available --timeout=100s
+  752  [2018-09-24 13:27:07] cd go/src/github.com/googleprivate/ml
+  753  [2018-09-24 13:27:15] cd ml-pipeline/
+  754  [2018-09-24 13:27:26] cd ..
+  755  [2018-09-24 13:27:30] cd test/minikube/
+  756  [2018-09-24 13:27:39] ./install_and_start_minikube_without_vm.sh 
+  757  [2018-09-24 13:28:36] PIPELINES_VERSION=${PIPELINES_VERSION:-0.0.19}
+  758  [2018-09-24 13:29:01] bootstrapper_job_name=$(kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$PIPELINES_VERSION/bootstrapper.yaml --output=name)
+  759  [2018-09-24 13:29:09] echo $bootstrapper_job_name
+  760  [2018-09-24 13:29:54] echo $bootstrapper_job_name | tr ' ' '\n'
+  761  [2018-09-24 13:30:08] echo $bootstrapper_job_name | tr ' ' '\n' | grep 'job.batch/deploy-ml-pipeline-'
+  762  [2018-09-24 13:30:14] echo $bootstrapper_job_name | tr ' ' '\n' | grep 'job.batch/'
+  763  [2018-09-24 13:31:08] bootstrapper_job_name=$(echo $bootstrapper_job_name | tr ' ' '\n' | grep 'job.batch/')
+  764  [2018-09-24 13:31:12] echo $bootstrapper_job_name
+  765  [2018-09-24 13:31:20] kubectl get  $bootstrapper_job_name
+  766  [2018-09-24 13:31:23] kubectl get $bootstrapper_job_name
+  767  [2018-09-24 13:31:30] kubectl describe $bootstrapper_job_name
+  768  [2018-09-24 17:38:24] kubectl get pods
+  769  [2018-09-24 17:42:40] kubectl describe deploy-ml-pipeline-j996s-zgkgc
+  770  [2018-09-24 17:42:45] kubectl describe pod deploy-ml-pipeline-j996s-zgkgc
+  771  [2018-09-24 17:43:09] kubectl logs deploy-ml-pipeline-j996s-zgkgc
+  772  [2018-09-24 17:44:08] kubectl delete job  deploy-ml-pipeline-j996s
+  773  [2018-09-24 17:46:49] kubectl create -f ~/go/src/github.com/googleprivate/ml/uninstaller.yaml
+  774  [2018-09-24 17:46:58] kubectl get pods
+  775  [2018-09-24 17:48:02] kubectl create -f ~/go/src/github.com/googleprivate/ml/uninstaller.yaml
+  776  [2018-09-24 17:48:04] kubectl get pods
+  777  [2018-09-24 17:48:25] kubectl help get pods
+  778  [2018-09-24 17:48:54] kubectl get pods
+  779  [2018-09-24 17:56:13] kubectl create -f ~/go/src/github.com/googleprivate/ml/bootstrapper.yaml --watch=true
+  780  [2018-09-24 17:56:28] kubectl create -f ~/go/src/github.com/googleprivate/ml/bootstrapper.yaml
+  781  [2018-09-24 17:56:59] kubectl get pods
+  782  [2018-09-24 17:57:24] kubectl create -f ~/go/src/github.com/googleprivate/ml/bootstrapper.yaml
+  783  [2018-09-24 17:57:27] kubectl get pods
+  784  [2018-09-24 18:07:30] kubectl create -f ~/go/src/github.com/googleprivate/ml/uninstaller.yaml
+  785  [2018-09-24 18:07:32] kubectl get pods
+  786  [2018-09-24 18:07:44] kubectl get jobs
+  787  [2018-09-24 18:08:04] kubectl delete uninstall-ml-pipeline-dfr7d deploy-ml-pipeline-xqtld deploy-ml-pipeline-l6szg deploy-ml-pipeline-hbm5p deploy-ml-pipeline-6f8sc 
+  788  [2018-09-24 18:08:12] kubectl delet deploy-ml-pipeline-6f8sc
+  789  [2018-09-24 18:08:15] kubectl delete deploy-ml-pipeline-6f8sc
+  790  [2018-09-24 18:08:27] kubectl delete job deploy-ml-pipeline-6f8sc
+  791  [2018-09-24 18:08:33] kubectl delete job deploy-ml-pipeline-hbm5p
+  792  [2018-09-24 18:08:40] kubectl delete job deploy-ml-pipeline-l6szg
+  793  [2018-09-24 18:08:45] kubectl delete job deploy-ml-pipeline-xqtld
+  794  [2018-09-24 18:08:49] kubectl get jobs
+  795  [2018-09-24 18:08:57] kubectl delete job uninstall-ml-pipeline-dfr7d
+  796  [2018-09-24 18:08:59] kubectl get jobs
+  797  [2018-09-24 18:09:02] kubectl get pods
+  798  [2018-09-24 18:09:57] kubectl create -f ~/go/src/github.com/googleprivate/ml/bootstrapper.yaml
+  799  [2018-09-24 18:10:02] kubectl get jobs
+  800  [2018-09-24 18:10:11] kubectl get pods
+  801  [2018-09-24 18:10:23] kubectl get pods --watch=true
+  802  [2018-09-24 18:16:29] kubectl get jobs
+  803  [2018-09-24 18:16:38] kubectl describe deploy-ml-pipeline-97tbq
+  804  [2018-09-24 18:16:42] kubectl describe job deploy-ml-pipeline-97tbq
+  805  [2018-09-24 18:17:04] kubectl logs job deploy-ml-pipeline-97tbq
+  806  [2018-09-24 18:17:07] kubectl job deploy-ml-pipeline-97tbq
+  807  [2018-09-24 18:17:17] kubectl logs --selector deploy-ml-pipeline-97tbq
+  808  [2018-09-24 18:17:20] kubectl logs --selector deploy-ml-pipeline-97tbq-
+  809  [2018-09-24 18:17:25] kubectl logs --selector deploy-ml-pipeline-97tbq
+  810  [2018-09-24 18:17:40] kubectl logs deploy-ml-pipeline-97tbq-sv8dw
+  811  [2018-09-24 18:21:08] kubectl logs deploy-ml-pipeline-97tbq-rjnt5
+  812  [2018-09-24 18:21:25] kubectl logs deploy-ml-pipeline-97tbq-zldwv
+  813  [2018-09-24 18:21:31] kubectl get pods
+  814  [2018-09-24 18:21:50] kubectl logs deploy-ml-pipeline-97tbq-cbj87
+  815  [2018-09-24 18:22:04] kubectl describe job deploy-ml-pipeline-97tbq
+  816  [2018-09-24 18:27:14] minikube --version
+  817  [2018-09-24 18:27:19] minikube version
+  818  [2018-09-24 18:32:19] kubectl get pods
+  819  [2018-09-24 18:32:22] kubectl get jobs
+  820  [2018-09-24 18:32:31] kubectl delete job deploy-ml-pipeline-97tbq
+  821  [2018-09-24 18:32:34] kubectl get pods
+  822  [2018-09-24 18:44:59] minikube stop
+  823  [2018-09-24 18:45:18] ./install_and_start_minikube_without_vm.sh 
+  824  [2018-09-20 13:35:57] git log
+  825  [2018-09-20 15:01:04] git pull
+  826  [2018-09-21 11:58:51] git rebase
+  827  [2018-09-21 11:59:04] git pull
+  828  [2018-09-21 13:29:22] git fetch
+  829  [2018-09-21 13:29:29] git rebase
+  830  [2018-09-21 17:55:16] git pull
+  831  [2018-09-21 17:55:33] git pull master
+  832  [2018-09-21 17:55:41] git pull origin master
+  833  [2018-09-21 17:56:13] git rebase master
+  834  [2018-09-21 17:56:45] git rebase --abort
+  835  [2018-09-21 17:57:10] git rebase master
+  836  [2018-09-21 17:57:15] git rebase --abort
+  837  [2018-09-21 17:57:32] git log
+  838  [2018-09-21 17:58:48] git reset --hard HEAD^
+  839  [2018-09-21 17:59:26] git rebase origin/master
+  840  [2018-09-21 18:03:22] git rebase --continue
+  841  [2018-09-21 18:03:34] git log
+  842  [2018-09-21 18:03:45] git rebase --continue
+  843  [2018-09-21 18:04:09] git log
+  844  [2018-09-21 18:04:28] git rebase --abort
+  845  [2018-09-21 18:05:19] git log
+  846  [2018-09-21 18:27:33] git rebase --abort
+  847  [2018-09-21 18:28:05] git log
+  848  [2018-09-21 18:28:14] git pull
+  849  [2018-09-21 18:35:53] git pull --ff-only origin/master
+  850  [2018-09-21 18:36:29] git pull --rebase
+  851  [2018-09-21 18:38:09] git pull --rebase origin master
+  852  [2018-09-21 18:38:41] [200~git am --show-current-patch~
+  853  [2018-09-21 18:38:43] git am --show-current-patch~
+  854  [2018-09-21 18:38:52] git am --show-current-patch
+  855  [2018-09-21 18:41:56] git rebase --continue
+  856  [2018-09-21 18:42:07] git log
+  857  [2018-09-21 18:42:16] git rebase --continue
+  858  [2018-09-21 18:42:28] git pull --rebase origin master
+  859  [2018-09-21 18:42:37] git fetch
+  860  [2018-09-21 18:42:41] git pull --rebase origin master
+  861  [2018-09-21 18:42:49] git log
+  862  [2018-09-21 18:43:27] git help rebase
+  863  [2018-09-21 18:44:26] git rebase --intera
+  864  [2018-09-21 18:44:45] git pull --rebase -i origin master 
+  865  [2018-09-21 18:46:16] git rebase -i HEAD~3
+  866  [2018-09-21 18:47:06] git log
+  867  [2018-09-24 18:48:00] git rebase -i HEAD~1
+  868  [2018-09-24 18:48:55] git rebase -i HEAD~2
+  869  [2018-09-24 18:49:50] git rebase --abort
+  870  [2018-09-24 18:49:52] git rebase -i HEAD~2
+  871  [2018-09-24 18:50:42] git rebase --abort
+  872  [2018-09-24 18:50:44] git rebase -i HEAD~2
+  873  [2018-09-24 18:51:09] git rebase --abort
+  874  [2018-09-24 18:51:22] git rebase -i HEAD~2
+  875  [2018-09-24 18:51:54] git log
+  876  [2018-09-24 18:52:08] git push
+  877  [2018-09-24 18:52:16] git push -f
+  878  [2018-09-25 15:10:10] git log
+  879  [2018-09-19 18:13:32] apt list
+  880  [2018-09-19 18:13:36] apt
+  881  [2018-09-19 18:13:41] apt search proto
+  882  [2018-09-19 18:16:36] ls -l /usr/local/include/
+  883  [2018-09-19 18:18:00] echo $GOPATH
+  884  [2018-09-19 18:18:04] go get -u github.com/golang/protobuf/protoc-gen-go
+  885  [2018-09-19 18:18:21] cd go/src/github.com/googleprivate/ml/backend/
+  886  [2018-09-19 18:18:24] ls -l
+  887  [2018-09-19 18:18:26] cd api
+  888  [2018-09-19 18:18:28] ls -l
+  889  [2018-09-19 18:18:31] make
+  890  [2018-09-19 18:18:54] find ~/ -name any.proto
+  891  [2018-09-19 18:21:44] go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+  892  [2018-09-19 18:21:53] go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+  893  [2018-09-19 18:21:57] go get -u github.com/golang/protobuf/protoc-gen-go
+  894  [2018-09-19 18:22:14] find ~/ -name any.proto
+  895  [2018-09-19 18:22:40] find ~/ -name f/any.proto
+  896  [2018-09-19 18:22:44] find ~/ -name any.proto
+  897  [2018-09-19 18:29:42] mkdir tmp
+  898  [2018-09-19 18:29:42] cd tmp
+  899  [2018-09-19 18:29:42] git clone https://github.com/google/protobuf
+  900  [2018-09-19 18:29:46] cd protobuf
+  901  [2018-09-19 18:29:46] ./autogen.sh
+  902  [2018-09-19 18:29:46] ./configure
+  903  [2018-09-19 18:29:46] make
+  904  [2018-09-19 18:29:46] make check
+  905  [2018-09-19 18:29:46] sudo make install
+  906  [2018-09-19 18:30:09] sudo apt-get install autoreconf
+  907  [2018-09-19 18:30:17] sudo apt-get install autoconf
+  908  [2018-09-19 18:30:42] ./autogen.sh
+  909  [2018-09-19 18:31:18] sudo apt-get install libtool
+  910  [2018-09-19 18:31:30] ./autogen.sh
+  911  [2018-09-19 18:31:50] ./configure
+  912  [2018-09-19 18:32:00] make
+  913  [2018-09-19 18:39:23] cd ..
+  914  [2018-09-19 18:44:01] clear
+  915  [2018-09-19 18:44:03] make
+  916  [2018-09-19 18:45:29] sudo rm -rf /usr/local/include/google
+  917  [2018-09-19 18:47:56] make
+  918  [2018-09-19 18:49:35] sudo chmod +or /usr/local/include/google/protobuf/*
+  919  [2018-09-19 18:49:45] sudo chmod o+r /usr/local/include/google/protobuf/*
+  920  [2018-09-19 18:49:51] make
+  921  [2018-09-19 18:53:19] autogen
+  922  [2018-09-19 18:53:21] autogen.sh
+  923  [2018-09-19 18:53:33] sudo apt-get install autogen
+  924  [2018-09-19 18:53:47] make
+  925  [2018-09-19 19:36:28] cd ~/bin
+  926  [2018-09-19 19:36:28] git clone git@github.com:mbrukman/autogen.git
+  927  [2018-09-19 19:36:41] mkdir ~/bin
+  928  [2018-09-19 19:37:00] git clone git@github.com:mbrukman/autogen.git ~/bin/
+  929  [2018-09-19 19:37:07] ls -l ~/bin
+  930  [2018-09-19 19:37:26] rm -rf ~/bin
+  931  [2018-09-19 19:39:20] cd ..
+  932  [2018-09-19 19:39:21] make
+  933  [2018-09-19 19:39:29] go build ./...
+  934  [2018-09-19 19:51:54] cd api
+  935  [2018-09-19 19:52:06] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  936  [2018-09-19 19:53:27] cd 
+  937  [2018-09-19 19:53:34] cd ~/go/src/github.com/googleprivate/ml/backend/api
+  938  [2018-09-19 19:53:35] cd ..
+  939  [2018-09-19 19:53:38] go build ./...
+  940  [2018-09-19 20:01:35] grep -r GetRunV2
+  941  [2018-09-19 20:01:41] grep -r TerminateRun
+  942  [2018-09-19 20:04:53] go build ./...
+  943  [2018-09-20 13:17:48] go build ./... -v
+  944  [2018-09-20 13:17:54] go build -v ./...
+  945  [2018-09-20 13:18:05] go build
+  946  [2018-09-20 13:18:08] go build --help
+  947  [2018-09-20 13:18:18] go help build
+  948  [2018-09-20 13:18:37] go build ./...
+  949  [2018-09-20 13:40:21] swagger --version
+  950  [2018-09-20 13:59:03] man swagger 
+  951  [2018-09-20 13:59:08] swagger help
+  952  [2018-09-20 13:59:19] swagger version
+  953  [2018-09-20 14:48:58] protoc
+  954  [2018-09-20 14:49:01] protoc --version
+  955  [2018-09-20 14:58:04] go build ./...
+  956  [2018-09-20 15:01:25] make
+  957  [2018-09-20 15:01:31] cd api/
+  958  [2018-09-20 15:01:33] make
+  959  [2018-09-20 15:01:53] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  960  [2018-09-20 15:04:56] 	swagger generate client 		-f swagger/job.swagger.json 		-A job 		--principal models.Principal 		-c job_client 		-m job_model 		-t go_http_client
+  961  [2018-09-20 15:04:57] 	swagger generate client 		-f swagger/run.swagger.json 		-A run 		--principal models.Principal 		-c run_client 		-m run_model 		-t go_http_client
+  962  [2018-09-20 15:04:58] 	swagger generate client 		-f swagger/pipeline.upload.swagger.json 		-A pipeline_upload 		--principal models.Principal 		-c pipeline_upload_client 		-m pipeline_upload_model 		-t go_http_client
+  963  [2018-09-20 15:04:59] 	swagger generate client 		-f swagger/pipeline.swagger.json 		-A pipeline 		--principal models.Principal 		-c pipeline_client 		-m pipeline_model 		-t go_http_client
+  964  [2018-09-20 15:05:56] make
+  965  [2018-09-20 15:06:09] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  966  [2018-09-20 15:49:15] ls -l
+  967  [2018-09-21 11:34:58] go list
+  968  [2018-09-21 11:35:15] go list ./...
+  969  [2018-09-21 11:37:38] go list ...
+  970  [2018-09-21 11:38:08] ls -l ~/go/src/github.com/golang/protobuf/protoc-gen-go
+  971  [2018-09-21 11:38:50] ls -l ~/go/src/github.com/golang/protobuf/protoc-gen-go/generator/generator.go 
+  972  [2018-09-21 11:59:47] make
+  973  [2018-09-21 11:59:55] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  974  [2018-09-21 12:00:52] go get -u github.com/golang/protobuf/protoc-gen-go
+  975  [2018-09-21 12:00:56] make
+  976  [2018-09-21 12:01:02] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  977  [2018-09-21 12:59:57] go get -u github.com/go-swagger/go-swagger/cmd/swagger
+  978  [2018-09-21 13:08:28] make
+  979  [2018-09-21 13:08:36] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  980  [2018-09-21 13:30:02] make
+  981  [2018-09-21 13:30:07] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  982  [2018-09-21 13:52:54] make
+  983  [2018-09-21 13:53:01] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  984  [2018-09-21 13:54:18] ccmake
+  985  [2018-09-21 13:54:20] make
+  986  [2018-09-21 13:54:26] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  987  [2018-09-21 13:55:08] make
+  988  [2018-09-21 13:55:13] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  989  [2018-09-21 14:00:40] make
+  990  [2018-09-21 14:00:46] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  991  [2018-09-21 14:10:35] make
+  992  [2018-09-21 14:10:40] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  993  [2018-09-21 16:32:19] make
+  994  [2018-09-21 16:32:26] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  995  [2018-09-21 16:32:46] make
+  996  [2018-09-21 16:32:51] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  997  [2018-09-21 16:33:31] make
+  998  [2018-09-21 16:33:36] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+  999  [2018-09-21 16:34:03] make
+ 1000  [2018-09-21 16:34:23] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1001  [2018-09-21 16:36:15] go get -u github.com/go-swagger/go-swagger/cmd/swagger@0.16.0
+ 1002  [2018-09-21 16:41:41] which swagger
+ 1003  [2018-09-21 16:44:01] 	swagger generate client 		-f swagger/job.swagger.json 		-A job 		--principal models.Principal 		-c job_client 		-m job_model 		-t go_http_client
+ 1004  [2018-09-21 16:44:07] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1005  [2018-09-21 16:44:34] 	swagger generate client 		-f swagger/job.swagger.json 		-A job 		--principal models.Principal 		-c job_client 		-m job_model 		-t go_http_client
+ 1006  [2018-09-21 16:44:54] cd go_http_client/
+ 1007  [2018-09-21 16:44:58] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1008  [2018-09-21 16:45:34] cd ..
+ 1009  [2018-09-21 16:45:39] make
+ 1010  [2018-09-21 16:45:45] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1011  [2018-09-21 16:46:36] make
+ 1012  [2018-09-21 16:46:41] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1013  [2018-09-21 16:48:50] swagger version
+ 1014  [2018-09-21 17:13:58] make
+ 1015  [2018-09-21 17:14:04] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1016  [2018-09-21 18:51:18] make
+ 1017  [2018-09-21 18:51:24] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1018  [2018-09-24 13:04:22] make
+ 1019  [2018-09-24 13:04:30] find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1020  [2018-09-24 13:41:41] make && find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1021  [2018-09-24 13:42:32] go build ./...
+ 1022  [2018-09-24 13:42:38] go test ./...
+ 1023  [2018-09-24 13:42:51] cd ..
+ 1024  [2018-09-24 13:42:52] go test ./...
+ 1025  [2018-09-24 13:43:05] go build ./...
+ 1026  [2018-09-24 13:54:48] make && find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1027  [2018-09-24 13:54:56] cd api
+ 1028  [2018-09-24 13:54:58] make && find ./ -name "*.go" -exec ~/bin/autogen/autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+ 1029  [2018-09-24 13:55:05] cd ..
+ 1030  [2018-09-24 13:55:07] go build ./...
+ 1031  [2018-09-24 14:04:59] go test ./...
+ 1032  [2018-09-24 14:06:14] go build ./...
+ 1033  [2018-09-24 14:06:22] go test ./...
+ 1034  [2018-09-24 14:12:16] clear
+ 1035  [2018-09-24 14:12:19] go build ./...
+ 1036  [2018-09-24 14:12:28] go test ./...
+ 1037  [2018-09-24 14:13:25] clear
+ 1038  [2018-09-24 14:13:27] go build ./...
+ 1039  [2018-09-24 14:13:35] go test ./...
+ 1040  [2018-09-24 14:14:07] cd test
+ 1041  [2018-09-24 14:14:09] go build ./...
+ 1042  [2018-09-24 14:14:15] go build
+ 1043  [2018-09-24 14:14:18] cd ..
+ 1044  [2018-09-24 14:14:29] go test --verbose ./...
+ 1045  [2018-09-24 14:14:39] go test
+ 1046  [2018-09-24 14:14:43] go help test
+ 1047  [2018-09-24 14:15:38] go test -v
+ 1048  [2018-09-24 14:16:07] cd src
+ 1049  [2018-09-24 14:16:12] go test ./...
+ 1050  [2018-09-24 14:16:32] cd ..
+ 1051  [2018-09-24 14:28:52] go test ./...
+ 1052  [2018-09-24 14:29:04] cd test/
+ 1053  [2018-09-24 14:29:05] go test ./...
+ 1054  [2018-09-24 15:06:55] go build -v ./...
+ 1055  [2018-09-24 15:07:00] go build ./...
+ 1056  [2018-09-25 14:43:25] cd ..
+ 1057  [2018-09-25 14:43:27] go build ./...
+ 1058  [2018-09-25 14:55:18] go get https://github.com/argoproj/argo/blob/master/version.go
+ 1059  [2018-09-25 14:56:17] curl -o /usr/local/google/home/avolkov/go/src/github.com/googleprivate/ml/vendor/github.com/argoproj/argo/version.go https://github.com/argoproj/argo/blob/master/version.go
+ 1060  [2018-09-25 14:56:25] go build ./...
+ 1061  [2018-09-25 14:56:48] curl -o /usr/local/google/home/avolkov/go/src/github.com/googleprivate/ml/vendor/github.com/argoproj/argo/version.go https://raw.githubusercontent.com/argoproj/argo/master/version.go
+ 1062  [2018-09-25 14:56:50] go build ./...
+ 1063  [2018-09-25 14:57:31] dep ensure --vendor-only
+ 1064  [2018-09-25 14:57:51] go build ./...
+ 1065  [2018-09-25 14:59:46] dep ensure --vendor-only
+ 1066  [2018-09-25 15:00:21] go build ./...
+ 1067  [2018-09-25 15:01:06] dep ensure --vendor-only
+ 1068  [2018-09-25 15:17:40] go build ./...
+ 1069  [2018-09-19 19:37:36] mkdir ~/bin
+ 1070  [2018-09-19 19:37:42] cd ~/bin
+ 1071  [2018-09-19 19:37:42] git clone git@github.com:mbrukman/autogen.git
+ 1072  [2018-09-19 19:37:46] ls -l
+ 1073  [2018-09-20 14:48:43] autogen --version
+ 1074  [2018-09-25 12:12:15] docker pull gcr.io/ml-pipeline/bootstrapper:0.0.12
+ 1075  [2018-09-25 12:12:19] docker pull gcr.io/ml-pipeline/bootstrapper:0.0.19
+ 1076  [2018-09-25 14:28:35] cd ~/go/src/github.com/googleprivate/ml
+ 1077  [2018-09-25 14:28:38] echo $GOPATH
+ 1078  [2018-09-25 14:28:57] dep ensure -vendor-only
+ 1079  [2018-09-25 14:37:56] dep ensure
+ 1080  [2018-09-25 14:39:58] dep ensure -vendor-only
+ 1081  [2018-09-25 14:44:24] dep help ensure
+ 1082  [2018-09-25 14:44:58] dep
+ 1083  [2018-09-25 14:45:01] dep help
+ 1084  [2018-09-25 14:45:45] dep prune
+ 1085  [2018-09-25 15:12:27] make
+ 1086  [2018-09-25 15:13:04] dev version
+ 1087  [2018-09-25 15:13:08] dep version
+ 1088  [2018-09-25 15:14:05] licext version
+ 1089  [2018-09-25 15:14:13] licext --version
+ 1090  [2018-09-25 15:14:21] licext --help
+ 1091  [2018-09-25 15:14:27] licext help
+ 1092  [2018-09-25 15:15:41] make
+ 1093  [2018-09-25 15:17:27] cd backend
+ 1094  [2018-09-25 15:17:36] cd ..
+ 1095  [2018-09-19 18:06:48] sudo apt-get install swapspace
+ 1096  [2018-09-19 18:09:38] top
+ 1097  [2018-09-19 18:09:52] ps -auxwww | grp swap
+ 1098  [2018-09-19 18:09:54] ps -auxwww | grep swap
+ 1099  [2018-09-20 13:14:08] sudo apt-get install swapspace
+ 1100  [2018-09-26 12:35:58] docker pull gcr.io/ml-pipeline/ml-pipeline-local-roc:0.0.19
+ 1101  [2018-09-26 15:03:34] blaze build -c opt //apps/drive/fs:drive_fs
+ 1102  [2018-09-26 15:04:05] gid
+ 1103  [2018-09-26 15:04:08] alias
+ 1104  [2018-09-26 18:34:27] sudo apt install ./drive-sync_3.42.9858.3671_amd64.deb 
+ 1105  [2018-09-27 14:46:31] pwd
+ 1106  [2018-10-03 10:40:32] ldconfig -p | grep -i mpi
+ 1107  [2018-10-03 10:40:51] dpkg -s openmpi-bin
+ 1108  [2018-09-27 18:34:05] pip install ruamel.yaml
+ 1109  [2018-09-27 18:34:39] pip3 install ruamel.yaml
+ 1110  [2018-10-03 14:04:40] top
+ 1111  [2018-10-03 14:05:10] kill -HUP 12994
+ 1112  [2018-10-03 14:05:30] top
+ 1113  [2018-10-03 14:05:48] kill -HUP 9038
+ 1114  [2018-10-05 13:13:04] python3 -m pip install -U pylint
+ 1115  [2018-10-17 13:55:03] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command='bash -c "kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o name) 8080:3000"' -- -L 2222:localhost:8080
+ 1116  [2018-10-16 17:54:25] sudo add-apt-repository ppa:fossfreedom/byzanz
+ 1117  [2018-10-16 17:54:32] sudo apt-get update && sudo apt-get install byzanz
+ 1118  [2018-10-16 17:58:59] byzanz
+ 1119  [2018-10-16 18:00:03] byzanz-record
+ 1120  [2018-10-16 18:00:06] byzanz-record --help
+ 1121  [2018-10-16 18:00:38] sudo apt install kazam
+ 1122  [2018-10-16 18:04:05] python3 -c 'import mlp;print(mlp)'
+ 1123  [2018-10-16 20:01:43] python3 -c 'from collections import OrderedDict;print(type(OrderedDict))'
+ 1124  [2018-10-16 20:02:09] python3 -c 'from collections import OrderedDict;print(OrderedDict is type)'
+ 1125  [2018-10-16 20:02:26] python3 -c 'from collections import OrderedDict;print(OrderedDict is class)'
+ 1126  [2018-10-16 20:03:24] python3 -c 'from collections import OrderedDict;print(isinstance(OrderedDict, type))'
+ 1127  [2018-10-16 20:13:11] python3 -c 'from typing import List;ann=List[int]; print(str(ann))'
+ 1128  [2018-10-16 20:13:17] python3 -c 'from typing import List;ann=List[int]; print(str(ann.__name__))'
+ 1129  [2018-10-16 20:13:25] python3 -c 'from typing import List;ann=List[int]; print(dir(ann))'
+ 1130  [2018-10-16 16:48:20] ps -aux | grep 008046c041eb4b209564953cc514b219f34b85d09edd082b
+ 1131  [2018-10-16 16:48:33] echo 008046c041eb4b209564953cc514b219f34b85d09edd082b > lab.txt
+ 1132  [2018-10-16 14:12:20] kubectl get nodes
+ 1133  [2018-10-16 14:12:26] kubectl get pods
+ 1134  [2018-10-15 20:53:51] docker pull gcr.io/ml-pipeline-test/004138561bf2ef4393e50c0756805452a4a87b85/kubeflow-dnntrainer
+ 1135  [2018-10-15 20:54:02] docker pull gcr.io/ml-pipeline-test/004138561bf2ef4393e50c0756805452a4a87b85/kubeflow-launcher-trainer
+ 1136  [2018-10-15 20:54:15] docker list gcr.io/ml-pipeline-test/004138561bf2ef4393e50c0756805452a4a87b85/
+ 1137  [2018-10-15 20:54:20] docker --help
+ 1138  [2018-10-15 20:55:05] docker search gcr.io/ml-pipeline-test/004138561bf2ef4393e50c0756805452a4a87b85/
+ 1139  [2018-10-15 20:55:07] docker search gcr.io/ml-pipeline-test/004138561bf2ef4393e50c0756805452a4a87b85/*
+ 1140  [2018-10-15 20:55:25] docker search 004138561bf2ef4393e50c0756805452a4a87b85
+ 1141  [2018-10-15 20:55:30] docker help search 004138561bf2ef4393e50c0756805452a4a87b85
+ 1142  [2018-10-15 20:55:34] docker help search
+ 1143  [2018-10-15 20:55:50] docker search -f 004138561bf2ef4393e50c0756805452a4a87b85
+ 1144  [2018-10-15 21:16:54] docker pull gcr.io/ml-pipeline-test/004138561bf2ef4393e50c0756805452a4a87b85/kubeflow-launcher-trainer
+ 1145  [2018-10-12 19:57:32] ls -la
+ 1146  [2018-10-12 19:57:39] ./presubmit-tests.gke.sh 
+ 1147  [2018-10-12 20:11:52] bash -c 'echo $#' 1 2 3
+ 1148  [2018-10-12 20:11:54] bash -c 'echo $#' 1 2 3 4
+ 1149  [2018-10-12 20:12:05] bash -c 'echo $($#)' 1 2 3 4
+ 1150  [2018-10-12 20:12:17] bash -c 'echo ${$#}' 1 2 3 4
+ 1151  [2018-10-12 20:12:23] bash -c 'echo ${$#}' 1 2 3 4 5
+ 1152  [2018-10-12 20:12:29] bash -c 'echo ${$# - 1}' 1 2 3 4 5
+ 1153  [2018-10-12 20:12:33] bash -c 'echo ${1}' 1 2 3 4 5
+ 1154  [2018-10-12 20:12:35] bash -c 'echo ${2}' 1 2 3 4 5
+ 1155  [2018-10-12 20:12:38] bash -c 'echo ${3}' 1 2 3 4 5
+ 1156  [2018-10-12 20:12:40] bash -c 'echo ${4}' 1 2 3 4 5
+ 1157  [2018-10-12 20:12:42] bash -c 'echo ${5}' 1 2 3 4 5
+ 1158  [2018-10-12 20:12:47] bash -c 'echo ${$}' 1 2 3 4 5
+ 1159  [2018-10-12 20:14:15] bash -c 'echo $$' 1 2 3 4 5
+ 1160  [2018-10-12 20:14:25] bash -c 'echo $$#' 1 2 3 4 5
+ 1161  [2018-10-12 20:14:31] bash -c 'echo ${$#}' 1 2 3 4 5
+ 1162  [2018-10-12 20:14:35] bash -c 'echo ${$#+1000000}' 1 2 3 4 5
+ 1163  [2018-10-12 20:14:38] bash -c 'echo ${$#-1000000}' 1 2 3 4 5
+ 1164  [2018-10-12 20:15:48] bash -c 'for i in $(seq 1 $#)' 1 2 3 4 5
+ 1165  [2018-10-12 20:15:57] bash -c 'for i in $(seq 1 $#): do echo $i; done' 1 2 3 4 5
+ 1166  [2018-10-12 20:16:06] bash -c 'for i in $(seq 1 $#); do echo $i; done' 1 2 3 4 5
+ 1167  [2018-10-12 20:16:13] bash -c 'for i in $(seq 0 $#); do echo $i; done' 1 2 3 4 5
+ 1168  [2018-10-12 20:16:48] bash -c 'for i in $(seq 0 $#); do echo ${$i}; done' 1 2 3 4 5
+ 1169  [2018-10-12 20:16:58] bash -c 'for i in $(seq 0 $#); do echo ${i}; done' 1 2 3 4 5
+ 1170  [2018-10-12 20:17:04] bash -c 'for i in $(seq 0 $#); do echo ${i}; done' a b c d
+ 1171  [2018-10-12 20:17:07] bash -c 'for i in $(seq 0 $#); do echo ${$i}; done' a b c d
+ 1172  [2018-10-12 20:17:14] bash -c 'for i in $(seq 0 $#); do echo $(($i)); done' a b c d
+ 1173  [2018-10-12 20:17:24] bash -c 'for i in $(seq 0 $#); do echo $(($@[$i])); done' a b c d
+ 1174  [2018-10-12 20:17:30] bash -c 'for i in $(seq 0 $#); do echo $[$i]; done' a b c d
+ 1175  [2018-10-12 20:17:34] bash -c 'for i in $(seq 0 $#); do echo $@[$i]; done' a b c d
+ 1176  [2018-10-12 20:18:14] bash -c 'for i in $(seq 0 $#); do echo ${@[$i]}; done' a b c d
+ 1177  [2018-10-12 20:18:17] bash -c 'for i in $(seq 0 $#); do echo ${@[1]}; done' a b c d
+ 1178  [2018-10-12 20:19:07] bash -c 'for i in $(seq 0 $#); do echo ${!i}; done' a b c d
+ 1179  [2018-10-12 20:19:33] bash -c 'for i in $(seq 0 $#); do echo ${!i} ${!(($i + 1))}; done' a b c d
+ 1180  [2018-10-12 20:19:36] bash -c 'for i in $(seq 0 $#); do echo ${!i} ${(($i + 1))}; done' a b c d
+ 1181  [2018-10-12 20:19:41] bash -c 'for i in $(seq 0 $#); do echo ${!i} ${$(($i + 1))}; done' a b c d
+ 1182  [2018-10-12 20:19:43] bash -c 'for i in $(seq 0 $#); do echo ${!i} ${(($i + 1))}; done' a b c d
+ 1183  [2018-10-12 20:19:46] bash -c 'for i in $(seq 0 $#); do echo ${!i} ${((!i + 1))}; done' a b c d
+ 1184  [2018-10-12 20:19:49] bash -c 'for i in $(seq 0 $#); do echo ${!i} ${!(($i + 1))}; done' a b c d
+ 1185  [2018-10-12 20:22:11] bash -c 'for i in $(seq 0 $#); do next_idx=(($i+1)) echo ${!i} ${!next_idx}; done' a b c d
+ 1186  [2018-10-12 20:22:21] bash -c 'for i in $(seq 0 $#); do next_idx=(($i+1)); echo ${!i} ${!next_idx}; done' a b c d
+ 1187  [2018-10-12 20:22:28] bash -c 'for i in $(seq 0 $#); do next_idx=$(($i+1)); echo ${!i} ${!next_idx}; done' a b c d
+ 1188  [2018-10-12 20:44:45] python3 -c 'import sys; for i in range(10):print(i)'
+ 1189  [2018-10-12 20:44:49] python3 -c 'import sys;for i in range(10):print(i)'
+ 1190  [2018-10-12 20:45:10] python3 -c 'import sys;for i in range(10):    print(i)'
+ 1191  [2018-10-12 20:45:13] python3 -c 'import sys;for i in range(10):;    print(i)'
+ 1192  [2018-10-10 11:07:55] python3 -c 'import sys;print(sys.argv)'
+ 1193  [2018-10-10 11:07:58] python3 -c 'import sys;print(sys.argv)' 1 2 3
+ 1194  [2018-10-10 11:08:01] python3 -c 'import sys;print(sys.argv)' 1 2
+ 1195  [2018-10-10 11:22:15] bash -c 'echo $1 $2' 1 2
+ 1196  [2018-10-10 11:22:21] bash -c 'echo $0 $1 $2' 1 2
+ 1197  [2018-10-10 11:25:50] python3 -b -c 'import sys;print(sys.argv)' 1 2
+ 1198  [2018-10-10 11:26:04] python3 -b -c 'import sys;print(sys.argv)' -d 1 2
+ 1199  [2018-10-10 13:52:24] python3 --version
+ 1200  [2018-10-10 13:52:30] which python3
+ 1201  [2018-10-10 13:52:32] which python
+ 1202  [2018-10-10 13:52:38] ls -l /usr/bin/python*
+ 1203  [2018-10-10 13:58:14] cd /usr/bin/
+ 1204  [2018-10-10 13:58:42] ln -h
+ 1205  [2018-10-10 13:58:44] ln --help
+ 1206  [2018-10-10 13:59:06] ln -s python3 python3.6
+ 1207  [2018-10-10 13:59:16] sudo ln -s python3.6 python3
+ 1208  [2018-10-10 13:59:39] sudo mv python3{,.bak}
+ 1209  [2018-10-10 13:59:41] sudo ln -s python3.6 python3
+ 1210  [2018-10-10 13:59:48] python3 --version
+ 1211  [2018-10-10 14:27:04] python3 -c 'import fire'
+ 1212  [2018-10-10 14:27:32] python3 -m pip install -U fire
+ 1213  [2018-10-10 14:27:59] python3 -c 'import fire'
+ 1214  [2018-10-10 14:28:40] python3 -c 'def fun(a,b):return a+b;import fire'
+ 1215  [2018-10-10 14:28:47] python3 -c 'def fun(a,b):return a+b;import fire;fire.Fire(fun)'
+ 1216  [2018-10-10 14:29:03] python3 -c 'def fun(a,b):return a;import fire;fire.Fire(fun)'
+ 1217  [2018-10-10 14:29:06] python3 -c 'def fun(a,b):return a;import fire;fire.Fire(fun)' 1,2
+ 1218  [2018-10-10 14:29:09] python3 -c 'def fun(a,b):return a;import fire;fire.Fire(fun)' --help
+ 1219  [2018-10-10 14:29:16] python3 -c 'import fire;fire.Fire(fun)' --help
+ 1220  [2018-10-10 14:29:20] python3 -c 'import fire;fire.Fire()' --help
+ 1221  [2018-10-10 14:29:35] python3 -c 'import fire;fire.Fire(fun)'
+ 1222  [2018-10-10 14:29:47] python3 -c 'def fun(a,b):pass;import fire;fire.Fire(fun)'
+ 1223  [2018-10-10 14:29:56] python3 -c 'def fun(a,b):    pass;import fire;fire.Fire(fun)'
+ 1224  [2018-10-10 14:30:33] python3 -c '
+def fun(a,b):
+  return a+b
+import fire
+fire.Fire(fun)
+'
+ 1225  [2018-10-10 14:31:09] python3 -c '
+def fun(a,b):
+  return a+b
+import fire
+fire.Fire(fun)' 1 2
+ 1226  [2018-10-10 14:31:22] python3 -c '
+def fun(a,b):
+  return a+b
+import fire
+res = fire.Fire(fun)' 1 2
+ 1227  [2018-10-10 14:31:29] python3 -c '
+def fun(a,b):
+  return a+b
+import fire
+res = fire.Fire(fun); print(res)' 1 2
+ 1228  [2018-10-10 14:31:31] python3 -c '
+def fun(a,b):
+  return a+b
+import fire
+res = fire.Fire(fun);print(res)' 1 2
+ 1229  [2018-10-10 14:31:47] python3 -c '
+def fun(a,b):
+  return (a+b,a*b)
+import fire
+res = fire.Fire(fun);print(res)' 1 2
+ 1230  [2018-10-10 14:32:16] python3 -c '
+def fun(a,b):
+  return (a+b,a*b)
+import fire
+res = fire.Fire(fun);print(res);print(res.__class__)' 1 2
+ 1231  [2018-10-10 14:32:24] python3 -c '
+def fun(a,b):
+  return (a+b,a*b)
+import fire
+res = fire.Fire(fun);print(res[0])' 1 2
+ 1232  [2018-10-10 14:32:26] python3 -c '
+def fun(a,b):
+  return (a+b,a*b)
+import fire
+res = fire.Fire(fun);print(res[1])' 1 2
+ 1233  [2018-10-10 14:32:30] python3 -c '
+def fun(a,b):
+  return (a+b,a*b)
+import fire
+res = fire.Fire(fun);print(res)' 1 2
+ 1234  [2018-10-10 14:32:35] python3 -c '
+def fun(a,b):
+  return (a+b,a*b)
+import fire
+res = fire.Fire(fun);print(res)' 2 3
+ 1235  [2018-10-10 14:33:48] python3 -c 'from collections import namedtuple
+def fun(a,b):
+  return namedtuple(sum=a+b,product=a*b)
+import fire
+res = fire.Fire(fun);print(res)' 2 3
+ 1236  [2018-10-10 15:20:55] python3 -c 'from collections import namedtuple
+def fun(a,b):
+  return namedtuple(sum=a+b,product=a*b)
+import fire
+res = fire.Fire(fun);print(res)' 2 3 4 5
+ 1237  [2018-10-10 15:35:43] python3 -c 'import argparse;parser = argparse.ArgumentParser();parser.parse_known_args()'
+ 1238  [2018-10-10 15:35:48] python3 -c 'import argparse;parser = argparse.ArgumentParser();print(parser.parse_known_args())'
+ 1239  [2018-10-10 15:35:57] python3 -c 'import argparse;parser = argparse.ArgumentParser();print(parser.parse_known_args())' -a -b -c
+ 1240  [2018-10-10 15:36:01] python3 -c 'import argparse;parser = argparse.ArgumentParser();print(parser.parse_known_args(argv))' -a -b -c
+ 1241  [2018-10-10 15:36:12] python3 -c 'import argparse;import sys;parser = argparse.ArgumentParser();print(parser.parse_known_args(sys.argv))' -a -b -c
+ 1242  [2018-10-10 15:39:05] python3 -c 'import argparse;import sys;parser = argparse.ArgumentParser();print(parser.parse_known_args(sys.argv))' -a 1 -b 2 -c 3
+ 1243  [2018-10-10 15:55:40] python3 -c 'import argparse;import sys;parser = argparse.ArgumentParser();print(parser.parse(sys.argv))' -a 1 -b 2 -c 3
+ 1244  [2018-10-10 16:14:07] python3 -c '
+def fun(a,b):
+  return a+b
+import fire
+res = fire.Fire(fun); print(res)' 1 2 3 4
+ 1245  [2018-10-10 16:14:11] python3 -c '
+def fun(a,b):
+  return a+b
+import fire
+res = fire.Fire(fun); print(res)' 1 2 3 4
+ 1246  [2018-10-10 14:42:34] cd /usr/local
+ 1247  [2018-10-10 14:42:42] ls -l python*
+ 1248  [2018-10-10 14:42:47] cd bin
+ 1249  [2018-10-10 14:42:48] ls -l python*
+ 1250  [2018-10-10 14:42:52] which python3
+ 1251  [2018-10-10 14:43:01] cd /usr/bin
+ 1252  [2018-10-10 14:43:02] ls -l python*
+ 1253  [2018-10-10 14:43:31] ln --help
+ 1254  [2018-10-10 14:43:49] ln -s python3.5 python3
+ 1255  [2018-10-10 14:43:56] sudo ln -fs python3.5 python3
+ 1256  [2018-10-17 15:40:39] cd 2018-09_Interactive_pipelines/
+ 1257  [2018-10-17 15:40:43] cd ml/
+ 1258  [2018-10-17 15:40:49] cd backend/
+ 1259  [2018-10-17 15:40:51] ls -l
+ 1260  [2018-10-17 15:40:58] go build ./...
+ 1261  [2018-10-17 15:41:11] cd ~/go/src/github.com/googleprivate/
+ 1262  [2018-10-17 15:41:13] cd ml
+ 1263  [2018-10-17 15:41:17] cd backend/
+ 1264  [2018-10-17 15:41:21] git log
+ 1265  [2018-10-17 15:44:45] go build ./...
+ 1266  [2018-10-17 15:45:06] cd src/cmd/
+ 1267  [2018-10-17 15:45:08] ls -la
+ 1268  [2018-10-17 15:45:11] cd ..
+ 1269  [2018-10-17 15:45:13] ls -la
+ 1270  [2018-10-17 15:45:24] ls -l ~/go/bin/
+ 1271  [2018-10-18 17:41:47] kubectl get pod
+ 1272  [2018-10-18 17:42:06] kubectl get pod --watch
+ 1273  [2018-10-18 17:41:14] kubectl get pods
+ 1274  [2018-10-18 17:41:28] kubectl get pod/deploy-ml-pipeline-5x5z8-zgzmp --watch
+ 1275  [2018-10-17 15:01:48] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command='bash -c "kubectl port-forward $(kubectl get pods -l app=argo-ui -o name) 8087:3000"' -- -L 2223:localhost:8087
+ 1276  [2018-10-17 15:03:44] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command='kubectl -n argo port-forward deployment/argo-ui 8087:8001' -- -L 2223:localhost:8087
+ 1277  [2018-10-17 15:04:08] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command='kubectl port-forward deployment/argo-ui 8087:8001' -- -L 2223:localhost:8087
+ 1278  [2018-10-17 15:04:20] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command='kubectl port-forward deployment/argo-ui 8089:8001' -- -L 2223:localhost:8089
+ 1279  [2018-10-22 17:14:29] python -c
+ 1280  [2018-10-22 17:14:31] python -c '
+import fire
+ 1281  [2018-10-22 17:14:38] python3 -c '
+import fire
+def fun(a, b):
+  return a+b
+fire.Fire(fun)
+'
+ 1282  [2018-10-22 17:15:09] python3 -c '
+import fire
+def fun(a, b):
+  return a+b
+fire.Fire(fun)
+' 3 5
+ 1283  [2018-10-22 17:15:32] python3 -c '
+import fire
+def fun(a, b):
+  print 9;return a+b
+fire.Fire(fun)
+' 3 5
+ 1284  [2018-10-22 17:15:40] python3 -c '
+import fire
+def fun(a, b):
+  print 9
+return a+b
+fire.Fire(fun)
+' 3 5
+ 1285  [2018-10-22 17:16:02] python3 -c '
+import fire
+def fun(a, b):
+  print(9)
+return a+b
+fire.Fire(fun)
+' 3 5
+ 1286  [2018-10-22 17:16:07] python3 -c '
+import fire
+def fun(a, b):
+  print(9)
+  return a+b
+fire.Fire(fun)
+' 3 5
+ 1287  [2018-10-22 17:16:10] python3 -c '
+import fire
+def fun(a, b):
+  print(9)
+  return a+b
+fire.Fire(fun)
+' 3 5
+ 1288  [2018-10-22 17:16:13] echo $!
+ 1289  [2018-10-22 17:16:23] python3 -c '
+import fire
+def fun(a, b):
+  print(9)
+  return a+b
+fire.Fire(fun)
+' 3 5 && echo ok || echo bad
+ 1290  [2018-10-22 17:16:48] python3 -c '
+import fire
+def fun(a, b):
+  print 9
+  return a+b
+fire.Fire(fun)
+' 3 5 && echo ok || echo bad
+ 1291  [2018-10-22 17:16:50] python3 -c '
+import fire
+def fun(a, b):
+  print(9)
+  return a+b
+fire.Fire(fun)
+' 3 5 && echo ok || echo bad
+ 1292  [2018-10-22 17:17:34] python3 -c '
+import fire
+def fun(a, b):
+  print(9)
+  return a+b
+fire.Fire(fun)
+' 3 5 && echo ok || echo bad
+ 1293  [2018-10-17 14:57:09] cd Work.Google/Components_demo\
+ 1294  [2018-10-17 14:57:12] ls -l
+ 1295  [2018-10-17 14:57:22] argo lint
+ 1296  [2018-10-17 14:57:43] argo lint calc_pipeline.pipeline.yaml
+ 1297  [2018-10-17 14:58:50] argo submit calc_pipeline.pipeline.yaml
+ 1298  [2018-10-17 14:59:12] argo submit calc_pipeline.pipeline.yaml -p a1=3
+ 1299  [2018-10-17 14:59:37] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a argo submit calc_pipeline.pipeline.yaml -p a1=3
+ 1300  [2018-10-17 14:59:46] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- argo submit calc_pipeline.pipeline.yaml -p a1=3
+ 1301  [2018-10-17 15:00:08] cat calc_pipeline.pipeline.yaml | gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- argo submit /dev/stdin -p a1=3
+ 1302  [2018-10-17 15:56:02] cat calc_pipeline.pipeline.yaml | argo submit /dev/stdin -p a1=3
+ 1303  [2018-10-26 14:47:01] /usr/bin/python3
+ 1304  [2018-10-23 13:24:06] cd Work.Google/Components_demo/seira_package/
+ 1305  [2018-10-23 13:24:12] python setup.py sdist --format=gztar
+ 1306  [2018-10-23 13:24:26] python setup.py sdist --format=gztar && pip3 install dist/seira_components-0.1.tar.gz
+ 1307  [2018-10-23 13:32:12] pip3 uninstall seira_components
+ 1308  [2018-10-24 13:30:44] python setup.py sdist --format=gztar && pip3 install dist/seira_components-0.2.tar.gz
+ 1309  [2018-10-22 12:12:57] cd Work.Google/Components_demo
+ 1310  [2018-10-22 12:13:00] cd seira
+ 1311  [2018-10-22 12:13:08] python setup.py sdist --format=gztar
+ 1312  [2018-10-22 12:16:47] pip install dist/seira-0.1.tar.gz
+ 1313  [2018-10-22 12:18:17] python setup.py sdist --format=gztar
+ 1314  [2018-10-22 12:18:20] pip install dist/seira-0.1.tar.gz
+ 1315  [2018-10-22 12:18:24] pip3 install dist/seira-0.1.tar.gz
+ 1316  [2018-10-22 12:24:24] python setup.py sdist --format=gztar
+ 1317  [2018-10-22 13:22:00] pip3 install dist/seira-0.1.tar.gz
+ 1318  [2018-10-22 13:24:47] python setup.py sdist --format=gztar
+ 1319  [2018-10-22 13:24:49] pip3 install dist/seira-0.1.tar.gz
+ 1320  [2018-10-22 13:27:56] python setup.py sdist --format=gztar
+ 1321  [2018-10-22 13:27:58] pip3 install dist/seira-0.1.tar.gz
+ 1322  [2018-10-22 13:28:55] cd ..
+ 1323  [2018-10-22 13:29:03] cd seira_package/
+ 1324  [2018-10-22 13:29:14] python setup.py sdist --format=gztar && pip3 install dist/seira-0.1.tar.gz
+ 1325  [2018-10-22 13:38:15] python setup.py sdist --format=gztar && pip3 install dist/seira_components-0.1.tar.gz
+ 1326  [2018-10-22 13:38:33] pip3 uninstall seira
+ 1327  [2018-10-22 13:38:39] pip3 uninstall seira_components
+ 1328  [2018-10-22 13:38:46] python setup.py sdist --format=gztar && pip3 install dist/seira_components-0.1.tar.gz
+ 1329  [2018-10-22 13:41:53] pip3 install https://storage.cloud.google.com/ml-pipeline-dataset/seira_components-0.1.tar.gz
+ 1330  [2018-10-22 13:42:34] pip3 install https://storage.googleapis.com/ml-pipeline-dataset/seira_components-0.1.tar.gz
+ 1331  [2018-10-22 13:42:46] pip uninstall seira_components
+ 1332  [2018-10-22 13:42:55] pip uninstall seira-components
+ 1333  [2018-10-22 13:43:15] pip3 uninstall seira_components
+ 1334  [2018-10-22 13:43:31] pip uninstall seira
+ 1335  [2018-10-22 13:43:37] pip3 uninstall seira
+ 1336  [2018-10-22 13:43:51] pip uninstall seira
+ 1337  [2018-10-22 13:44:05] pip3 uninstall seira
+ 1338  [2018-10-22 13:44:26] pip uninstall seira
+ 1339  [2018-10-22 13:44:38] pip3 uninstall seira-components
+ 1340  [2018-10-22 13:44:41] pip uninstall seira-components
+ 1341  [2018-10-22 13:44:47] pip uninstall seira-components --user
+ 1342  [2018-10-22 13:44:56] pip uninstall --user seira-components
+ 1343  [2018-10-22 13:45:00] pip uninstall -u seira-components
+ 1344  [2018-10-22 13:45:04] pip uninstall -U seira-components
+ 1345  [2018-10-22 13:45:10] pip uninstall seira
+ 1346  [2018-10-22 13:45:16] pip3 uninstall seira-components
+ 1347  [2018-10-22 13:45:29] pip3 install https://storage.googleapis.com/ml-pipeline-dataset/seira_components-0.1.tar.gz
+ 1348  [2018-10-22 13:46:01] pip uninstall seira
+ 1349  [2018-10-22 13:46:04] pip3 uninstall seira
+ 1350  [2018-10-22 13:46:08] pip3 uninstall seira-components
+ 1351  [2018-10-22 13:46:21] pip uninstall seira-components
+ 1352  [2018-10-22 13:47:45] pip3 install https://storage.googleapis.com/ml-pipeline-dataset/seira_components-0.1.tar.gz
+ 1353  [2018-10-22 13:48:09] pip uninstall seira-components
+ 1354  [2018-10-22 13:48:12] pip3 uninstall seira-components
+ 1355  [2018-10-22 13:48:28] pip3 install https://storage.googleapis.com/ml-pipeline-dataset/seira_components-0.1.tar.gz
+ 1356  [2018-10-22 13:49:40] python setup.py sdist --format=gztar && pip3 install dist/seira_components-0.1.tar.gz
+ 1357  [2018-10-22 13:50:48] pip3 install https://storage.googleapis.com/ml-pipeline-dataset/seira_components-0.1.tar.gz
+ 1358  [2018-10-22 14:11:38] pip uninstall seira-components
+ 1359  [2018-10-22 14:11:41] pip3 uninstall seira-components
+ 1360  [2018-10-22 14:12:04] python setup.py sdist --format=gztar && pip3 install dist/seira_components-0.1.tar.gz
+ 1361  [2018-10-22 14:12:42] pip3 uninstall seira-components
+ 1362  [2018-10-22 14:12:45] python setup.py sdist --format=gztar && pip3 install dist/seira_components-0.1.tar.gz
+ 1363  [2018-10-22 14:13:28] pip3 uninstall seira-components
+ 1364  [2018-10-22 14:13:30] python setup.py sdist --format=gztar && pip3 install dist/seira_components-0.1.tar.gz
+ 1365  [2018-10-22 14:29:27] pip3 install http://storage.googleapis.com/ngao-mlpipeline-testing/component-image-build/mlp-0.1.tar.gz
+ 1366  [2018-10-22 14:29:38] pip3 install http://storage.googleapis.com/ngao-mlpipeline-testing/component-image-build/mlpc-0.1.tar.gz
+ 1367  [2018-10-22 14:29:45] pip3 install http://storage.googleapis.com/ngao-mlpipeline-testing/component-image-build/mlp_component-1.0.tar.gz
+ 1368  [2018-10-22 14:39:51] pip3 uninstall mlp-component
+ 1369  [2018-10-22 18:34:13] which echo
+ 1370  [2018-10-30 00:24:11] python3 -c 'a= {1:1, 1:2}'
+ 1371  [2018-10-30 01:28:16] python3 -c '_=1;print(_)'
+ 1372  [2018-10-30 02:56:38] python3 -c 'import re;print(re.match("a","abc"))'
+ 1373  [2018-10-30 02:56:43] python3 -c 'import re;print(re.match("a","abc")).text'
+ 1374  [2018-10-30 02:56:48] python3 -c 'import re;print(re.match("a","abc"))'
+ 1375  [2018-10-30 02:56:56] python3 -c 'import re;print(dir(re.match("a","abc")))'
+ 1376  [2018-10-30 02:57:05] python3 -c 'import re;print(re.match("a","abc").__dict__)'
+ 1377  [2018-10-30 02:57:10] python3 -c 'import re;print(re.match("a","abc"))'
+ 1378  [2018-10-30 02:57:13] python3 -c 'import re;print(re.match("b","abc"))'
+ 1379  [2018-10-30 02:57:15] python3 -c 'import re;print(re.match("a","abc"))'
+ 1380  [2018-10-17 16:11:19] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command='kubectl port-forward deployment/argo-ui 8091:8001' -- -L 2225:localhost:8091
+ 1381  [2018-10-17 16:09:33] kubectl create rolebinding default-admin --clusterrole=admin --serviceaccount=default:default
+ 1382  [2018-10-17 02:02:24] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a
+ 1383  [2018-10-17 02:43:47] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- 
+ 1384  [2018-10-17 02:45:47] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- -L 2222:localhost:8080 kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o name) 8080:3000
+ 1385  [2018-10-17 02:46:27] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- -L 2222:localhost:8080 bash -c 'kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o name) 8080:3000'
+ 1386  [2018-10-17 02:47:11] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- -L 2222:localhost:8080 bash -c 'echo $(kubectl get pods -l app=ml-pipeline-ui -o name) 8080:3000'
+ 1387  [2018-10-17 02:47:27] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- -L 2222:localhost:8080 bash -c 'kubectl get pods -l app=ml-pipeline-ui -o name'
+ 1388  [2018-10-17 02:48:00] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- -L 2222:localhost:8080 bash -c 'kubectl get pods'
+ 1389  [2018-10-17 02:48:15] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- -L 2222:localhost:8080 bash -c 'kubectl --help'
+ 1390  [2018-10-17 02:48:30] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a -- -L 2222:localhost:8080 bash -c 'echo aaa'
+ 1391  [2018-10-17 02:48:52] gcloud compute ssh --help
+ 1392  [2018-10-17 02:49:45] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a bash -c 'hostname' -- -L 2222:localhost:8080
+ 1393  [2018-10-17 02:49:54] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command bash -c 'hostname' -- -L 2222:localhost:8080
+ 1394  [2018-10-17 02:50:12] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command 'bash -c hostname' -- -L 2222:localhost:8080
+ 1395  [2018-10-17 02:51:15] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command='bash -c "kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o name) 8080:3000"' -- -L 2222:localhost:8080 
+ 1396  [2018-10-17 13:55:48] gcloud compute ssh debug-vm --project ml-pipeline-test --zone us-west1-a --command='bash -c "kubectl port-forward $(kubectl get pods -l app=ml-pipeline-ui -o name) 8082:3000"' -- -L 2222:localhost:8082
+ 1397  [2018-11-01 17:30:14] top
+ 1398  [2018-11-01 17:31:00] kill -HUP 221991
+ 1399  [2018-11-01 17:31:17] kill -HUP 179075
+ 1400  [2018-10-15 01:03:44] DATAFLOW_TFT_IMAGE=gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:tag
+ 1401  [2018-10-15 01:03:54] DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+ 1402  [2018-10-15 01:04:05] echo $DATAFLOW_TFT_IMAGE_FOR_SED
+ 1403  [2018-10-10 16:32:41] jupyter lab
+ 1404  [2018-11-01 22:59:04] BOOTSTRAPPER_URL=https://storage.googleapis.com/ml-pipeline/release/$PIPELINES_VERSION/bootstrapper.yaml
+ 1405  [2018-11-01 22:59:50] echo ${BOOTSTRAPPER_URL//bootstrapper.yaml/uninstaller.yaml}
+ 1406  [2018-11-01 23:00:59] echo ${BOOTSTRAPPER_URL/bootstrapper.yaml/uninstaller.yaml}
+ 1407  [2018-11-01 23:02:59] echo ${BOOTSTRAPPER_URL/%bootstrapper.yaml/uninstaller.yaml}
+ 1408  [2018-10-15 00:43:24] jupyter notebook list
+ 1409  [2018-10-14 23:17:02] cd /usr/local/google/home/avolkov/2018-09_Interactive_pipelines/ml/components/kubeflow/
+ 1410  [2018-10-14 23:17:20] python3 -m test/test_launcher
+ 1411  [2018-10-14 23:17:33] python3 test/test_launcher.py
+ 1412  [2018-10-14 23:17:45] PYTHONPATH=. python3 test/test_launcher.py
+ 1413  [2018-10-17 15:48:04] TEST_CLUSTER=avolkov
+ 1414  [2018-10-17 15:48:10]   gcloud config set project ml-pipeline-test
+ 1415  [2018-10-17 15:48:10]   gcloud config set compute/zone us-west1-a
+ 1416  [2018-10-17 15:48:10]   gcloud container clusters create ${TEST_CLUSTER}     --scopes cloud-platform     --enable-cloud-logging     --enable-cloud-monitoring     --machine-type n1-standard-2     --num-nodes 3
+ 1417  [2018-10-17 15:50:42] gcloud container clusters get-credentials ${TEST_CLUSTER}
+ 1418  [2018-10-17 15:50:52] kubec
+ 1419  [2018-10-17 15:51:16] kubectl cluster-info
+ 1420  [2018-10-17 15:51:25] kubectl config
+ 1421  [2018-10-17 15:51:30] kubectl config current-context
+ 1422  [2018-10-17 15:51:45] kubectl create ns argo
+ 1423  [2018-10-17 15:51:45] kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/v2.2.1/manifests/install.yaml
+ 1424  [2018-10-17 15:52:13] kubectl create clusterrolebinding YOURNAME-cluster-admin-binding --clusterrole=cluster-admin --user=avolkov@google.com
+ 1425  [2018-10-17 15:52:26] kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/v2.2.1/manifests/install.yaml
+ 1426  [2018-10-17 15:53:01] kubectl -n argo port-forward deployment/argo-ui 2224:8001
+ 1427  [2018-10-22 18:42:43] PIPELINES_VERSION=${PIPELINES_VERSION:-latest}
+ 1428  [2018-10-22 18:42:53] kubectl create -f https://storage.googleapis.com/ml-pipeline/release/$PIPELINES_VERSION/uninstaller.yaml
+ 1429  [2018-10-22 18:43:00] kubectl delete clusterroles mlpipeline-deploy-admin
+ 1430  [2018-10-22 18:43:07] kubectl delete clusterrolebindings mlpipeline-admin-role-binding
+ 1431  [2018-10-22 18:43:43] gsutil cp gs://ml-pipeline-staging/builds/09f416f19baa52e6bf5b678e6e7d04b07bdb28a3/bootstrapper.yaml ./
+ 1432  [2018-10-22 18:43:51] cat bootstrapper.yaml
+ 1433  [2018-10-22 18:44:35] bootstrapper_job_full_name=$(kubectl create -f bootstrapper.yaml --output=name | grep 'deploy-ml-pipeline-')
+ 1434  [2018-10-22 18:44:47]     bootstrapper_job_name=${bootstrapper_job_full_name##*/} #=deploy-ml-pipeline-xxxxx
+ 1435  [2018-10-22 18:44:47]     echo "Waiting for the bootstrapper job to complete ($bootstrapper_job_name). This can take several minutes..."
+ 1436  [2018-10-22 18:44:47]     kubectl wait --for=condition=complete --timeout=5m job/$bootstrapper_job_name
+ 1437  [2018-10-22 18:49:16]     bootstrapper_pod_full_name=$(kubectl get pods -l job-name=$bootstrapper_job_name --output name) #=pod/deploy-ml-pipeline-xxxxx-yyyyy
+ 1438  [2018-10-22 18:49:16]     pod_phase=$(kubectl get $bootstrapper_pod_full_name --output jsonpath={.status.phase}) #=Succeeded
+ 1439  [2018-10-22 18:58:52] kubectl port-forward $(kubectl get pods --selector app=argo-ui --output name) 8001:8001
+ 1440  [2018-10-22 20:36:56] kubectl port-forward  --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector app=argo-ui --output name) 8001:8001
+ 1441  [2018-10-22 20:44:52] kubectl proxy
+ 1442  [2018-10-22 20:44:58] kubectl proxy --help
+ 1443  [2018-10-22 20:45:04] kubectl proxy --port=9090
+ 1444  [2018-10-31 15:28:46] kubectl get pods -n kubeflow --selector=service=ambassador -o jsonpath='{.items[0].metadata.name}'
+ 1445  [2018-10-31 15:28:53] kubectl get pods -n kubeflow --selector=service=ambassador -o name'
+ 1446  [2018-10-31 15:29:00] kubectl get pods -n kubeflow --selector=service=ambassador -o name
+ 1447  [2018-11-01 14:10:57] kubectl get jobs
+ 1448  [2018-11-01 14:11:08] kubectl get pods
+ 1449  [2018-11-01 14:19:03] PORT=3333
+ 1450  [2018-11-01 14:19:07] port_forward_command='kubectl port-forward '"$namespace_option"' $(kubectl get pods '"$namespace_option"' --selector=service=ambassador --output name | head -n 1)'" $PORT:3000"
+ 1451  [2018-11-01 14:19:16] $port_forward_command
+ 1452  [2018-11-01 14:19:37] namespace_option='--namespace kubeflow'
+ 1453  [2018-11-01 14:19:39] port_forward_command='kubectl port-forward '"$namespace_option"' $(kubectl get pods '"$namespace_option"' --selector=service=ambassador --output name | head -n 1)'" $PORT:3000"
+ 1454  [2018-11-01 14:19:47] $port_forward_command
+ 1455  [2018-11-01 14:19:56] echo $port_forward_command
+ 1456  [2018-11-01 14:20:04] kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1
+ 1457  [2018-11-01 14:20:10] set +x
+ 1458  [2018-11-01 14:20:12] $port_forward_command
+ 1459  [2018-11-01 14:20:28] sh -c "$port_forward_command"
+ 1460  [2018-11-01 14:20:38] "$port_forward_command"
+ 1461  [2018-11-01 14:21:11] port_forward_command2='echo kubectl port-forward '"$namespace_option"' $(kubectl get pods '"$namespace_option"' --selector=service=ambassador --output name | head -n 1)'" $PORT:3000"
+ 1462  [2018-11-01 14:21:14] $port_forward_command2
+ 1463  [2018-11-01 14:21:23] kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1
+ 1464  [2018-11-01 14:21:28] kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000
+ 1465  [2018-11-01 14:25:22] {set +x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000} && echo bla
+ 1466  [2018-11-01 14:25:26] { set +x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000} && echo bla
+ 1467  [2018-11-01 14:25:34] (set +x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000) && echo bla
+ 1468  [2018-11-01 14:25:48] {set +x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000}
+ 1469  [2018-11-01 14:26:01] {set +x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000; }
+ 1470  [2018-11-01 14:26:09] { set +x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000; }
+ 1471  [2018-11-01 14:28:49] { set -x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000; }
+ 1472  [2018-11-01 14:29:15] head kubectl
+ 1473  [2018-11-01 14:29:25] set +x
+ 1474  [2018-11-01 14:29:42] bash -c '{ set -x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000}'
+ 1475  [2018-11-01 14:29:45] bash -c '{ set -x; kubectl port-forward --namespace kubeflow $(kubectl get pods --namespace kubeflow --selector=service=ambassador --output name | head -n 1) 3333:3000; }'
+ 1476  [2018-11-01 18:20:33] pip3 install fire==0.1.3
+ 1477  [2018-11-01 18:40:37] python3
+ 1478  [2018-11-01 18:54:25] echo $TEMP
+ 1479  [2018-11-01 18:54:27] echo $TMP
+ 1480  [2018-11-01 18:54:31] mktemp
+ 1481  [2018-11-01 19:03:18] echo 'gcr.io/ml-pipeline-dogfood/python-fire:1.11.0-py3' | sed -e "s|gcr.io/ml-pipeline-dogfood/python-fire:([a-zA-Z0-9_.-])+|gcr.io/ml-pipeline-dogfood/python-fire:some-sha|g'
+ 1482  [2018-11-01 19:03:28] echo 'gcr.io/ml-pipeline-dogfood/python-fire:1.11.0-py3' | sed -e "s|gcr.io/ml-pipeline-dogfood/python-fire:([a-zA-Z0-9_.-])+|gcr.io/ml-pipeline-dogfood/python-fire:some-sha|g"
+ 1483  [2018-11-01 19:03:37] echo 'gcr.io/ml-pipeline-dogfood/python-fire:1.11.0-py3' | sed -e -E "s|gcr.io/ml-pipeline-dogfood/python-fire:([a-zA-Z0-9_.-])+|gcr.io/ml-pipeline-dogfood/python-fire:some-sha|g"
+ 1484  [2018-11-01 19:03:46] echo 'gcr.io/ml-pipeline-dogfood/python-fire:1.11.0-py3' | sed -E -e "s|gcr.io/ml-pipeline-dogfood/python-fire:([a-zA-Z0-9_.-])+|gcr.io/ml-pipeline-dogfood/python-fire:some-sha|g"
+ 1485  [2018-11-02 20:19:15] python3 -c '[1,2,3][1]'
+ 1486  [2018-11-02 20:19:22] python3 -c 'print([1,2,3][1])'
+ 1487  [2018-11-02 20:44:50] cd _projects/
+ 1488  [2018-11-05 15:04:30] git log
+ 1489  [2018-11-05 17:11:19] python3 -m unittest --verbose
+ 1490  [2018-11-05 17:16:52] cd ..
+ 1491  [2018-11-05 17:16:54] python3 -m unittest --verbose
+ 1492  [2018-11-05 17:22:26] cd python/
+ 1493  [2018-11-05 17:22:27] python3 -m unittest --verbose
+ 1494  [2018-11-05 17:24:35] cd ..
+ 1495  [2018-11-05 17:24:36] python3 -m unittest --verbose
+ 1496  [2018-11-05 18:17:11] git checkout avolkov/improve-temporary-file-handling-in-tests
+ 1497  [2018-11-05 18:17:29] git checkout origin/avolkov/improve-temporary-file-handling-in-tests
+ 1498  [2018-11-05 18:18:02] git fetch
+ 1499  [2018-11-05 18:18:52] git checkout avolkov/improve-temporary-file-handling-in-tests
+ 1500  [2018-11-05 18:19:08] git log
+ 1501  [2018-11-05 18:19:25] git pull
+ 1502  [2018-11-05 18:19:40] git log
+ 1503  [2018-11-05 18:19:46] git fetch
+ 1504  [2018-11-05 18:19:56] git pull
+ 1505  [2018-11-05 18:25:01] git checkout avolkov/improve-temporary-file-handling-in-tests
+ 1506  [2018-11-05 18:26:11] git pull master
+ 1507  [2018-11-05 18:26:19] git pull origin/master
+ 1508  [2018-11-05 18:26:23] git pull origin master
+ 1509  [2018-11-05 18:27:40] git merge --abort
+ 1510  [2018-11-05 18:33:20] git cherry-pick 3b602a57b00d6be0fe82e96278ed938cca3a3352
+ 1511  [2018-11-05 18:33:59] git log
+ 1512  [2018-11-05 20:08:14] git cherry-pick 3b602a57b00d6be0fe82e96278ed938cca3a3352
+ 1513  [2018-11-05 20:19:45] git log
+ 1514  [2018-11-05 20:19:57] git rebase master
+ 1515  [2018-11-05 20:24:00] git fetch
+ 1516  [2018-11-05 20:24:15] git merge --ff-only origin/master
+ 1517  [2018-11-05 20:25:01] git pull --rebase --autostash
+ 1518  [2018-11-05 20:26:01] git pull --rebase --autostash origin/master
+ 1519  [2018-11-05 20:26:08] git pull --rebase --autostash origin master
+ 1520  [2018-11-05 20:26:21] git log
+ 1521  [2018-11-05 20:31:30] history > git_history.txt

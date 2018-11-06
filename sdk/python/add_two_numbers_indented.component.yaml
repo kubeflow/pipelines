@@ -1,0 +1,46 @@
+version: google.com/cloud/pipelines/component/v1
+name: Add two numbers indented
+description: |
+  Returns sum of two arguments
+inputs:
+  a: {type: float}
+  b: {type: float}
+outputs:
+  Output: {type: float}
+implementation:
+  dockerContainer:
+    image: tensorflow/tensorflow:1.11.0-py3
+    command:
+    - python3
+    - -c
+    - |
+      from typing import NamedTuple
+
+      def add_two_numbers_indented(a: float, b: float) -> float:
+          '''Returns sum of two arguments'''
+          return a + b
+
+      import sys
+      _args = {
+          'a': float(sys.argv[1]),
+          'b': float(sys.argv[2]),
+      }
+      _output_files = [
+          sys.argv[3],
+      ]
+
+      _outputs = add_two_numbers_indented(**_args)
+
+      from collections.abc import Sequence
+      if not isinstance(_outputs, Sequence) or isinstance(_outputs, str):
+          _outputs = [_outputs]
+
+      from pathlib import Path
+      for idx, filename in enumerate(_output_files):
+          _output_path = Path(filename)
+          _output_path.parent.mkdir(parents=True, exist_ok=True)
+          _output_path.write_text(str(_outputs[idx]))
+    arguments:
+    - {value: a}
+    - {value: b}
+    - {output: Output}
