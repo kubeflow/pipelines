@@ -58,7 +58,7 @@ var jobModelFieldsBySortableAPIFields = map[string]string{
 var runModelFieldsBySortableAPIFields = map[string]string{
 	// Sort by CreatedAtInSec by default
 	"":           "CreatedAtInSec",
-	"name":       "Name",
+	"name":       "DisplayName",
 	"created_at": "CreatedAtInSec",
 }
 
