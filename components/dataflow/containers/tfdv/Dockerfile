@@ -17,6 +17,7 @@ FROM ml-pipeline-dataflow-base
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q build-essential && \
     pip install tensorflow==1.9.0 \
+        tensorflow-transform==0.9.0 \
         tensorflow-data-validation==0.9.0 && \
     apt-get --purge autoremove -y build-essential
 
