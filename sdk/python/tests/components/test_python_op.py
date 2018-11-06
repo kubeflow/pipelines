@@ -55,16 +55,16 @@ class PythonOpTestCase(unittest.TestCase):
             expected = expected[0]
         expected_str = str(expected)
 
-        output_file_obj = tempfile.NamedTemporaryFile()
-        output_path = output_file_obj.name
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            output_path = Path(temp_dir_name).joinpath('output1')
 
-        task = op(arg1, arg2, output_path)
+            task = op(arg1, arg2, str(output_path))
 
-        full_command = task.command + task.arguments
+            full_command = task.command + task.arguments
 
-        process = subprocess.run(full_command)
+            process = subprocess.run(full_command)
 
-        actual_str = Path(output_path).read_text()
+            actual_str = output_path.read_text()
 
         self.assertEqual(float(actual_str), float(expected_str))
 
@@ -76,17 +76,18 @@ class PythonOpTestCase(unittest.TestCase):
         expected1_str = str(expected_tuple[0])
         expected2_str = str(expected_tuple[1])
 
-        output_path1 = tempfile.NamedTemporaryFile().name
-        output_path2 = tempfile.NamedTemporaryFile().name
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            output_path1 = Path(temp_dir_name).joinpath('output1')
+            output_path2 = Path(temp_dir_name).joinpath('output2')
 
-        task = op(arg1, arg2, output_path1, output_path2)
+            task = op(arg1, arg2, str(output_path1), str(output_path2))
 
-        full_command = task.command + task.arguments
+            full_command = task.command + task.arguments
 
-        process = subprocess.run(full_command)
+            process = subprocess.run(full_command)
 
-        actual1_str = Path(output_path1).read_text()
-        actual2_str = Path(output_path2).read_text()
+            actual1_str = output_path1.read_text()
+            actual2_str = output_path2.read_text()
 
         self.assertEqual(float(actual1_str), float(expected1_str))
         self.assertEqual(float(actual2_str), float(expected2_str))
@@ -109,7 +110,7 @@ class PythonOpTestCase(unittest.TestCase):
             return a + b
 
         func = add_two_numbers_indented
-        op = comp.func_to_container_op(func)
+        op = comp.func_to_container_op(func,output_component_file='add_two_numbers_indented.component.yaml')
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
@@ -205,45 +206,46 @@ class PythonOpTestCase(unittest.TestCase):
             '''Returns sum of two arguments'''
             return a + b
 
-        add_component_file = tempfile.NamedTemporaryFile(prefix='add', suffix='.component.yaml').name
-        subtract_component_file = tempfile.NamedTemporaryFile(prefix='subtract', suffix='.component.yaml').name
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            add_component_file = str(Path(temp_dir_name).joinpath('add.component.yaml'))
+            subtract_component_file = str(Path(temp_dir_name).joinpath('subtract.component.yaml'))
 
-        #Converting the function to a component. Instantiate it to create a pipeline task (ContaineOp instance)
-        add_op = comp.func_to_container_op(add, base_image='ark7/python-fire', output_component_file=add_component_file)
+            #Converting the function to a component. Instantiate it to create a pipeline task (ContaineOp instance)
+            add_op = comp.func_to_container_op(add, base_image='ark7/python-fire', output_component_file=add_component_file)
 
-        #Checking that the component artifact is usable:
-        add_op2 = comp.load_component_from_file(add_component_file)
+            #Checking that the component artifact is usable:
+            add_op2 = comp.load_component_from_file(add_component_file)
 
-        #Using decorator to perform the same thing (convert function to a component):
-        @python_op(base_image='ark7/python-fire', output_component_file=subtract_component_file)
-        def subtract_op(a: float, b: float) -> float:
-            '''Returns difference between two arguments'''
-            return a - b
+            #Using decorator to perform the same thing (convert function to a component):
+            @python_op(base_image='ark7/python-fire', output_component_file=subtract_component_file)
+            def subtract_op(a: float, b: float) -> float:
+                '''Returns difference between two arguments'''
+                return a - b
 
-        #Checking that the component artifact is usable:
-        subtract_op2 = comp.load_component_from_file(subtract_component_file)
+            #Checking that the component artifact is usable:
+            subtract_op2 = comp.load_component_from_file(subtract_component_file)
 
-        #Building the pipeline
-        import kfp.dsl as dsl
-        @dsl.pipeline(
-            name='Calculation pipeline',
-            description='A pipeline that performs arithmetic calculations.'
-        )
-        def calc_pipeline(
-            a1=dsl.PipelineParam('a1'),
-            a2=dsl.PipelineParam('a2', value='7'),
-            a3=dsl.PipelineParam('a3', value='17'),
-        ):
-            task_11 = add_op(a1, a2)
-            task_12 = subtract_op(task_11.output, a3)
-            task_21 = add_op2(a1, a2)
-            task_22 = subtract_op2(task_21.output, a3)
-            task_3 = subtract_op(task_12.output, task_22.output)
+            #Building the pipeline
+            import kfp.dsl as dsl
+            @dsl.pipeline(
+                name='Calculation pipeline',
+                description='A pipeline that performs arithmetic calculations.'
+            )
+            def calc_pipeline(
+                a1=dsl.PipelineParam('a1'),
+                a2=dsl.PipelineParam('a2', value='7'),
+                a3=dsl.PipelineParam('a3', value='17'),
+            ):
+                task_11 = add_op(a1, a2)
+                task_12 = subtract_op(task_11.output, a3)
+                task_21 = add_op2(a1, a2)
+                task_22 = subtract_op2(task_21.output, a3)
+                task_3 = subtract_op(task_12.output, task_22.output)
 
-        #Compiling the pipleine:
-        pipeline_filename=calc_pipeline.__name__ + '.pipeline.tar.gz'
-        import kfp.compiler as compiler
-        compiler.Compiler().compile(calc_pipeline, calc_pipeline.__name__ + '.tar.gz')
+            #Compiling the pipleine:
+            pipeline_filename = Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz')
+            import kfp.compiler as compiler
+            compiler.Compiler().compile(calc_pipeline, pipeline_filename)
 
 
 if __name__ == '__main__':
