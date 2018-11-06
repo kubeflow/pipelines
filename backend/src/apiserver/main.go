@@ -124,7 +124,6 @@ func loadSamples(resourceManager *resource.ResourceManager) {
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
 	if err != nil {
 		glog.Fatalf("Failed to read sample configurations. Err: %v", err.Error())
-		return
 	}
 	type config struct {
 		Name        string
@@ -134,23 +133,22 @@ func loadSamples(resourceManager *resource.ResourceManager) {
 	var configs []config
 	if json.Unmarshal(configBytes, &configs) != nil {
 		glog.Fatalf("Failed to read sample configurations. Err: %v", err.Error())
-		return
 	}
 	for _, config := range configs {
 		sampleBytes, err := ioutil.ReadFile(config.File)
 		if err != nil {
-			glog.Fatalf("Failed to load sample %s. Error: %v", config.Name, err.Error())
+			glog.Warningf("Failed to load sample %s. Error: %v", config.Name, err.Error())
 			continue
 		}
 		// Decompress if file is tarball
 		decompressedFile, err := server.DecompressPipelineTarball(sampleBytes)
 		if err!=nil{
-			glog.Fatalf("Failed to decompress the file %s. Error: %v", config.Name, err.Error())
+			glog.Warningf("Failed to decompress the file %s. Error: %v", config.Name, err.Error())
 			continue
 		}
 		_, err = resourceManager.CreatePipeline(config.Name, config.Description, decompressedFile)
 		if err!=nil{
-			glog.Fatalf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error())
+			glog.Warningf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error())
 			continue
 		}
 
