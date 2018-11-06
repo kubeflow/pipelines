@@ -242,11 +242,11 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 
   public async refresh() {
-    return;
+    return this.load();
   }
 
-  public componentDidMount() {
-    this.load();
+  public async componentDidMount() {
+    return this.load();
   }
 
   public async load() {

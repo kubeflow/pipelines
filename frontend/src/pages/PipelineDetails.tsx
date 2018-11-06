@@ -242,10 +242,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public async refresh() {
-    return;
+    return this.load();
   }
 
-  public async componentDidMount(): Promise<void> {
+  public async componentDidMount() {
+    return this.load();
+  }
+
+  public async load() {
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
     // TODO: Show spinner while waiting for responses
