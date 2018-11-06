@@ -302,7 +302,6 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                         expanded_result = [expand_command_part(arg1) for arg1 in result_node]
                     else:
                         expanded_result = expand_command_part(result_node)
-                    print(expanded_result)
                     return expanded_result
 
                 elif func_name == 'ispresent':
