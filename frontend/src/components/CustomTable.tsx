@@ -57,11 +57,6 @@ const rowHeight = 40;
 
 export const css = stylesheet({
   cell: {
-    $nest: {
-      '&:not(:nth-child(2))': {
-        color: color.inactive,
-      },
-    },
     alignSelf: 'center',
     borderBottom: 'initial',
     color: color.foreground,

@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
-import { color, spacing } from '../Css';
+import { color, spacing, fontsize } from '../Css';
 
 export const css = stylesheet({
   key: {
@@ -30,6 +30,8 @@ export const css = stylesheet({
   row: {
     borderBottom: `1px solid ${color.divider}`,
     display: 'flex',
+    fontFamily: 'Roboto',
+    fontSize: fontsize.medium,
     padding: `${spacing.units(-5)}px ${spacing.units(-6)}px`,
   },
 });
