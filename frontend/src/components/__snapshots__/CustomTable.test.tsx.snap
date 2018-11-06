@@ -234,6 +234,10 @@ exports[`CustomTable renders a collapsed row 1`] = `
         onChange={[Function]}
       />
     </div>
+    <Component
+      orientation="horizontal"
+      units={40}
+    />
     <div
       className="columnName"
       key="0"
@@ -399,6 +403,10 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
   <div
     className="header"
   >
+    <Component
+      orientation="horizontal"
+      units={40}
+    />
     <div
       className="columnName"
       key="0"
@@ -932,6 +940,10 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         onChange={[Function]}
       />
     </div>
+    <Component
+      orientation="horizontal"
+      units={40}
+    />
     <div
       className="columnName"
       key="0"
