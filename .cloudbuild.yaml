@@ -61,14 +61,14 @@ steps:
 # Build the Python SDK
 - name: 'debian'
   entrypoint: '/bin/bash'
-  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python; wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar;cd /workspace/sdk/python;./build.sh ./kfp.tar.gz']
+  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python python-setuptools; wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar;cd /workspace/sdk/python;./build.sh /workspace/kfp.tar.gz']
   id:   'preparePythonSDK'
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/sdk/python/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
+  args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
   id:   'copyPythonSDK'
   waitFor: ['preparePythonSDK']
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/sdk/python/kfp.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp.tar.gz']
+  args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp.tar.gz']
   id:   'copyPythonSDKToLatest'
   waitFor: ['preparePythonSDK']
 
