@@ -72,6 +72,8 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
   }
 
   protected setStateSafe(newState: Partial<S>, cb?: () => void) {
-    this.setState(newState as any, cb);
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
   }
 }

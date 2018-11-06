@@ -131,8 +131,8 @@ exports[`PipelineList renders a list of one pipeline with no description or crea
           "id": undefined,
           "otherFields": Array [
             "pipeline1",
-            "test pipeline description",
-            "2018-9-22 11:05:48",
+            undefined,
+            "-",
           ],
         },
       ]

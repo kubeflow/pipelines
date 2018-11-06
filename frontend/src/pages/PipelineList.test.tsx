@@ -93,8 +93,6 @@ describe('PipelineList', () => {
     const tree = shallow(<PipelineList {...generateProps()} />);
     tree.setState({
       pipelines: [{
-        created_at: new Date(2018, 8, 22, 11, 5, 48),
-        description: 'test pipeline description',
         name: 'pipeline1',
         parameters: [],
       } as ApiPipeline]
@@ -240,6 +238,7 @@ describe('PipelineList', () => {
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     expect(call).toHaveProperty('title', 'Delete 1 pipeline?');
+    tree.unmount();
   });
 
   it('shows delete dialog when delete button is clicked, indicating several pipelines to delete', async () => {
@@ -281,7 +280,7 @@ describe('PipelineList', () => {
     tree.unmount();
   });
 
-  it('fixes the selected indices after a pipeline is deleted', async () => {
+  it('updates the selected indices after a pipeline is deleted', async () => {
     const tree = await mountWithNPipelines(5);
     tree.find('.tableRow').at(0).simulate('click');
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0']);
@@ -295,7 +294,7 @@ describe('PipelineList', () => {
     tree.unmount();
   });
 
-  it('fixes the selected indices after some pipelines are deleted', async () => {
+  it('updates the selected indices after multiple pipelines are deleted', async () => {
     const tree = await mountWithNPipelines(5);
     tree.find('.tableRow').at(0).simulate('click');
     tree.find('.tableRow').at(3).simulate('click');
@@ -362,13 +361,14 @@ describe('PipelineList', () => {
     tree.unmount();
   });
 
-  it('shows error dialog when some pipeline deletions fail', async () => {
+  it('shows error dialog when multiple pipeline deletions fail', async () => {
     const tree = await mountWithNPipelines(5);
     tree.find('.tableRow').at(0).simulate('click');
+    tree.find('.tableRow').at(2).simulate('click');
     tree.find('.tableRow').at(1).simulate('click');
     tree.find('.tableRow').at(3).simulate('click');
     deletePipelineSpy.mockImplementation(id => {
-      if (id.indexOf(3) === -1) {
+      if (id.indexOf(3) === -1 && id.indexOf(2) === -1) {
         throw {
           text: () => Promise.resolve('woops, failed!'),
         };
@@ -387,6 +387,12 @@ describe('PipelineList', () => {
       content: 'Deleting pipeline: test pipeline name0 failed with error: "woops, failed!"\n\n' +
         'Deleting pipeline: test pipeline name1 failed with error: "woops, failed!"',
       title: 'Failed to delete 2 pipelines',
+    });
+
+    // Should show snackbar for the one successful deletion
+    expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
+      message: 'Successfully deleted 2 pipelines!',
+      open: true,
     });
     tree.unmount();
   });
