@@ -29,7 +29,7 @@ import { ListRequest } from '../lib/Apis';
 import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { classes, stylesheet } from 'typestyle';
-import { fontsize, dimension, commonCss, color, padding } from '../Css';
+import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
 import { logger } from '../lib/Utils';
 
 export enum ExpandState {
@@ -64,15 +64,20 @@ export const css = stylesheet({
     alignSelf: 'center',
     borderBottom: 'initial',
     color: color.foreground,
+    fontFamily: fonts.secondary,
     fontSize: fontsize.base,
-    marginRight: 6,
+    letterSpacing: 0.25,
+    marginRight: 20,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   columnName: {
-    fontSize: fontsize.medium,
+    color: '#1F1F1F',
+    fontSize: fontsize.small,
     fontWeight: 'bold',
+    letterSpacing: 0.25,
+    marginRight: 20,
   },
   emptyMessage: {
     padding: 20,
@@ -99,14 +104,17 @@ export const css = stylesheet({
   },
   footer: {
     borderBottom: '1px solid ' + color.divider,
+    fontFamily: fonts.secondary,
+    height: 40,
     textAlign: 'right',
   },
   header: {
     borderBottom: 'solid 1px ' + color.divider,
     color: color.strong,
     display: 'flex',
-    flex: '0 0 50px',
-    lineHeight: '50px', // must declare px
+    flex: '0 0 40px',
+    lineHeight: '40px', // must declare px
+    marginTop: 20,
   },
   icon: {
     color: color.alert,
@@ -136,7 +144,7 @@ export const css = stylesheet({
     backgroundColor: color.activeBg,
   },
   selectionToggle: {
-    marginRight: 10,
+    marginRight: 12,
   },
 });
 
