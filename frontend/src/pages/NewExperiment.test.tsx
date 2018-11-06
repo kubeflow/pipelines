@@ -22,7 +22,7 @@ import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage } from '../components/Router';
 
-describe('ExperimentDetails', () => {
+describe('NewExperiment', () => {
   const createExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'createExperiment');
   const historyPushSpy = jest.fn();
   const updateDialogSpy = jest.fn();
