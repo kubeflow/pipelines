@@ -166,7 +166,7 @@ elif [ "$TEST_NAME" == "sequential" ]; then
   dsl-compile --py sequential.py --output sequential.tar.gz
 
   cd /
-  python3 run_sequential_test.py --input ${BASE_DIR}/samples/basic/sequential.tar.gz --result SAMPLE_SEQUENTIAL_TEST_RESULT --output SAMPLE_SEQUENTIAL_TEST_OUTPUT
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/sequential.tar.gz --result SAMPLE_SEQUENTIAL_TEST_RESULT --output SAMPLE_SEQUENTIAL_TEST_OUTPUT  --testname sequential
 elif [ "$TEST_NAME" == "condition" ]; then
   SAMPLE_CONDITION_TEST_RESULT=junit_SampleConditionOutput.xml
   SAMPLE_CONDITION_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -176,6 +176,6 @@ elif [ "$TEST_NAME" == "condition" ]; then
   dsl-compile --py condition.py --output condition.tar.gz
 
   cd /
-  python3 run_condition_test.py --input ${BASE_DIR}/samples/basic/condition.tar.gz --result SAMPLE_CONDITION_TEST_RESULT --output SAMPLE_CONDITION_TEST_OUTPUT
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/condition.tar.gz --result SAMPLE_CONDITION_TEST_RESULT --output SAMPLE_CONDITION_TEST_OUTPUT --testname condition
 
 fi

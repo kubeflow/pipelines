@@ -41,13 +41,17 @@ def parse_arguments():
                       type=str,
                       required=True,
                       help='The path of the test output')
+  parser.add_argument('--testname',
+                      type=str,
+                      required=True,
+                      help="Test name")
   args = parser.parse_args()
   return args
 
 def main():
   args = parse_arguments()
   test_cases = []
-  test_name = 'Sequential Sample Test'
+  test_name = args.testname + ' Sample Test'
 
   ###### Initialization ######
   client = Client()
@@ -59,13 +63,13 @@ def main():
     exit()
 
   ###### Create Experiment ######
-  experiment_name = 'Sequential sample experiment'
+  experiment_name = args.testname + ' sample experiment'
   response = client.create_experiment(experiment_name)
   experiment_id = response.id
   utils.add_junit_test(test_cases, 'create experiment', True)
 
   ###### Create Job ######
-  job_name = 'Sequential_sample'
+  job_name = args.testname +'_sample'
   params = {}
   response = client.run_pipeline(experiment_id, job_name, args.input, params)
   run_id = response.id
