@@ -21,8 +21,7 @@ import kfp.dsl as dsl
   name='Sequential',
   description='A pipeline with two sequential steps.'
 )
-def sequential_pipeline(
-    url=dsl.PipelineParam(name='url', value='gs://ml-pipeline-playground/shakespeare1.txt')):
+def sequential_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
   """A pipeline with two sequential steps."""
 
   op1 = dsl.ContainerOp(

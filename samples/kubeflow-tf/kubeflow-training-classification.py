@@ -81,18 +81,18 @@ def confusion_matrix_op(predictions, output, step_name='confusionmatrix'):
   name='Pipeline TFJob',
   description='Demonstrate the DSL for TFJob'
 )
-def kubeflow_training( output: dsl.PipelineParam, project: dsl.PipelineParam,
-  evaluation: dsl.PipelineParam=dsl.PipelineParam(name='evaluation', value='gs://ml-pipeline-playground/flower/eval100.csv'),
-  train: dsl.PipelineParam=dsl.PipelineParam(name='train', value='gs://ml-pipeline-playground/flower/train200.csv'),
-  schema: dsl.PipelineParam=dsl.PipelineParam(name='schema', value='gs://ml-pipeline-playground/flower/schema.json'),
-  learning_rate: dsl.PipelineParam=dsl.PipelineParam(name='learningrate', value=0.1),
-  hidden_layer_size: dsl.PipelineParam=dsl.PipelineParam(name='hiddenlayersize', value='100,50'),
-  steps: dsl.PipelineParam=dsl.PipelineParam(name='steps', value=2000),
-  target: dsl.PipelineParam=dsl.PipelineParam(name='target', value='label'),
-  workers: dsl.PipelineParam=dsl.PipelineParam(name='workers', value=0),
-  pss: dsl.PipelineParam=dsl.PipelineParam(name='pss', value=0),
-  preprocess_mode: dsl.PipelineParam=dsl.PipelineParam(name='preprocessmode', value='local'),
-  predict_mode: dsl.PipelineParam=dsl.PipelineParam(name='predictmode', value='local')):
+def kubeflow_training(output, project,
+  evaluation='gs://ml-pipeline-playground/flower/eval100.csv',
+  train='gs://ml-pipeline-playground/flower/train200.csv',
+  schema='gs://ml-pipeline-playground/flower/schema.json',
+  learning_rate=0.1,
+  hidden_layer_size='100,50',
+  steps=2000,
+  target='label',
+  workers=0,
+  pss=0,
+  preprocess_mode='local',
+  predict_mode='local'):
   # TODO: use the argo job name as the workflow
   workflow = '{{workflow.name}}'
 
