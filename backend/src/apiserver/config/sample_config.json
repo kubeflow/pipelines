@@ -22,16 +22,16 @@
   {
     "name":"[Sample] ML - TFX - Taxi Cab Classification",
     "description":"Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/tfx",
-    "file":"/samples/tfx/taxi_cab_classification_pipeline.py.tar.gz"
+    "file":"/samples/tfx/taxi-cab-classification-pipeline.py.tar.gz"
   },
   {
     "name":"[Sample] ML - CMLE - Resnet Training",
     "description":"Demonstrate the ResNet50 predict. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/resnet-cmle",
-    "file":"/samples/resnet-cmle/resnet_training_pipeline.py.tar.gz"
+    "file":"/samples/resnet-cmle/resnet-train-pipeline.py.tar.gz"
   },
   {
     "name":"[Sample] ML - XGBoost - Training with Confusion Matrix",
     "description":"A trainer that does end-to-end distributed training for XGBoost models. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/xgboost-spark",
-    "file":"/samples/xgboost-spark/xgboost_training_cm.py.tar.gz"
+    "file":"/samples/xgboost-spark/xgboost-training-cm.py.tar.gz"
   }
 ]
