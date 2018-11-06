@@ -149,7 +149,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
         actions: this._runListToolbarActions,
-        breadcrumbs: [{ displayName: 'Experiment runs', href: '' }],
+        breadcrumbs: [{ displayName: 'Runs', href: '' }],
         topLevelToolbar: false,
       },
       // TODO: remove
