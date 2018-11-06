@@ -21,7 +21,7 @@ FROM python:3.5.0-slim as compiler
 RUN pip install https://storage.googleapis.com/ml-pipeline/release/0.0.26/kfp-0.0.26.tar.gz --upgrade
 WORKDIR /samples
 COPY ./samples .
-RUN  find . -maxdepth 2 -name "*.py" -exec dsk-compile --py {} --output {}.tar.gz \;
+RUN  find . -maxdepth 2 -name "*.py" -exec dsl-compile --py {} --output {}.tar.gz \;
 
 FROM alpine
 
