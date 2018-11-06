@@ -10,6 +10,11 @@
     "file":"/samples/basic/exit_handler.py.tar.gz"
   },
   {
+    "name":"[Sample] Basic - Immediate Value",
+    "description":"A pipeline with parameter values hard coded. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/immediate_value.py",
+    "file":"/samples/basic/immediate_value.py.tar.gz"
+  },
+  {
     "name":"[Sample] Basic - Parallel Join",
     "description":"A pipeline that downloads two messages in parallel and print the concatenated result. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/parallel_join.py",
     "file":"/samples/basic/parallel_join.py.tar.gz"
