@@ -87,7 +87,7 @@ func ValidatePagination(pageToken string, pageSize int, keyFieldName string, que
 		// Use default page size if not provided.
 		pageSize = defaultPageSize
 	}
-	if pageSize > defaultPageSize {
+	if pageSize > maxPageSize {
 		pageSize = maxPageSize
 	}
 	if sortByFieldName == "" {
