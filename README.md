@@ -13,8 +13,9 @@ This project is aimed at:
 ### The Python Code to Represent a Pipeline Workflow Graph
 
 ```python
-
-@mlp.pipeline(
+from kfp import dsl
+from kfp.dsl import PipelineParam
+@dsl.pipeline(
   name='XGBoost Trainer',
   description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
@@ -30,7 +31,7 @@ def xgb_train_pipeline(
     workers=PipelineParam(value=2),
 ):
   delete_cluster_op = DeleteClusterOp('delete-cluster', project, region)
-  with mlp.ExitHandler(exit_op=delete_cluster_op):
+  with dsl.ExitHandler(exit_op=delete_cluster_op):
     create_cluster_op = CreateClusterOp('create-cluster', project, region, output)
 
     analyze_op = AnalyzeOp('analyze', project, region, create_cluster_op.output, schema,
