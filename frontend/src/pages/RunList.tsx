@@ -215,7 +215,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     }
     return (
       <div style={{ background: '#f6f7f9', marginLeft: leftSpace, marginRight: 10 }}>
-        <div style={{ background: '#cbf0f8', paddingLeft: leftSpace, width }}>
+        <div style={{ background: '#cbf0f8', boxSizing: 'border-box', textIndent: leftSpace, width }}>
           {displayString}
         </div>
       </div>
