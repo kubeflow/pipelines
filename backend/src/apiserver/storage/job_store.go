@@ -22,7 +22,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/golang/glog"
 )
 
 type JobStoreInterface interface {
