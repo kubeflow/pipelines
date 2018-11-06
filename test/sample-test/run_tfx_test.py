@@ -98,23 +98,24 @@ def main():
   print(argo_log)
 
   ###### Validate the results ######
+  #TODO: enable after launch
   #   model analysis html is validated
-  argo_workflow_id = workflow_json['metadata']['name']
-  gcs_html_path = os.path.join(os.path.join(args.output, str(argo_workflow_id)), 'analysis/output_display.html')
-  print('Output display HTML path is ' + gcs_html_path)
-  utils.run_bash_command('gsutil cp ' + gcs_html_path + './')
-  display_file = open('./output_display.html', 'r')
-  is_next_line_state = False
-  for line in display_file:
-    if is_next_line_state:
-      state = line.strip()
-      break
-    if line.strip() == '<script type="application/vnd.jupyter.widget-state+json">':
-      is_next_line_state = True
-  import json
-  state_json = json.loads(state)
-  succ = ('state' in state_json and 'version_major' in state_json and 'version_minor' in state_json)
-  utils.add_junit_test(test_cases, 'output display html', succ, 'the state json does not contain state, version_major, or version_inor')
+  # argo_workflow_id = workflow_json['metadata']['name']
+  # gcs_html_path = os.path.join(os.path.join(args.output, str(argo_workflow_id)), 'analysis/output_display.html')
+  # print('Output display HTML path is ' + gcs_html_path)
+  # utils.run_bash_command('gsutil cp ' + gcs_html_path + './')
+  # display_file = open('./output_display.html', 'r')
+  # is_next_line_state = False
+  # for line in display_file:
+  #   if is_next_line_state:
+  #     state = line.strip()
+  #     break
+  #   if line.strip() == '<script type="application/vnd.jupyter.widget-state+json">':
+  #     is_next_line_state = True
+  # import json
+  # state_json = json.loads(state)
+  # succ = ('state' in state_json and 'version_major' in state_json and 'version_minor' in state_json)
+  # utils.add_junit_test(test_cases, 'output display html', succ, 'the state json does not contain state, version_major, or version_inor')
 
   ###### Delete Job ######
   #TODO: add deletion when the backend API offers the interface.
