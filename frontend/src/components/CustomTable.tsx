@@ -16,17 +16,18 @@
 
 import * as React from 'react';
 import ArrowRight from '@material-ui/icons/ArrowRight';
+import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import IconButton from '@material-ui/core/IconButton';
 import MenuItem from '@material-ui/core/MenuItem';
 import Radio from '@material-ui/core/Radio';
+import Separator from '../atoms/Separator';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
 import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import WarningIcon from '@material-ui/icons/WarningRounded';
 import { ListRequest } from '../lib/Apis';
-import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
@@ -255,6 +256,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 color='primary' checked={!!numSelected && numSelected === this.props.rows.length}
                 onChange={this.handleSelectAllClick.bind(this)} />
             </div>
+          )}
+          {/* Shift cells to account for expand button */}
+          {!!this.props.getExpandComponent && (
+            <Separator orientation='horizontal' units={40} />
           )}
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
