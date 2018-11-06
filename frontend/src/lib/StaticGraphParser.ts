@@ -15,7 +15,7 @@
  */
 
 import * as dagre from 'dagre';
-import { Workflow, WorkflowStep } from '../../third_party/argo-ui/argo_template';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
 
 export interface SelectedNodeInfo {
   nodeType: 'container' | 'steps' | 'unknown';
@@ -46,12 +46,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
 
   const workflowTemplates = workflow.spec.templates;
 
-  const nonEntryPointTemplatesAndDagTasks = new Map<string, string>();
-  const templatesAndSteps: Array<[string, string]> = [];
-
-  // Iterate through the workflow's templates to gather the information needed to construct the
-  // graph. Some information is stored in the above variables because Containers, Dags, and Steps
-  // are all templates, and we do not know in which order we will encounter them while iterating.
+  // Iterate through the workflow's templates to construct the graph
   for (const template of workflowTemplates) {
     // Argo allows specifying a single global exit handler. We also highlight that node.
     if (template.name === workflow.spec.onExit) {
@@ -63,85 +58,33 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
       });
     }
 
-    // Steps are only used by the DSL as a workaround for handling conditionals because DAGs are not
-    // sufficient. (TODO: why?) We keep track of each template and its step(s) so that we can draw
-    // edges from the DAG task with that template name to its grandchild. This template/DAG task
-    // will always be a conditional, so we can use this list of tuples to do additional formatting
-    // of the node as desired.
-    if (template.steps) {
-      if (template.steps.length > 1 || template.steps[0].length > 1) {
-        throw new Error('Pipeline had template with multiple steps. Was this Pipeline compiled?');
-      }
-      const step = template.steps[0];
-      // Though the types system says 'steps' is WorkflowStep[][], sometimes the inner elements
-      // are just WorkflowStep, not WorkflowStep[], but we still want to treat them the same.
-      (step.length ? step : [step as WorkflowStep]).forEach((s) => {
-        templatesAndSteps.push([template.name, s.name!]);
-      });
-    }
-
     // DAGs are the main component making up a Pipeline, and each DAG is composed of tasks.
-    // TODO: add tests for the assertions below
-    // A compiled Pipeline will only have multiple DAGs if:
-    //   1) it defines an exit-handler within the DSL, which will result in its own DAG wrapping the
-    //      entirety of the Pipeline.
-    //   2) it includes conditionals. In this case, there will also be Steps templates corresponding
-    //      to those conditions, and each Steps template will have a child DAG representing the rest
-    //      of the Pipeline from that conditional on.
     if (template.dag && template.dag.tasks) {
       template.dag.tasks.forEach((task) => {
-        g.setNode(task.name, {
-          height: NODE_HEIGHT,
-          label: task.name,
-          width: NODE_WIDTH,
-        });
+        // tslint:disable-next-line:no-console
+        console.log('task', task);
+        if (!task.name.startsWith('exit-handler')) {
+          g.setNode(task.name, {
+            bgColor: task.when ? 'cornsilk' : undefined,
+            height: NODE_HEIGHT,
+            label: task.name,
+            width: NODE_WIDTH,
+          });
+        }
+
+        if (template.name !== workflow.spec.entrypoint && !template.name.startsWith('exit-handler')) {
+          g.setEdge(template.name, task.name);
+        }
 
         // DAG tasks can indicate dependencies which are graphically shown as parents with edges
         // pointing to their children (the task(s)).
         (task.dependencies || []).forEach((dep) => g.setEdge(dep, task.name));
-
-        // A Pipeline may contain multiple DAGs, but the Pipeline will only have a single entry
-        // point.
-        //
-        // The first task of the entry point DAG can be thought of as the root of the Pipeline.
-        // TODO: add tests for the assertion below
-        // Compiled Pipelines should always have exactly 1 root.
-        //
-        // For DAGs that do not contain the entry point, we keep track of all tasks which don't have
-        // dependencies because they are the roots of that DAG (note that a DAG may have multiple
-        // roots). These roots are important for stitching together the overall Pipeline graph, but
-        // they are not relevant themselves to the user.
-        //
-        // The non-root tasks within these DAGs, however, are important parts of the Pipeline. We
-        // keep a map of DAG templates to their non-root tasks so that we can draw edges between
-        // the tasks and their grandparents.
-        //
-        // We also use the map to remove any of the templates that weren't already skipped for being
-        // step templates.
-        if (template.name !== workflow.spec.entrypoint
-          && (!task.dependencies || !task.dependencies.length)) {
-          nonEntryPointTemplatesAndDagTasks.set(template.name, task.name);
-        }
       });
     }
   }
 
-  // TODO: do we need to worry about rewiring from parents to children here?
-  // Remove all non-entry-point DAG templates. They are artifacts of the compilation system and not
-  // useful to users.
-  nonEntryPointTemplatesAndDagTasks.forEach((_, k) => g.removeNode(k));
-
-  // Connect conditionals to their grandchildren; the tasks of non-entry-point DAGs.
-  // We can also apply any desired formatting to the conditional nodes here.
-  templatesAndSteps.forEach((tuple) => {
-    // Add styling for conditional nodes
-    g.node(tuple[0]).bgColor = 'cornsilk';
-
-    const grandchild = nonEntryPointTemplatesAndDagTasks.get(tuple[1]);
-    if (grandchild) {
-      g.setEdge(tuple[0], grandchild);
-    }
-  });
+  // tslint:disable-next-line:no-console
+  console.log(g);
 
   // DSL-compiled Pipelines will always include a DAG, so they should never reach this point.
   // It is, however, possible for users to upload manually constructed Pipelines, and extremely
