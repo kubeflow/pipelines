@@ -88,7 +88,7 @@ class NewRun extends Page<{}, NewRunState> {
       actions: [],
       breadcrumbs: [
         { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: 'Start a new run', href: RoutePage.NEW_RUN }
+        { displayName: 'Start a new run', href: '' }
       ]
     };
   }
@@ -238,30 +238,33 @@ class NewRun extends Page<{}, NewRunState> {
 
     let experiment: ApiExperiment | undefined;
     let experimentName: string | undefined;
+    const breadcrumbs = [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }];
     if (experimentId) {
       try {
         experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
         experimentName = experiment.name;
-        const breadcrumbs = [
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experimentName!,
-            href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
-          },
-          { displayName: 'Start a new run', href: RoutePage.NEW_RUN }
-        ];
-        this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+        breadcrumbs.push({
+          displayName: experimentName!,
+          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
+        });
       } catch (err) {
         await this.showPageError(`Error: failed to get associated experiment: ${experimentId}.`, err);
         logger.error(`Failed to get associated experiment ${experimentId}`, err);
       }
     }
 
+    const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
+    breadcrumbs.push({
+      displayName: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
+      href: '',
+    });
+    this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+
     this.setState({
       experiment,
       experimentName,
       isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
-      isRecurringRun: urlParser.get(QUERY_PARAMS.isRecurring) === '1',
+      isRecurringRun,
     });
 
     this._validate();
