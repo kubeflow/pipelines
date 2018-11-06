@@ -51,7 +51,7 @@ export const css = stylesheet({
     fontSize: fontsize.medium,
     fontWeight: 'bold',
     height: dimension.base,
-    marginBottom: 10,
+    marginBottom: 16,
     marginLeft: 16,
     maxWidth: 186,
     overflow: 'hidden',
@@ -84,16 +84,20 @@ export const css = stylesheet({
     width: '72px !important',
   },
   collapsedSeparator: {
-    margin: `12px !important`,
+    margin: `20px !important`,
   },
   label: {
-    marginLeft: 10,
+    fontSize: fontsize.base,
+    letterSpacing: 0.25,
+    marginLeft: 20,
     transition: 'color 0.3s',
     verticalAlign: 'super',
   },
   logo: {
     display: 'flex',
+    marginBottom: 16,
     marginLeft: '9px !important',
+
   },
   logoLabel: {
     color: sideNavColors.fgActive,
@@ -101,17 +105,18 @@ export const css = stylesheet({
     flexDirection: 'column',
     fontSize: fontsize.title,
     justifyContent: 'center',
+    marginLeft: 12,
   },
   root: {
     background: sideNavColors.bg,
-    paddingTop: 20,
+    paddingTop: 12,
     transition: 'width 0.3s',
     width: 220,
   },
   separator: {
     border: '0px none transparent',
     borderTop: `1px solid ${sideNavColors.separator}`,
-    margin: 12,
+    margin: 20,
   },
 });
 
