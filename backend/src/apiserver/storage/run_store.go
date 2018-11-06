@@ -79,8 +79,6 @@ func (s *RunStore) queryRunTable(
 		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
 			err.Error())
 	}
-	println(sql)
-	glog.Info("*****"+sql)
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
