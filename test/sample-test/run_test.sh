@@ -177,5 +177,34 @@ elif [ "$TEST_NAME" == "condition" ]; then
 
   cd /
   python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/condition.tar.gz --result SAMPLE_CONDITION_TEST_RESULT --output SAMPLE_CONDITION_TEST_OUTPUT --testname condition
+elif [ "$TEST_NAME" == "exithandler" ]; then
+  SAMPLE_EXIT_HANDLER_TEST_RESULT=junit_SampleExitHandlerOutput.xml
+  SAMPLE_EXIT_HANDLER_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
+  # Compile samples
+  cd ${BASE_DIR}/samples/basic
+  dsl-compile --py exit_handler.py --output exit_handler.tar.gz
+
+  cd /
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/exit_handler.tar.gz --result SAMPLE_EXIT_HANDLER_TEST_RESULT --output SAMPLE_EXIT_HANDLER_TEST_OUTPUT --testname exithandler
+elif [ "$TEST_NAME" == "immediatevalue" ]; then
+  SAMPLE_IMMEDIATE_VALUE_TEST_RESULT=junit_SampleImmediateValueOutput.xml
+  SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  # Compile samples
+  cd ${BASE_DIR}/samples/basic
+  dsl-compile --py immediate_value.py --output immediate_value.tar.gz
+
+  cd /
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/immediate_value.tar.gz --result SAMPLE_IMMEDIATE_VALUE_TEST_RESULT --output SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT --testname immediatevalue
+elif [ "$TEST_NAME" == "paralleljoin" ]; then
+  SAMPLE_PARALLEL_JOIN_TEST_RESULT=junit_SampleParallelJoinOutput.xml
+  SAMPLE_PARALLEL_JOIN_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  # Compile samples
+  cd ${BASE_DIR}/samples/basic
+  dsl-compile --py parallel_join.py --output parallel_join.tar.gz
+
+  cd /
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/parallel_join.tar.gz --result SAMPLE_PARALLEL_JOIN_TEST_RESULT --output SAMPLE_PARALLEL_JOIN_TEST_OUTPUT --testname paralleljoin
 fi
