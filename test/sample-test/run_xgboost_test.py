@@ -85,9 +85,6 @@ def main():
   end_time = datetime.now()
   elapsed_time = (end_time - start_time).seconds
   utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
-  if not succ:
-    utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
 
   ###### Output Argo Log for Debugging ######
   workflow_json = client._get_workflow_json(run_id)
@@ -96,6 +93,11 @@ def main():
   argo_log, _ = utils.run_bash_command('argo logs -n kubeflow -w {}'.format(workflow_id))
   print("=========Argo Workflow Log=========")
   print(argo_log)
+
+  ###### If the job fails, skip the result validation ######
+  if not succ:
+    utils.write_junit_xml(test_name, args.result, test_cases)
+    exit()
 
   ###### Validate the results ######
   #   confusion matrix should show three columns for the flower data
