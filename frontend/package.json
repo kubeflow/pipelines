@@ -66,6 +66,7 @@
     "enzyme": "^3.6.0",
     "enzyme-adapter-react-16": "^1.5.0",
     "enzyme-to-json": "^3.3.4",
+    "react-router-test-context": "^0.1.0",
     "react-test-renderer": "^16.5.2",
     "swagger-ts-client": "^0.9.6",
     "ts-node": "^7.0.1",
