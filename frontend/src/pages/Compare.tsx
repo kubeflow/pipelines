@@ -173,7 +173,17 @@ class Compare extends Page<{}, CompareState> {
     </div>);
   }
 
+  public async refresh() {
+    return this.load();
+  }
+
+  public async componentDidMount() {
+    return this.load();
+  }
+
   public async load() {
+    this.clearBanner();
+
     const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
     const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
     const runs: ApiRunDetail[] = [];

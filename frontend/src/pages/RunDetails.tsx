@@ -123,7 +123,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         title: 'Clone',
         tooltip: 'Clone',
       }, {
-        action: this.load.bind(this),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -261,7 +261,16 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     );
   }
 
+  public async componentDidMount() {
+    await this.load();
+  }
+
+  public async refresh() {
+    await this.load();
+  }
+
   public async load() {
+    this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
     try {
@@ -318,6 +327,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
       logger.error('Error loading run:', runId);
     }
+
+    // These are called here to ensure that logs and artifacts in the side panel are refreshed when
+    // the user hits "Refresh", either in the top toolbar or in an error banner.
+    this._loadSelectedNodeLogs();
+    this._loadSelectedNodeOutputs();
   }
 
   private _selectNode(id: string) {
@@ -354,8 +368,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   private async _loadSelectedNodeOutputs() {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (!selectedNodeDetails) {
-      // This should never happen
-      logger.error('Tried to load outputs for a node that is not selected');
       return;
     }
     this.setState({ sidepanelBusy: true });
@@ -379,8 +391,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   private async _loadSelectedNodeLogs() {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (!selectedNodeDetails) {
-      // This should never happen
-      logger.error('Tried to load outputs for a node that is not selected');
       return;
     }
     this.setState({ sidepanelBusy: true });

@@ -1,4 +1,4 @@
-# ML Pipeline Management Frontend
+# Kubeflow Pipelines Management Frontend
 
 **Develop:** You need `npm`, install dependencies using `npm install`.
 

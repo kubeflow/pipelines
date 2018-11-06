@@ -100,7 +100,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: build-script
-            value: components/dataflow/containers/tfx/build.sh
+            value: components/dataflow/containers/tfma/build.sh
       - name: build-dataflow-tfdv-image
         template: build-image-by-script
         arguments:

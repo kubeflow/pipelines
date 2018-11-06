@@ -121,7 +121,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <CustomTable columns={columns} rows={rows}
+        <CustomTable columns={columns} rows={rows} ref={this._tableRef}
           disableSelection={true} initialSortColumn={this.state.sortBy}
           reload={this._reload.bind(this)} selectedIds={this.state.selectedExperimentIds}
           toggleExpansion={this._toggleRowExpand.bind(this)}
@@ -131,8 +131,9 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     );
   }
 
-  public async load() {
+  public async refresh() {
     if (this._tableRef.current) {
+      this.clearBanner();
       this._tableRef.current.reload();
     }
   }

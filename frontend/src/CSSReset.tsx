@@ -17,7 +17,7 @@ import { cssRaw } from 'typestyle';
  */
 
 cssRaw(`
-@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro|Google+Sans);
+@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:400,700|Google+Sans:400,700);
 /* Reset */
 html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
