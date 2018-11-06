@@ -12,7 +12,6 @@ The Kubeflow pipelines service has the following goals:
 * Easy experimentation: making it easy for you to try numerous ideas and techniques, and manage your various trials/experiments.
 * Easy re-use: enabling you to re-use components and pipelines to quickly cobble together end to end solutions, without having to re-build each time.
 
-
 ## Documentation
 
 Get started with your first pipeline and read further information in the [documentation](https://github.com/kubeflow/pipelines/wiki).
