@@ -161,7 +161,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   public getInitialToolbarState() {
     return {
       actions: [{
-        action: this.load.bind(this),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -241,7 +241,17 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     );
   }
 
+  public async refresh() {
+    return this.load();
+  }
+
+  public async componentDidMount() {
+    return this.load();
+  }
+
   public async load() {
+    this.clearBanner();
+
     const experimentId = this.props.match.params[RouteParams.experimentId];
 
     try {
@@ -318,7 +328,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _recurringRunsManagerClosed() {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
-    this.load();
+    this.refresh();
   }
 }
 

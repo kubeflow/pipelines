@@ -31,6 +31,8 @@ export interface PageProps extends RouteComponentProps {
 }
 
 export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
+  protected _isMounted = true;
+
   constructor(props: any) {
     super(props);
     this.props.updateToolbar(this.getInitialToolbarState());
@@ -40,13 +42,14 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
 
   public abstract getInitialToolbarState(): ToolbarProps;
 
-  public abstract load(): Promise<void>;
-
-  public async componentDidMount() {
-    await this.load();
-  }
+  public abstract refresh(): Promise<void>;
 
   public componentWillUnmount() {
+    this.clearBanner();
+    this._isMounted = false;
+  }
+
+  public async clearBanner() {
     this.props.updateBanner({});
   }
 
@@ -56,7 +59,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
       additionalInfo: errorMessage ? errorMessage : undefined,
       message: message + (errorMessage ? ' Click Details for more information.' : ''),
       mode: 'error',
-      refresh: this.load.bind(this),
+      refresh: this.refresh.bind(this),
     });
   }
 
@@ -66,5 +69,11 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
       content,
       title,
     });
+  }
+
+  protected setStateSafe(newState: Partial<S>, cb?: () => void) {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
   }
 }
