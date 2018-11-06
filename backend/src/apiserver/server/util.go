@@ -61,7 +61,7 @@ func isYamlFile(fileName string) bool {
 	return strings.HasSuffix(fileName, ".yaml") || strings.HasSuffix(fileName, ".yml")
 }
 
-func decompressPipelineTarball(compressedFile []byte) ([]byte, error) {
+func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 	gzipReader, err := gzip.NewReader(bytes.NewReader(compressedFile))
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
@@ -98,7 +98,7 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 	}
 
 	// Decompress if file is tarball
-	decompressedFile, err := decompressPipelineTarball(pipelineFileBytes)
+	decompressedFile, err := DecompressPipelineTarball(pipelineFileBytes)
 	if err != nil {
 		return nil, util.Wrap(err, "Error decompress the pipeline file")
 	}
