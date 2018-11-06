@@ -15,9 +15,10 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row } from '../components/CustomTable';
 import AddIcon from '@material-ui/icons/Add';
+import CustomTable, { Column, Row } from '../components/CustomTable';
 import UploadPipelineDialog from '../components/UploadPipelineDialog';
+import produce from 'immer';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
 import { Apis, PipelineSortKeys, ListRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
@@ -142,9 +143,10 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    // Delete pipeline
-    toolbarActions[2].disabled = selectedIds.length < 1;
+    const toolbarActions = produce(this.props.toolbarProps.actions, draft => {
+      // Delete pipeline
+      draft[2].disabled = selectedIds.length < 1;
+    });
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setStateSafe({ selectedIds });
   }

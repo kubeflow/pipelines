@@ -50,10 +50,10 @@ describe('PipelineList', () => {
     listPipelinesSpy.mockImplementationOnce(() => ({
       pipelines: range(n).map(i => ({ id: 'test-pipeline-id' + i, name: 'test pipeline name' + i })),
     }));
-    const tree = TestUtils.mountWithRouter(PipelineList, generateProps());
+    const tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     await listPipelinesSpy;
     await TestUtils.flushPromises();
-    tree.update(); // Make sure the tree is updated before searching it
+    tree.update(); // Make sure the tree is updated before returning it
     return tree;
   }
 
@@ -120,7 +120,7 @@ describe('PipelineList', () => {
 
   it('calls Apis to list pipelines, sorted by creation time in descending order', async () => {
     listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
-    const tree = TestUtils.mountWithRouter(PipelineList, generateProps());
+    const tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     await listPipelinesSpy;
     expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
     expect(tree.state()).toHaveProperty('pipelines', [{ name: 'pipeline1' }]);
@@ -142,7 +142,7 @@ describe('PipelineList', () => {
 
   it('shows error banner when listing pipelines fails', async () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
-    const tree = TestUtils.mountWithRouter(PipelineList, generateProps());
+    const tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     await listPipelinesSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -154,7 +154,7 @@ describe('PipelineList', () => {
   });
 
   it('shows error banner when listing pipelines fails after refresh', async () => {
-    const tree = TestUtils.mountWithRouter(PipelineList, generateProps());
+    const tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     const instance = tree.instance() as PipelineList;
     const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
     expect(refreshBtn).toBeDefined();
@@ -172,7 +172,7 @@ describe('PipelineList', () => {
 
   it('hides error banner when listing pipelines fails then succeeds', async () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
-    const tree = TestUtils.mountWithRouter(PipelineList, generateProps());
+    const tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     const instance = tree.instance() as PipelineList;
     await listPipelinesSpy;
     await TestUtils.flushPromises();
@@ -198,6 +198,13 @@ describe('PipelineList', () => {
     expect(link.prop('href')).toBe(RoutePage.PIPELINE_DETAILS.replace(
       ':' + RouteParams.pipelineId, 'test-pipeline-id0'
     ));
+    tree.unmount();
+  });
+
+  it('always has upload pipeline button enabled', async () => {
+    const tree = await mountWithNPipelines(1);
+    const calls = updateToolbarSpy.mock.calls[0];
+    expect(calls[0].actions.find((b: any) => b.title === 'Upload pipeline')).not.toHaveProperty('disabled');
     tree.unmount();
   });
 

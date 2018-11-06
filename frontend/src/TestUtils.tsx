@@ -25,12 +25,12 @@ export default class TestUtils {
    * Mounts the given component with a fake router and returns the mounted tree
    */
   // tslint:disable-next-line:variable-name
-  public static mountWithRouter(ComponentClass: React.ComponentClass, props: any) {
+  public static mountWithRouter(component: React.ReactElement<any>) {
     const childContextTypes = {
       router: object,
     };
     const context = createRouterContext();
-    const tree = mount(<ComponentClass {...props} />, { context, childContextTypes });
+    const tree = mount(component, { context, childContextTypes });
     return tree;
   }
 
