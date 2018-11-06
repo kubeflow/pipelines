@@ -34,6 +34,7 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
+import { ApiResourceType } from 'src/apis/job';
 
 const css = stylesheet({
   card: {
@@ -268,7 +269,13 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       });
 
       // TODO: get ALL jobs in the experiment
-      const recurringRuns = await Apis.jobServiceApi.listJobs(undefined, 100);
+      const recurringRuns = await Apis.jobServiceApi.listJobs(
+        undefined,
+        100,
+        '',
+        ApiResourceType.EXPERIMENT.toString(),
+        experimentId,
+      );
       const activeRecurringRunsCount =
         (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
       this.setState(
