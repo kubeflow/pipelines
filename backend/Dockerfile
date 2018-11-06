@@ -14,6 +14,15 @@ COPY . .
 RUN apk add --update gcc musl-dev
 RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 
+FROM python:3.5.0-slim as compiler
+
+# This is hard coded to 0.0.26. Once kfp DSK release process is automated,
+# we can dynamically refer to the version from same commit SHA.
+RUN pip install https://storage.googleapis.com/ml-pipeline/release/0.0.26/kfp-0.0.26.tar.gz --upgrade
+WORKDIR /samples
+COPY ./samples .
+RUN  find . -maxdepth 2 -name "*.py" -exec dsl-compile --py {} --output {}.tar.gz \;
+
 FROM alpine
 
 ARG COMMIT_SHA=unknown
@@ -24,7 +33,8 @@ WORKDIR /bin
 COPY --from=builder /bin/apiserver /bin/apiserver
 COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.txt /bin/license.txt
 COPY backend/src/apiserver/config/ /config
-COPY backend/src/apiserver/samples/ /samples
+
+COPY --from=compiler /samples/ /samples/
 
 # Adding CA certificate so API server can download pipeline through URL
 RUN apk add ca-certificates
@@ -33,4 +43,4 @@ RUN apk add ca-certificates
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/config --sampleconfig=/samples/sample_config.json
+CMD apiserver --config=/config --sampleconfig=/config/sample_config.json

@@ -56,7 +56,7 @@ func TestLoadFile_ExceedSizeLimit(t *testing.T) {
 
 func TestDecompressPipelineTarball(t *testing.T) {
 	tarballByte, _ := ioutil.ReadFile("test/arguments_tarball/arguments.tar.gz")
-	pipelineFile, err := decompressPipelineTarball(tarballByte)
+	pipelineFile, err := DecompressPipelineTarball(tarballByte)
 	assert.Nil(t, err)
 
 	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments_tarball/arguments-parameters.yaml")
@@ -65,21 +65,21 @@ func TestDecompressPipelineTarball(t *testing.T) {
 
 func TestDecompressPipelineTarball_MalformattedTarball(t *testing.T) {
 	tarballByte, _ := ioutil.ReadFile("test/malformatted_tarball.tar.gz")
-	_, err := decompressPipelineTarball(tarballByte)
+	_, err := DecompressPipelineTarball(tarballByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid tarball file")
 }
 
 func TestDecompressPipelineTarball_NonYamlTarball(t *testing.T) {
 	tarballByte, _ := ioutil.ReadFile("test/non_yaml_tarball/non_yaml_tarball.tar.gz")
-	_, err := decompressPipelineTarball(tarballByte)
+	_, err := DecompressPipelineTarball(tarballByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Expecting a YAML file inside the tarball")
 }
 
 func TestDecompressPipelineTarball_EmptyTarball(t *testing.T) {
 	tarballByte, _ := ioutil.ReadFile("test/empty_tarball/empty.tar.gz")
-	_, err := decompressPipelineTarball(tarballByte)
+	_, err := DecompressPipelineTarball(tarballByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid tarball file")
 }
