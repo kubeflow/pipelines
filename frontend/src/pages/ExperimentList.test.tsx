@@ -221,16 +221,6 @@ describe('ExperimentList', () => {
     tree.unmount();
   });
 
-  it('renders experiment names as links to their details pages', async () => {
-    const tree = await mountWithNExperiments(1, 1);
-    const link = tree.find('a[children="test experiment name0"]');
-    expect(link).toHaveLength(1);
-    expect(link.prop('href')).toBe(RoutePage.EXPERIMENT_DETAILS.replace(
-      ':' + RouteParams.experimentId, 'test-experiment-id0'
-    ));
-    tree.unmount();
-  });
-
   it('can expand an experiment to see its runs', async () => {
     const tree = await mountWithNExperiments(1, 1);
     tree.find('.tableRow button').at(0).simulate('click');
