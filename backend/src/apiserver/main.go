@@ -137,8 +137,8 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		File        string
 	}
 	var configs []config
-	if json.Unmarshal(configBytes, &configs) != nil {
-		return errors.New(fmt.Sprintf("Failed to parse sample configurations."))
+	if err:= json.Unmarshal(configBytes, &configs);err != nil {
+		return errors.New(fmt.Sprintf("Failed to read sample configurations. Err: %v", err.Error()))
 	}
 	for _, config := range configs {
 		reader, err:= os.Open(config.File)
@@ -151,7 +151,10 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		}
 		_, err = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
 		if err!=nil{
-			return errors.New(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error()))
+			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
+			// In the future, we might consider loading samples during deployment, instead of when API server starts.
+			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error()))
+			continue
 		}
 
 		// Since the default sorting is by create time,
