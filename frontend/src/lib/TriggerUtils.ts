@@ -120,7 +120,7 @@ export function pickersToDate(hasDate: boolean, dateStr: string, timeStr: string
     const [year, month, date] = dateStr.split('-');
     const [hour, minute] = timeStr.split(':');
 
-    const d = new Date(+year, +month, +date, +hour, +minute);
+    const d = new Date(+year, (+month - 1), +date, +hour, +minute);
     if (isNaN(d as any)) {
       throw new Error('Invalid picker format');
     }

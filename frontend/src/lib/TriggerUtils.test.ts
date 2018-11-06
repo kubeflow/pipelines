@@ -148,9 +148,10 @@ describe('TriggerUtils', () => {
       expect(pickersToDate(false, 'some string', 'some string')).toBeUndefined();
     });
 
-    const date = new Date(2018, 8, 13, 17, 33);
+    // JS dates are 0-indexed, so 0 here is actually January.
+    const date = new Date(2018, 0, 13, 17, 33);
     it('converts picker format to date if hasDate is true', () => {
-      expect(pickersToDate(true, '2018-8-13', '17:33')!.toISOString()).toBe(date.toISOString());
+      expect(pickersToDate(true, '2018-1-13', '17:33')!.toISOString()).toBe(date.toISOString());
     });
 
     it('throws on bad format', () => {
