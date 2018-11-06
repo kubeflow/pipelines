@@ -32,7 +32,7 @@ export const color = {
   inactive: '#616161',
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
-  strong: '#000',
+  strong: '#212121',
   success: '#34a853',
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
@@ -60,13 +60,14 @@ export const spacing = {
 export const fonts = {
   code: '"Source Code Pro", monospace',
   main: '"Google Sans", "Helvetica Neue", sans-serif',
+  secondary: '"Roboto", "Helvetica Neue", sans-serif',
 };
 
 export const fontsize = {
-  base: 13,
-  large: 16,
-  medium: 14,
-  small: 11,
+  base: 14,
+  large: 18,
+  medium: 16,
+  small: 12,
   title: 18,
 };
 
@@ -218,7 +219,7 @@ export const commonCss = stylesheet({
         textDecoration: 'underline',
       },
     },
-    color: 'inherit',
+    color: color.strong,
     cursor: 'pointer',
     textDecoration: 'none',
   },

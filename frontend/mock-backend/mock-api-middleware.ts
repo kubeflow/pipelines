@@ -167,6 +167,10 @@ export default (app: express.Application) => {
 
   app.post(v1beta1Prefix + '/experiments', (req, res) => {
     const experiment: ApiExperiment = req.body;
+    if (fixedData.experiments.find(e => e.name.toLowerCase() === experiment.name.toLowerCase())) {
+      res.status(404).send('An experiment with teh same name already exists');
+      return;
+    }
     experiment.id = 'new-experiment-' + (fixedData.experiments.length + 1);
     fixedData.experiments.push(experiment);
 

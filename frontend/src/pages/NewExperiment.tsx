@@ -26,7 +26,7 @@ import { TextFieldProps } from '@material-ui/core/TextField';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewExperimentState {
   description: string;
@@ -150,7 +150,8 @@ class NewExperiment extends Page<{}, NewExperimentState> {
           open: true,
         });
       } catch (err) {
-        await this.showErrorDialog('Experiment creation failed', err);
+        const errorMessage = await errorToMessage(err);
+        await this.showErrorDialog('Experiment creation failed', errorMessage);
         logger.error('Error creating experiment:', err);
         this.setState({ isbeingCreated: false });
       }
