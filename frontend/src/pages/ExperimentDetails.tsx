@@ -27,6 +27,7 @@ import RunList from '../pages/RunList';
 import Toolbar, { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiExperiment } from '../apis/experiment';
+import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -268,7 +269,13 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       });
 
       // TODO: get ALL jobs in the experiment
-      const recurringRuns = await Apis.jobServiceApi.listJobs(undefined, 100);
+      const recurringRuns = await Apis.jobServiceApi.listJobs(
+        undefined,
+        100,
+        '',
+        ApiResourceType.EXPERIMENT.toString(),
+        experimentId,
+      );
       const activeRecurringRunsCount =
         (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
       this.setState(
