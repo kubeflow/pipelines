@@ -32,7 +32,7 @@ func (c *CLIIntegrationTest) SetupTest() {
 	// Wait for the system to be ready.
 	err := waitForReady(c.namespace, *initializeTimeout)
 	if err != nil {
-		glog.Exitf("Cluster namespace '%s' is still not ready after timeout. Error: %s", t.namespace,
+		glog.Exitf("Cluster namespace '%s' is still not ready after timeout. Error: %s", c.namespace,
 			err.Error())
 	}
 }
