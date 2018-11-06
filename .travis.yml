@@ -28,10 +28,6 @@ script:
   - npm i
   - CI=true npm test
 
-  # SDK Components tests
-  - cd $TRAVIS_BUILD_DIR/sdk/python
-  - python3 -m unittest --verbose
-
   # DSL tests
   - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
   - cd $TRAVIS_BUILD_DIR/sdk/python
@@ -39,3 +35,7 @@ script:
   - pip install /tmp/kfp.tar.gz
   - python tests/dsl/main.py
   - python tests/compiler/main.py
+
+  # SDK Components tests
+  - cd $TRAVIS_BUILD_DIR/sdk/python
+  - python3 -m unittest --verbose
