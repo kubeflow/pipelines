@@ -22,6 +22,7 @@ export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
   background: '#fff',
+  breadcrumbs: '#5F6368',
   disabledBg: '#ddd',
   divider: '#e0e0e0',
   errorBg: '#FBE9E7',
