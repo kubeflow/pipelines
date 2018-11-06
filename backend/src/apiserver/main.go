@@ -30,6 +30,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"time"
 )
 
 var (
@@ -122,7 +123,7 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 func loadSamples(resourceManager *resource.ResourceManager) {
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
 	if err != nil {
-		glog.Warningf("Failed to read sample configurations. Err: %v", err.Error())
+		glog.Fatalf("Failed to read sample configurations. Err: %v", err.Error())
 		return
 	}
 	type config struct {
@@ -132,16 +133,30 @@ func loadSamples(resourceManager *resource.ResourceManager) {
 	}
 	var configs []config
 	if json.Unmarshal(configBytes, &configs) != nil {
-		glog.Warningf("Failed to read sample configurations. Err: %v", err.Error())
+		glog.Fatalf("Failed to read sample configurations. Err: %v", err.Error())
 		return
 	}
 	for _, config := range configs {
 		sampleBytes, err := ioutil.ReadFile(config.File)
 		if err != nil {
-			glog.Warningf("Failed to load sample %s. Error: %v", config.Name, err.Error())
+			glog.Fatalf("Failed to load sample %s. Error: %v", config.Name, err.Error())
 			continue
 		}
-		resourceManager.CreatePipeline(config.Name, config.Description, sampleBytes)
+		// Decompress if file is tarball
+		decompressedFile, err := server.DecompressPipelineTarball(sampleBytes)
+		if err!=nil{
+			glog.Fatalf("Failed to decompress the file %s. Error: %v", config.Name, err.Error())
+			continue
+		}
+		_, err = resourceManager.CreatePipeline(config.Name, config.Description, decompressedFile)
+		if err!=nil{
+			glog.Fatalf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error())
+			continue
+		}
+
+		// Since the default sorting is by create time,
+		// Sleep one second makes sure the samples are showing up in the same order as they are added.
+		time.Sleep(1*time.Second)
 	}
 	glog.Info("All samples are loaded.")
 }
