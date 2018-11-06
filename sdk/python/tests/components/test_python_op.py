@@ -243,7 +243,7 @@ class PythonOpTestCase(unittest.TestCase):
                 task_3 = subtract_op(task_12.output, task_22.output)
 
             #Compiling the pipleine:
-            pipeline_filename = Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz')
+            pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
             import kfp.compiler as compiler
             compiler.Compiler().compile(calc_pipeline, pipeline_filename)
 
