@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -30,7 +31,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"time"
 )
 
 var (
@@ -137,19 +137,16 @@ func loadSamples(resourceManager *resource.ResourceManager) {
 	for _, config := range configs {
 		sampleBytes, err := ioutil.ReadFile(config.File)
 		if err != nil {
-			glog.Warningf("Failed to load sample %s. Error: %v", config.Name, err.Error())
-			continue
+			glog.Fatalf("Failed to load sample %s. Error: %v", config.Name, err.Error())
 		}
 		// Decompress if file is tarball
 		decompressedFile, err := server.DecompressPipelineTarball(sampleBytes)
 		if err!=nil{
-			glog.Warningf("Failed to decompress the file %s. Error: %v", config.Name, err.Error())
-			continue
+			glog.Fatalf("Failed to decompress the file %s. Error: %v", config.Name, err.Error())
 		}
 		_, err = resourceManager.CreatePipeline(config.Name, config.Description, decompressedFile)
 		if err!=nil{
-			glog.Warningf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error())
-			continue
+			glog.Fatalf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error())
 		}
 
 		// Since the default sorting is by create time,
