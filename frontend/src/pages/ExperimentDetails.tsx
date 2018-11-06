@@ -27,6 +27,7 @@ import RunList from '../pages/RunList';
 import Toolbar, { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiExperiment } from '../apis/experiment';
+import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -34,7 +35,6 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
-import { ApiResourceType } from 'src/apis/job';
 
 const css = stylesheet({
   card: {
