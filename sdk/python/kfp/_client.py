@@ -22,6 +22,11 @@ import tarfile
 import yaml
 from datetime import datetime
 
+class RunPipelineResult:
+  def __init__(self, response):
+    self.response = response
+    self.run_id = response.run.id
+
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -121,6 +126,7 @@ class Client(object):
       with tar.extractfile(all_yaml_files[0]) as f:
         return yaml.load(f)
 
+
   def run_pipeline(self, experiment_id, job_name, pipeline_package_path, params={}):
     """Run a specified pipeline.
 
@@ -153,7 +159,8 @@ class Client(object):
       html = ('Job link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
               % response.run.id)
       IPython.display.display(IPython.display.HTML(html))
-    return response.run
+    
+    return RunPipelineResult(response)
 
   def list_runs(self, page_token='', page_size=10, sort_by=''):
     """List runs.
