@@ -167,6 +167,8 @@ interface CustomTableState {
 }
 
 export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
+  private _isMounted = true;
+
   constructor(props: CustomTableProps) {
     super(props);
 
@@ -221,6 +223,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public componentDidMount() {
     this._pageChanged(0);
+  }
+
+  public componentWillUnmount() {
+    this._isMounted = false;
   }
 
   public render() {
@@ -355,7 +361,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       sortBy: this.state.sortBy,
     }, loadRequest);
 
-    this.setState({
+    this.setStateSafe({
       pageSize: request.pageSize!,
       sortBy: request.sortBy!,
       sortOrder: request.orderAscending ? 'asc' : 'desc',
@@ -368,13 +374,19 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     return this.props.reload(request);
   }
 
+  private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void) {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
+  }
+
   private _requestSort(sortBy?: string) {
     if (sortBy) {
       // Set the sort column to the provided column if it's different, and
       // invert the sort order it if it's the same column
       const sortOrder = this.state.sortBy === sortBy ?
         (this.state.sortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
-      this.setState({ sortOrder, sortBy }, async () => {
+      this.setStateSafe({ sortOrder, sortBy }, async () => {
         this._resetToFirstPage(
           await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }));
       });
@@ -400,11 +412,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       maxPageIndex = newCurrentPage;
     }
 
-    // TODO: saw this warning:
-    // Warning: Can't call setState (or forceUpdate) on an unmounted component.
-    // This is a no-op, but it indicates a memory leak in your application.
-    // To fix, cancel all subscriptions and asynchronous tasks in the componentWillUnmount method.
-    this.setState({ currentPage: newCurrentPage, maxPageIndex });
+    this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex });
   }
 
   private async _requestRowsPerPage(event: React.ChangeEvent) {
@@ -424,7 +432,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     }
 
     // Reset state, since this invalidates the token list and page counter calculations
-    this.setState({
+    this.setStateSafe({
       currentPage: 0,
       maxPageIndex,
       tokenList: newTokenList,

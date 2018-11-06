@@ -1,0 +1,186 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PipelineList renders a list of one pipeline 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 3,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Uploaded on",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "id": undefined,
+          "otherFields": Array [
+            "pipeline1",
+            "test pipeline description",
+            "2018-9-22 11:05:48",
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    updateSelection={[Function]}
+  />
+  <UploadPipelineDialog
+    onClose={[Function]}
+    open={false}
+  />
+</div>
+`;
+
+exports[`PipelineList renders a list of one pipeline with error 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 3,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Uploaded on",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "id": undefined,
+          "otherFields": Array [
+            "pipeline1",
+            "test pipeline description",
+            "2018-9-22 11:05:48",
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    updateSelection={[Function]}
+  />
+  <UploadPipelineDialog
+    onClose={[Function]}
+    open={false}
+  />
+</div>
+`;
+
+exports[`PipelineList renders a list of one pipeline with no description or created date 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 3,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Uploaded on",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "id": undefined,
+          "otherFields": Array [
+            "pipeline1",
+            undefined,
+            "-",
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    updateSelection={[Function]}
+  />
+  <UploadPipelineDialog
+    onClose={[Function]}
+    open={false}
+  />
+</div>
+`;
+
+exports[`PipelineList renders an empty list with empty state message 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 3,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Uploaded on",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={Array []}
+    selectedIds={Array []}
+    updateSelection={[Function]}
+  />
+  <UploadPipelineDialog
+    onClose={[Function]}
+    open={false}
+  />
+</div>
+`;

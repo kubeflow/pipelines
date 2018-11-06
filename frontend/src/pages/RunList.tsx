@@ -153,11 +153,11 @@ class RunList extends React.Component<RunListProps, RunListState> {
     });
 
     return (<div>
-      <CustomTable columns={columns} rows={rows}
-        initialSortColumn={this.state.sortBy}
-        updateSelection={this.props.onSelectionChange} selectedIds={this.props.selectedIds}
-        disablePaging={this.props.disablePaging} reload={this._loadRuns.bind(this)}
-        disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
+      <CustomTable columns={columns} rows={rows} selectedIds={this.props.selectedIds}
+        initialSortColumn={this.state.sortBy} ref={this._tableRef}
+        updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
+        disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
+        disableSelection={this.props.disableSelection}
         emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
       />
     </div>);

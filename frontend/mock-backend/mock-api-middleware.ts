@@ -41,13 +41,6 @@ const v1beta1Prefix = '/apis/v1beta1';
 
 let tensorboardPod = '';
 
-let apiServerReady = false;
-
-// Simulate API server not ready for 5 seconds
-setTimeout(() => {
-  apiServerReady = true;
-}, 5000);
-
 // tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
 
@@ -63,11 +56,7 @@ export default (app: express.Application) => {
   app.use(express.json());
 
   app.get(v1beta1Prefix + '/healthz', (_, res) => {
-    if (apiServerReady) {
-      res.send({ apiServerReady });
-    } else {
-      res.status(404).send();
-    }
+    res.send({ apiServerReady: true });
   });
 
   app.get('/hub/', (_, res) => {
@@ -94,11 +83,6 @@ export default (app: express.Application) => {
   }
 
   app.get(v1beta1Prefix + '/jobs', (req, res) => {
-    if (!apiServerReady) {
-      res.status(404).send();
-      return;
-    }
-
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
     const response: ApiListJobsResponse = {
@@ -141,11 +125,6 @@ export default (app: express.Application) => {
   });
 
   app.get(v1beta1Prefix + '/experiments', (req, res) => {
-    if (!apiServerReady) {
-      res.status(404).send();
-      return;
-    }
-
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
     const response: ApiListExperimentsResponse = {
@@ -426,11 +405,6 @@ export default (app: express.Application) => {
   });
 
   app.get(v1beta1Prefix + '/pipelines', (req, res) => {
-    if (!apiServerReady) {
-      res.status(404).send();
-      return;
-    }
-
     res.header('Content-Type', 'application/json');
     const response: ApiListPipelinesResponse = {
       next_page_token: '',

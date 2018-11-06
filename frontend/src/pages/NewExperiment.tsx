@@ -102,7 +102,11 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     );
   }
 
-  public async load() {
+  public async refresh() {
+    return;
+  }
+
+  public async componentDidMount() {
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
