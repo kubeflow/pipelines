@@ -13,7 +13,6 @@
 # limitations under the License.
 
 __all__ = [
-    'python_op',
     'func_to_container_op',
     'func_to_component_text',
 ]
@@ -47,6 +46,16 @@ def _python_function_name_to_component_name(name):
 
 
 def _func_to_component_spec(func, extra_code='', base_image=_default_base_image) -> ComponentSpec:
+    decorator_base_image = getattr(func, '_component_base_image', None)
+    if decorator_base_image is not None:
+        if base_image is not _default_base_image and decorator_base_image != base_image:
+            raise ValueError('base_image ({}) conflicts with the decorator-specified base image metadata ({})'.format(base_image, decorator_base_image))
+        else:
+            base_image = decorator_base_image
+    else:
+        if base_image is None:
+            raise ValueError('base_image cannot be None')
+
     import inspect
     import re
     from collections import OrderedDict
@@ -199,8 +208,10 @@ for idx, filename in enumerate(_output_files):
     #Removing consecutive blank lines
     full_source = re.sub('\n\n\n+', '\n\n', full_source).strip('\n') + '\n'
 
-    component_name = _python_function_name_to_component_name(func_name)
-    description = func.__doc__.strip() + '\n' if func.__doc__ else None #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
+    component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
+    description = getattr(func, '_component_description', None) or func.__doc__
+    if description:
+        description = description.strip() + '\n' #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
 
     component_spec = ComponentSpec(
         name=component_name,
@@ -299,6 +310,7 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
 
     component_spec = _func_to_component_spec(func, extra_code, base_image)
 
+    output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
         component_dict = component_spec.to_struct()
         component_yaml = dump_yaml(component_dict)
@@ -306,34 +318,3 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
         #TODO: assert ComponentSpec.from_struct(load_yaml(output_component_file)) == component_spec
 
     return _create_task_factory_from_component_spec(component_spec)
-
-
-def python_op(func=None, base_image=_default_base_image, output_component_file=None, extra_code=''):
-    '''
-    Decorator that replaces a Python function with an equivalent task (ContainerOp) factory
-
-    Function docstring is used as component description.
-    Argument and return annotations are used as component input/output types.
-    To declare a function with multiple return values, use the NamedTuple return annotation syntax:
-
-        from typing import NamedTuple
-        @python_op(base_image='tensorflow/tensorflow:1.11.0-py3')
-        def add_multiply_two_numbers_op(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
-            """Returns sum and product of two arguments"""
-            return (a + b, a * b)
-
-    Args:
-        func: The python function to convert
-        base_image: Optional. Specify a custom Docker containerimage to use in the component. For lightweight components, the image needs to have python and the fire package.
-        output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
-        extra_code: Optional. Extra code to add before the function code. May contain imports and other functions.
-
-    Returns:
-        A factory function with a strongly-typed signature taken from the python function.
-        Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
-    '''
-
-    if func:
-        return func_to_container_op(func, output_component_file, base_image, extra_code)
-    else:
-        return lambda f: func_to_container_op(f, output_component_file, base_image, extra_code)
