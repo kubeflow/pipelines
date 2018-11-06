@@ -214,7 +214,7 @@ elif [ "$TEST_NAME" == "xgboost" ]; then
   dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.tar.gz
 
   cd /
-  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/xgboost-spark/xgboost-training-cm.tar.gz --result SAMPLE_XGBOOST_TEST_RESULT --output SAMPLE_XGBOOST_TEST_OUTPUT
+  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/xgboost-spark/xgboost-training-cm.tar.gz --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_XGBOOST_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_XGBOOST_TEST_RESULT}
