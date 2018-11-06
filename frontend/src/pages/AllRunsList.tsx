@@ -79,6 +79,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   public async refresh() {
     // Tell run list to refresh
     if (this._runlistRef.current) {
+      this.clearBanner();
       await this._runlistRef.current.refresh();
     }
   }

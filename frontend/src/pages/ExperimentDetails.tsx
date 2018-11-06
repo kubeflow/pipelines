@@ -250,6 +250,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 
   public async load() {
+    this.clearBanner();
+
     const experimentId = this.props.match.params[RouteParams.experimentId];
 
     try {

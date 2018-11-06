@@ -152,6 +152,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
   }
 
   public async load() {
+    this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
     try {

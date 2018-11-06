@@ -270,6 +270,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public async load() {
+    this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
     try {

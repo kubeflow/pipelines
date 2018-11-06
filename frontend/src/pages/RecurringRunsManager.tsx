@@ -84,10 +84,10 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
 
     return (<React.Fragment>
       <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Recurring runs', href: '' }]} />
-      <CustomTable columns={columns} rows={rows}
-        selectedIds={selectedIds} disableSelection={true}
+      <CustomTable columns={columns} rows={rows} ref={this._tableRef} selectedIds={selectedIds}
         updateSelection={ids => this.setState({ selectedIds: ids })} initialSortColumn={sortBy}
-        reload={this._loadRuns.bind(this)} emptyMessage={'No recurring runs found in this experiment.'} />
+        reload={this._loadRuns.bind(this)} emptyMessage={'No recurring runs found in this experiment.'}
+        disableSelection={true} />
     </React.Fragment>);
   }
 

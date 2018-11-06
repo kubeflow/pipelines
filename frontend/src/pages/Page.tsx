@@ -45,11 +45,11 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
   public abstract refresh(): Promise<void>;
 
   public componentWillUnmount() {
-    this.clearPageError();
+    this.clearBanner();
     this._isMounted = false;
   }
 
-  public async clearPageError() {
+  public async clearBanner() {
     this.props.updateBanner({});
   }
 

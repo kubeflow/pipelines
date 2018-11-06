@@ -250,6 +250,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public async load() {
+    this.clearBanner();
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
     // TODO: Show spinner while waiting for responses
