@@ -157,4 +157,14 @@ elif [ "$TEST_NAME" == "tfx" ]; then
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_TFX_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFX_TEST_RESULT}
+elif [ "$TEST_NAME" == "sequential" ]; then
+  SAMPLE_SEQUENTIAL_TEST_RESULT=junit_SampleSequentialOutput.xml
+  SAMPLE_SEQUENTIAL_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  # Compile samples
+  cd ${BASE_DIR}/samples/basic
+  dsl-compile --py sequential.py --output sequential.tar.gz
+
+  cd /
+  python3 run_sequential_test.py --input ${BASE_DIR}/samples/basic/sequential.tar.gz --result SAMPLE_SEQUENTIAL_TEST_RESULT --output SAMPLE_SEQUENTIAL_TEST_OUTPUT
 fi
