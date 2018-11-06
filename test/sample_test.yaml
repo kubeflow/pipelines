@@ -126,20 +126,20 @@ spec:
         template: build-image-by-script
         arguments:
           parameters:
-           - name: project
-             value: "{{steps.get-project.outputs.result}}"
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: build-script
-            value: components/dataflow/containers/tfx/build.sh
+            value: components/dataflow/containers/tfma/build.sh
       - name: build-dataflow-tfdv-image
         template: build-image-by-script
         arguments:
           parameters:
-           - name: project
-             value: "{{steps.get-project.outputs.result}}"
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: image-suffix
