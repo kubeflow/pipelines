@@ -20,12 +20,12 @@ import TestUtils from '../TestUtils';
 import { ApiResourceType } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
+import { NodePhase } from './Status';
 import { PageProps } from './Page';
 import { QUERY_PARAMS } from '../lib/URLParser';
-import { RouteParams, RoutePage } from '../components/Router';
+import { RoutePage } from '../components/Router';
 import { range } from 'lodash';
 import { shallow } from 'enzyme';
-import { NodePhase } from './Status';
 
 describe('ExperimentList', () => {
   const updateBannerSpy = jest.fn();
