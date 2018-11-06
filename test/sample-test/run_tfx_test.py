@@ -66,11 +66,11 @@ def main():
 
   ###### Create Job ######
   job_name = 'TFX_sample'
-  #'evaluation': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv'
-  #'train': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv'
   params = {'output': args.output,
             'project': 'ml-pipeline-test',
             'column-names': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json',
+            'evaluation': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv',
+            'train': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv',
             'hidden-layer-size': '5',
             'steps': '5'}
   response = client.run_pipeline(experiment_id, job_name, args.input, params)
