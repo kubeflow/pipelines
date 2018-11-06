@@ -30,6 +30,6 @@ implementation:
       import fire
       fire.Fire(add_wrapper)
     arguments:
-    - [Value, a]
-    - [Value, b]
-    - [Output, Output]
+    - {value: a}
+    - {value: b}
+    - {output: Output}

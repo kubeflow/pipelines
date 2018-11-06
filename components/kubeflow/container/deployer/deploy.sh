@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -x
+
 KUBERNETES_NAMESPACE="${KUBERNETES_NAMESPACE:-default}"
 SERVER_NAME="${SERVER_NAME:-model-server}"
 
@@ -115,10 +117,11 @@ ks apply default -c server
 echo "Waiting for the TF Serving deployment to show up..."
 timeout="1000"
 start_time=`date +%s`
-while [[ $(kubectl get deploy --selector=app="${SERVER_NAME}" 2>&1|wc -l) != "2" ]];do
+while [[ $(kubectl get deploy --namespace "${KUBERNETES_NAMESPACE}" --selector=app="${SERVER_NAME}" 2>&1|wc -l) != "2" ]];do
   current_time=`date +%s`
-  elapsed_time=$(expr $current_time - $start_time)
-  if [[ $elapsed_time > $timeout ]];then
+  elapsed_time=$(expr $current_time + 1 - $start_time)
+  if [[ $elapsed_time -gt $timeout ]];then
+    echo "timeout"
     exit 1
   fi
   sleep 2
@@ -128,11 +131,12 @@ echo "Waiting for the valid workflow json..."
 start_time=`date +%s`
 exit_code="1"
 while [[ $exit_code != "0" ]];do
-  kubectl get deploy --selector=app="${SERVER_NAME}" --output=jsonpath='{.items[0].status.availableReplicas}'
-  exit_code = $?
+  kubectl get deploy --namespace "${KUBERNETES_NAMESPACE}" --selector=app="${SERVER_NAME}" --output=jsonpath='{.items[0].status.availableReplicas}'
+  exit_code=$?
   current_time=`date +%s`
-  elapsed_time=$(expr $current_time - $start_time)
-  if [[ $elapsed_time > $timeout ]];then
+  elapsed_time=$(expr $current_time + 1 - $start_time)
+  if [[ $elapsed_time -gt $timeout ]];then
+    echo "timeout"
     exit 1
   fi
   sleep 2
@@ -140,10 +144,11 @@ done
 
 echo "Waiting for the TF Serving deployment to have at least one available replica..."
 start_time=`date +%s`
-while [[ $(kubectl get deploy --selector=app="${SERVER_NAME}" --output=jsonpath='{.items[0].status.availableReplicas}') < "1" ]]; do
+while [[ $(kubectl get deploy --namespace "${KUBERNETES_NAMESPACE}" --selector=app="${SERVER_NAME}" --output=jsonpath='{.items[0].status.availableReplicas}') < "1" ]]; do
   current_time=`date +%s`
-  elapsed_time=$(expr $current_time - $start_time)
-  if [[ $elapsed_time > $timeout ]];then
+  elapsed_time=$(expr $current_time + 1 - $start_time)
+  if [[ $elapsed_time -gt $timeout ]];then
+    echo "timeout"
     exit 1
   fi
   sleep 5
@@ -153,10 +158,11 @@ echo "Obtaining the pod name..."
 start_time=`date +%s`
 pod_name=""
 while [[ $pod_name == "" ]];do
-  pod_name=$(kubectl get pods --selector=app=${SERVER_NAME} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
+  pod_name=$(kubectl get pods --namespace "${KUBERNETES_NAMESPACE}" --selector=app="${SERVER_NAME}" --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
   current_time=`date +%s`
-  elapsed_time=$(expr $current_time - start_time)
-  if [[ $elapsed_time > $timeout ]];then
+  elapsed_time=$(expr $current_time + 1 - $start_time)
+  if [[ $elapsed_time -gt $timeout ]];then
+    echo "timeout"
     exit 1
   fi
   sleep 2
@@ -168,21 +174,23 @@ echo "Waiting for the TF Serving pod to start running..."
 start_time=`date +%s`
 exit_code="1"
 while [[ $exit_code != "0" ]];do
-  kubectl get po ${pod_name} -o jsonpath='{.status.containerStatuses[0].state.running}'
-  exit_code = $?
+  kubectl get po ${pod_name} --namespace "${KUBERNETES_NAMESPACE}" -o jsonpath='{.status.containerStatuses[0].state.running}'
+  exit_code=$?
   current_time=`date +%s`
-  elapsed_time=$(expr $current_time - $start_time)
-  if [[ $elapsed_time > $timeout ]];then
+  elapsed_time=$(expr $current_time + 1 - $start_time)
+  if [[ $elapsed_time -gt $timeout ]];then
+    echo "timeout"
     exit 1
   fi
   sleep 2
 done
 
 start_time=`date +%s`
-while [ -z "$(kubectl get po ${pod_name} -o jsonpath='{.status.containerStatuses[0].state.running}')" ]; do
+while [ -z "$(kubectl get po ${pod_name} --namespace "${KUBERNETES_NAMESPACE}" -o jsonpath='{.status.containerStatuses[0].state.running}')" ]; do
   current_time=`date +%s`
-  elapsed_time=$(expr $current_time - $start_time)
-  if [[ $elapsed_time > $timeout ]];then
+  elapsed_time=$(expr $current_time + 1 - $start_time)
+  if [[ $elapsed_time -gt $timeout ]];then
+    echo "timeout"
     exit 1
   fi
   sleep 5
@@ -191,4 +199,4 @@ done
 # Wait a little while and then grab the logs of the running server
 sleep 10
 echo "Logs from the TF Serving pod:"
-kubectl logs ${pod_name}
+kubectl logs ${pod_name} --namespace "${KUBERNETES_NAMESPACE}"

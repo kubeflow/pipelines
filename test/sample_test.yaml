@@ -100,7 +100,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: build-script
-            value: components/dataflow/containers/tfma/build.sh
+            value: components/dataflow/containers/tfx/build.sh
       - name: build-dataflow-tfdv-image
         template: build-image-by-script
         arguments:
@@ -201,7 +201,7 @@ spec:
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
           - name: test-name
             value: "tf-training"
-      - name: run-tfma-tests
+      - name: run-tfx-tests
         template: run-sample-tests
         arguments:
           parameters:
@@ -226,7 +226,7 @@ spec:
           - name: sample-tests-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
           - name: test-name
-            value: "tfma"
+            value: "tfx"
 
   - name: get-project
     script:

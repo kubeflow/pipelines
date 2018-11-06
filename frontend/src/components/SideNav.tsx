@@ -20,6 +20,7 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ExperimentsIcon from '../icons/experiments';
 import IconButton from '@material-ui/core/IconButton';
 import JupyterhubIcon from '@material-ui/icons/Code';
+import KubeflowLogo from '../icons/kubeflowLogo';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import PipelinesIcon from '../icons/pipelines';
 import { Link } from 'react-router-dom';
@@ -27,11 +28,11 @@ import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { RoutePage } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
-import { fontsize, spacing, dimension, commonCss } from '../Css';
+import { fontsize, dimension, commonCss } from '../Css';
 
 export const sideNavColors = {
   bg: '#0f4471',
-  fgActive: 'rgb(227, 233, 237, 1)', // #e3e9ed
+  fgActive: '#fff',
   fgActiveInvisible: 'rgb(227, 233, 237, 0)',
   fgDefault: '#87a1b8',
   hover: '#3f698d',
@@ -68,7 +69,6 @@ export const css = stylesheet({
     transition: 'transform 0.3s',
   },
   collapsedButton: {
-    marginLeft: spacing.units(-2),
     maxWidth: dimension.base,
     minWidth: dimension.base,
     padding: 10,
@@ -91,9 +91,20 @@ export const css = stylesheet({
     transition: 'color 0.3s',
     verticalAlign: 'super',
   },
+  logo: {
+    display: 'flex',
+    marginLeft: '9px !important',
+  },
+  logoLabel: {
+    color: sideNavColors.fgActive,
+    display: 'flex',
+    flexDirection: 'column',
+    fontSize: fontsize.title,
+    justifyContent: 'center',
+  },
   root: {
     background: sideNavColors.bg,
-    paddingTop: 24,
+    paddingTop: 20,
     transition: 'width 0.3s',
     width: 220,
   },
@@ -150,6 +161,12 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
 
     return (
       <div id='sideNav' className={classes(css.root, commonCss.noShrink, collapsed && css.collapsedRoot)}>
+        <div className={classes(css.button, collapsed && css.collapsedButton, css.logo)}>
+          <KubeflowLogo color={iconColor.active} style={{ flexShrink: 0 }} />
+          <span className={classes(collapsed && css.collapsedLabel, css.label, css.logoLabel)}>
+            Kubeflow
+          </span>
+        </div>
         <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
           <Button className={classes(css.button,
             page.startsWith(RoutePage.PIPELINES) && css.active,
