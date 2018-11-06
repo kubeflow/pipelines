@@ -1,5 +1,5 @@
 {
-  "description": "Frontend webserver package for Kubeflow Pipelines Management",
+  "description": "Frontend webserver package for Kubeflow Pipelines",
   "main": "server.js",
   "dependencies": {
     "@google-cloud/storage": "^1.6.0",
