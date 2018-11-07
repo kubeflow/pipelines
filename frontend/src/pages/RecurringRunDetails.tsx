@@ -22,7 +22,7 @@ import { ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import { ToolbarActionConfig, Breadcrumb, ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, enabledDisplayString, logger, errorToMessage } from '../lib/Utils';
@@ -32,7 +32,7 @@ interface RecurringRunConfigState {
   run: ApiJob | null;
 }
 
-class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
+class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
   constructor(props: any) {
     super(props);
@@ -162,7 +162,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
       if (relatedExperimentId) {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
       }
-      const breadcrumbs: Array<{ displayName: string, href: string }> = [];
+      const breadcrumbs: Breadcrumb[] = [];
       if (experiment) {
         breadcrumbs.push(
           { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
@@ -189,7 +189,6 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
       this.setState({ run });
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve recurring run: ${runId}.`, err);
-      logger.error(`Error loading recurring run: ${runId}`, err);
     }
   }
 
@@ -242,4 +241,4 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
   }
 }
 
-export default RecurringRunConfig;
+export default RecurringRunDetails;
