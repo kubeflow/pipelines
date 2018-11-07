@@ -111,6 +111,10 @@ class Toolbar extends React.Component<ToolbarProps> {
       this.props.breadcrumbs[this.props.breadcrumbs.length - 1].displayName : '';
     const breadcrumbs = this.props.breadcrumbs.slice(0, this.props.breadcrumbs.length - 1);
 
+    if (!this.props.actions.length && !this.props.breadcrumbs.length) {
+      return null;
+    }
+
     return (
       <div className={
         classes(css.root, (this.props.topLevelToolbar !== false) && css.topLevelToolbar)}>
