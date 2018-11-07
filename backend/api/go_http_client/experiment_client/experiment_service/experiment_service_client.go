@@ -68,6 +68,35 @@ func (a *Client) CreateExperiment(params *CreateExperimentParams, authInfo runti
 }
 
 /*
+DeleteExperiment delete experiment API
+*/
+func (a *Client) DeleteExperiment(params *DeleteExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteExperimentOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteExperimentParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeleteExperiment",
+		Method:             "DELETE",
+		PathPattern:        "/apis/v1beta1/experiments/{id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DeleteExperimentReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DeleteExperimentOK), nil
+
+}
+
+/*
 GetExperiment get experiment API
 */
 func (a *Client) GetExperiment(params *GetExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*GetExperimentOK, error) {
