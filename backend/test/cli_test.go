@@ -61,7 +61,7 @@ func (c *CLIIntegrationTest) TestPipelineListFailureInvalidArgument() {
 	assert.NotNil(t, err)
 }
 
-func TestPipelineAPI(t *testing.T) {
+func TestCLI(t *testing.T) {
 	suite.Run(t, new(CLIIntegrationTest))
 }
 
