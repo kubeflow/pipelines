@@ -22,8 +22,8 @@ Follow the pipeline UI to create pipeline runs.
 
 Useful parameter values:
 
-* For the "exit_handler" and "sequential" samples: `gs://ml-pipeline/shakespeare1.txt`
-* For the "parallel_join" sample: `gs://ml-pipeline/shakespeare1.txt` and `gs://ml-pipeline/shakespeare2.txt`
+* For the "exit_handler" and "sequential" samples: `gs://ml-pipeline-playground/shakespeare1.txt`
+* For the "parallel_join" sample: `gs://ml-pipeline-playground/shakespeare1.txt` and `gs://ml-pipeline-playground/shakespeare2.txt`
 
 ## Components source
 
