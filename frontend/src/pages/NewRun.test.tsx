@@ -24,6 +24,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline } from '../apis/pipeline';
 import { QUERY_PARAMS } from '../lib/URLParser';
+import { ApiRun, ApiResourceType } from '../apis/run';
 
 describe('NewRun', () => {
   const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
@@ -49,7 +50,7 @@ describe('NewRun', () => {
     name: 'some mock pipeline name',
   };
 
-  const mockRun: ApiPipeline = {
+  const mockRun: ApiRun = {
     id: 'some-mock-run-id',
     name: 'some mock run name',
   };
@@ -307,6 +308,32 @@ describe('NewRun', () => {
 
       expect(getRunSpy).toHaveBeenCalledTimes(1);
       expect(getRunSpy).toHaveBeenLastCalledWith(mockRun.id);
+      tree.unmount();
+    });
+
+    it('uses the query param experiment ID over the one in the original run if an ID is present in both', async () => {
+      const run: ApiRun = {
+        id: 'some-mock-run-id',
+        name: 'some mock run name',
+        resource_references: [{
+          key: { id: `${mockExperiment.id}-different`, type: ApiResourceType.EXPERIMENT },
+        }],
+      };
+      const props = generateProps();
+      props.location.search =
+        `?${QUERY_PARAMS.cloneFromRun}=${run.id}`
+        + `&${QUERY_PARAMS.experimentId}=${mockExperiment.id}`;
+
+      getRunSpy.mockImplementation(() => run);
+
+      const tree = shallow(<NewRun {...props as any} />);
+      await TestUtils.flushPromises();
+
+      expect(getRunSpy).toHaveBeenCalledTimes(1);
+      expect(getRunSpy).toHaveBeenLastCalledWith(run.id);
+      expect(getExperimentSpy).toHaveBeenCalledTimes(1);
+      expect(getExperimentSpy).toHaveBeenLastCalledWith(mockExperiment.id);
+      expect(tree.state('experiment')).toHaveProperty('id', mockExperiment.id);
       tree.unmount();
     });
 

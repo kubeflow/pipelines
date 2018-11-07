@@ -226,7 +226,7 @@ class NewRun extends Page<{}, NewRunState> {
         }
       } catch (err) {
         await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
-        logger.error(`Failed find retrieve original run: ${originalRunId}`, err);
+        logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
       }
     } else {
       // Get pipeline id from querystring if any
@@ -238,7 +238,7 @@ class NewRun extends Page<{}, NewRunState> {
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(`Error: failed to retrieve pipeline: ${possiblePipelineId}.`, err);
-          logger.error(`Failed find retrieve pipeline: ${possiblePipelineId}`, err);
+          logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
         }
       }
     }
