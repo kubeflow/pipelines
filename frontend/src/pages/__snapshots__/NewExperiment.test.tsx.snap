@@ -1,0 +1,1346 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NewExperiment Enables the 'Next' button when an experiment name is entered 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Experiment details
+    </div>
+    <div
+      className="explanation"
+    >
+      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+    </div>
+    <Component
+      autoFocus={true}
+      field="experimentName"
+      id="experimentName"
+      inputRef={
+        Object {
+          "current": null,
+        }
+      }
+      instance={
+        NewExperiment {
+          "_experimentNameRef": Object {
+            "current": null,
+          },
+          "_isMounted": true,
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "history": Object {
+              "push": [MockFunction],
+            },
+            "location": Object {
+              "pathname": "/experiments/new",
+            },
+            "match": "",
+            "toolbarProps": Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+                Object {
+                  "displayName": "New experiment",
+                  "href": "/experiments/new",
+                },
+              ],
+            },
+            "updateBanner": [Function],
+            "updateDialog": [MockFunction],
+            "updateSnackbar": [MockFunction],
+            "updateToolbar": [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "description": "",
+            "experimentName": "experiment name",
+            "isbeingCreated": false,
+            "validationError": "",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <NewExperiment
+                history={
+                  Object {
+                    "push": [MockFunction],
+                  }
+                }
+                location={
+                  Object {
+                    "pathname": "/experiments/new",
+                  }
+                }
+                match=""
+                toolbarProps={
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  }
+                }
+                updateBanner={[Function]}
+                updateDialog={[MockFunction]}
+                updateSnackbar={[MockFunction]}
+                updateToolbar={
+                  [MockFunction] {
+                    "calls": Array [
+                      Array [
+                        Object {
+                          "actions": Array [],
+                          "breadcrumbs": Array [
+                            Object {
+                              "displayName": "Experiments",
+                              "href": "/experiments",
+                            },
+                            Object {
+                              "displayName": "New experiment",
+                              "href": "/experiments/new",
+                            },
+                          ],
+                        },
+                      ],
+                    ],
+                  }
+                }
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": Object {
+                "description": "",
+                "experimentName": "experiment name",
+                "isbeingCreated": false,
+                "validationError": "",
+              },
+              "_rendered": <div
+                className="page"
+              >
+                <div
+                  className="scrollContainer"
+                >
+                  <div
+                    className="header"
+                  >
+                    Experiment details
+                  </div>
+                  <div
+                    className="explanation"
+                  >
+                    Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+                  </div>
+                  <Unknown
+                    autoFocus={true}
+                    field="experimentName"
+                    id="experimentName"
+                    inputRef={
+                      Object {
+                        "current": null,
+                      }
+                    }
+                    instance={[Circular]}
+                    label="Experiment name"
+                    required={true}
+                  />
+                  <Unknown
+                    field="description"
+                    height="auto"
+                    id="experimentDescription"
+                    instance={[Circular]}
+                    label="Description (optional)"
+                    multiline={true}
+                  />
+                  <div
+                    className="flex"
+                  >
+                    <BusyButton
+                      busy={false}
+                      className="buttonAction"
+                      disabled={false}
+                      id="createExperimentBtn"
+                      onClick={[Function]}
+                      title="Next"
+                    />
+                    <WithStyles(Button)
+                      id="cancelNewExperimentBtn"
+                      onClick={[Function]}
+                    >
+                      Cancel
+                    </WithStyles(Button)>
+                    <div
+                      className="errorMessage"
+                    >
+                      
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Experiment name"
+      required={true}
+    />
+    <Component
+      field="description"
+      height="auto"
+      id="experimentDescription"
+      instance={
+        NewExperiment {
+          "_experimentNameRef": Object {
+            "current": null,
+          },
+          "_isMounted": true,
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "history": Object {
+              "push": [MockFunction],
+            },
+            "location": Object {
+              "pathname": "/experiments/new",
+            },
+            "match": "",
+            "toolbarProps": Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+                Object {
+                  "displayName": "New experiment",
+                  "href": "/experiments/new",
+                },
+              ],
+            },
+            "updateBanner": [Function],
+            "updateDialog": [MockFunction],
+            "updateSnackbar": [MockFunction],
+            "updateToolbar": [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "description": "",
+            "experimentName": "experiment name",
+            "isbeingCreated": false,
+            "validationError": "",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <NewExperiment
+                history={
+                  Object {
+                    "push": [MockFunction],
+                  }
+                }
+                location={
+                  Object {
+                    "pathname": "/experiments/new",
+                  }
+                }
+                match=""
+                toolbarProps={
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  }
+                }
+                updateBanner={[Function]}
+                updateDialog={[MockFunction]}
+                updateSnackbar={[MockFunction]}
+                updateToolbar={
+                  [MockFunction] {
+                    "calls": Array [
+                      Array [
+                        Object {
+                          "actions": Array [],
+                          "breadcrumbs": Array [
+                            Object {
+                              "displayName": "Experiments",
+                              "href": "/experiments",
+                            },
+                            Object {
+                              "displayName": "New experiment",
+                              "href": "/experiments/new",
+                            },
+                          ],
+                        },
+                      ],
+                    ],
+                  }
+                }
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": Object {
+                "description": "",
+                "experimentName": "experiment name",
+                "isbeingCreated": false,
+                "validationError": "",
+              },
+              "_rendered": <div
+                className="page"
+              >
+                <div
+                  className="scrollContainer"
+                >
+                  <div
+                    className="header"
+                  >
+                    Experiment details
+                  </div>
+                  <div
+                    className="explanation"
+                  >
+                    Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+                  </div>
+                  <Unknown
+                    autoFocus={true}
+                    field="experimentName"
+                    id="experimentName"
+                    inputRef={
+                      Object {
+                        "current": null,
+                      }
+                    }
+                    instance={[Circular]}
+                    label="Experiment name"
+                    required={true}
+                  />
+                  <Unknown
+                    field="description"
+                    height="auto"
+                    id="experimentDescription"
+                    instance={[Circular]}
+                    label="Description (optional)"
+                    multiline={true}
+                  />
+                  <div
+                    className="flex"
+                  >
+                    <BusyButton
+                      busy={false}
+                      className="buttonAction"
+                      disabled={false}
+                      id="createExperimentBtn"
+                      onClick={[Function]}
+                      title="Next"
+                    />
+                    <WithStyles(Button)
+                      id="cancelNewExperimentBtn"
+                      onClick={[Function]}
+                    >
+                      Cancel
+                    </WithStyles(Button)>
+                    <div
+                      className="errorMessage"
+                    >
+                      
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Description (optional)"
+      multiline={true}
+    />
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={false}
+        id="createExperimentBtn"
+        onClick={[Function]}
+        title="Next"
+      />
+      <WithStyles(Button)
+        id="cancelNewExperimentBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        className="errorMessage"
+      />
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NewExperiment Re-disables the 'Next' button when an experiment name is cleared after having been entered 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Experiment details
+    </div>
+    <div
+      className="explanation"
+    >
+      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+    </div>
+    <Component
+      autoFocus={true}
+      field="experimentName"
+      id="experimentName"
+      inputRef={
+        Object {
+          "current": null,
+        }
+      }
+      instance={
+        NewExperiment {
+          "_experimentNameRef": Object {
+            "current": null,
+          },
+          "_isMounted": true,
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "history": Object {
+              "push": [MockFunction],
+            },
+            "location": Object {
+              "pathname": "/experiments/new",
+            },
+            "match": "",
+            "toolbarProps": Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+                Object {
+                  "displayName": "New experiment",
+                  "href": "/experiments/new",
+                },
+              ],
+            },
+            "updateBanner": [Function],
+            "updateDialog": [MockFunction],
+            "updateSnackbar": [MockFunction],
+            "updateToolbar": [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "description": "",
+            "experimentName": "",
+            "isbeingCreated": false,
+            "validationError": "Experiment name is required",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <NewExperiment
+                history={
+                  Object {
+                    "push": [MockFunction],
+                  }
+                }
+                location={
+                  Object {
+                    "pathname": "/experiments/new",
+                  }
+                }
+                match=""
+                toolbarProps={
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  }
+                }
+                updateBanner={[Function]}
+                updateDialog={[MockFunction]}
+                updateSnackbar={[MockFunction]}
+                updateToolbar={
+                  [MockFunction] {
+                    "calls": Array [
+                      Array [
+                        Object {
+                          "actions": Array [],
+                          "breadcrumbs": Array [
+                            Object {
+                              "displayName": "Experiments",
+                              "href": "/experiments",
+                            },
+                            Object {
+                              "displayName": "New experiment",
+                              "href": "/experiments/new",
+                            },
+                          ],
+                        },
+                      ],
+                    ],
+                  }
+                }
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": Object {
+                "description": "",
+                "experimentName": "",
+                "isbeingCreated": false,
+                "validationError": "Experiment name is required",
+              },
+              "_rendered": <div
+                className="page"
+              >
+                <div
+                  className="scrollContainer"
+                >
+                  <div
+                    className="header"
+                  >
+                    Experiment details
+                  </div>
+                  <div
+                    className="explanation"
+                  >
+                    Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+                  </div>
+                  <Unknown
+                    autoFocus={true}
+                    field="experimentName"
+                    id="experimentName"
+                    inputRef={
+                      Object {
+                        "current": null,
+                      }
+                    }
+                    instance={[Circular]}
+                    label="Experiment name"
+                    required={true}
+                  />
+                  <Unknown
+                    field="description"
+                    height="auto"
+                    id="experimentDescription"
+                    instance={[Circular]}
+                    label="Description (optional)"
+                    multiline={true}
+                  />
+                  <div
+                    className="flex"
+                  >
+                    <BusyButton
+                      busy={false}
+                      className="buttonAction"
+                      disabled={true}
+                      id="createExperimentBtn"
+                      onClick={[Function]}
+                      title="Next"
+                    />
+                    <WithStyles(Button)
+                      id="cancelNewExperimentBtn"
+                      onClick={[Function]}
+                    >
+                      Cancel
+                    </WithStyles(Button)>
+                    <div
+                      className="errorMessage"
+                    >
+                      Experiment name is required
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Experiment name"
+      required={true}
+    />
+    <Component
+      field="description"
+      height="auto"
+      id="experimentDescription"
+      instance={
+        NewExperiment {
+          "_experimentNameRef": Object {
+            "current": null,
+          },
+          "_isMounted": true,
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "history": Object {
+              "push": [MockFunction],
+            },
+            "location": Object {
+              "pathname": "/experiments/new",
+            },
+            "match": "",
+            "toolbarProps": Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+                Object {
+                  "displayName": "New experiment",
+                  "href": "/experiments/new",
+                },
+              ],
+            },
+            "updateBanner": [Function],
+            "updateDialog": [MockFunction],
+            "updateSnackbar": [MockFunction],
+            "updateToolbar": [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "description": "",
+            "experimentName": "",
+            "isbeingCreated": false,
+            "validationError": "Experiment name is required",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <NewExperiment
+                history={
+                  Object {
+                    "push": [MockFunction],
+                  }
+                }
+                location={
+                  Object {
+                    "pathname": "/experiments/new",
+                  }
+                }
+                match=""
+                toolbarProps={
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  }
+                }
+                updateBanner={[Function]}
+                updateDialog={[MockFunction]}
+                updateSnackbar={[MockFunction]}
+                updateToolbar={
+                  [MockFunction] {
+                    "calls": Array [
+                      Array [
+                        Object {
+                          "actions": Array [],
+                          "breadcrumbs": Array [
+                            Object {
+                              "displayName": "Experiments",
+                              "href": "/experiments",
+                            },
+                            Object {
+                              "displayName": "New experiment",
+                              "href": "/experiments/new",
+                            },
+                          ],
+                        },
+                      ],
+                    ],
+                  }
+                }
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": Object {
+                "description": "",
+                "experimentName": "",
+                "isbeingCreated": false,
+                "validationError": "Experiment name is required",
+              },
+              "_rendered": <div
+                className="page"
+              >
+                <div
+                  className="scrollContainer"
+                >
+                  <div
+                    className="header"
+                  >
+                    Experiment details
+                  </div>
+                  <div
+                    className="explanation"
+                  >
+                    Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+                  </div>
+                  <Unknown
+                    autoFocus={true}
+                    field="experimentName"
+                    id="experimentName"
+                    inputRef={
+                      Object {
+                        "current": null,
+                      }
+                    }
+                    instance={[Circular]}
+                    label="Experiment name"
+                    required={true}
+                  />
+                  <Unknown
+                    field="description"
+                    height="auto"
+                    id="experimentDescription"
+                    instance={[Circular]}
+                    label="Description (optional)"
+                    multiline={true}
+                  />
+                  <div
+                    className="flex"
+                  >
+                    <BusyButton
+                      busy={false}
+                      className="buttonAction"
+                      disabled={true}
+                      id="createExperimentBtn"
+                      onClick={[Function]}
+                      title="Next"
+                    />
+                    <WithStyles(Button)
+                      id="cancelNewExperimentBtn"
+                      onClick={[Function]}
+                    >
+                      Cancel
+                    </WithStyles(Button)>
+                    <div
+                      className="errorMessage"
+                    >
+                      Experiment name is required
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Description (optional)"
+      multiline={true}
+    />
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={true}
+        id="createExperimentBtn"
+        onClick={[Function]}
+        title="Next"
+      />
+      <WithStyles(Button)
+        id="cancelNewExperimentBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        className="errorMessage"
+      >
+        Experiment name is required
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NewExperiment renders the new experiment page 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Experiment details
+    </div>
+    <div
+      className="explanation"
+    >
+      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+    </div>
+    <Component
+      autoFocus={true}
+      field="experimentName"
+      id="experimentName"
+      inputRef={
+        Object {
+          "current": null,
+        }
+      }
+      instance={
+        NewExperiment {
+          "_experimentNameRef": Object {
+            "current": null,
+          },
+          "_isMounted": true,
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "history": Object {
+              "push": [MockFunction],
+            },
+            "location": Object {
+              "pathname": "/experiments/new",
+            },
+            "match": "",
+            "toolbarProps": Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+                Object {
+                  "displayName": "New experiment",
+                  "href": "/experiments/new",
+                },
+              ],
+            },
+            "updateBanner": [Function],
+            "updateDialog": [MockFunction],
+            "updateSnackbar": [MockFunction],
+            "updateToolbar": [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "description": "",
+            "experimentName": "",
+            "isbeingCreated": false,
+            "validationError": "Experiment name is required",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <NewExperiment
+                history={
+                  Object {
+                    "push": [MockFunction],
+                  }
+                }
+                location={
+                  Object {
+                    "pathname": "/experiments/new",
+                  }
+                }
+                match=""
+                toolbarProps={
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  }
+                }
+                updateBanner={[Function]}
+                updateDialog={[MockFunction]}
+                updateSnackbar={[MockFunction]}
+                updateToolbar={
+                  [MockFunction] {
+                    "calls": Array [
+                      Array [
+                        Object {
+                          "actions": Array [],
+                          "breadcrumbs": Array [
+                            Object {
+                              "displayName": "Experiments",
+                              "href": "/experiments",
+                            },
+                            Object {
+                              "displayName": "New experiment",
+                              "href": "/experiments/new",
+                            },
+                          ],
+                        },
+                      ],
+                    ],
+                  }
+                }
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": Object {
+                "description": "",
+                "experimentName": "",
+                "isbeingCreated": false,
+                "validationError": "Experiment name is required",
+              },
+              "_rendered": <div
+                className="page"
+              >
+                <div
+                  className="scrollContainer"
+                >
+                  <div
+                    className="header"
+                  >
+                    Experiment details
+                  </div>
+                  <div
+                    className="explanation"
+                  >
+                    Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+                  </div>
+                  <Unknown
+                    autoFocus={true}
+                    field="experimentName"
+                    id="experimentName"
+                    inputRef={
+                      Object {
+                        "current": null,
+                      }
+                    }
+                    instance={[Circular]}
+                    label="Experiment name"
+                    required={true}
+                  />
+                  <Unknown
+                    field="description"
+                    height="auto"
+                    id="experimentDescription"
+                    instance={[Circular]}
+                    label="Description (optional)"
+                    multiline={true}
+                  />
+                  <div
+                    className="flex"
+                  >
+                    <BusyButton
+                      busy={false}
+                      className="buttonAction"
+                      disabled={true}
+                      id="createExperimentBtn"
+                      onClick={[Function]}
+                      title="Next"
+                    />
+                    <WithStyles(Button)
+                      id="cancelNewExperimentBtn"
+                      onClick={[Function]}
+                    >
+                      Cancel
+                    </WithStyles(Button)>
+                    <div
+                      className="errorMessage"
+                    >
+                      Experiment name is required
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Experiment name"
+      required={true}
+    />
+    <Component
+      field="description"
+      height="auto"
+      id="experimentDescription"
+      instance={
+        NewExperiment {
+          "_experimentNameRef": Object {
+            "current": null,
+          },
+          "_isMounted": true,
+          "context": Object {},
+          "handleChange": [Function],
+          "props": Object {
+            "history": Object {
+              "push": [MockFunction],
+            },
+            "location": Object {
+              "pathname": "/experiments/new",
+            },
+            "match": "",
+            "toolbarProps": Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+                Object {
+                  "displayName": "New experiment",
+                  "href": "/experiments/new",
+                },
+              ],
+            },
+            "updateBanner": [Function],
+            "updateDialog": [MockFunction],
+            "updateSnackbar": [MockFunction],
+            "updateToolbar": [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+          },
+          "refs": Object {},
+          "setState": [Function],
+          "state": Object {
+            "description": "",
+            "experimentName": "",
+            "isbeingCreated": false,
+            "validationError": "Experiment name is required",
+          },
+          "updater": Updater {
+            "_callbacks": Array [],
+            "_renderer": ReactShallowRenderer {
+              "_context": Object {},
+              "_element": <NewExperiment
+                history={
+                  Object {
+                    "push": [MockFunction],
+                  }
+                }
+                location={
+                  Object {
+                    "pathname": "/experiments/new",
+                  }
+                }
+                match=""
+                toolbarProps={
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "New experiment",
+                        "href": "/experiments/new",
+                      },
+                    ],
+                  }
+                }
+                updateBanner={[Function]}
+                updateDialog={[MockFunction]}
+                updateSnackbar={[MockFunction]}
+                updateToolbar={
+                  [MockFunction] {
+                    "calls": Array [
+                      Array [
+                        Object {
+                          "actions": Array [],
+                          "breadcrumbs": Array [
+                            Object {
+                              "displayName": "Experiments",
+                              "href": "/experiments",
+                            },
+                            Object {
+                              "displayName": "New experiment",
+                              "href": "/experiments/new",
+                            },
+                          ],
+                        },
+                      ],
+                    ],
+                  }
+                }
+              />,
+              "_forcedUpdate": false,
+              "_instance": [Circular],
+              "_newState": Object {
+                "description": "",
+                "experimentName": "",
+                "isbeingCreated": false,
+                "validationError": "Experiment name is required",
+              },
+              "_rendered": <div
+                className="page"
+              >
+                <div
+                  className="scrollContainer"
+                >
+                  <div
+                    className="header"
+                  >
+                    Experiment details
+                  </div>
+                  <div
+                    className="explanation"
+                  >
+                    Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+                  </div>
+                  <Unknown
+                    autoFocus={true}
+                    field="experimentName"
+                    id="experimentName"
+                    inputRef={
+                      Object {
+                        "current": null,
+                      }
+                    }
+                    instance={[Circular]}
+                    label="Experiment name"
+                    required={true}
+                  />
+                  <Unknown
+                    field="description"
+                    height="auto"
+                    id="experimentDescription"
+                    instance={[Circular]}
+                    label="Description (optional)"
+                    multiline={true}
+                  />
+                  <div
+                    className="flex"
+                  >
+                    <BusyButton
+                      busy={false}
+                      className="buttonAction"
+                      disabled={true}
+                      id="createExperimentBtn"
+                      onClick={[Function]}
+                      title="Next"
+                    />
+                    <WithStyles(Button)
+                      id="cancelNewExperimentBtn"
+                      onClick={[Function]}
+                    >
+                      Cancel
+                    </WithStyles(Button)>
+                    <div
+                      className="errorMessage"
+                    >
+                      Experiment name is required
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              "_rendering": false,
+              "_updater": [Circular],
+            },
+          },
+          Symbol(enzyme.__setState__): [Function],
+        }
+      }
+      label="Description (optional)"
+      multiline={true}
+    />
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={true}
+        id="createExperimentBtn"
+        onClick={[Function]}
+        title="Next"
+      />
+      <WithStyles(Button)
+        id="cancelNewExperimentBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        className="errorMessage"
+      >
+        Experiment name is required
+      </div>
+    </div>
+  </div>
+</div>
+`;

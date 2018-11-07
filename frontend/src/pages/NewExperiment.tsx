@@ -94,7 +94,9 @@ class NewExperiment extends Page<{}, NewExperimentState> {
             <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={this.state.isbeingCreated}
               className={commonCss.buttonAction} title={'Next'}
               onClick={this._create.bind(this)} />
-            <Button onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>Cancel</Button>
+            <Button id='cancelNewExperimentBtn' onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>
+              Cancel
+            </Button>
             <div className={css.errorMessage}>{validationError}</div>
           </div>
         </div>
