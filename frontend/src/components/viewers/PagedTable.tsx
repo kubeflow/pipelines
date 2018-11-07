@@ -32,7 +32,7 @@ enum SortOrder {
   DESC = 'desc',
 }
 
-function desc(a: string[], b: string[], orderBy: number) {
+function desc(a: string[], b: string[], orderBy: number): number {
   if (b[orderBy] < a[orderBy]) {
     return -1;
   }
@@ -42,7 +42,7 @@ function desc(a: string[], b: string[], orderBy: number) {
   return 0;
 }
 
-function stableSort(array: string[][], cmp: any) {
+function stableSort(array: string[][], cmp: any): string[][] {
   const stabilizedThis = array.map((row: string[], index: number) => [row, index]);
   stabilizedThis.sort((a: [string[], number], b: [string[], number]) => {
     const order = cmp(a[0], b[0]);
@@ -54,7 +54,7 @@ function stableSort(array: string[][], cmp: any) {
   return stabilizedThis.map((el: [string[], number]) => el[0]);
 }
 
-function getSorting(order: SortOrder, orderBy: any) {
+function getSorting(order: SortOrder, orderBy: any): (a: any, b: any) => number {
   return order === 'desc' ? (a: any, b: any) => desc(a, b, orderBy) : (a: any, b: any) => -desc(a, b, orderBy);
 }
 
@@ -111,11 +111,11 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     };
   }
 
-  public getDisplayName() {
+  public getDisplayName(): string {
     return 'Table';
   }
 
-  public render() {
+  public render(): JSX.Element | null {
     if (!this._config) {
       return null;
     }
@@ -188,8 +188,8 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     this.setState({ rowsPerPage: event.target.value });
   };
 
-  private _isSmall() {
-    return this.props.maxDimension && this.props.maxDimension < this._shrinkThreshold;
+  private _isSmall(): boolean {
+    return !!this.props.maxDimension && this.props.maxDimension < this._shrinkThreshold;
   }
 }
 

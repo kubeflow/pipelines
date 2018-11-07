@@ -22,7 +22,7 @@ import { ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarActionConfig } from '../components/Toolbar';
+import { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, enabledDisplayString, logger, errorToMessage } from '../lib/Utils';
@@ -42,7 +42,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [{
         action: this.refresh.bind(this),
@@ -80,7 +80,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { run } = this.state;
     let runDetails: string[][] = [];
     let inputParameters: string[][] = [];
@@ -143,15 +143,15 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     );
   }
 
-  public componentDidMount() {
-    this.load();
+  public componentDidMount(): Promise<void> {
+    return this.load();
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     await this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
@@ -193,7 +193,7 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     }
   }
 
-  private async _setEnabledState(enabled: boolean) {
+  private async _setEnabledState(enabled: boolean): Promise<void> {
     if (this.state.run) {
       const toolbarActions = [...this.props.toolbarProps.actions];
 

@@ -58,15 +58,15 @@ export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: b
 
 export function getRunTime(workflow?: Workflow): string {
   if (!workflow
-      || !workflow.status
-      || !workflow.status.phase
-      || !workflow.status.startedAt
-      || !workflow.status.finishedAt) {
+    || !workflow.status
+    || !workflow.status.phase
+    || !workflow.status.startedAt
+    || !workflow.status.finishedAt) {
     return '-';
   }
 
   let diff = new Date(workflow.status.finishedAt).getTime()
-      - new Date(workflow.status.startedAt).getTime();
+    - new Date(workflow.status.startedAt).getTime();
   const sign = diff < 0 ? '-' : '';
   if (diff < 0) {
     diff *= -1;
@@ -81,7 +81,7 @@ export function getRunTime(workflow?: Workflow): string {
   return `${sign}${hours}:${minutes}:${seconds}`;
 }
 
-export function s(items: any[] | number) {
+export function s(items: any[] | number): string {
   const length = Array.isArray(items) ? items.length : items;
   return length === 1 ? '' : 's';
 }

@@ -96,15 +96,15 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     };
   }
 
-  public getDisplayName() {
+  public getDisplayName(): string {
     return 'ROC Curve';
   }
 
-  public isAggregatable() {
+  public isAggregatable(): boolean {
     return true;
   }
 
-  public render() {
+  public render(): JSX.Element {
 
     const width = this.props.maxDimension || 600;
     const height = width * 0.65;
@@ -167,7 +167,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     </div >;
   }
 
-  private _lineHovered(lineIdx: number, data: any) {
+  private _lineHovered(lineIdx: number, data: any): void {
     const hoveredValues = this.state.hoveredValues;
     hoveredValues[lineIdx] = data;
     this.setState({ hoveredValues });

@@ -18,11 +18,12 @@ import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Input from '../atoms/Input';
-import { Apis } from '../lib/Apis';
 import { ApiExperiment } from '../apis/experiment';
+import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage } from '../components/Router';
 import { TextFieldProps } from '@material-ui/core/TextField';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
@@ -61,7 +62,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [],
       breadcrumbs: [
@@ -71,7 +72,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { validationError } = this.state;
 
     return (
@@ -104,11 +105,11 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return;
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
@@ -160,7 +161,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     });
   }
 
-  private _validate() {
+  private _validate(): void {
     // Validate state
     const { experimentName } = this.state;
     try {
