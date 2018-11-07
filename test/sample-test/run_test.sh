@@ -167,6 +167,9 @@ elif [ "$TEST_NAME" == "sequential" ]; then
 
   cd /
   python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/sequential.tar.gz --result SAMPLE_SEQUENTIAL_TEST_RESULT --output SAMPLE_SEQUENTIAL_TEST_OUTPUT  --testname sequential
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_SEQUENTIAL_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_SEQUENTIAL_TEST_RESULT}
 elif [ "$TEST_NAME" == "condition" ]; then
   SAMPLE_CONDITION_TEST_RESULT=junit_SampleConditionOutput.xml
   SAMPLE_CONDITION_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -176,7 +179,10 @@ elif [ "$TEST_NAME" == "condition" ]; then
   dsl-compile --py condition.py --output condition.tar.gz
 
   cd /
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/condition.tar.gz --result SAMPLE_CONDITION_TEST_RESULT --output SAMPLE_CONDITION_TEST_OUTPUT --testname condition
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/condition.tar.gz --result SAMPLE_CONDITION_TEST_RESULT --output SAMPLE_CONDITION_TEST_OUTPUT --testname conditio
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_CONDITION_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_CONDITION_TEST_RESULT}
 elif [ "$TEST_NAME" == "exithandler" ]; then
   SAMPLE_EXIT_HANDLER_TEST_RESULT=junit_SampleExitHandlerOutput.xml
   SAMPLE_EXIT_HANDLER_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -187,6 +193,9 @@ elif [ "$TEST_NAME" == "exithandler" ]; then
 
   cd /
   python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/exit_handler.tar.gz --result SAMPLE_EXIT_HANDLER_TEST_RESULT --output SAMPLE_EXIT_HANDLER_TEST_OUTPUT --testname exithandler
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_EXIT_HANDLER_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_EXIT_HANDLER_TEST_RESULT}
 elif [ "$TEST_NAME" == "immediatevalue" ]; then
   SAMPLE_IMMEDIATE_VALUE_TEST_RESULT=junit_SampleImmediateValueOutput.xml
   SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -197,6 +206,9 @@ elif [ "$TEST_NAME" == "immediatevalue" ]; then
 
   cd /
   python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/immediate_value.tar.gz --result SAMPLE_IMMEDIATE_VALUE_TEST_RESULT --output SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT --testname immediatevalue
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_IMMEDIATE_VALUE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_IMMEDIATE_VALUE_TEST_RESULT
 elif [ "$TEST_NAME" == "paralleljoin" ]; then
   SAMPLE_PARALLEL_JOIN_TEST_RESULT=junit_SampleParallelJoinOutput.xml
   SAMPLE_PARALLEL_JOIN_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -207,4 +219,7 @@ elif [ "$TEST_NAME" == "paralleljoin" ]; then
 
   cd /
   python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/parallel_join.tar.gz --result SAMPLE_PARALLEL_JOIN_TEST_RESULT --output SAMPLE_PARALLEL_JOIN_TEST_OUTPUT --testname paralleljoin
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_PARALLEL_JOIN_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_PARALLEL_JOIN_TEST_RESULT
 fi
