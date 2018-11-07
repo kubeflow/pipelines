@@ -24,12 +24,13 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesBtn"
+    id="pipelinesLink"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button active"
+      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#fff"
@@ -43,12 +44,13 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsBtn"
+    id="experimentsLink"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button"
+      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#87a1b8"
@@ -96,12 +98,13 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
   </div>
   <Link
     className="unstyled"
-    id="pipelinesBtn"
+    id="pipelinesLink"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button active"
+      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#fff"
@@ -115,12 +118,13 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
   </Link>
   <Link
     className="unstyled"
-    id="experimentsBtn"
+    id="experimentsLink"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button"
+      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#87a1b8"
@@ -168,12 +172,13 @@ exports[`SideNav renders collapsed state 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesBtn"
+    id="pipelinesLink"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button active collapsedButton"
+      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#fff"
@@ -187,12 +192,13 @@ exports[`SideNav renders collapsed state 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsBtn"
+    id="experimentsLink"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button collapsedButton"
+      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#87a1b8"
@@ -240,12 +246,13 @@ exports[`SideNav renders expanded state 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesBtn"
+    id="pipelinesLink"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button active"
+      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#fff"
@@ -259,12 +266,13 @@ exports[`SideNav renders expanded state 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsBtn"
+    id="experimentsLink"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button"
+      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#87a1b8"
@@ -312,12 +320,13 @@ exports[`SideNav renders experiments as active page 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesBtn"
+    id="pipelinesLink"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
+      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -331,12 +340,457 @@ exports[`SideNav renders experiments as active page 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsBtn"
+    id="experimentsLink"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
+      id="sideNavExperimentsBtn"
+    >
+      <ExperimentsIcon
+        color="#fff"
+      />
+      <span
+        className="label"
+      >
+        Experiments
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
+  <Link
+    className="unstyled"
+    id="pipelinesLink"
+    replace={false}
+    to="/pipelines"
+  >
+    <WithStyles(Button)
+      className="button"
+      id="sideNavPipelinesBtn"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    id="experimentsLink"
+    replace={false}
+    to="/experiments"
+  >
+    <WithStyles(Button)
+      className="button active"
+      id="sideNavExperimentsBtn"
+    >
+      <ExperimentsIcon
+        color="#fff"
+      />
+      <span
+        className="label"
+      >
+        Experiments
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders experiments as active page when on Compare page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
+  <Link
+    className="unstyled"
+    id="pipelinesLink"
+    replace={false}
+    to="/pipelines"
+  >
+    <WithStyles(Button)
+      className="button"
+      id="sideNavPipelinesBtn"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    id="experimentsLink"
+    replace={false}
+    to="/experiments"
+  >
+    <WithStyles(Button)
+      className="button active"
+      id="sideNavExperimentsBtn"
+    >
+      <ExperimentsIcon
+        color="#fff"
+      />
+      <span
+        className="label"
+      >
+        Experiments
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders experiments as active page when on NewExperiment page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
+  <Link
+    className="unstyled"
+    id="pipelinesLink"
+    replace={false}
+    to="/pipelines"
+  >
+    <WithStyles(Button)
+      className="button"
+      id="sideNavPipelinesBtn"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    id="experimentsLink"
+    replace={false}
+    to="/experiments"
+  >
+    <WithStyles(Button)
+      className="button active"
+      id="sideNavExperimentsBtn"
+    >
+      <ExperimentsIcon
+        color="#fff"
+      />
+      <span
+        className="label"
+      >
+        Experiments
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
+  <Link
+    className="unstyled"
+    id="pipelinesLink"
+    replace={false}
+    to="/pipelines"
+  >
+    <WithStyles(Button)
+      className="button"
+      id="sideNavPipelinesBtn"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    id="experimentsLink"
+    replace={false}
+    to="/experiments"
+  >
+    <WithStyles(Button)
+      className="button active"
+      id="sideNavExperimentsBtn"
+    >
+      <ExperimentsIcon
+        color="#fff"
+      />
+      <span
+        className="label"
+      >
+        Experiments
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders experiments as active page when on RecurringRunDetails page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
+  <Link
+    className="unstyled"
+    id="pipelinesLink"
+    replace={false}
+    to="/pipelines"
+  >
+    <WithStyles(Button)
+      className="button"
+      id="sideNavPipelinesBtn"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    id="experimentsLink"
+    replace={false}
+    to="/experiments"
+  >
+    <WithStyles(Button)
+      className="button active"
+      id="sideNavExperimentsBtn"
+    >
+      <ExperimentsIcon
+        color="#fff"
+      />
+      <span
+        className="label"
+      >
+        Experiments
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <hr
+    className="separator"
+  />
+  <WithStyles(IconButton)
+    className="chevron"
+    onClick={[Function]}
+  >
+    <pure(ChevronLeftIcon) />
+  </WithStyles(IconButton)>
+</div>
+`;
+
+exports[`SideNav renders experiments as active page when on RunDetails page 1`] = `
+<div
+  className="root noShrink"
+  id="sideNav"
+>
+  <div
+    className="button logo"
+  >
+    <KubeflowLogo
+      color="#fff"
+      style={
+        Object {
+          "flexShrink": 0,
+        }
+      }
+    />
+    <span
+      className="label logoLabel"
+    >
+      Kubeflow
+    </span>
+  </div>
+  <Link
+    className="unstyled"
+    id="pipelinesLink"
+    replace={false}
+    to="/pipelines"
+  >
+    <WithStyles(Button)
+      className="button"
+      id="sideNavPipelinesBtn"
+    >
+      <PipelinesIcon
+        color="#87a1b8"
+      />
+      <span
+        className="label"
+      >
+        Pipelines
+      </span>
+    </WithStyles(Button)>
+  </Link>
+  <Link
+    className="unstyled"
+    id="experimentsLink"
+    replace={false}
+    to="/experiments"
+  >
+    <WithStyles(Button)
+      className="button active"
+      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -384,12 +838,13 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
   </div>
   <Link
     className="unstyled"
-    id="pipelinesBtn"
+    id="pipelinesLink"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
+      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -403,87 +858,16 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
   </Link>
   <Link
     className="unstyled"
-    id="experimentsBtn"
+    id="experimentsLink"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
+      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
-</div>
-`;
-
-exports[`SideNav renders nothing as active page 1`] = `
-<div
-  className="root noShrink"
-  id="sideNav"
->
-  <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
-      }
-    />
-    <span
-      className="label logoLabel"
-    >
-      Kubeflow
-    </span>
-  </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <ExperimentsIcon
-        color="#87a1b8"
       />
       <span
         className="label"
@@ -528,12 +912,13 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesBtn"
+    id="pipelinesLink"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
+      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -547,15 +932,16 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsBtn"
+    id="experimentsLink"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
-      className="button"
+      className="button active"
+      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
-        color="#87a1b8"
+        color="#fff"
       />
       <span
         className="label"
@@ -567,11 +953,12 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   <a
     className="unstyled"
     href="/hub/"
-    id="jupyterhubBtn"
+    id="jupyterhubLink"
     target="_blank"
   >
     <WithStyles(Button)
       className="button"
+      id="sideNavJupyterhubBtn"
     >
       <pure(CodeIcon)
         style={

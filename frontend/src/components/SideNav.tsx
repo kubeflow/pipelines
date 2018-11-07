@@ -172,27 +172,27 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
             Kubeflow
           </span>
         </div>
-        <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
-          <Button className={classes(css.button,
+        <Link id='pipelinesLink' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
+          <Button id='sideNavPipelinesBtn' className={classes(css.button,
             page.startsWith(RoutePage.PIPELINES) && css.active,
             collapsed && css.collapsedButton)}>
             <PipelinesIcon color={page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive} />
             <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
           </Button>
         </Link>
-        <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
-          <Button className={
+        <Link id='experimentsLink' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
+          <Button id='sideNavExperimentsBtn' className={
             classes(
               css.button,
-              page.startsWith(RoutePage.EXPERIMENTS) && css.active,
+              this._highlightExperimentsButton(page) && css.active,
               collapsed && css.collapsedButton)}>
-            <ExperimentsIcon color={page.startsWith(RoutePage.EXPERIMENTS) ? iconColor.active : iconColor.inactive} />
+            <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
             <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
           </Button>
         </Link>
         {this.state.jupyterHubAvailable && (
-          <a id='jupyterhubBtn' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
-            <Button className={
+          <a id='jupyterhubLink' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
+            <Button id='sideNavJupyterhubBtn'className={
               classes(css.button, collapsed && css.collapsedButton)}>
               <JupyterhubIcon style={{ height: 20, width: 20 }} />
               <span className={classes(collapsed && css.collapsedLabel, css.label)}>Notebooks</span>
@@ -207,6 +207,15 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
         </IconButton>
       </div >
     );
+  }
+
+  private _highlightExperimentsButton(page: string): boolean {
+    return page.startsWith(RoutePage.EXPERIMENTS)
+      || page.startsWith(RoutePage.RUNS)
+      // TODO: Router should have a constant for this, but it doesn't follow the naming convention
+      // of the other pages
+      || page.startsWith('/recurringrun')
+      || page.startsWith(RoutePage.COMPARE);
   }
 
   private _toggleNavClicked() {
