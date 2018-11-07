@@ -57,8 +57,18 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	requestStartTime := time.Now().Unix()
+	/* ---------- Verify sample pipelines are loaded ---------- */
+	listPipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
+	assert.Nil(t, err)
+	assert.True(t, len(listPipelineResponse.Pipelines)>0)
+	for _, p := range listPipelineResponse.Pipelines {
+		// Verify existing pipelines are samples and delete them one by one.
+		assert.Contains(t, p.Name, "[Sample]")
+		_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: p.Id})
+		assert.Nil(t, err)
+	}
 
+	requestStartTime := time.Now().Unix()
 	/* ---------- Upload pipelines YAML ---------- */
 	pipelineBody, writer := uploadPipelineFileOrFail("resources/arguments-parameters.yaml")
 	response, err := clientSet.RESTClient().Post().
@@ -108,7 +118,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "url-arguments-parameters", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
-	listPipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
+	listPipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
 	checkListPipelinesResponse(t, listPipelineResponse, err, requestStartTime)
 
 	/* ---------- Verify list pipeline sorted by names ---------- */
