@@ -8,7 +8,7 @@ outputs:
 - {name: Output, type: float}
 implementation:
   dockerContainer:
-    image: ark7/python-fire
+    image: python:3.5
     command:
     - python
     - -c
