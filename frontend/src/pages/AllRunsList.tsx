@@ -58,7 +58,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
           tooltip: 'Create a copy from this run\s initial state',
         },
         {
-          action: this.load.bind(this),
+          action: this.refresh.bind(this),
           id: 'refreshBtn',
           title: 'Refresh',
           tooltip: 'Refresh',
@@ -76,9 +76,10 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     </div>;
   }
 
-  public async load() {
+  public async refresh() {
     // Tell run list to refresh
     if (this._runlistRef.current) {
+      this.clearBanner();
       await this._runlistRef.current.refresh();
     }
   }

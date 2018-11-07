@@ -26,6 +26,21 @@ import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss, color } from '../Css';
 import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
 import { orderBy } from 'lodash';
+import { stylesheet } from 'typestyle';
+
+const css = stylesheet({
+  metricContainer: {
+    background: '#f6f7f9',
+    marginRight: 10,
+  },
+  metricFill: {
+    background: '#cbf0f8',
+    boxSizing: 'border-box',
+    color: '#202124',
+    fontFamily: 'Roboto',
+    fontSize: 13,
+  },
+});
 
 interface ExperimentInfo {
   displayName: string;
@@ -153,11 +168,11 @@ class RunList extends React.Component<RunListProps, RunListState> {
     });
 
     return (<div>
-      <CustomTable columns={columns} rows={rows}
-        initialSortColumn={this.state.sortBy}
-        updateSelection={this.props.onSelectionChange} selectedIds={this.props.selectedIds}
-        disablePaging={this.props.disablePaging} reload={this._loadRuns.bind(this)}
-        disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
+      <CustomTable columns={columns} rows={rows} selectedIds={this.props.selectedIds}
+        initialSortColumn={this.state.sortBy} ref={this._tableRef}
+        updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
+        disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
+        disableSelection={this.props.disableSelection}
         emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
       />
     </div>);
@@ -214,8 +229,8 @@ class RunList extends React.Component<RunListProps, RunListState> {
       width = `calc(${barWidth}%)`;
     }
     return (
-      <div style={{ background: '#f6f7f9', marginLeft: leftSpace, marginRight: 10 }}>
-        <div style={{ background: '#cbf0f8', paddingLeft: leftSpace, width }}>
+      <div className={css.metricContainer} style={{ marginLeft: leftSpace }}>
+        <div className={css.metricFill} style={{ textIndent: leftSpace, width }}>
           {displayString}
         </div>
       </div>

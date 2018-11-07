@@ -18,9 +18,10 @@ import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import RunList from './RunList';
-import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
+import produce from 'immer';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
 import { ApiResourceType, ApiRun } from '../apis/run';
+import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -38,7 +39,6 @@ interface DisplayExperiment extends ApiExperiment {
 
 interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
-  selectedExperimentIds: string[];
   selectedRunIds: string[];
   selectedTab: number;
   sortBy: string;
@@ -52,7 +52,6 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
     this.state = {
       displayExperiments: [],
-      selectedExperimentIds: [],
       selectedRunIds: [],
       selectedTab: 0,
       sortBy: ExperimentSortKeys.CREATED_AT,
@@ -83,7 +82,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         title: 'Clone run',
         tooltip: 'Create a copy from this run\s initial state',
       }, {
-        action: this._reload.bind(this),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh the list of experiments',
@@ -93,19 +92,19 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   }
 
   public render() {
-    const columns: Column[] = [
-      {
-        customRenderer: this._nameCustomRenderer.bind(this),
-        flex: 2,
-        label: 'Experiment name',
-        sortKey: ExperimentSortKeys.NAME,
-      },
-      {
-        customRenderer: this._last5RunsCustomRenderer.bind(this),
-        flex: 1,
-        label: 'Last 5 runs',
-      },
-    ];
+    const columns: Column[] = [{
+      customRenderer: this._nameCustomRenderer.bind(this),
+      flex: 1,
+      label: 'Experiment name',
+      sortKey: ExperimentSortKeys.NAME,
+    }, {
+      flex: 2,
+      label: 'Description',
+    }, {
+      customRenderer: this._last5RunsCustomRenderer.bind(this),
+      flex: 1,
+      label: 'Last 5 runs',
+    }];
 
     const rows: Row[] = this.state.displayExperiments.map((exp) => {
       return {
@@ -114,6 +113,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         id: exp.id!,
         otherFields: [
           exp.name!,
+          exp.description!,
           exp.expandState === ExpandState.EXPANDED ? [] : exp.last5Runs,
         ]
       };
@@ -121,19 +121,19 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        <CustomTable columns={columns} rows={rows}
+        <CustomTable columns={columns} rows={rows} ref={this._tableRef}
           disableSelection={true} initialSortColumn={this.state.sortBy}
-          reload={this._reload.bind(this)} selectedIds={this.state.selectedExperimentIds}
-          toggleExpansion={this._toggleRowExpand.bind(this)}
+          reload={this._reload.bind(this)} toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
           emptyMessage='No experiments found. Click "Create experiment" to start.' />
       </div>
     );
   }
 
-  public async load() {
+  public async refresh() {
     if (this._tableRef.current) {
-      this._tableRef.current.reload();
+      this.clearBanner();
+      await this._tableRef.current.reload();
     }
   }
 
@@ -192,7 +192,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
   private _last5RunsCustomRenderer(runs: ApiRun[]) {
     return <div className={commonCss.flex}>
-      {runs.map((run, i) => (
+      {(runs || []).map((run, i) => (
         <span key={i} style={{ margin: '0 1px' }}>
           {statusToIcon(run.status as NodePhase || NodePhase.UNKNOWN)}
         </span>
@@ -201,12 +201,13 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   }
 
   private _runSelectionChanged(selectedRunIds: string[]) {
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    // Enable/Disable Run compare button
-    toolbarActions[1].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
-    // Enable/Disable Clone button
-    toolbarActions[2].disabled = selectedRunIds.length !== 1;
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
+    const actions = produce(this.props.toolbarProps.actions, draft => {
+      // Enable/Disable Run compare button
+      draft[1].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
+      // Enable/Disable Clone button
+      draft[2].disabled = selectedRunIds.length !== 1;
+    });
+    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions });
     this.setState({ selectedRunIds });
   }
 
@@ -226,11 +227,12 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   }
 
   private _toggleRowExpand(rowIndex: number) {
-    const displayExperiments = this.state.displayExperiments;
-    displayExperiments[rowIndex].expandState =
-      displayExperiments[rowIndex].expandState === ExpandState.COLLAPSED ?
-        ExpandState.EXPANDED :
-        ExpandState.COLLAPSED;
+    const displayExperiments = produce(this.state.displayExperiments, draft => {
+      draft[rowIndex].expandState =
+        draft[rowIndex].expandState === ExpandState.COLLAPSED ?
+          ExpandState.EXPANDED :
+          ExpandState.COLLAPSED;
+    });
 
     this.setState({ displayExperiments });
   }

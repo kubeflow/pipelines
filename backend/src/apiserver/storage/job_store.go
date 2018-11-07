@@ -67,7 +67,6 @@ func (s *JobStore) queryJobTable(
 		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
 			err.Error())
 	}
-
 	rows, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v",
@@ -91,7 +90,7 @@ func (s *JobStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext
 	if filterContext.ReferenceKey != nil {
 		selectBuilder = sq.Select("list_job.*").
 			From("resource_references AS rf").
-			LeftJoin(fmt.Sprintf("(%s) as list_job on list_job.UUID=rf.ResourceUUID", sql), args...).
+			Join(fmt.Sprintf("(%s) as list_job on list_job.UUID=rf.ResourceUUID", sql), args...).
 			Where(sq.And{
 				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
 				sq.Eq{"rf.ReferenceType": filterContext.Type}})

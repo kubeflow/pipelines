@@ -15,9 +15,10 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row } from '../components/CustomTable';
 import AddIcon from '@material-ui/icons/Add';
+import CustomTable, { Column, Row } from '../components/CustomTable';
 import UploadPipelineDialog from '../components/UploadPipelineDialog';
+import produce from 'immer';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
 import { Apis, PipelineSortKeys, ListRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
@@ -25,7 +26,7 @@ import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger, formatDateString, errorToMessage } from '../lib/Utils';
+import { formatDateString, errorToMessage } from '../lib/Utils';
 
 interface PipelineListState {
   pipelines: ApiPipeline[];
@@ -49,25 +50,25 @@ class PipelineList extends Page<{}, PipelineListState> {
   public getInitialToolbarState() {
     return {
       actions: [{
-        action: () => this.setState({ uploadDialogOpen: true }),
+        action: () => this.setStateSafe({ uploadDialogOpen: true }),
         icon: AddIcon,
         id: 'uploadBtn',
         outlined: true,
         title: 'Upload pipeline',
         tooltip: 'Upload pipeline',
       }, {
-        action: () => this.load(),
+        action: () => this.refresh(),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
       }, {
         action: () => this.props.updateDialog({
           buttons: [
-            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+            { onClick: async () => await this._deleteDialogClosed(true), text: 'Delete' },
+            { onClick: async () => await this._deleteDialogClosed(false), text: 'Cancel' },
           ],
-          onClose: () => this._deleteDialogClosed(false),
-          title: `Delete ${this.state.selectedIds.length} Pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
+          onClose: async () => await this._deleteDialogClosed(false),
+          title: `Delete ${this.state.selectedIds.length} pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
         }),
         disabled: true,
         disabledTitle: 'Select at least one pipeline to delete',
@@ -111,9 +112,9 @@ class PipelineList extends Page<{}, PipelineListState> {
     );
   }
 
-  public async load(): Promise<void> {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
-      this._tableRef.current.reload();
+      await this._tableRef.current.reload();
     }
   }
 
@@ -122,11 +123,12 @@ class PipelineList extends Page<{}, PipelineListState> {
     try {
       response = await Apis.pipelineServiceApi.listPipelines(
         request.pageToken, request.pageSize, request.sortBy);
+      this.clearBanner();
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
     }
 
-    this.setState({ pipelines: response ? response.pipelines || [] : [] });
+    this.setStateSafe({ pipelines: response ? response.pipelines || [] : [] });
 
     return response ? response.next_page_token || '' : '';
   }
@@ -141,11 +143,12 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    // Delete pipeline
-    toolbarActions[2].disabled = selectedIds.length < 1;
+    const toolbarActions = produce(this.props.toolbarProps.actions, draft => {
+      // Delete pipeline
+      draft[2].disabled = selectedIds.length < 1;
+    });
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
-    this.setState({ selectedIds });
+    this.setStateSafe({ selectedIds });
   }
 
   private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
@@ -171,7 +174,7 @@ class PipelineList extends Page<{}, PipelineListState> {
           message: `Successfully deleted ${successfulDeletes} pipeline${successfulDeletes === 1 ? '' : 's'}!`,
           open: true,
         });
-        this.load();
+        this.refresh();
       }
 
       if (unsuccessfulDeleteIds.length > 0) {
@@ -188,17 +191,16 @@ class PipelineList extends Page<{}, PipelineListState> {
     if (!!file) {
       try {
         await Apis.uploadPipeline(name, file);
-        this.setState({ uploadDialogOpen: false });
-        this.load();
+        this.setStateSafe({ uploadDialogOpen: false });
+        this.refresh();
         return true;
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         this.showErrorDialog('Failed to upload pipeline', errorMessage);
-        logger.error('Error uploading pipeline:', err);
         return false;
       }
     } else {
-      this.setState({ uploadDialogOpen: false });
+      this.setStateSafe({ uploadDialogOpen: false });
       return false;
     }
   }
