@@ -25,9 +25,17 @@ usage()
     [--dataflow-predict-image       image path to the dataflow predict]
     [--dataflow-tfma-image          image path to the dataflow tfma]
     [--dataflow-tfdv-image          image path to the dataflow tfdv]
+    [--dataproc-create-cluster-image        image path to the dataproc create cluster]
+    [--dataproc-delete-cluster-image        image path to the dataproc delete cluster]
+    [--dataproc-analyze-image               image path to the dataproc analyze]
+    [--dataproc-transform-image             image path to the dataproc transform]
+    [--dataproc-train-image                 image path to the dataproc train]
+    [--dataproc-predict-image       image path to the dataproc predict]
     [--kubeflow-dnntrainer-image    image path to the kubeflow dnntrainer]
     [--kubeflow-deployer-image      image path to the kubeflow deployer]
     [--local-confusionmatrix-image  image path to the confusion matrix]
+    [--local-roc-image              image path to the roc]
+    [--test-name                    test name: tf-training, xgboost]
     [-h help]"
 }
 
@@ -51,6 +59,24 @@ while [ "$1" != "" ]; do
              --dataflow-tfdv-image )            shift
                                                 DATAFLOW_TFDV_IMAGE=$1
                                                 ;;
+             --dataproc-create-cluster-image )  shift
+                                                DATAPROC_CREATE_CLUSTER_IMAGE=$1
+                                                ;;
+             --dataproc-delete-cluster-image )  shift
+                                                DATAPROC_DELETE_CLUSTER_IMAGE=$1
+                                                ;;
+             --dataproc-analyze-image )         shift
+                                                DATAPROC_ANALYZE_IMAGE=$1
+                                                ;;
+             --dataproc-transform-image )       shift
+                                                DATAPROC_TRANSFORM_IMAGE=$1
+                                                ;;
+             --dataproc-train-image )           shift
+                                                DATAPROC_TRAIN_IMAGE=$1
+                                                ;;
+             --dataproc-predict-image )         shift
+                                                DATAPROC_PREDICT_IMAGE=$1
+                                                ;;
              --kubeflow-dnntrainer-image )      shift
                                                 KUBEFLOW_DNNTRAINER_IMAGE=$1
                                                 ;;
@@ -59,6 +85,9 @@ while [ "$1" != "" ]; do
                                                 ;;
              --local-confusionmatrix-image )    shift
                                                 LOCAL_CONFUSIONMATRIX_IMAGE=$1
+                                                ;;
+             --local-roc-image )                shift
+                                                LOCAL_ROC_IMAGE=$1
                                                 ;;
              --test-name )                      shift
                                                 TEST_NAME=$1
@@ -111,6 +140,7 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
   SAMPLE_KUBEFLOW_TEST_RESULT=junit_SampleKubeflowOutput.xml
   SAMPLE_KUBEFLOW_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
+  #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. 
   # Compile samples
   cd ${BASE_DIR}/samples/kubeflow-tf
   DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
@@ -133,7 +163,7 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
 elif [ "$TEST_NAME" == "tfx" ]; then
   SAMPLE_TFX_TEST_RESULT=junit_SampleTFXOutput.xml
   SAMPLE_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
-
+  
   # Compile samples
   cd ${BASE_DIR}/samples/tfx
   DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
@@ -151,10 +181,41 @@ elif [ "$TEST_NAME" == "tfx" ]; then
   sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DEPLOYER_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
 
   dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
-
   cd /
   python3 run_tfx_test.py --input ${BASE_DIR}/samples/tfx/taxi-cab-classification-pipeline.tar.gz --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT
-
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_TFX_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFX_TEST_RESULT}
+
+elif [ "$TEST_NAME" == "xgboost" ]; then
+  SAMPLE_XGBOOST_TEST_RESULT=junit_SampleXGBoostOutput.xml
+  SAMPLE_XGBOOST_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  # Compile samples
+  cd ${BASE_DIR}/samples/xgboost-spark
+  DATAPROC_CREATE_CLUSTER_IMAGE_FOR_SED=$(echo ${DATAPROC_CREATE_CLUSTER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  DATAPROC_DELETE_CLUSTER_IMAGE_FOR_SED=$(echo ${DATAPROC_DELETE_CLUSTER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  DATAPROC_ANALYZE_IMAGE_FOR_SED=$(echo ${DATAPROC_ANALYZE_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  DATAPROC_TRANSFORM_IMAGE_FOR_SED=$(echo ${DATAPROC_TRANSFORM_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  DATAPROC_TRAIN_IMAGE_FOR_SED=$(echo ${DATAPROC_TRAIN_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  DATAPROC_PREDICT_IMAGE_FOR_SED=$(echo ${DATAPROC_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  LOCAL_ROC_IMAGE_FOR_SED=$(echo ${LOCAL_ROC_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+  LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED=$(echo ${LOCAL_CONFUSIONMATRIX_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
+
+
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_CREATE_CLUSTER_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_DELETE_CLUSTER_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_ANALYZE_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_TRANSFORM_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_TRAIN_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_PREDICT_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+/${LOCAL_ROC_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+/${LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+
+  dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.tar.gz
+
+  cd /
+  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/xgboost-spark/xgboost-training-cm.tar.gz --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_XGBOOST_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_XGBOOST_TEST_RESULT}
 fi
