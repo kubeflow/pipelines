@@ -92,7 +92,7 @@ class Router extends React.Component<{}, RouteComponentState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const childProps = {
       toolbarProps: this.state.toolbarProps,
       updateBanner: this._updateBanner.bind(this),

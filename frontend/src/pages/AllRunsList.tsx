@@ -18,6 +18,7 @@ import * as React from 'react';
 import RunList from './RunList';
 import { Page } from './Page';
 import { RoutePage } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
@@ -38,7 +39,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [
         {
@@ -68,7 +69,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
         onSelectionChange={this._selectionChanged.bind(this)}
@@ -76,7 +77,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     </div>;
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     // Tell run list to refresh
     if (this._runlistRef.current) {
       this.clearBanner();
@@ -84,7 +85,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     }
   }
 
-  private _compareRuns() {
+  private _compareRuns(): void {
     const indices = this.state.selectedIds;
     if (indices.length > 1 && indices.length <= 10) {
       const runIds = this.state.selectedIds.join(',');
@@ -95,7 +96,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     }
   }
 
-  private _selectionChanged(selectedIds: string[]) {
+  private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = [...this.props.toolbarProps.actions];
     // Compare runs button
     toolbarActions[0].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
@@ -105,7 +106,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     this.setState({ selectedIds });
   }
 
-  private _cloneRun() {
+  private _cloneRun(): void {
     if (this.state.selectedIds.length === 1) {
       const runId = this.state.selectedIds[0];
       const searchString = new URLParser(this.props).build({

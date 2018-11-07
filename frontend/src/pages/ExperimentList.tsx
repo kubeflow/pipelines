@@ -25,6 +25,7 @@ import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis'
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
@@ -58,7 +59,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [{
         action: this._newExperimentClicked.bind(this),
@@ -91,7 +92,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const columns: Column[] = [{
       customRenderer: this._nameCustomRenderer.bind(this),
       flex: 1,
@@ -130,7 +131,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
       this.clearBanner();
       await this._tableRef.current.reload();
@@ -176,7 +177,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     return response.next_page_token || '';
   }
 
-  private _cloneRun() {
+  private _cloneRun(): void {
     if (this.state.selectedRunIds.length === 1) {
       const searchString = new URLParser(this.props).build({
         [QUERY_PARAMS.cloneFromRun]: this.state.selectedRunIds[0] || ''
@@ -185,12 +186,12 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     }
   }
 
-  private _nameCustomRenderer(value: string, id: string) {
+  private _nameCustomRenderer(value: string, id: string): JSX.Element {
     return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
       to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, id)}>{value}</Link>;
   }
 
-  private _last5RunsCustomRenderer(runs: ApiRun[]) {
+  private _last5RunsCustomRenderer(runs: ApiRun[]): JSX.Element {
     return <div className={commonCss.flex}>
       {(runs || []).map((run, i) => (
         <span key={i} style={{ margin: '0 1px' }}>
@@ -200,7 +201,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     </div>;
   }
 
-  private _runSelectionChanged(selectedRunIds: string[]) {
+  private _runSelectionChanged(selectedRunIds: string[]): void {
     const actions = produce(this.props.toolbarProps.actions, draft => {
       // Enable/Disable Run compare button
       draft[1].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
@@ -211,7 +212,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     this.setState({ selectedRunIds });
   }
 
-  private _compareRuns() {
+  private _compareRuns(): void {
     const indices = this.state.selectedRunIds;
     if (indices.length > 1 && indices.length <= 10) {
       const runIds = this.state.selectedRunIds.join(',');
@@ -222,11 +223,11 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     }
   }
 
-  private _newExperimentClicked() {
+  private _newExperimentClicked(): void {
     this.props.history.push(RoutePage.NEW_EXPERIMENT);
   }
 
-  private _toggleRowExpand(rowIndex: number) {
+  private _toggleRowExpand(rowIndex: number): void {
     const displayExperiments = produce(this.state.displayExperiments, draft => {
       draft[rowIndex].expandState =
         draft[rowIndex].expandState === ExpandState.COLLAPSED ?
@@ -237,7 +238,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     this.setState({ displayExperiments });
   }
 
-  private _getExpandedExperimentComponent(experimentIndex: number) {
+  private _getExpandedExperimentComponent(experimentIndex: number): JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
     const runIds = (experiment.last5Runs || []).map((r) => r.id!);
     return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
