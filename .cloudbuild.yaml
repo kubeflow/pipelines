@@ -13,6 +13,21 @@
 # limitations under the License.
 
 steps:
+
+# Build the Python SDK
+- name: 'debian'
+  entrypoint: '/bin/bash'
+  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python python-setuptools; wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar;cd /workspace/sdk/python;./build.sh /workspace/kfp.tar.gz']
+  id:   'preparePythonSDK'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
+  id:   'copyPythonSDK'
+  waitFor: ['preparePythonSDK']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp.tar.gz']
+  id:   'copyPythonSDKToLatest'
+  waitFor: ['preparePythonSDK']
+
 # Build the pipeline system images and bootstrapper
 - name: 'debian'
   entrypoint: '/bin/bash'
@@ -29,6 +44,7 @@ steps:
          '--build-arg', 'COMMIT_SHA=$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile', '/workspace']
   id:   'buildApiServer'
+  waitFor: ['copyPythonSDK']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.scheduledworkflow', '/workspace']
@@ -57,7 +73,6 @@ steps:
   args: ['cp', '/workspace/bootstrapper.yaml', 'gs://$PROJECT_ID/builds/latest/bootstrapper.yaml']
   id:   'copyBootstrapperYAMLToLatest'
   waitFor: ['prepareBootstrapperYAML']
-
 
 # Copy the uninstaller config
 - name: 'debian'
@@ -94,7 +109,7 @@ steps:
   id: 'buildTFTComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh $PROJECT_ID $COMMIT_SHA']
   id: 'buildTMAComponent'
 
 # Build the Kubeflow-based pipeline component images
@@ -110,27 +125,27 @@ steps:
 # Build the Dataproc-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/analyze && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/analyze && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocAnalyze'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/create_cluster && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/create_cluster && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocCreateCluster'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/delete_cluster && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/delete_cluster && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocDeleteCluster'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/predict && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/predict && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocPredict'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/transform && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/transform && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTransform'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/train && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/train && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTrain'
 
 # Build the ResNet-CMLE sample pipeline component images
@@ -154,7 +169,7 @@ steps:
   id: 'buildConfusionMatrix'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/local/containers/roc && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/local/containers/roc && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildROC'
 
 # Build the tagged samples

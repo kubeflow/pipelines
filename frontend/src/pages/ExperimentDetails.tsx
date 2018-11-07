@@ -27,6 +27,7 @@ import RunList from '../pages/RunList';
 import Toolbar, { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiExperiment } from '../apis/experiment';
+import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -149,7 +150,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
         actions: this._runListToolbarActions,
-        breadcrumbs: [{ displayName: 'Experiment runs', href: '' }],
+        breadcrumbs: [{ displayName: 'Runs', href: '' }],
         topLevelToolbar: false,
       },
       // TODO: remove
@@ -161,7 +162,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   public getInitialToolbarState() {
     return {
       actions: [{
-        action: this.load.bind(this),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -241,7 +242,17 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     );
   }
 
+  public async refresh() {
+    return this.load();
+  }
+
+  public async componentDidMount() {
+    return this.load();
+  }
+
   public async load() {
+    this.clearBanner();
+
     const experimentId = this.props.match.params[RouteParams.experimentId];
 
     try {
@@ -258,7 +269,13 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       });
 
       // TODO: get ALL jobs in the experiment
-      const recurringRuns = await Apis.jobServiceApi.listJobs(undefined, 100);
+      const recurringRuns = await Apis.jobServiceApi.listJobs(
+        undefined,
+        100,
+        '',
+        ApiResourceType.EXPERIMENT.toString(),
+        experimentId,
+      );
       const activeRecurringRunsCount =
         (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
       this.setState(
@@ -318,7 +335,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _recurringRunsManagerClosed() {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
-    this.load();
+    this.refresh();
   }
 }
 

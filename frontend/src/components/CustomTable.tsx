@@ -16,20 +16,21 @@
 
 import * as React from 'react';
 import ArrowRight from '@material-ui/icons/ArrowRight';
+import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import IconButton from '@material-ui/core/IconButton';
 import MenuItem from '@material-ui/core/MenuItem';
 import Radio from '@material-ui/core/Radio';
+import Separator from '../atoms/Separator';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
 import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import WarningIcon from '@material-ui/icons/WarningRounded';
 import { ListRequest } from '../lib/Apis';
-import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import { classes, stylesheet } from 'typestyle';
-import { fontsize, dimension, commonCss, color, padding } from '../Css';
+import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
 import { logger } from '../lib/Utils';
 
 export enum ExpandState {
@@ -64,15 +65,20 @@ export const css = stylesheet({
     alignSelf: 'center',
     borderBottom: 'initial',
     color: color.foreground,
+    fontFamily: fonts.secondary,
     fontSize: fontsize.base,
-    marginRight: 6,
+    letterSpacing: 0.25,
+    marginRight: 20,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   columnName: {
-    fontSize: fontsize.medium,
+    color: '#1F1F1F',
+    fontSize: fontsize.small,
     fontWeight: 'bold',
+    letterSpacing: 0.25,
+    marginRight: 20,
   },
   emptyMessage: {
     padding: 20,
@@ -99,14 +105,17 @@ export const css = stylesheet({
   },
   footer: {
     borderBottom: '1px solid ' + color.divider,
+    fontFamily: fonts.secondary,
+    height: 40,
     textAlign: 'right',
   },
   header: {
     borderBottom: 'solid 1px ' + color.divider,
     color: color.strong,
     display: 'flex',
-    flex: '0 0 50px',
-    lineHeight: '50px', // must declare px
+    flex: '0 0 40px',
+    lineHeight: '40px', // must declare px
+    marginTop: 20,
   },
   icon: {
     color: color.alert,
@@ -136,7 +145,7 @@ export const css = stylesheet({
     backgroundColor: color.activeBg,
   },
   selectionToggle: {
-    marginRight: 10,
+    marginRight: 12,
   },
 });
 
@@ -167,6 +176,8 @@ interface CustomTableState {
 }
 
 export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
+  private _isMounted = true;
+
   constructor(props: CustomTableProps) {
     super(props);
 
@@ -223,6 +234,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this._pageChanged(0);
   }
 
+  public componentWillUnmount() {
+    this._isMounted = false;
+  }
+
   public render() {
     const { pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
@@ -241,6 +256,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 color='primary' checked={!!numSelected && numSelected === this.props.rows.length}
                 onChange={this.handleSelectAllClick.bind(this)} />
             </div>
+          )}
+          {/* Shift cells to account for expand button */}
+          {!!this.props.getExpandComponent && (
+            <Separator orientation='horizontal' units={40} />
           )}
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
@@ -355,7 +374,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       sortBy: this.state.sortBy,
     }, loadRequest);
 
-    this.setState({
+    this.setStateSafe({
       pageSize: request.pageSize!,
       sortBy: request.sortBy!,
       sortOrder: request.orderAscending ? 'asc' : 'desc',
@@ -368,13 +387,19 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     return this.props.reload(request);
   }
 
+  private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void) {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
+  }
+
   private _requestSort(sortBy?: string) {
     if (sortBy) {
       // Set the sort column to the provided column if it's different, and
       // invert the sort order it if it's the same column
       const sortOrder = this.state.sortBy === sortBy ?
         (this.state.sortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
-      this.setState({ sortOrder, sortBy }, async () => {
+      this.setStateSafe({ sortOrder, sortBy }, async () => {
         this._resetToFirstPage(
           await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }));
       });
@@ -400,11 +425,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       maxPageIndex = newCurrentPage;
     }
 
-    // TODO: saw this warning:
-    // Warning: Can't call setState (or forceUpdate) on an unmounted component.
-    // This is a no-op, but it indicates a memory leak in your application.
-    // To fix, cancel all subscriptions and asynchronous tasks in the componentWillUnmount method.
-    this.setState({ currentPage: newCurrentPage, maxPageIndex });
+    this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex });
   }
 
   private async _requestRowsPerPage(event: React.ChangeEvent) {
@@ -424,7 +445,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     }
 
     // Reset state, since this invalidates the token list and page counter calculations
-    this.setState({
+    this.setStateSafe({
       currentPage: 0,
       maxPageIndex,
       tokenList: newTokenList,

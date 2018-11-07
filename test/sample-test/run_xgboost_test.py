@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import argparse
 import os
+import json
+import tarfile
 from datetime import datetime
-from kfp import Client
 import utils
+from kfp import Client
 
 ###### Input/Output Instruction ######
 # input: yaml
@@ -47,7 +48,7 @@ def parse_arguments():
 def main():
   args = parse_arguments()
   test_cases = []
-  test_name = 'TFX Sample Test'
+  test_name = 'XGBoost Sample Test'
 
   ###### Initialization ######
   client = Client()
@@ -59,35 +60,31 @@ def main():
     exit()
 
   ###### Create Experiment ######
-  experiment_name = 'TFX sample experiment'
+  experiment_name = 'xgboost sample experiment'
   response = client.create_experiment(experiment_name)
   experiment_id = response.id
   utils.add_junit_test(test_cases, 'create experiment', True)
 
   ###### Create Job ######
-  job_name = 'TFX_sample'
+  job_name = 'xgboost_sample'
   params = {'output': args.output,
             'project': 'ml-pipeline-test',
-            'column-names': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json',
-            'evaluation': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv',
-            'train': 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv',
-            'hidden-layer-size': '5',
-            'steps': '5'}
+            'train-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/train_50.csv',
+            'eval-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/eval_20.csv',
+            'schema': 'gs://ml-pipeline-dataset/sample-test/sfpd/schema.json',
+            'rounds': '20',
+            'workers': '2'}
   response = client.run_pipeline(experiment_id, job_name, args.input, params)
   run_id = response.id
   utils.add_junit_test(test_cases, 'create pipeline run', True)
 
-
   ###### Monitor Job ######
   start_time = datetime.now()
-  response = client.wait_for_run_completion(run_id, 1200)
+  response = client.wait_for_run_completion(run_id, 1800)
   succ = (response.run.status.lower()=='succeeded')
   end_time = datetime.now()
   elapsed_time = (end_time - start_time).seconds
   utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
-  if not succ:
-    utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
 
   ###### Output Argo Log for Debugging ######
   workflow_json = client._get_workflow_json(run_id)
@@ -97,25 +94,23 @@ def main():
   print("=========Argo Workflow Log=========")
   print(argo_log)
 
+  ###### If the job fails, skip the result validation ######
+  if not succ:
+    utils.write_junit_xml(test_name, args.result, test_cases)
+    exit()
+
   ###### Validate the results ######
-  #TODO: enable after launch
-  #   model analysis html is validated
-  # argo_workflow_id = workflow_json['metadata']['name']
-  # gcs_html_path = os.path.join(os.path.join(args.output, str(argo_workflow_id)), 'analysis/output_display.html')
-  # print('Output display HTML path is ' + gcs_html_path)
-  # utils.run_bash_command('gsutil cp ' + gcs_html_path + './')
-  # display_file = open('./output_display.html', 'r')
-  # is_next_line_state = False
-  # for line in display_file:
-  #   if is_next_line_state:
-  #     state = line.strip()
-  #     break
-  #   if line.strip() == '<script type="application/vnd.jupyter.widget-state+json">':
-  #     is_next_line_state = True
-  # import json
-  # state_json = json.loads(state)
-  # succ = ('state' in state_json and 'version_major' in state_json and 'version_minor' in state_json)
-  # utils.add_junit_test(test_cases, 'output display html', succ, 'the state json does not contain state, version_major, or version_inor')
+  #   confusion matrix should show three columns for the flower data
+  #     target, predicted, count
+  cm_tar_path = './confusion_matrix.tar.gz'
+  cm_filename = 'mlpipeline-ui-metadata.json'
+  utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path)
+  tar_handler = tarfile.open(cm_tar_path)
+  tar_handler.extractall()
+
+  with open(cm_filename, 'r') as f:
+    cm_data = f.read()
+    utils.add_junit_test(test_cases, 'confusion matrix format', (len(cm_data) > 0), 'the confusion matrix file is empty')
 
   ###### Delete Job ######
   #TODO: add deletion when the backend API offers the interface.

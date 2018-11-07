@@ -29,18 +29,32 @@ spec:
     - name: persistenceagent-image
     - name: dataflow-tft-image-suffix
       value: dataflow-tft
+    - name: dataflow-predict-image-suffix
+      value: dataflow-predict
     - name: dataflow-tfma-image-suffix
       value: dataflow-tfma
     - name: dataflow-tfdv-image-suffix
       value: dataflow-tfdv
-    - name: dataflow-predict-image-suffix
-      value: dataflow-predict
+    - name: dataproc-create-cluster-image-suffix
+      value: dataproc-create-cluster
+    - name: dataproc-delete-cluster-image-suffix
+      value: dataproc-delete-cluster
+    - name: dataproc-analyze-image-suffix
+      value: dataproc-analyze
+    - name: dataproc-transform-image-suffix
+      value: dataproc-transform
+    - name: dataproc-train-image-suffix
+      value: dataproc-train
+    - name: dataproc-predict-image-suffix
+      value: dataproc-predict
     - name: kubeflow-dnntrainer-image-suffix
       value: kubeflow-dnntrainer
     - name: kubeflow-deployer-image-suffix
       value: kubeflow-deployer
     - name: local-confusionmatrix-image-suffix
       value: local-confusionmatrix
+    - name: local-roc-image-suffix
+      value: local-roc
     - name: sample-tests-image-suffix
       value: sample-tests
   templates:
@@ -55,12 +69,19 @@ spec:
       - name: scheduledworkflow-image
       - name: persistenceagent-image
       - name: dataflow-tft-image-suffix
+      - name: dataflow-predict-image-suffix
       - name: dataflow-tfma-image-suffix
       - name: dataflow-tfdv-image-suffix
-      - name: dataflow-predict-image-suffix
+      - name: dataproc-create-cluster-image-suffix
+      - name: dataproc-delete-cluster-image-suffix
+      - name: dataproc-analyze-image-suffix
+      - name: dataproc-transform-image-suffix
+      - name: dataproc-train-image-suffix
+      - name: dataproc-predict-image-suffix
       - name: kubeflow-dnntrainer-image-suffix
       - name: kubeflow-deployer-image-suffix
       - name: local-confusionmatrix-image-suffix
+      - name: local-roc-image-suffix
       - name: sample-tests-image-suffix
     steps:
     - - name: get-project
@@ -89,30 +110,6 @@ spec:
             value: "{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: build-script
             value: components/dataflow/containers/tft/build.sh
-      - name: build-dataflow-tfma-image
-        template: build-image-by-script
-        arguments:
-          parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
-          - name: build-script
-            value: components/dataflow/containers/tfx/build.sh
-      - name: build-dataflow-tfdv-image
-        template: build-image-by-script
-        arguments:
-          parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataflow-tfdv-image-suffix}}"
-          - name: build-script
-            value: components/dataflow/containers/tfdv/build.sh
       - name: build-dataflow-predict-image
         template: build-image-by-script
         arguments:
@@ -125,6 +122,102 @@ spec:
             value: "{{inputs.parameters.dataflow-predict-image-suffix}}"
           - name: build-script
             value: components/dataflow/containers/predict/build.sh
+      - name: build-dataflow-tfma-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
+          - name: build-script
+            value: components/dataflow/containers/tfma/build.sh
+      - name: build-dataflow-tfdv-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+          - name: build-script
+            value: components/dataflow/containers/tfdv/build.sh
+      - name: build-dataproc-create-cluster-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
+          - name: build-script
+            value: components/dataproc/containers/create_cluster/build.sh
+      - name: build-dataproc-delete-cluster-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
+          - name: build-script
+            value: components/dataproc/containers/delete_cluster/build.sh
+      - name: build-dataproc-analyze-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataproc-analyze-image-suffix}}"
+          - name: build-script
+            value: components/dataproc/containers/analyze/build.sh
+      - name: build-dataproc-transform-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataproc-transform-image-suffix}}"
+          - name: build-script
+            value: components/dataproc/containers/transform/build.sh
+      - name: build-dataproc-train-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataproc-train-image-suffix}}"
+          - name: build-script
+            value: components/dataproc/containers/train/build.sh
+      - name: build-dataproc-predict-image
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.dataproc-predict-image-suffix}}"
+          - name: build-script
+            value: components/dataproc/containers/predict/build.sh
       - name: build-kubeflow-dnntrainer-image
         template: build-image-by-script
         arguments:
@@ -161,6 +254,18 @@ spec:
             value: "{{inputs.parameters.local-confusionmatrix-image-suffix}}"
           - name: build-script
             value: components/local/containers/confusion_matrix/build.sh
+      - name: build-local-roc
+        template: build-image-by-script
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: image-suffix
+            value: "{{inputs.parameters.local-roc-image-suffix}}"
+          - name: build-script
+            value: components/local/containers/roc/build.sh
     - - name: deploy-ml-pipeline
         template: deploy-ml-pipeline
         arguments:
@@ -191,12 +296,26 @@ spec:
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: dataflow-tfdv-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+          - name: dataproc-create-cluster-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
+          - name: dataproc-delete-cluster-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
+          - name: dataproc-analyze-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-analyze-image-suffix}}"
+          - name: dataproc-transform-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-transform-image-suffix}}"
+          - name: dataproc-train-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-train-image-suffix}}"
+          - name: dataproc-predict-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-predict-image-suffix}}"
           - name: kubeflow-dnntrainer-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
           - name: kubeflow-deployer-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-deployer-image-suffix}}"
           - name: local-confusionmatrix-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+          - name: local-roc-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
           - name: sample-tests-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
           - name: test-name
@@ -217,16 +336,70 @@ spec:
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: dataflow-tfdv-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+          - name: dataproc-create-cluster-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
+          - name: dataproc-delete-cluster-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
+          - name: dataproc-analyze-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-analyze-image-suffix}}"
+          - name: dataproc-transform-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-transform-image-suffix}}"
+          - name: dataproc-train-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-train-image-suffix}}"
+          - name: dataproc-predict-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-predict-image-suffix}}"
           - name: kubeflow-dnntrainer-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
           - name: kubeflow-deployer-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-deployer-image-suffix}}"
           - name: local-confusionmatrix-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+          - name: local-roc-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
           - name: sample-tests-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
           - name: test-name
             value: "tfx"
+      - name: run-xgboost-tests
+        template: run-sample-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: dataflow-tft-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tft-image-suffix}}"
+          - name: dataflow-predict-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-predict-image-suffix}}"
+          - name: dataflow-tfma-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfma-image-suffix}}"
+          - name: dataflow-tfdv-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+          - name: dataproc-create-cluster-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
+          - name: dataproc-delete-cluster-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
+          - name: dataproc-analyze-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-analyze-image-suffix}}"
+          - name: dataproc-transform-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-transform-image-suffix}}"
+          - name: dataproc-train-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-train-image-suffix}}"
+          - name: dataproc-predict-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-predict-image-suffix}}"
+          - name: kubeflow-dnntrainer-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+          - name: kubeflow-deployer-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-deployer-image-suffix}}"
+          - name: local-confusionmatrix-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+          - name: local-roc-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
+          - name: sample-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: test-name
+            value: "xgboost"
 
   - name: get-project
     script:
@@ -327,12 +500,19 @@ spec:
       - name: commit-sha
       - name: test-results-gcs-dir
       - name: dataflow-tft-image
+      - name: dataflow-predict-image
       - name: dataflow-tfma-image
       - name: dataflow-tfdv-image
+      - name: dataproc-create-cluster-image
+      - name: dataproc-delete-cluster-image
+      - name: dataproc-analyze-image
+      - name: dataproc-transform-image
+      - name: dataproc-train-image
+      - name: dataproc-predict-image
       - name: kubeflow-dnntrainer-image
       - name: kubeflow-deployer-image
-      - name: dataflow-predict-image
       - name: local-confusionmatrix-image
+      - name: local-roc-image
       - name: sample-tests-image
       - name: test-name
     container:
@@ -341,12 +521,19 @@ spec:
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
+        "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
         "--dataflow-tfma-image","{{inputs.parameters.dataflow-tfma-image}}",
         "--dataflow-tfdv-image","{{inputs.parameters.dataflow-tfdv-image}}",
-        "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
+        "--dataproc-create-cluster-image","{{inputs.parameters.dataproc-create-cluster-image}}",
+        "--dataproc-delete-cluster-image","{{inputs.parameters.dataproc-delete-cluster-image}}",
+        "--dataproc-analyze-image","{{inputs.parameters.dataproc-analyze-image}}",
+        "--dataproc-transform-image","{{inputs.parameters.dataproc-transform-image}}",
+        "--dataproc-train-image","{{inputs.parameters.dataproc-train-image}}",
+        "--dataproc-predict-image","{{inputs.parameters.dataproc-predict-image}}",
         "--kubeflow-dnntrainer-image","{{inputs.parameters.kubeflow-dnntrainer-image}}",
         "--kubeflow-deployer-image","{{inputs.parameters.kubeflow-deployer-image}}",
         "--local-confusionmatrix-image", "{{inputs.parameters.local-confusionmatrix-image}}",
+        "--local-roc-image", "{{inputs.parameters.local-roc-image}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
       volumeMounts:

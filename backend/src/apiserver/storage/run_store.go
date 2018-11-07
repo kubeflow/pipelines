@@ -79,7 +79,6 @@ func (s *RunStore) queryRunTable(
 		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
 			err.Error())
 	}
-
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
@@ -102,7 +101,7 @@ func (s *RunStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext
 	if filterContext.ReferenceKey != nil {
 		selectBuilder = sq.Select("list_run.*").
 			From("resource_references AS rf").
-			LeftJoin(fmt.Sprintf("(%s) as list_run on list_run.UUID=rf.ResourceUUID", sql), args...).
+			Join(fmt.Sprintf("(%s) as list_run on list_run.UUID=rf.ResourceUUID", sql), args...).
 			Where(sq.And{
 				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
 				sq.Eq{"rf.ReferenceType": filterContext.Type}})
