@@ -44,7 +44,9 @@ func (c *CLIIntegrationTest) TearDownTest() {
 func (c *CLIIntegrationTest) TestPipelineListSuccess() {
 	t := c.T()
 	rootCmd, _ := GetRealRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "list", "--debug"})
+	args := []string{"pipeline", "list"}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 }
@@ -52,11 +54,18 @@ func (c *CLIIntegrationTest) TestPipelineListSuccess() {
 func (c *CLIIntegrationTest) TestPipelineListFailureInvalidArgument() {
 	t := c.T()
 	rootCmd, _ := GetRealRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "list", "askjdfskldjf", "--debug"})
+	args := []string{"pipeline", "list", "askjdfskldjf"}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
 }
 
 func TestPipelineAPI(t *testing.T) {
 	suite.Run(t, new(CLIIntegrationTest))
+}
+
+func addCommonArgs(args []string, namespace string) []string {
+	args = append(args, "--debug", "--namespace", namespace)
+	return args
 }
