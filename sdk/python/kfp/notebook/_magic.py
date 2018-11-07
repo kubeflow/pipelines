@@ -21,6 +21,7 @@ except ImportError:
 
 
 from kfp.compiler import build_docker_image
+import os
 import tempfile
 
 
@@ -35,8 +36,9 @@ def docker(line, cell):
 
   target, staging = line.split()
   
-  with tempfile.NamedTemporaryFile(mode='wt') as f:
-    f.write(cell)
-    build_docker_image(staging, target, f.name)
 
-  
+  with tempfile.NamedTemporaryFile(mode='wt', delete=False) as f:
+    f.write(cell)
+
+  build_docker_image(staging, target, f.name)
+  os.remove(f.name)
