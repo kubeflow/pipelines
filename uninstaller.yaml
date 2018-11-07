@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: uninstaller
-        image: gcr.io/ml-pipeline/bootstrapper:0.1.0
+        image: gcr.io/ml-pipeline/bootstrapper:0.1.0 #TODO-release: update the release tag for the next release
         imagePullPolicy: 'Always'
         # Additional parameter available:
         args: [
