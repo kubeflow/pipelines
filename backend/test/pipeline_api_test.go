@@ -1,13 +1,13 @@
 package test
 
-
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"testing"
 	"time"
-	"encoding/json"
-	"net/url"
+
 	"io/ioutil"
 
 	"github.com/golang/glog"
@@ -60,7 +60,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Verify sample pipelines are loaded ---------- */
 	listPipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
 	assert.Nil(t, err)
-	assert.True(t, len(listPipelineResponse.Pipelines)>0)
+	assert.True(t, len(listPipelineResponse.Pipelines) > 0)
 	for _, p := range listPipelineResponse.Pipelines {
 		// Verify existing pipelines are samples and delete them one by one.
 		assert.Contains(t, p.Name, "[Sample]")
@@ -119,7 +119,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- Verify list pipeline works ---------- */
 	listPipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
-	checkListPipelinesResponse(t, listPipelineResponse, err, requestStartTime)
+	assert.Nil(t, err)
+	assert.Equal(t, 4, len(listPipelineResponse.Pipelines))
+	for _, p := range listPipelineResponse.Pipelines {
+		// Sampling one of the pipeline and verify the result is expected.
+		if p.Name == "arguments-parameters.yaml" {
+			verifyPipeline(t, p, requestStartTime)
+		}
+	}
 
 	/* ---------- Verify list pipeline sorted by names ---------- */
 	listFirstPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "name"})
@@ -133,6 +140,21 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelineResponse.Pipelines))
 	assert.Equal(t, "sequential", listSecondPagePipelineResponse.Pipelines[0].Name)
+	assert.Equal(t, "url-arguments-parameters", listSecondPagePipelineResponse.Pipelines[1].Name)
+	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
+
+	/* ---------- Verify list pipeline sorted by creation time ---------- */
+	listFirstPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "created_at"})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
+	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelineResponse.Pipelines[0].Name)
+	assert.Equal(t, "sequential", listFirstPagePipelineResponse.Pipelines[1].Name)
+	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
+
+	listSecondPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "created_at"})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(listSecondPagePipelineResponse.Pipelines))
+	assert.Equal(t, "arguments-parameters", listSecondPagePipelineResponse.Pipelines[0].Name)
 	assert.Equal(t, "url-arguments-parameters", listSecondPagePipelineResponse.Pipelines[1].Name)
 	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
 
@@ -157,12 +179,16 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
 
 	/* ---------- Verify get pipeline works ---------- */
-	getPipelineResponse, err := s.pipelineClient.GetPipeline(ctx, &api.GetPipelineRequest{Id: argumentYAMLPipeline.Id})
-	checkGetPipelineResponse(t, getPipelineResponse, err, requestStartTime)
+	pipeline, err := s.pipelineClient.GetPipeline(ctx, &api.GetPipelineRequest{Id: argumentYAMLPipeline.Id})
+	assert.Nil(t, err)
+	verifyPipeline(t, pipeline, requestStartTime)
 
 	/* ---------- Verify get template works ---------- */
 	getTmpResponse, err := s.pipelineClient.GetTemplate(ctx, &api.GetTemplateRequest{Id: argumentYAMLPipeline.Id})
-	checkGetTemplateResponse(t, getTmpResponse, err)
+	assert.Nil(t, err)
+	expected, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
+	assert.Nil(t, err)
+	assert.Equal(t, string(expected), getTmpResponse.Template)
 
 	/* ---------- Clean up ---------- */
 	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: sequentialPipeline.Id})
@@ -173,24 +199,6 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: argumentUrlPipeline.Id})
 	assert.Nil(t, err)
-}
-
-func checkListPipelinesResponse(t *testing.T, response *api.ListPipelinesResponse, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	assert.Equal(t, 4, len(response.Pipelines))
-	verifyPipeline(t, response.Pipelines[0], requestStartTime)
-}
-
-func checkGetPipelineResponse(t *testing.T, pipeline *api.Pipeline, err error, requestStartTime int64) {
-	assert.Nil(t, err)
-	verifyPipeline(t, pipeline, requestStartTime)
-}
-
-func checkGetTemplateResponse(t *testing.T, response *api.GetTemplateResponse, err error) {
-	assert.Nil(t, err)
-	expected, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
-	assert.Nil(t, err)
-	assert.Equal(t, string(expected), response.Template)
 }
 
 func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64) {
