@@ -567,6 +567,7 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: dataflow-tft-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: dataflow-predict-image
