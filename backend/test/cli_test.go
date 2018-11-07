@@ -3,12 +3,13 @@ package test
 import (
 	"testing"
 
+	"encoding/json"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	"github.com/kubeflow/pipelines/backend/src/cmd/ml/cmd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"src/k8s.io/apimachinery/pkg/util/json"
 )
 
 const (
