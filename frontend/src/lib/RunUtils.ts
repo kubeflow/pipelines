@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
-import { ApiRun, ApiResourceType, ApiResourceReference } from '../apis/run';
 import { ApiJob } from '../apis/job';
+import { ApiRun, ApiResourceType, ApiResourceReference } from '../apis/run';
+import { orderBy } from 'lodash';
 
+export interface MetricMetadata {
+  count: number;
+  maxValue: number;
+  minValue: number;
+  name: string;
+}
 
 function getPipelineId(run?: ApiRun | ApiJob): string | null {
   return run && run.pipeline_spec && run.pipeline_spec.pipeline_id || null;
@@ -39,7 +46,39 @@ function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference
     .filter((ref) => ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT || false);
 }
 
+function extractMetricMetadata(runs: ApiRun[]) {
+  const metrics = Array.from(
+    runs.reduce((metricMetadatas, run) => {
+      if (!run || !run.metrics) {
+        return metricMetadatas;
+      }
+      run.metrics.forEach((metric) => {
+        if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
+          return;
+        }
+
+        let metricMetadata = metricMetadatas.get(metric.name);
+        if (!metricMetadata) {
+          metricMetadata = {
+            count: 0,
+            maxValue: Number.MIN_VALUE,
+            minValue: Number.MAX_VALUE,
+            name: metric.name,
+          };
+          metricMetadatas.set(metricMetadata.name, metricMetadata);
+        }
+        metricMetadata.count++;
+        metricMetadata.minValue = Math.min(metricMetadata.minValue, metric.number_value);
+        metricMetadata.maxValue = Math.max(metricMetadata.maxValue, metric.number_value);
+      });
+      return metricMetadatas;
+    }, new Map<string, MetricMetadata>()).values()
+  );
+  return orderBy(metrics, ['count', 'name'], ['desc', 'asc']);
+}
+
 export default {
+  extractMetricMetadata,
   getAllExperimentReferences,
   getFirstExperimentReference,
   getFirstExperimentReferenceId,

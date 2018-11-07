@@ -16,16 +16,15 @@
 
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
-import RunUtils from '../../src/lib/RunUtils';
-import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
+import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
 import { ApiListRunsResponse, ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric } from '../../src/apis/run';
+import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss, color } from '../Css';
 import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
-import { orderBy } from 'lodash';
 import { stylesheet } from 'typestyle';
 
 const css = stylesheet({
@@ -65,13 +64,6 @@ interface DisplayMetric {
   metric?: ApiRunMetric;
 }
 
-interface MetricMetadata {
-  count: number;
-  maxValue: number;
-  minValue: number;
-  name: string;
-}
-
 export interface RunListProps extends RouteComponentProps {
   disablePaging?: boolean;
   disableSelection?: boolean;
@@ -86,7 +78,6 @@ export interface RunListProps extends RouteComponentProps {
 interface RunListState {
   metrics: MetricMetadata[];
   runs: DisplayRun[];
-  sortBy: string;
 }
 
 class RunList extends React.Component<RunListProps, RunListState> {
@@ -98,7 +89,6 @@ class RunList extends React.Component<RunListProps, RunListState> {
     this.state = {
       metrics: [],
       runs: [],
-      sortBy: RunSortKeys.CREATED_AT,
     };
   }
 
@@ -169,7 +159,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
 
     return (<div>
       <CustomTable columns={columns} rows={rows} selectedIds={this.props.selectedIds}
-        initialSortColumn={this.state.sortBy} ref={this._tableRef}
+        initialSortColumn={RunSortKeys.CREATED_AT} ref={this._tableRef}
         updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
         disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
         disableSelection={this.props.disableSelection}
@@ -256,7 +246,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
         await this._getAndSetExperimentNames(displayRuns);
 
         this.setState({
-          metrics: this._extractMetricMetadata(displayRuns),
+          metrics: RunUtils.extractMetricMetadata(displayRuns),
           runs: displayRuns,
         });
       })
@@ -299,9 +289,8 @@ class RunList extends React.Component<RunListProps, RunListState> {
     await this._getAndSetExperimentNames(displayRuns);
 
     this.setState({
-      metrics: this._extractMetricMetadata(displayRuns),
+      metrics: RunUtils.extractMetricMetadata(displayRuns),
       runs: displayRuns,
-      sortBy: request.sortBy!,
     });
 
     return response.next_page_token || '';
@@ -390,37 +379,6 @@ class RunList extends React.Component<RunListProps, RunListState> {
 
   private _statusCustomRenderer(status: NodePhase) {
     return statusToIcon(status);
-  }
-
-  private _extractMetricMetadata(runs: DisplayRun[]) {
-    const metrics = Array.from(
-      runs.reduce((metricMetadatas, run) => {
-        if (!run.metadata || !run.metadata.metrics) {
-          return metricMetadatas;
-        }
-        run.metadata.metrics.forEach((metric) => {
-          if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
-            return;
-          }
-
-          let metricMetadata = metricMetadatas.get(metric.name);
-          if (!metricMetadata) {
-            metricMetadata = {
-              count: 0,
-              maxValue: Number.MIN_VALUE,
-              minValue: Number.MAX_VALUE,
-              name: metric.name,
-            };
-            metricMetadatas.set(metricMetadata.name, metricMetadata);
-          }
-          metricMetadata.count++;
-          metricMetadata.minValue = Math.min(metricMetadata.minValue, metric.number_value);
-          metricMetadata.maxValue = Math.max(metricMetadata.maxValue, metric.number_value);
-        });
-        return metricMetadatas;
-      }, new Map<string, MetricMetadata>()).values()
-    );
-    return orderBy(metrics, ['count', 'name'], ['desc', 'asc']);
   }
 }
 
