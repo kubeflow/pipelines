@@ -57,7 +57,7 @@ const breadcrumbs = [
 const history = createBrowserHistory({});
 
 describe('Toolbar', () => {
-  it('renders without breadcrumbs or actions', () => {
+  it('renders nothing when there are no breadcrumbs or actions', () => {
     const tree = shallow(<Toolbar breadcrumbs={[]} actions={[]} history={history} />);
     expect(tree).toMatchSnapshot();
   });

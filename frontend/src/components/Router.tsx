@@ -26,6 +26,7 @@ import ExperimentDetails from '../pages/ExperimentDetails';
 import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
+import Page404 from '../pages/404';
 import PipelineDetails from '../pages/PipelineDetails';
 import PipelineList from '../pages/PipelineList';
 import RecurringRunConfig from '../pages/RecurringRunDetails';
@@ -137,6 +138,9 @@ class Router extends React.Component<{}, RouteComponentState> {
                     <Component {...props} {...childProps} {...otherProps} />
                   )} />;
                 })}
+
+                {/* 404 */}
+                {<Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
               </Switch>
 
               <Snackbar
