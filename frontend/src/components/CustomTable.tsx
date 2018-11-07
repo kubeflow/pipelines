@@ -93,15 +93,14 @@ export const css = stylesheet({
     transform: 'rotate(90deg)',
   },
   expandedContainer: {
-    border: '1px solid ' + color.divider,
-    borderRadius: 7,
-    boxShadow: '0px 2px 7px #aaa',
-    margin: '4px 2px',
+    borderRadius: 10,
+    boxShadow: '0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15)',
+    margin: '16px 2px',
   },
   expandedRow: {
     borderBottom: '1px solid transparent !important',
     boxSizing: 'border-box',
-    height: '34px !important',
+    height: '40px !important',
   },
   footer: {
     borderBottom: '1px solid ' + color.divider,
@@ -332,7 +331,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 ))}
               </div>
               {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (
-                <div className={padding(20, 'lr')}>
+                <div className={padding(20, 'lrb')}>
                   {this.props.getExpandComponent(i)}
                 </div>
               )}
