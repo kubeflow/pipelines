@@ -55,6 +55,10 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 }
 
 func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *api.DeleteExperimentRequest) (*empty.Empty, error) {
+	err := s.resourceManager.DeleteExperiment(request.Id)
+	if err != nil {
+		return nil, err
+	}
 	return &empty.Empty{}, nil
 }
 

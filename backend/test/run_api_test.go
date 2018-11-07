@@ -83,17 +83,18 @@ func (s *RunApiTestSuite) TestRunApis() {
 			PipelineId: helloWorldPipeline.Id,
 		},
 		ResourceReferences: []*api.ResourceReference{
-			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: helloWorldExperiment.Id}},
+			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: helloWorldExperiment.Id},
+				Relationship: api.Relationship_OWNER},
 		},
 	}}
-	runDetail, err := s.runClient.CreateRun(ctx, createRunRequest)
+	helloWorldRunDetail, err := s.runClient.CreateRun(ctx, createRunRequest)
 	assert.Nil(t, err)
-	s.checkHelloWorldRunDetail(t, runDetail, helloWorldExperiment.Id, helloWorldPipeline.Id, requestStartTime)
+	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.Id, helloWorldPipeline.Id, requestStartTime)
 
 	/* ---------- Get hello world run ---------- */
-	runDetail, err = s.runClient.GetRun(ctx, &api.GetRunRequest{RunId: runDetail.Run.Id})
+	helloWorldRunDetail, err = s.runClient.GetRun(ctx, &api.GetRunRequest{RunId: helloWorldRunDetail.Run.Id})
 	assert.Nil(t, err)
-	s.checkHelloWorldRunDetail(t, runDetail, helloWorldExperiment.Id, helloWorldPipeline.Id, requestStartTime)
+	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.Id, helloWorldPipeline.Id, requestStartTime)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest = &api.CreateExperimentRequest{Experiment: &api.Experiment{Name: "argument parameter experiment"}}
@@ -117,12 +118,13 @@ func (s *RunApiTestSuite) TestRunApis() {
 			},
 		},
 		ResourceReferences: []*api.ResourceReference{
-			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: argParamsExperiment.Id}},
+			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: argParamsExperiment.Id},
+				Relationship: api.Relationship_OWNER},
 		},
 	}}
-	runDetail, err = s.runClient.CreateRun(ctx, createRunRequest)
+	argParamsRunDetail, err := s.runClient.CreateRun(ctx, createRunRequest)
 	assert.Nil(t, err)
-	s.checkArgParamsRunDetail(t, runDetail, argParamsExperiment.Id, requestStartTime)
+	s.checkArgParamsRunDetail(t, argParamsRunDetail, argParamsExperiment.Id, requestStartTime)
 
 	/* ---------- List all the runs. Both runs should be returned ---------- */
 	listRunsResponse, err := s.runClient.ListRuns(ctx, &api.ListRunsRequest{})
@@ -161,36 +163,47 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 	assert.Equal(t, len(listRunsResponse.Runs), 1)
 	assert.Equal(t, listRunsResponse.Runs[0].Name, "hello world")
+
+	/* ---------- Clean up ---------- */
+	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: helloWorldPipeline.Id})
+	assert.Nil(t, err)
+	_, err = s.runClient.DeleteRun(ctx, &api.DeleteRunRequest{Id: helloWorldRunDetail.Run.Id})
+	assert.Nil(t, err)
+	_, err = s.runClient.DeleteRun(ctx, &api.DeleteRunRequest{Id: argParamsRunDetail.Run.Id})
+	assert.Nil(t, err)
+	_, err = s.experimentClient.DeleteExperiment(ctx, &api.DeleteExperimentRequest{Id: helloWorldExperiment.Id})
+	assert.Nil(t, err)
+	_, err = s.experimentClient.DeleteExperiment(ctx, &api.DeleteExperimentRequest{Id: argParamsExperiment.Id})
+	assert.Nil(t, err)
 }
 
 func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *api.RunDetail, experimentId string, pipelineId string, requestStartTime int64) {
 	assert.NotNil(t, runDetail)
-	assert.NotNil(t, runDetail.Run)
-	assert.NotNil(t, runDetail.Run.PipelineSpec)
-	assert.NotNil(t, runDetail.PipelineRuntime)
-	assert.NotNil(t, runDetail.Run.CreatedAt)
 
 	// Check workflow manifest is not empty
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
-	assert.True(t, runDetail.Run.CreatedAt.Seconds > requestStartTime)
+	assert.True(t, runDetail.Run.CreatedAt.Seconds >= requestStartTime)
 
-	runDetail.Run.PipelineSpec.WorkflowManifest = ""
-	runDetail.Run.Status = ""
-	expectedRun := api.Run{
+	expectedRun := &api.Run{
 		Id:          runDetail.Run.Id,
 		Name:        "hello world",
 		Description: "this is hello world",
+		Status:      runDetail.Run.Status,
 		PipelineSpec: &api.PipelineSpec{
-			PipelineId: pipelineId,
+			PipelineId:       pipelineId,
+			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*api.ResourceReference{
-			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experimentId}},
+			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experimentId},
+				Relationship: api.Relationship_OWNER,
+			},
 		},
-		CreatedAt: &timestamp.Timestamp{Seconds: runDetail.Run.CreatedAt.Seconds},
+		CreatedAt:   &timestamp.Timestamp{Seconds: runDetail.Run.CreatedAt.Seconds},
+		ScheduledAt: &timestamp.Timestamp{Seconds: runDetail.Run.ScheduledAt.Seconds},
 	}
-	assert.Equal(t, expectedRun, &runDetail.Run)
+	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
 func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *api.RunDetail, experimentId string, requestStartTime int64) {
@@ -200,22 +213,28 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *api.R
 	assert.Nil(t, err)
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
-	assert.True(t, runDetail.Run.CreatedAt.Seconds > requestStartTime)
-
-	runDetail.Run.Status = ""
-	expectedRun := api.Run{
+	assert.True(t, runDetail.Run.CreatedAt.Seconds >= requestStartTime)
+	expectedRun := &api.Run{
 		Id:          runDetail.Run.Id,
-		Name:        "hello world",
-		Description: "this is hello world",
+		Name:        "argument parameter",
+		Description: "this is argument parameter",
+		Status:      runDetail.Run.Status,
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: string(argParamsBytes),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "goodbye"},
+				{Name: "param2", Value: "world"},
+			},
 		},
 		ResourceReferences: []*api.ResourceReference{
-			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experimentId}},
+			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experimentId},
+				Relationship: api.Relationship_OWNER,
+			},
 		},
-		CreatedAt: &timestamp.Timestamp{Seconds: runDetail.Run.CreatedAt.Seconds},
+		CreatedAt:   &timestamp.Timestamp{Seconds: runDetail.Run.CreatedAt.Seconds},
+		ScheduledAt: &timestamp.Timestamp{Seconds: runDetail.Run.ScheduledAt.Seconds},
 	}
-	assert.Equal(t, expectedRun, &runDetail.Run)
+	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
 func TestRunApi(t *testing.T) {
