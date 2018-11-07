@@ -17,6 +17,7 @@ const (
 	// If true, run as a unit test using a fake client.
 	// If false, run as an integration test calling the service.
 	// This is useful to test locally before running an e2e test (which takes a while).
+	// IMPORTANT: This should always be set to FALSE in the checked-in code.
 	runAsUnitTest = false
 )
 
@@ -59,12 +60,28 @@ func (c *CLIIntegrationTest) TearDownTest() {
 
 func (c *CLIIntegrationTest) TestPipelineListSuccess() {
 	t := c.T()
+
+	// Create pipelines
 	rootCmd, _ := GetRealRootCommand()
-	args := []string{"pipeline", "list"}
+	args := []string{"pipeline", "create",
+		"https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
+
+	// List pipeline
+	rootCmd, factory := GetRealRootCommand()
+	args = []string{"pipeline", "list"}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err = rootCmd.Command().ExecuteC()
+	assert.Nil(t, err)
+
+	// Convert and assert result
+	pipelines, err := toPipelines(factory.Result())
+	assert.Nil(t, err)
+	assert.True(t, len(pipelines) >= 1)
 }
 
 func (c *CLIIntegrationTest) TestPipelineListFailureInvalidArgument() {
@@ -154,7 +171,6 @@ func toPipelines(jsonPipelines string) ([]pipeline_model.APIPipeline, error) {
 }
 
 func (c *CLIIntegrationTest) deletePipelines() error {
-
 	pipelines, err := c.listPipelines()
 	if err != nil {
 		return err
