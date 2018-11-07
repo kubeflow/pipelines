@@ -46,7 +46,7 @@ func NewRunGetCmd(root *RootCommand) *cobra.Command {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
 			pkg.PipelineRuntime.WorkflowManifest = ""
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg,
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pkg,
 				&WorkflowForDisplay{Workflow: workflow})
 			return nil
 		},
@@ -83,7 +83,7 @@ func NewRunListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), results)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), results)
 			return nil
 		},
 	}
