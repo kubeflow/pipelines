@@ -23,7 +23,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { History } from 'history';
 import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
-import { spacing, fontsize, color, dimension, commonCss } from '../Css';
+import { spacing, fonts, fontsize, color, dimension, commonCss } from '../Css';
 
 export interface ToolbarActionConfig {
   action: () => void;
@@ -55,7 +55,10 @@ const css = stylesheet({
     padding: 3,
   },
   breadcrumbs: {
-    fontSize: fontsize.medium,
+    color: color.inactive,
+    fontFamily: fonts.secondary,
+    fontSize: fontsize.small,
+    letterSpacing: 0.25,
     margin: '10px 37px',
   },
   chevron: {
