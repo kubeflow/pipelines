@@ -283,7 +283,7 @@ exports[`Status handles an unknown phase 1`] = `
     <pure(HelpIcon)
       style={
         Object {
-          "color": "#616161",
+          "color": "#5F6368",
           "height": 18,
           "width": 18,
         }
@@ -1748,7 +1748,7 @@ exports[`Status renders an icon with tooltip for phase: SKIPPED 1`] = `
     <pure(SkipNextIcon)
       style={
         Object {
-          "color": "#616161",
+          "color": "#5F6368",
           "height": 18,
           "width": 18,
         }
@@ -2334,7 +2334,7 @@ exports[`Status renders an icon with tooltip for phase: UNKNOWN 1`] = `
     <pure(HelpIcon)
       style={
         Object {
-          "color": "#616161",
+          "color": "#5F6368",
           "height": 18,
           "width": 18,
         }
