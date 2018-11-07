@@ -39,7 +39,7 @@ def add_two_numbers_decorated(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
     return a + b
 
-@comp.python_op(base_image='ark7/python-fire')
+@comp.python_op(base_image='python:3.5')
 def add_two_numbers_decorated_with_parameters(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
     return a + b
@@ -123,7 +123,7 @@ class PythonOpTestCase(unittest.TestCase):
         self.helper_test_2_in_1_out_component_using_local_call(add_two_numbers, add_two_numbers_indented_decorated)
 
     def test_indented_decorated_with_parameters_func_to_container_op_local_call(self):
-        @comp.python_op(base_image='ark7/python-fire')
+        @comp.python_op(base_image='python:3.5')
         def add_two_numbers_indented_decorated_with_parameters(a: float, b: float) -> float:
             '''Returns sum of two arguments'''
             return a + b
@@ -211,13 +211,13 @@ class PythonOpTestCase(unittest.TestCase):
             subtract_component_file = str(Path(temp_dir_name).joinpath('subtract.component.yaml'))
 
             #Converting the function to a component. Instantiate it to create a pipeline task (ContaineOp instance)
-            add_op = comp.func_to_container_op(add, base_image='ark7/python-fire', output_component_file=add_component_file)
+            add_op = comp.func_to_container_op(add, base_image='python:3.5', output_component_file=add_component_file)
 
             #Checking that the component artifact is usable:
             add_op2 = comp.load_component_from_file(add_component_file)
 
             #Using decorator to perform the same thing (convert function to a component):
-            @python_op(base_image='ark7/python-fire', output_component_file=subtract_component_file)
+            @python_op(base_image='python:3.5', output_component_file=subtract_component_file)
             def subtract_op(a: float, b: float) -> float:
                 '''Returns difference between two arguments'''
                 return a - b
