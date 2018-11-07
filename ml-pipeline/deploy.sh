@@ -163,6 +163,7 @@ if [ "$WITH_KUBEFLOW" = true ]; then
   (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
   tar -xzf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
   KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
+  (cd ${KUBEFLOW_REPO} && sed -i -e 's/\"prefix: \/\",/\"prefix: \/centraldashboard\",/g' kubeflow/core/centraldashboard.libsonnet)
   if [[ ${REPORT_USAGE} != "true" ]]; then
       (cd ${KUBEFLOW_REPO} && sed -i -e 's/--reportUsage\=true/--reportUsage\=false/g' scripts/util.sh)
   fi
