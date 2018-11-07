@@ -19,7 +19,7 @@ import * as React from 'react';
 export default class PipelinesIcon extends React.Component<{color: string}> {
   public render() {
     return (
-      <svg width='20px' height='16px' viewBox='0 0 20 19' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlnsXlink='http://www.w3.org/1999/xlink'>
+      <svg width='20px' height='20px' viewBox='0 0 20 20' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlnsXlink='http://www.w3.org/1999/xlink'>
         <g id='Symbols' stroke='none' strokeWidth='1' fill='none' fillRule='evenodd'>
           <g transform='translate(-2.000000, -4.000000)'>
             <polygon id='Shape' points='0 0 24 0 24 24 0 24' />
