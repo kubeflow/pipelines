@@ -19,7 +19,8 @@ from setuptools import setup
 NAME = 'kfp'
 VERSION = '0.1'
 
-REQUIRES = ['urllib3 >= 1.15', 'six >= 1.10', 'certifi', 'python-dateutil', 'PyYAML', 'google-cloud-storage >= 1.13.0']
+REQUIRES = ['urllib3 >= 1.15', 'six >= 1.10', 'certifi', 'python-dateutil', 'PyYAML',
+            'google-cloud-storage >= 1.13.0', 'kubernetes == 8.0.0']
 
 setup(
     name=NAME,
