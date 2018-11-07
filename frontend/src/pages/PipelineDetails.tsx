@@ -96,7 +96,7 @@ const css = stylesheet({
     overflow: 'auto',
     padding: 10,
     position: 'absolute',
-    width: 250,
+    width: 500,
     zIndex: 1,
   },
   summaryKey: {

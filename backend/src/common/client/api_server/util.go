@@ -68,6 +68,6 @@ func CreateErrorFromAPIStatus(error string, code int32) error {
 }
 
 func CreateErrorCouldNotRecoverAPIStatus(err error) error {
-	return fmt.Errorf("Could not parse the error returned from the server. Most likely, the CLI is not able to reach the service. Use the '--debug' flag to print the raw error from the server: %v",
+	return fmt.Errorf("Issue calling the service. Use the '--debug' flag to see the HTTP request/response. Raw error from the client: %v",
 		err.Error())
 }

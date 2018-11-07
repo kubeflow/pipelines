@@ -26,6 +26,21 @@ import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss, color } from '../Css';
 import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
 import { orderBy } from 'lodash';
+import { stylesheet } from 'typestyle';
+
+const css = stylesheet({
+  metricContainer: {
+    background: '#f6f7f9',
+    marginRight: 10,
+  },
+  metricFill: {
+    background: '#cbf0f8',
+    boxSizing: 'border-box',
+    color: '#202124',
+    fontFamily: 'Roboto',
+    fontSize: 13,
+  },
+});
 
 interface ExperimentInfo {
   displayName: string;
@@ -214,8 +229,8 @@ class RunList extends React.Component<RunListProps, RunListState> {
       width = `calc(${barWidth}%)`;
     }
     return (
-      <div style={{ background: '#f6f7f9', marginLeft: leftSpace, marginRight: 10 }}>
-        <div style={{ background: '#cbf0f8', paddingLeft: leftSpace, width }}>
+      <div className={css.metricContainer} style={{ marginLeft: leftSpace }}>
+        <div className={css.metricFill} style={{ textIndent: leftSpace, width }}>
           {displayString}
         </div>
       </div>
