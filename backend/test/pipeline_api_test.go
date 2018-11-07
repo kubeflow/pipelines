@@ -122,7 +122,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(listPipelineResponse.Pipelines))
 	for _, p := range listPipelineResponse.Pipelines {
-		// Sampling one of the pipeline and verify the result is expected.
+		// Sampling one of the pipelines and verify the result is expected.
 		if p.Name == "arguments-parameters.yaml" {
 			verifyPipeline(t, p, requestStartTime)
 		}

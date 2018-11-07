@@ -78,6 +78,12 @@ service RunService {
     };
   }
 
+  rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/runs/{id}"
+    };
+  }
+
   // ReportRunMetrics reports metrics of a run. Each metric is reported in its
   // own transaction, so this API accepts partial failures. Metric can be uniquely
   // identified by (run_id, node_id, name). Duplicate reporting will be
@@ -120,6 +126,10 @@ message ListRunsRequest{
 message ListRunsResponse {
   repeated Run runs = 1;
   string next_page_token = 2;
+}
+
+message DeleteRunRequest {
+  string id = 1;
 }
 
 message Run {
