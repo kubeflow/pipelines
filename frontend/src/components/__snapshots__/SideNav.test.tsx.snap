@@ -24,13 +24,12 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#fff"
@@ -44,13 +43,12 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#87a1b8"
@@ -98,13 +96,12 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#fff"
@@ -118,13 +115,12 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#87a1b8"
@@ -172,13 +168,12 @@ exports[`SideNav renders collapsed state 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button active collapsedButton"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#fff"
@@ -192,13 +187,12 @@ exports[`SideNav renders collapsed state 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button collapsedButton"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#87a1b8"
@@ -246,13 +240,12 @@ exports[`SideNav renders expanded state 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#fff"
@@ -266,13 +259,12 @@ exports[`SideNav renders expanded state 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#87a1b8"
@@ -320,13 +312,12 @@ exports[`SideNav renders experiments as active page 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -340,13 +331,12 @@ exports[`SideNav renders experiments as active page 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -394,13 +384,12 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -414,13 +403,12 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -468,13 +456,12 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -488,13 +475,12 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -542,13 +528,12 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -562,13 +547,12 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -616,13 +600,12 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -636,13 +619,12 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -690,13 +672,12 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -710,13 +691,12 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -764,13 +744,12 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -784,13 +763,12 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -838,13 +816,12 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -858,13 +835,12 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -912,13 +888,12 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   </div>
   <Link
     className="unstyled"
-    id="pipelinesLink"
+    id="pipelinesBtn"
     replace={false}
     to="/pipelines"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavPipelinesBtn"
     >
       <PipelinesIcon
         color="#87a1b8"
@@ -932,13 +907,12 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   </Link>
   <Link
     className="unstyled"
-    id="experimentsLink"
+    id="experimentsBtn"
     replace={false}
     to="/experiments"
   >
     <WithStyles(Button)
       className="button active"
-      id="sideNavExperimentsBtn"
     >
       <ExperimentsIcon
         color="#fff"
@@ -953,12 +927,11 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   <a
     className="unstyled"
     href="/hub/"
-    id="jupyterhubLink"
+    id="jupyterhubBtn"
     target="_blank"
   >
     <WithStyles(Button)
       className="button"
-      id="sideNavJupyterhubBtn"
     >
       <pure(CodeIcon)
         style={

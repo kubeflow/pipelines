@@ -172,16 +172,16 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
             Kubeflow
           </span>
         </div>
-        <Link id='pipelinesLink' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
-          <Button id='sideNavPipelinesBtn' className={classes(css.button,
+        <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
+          <Button className={classes(css.button,
             page.startsWith(RoutePage.PIPELINES) && css.active,
             collapsed && css.collapsedButton)}>
             <PipelinesIcon color={page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive} />
             <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
           </Button>
         </Link>
-        <Link id='experimentsLink' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
-          <Button id='sideNavExperimentsBtn' className={
+        <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
+          <Button className={
             classes(
               css.button,
               this._highlightExperimentsButton(page) && css.active,
@@ -191,8 +191,8 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
           </Button>
         </Link>
         {this.state.jupyterHubAvailable && (
-          <a id='jupyterhubLink' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
-            <Button id='sideNavJupyterhubBtn'className={
+          <a id='jupyterhubBtn' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
+            <Button className={
               classes(css.button, collapsed && css.collapsedButton)}>
               <JupyterhubIcon style={{ height: 20, width: 20 }} />
               <span className={classes(collapsed && css.collapsedLabel, css.label)}>Notebooks</span>
