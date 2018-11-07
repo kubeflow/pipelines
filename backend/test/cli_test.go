@@ -53,7 +53,7 @@ func (c *CLIIntegrationTest) SetupTest() {
 func (c *CLIIntegrationTest) TearDownTest() {
 	err := c.deletePipelines()
 	if err != nil {
-		glog.Exitf("Failed to delete the pipelines: %v", err)
+		glog.Exitf("Failed to delete pipelines: %v", err)
 	}
 }
 
