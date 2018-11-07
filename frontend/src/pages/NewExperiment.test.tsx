@@ -66,8 +66,8 @@ describe('NewExperiment', () => {
     expect(updateToolbarSpy).toHaveBeenCalledWith({
       actions: [],
       breadcrumbs: [
-        { displayName: 'Experiments', href: '/experiments'},
-        { displayName: 'New experiment', href: '/experiments/new'}
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+        { displayName: 'New experiment', href: RoutePage.NEW_EXPERIMENT }
       ],
     });
     tree.unmount();
@@ -75,8 +75,24 @@ describe('NewExperiment', () => {
 
   it('Enables the \'Next\' button when an experiment name is entered', () => {
     const tree = shallow(<NewExperiment {...generateProps() as any} />);
+    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', true);
+
     (tree.instance() as any).handleChange('experimentName')({ target: { value: 'experiment name' } });
 
+    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', false);
+    expect(tree).toMatchSnapshot();
+    tree.unmount();
+  });
+
+  it('Re-disables the \'Next\' button when an experiment name is cleared after having been entered', () => {
+    const tree = shallow(<NewExperiment {...generateProps() as any} />);
+    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', true);
+
+    (tree.instance() as any).handleChange('experimentName')({ target: { value: 'experiment name' } });
+    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', false);
+
+    (tree.instance() as any).handleChange('experimentName')({ target: { value: '' } });
+    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', true);
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });
@@ -116,6 +132,7 @@ describe('NewExperiment', () => {
     await TestUtils.flushPromises();
 
     expect(tree.state()).toHaveProperty('isbeingCreated', true);
+    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('busy', true);
     tree.unmount();
   });
 
