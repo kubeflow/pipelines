@@ -31,7 +31,6 @@ interface PipelineSelectorProps extends RouteComponentProps {
 interface PipelineSelectorState {
   pipelines: ApiPipeline[];
   selectedIds: string[];
-  sortBy: string;
   toolbarActions: ToolbarActionConfig[];
 }
 
@@ -44,13 +43,12 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     this.state = {
       pipelines: [],
       selectedIds: [],
-      sortBy: PipelineSortKeys.CREATED_AT,
       toolbarActions: [],
     };
   }
 
   public render() {
-    const { pipelines, selectedIds, sortBy, toolbarActions } = this.state;
+    const { pipelines, selectedIds, toolbarActions } = this.state;
 
     const columns: Column[] = [
       { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
@@ -75,7 +73,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
         <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
           updateSelection={ids => { this._pipelineSelectionChanged(ids); this.setState({ selectedIds: ids }); }}
-          initialSortColumn={sortBy} ref={this._tableRef}
+          initialSortColumn={PipelineSortKeys.CREATED_AT} ref={this._tableRef}
           reload={this._loadPipelines.bind(this)} emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
       </React.Fragment>
     );
@@ -113,7 +111,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       logger.error('Could not get list of pipelines', errorMessage);
     }
 
-    this.setState({ pipelines, sortBy: request.sortBy! });
+    this.setState({ pipelines });
     return nextPageToken;
   }
 }

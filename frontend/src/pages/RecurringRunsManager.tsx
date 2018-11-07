@@ -37,7 +37,6 @@ interface RecurringRunListState {
   busyIds: Set<string>;
   runs: ApiJob[];
   selectedIds: string[];
-  sortBy: string;
   toolbarActions: ToolbarActionConfig[];
 }
 
@@ -51,13 +50,12 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       busyIds: new Set(),
       runs: [],
       selectedIds: [],
-      sortBy: JobSortKeys.CREATED_AT,
       toolbarActions: [],
     };
   }
 
   public render() {
-    const { runs, selectedIds, sortBy, toolbarActions } = this.state;
+    const { runs, selectedIds, toolbarActions } = this.state;
 
     const columns: Column[] = [
       {
@@ -85,7 +83,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     return (<React.Fragment>
       <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Recurring runs', href: '' }]} />
       <CustomTable columns={columns} rows={rows} ref={this._tableRef} selectedIds={selectedIds}
-        updateSelection={ids => this.setState({ selectedIds: ids })} initialSortColumn={sortBy}
+        updateSelection={ids => this.setState({ selectedIds: ids })} initialSortColumn={JobSortKeys.CREATED_AT}
         reload={this._loadRuns.bind(this)} emptyMessage={'No recurring runs found in this experiment.'}
         disableSelection={true} />
     </React.Fragment>);
@@ -120,7 +118,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       logger.error('Could not get list of recurring runs', errorMessage);
     }
 
-    this.setState({ runs, sortBy: request.sortBy! });
+    this.setState({ runs });
     return nextPageToken;
   }
 

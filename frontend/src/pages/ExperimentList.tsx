@@ -41,7 +41,6 @@ interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
   selectedRunIds: string[];
   selectedTab: number;
-  sortBy: string;
 }
 
 class ExperimentList extends Page<{}, ExperimentListState> {
@@ -54,7 +53,6 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       displayExperiments: [],
       selectedRunIds: [],
       selectedTab: 0,
-      sortBy: ExperimentSortKeys.CREATED_AT,
     };
   }
 
@@ -122,7 +120,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <CustomTable columns={columns} rows={rows} ref={this._tableRef}
-          disableSelection={true} initialSortColumn={this.state.sortBy}
+          disableSelection={true} initialSortColumn={ExperimentSortKeys.CREATED_AT}
           reload={this._reload.bind(this)} toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
           emptyMessage='No experiments found. Click "Create experiment" to start.' />
@@ -172,7 +170,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       }
     }));
 
-    this.setState({ displayExperiments, sortBy: request.sortBy! });
+    this.setState({ displayExperiments });
     return response.next_page_token || '';
   }
 
