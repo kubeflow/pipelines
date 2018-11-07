@@ -109,7 +109,7 @@ steps:
   id: 'buildTFTComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh $PROJECT_ID $COMMIT_SHA']
   id: 'buildTMAComponent'
 
 # Build the Kubeflow-based pipeline component images
@@ -125,27 +125,27 @@ steps:
 # Build the Dataproc-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/analyze && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/analyze && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocAnalyze'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/create_cluster && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/create_cluster && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocCreateCluster'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/delete_cluster && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/delete_cluster && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocDeleteCluster'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/predict && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/predict && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocPredict'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/transform && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/transform && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTransform'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataproc/containers/train && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataproc/containers/train && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTrain'
 
 # Build the ResNet-CMLE sample pipeline component images
@@ -169,7 +169,7 @@ steps:
   id: 'buildConfusionMatrix'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/local/containers/roc && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/local/containers/roc && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildROC'
 
 # Build the tagged samples

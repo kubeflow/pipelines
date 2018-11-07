@@ -29,7 +29,7 @@ export const color = {
   foreground: '#000',
   graphBg: '#f5f5f5',
   hoverBg: '#eee',
-  inactive: '#616161',
+  inactive: '#5F6368',
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
   strong: '#212121',
