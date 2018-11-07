@@ -12,24 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: batch/v1
-kind: Job
-metadata:
-  generateName: uninstall-ml-pipeline-
-spec:
-  backoffLimit: 1
-  template:
-    metadata:
-      name: uninstall-ml-pipeline
-    spec:
-      containers:
-      - name: uninstaller
-        image: gcr.io/ml-pipeline/bootstrapper:0.1.0
-        imagePullPolicy: 'Always'
-        # Additional parameter available:
-        args: [
-          # "--namespace", "foo",
-          # "--report_usage", "false",
-          "--uninstall",
-        ]
-      restartPolicy: Never
+
+from . import _magic

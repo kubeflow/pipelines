@@ -26,7 +26,7 @@ import { TextFieldProps } from '@material-ui/core/TextField';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewExperimentState {
   description: string;
@@ -94,7 +94,9 @@ class NewExperiment extends Page<{}, NewExperimentState> {
             <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={this.state.isbeingCreated}
               className={commonCss.buttonAction} title={'Next'}
               onClick={this._create.bind(this)} />
-            <Button onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>Cancel</Button>
+            <Button id='cancelNewExperimentBtn' onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>
+              Cancel
+            </Button>
             <div className={css.errorMessage}>{validationError}</div>
           </div>
         </div>
@@ -102,7 +104,11 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     );
   }
 
-  public async load() {
+  public async refresh() {
+    return;
+  }
+
+  public async componentDidMount() {
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
@@ -146,7 +152,8 @@ class NewExperiment extends Page<{}, NewExperimentState> {
           open: true,
         });
       } catch (err) {
-        await this.showErrorDialog('Experiment creation failed', err);
+        const errorMessage = await errorToMessage(err);
+        await this.showErrorDialog('Experiment creation failed', errorMessage);
         logger.error('Error creating experiment:', err);
         this.setState({ isbeingCreated: false });
       }

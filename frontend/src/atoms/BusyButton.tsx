@@ -27,6 +27,7 @@ const css = stylesheet({
   },
   root: {
     cursor: 'pointer',
+    marginBottom: 2, // To prevent container from flickering as the spinner shows up
     position: 'relative',
     transition: 'padding 0.3s',
   },
