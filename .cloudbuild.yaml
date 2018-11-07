@@ -109,7 +109,7 @@ steps:
   id: 'buildTFTComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTMAComponent'
 
 # Build the Kubeflow-based pipeline component images
