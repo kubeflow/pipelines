@@ -25,7 +25,7 @@ import { PageProps } from './Page';
 import { QUERY_PARAMS } from '../lib/URLParser';
 import { RoutePage } from '../components/Router';
 import { range } from 'lodash';
-import { shallow } from 'enzyme';
+import { shallow, ReactWrapper } from 'enzyme';
 
 describe('ExperimentList', () => {
   const updateBannerSpy = jest.fn();
@@ -49,7 +49,7 @@ describe('ExperimentList', () => {
     };
   }
 
-  async function mountWithNExperiments(n: number, nRuns: number) {
+  async function mountWithNExperiments(n: number, nRuns: number): Promise<ReactWrapper> {
     listExperimentsSpy.mockImplementation(() => ({
       experiments: range(n).map(i => ({ id: 'test-experiment-id' + i, name: 'test experiment name' + i })),
     }));

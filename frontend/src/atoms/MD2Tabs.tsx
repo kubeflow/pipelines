@@ -72,7 +72,7 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
   private _tabRefs = this.props.tabs.map(t => React.createRef<HTMLSpanElement>());
   private _timeoutHandle = 0;
 
-  public render() {
+  public render(): JSX.Element {
     const selected = this._getSelectedIndex();
     const switchHandler = this.props.onSwitch || (() => null);
     return (
@@ -89,19 +89,19 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
     );
   }
 
-  public componentDidMount() {
+  public componentDidMount(): void {
     this._timeoutHandle = setTimeout(this._updateIndicator.bind(this));
   }
 
-  public componentDidUpdate() {
+  public componentDidUpdate(): void {
     this._timeoutHandle = setTimeout(this._updateIndicator.bind(this));
   }
 
-  public componentWillUnmount() {
+  public componentWillUnmount(): void {
     clearTimeout(this._timeoutHandle);
   }
 
-  private _getSelectedIndex() {
+  private _getSelectedIndex(): number {
     let selected = this.props.selectedTab;
     if (this.props.tabs[selected] === undefined) {
       logger.error('Out of bound index passed for selected tab');
@@ -110,7 +110,7 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
     return selected;
   }
 
-  private _updateIndicator() {
+  private _updateIndicator(): void {
     const selected = this._getSelectedIndex();
     const activeLabelElement = this._tabRefs[selected].current as HTMLSpanElement;
     const leftOffset = activeLabelElement.getBoundingClientRect().left -

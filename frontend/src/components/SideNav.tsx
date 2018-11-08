@@ -146,7 +146,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     };
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     window.addEventListener('resize', this._maybeResize.bind(this));
     this._maybeResize();
 
@@ -156,7 +156,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     }
   }
 
-  public render() {
+  public render(): JSX.Element {
     const page = this.props.page;
     const { collapsed } = this.state;
     const iconColor = {
@@ -218,7 +218,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
       || page.startsWith(RoutePage.COMPARE);
   }
 
-  private _toggleNavClicked() {
+  private _toggleNavClicked(): void {
     this.setState({
       collapsed: !this.state.collapsed,
       manualCollapseState: true,
@@ -232,7 +232,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     });
   }
 
-  private _maybeResize() {
+  private _maybeResize(): void {
     if (!this.state.manualCollapseState) {
       this._toggleNavCollapsed(window.innerWidth < this._AUTO_COLLAPSE_WIDTH);
     }

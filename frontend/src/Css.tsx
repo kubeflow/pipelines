@@ -15,8 +15,8 @@
  */
 
 import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
-import { style, stylesheet } from 'typestyle';
 import { NestedCSSProperties } from 'typestyle/lib/types';
+import { style, stylesheet } from 'typestyle';
 
 export const color = {
   activeBg: '#eaf1fd',
@@ -145,14 +145,14 @@ export const theme = createMuiTheme({
       },
     },
     MuiInput: {
-      input: {padding: 0},
-      root: {padding: 0}
+      input: { padding: 0 },
+      root: { padding: 0 }
     },
     MuiInputAdornment: {
       positionEnd: {
         paddingRight: 0,
       },
-      root: {padding: 0},
+      root: { padding: 0 },
     },
     MuiTooltip: {
       tooltip: {
@@ -267,7 +267,7 @@ export const commonCss = stylesheet({
   },
 });
 
-export function _paddingInternal(units?: number, directions?: string) {
+export function _paddingInternal(units?: number, directions?: string): NestedCSSProperties {
   units = units || baseSpacing;
   directions = directions || 'blrt';
   const rules: NestedCSSProperties = {};
@@ -286,6 +286,6 @@ export function _paddingInternal(units?: number, directions?: string) {
   return rules;
 }
 
-export function padding(units?: number, directions?: string) {
+export function padding(units?: number, directions?: string): string {
   return style(_paddingInternal(units, directions));
 }

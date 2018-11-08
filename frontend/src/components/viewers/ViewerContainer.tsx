@@ -36,7 +36,7 @@ interface ViewerContainerProps {
 }
 
 class ViewerContainer extends React.Component<ViewerContainerProps> {
-  public render() {
+  public render(): JSX.Element | null {
     const { configs, maxDimension } = this.props;
     if (!configs.length) {
       return null;

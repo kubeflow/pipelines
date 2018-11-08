@@ -79,6 +79,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -127,6 +128,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -300,6 +302,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
           <WithStyles(IconButton)
@@ -623,6 +626,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -664,6 +668,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -833,6 +838,7 @@ exports[`CustomTable renders an expanded row 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -1006,6 +1012,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
           <WithStyles(IconButton)
@@ -1404,6 +1411,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -1573,6 +1581,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -1614,6 +1623,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -2038,6 +2048,7 @@ exports[`CustomTable renders some rows 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -2079,6 +2090,7 @@ exports[`CustomTable renders some rows 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -2248,6 +2260,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -2291,6 +2304,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
