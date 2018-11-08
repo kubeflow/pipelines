@@ -22,7 +22,6 @@ type RunApiTestSuite struct {
 	namespace        string
 	conn             *grpc.ClientConn
 	experimentClient api.ExperimentServiceClient
-	jobClient        api.JobServiceClient
 	pipelineClient   api.PipelineServiceClient
 	runClient        api.RunServiceClient
 }
@@ -39,7 +38,6 @@ func (s *RunApiTestSuite) SetupTest() {
 		glog.Exitf("Failed to get RPC connection. Error: %s", err.Error())
 	}
 	s.experimentClient = api.NewExperimentServiceClient(s.conn)
-	s.jobClient = api.NewJobServiceClient(s.conn)
 	s.pipelineClient = api.NewPipelineServiceClient(s.conn)
 	s.runClient = api.NewRunServiceClient(s.conn)
 }
@@ -67,7 +65,6 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 	var helloWorldPipeline api.Pipeline
 	json.Unmarshal(response, &helloWorldPipeline)
-	assert.Equal(t, "hello-world.yaml", helloWorldPipeline.Name)
 
 	/* ---------- Create a new hello world experiment ---------- */
 	createExperimentRequest := &api.CreateExperimentRequest{Experiment: &api.Experiment{Name: "hello world experiment"}}
@@ -129,27 +126,27 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- List all the runs. Both runs should be returned ---------- */
 	listRunsResponse, err := s.runClient.ListRuns(ctx, &api.ListRunsRequest{})
 	assert.Nil(t, err)
-	assert.Equal(t, len(listRunsResponse.Runs), 2)
+	assert.Equal(t, 2, len(listRunsResponse.Runs))
 
 	/* ---------- List the runs, paginated, default sort ---------- */
 	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 1})
 	assert.Nil(t, err)
-	assert.Equal(t, len(listRunsResponse.Runs), 1)
-	assert.Equal(t, listRunsResponse.Runs[0].Name, "hello world")
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
+	assert.Equal(t, "hello world", listRunsResponse.Runs[0].Name)
 	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 1, PageToken: listRunsResponse.NextPageToken})
 	assert.Nil(t, err)
-	assert.Equal(t, len(listRunsResponse.Runs), 1)
-	assert.Equal(t, listRunsResponse.Runs[0].Name, "argument parameter")
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
+	assert.Equal(t, "argument parameter", listRunsResponse.Runs[0].Name)
 
 	/* ---------- List the runs, paginated, sort by name ---------- */
 	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 1, SortBy: "name"})
 	assert.Nil(t, err)
-	assert.Equal(t, len(listRunsResponse.Runs), 1)
-	assert.Equal(t, listRunsResponse.Runs[0].Name, "argument parameter")
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
+	assert.Equal(t, "argument parameter", listRunsResponse.Runs[0].Name)
 	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 1, SortBy: "name", PageToken: listRunsResponse.NextPageToken})
 	assert.Nil(t, err)
-	assert.Equal(t, len(listRunsResponse.Runs), 1)
-	assert.Equal(t, listRunsResponse.Runs[0].Name, "hello world")
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
+	assert.Equal(t, "hello world", listRunsResponse.Runs[0].Name)
 
 	/* ---------- List the runs, sort by unsupported field ---------- */
 	_, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 2, SortBy: "description"})
@@ -161,8 +158,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_EXPERIMENT, Id: helloWorldExperiment.Id}})
 	assert.Nil(t, err)
-	assert.Equal(t, len(listRunsResponse.Runs), 1)
-	assert.Equal(t, listRunsResponse.Runs[0].Name, "hello world")
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
+	assert.Equal(t, "hello world", listRunsResponse.Runs[0].Name)
 
 	/* ---------- Clean up ---------- */
 	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: helloWorldPipeline.Id})
@@ -178,8 +175,6 @@ func (s *RunApiTestSuite) TestRunApis() {
 }
 
 func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *api.RunDetail, experimentId string, pipelineId string, requestStartTime int64) {
-	assert.NotNil(t, runDetail)
-
 	// Check workflow manifest is not empty
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
 	// Check runtime workflow manifest is not empty

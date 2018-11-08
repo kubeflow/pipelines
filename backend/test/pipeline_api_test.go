@@ -57,13 +57,9 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	/* ---------- Verify sample pipelines are loaded ---------- */
+	/* ---------- Delete pipelines if any, ensuring there is no pipeline ---------- */
 	listPipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
-	assert.Nil(t, err)
-	assert.True(t, len(listPipelineResponse.Pipelines) > 0)
 	for _, p := range listPipelineResponse.Pipelines {
-		// Verify existing pipelines are samples and delete them one by one.
-		assert.Contains(t, p.Name, "[Sample]")
 		_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: p.Id})
 		assert.Nil(t, err)
 	}

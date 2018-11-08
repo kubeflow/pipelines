@@ -70,8 +70,8 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time:                    clientManager.Time(),
-		uuid:                    clientManager.UUID(),
+		time: clientManager.Time(),
+		uuid: clientManager.UUID(),
 	}
 }
 
@@ -230,13 +230,20 @@ func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, paginati
 }
 
 func (r *ResourceManager) DeleteRun(runID string) error {
-	runDetail, err := r.checkRunExist(runID)
+	// TODO(IronPan) Call checkRunExist if swf CRD doesn't cascade delete runs.
+	//runDetail, err := r.checkRunExist(runID)
+	//if err != nil {
+	//	return util.Wrap(err, "Delete run failed")
+	//}
+	runDetail, err := r.runStore.GetRun(runID)
 	if err != nil {
-		return util.Wrap(err, "Delete run failed")
+		return util.Wrap(err, "Check run exist failed")
 	}
 	err = r.workflowClient.Delete(runDetail.Name, &v1.DeleteOptions{})
 	if err != nil {
-		return util.NewInternalServerError(err, "Delete run CRD failed.")
+		// TODO(IronPan) This should return error if swf CRD doesn't cascade delete runs.
+		//return util.NewInternalServerError(err, "Delete run CRD failed.")
+		glog.Warningf("Failed to delete run %v. Error: %v", runDetail.Name, err.Error())
 	}
 	err = r.runStore.DeleteRun(runID)
 	if err != nil {
