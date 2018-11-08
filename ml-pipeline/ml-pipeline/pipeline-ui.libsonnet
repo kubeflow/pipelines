@@ -2,7 +2,7 @@
   all(namespace, ui_image):: [
     $.parts(namespace).serviceAccount,
     $.parts(namespace).serviceUi,
-    $.parts(namespace).tensorboardUi,
+    $.parts(namespace).tensorboardData,
     $.parts(namespace).roleBinding,
     $.parts(namespace).role,
     $.parts(namespace).deployUi(ui_image),
@@ -57,7 +57,7 @@
       },
     }, //serviceUi
 
-    tensorboardUi: {
+    tensorboardData: {
       apiVersion: "v1",
       kind: "Service",
       metadata: {
@@ -95,7 +95,7 @@
       status: {
         loadBalancer: {}
       },
-    }, //tensorboardUi
+    }, //tensorboardData
 
     roleBinding:: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
