@@ -198,6 +198,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     const startDateTime = pickersToDate(hasStartDate, startDate, startTime);
     const endDateTime = pickersToDate(hasEndDate, endDate, endTime);
 
+    // TODO: Why build the cron string unless the TriggerType is not CRON?
     // Unless cron editing is enabled, calculate the new cron string, set it in state,
     // then use it to build new trigger object and notify the parent
     this.setState({
