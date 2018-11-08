@@ -161,11 +161,11 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     }
   }
 
-  public getDisplayName() {
+  public getDisplayName(): string {
     return 'Confusion matrix';
   }
 
-  public render() {
+  public render(): JSX.Element | null {
     if (!this._config) {
       return null;
     }
@@ -223,8 +223,8 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     </div>;
   }
 
-  private _isSmall() {
-    return this.props.maxDimension && this.props.maxDimension < this._shrinkThreshold;
+  private _isSmall(): boolean {
+    return !!this.props.maxDimension && this.props.maxDimension < this._shrinkThreshold;
   }
 }
 

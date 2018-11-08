@@ -191,7 +191,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     };
   }
 
-  public handleSelectAllClick(event: React.MouseEvent) {
+  public handleSelectAllClick(event: React.MouseEvent): void {
     if (this.props.disableSelection === true) {
       return;
     }
@@ -202,7 +202,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     }
   }
 
-  public handleClick(e: React.MouseEvent, id: string) {
+  public handleClick(e: React.MouseEvent, id: string): void {
     if (this.props.disableSelection === true) {
       return;
     }
@@ -225,19 +225,19 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     e.stopPropagation();
   }
 
-  public isSelected(id: string) {
-    return this.props.selectedIds && this.props.selectedIds.indexOf(id) !== -1;
+  public isSelected(id: string): boolean {
+    return !!this.props.selectedIds && this.props.selectedIds.indexOf(id) !== -1;
   }
 
-  public componentDidMount() {
+  public componentDidMount(): void {
     this._pageChanged(0);
   }
 
-  public componentWillUnmount() {
+  public componentWillUnmount(): void {
     this._isMounted = false;
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => total += (c.flex || 1), 0);
@@ -386,13 +386,13 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     return this.props.reload(request);
   }
 
-  private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void) {
+  private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void): void {
     if (this._isMounted) {
       this.setState(newState as any, cb);
     }
   }
 
-  private _requestSort(sortBy?: string) {
+  private _requestSort(sortBy?: string): void {
     if (sortBy) {
       // Set the sort column to the provided column if it's different, and
       // invert the sort order it if it's the same column
@@ -405,7 +405,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     }
   }
 
-  private async _pageChanged(offset: number) {
+  private async _pageChanged(offset: number): Promise<void> {
     let newCurrentPage = this.state.currentPage + offset;
     let maxPageIndex = this.state.maxPageIndex;
     newCurrentPage = Math.max(0, newCurrentPage);
@@ -427,13 +427,13 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex });
   }
 
-  private async _requestRowsPerPage(event: React.ChangeEvent) {
+  private async _requestRowsPerPage(event: React.ChangeEvent): Promise<void> {
     const pageSize = (event.target as TextFieldProps).value as number;
 
     this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
   }
 
-  private _resetToFirstPage(newPageToken?: string) {
+  private _resetToFirstPage(newPageToken?: string): void {
     let maxPageIndex = Number.MAX_SAFE_INTEGER;
     const newTokenList = [''];
 
@@ -451,7 +451,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     });
   }
 
-  private _expandButtonToggled(e: React.MouseEvent, rowIndex: number) {
+  private _expandButtonToggled(e: React.MouseEvent, rowIndex: number): void {
     e.stopPropagation();
     if (this.props.toggleExpansion) {
       this.props.toggleExpansion(rowIndex);

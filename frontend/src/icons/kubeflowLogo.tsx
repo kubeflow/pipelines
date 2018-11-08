@@ -17,7 +17,7 @@
 import * as React from 'react';
 
 export default class KubeflowLogo extends React.Component<{ color: string, style: React.CSSProperties }> {
- public render() {
+ public render(): JSX.Element {
    return (
      <svg style={this.props.style} width='36px' height='36px' viewBox='0 0 36 36' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlnsXlink='http://www.w3.org/1999/xlink'>
        <g id='Symbols' stroke='none' strokeWidth='1' fill='none' fillRule='evenodd'>

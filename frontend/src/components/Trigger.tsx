@@ -76,14 +76,14 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     };
   }
 
-  public componentDidMount() {
+  public componentDidMount(): void {
     // TODO: This is called here because NewRun only updates its Trigger in state when onChange is
     // called on the Trigger, which without this may never happen if a user doesn't interact with
     // the Trigger. NewRun should probably keep the Trigger state and pass it down as a prop to this
     this._updateTrigger();
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { editCron, hasEndDate, hasStartDate, intervalCategory,
       intervalValue, selectedDays, type } = this.state;
 
