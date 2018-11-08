@@ -70,8 +70,8 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time: clientManager.Time(),
-		uuid: clientManager.UUID(),
+		time:                    clientManager.Time(),
+		uuid:                    clientManager.UUID(),
 	}
 }
 
@@ -230,14 +230,9 @@ func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, paginati
 }
 
 func (r *ResourceManager) DeleteRun(runID string) error {
-	// TODO(IronPan) Call checkRunExist if swf CRD doesn't cascade delete runs.
-	//runDetail, err := r.checkRunExist(runID)
-	//if err != nil {
-	//	return util.Wrap(err, "Delete run failed")
-	//}
-	runDetail, err := r.runStore.GetRun(runID)
+	runDetail, err := r.checkRunExist(runID)
 	if err != nil {
-		return util.Wrap(err, "Check run exist failed")
+		return util.Wrap(err, "Delete run failed")
 	}
 	err = r.workflowClient.Delete(runDetail.Name, &v1.DeleteOptions{})
 	if err != nil {
@@ -430,13 +425,14 @@ func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) 
 	if err != nil {
 		return nil, util.Wrap(err, "Check run exist failed")
 	}
-	workflow, err := r.workflowClient.Get(runDetail.Name, v1.GetOptions{})
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Check run exist failed")
-	}
-	if workflow == nil || string(workflow.UID) != runID {
-		return nil, util.NewResourceNotFoundError("run", runDetail.Name)
-	}
+	// TODO(IronPan) Enable following check once SWF CRD doesn't cascade delete runs.
+	//workflow, err := r.workflowClient.Get(runDetail.Name, v1.GetOptions{})
+	//if err != nil {
+	//	return nil, util.NewInternalServerError(err, "Check run exist failed")
+	//}
+	//if workflow == nil || string(workflow.UID) != runID {
+	//	return nil, util.NewResourceNotFoundError("run", runDetail.Name)
+	//}
 	return runDetail, nil
 }
 
