@@ -13,10 +13,12 @@ RUN pip3 install wheel
 RUN pip3 install junit-xml
 RUN pip3 install kubernetes
 RUN pip3 install minio
+RUN pip3 install setuptools==40.5.0
 
 COPY ./run_test.sh /run_test.sh
 COPY ./run_kubeflow_test.py /run_kubeflow_test.py
 COPY ./run_tfx_test.py /run_tfx_test.py
+COPY ./run_basic_test.py /run_basic_test.py
 COPY ./run_xgboost_test.py /run_xgboost_test.py
 COPY ./utils.py /utils.py
 RUN chmod +x /run_test.sh
