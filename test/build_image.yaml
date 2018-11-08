@@ -118,9 +118,6 @@ spec:
         "--docker_file", "{{inputs.parameters.docker-file}}",
         "--image_name", "{{inputs.parameters.image-name}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
@@ -130,9 +127,3 @@ spec:
       securityContext:
         privileged: true
       mirrorVolumeMounts: true
-
-  volumes:
-  - name: secret-volume
-    secret:
-      defaultMode: 256
-      secretName: ssh-key-secret

@@ -141,9 +141,6 @@ spec:
         "--docker_file", "{{inputs.parameters.docker-file}}",
         "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
@@ -185,9 +182,6 @@ spec:
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
 
   - name: run-frontend-integration-tests
     inputs:
@@ -202,8 +196,3 @@ spec:
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
 
-  volumes:
-  - name: secret-volume
-    secret:
-      defaultMode: 256
-      secretName: ssh-key-secret

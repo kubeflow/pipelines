@@ -51,12 +51,3 @@ spec:
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
-
-  volumes:
-  - name: secret-volume
-    secret:
-      defaultMode: 256
-      secretName: ssh-key-secret

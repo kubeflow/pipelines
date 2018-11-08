@@ -103,10 +103,6 @@ ACCOUNT=$(gcloud info --format='value(config.account)')
 kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT
 kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default
 
-echo "Create k8s secret for github SSH credentials"
-cp /etc/ssh-knative/ssh-knative ./id_rsa
-kubectl create secret generic ssh-key-secret --from-file=id_rsa=./id_rsa
-
 echo "install argo"
 ARGO_VERSION=v2.2.0
 mkdir -p ~/bin/

@@ -630,9 +630,6 @@ spec:
         "--docker_file", "{{inputs.parameters.docker-file}}",
         "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
@@ -661,9 +658,6 @@ spec:
         "--build_script", "{{inputs.parameters.build-script}}",
         "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
@@ -735,12 +729,4 @@ spec:
         "--local-roc-image", "{{inputs.parameters.local-roc-image}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
 
-  volumes:
-  - name: secret-volume
-    secret:
-      defaultMode: 256
-      secretName: ssh-key-secret
