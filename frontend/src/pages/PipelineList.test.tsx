@@ -21,7 +21,7 @@ import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { shallow } from 'enzyme';
+import { shallow, ReactWrapper } from 'enzyme';
 import { range } from 'lodash';
 
 describe('PipelineList', () => {
@@ -46,7 +46,7 @@ describe('PipelineList', () => {
     };
   }
 
-  async function mountWithNPipelines(n: number) {
+  async function mountWithNPipelines(n: number): Promise<ReactWrapper> {
     listPipelinesSpy.mockImplementationOnce(() => ({
       pipelines: range(n).map(i => ({ id: 'test-pipeline-id' + i, name: 'test pipeline name' + i })),
     }));
