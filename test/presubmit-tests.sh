@@ -23,12 +23,14 @@ usage()
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [--cluster-type         the type of cluster to use for the tests. One of: create-gke,none. Default is create-gke ]
+    [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
     [-h help]"
 }
 
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 CLUSTER_TYPE=create-gke
+TIMEOUT_SECONDS=1800
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -44,6 +46,9 @@ while [ "$1" != "" ]; do
              --cluster-type )         shift
                                       CLUSTER_TYPE=$1
                                       ;;
+             --timeout )              shift
+                                      TIMEOUT_SECONDS=$1
+                                      ;;
              -h | --help )            usage
                                       exit
                                       ;;
@@ -54,11 +59,11 @@ while [ "$1" != "" ]; do
 done
 
 ZONE=us-west1-a
-PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=90
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
+PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
 echo "presubmit test starts"
 
