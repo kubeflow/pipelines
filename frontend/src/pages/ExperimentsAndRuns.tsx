@@ -23,6 +23,7 @@ import { RoutePage } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { sanitizeProps } from '../lib/Utils';
 
 export enum ExperimentsAndRunsTab {
   EXPERIMENTS = 0,
@@ -49,11 +50,11 @@ class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsS
         <MD2Tabs tabs={['All experiments', 'All runs']} selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)} />
         {this.props.view === 0 && (
-          <ExperimentList {...this.props} />
+          <ExperimentList {...sanitizeProps(this.props)} />
         )}
 
         {this.props.view === 1 && (
-          <AllRunsList {...this.props} />
+          <AllRunsList {...sanitizeProps(this.props)} />
         )}
       </div>
     );

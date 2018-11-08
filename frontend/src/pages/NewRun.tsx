@@ -39,7 +39,7 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger, errorToMessage } from '../lib/Utils';
+import { logger, errorToMessage, sanitizeProps } from '../lib/Utils';
 
 interface NewRunState {
   description: string;
@@ -132,7 +132,8 @@ class NewRun extends Page<{}, NewRunState> {
           <Dialog open={pipelineSelectorOpen} classes={{ paper: css.pipelineSelectorDialog }}
             onClose={() => this._pipelineSelectorClosed(false)} PaperProps={{ id: 'pipelineSelectorDialog' }}>
             <DialogContent>
-              <PipelineSelector {...this.props} pipelineSelectionChanged={this._pipelineSelectionChanged.bind(this)} />
+              <PipelineSelector {...sanitizeProps(this.props)}
+                pipelineSelectionChanged={this._pipelineSelectionChanged.bind(this)} />
             </DialogContent>
             <DialogActions>
               <Button onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>

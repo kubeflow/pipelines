@@ -29,6 +29,14 @@ export const logger = {
   },
 };
 
+/**
+ * Removes id from props so it can be safely passed to children
+ */
+export function sanitizeProps(props: any) {
+  const { id, ...rest } = props;
+  return rest;
+}
+
 export function formatDateString(date: Date | string | undefined): string {
   if (typeof date === 'string') {
     return new Date(date).toLocaleString();

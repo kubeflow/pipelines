@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import { color, spacing } from '../Css';
+import { sanitizeProps } from '../lib/Utils';
 
 const style = {
   border: '0px none transparent',
@@ -23,4 +24,4 @@ const style = {
   margin: `${spacing.base}px 0`,
 };
 
-export default (props: any) => <hr style={style} {...props} />;
+export default (props: any) => <hr style={style} {...sanitizeProps(props)} />;

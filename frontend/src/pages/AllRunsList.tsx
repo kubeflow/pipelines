@@ -23,6 +23,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { sanitizeProps } from '../lib/Utils';
 
 interface AllRunsListState {
   selectedIds: string[];
@@ -77,7 +78,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
         onSelectionChange={this._selectionChanged.bind(this)}
-        {...this.props} ref={this._runlistRef} />
+        {...sanitizeProps(this.props)} ref={this._runlistRef} />
     </div>;
   }
 
