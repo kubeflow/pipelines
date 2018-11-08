@@ -33,6 +33,9 @@ instance_name=${instance_name:-test-minikube-${PULL_PULL_SHA:0:6}-$(date +%s)-$(
 
 firewall_rule_name=allow-prow-ssh-$instance_name
 
+# activating the service account
+gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+
 #Function to delete VM
 function delete_vm {
     if [ "$keep_created_vm" != true ]; then
