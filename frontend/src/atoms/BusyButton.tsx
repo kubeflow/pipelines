@@ -18,6 +18,7 @@ import * as React from 'react';
 import Button, { ButtonProps } from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import { stylesheet, classes } from 'typestyle';
+import { sanitizeProps } from '../lib/Utils';
 
 const css = stylesheet({
   icon: {
@@ -55,15 +56,14 @@ interface BusyButtonProps extends ButtonProps {
 
 class BusyButton extends React.Component<BusyButtonProps> {
   public render(): JSX.Element {
+    // TODO: we should not be passing className here to the child Element button. Instead, we should
+    // allow the parent of BusyButton to declare explicitly which styles should be applied to
+    // BusyButton and which, if any, should be applied to Button, CircularProgress, etc.
     const { title, busy, className, disabled, icon, outlined, ...rest } = this.props;
-
-    return <Button {...rest} color={outlined ? 'primary' : 'secondary'}
-      className={classes(
-        css.root,
-        busy && css.rootBusy,
-        className)}
-      disabled={busy || disabled}>
-      {!!icon && <this.props.icon className={css.icon} />}
+    return <Button {...sanitizeProps(rest)} color={outlined ? 'primary' : 'secondary'}
+        className={classes(css.root, busy && css.rootBusy, className)}
+        disabled={busy || disabled}>
+        {!!icon && <this.props.icon className={css.icon} />}
       <span>{title}</span>
       {busy === true && <CircularProgress size={15}
         className={classes(css.spinner, busy && css.spinnerBusy)} />}

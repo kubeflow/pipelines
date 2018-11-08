@@ -26,6 +26,7 @@ import ViewerContainer, { componentMap } from '../components/viewers/ViewerConta
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { color, fontsize } from '../Css';
 import { stylesheet, classes } from 'typestyle';
+import { sanitizeProps } from '../lib/Utils';
 
 const css = stylesheet({
   dialogTitle: {
@@ -107,7 +108,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
     }
 
     return <div>
-      <Paper {...otherProps} className={classes(css.plotCard, 'plotCard')}>
+      <Paper {...sanitizeProps(otherProps)} className={classes(css.plotCard, 'plotCard')}>
         <div className={css.plotHeader}>
           <div className={css.plotTitle} title={title}>{title}</div>
           <div>

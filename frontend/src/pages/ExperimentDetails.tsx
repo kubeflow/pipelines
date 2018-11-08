@@ -34,7 +34,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, sanitizeProps } from '../lib/Utils';
 
 const css = stylesheet({
   card: {
@@ -218,16 +218,16 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                 {description.split('\n').length > 2 ? '...' : ''}
               </Paper>
             </div>
-            <Toolbar {...this.state.runListToolbarProps} />
+            <Toolbar {...sanitizeProps(this.state.runListToolbarProps)} />
             <RunList onError={this.showPageError.bind(this)}
               experimentIdMask={experiment.id} ref={this._runlistRef}
               selectedIds={this.state.selectedRunIds}
-              onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
+              onSelectionChange={this._selectionChanged.bind(this)} {...sanitizeProps(this.props)} />
 
             <Dialog open={this.state.recurringRunsManagerOpen} classes={{ paper: css.recurringRunsDialog }}
               onClose={this._recurringRunsManagerClosed.bind(this)}>
               <DialogContent>
-                <RecurringRunsManager {...this.props}
+                <RecurringRunsManager {...sanitizeProps(this.props)}
                   experimentId={this.props.match.params[RouteParams.experimentId]} />
               </DialogContent>
               <DialogActions>

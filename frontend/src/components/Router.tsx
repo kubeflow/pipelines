@@ -36,6 +36,7 @@ import Toolbar, { ToolbarProps } from './Toolbar';
 import { Route, Switch, Redirect, HashRouter } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss } from '../Css';
+import { sanitizeProps } from '../lib/Utils';
 
 const css = stylesheet({
   dialog: {
@@ -88,7 +89,11 @@ class Router extends React.Component<{}, RouteComponentState> {
       bannerProps: {},
       dialogProps: { open: false },
       snackbarProps: { autoHideDuration: 5000, open: false },
-      toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: [], ...props },
+      toolbarProps: {
+        actions: [],
+        breadcrumbs: [{ displayName: '', href: '' }],
+        ...sanitizeProps(props)
+      },
     };
   }
 
@@ -118,9 +123,11 @@ class Router extends React.Component<{}, RouteComponentState> {
       <HashRouter>
         <div className={commonCss.page}>
           <div className={commonCss.flexGrow}>
-            <Route render={({ ...props }) => (<SideNav page={props.location.pathname} {...props} />)} />
+            <Route render={({ ...props }) =>
+              (<SideNav page={props.location.pathname} {...sanitizeProps(props)} />)} />
             <div className={classes(commonCss.page)}>
-              <Route render={({ ...props }) => (<Toolbar {...this.state.toolbarProps} {...props} />)} />
+              <Route render={({ ...props }) =>
+                (<Toolbar {...sanitizeProps(this.state.toolbarProps)} {...sanitizeProps(props)} />)} />
               {this.state.bannerProps.message
                 && <Banner
                   message={this.state.bannerProps.message}
@@ -128,13 +135,13 @@ class Router extends React.Component<{}, RouteComponentState> {
                   additionalInfo={this.state.bannerProps.additionalInfo}
                   refresh={this.state.bannerProps.refresh} />}
               <Switch>
-                <Route exact={true} path={'/'} render={({ ...props }) => (
-                  <Redirect to={RoutePage.PIPELINES} {...props} />
-                )} />
+                <Route exact={true} path={'/'} render={({ ...props }) =>
+                  (<Redirect to={RoutePage.PIPELINES} {...sanitizeProps(props)} />)} />
                 {routes.map((route, i) => {
                   const { path, Component, ...otherProps } = { ...route };
                   return <Route key={i} exact={true} path={path} render={({ ...props }) => (
-                    <Component {...props} {...childProps} {...otherProps} />
+                    <Component {...sanitizeProps(props)} {...sanitizeProps(childProps)}
+                      {...sanitizeProps(otherProps)} />
                   )} />;
                 })}
               </Switch>

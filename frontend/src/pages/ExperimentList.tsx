@@ -29,7 +29,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, sanitizeProps } from '../lib/Utils';
 import { statusToIcon, NodePhase } from './Status';
 
 interface DisplayExperiment extends ApiExperiment {
@@ -241,7 +241,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   private _getExpandedExperimentComponent(experimentIndex: number): JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
     const runIds = (experiment.last5Runs || []).map((r) => r.id!);
-    return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
+    return <RunList runIdListMask={runIds} onError={() => null} {...sanitizeProps(this.props)}
       disablePaging={true} selectedIds={this.state.selectedRunIds}
       onSelectionChange={this._runSelectionChanged.bind(this)} disableSorting={true} />;
   }

@@ -17,6 +17,7 @@
 import * as React from 'react';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import { commonCss } from '../Css';
+import { sanitizeProps } from '../lib/Utils';
 
 interface InputProps extends TextFieldProps {
   height?: number | string;
@@ -31,7 +32,7 @@ export default (props: InputProps) => {
           height: !!props.multiline ? 'auto' : (height || 40),
           maxWidth: 600,
           width: width || '100%' }}
-        {...rest}>
+        {...sanitizeProps(rest)}>
       {props.children}
     </TextField>
   );

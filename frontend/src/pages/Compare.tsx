@@ -37,7 +37,7 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
-import { logger } from '../lib/Utils';
+import { logger, sanitizeProps } from '../lib/Utils';
 
 const css = stylesheet({
   outputsRow: {
@@ -121,7 +121,7 @@ class Compare extends Page<{}, CompareState> {
       <CollapseButton compareComponent={this} sectionName={overviewSectionName} />
       {!collapseSections[overviewSectionName] && (
         <div className={commonCss.noShrink}>
-          <RunList onError={this.showPageError.bind(this)} {...this.props}
+          <RunList onError={this.showPageError.bind(this)} {...sanitizeProps(this.props)}
             selectedIds={selectedIds} runIdListMask={runIds} disablePaging={true}
             onSelectionChange={this._selectionChanged.bind(this)} />
         </div>
@@ -134,7 +134,7 @@ class Compare extends Page<{}, CompareState> {
       {!collapseSections[paramsSectionName] && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
-          <CompareTable {...this.state.paramsCompareProps} />
+          <CompareTable {...sanitizeProps(this.state.paramsCompareProps)} />
           <Hr />
         </div>
       )}
