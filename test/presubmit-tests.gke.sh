@@ -40,7 +40,7 @@ machine_type=n1-standard-2
 num_nodes=3
 
 # activating the service account
-gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 
 function delete_cluster {
     echo "Delete cluster..."
