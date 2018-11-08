@@ -87,7 +87,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         title: 'Refresh',
         tooltip: 'Refresh the list of experiments',
       }],
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      breadcrumbs: [{ displayName: 'Experiments', href: '' }],
     };
   }
 

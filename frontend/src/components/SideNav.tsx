@@ -184,9 +184,9 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
           <Button className={
             classes(
               css.button,
-              page.startsWith(RoutePage.EXPERIMENTS) && css.active,
+              this._highlightExperimentsButton(page) && css.active,
               collapsed && css.collapsedButton)}>
-            <ExperimentsIcon color={page.startsWith(RoutePage.EXPERIMENTS) ? iconColor.active : iconColor.inactive} />
+            <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
             <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
           </Button>
         </Link>
@@ -207,6 +207,15 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
         </IconButton>
       </div >
     );
+  }
+
+  private _highlightExperimentsButton(page: string): boolean {
+    return page.startsWith(RoutePage.EXPERIMENTS)
+      || page.startsWith(RoutePage.RUNS)
+      // TODO: Router should have a constant for this, but it doesn't follow the naming convention
+      // of the other pages
+      || page.startsWith('/recurringrun')
+      || page.startsWith(RoutePage.COMPARE);
   }
 
   private _toggleNavClicked() {
