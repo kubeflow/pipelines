@@ -42,12 +42,12 @@ func NewPipelineUploadCmd(root *RootCommand) *cobra.Command {
 			if name != "" {
 				params.Name = &name
 			}
-			_, err := root.PipelineUploadClient().UploadFile(filename, params)
+			pipeline, err := root.PipelineUploadClient().UploadFile(filename, params)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
 
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "")
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pipeline)
 			return nil
 		},
 	}
@@ -91,7 +91,7 @@ func NewPipelineCreateCmd(root *RootCommand) *cobra.Command {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
 
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pkg)
 			return nil
 		},
 	}
@@ -122,7 +122,7 @@ func NewPipelineGetCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pkg)
 			return nil
 		},
 	}
@@ -158,7 +158,7 @@ func NewPipelineListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), results)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), results)
 			return nil
 		},
 	}
@@ -191,7 +191,7 @@ func NewPipelineDeleteCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "")
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), "")
 			return nil
 		},
 	}
@@ -222,7 +222,7 @@ func NewPipelineGetTemplateCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), workflow)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), workflow)
 			return nil
 		},
 	}
