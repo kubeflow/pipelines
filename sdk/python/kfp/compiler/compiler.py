@@ -16,12 +16,13 @@
 from collections import defaultdict
 import copy
 import inspect
-import kfp.dsl as dsl
 import re
 import string
 import tarfile
 import tempfile
 import yaml
+
+from .. import dsl
 
 
 class Compiler(object):
