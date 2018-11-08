@@ -34,11 +34,4 @@ describe('Input', () => {
     const tree = shallow(<Input height={123} width={456} onChange={handleChange('fieldname')} value={value} />);
     expect(toJson(tree)).toMatchSnapshot();
   });
-
-  it('calls the instance handleChange function if defined', () => {
-    handleChange.mockClear();
-    const tree = shallow(<Input onChange={handleChange('fieldname')} value={value} />);
-    tree.simulate('change');
-    expect(handleChange).toHaveBeenCalledWith('fieldname');
-  });
 });

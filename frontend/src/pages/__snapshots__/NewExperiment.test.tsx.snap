@@ -31,7 +31,6 @@ exports[`NewExperiment Enables the 'Next' button when an experiment name is ente
       value="experiment name"
     />
     <Component
-      height="auto"
       id="experimentDescription"
       label="Description (optional)"
       multiline={true}
@@ -94,7 +93,6 @@ exports[`NewExperiment Re-disables the 'Next' button when an experiment name is 
       value=""
     />
     <Component
-      height="auto"
       id="experimentDescription"
       label="Description (optional)"
       multiline={true}
@@ -159,7 +157,6 @@ exports[`NewExperiment renders the new experiment page 1`] = `
       value=""
     />
     <Component
-      height="auto"
       id="experimentDescription"
       label="Description (optional)"
       multiline={true}

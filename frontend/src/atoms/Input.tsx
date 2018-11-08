@@ -27,7 +27,11 @@ export default (props: InputProps) => {
   const { height, width, ...rest } = props;
   return (
     <TextField variant='outlined' className={commonCss.textField} spellCheck={false}
-        style={{ height: height || 40, maxWidth: 600, width: width || '100%' }} {...rest}>
+        style={{
+          height: !!props.multiline ? 'auto' : (height || 40),
+          maxWidth: 600,
+          width: width || '100%' }}
+        {...rest}>
       {props.children}
     </TextField>
   );

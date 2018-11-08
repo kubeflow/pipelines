@@ -111,8 +111,9 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
             onChange={this.handleChange('uploadPipelineName')}
             required={true} value={uploadPipelineName} />
 
-          {/* <Input label='Pipeline description' onChange={this.handleChange('uploadPipelineName')}
-            value={uploadPipelineDescription} multiline={true} height='auto' /> */}
+          {/* <Input label='Pipeline description'
+            onChange={this.handleChange('uploadPipelineDescription')}
+            value={uploadPipelineDescription} multiline={true} /> */}
         </Dropzone>
 
         <DialogActions>

@@ -148,7 +148,7 @@ class NewRun extends Page<{}, NewRunState> {
           <Input label='Run name' required={true} onChange={this.handleChange('runName')}
             autoFocus={true} value={runName} />
           <Input label='Description (optional)' multiline={true}
-            onChange={this.handleChange('description')} value={description} height='auto' />
+            onChange={this.handleChange('description')} value={description} />
 
           {experimentName && (
             <div>
