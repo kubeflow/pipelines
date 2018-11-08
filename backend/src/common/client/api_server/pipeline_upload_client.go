@@ -65,7 +65,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.PipelineUploadService.UploadPipeline(parameters, PassThroughAuth)
 

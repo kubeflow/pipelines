@@ -47,7 +47,7 @@ func (c *RunClient) Get(parameters *params.GetRunParams) (*model.APIRunDetail,
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.RunService.GetRun(parameters, PassThroughAuth)
 	if err != nil {
@@ -81,7 +81,7 @@ func (c *RunClient) List(parameters *params.ListRunsParams) (
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.RunService.ListRuns(parameters, PassThroughAuth)
 

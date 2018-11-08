@@ -14,6 +14,7 @@ import (
 )
 
 type jobCreateParams struct {
+	name           string
 	description    string
 	disable        bool
 	maxConcurrency int64
@@ -53,6 +54,7 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 		err       error
 	)
 	const (
+		flagNameName           = "name"
 		flagNameDescription    = "description"
 		flagNameDisable        = "disable"
 		flagNameMaxConcurrency = "max-concurrency"
@@ -64,16 +66,16 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 		flagNamePeriod         = "period"
 	)
 	var command = &cobra.Command{
-		Use:   "create NAME",
+		Use:   "create",
 		Short: "Create a job",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			// Validate existence and value of arguments
-			validated.name, err = ValidateSingleString(args, "NAME")
+			_, err := ValidateArgumentCount(args, 0)
 			if err != nil {
 				return err
 			}
+			validated.name = raw.name               // Validation in API Server
 			validated.description = raw.description // Validation in API Server
 			validated.enabled = !raw.disable        // No validation needed
 			validated.maxConcurrency, err = ValidateInt64Min(raw.maxConcurrency, 1,
@@ -123,6 +125,8 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 	}
 
 	// Flags
+	command.PersistentFlags().StringVar(&raw.name, flagNameName,
+		"default", "The name of the job")
 	command.PersistentFlags().StringVar(&raw.description, flagNameDescription,
 		"No description provided", "A description of the job")
 	command.PersistentFlags().BoolVar(&raw.disable, flagNameDisable, false,
@@ -202,16 +206,18 @@ func toAPIParameters(params map[string]string) []*model.APIParameter {
 
 func NewJobGetCmd(root *RootCommand) *cobra.Command {
 	var (
-		id  string
-		err error
+		id string
+	)
+	const (
+		flagNameID = "id"
 	)
 	var command = &cobra.Command{
-		Use:   "get ID",
+		Use:   "get",
 		Short: "Display a job",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			id, err = ValidateSingleString(args, "ID")
+			_, err := ValidateArgumentCount(args, 0)
 			return err
 		},
 
@@ -227,6 +233,9 @@ func NewJobGetCmd(root *RootCommand) *cobra.Command {
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&id, flagNameID,
+		"", "The id of the job")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 }
@@ -274,13 +283,16 @@ func NewJobEnableCmd(root *RootCommand) *cobra.Command {
 		id  string
 		err error
 	)
+	const (
+		flagNameID = "id"
+	)
 	var command = &cobra.Command{
-		Use:   "enable ID",
+		Use:   "enable",
 		Short: "Enable a job",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			id, err = ValidateSingleString(args, "ID")
+			_, err := ValidateArgumentCount(args, 0)
 			return err
 		},
 
@@ -296,6 +308,9 @@ func NewJobEnableCmd(root *RootCommand) *cobra.Command {
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&id, flagNameID,
+		"", "The id of the job")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 }
@@ -305,13 +320,16 @@ func NewJobDisableCmd(root *RootCommand) *cobra.Command {
 		id  string
 		err error
 	)
+	const (
+		flagNameID = "id"
+	)
 	var command = &cobra.Command{
-		Use:   "disable ID",
+		Use:   "disable",
 		Short: "Disable a job",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			id, err = ValidateSingleString(args, "ID")
+			_, err := ValidateArgumentCount(args, 0)
 			return err
 		},
 
@@ -327,6 +345,9 @@ func NewJobDisableCmd(root *RootCommand) *cobra.Command {
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&id, flagNameID,
+		"", "The id of the job")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 }
@@ -336,13 +357,16 @@ func NewJobDeleteCmd(root *RootCommand) *cobra.Command {
 		id  string
 		err error
 	)
+	const (
+		flagNameID = "id"
+	)
 	var command = &cobra.Command{
-		Use:   "delete ID",
+		Use:   "delete",
 		Short: "Delete a job",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			id, err = ValidateSingleString(args, "ID")
+			_, err := ValidateArgumentCount(args, 0)
 			return err
 		},
 
@@ -358,6 +382,9 @@ func NewJobDeleteCmd(root *RootCommand) *cobra.Command {
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&id, flagNameID,
+		"", "The id of the job")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 }
