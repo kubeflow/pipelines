@@ -249,7 +249,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                   ['Duration', getRunTime(workflow)],
                 ]} />
 
-                {workflowParameters && workflowParameters.length && (<div>
+                {workflowParameters && !!workflowParameters.length && (<div>
                   <div className={commonCss.header}>Run parameters</div>
                   <DetailsTable fields={workflowParameters.map(p => [p.name, p.value || ''])} />
                 </div>)}
