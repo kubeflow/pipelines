@@ -51,10 +51,6 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		Experiment: experiment,
 	})
 	assert.Nil(t, err)
-	println(" trainingExperiment.CreatedAt.GetSeconds()")
-	println(trainingExperiment.CreatedAt.GetSeconds())
-	println("requestStartTime")
-	println(requestStartTime)
 	assert.True(t, trainingExperiment.CreatedAt.GetSeconds() >= requestStartTime)
 	expectedTrainingExperiment := &api.Experiment{
 		Id: trainingExperiment.Id, Name: experiment.Name,
@@ -68,12 +64,12 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	/* ---------- Create a few more new experiment ---------- */
 	// 1 second interval. This ensures they can be sorted by create time in expected order.
-	time.Sleep(1)
+	time.Sleep(1 * time.Second)
 	experiment = &api.Experiment{Name: "prediction", Description: "my second experiment"}
 	predictionExperiment, err := s.experimentClient.CreateExperiment(ctx, &api.CreateExperimentRequest{
 		Experiment: experiment,
 	})
-	time.Sleep(1)
+	time.Sleep(1 * time.Second)
 	experiment = &api.Experiment{Name: "moonshot", Description: "my second experiment"}
 	moonshotExperiment, err := s.experimentClient.CreateExperiment(ctx, &api.CreateExperimentRequest{
 		Experiment: experiment,

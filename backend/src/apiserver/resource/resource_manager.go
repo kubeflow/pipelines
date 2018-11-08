@@ -92,6 +92,14 @@ func (r *ResourceManager) ListExperiments(context *common.PaginationContext) (
 	return r.experimentStore.ListExperiments(context)
 }
 
+func (r *ResourceManager) DeleteExperiment(experimentID string) error {
+	_, err := r.experimentStore.GetExperiment(experimentID)
+	if err != nil {
+		return util.Wrap(err, "Delete experiment failed")
+	}
+	return r.experimentStore.DeleteExperiment(experimentID)
+}
+
 func (r *ResourceManager) ListPipelines(context *common.PaginationContext) (
 	pipelines []model.Pipeline, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(context)
@@ -219,6 +227,22 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 
 func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, paginationContext *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
 	return r.runStore.ListRuns(filterContext, paginationContext)
+}
+
+func (r *ResourceManager) DeleteRun(runID string) error {
+	runDetail, err := r.checkRunExist(runID)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+	err = r.workflowClient.Delete(runDetail.Name, &v1.DeleteOptions{})
+	if err != nil {
+		return util.NewInternalServerError(err, "Delete run CRD failed.")
+	}
+	err = r.runStore.DeleteRun(runID)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+	return nil
 }
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, context *common.PaginationContext) (jobs []model.Job, nextPageToken string, err error) {
@@ -389,6 +413,24 @@ func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 		return nil, util.NewResourceNotFoundError("job", job.Name)
 	}
 	return job, nil
+}
+
+// checkRunExist The Kubernetes API doesn't support CRUD by UID. This method
+// retrieve the run metadata from the database, then retrieve the CRD
+// using the run name, and compare the given run id is same as the CRD.
+func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) {
+	runDetail, err := r.runStore.GetRun(runID)
+	if err != nil {
+		return nil, util.Wrap(err, "Check run exist failed")
+	}
+	workflow, err := r.workflowClient.Get(runDetail.Name, v1.GetOptions{})
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Check run exist failed")
+	}
+	if workflow == nil || string(workflow.UID) != runID {
+		return nil, util.NewResourceNotFoundError("run", runDetail.Name)
+	}
+	return runDetail, nil
 }
 
 func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, error) {

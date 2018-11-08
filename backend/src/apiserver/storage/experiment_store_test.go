@@ -280,3 +280,34 @@ func TestCreateExperiment_CreateUUIDFailure(t *testing.T) {
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Failed to create an experiment id")
 }
+
+func TestDeleteExperiment(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore.CreateExperiment(createExperiment("experiment1"))
+	experiment, err := experimentStore.GetExperiment(fakeID)
+	assert.Nil(t, err)
+	assert.NotNil(t, experiment)
+
+	err = experimentStore.DeleteExperiment(fakeID)
+	assert.Nil(t, err)
+	_, err = experimentStore.GetExperiment(fakeID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteExperiment_InternalError(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore.CreateExperiment(createExperiment("experiment1"))
+	experiment, err := experimentStore.GetExperiment(fakeID)
+	assert.Nil(t, err)
+	assert.NotNil(t, experiment)
+
+	db.Close()
+	err = experimentStore.DeleteExperiment(fakeID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
+		"Expected delete experiment to return internal error")
+}

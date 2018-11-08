@@ -34,7 +34,7 @@ type FakeClientManager struct {
 	runStore                    storage.RunStoreInterface
 	resourceReferenceStore      storage.ResourceReferenceStoreInterface
 	objectStore                 storage.ObjectStoreInterface
-	workflowClientFake          *storage.FakeWorkflowClient
+	workflowClientFake          *FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
@@ -63,7 +63,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
 		runStore:                    storage.NewRunStore(db, time),
-		workflowClientFake:          storage.NewWorkflowClientFake(),
+		workflowClientFake:          NewWorkflowClientFake(),
 		resourceReferenceStore:      storage.NewResourceReferenceStore(db),
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),

@@ -67,6 +67,10 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 }
 
 func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.DeleteRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
 	return &empty.Empty{}, nil
 }
 

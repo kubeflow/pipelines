@@ -90,6 +90,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Contains(t, err.Error(), "Please specify a new name.")
 
 	/* ---------- Import pipeline YAML by URL ---------- */
+	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.CreatePipeline(
 		ctx, &api.CreatePipelineRequest{
 			Url:  &api.Url{PipelineUrl: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"},
@@ -98,6 +99,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
 
 	/* ---------- Upload pipelines tarball ---------- */
+	time.Sleep(1 * time.Second)
 	pipelineBody, writer = uploadPipelineFileOrFail("resources/arguments.tar.gz")
 	response, err = clientSet.RESTClient().Post().
 		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
@@ -110,6 +112,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
+	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.CreatePipeline(
 		ctx, &api.CreatePipelineRequest{
 			Url:  &api.Url{PipelineUrl: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.tar.gz"},
