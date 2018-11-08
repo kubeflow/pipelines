@@ -58,7 +58,7 @@ done
 BASE_DIR=/ml
 
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
-git clone git@github.com:kubeflow/pipelines.git ${BASE_DIR}
+git clone https://github.com/kubeflow/pipelines ${BASE_DIR}
 cd ${BASE_DIR}
 git checkout ${COMMIT_SHA}
 

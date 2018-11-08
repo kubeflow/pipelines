@@ -110,7 +110,7 @@ GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/python/src/github.com/${GITHUB_REPO}
 
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
-git clone git@github.com:${GITHUB_REPO}.git ${BASE_DIR}
+git clone https://github.com/${GITHUB_REPO} ${BASE_DIR}
 cd ${BASE_DIR}
 git checkout ${COMMIT_SHA}
 
