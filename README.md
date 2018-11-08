@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/kubeflow/pipelines.svg?token=JjfzFsYGxZwkHvXFCpwt&branch=master)](https://travis-ci.com/kubeflow/pipelines)
+[![Build Status](https://travis-ci.com/kubeflow/pipelines.svg?branch=master)](https://travis-ci.com/kubeflow/pipelines)
 
 ## Overview of the Kubeflow pipelines service
 
