@@ -5692,7 +5692,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         "refs": Object {},
         "setState": [Function],
         "state": Object {
-          "cron": "",
+          "cron": "0 * * * * ?",
           "editCron": false,
           "endDate": "2018-12-21",
           "endTime": "07:53",
@@ -5721,7 +5721,29 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
             "_element": <Trigger />,
             "_forcedUpdate": false,
             "_instance": [Circular],
-            "_newState": null,
+            "_newState": Object {
+              "cron": "0 * * * * ?",
+              "editCron": false,
+              "endDate": "2018-12-21",
+              "endTime": "07:53",
+              "hasEndDate": false,
+              "hasStartDate": false,
+              "intervalCategory": "Minute",
+              "intervalValue": 1,
+              "maxConcurrentRuns": "10",
+              "selectedDays": Array [
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+              ],
+              "startDate": "2018-12-21",
+              "startTime": "07:53",
+              "type": 0,
+            },
             "_rendered": <div>
               <Unknown
                 field="type"
@@ -5917,7 +5939,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
           "refs": Object {},
           "setState": [Function],
           "state": Object {
-            "cron": "",
+            "cron": "0 * * * * ?",
             "editCron": false,
             "endDate": "2018-12-21",
             "endTime": "07:53",
@@ -5946,7 +5968,29 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
               "_element": <Trigger />,
               "_forcedUpdate": false,
               "_instance": [Circular],
-              "_newState": null,
+              "_newState": Object {
+                "cron": "0 * * * * ?",
+                "editCron": false,
+                "endDate": "2018-12-21",
+                "endTime": "07:53",
+                "hasEndDate": false,
+                "hasStartDate": false,
+                "intervalCategory": "Minute",
+                "intervalValue": 1,
+                "maxConcurrentRuns": "10",
+                "selectedDays": Array [
+                  true,
+                  true,
+                  true,
+                  true,
+                  true,
+                  true,
+                  true,
+                ],
+                "startDate": "2018-12-21",
+                "startTime": "07:53",
+                "type": 0,
+              },
               "_rendered": <div>
                 <Unknown
                   field="type"
@@ -6140,7 +6184,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
             "refs": Object {},
             "setState": [Function],
             "state": Object {
-              "cron": "",
+              "cron": "0 * * * * ?",
               "editCron": false,
               "endDate": "2018-12-21",
               "endTime": "07:53",
@@ -6169,7 +6213,29 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
                 "_element": <Trigger />,
                 "_forcedUpdate": false,
                 "_instance": [Circular],
-                "_newState": null,
+                "_newState": Object {
+                  "cron": "0 * * * * ?",
+                  "editCron": false,
+                  "endDate": "2018-12-21",
+                  "endTime": "07:53",
+                  "hasEndDate": false,
+                  "hasStartDate": false,
+                  "intervalCategory": "Minute",
+                  "intervalValue": 1,
+                  "maxConcurrentRuns": "10",
+                  "selectedDays": Array [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                  ],
+                  "startDate": "2018-12-21",
+                  "startTime": "07:53",
+                  "type": 0,
+                },
                 "_rendered": <div>
                   <Unknown
                     field="type"
@@ -6357,7 +6423,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
             "refs": Object {},
             "setState": [Function],
             "state": Object {
-              "cron": "",
+              "cron": "0 * * * * ?",
               "editCron": false,
               "endDate": "2018-12-21",
               "endTime": "07:53",
@@ -6386,7 +6452,29 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
                 "_element": <Trigger />,
                 "_forcedUpdate": false,
                 "_instance": [Circular],
-                "_newState": null,
+                "_newState": Object {
+                  "cron": "0 * * * * ?",
+                  "editCron": false,
+                  "endDate": "2018-12-21",
+                  "endTime": "07:53",
+                  "hasEndDate": false,
+                  "hasStartDate": false,
+                  "intervalCategory": "Minute",
+                  "intervalValue": 1,
+                  "maxConcurrentRuns": "10",
+                  "selectedDays": Array [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                  ],
+                  "startDate": "2018-12-21",
+                  "startTime": "07:53",
+                  "type": 0,
+                },
                 "_rendered": <div>
                   <Unknown
                     field="type"
@@ -6587,7 +6675,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
             "refs": Object {},
             "setState": [Function],
             "state": Object {
-              "cron": "",
+              "cron": "0 * * * * ?",
               "editCron": false,
               "endDate": "2018-12-21",
               "endTime": "07:53",
@@ -6616,7 +6704,29 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
                 "_element": <Trigger />,
                 "_forcedUpdate": false,
                 "_instance": [Circular],
-                "_newState": null,
+                "_newState": Object {
+                  "cron": "0 * * * * ?",
+                  "editCron": false,
+                  "endDate": "2018-12-21",
+                  "endTime": "07:53",
+                  "hasEndDate": false,
+                  "hasStartDate": false,
+                  "intervalCategory": "Minute",
+                  "intervalValue": 1,
+                  "maxConcurrentRuns": "10",
+                  "selectedDays": Array [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                  ],
+                  "startDate": "2018-12-21",
+                  "startTime": "07:53",
+                  "type": 0,
+                },
                 "_rendered": <div>
                   <Unknown
                     field="type"
@@ -6804,7 +6914,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
             "refs": Object {},
             "setState": [Function],
             "state": Object {
-              "cron": "",
+              "cron": "0 * * * * ?",
               "editCron": false,
               "endDate": "2018-12-21",
               "endTime": "07:53",
@@ -6833,7 +6943,29 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
                 "_element": <Trigger />,
                 "_forcedUpdate": false,
                 "_instance": [Circular],
-                "_newState": null,
+                "_newState": Object {
+                  "cron": "0 * * * * ?",
+                  "editCron": false,
+                  "endDate": "2018-12-21",
+                  "endTime": "07:53",
+                  "hasEndDate": false,
+                  "hasStartDate": false,
+                  "intervalCategory": "Minute",
+                  "intervalValue": 1,
+                  "maxConcurrentRuns": "10",
+                  "selectedDays": Array [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                  ],
+                  "startDate": "2018-12-21",
+                  "startTime": "07:53",
+                  "type": 0,
+                },
                 "_rendered": <div>
                   <Unknown
                     field="type"
@@ -7031,7 +7163,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
               "refs": Object {},
               "setState": [Function],
               "state": Object {
-                "cron": "",
+                "cron": "0 * * * * ?",
                 "editCron": false,
                 "endDate": "2018-12-21",
                 "endTime": "07:53",
@@ -7060,7 +7192,29 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
                   "_element": <Trigger />,
                   "_forcedUpdate": false,
                   "_instance": [Circular],
-                  "_newState": null,
+                  "_newState": Object {
+                    "cron": "0 * * * * ?",
+                    "editCron": false,
+                    "endDate": "2018-12-21",
+                    "endTime": "07:53",
+                    "hasEndDate": false,
+                    "hasStartDate": false,
+                    "intervalCategory": "Minute",
+                    "intervalValue": 1,
+                    "maxConcurrentRuns": "10",
+                    "selectedDays": Array [
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                      true,
+                    ],
+                    "startDate": "2018-12-21",
+                    "startTime": "07:53",
+                    "type": 0,
+                  },
                   "_rendered": <div>
                     <Unknown
                       field="type"
@@ -7245,7 +7399,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
             "refs": Object {},
             "setState": [Function],
             "state": Object {
-              "cron": "",
+              "cron": "0 * * * * ?",
               "editCron": false,
               "endDate": "2018-12-21",
               "endTime": "07:53",
@@ -7274,7 +7428,29 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
                 "_element": <Trigger />,
                 "_forcedUpdate": false,
                 "_instance": [Circular],
-                "_newState": null,
+                "_newState": Object {
+                  "cron": "0 * * * * ?",
+                  "editCron": false,
+                  "endDate": "2018-12-21",
+                  "endTime": "07:53",
+                  "hasEndDate": false,
+                  "hasStartDate": false,
+                  "intervalCategory": "Minute",
+                  "intervalValue": 1,
+                  "maxConcurrentRuns": "10",
+                  "selectedDays": Array [
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                  ],
+                  "startDate": "2018-12-21",
+                  "startTime": "07:53",
+                  "type": 0,
+                },
                 "_rendered": <div>
                   <Unknown
                     field="type"

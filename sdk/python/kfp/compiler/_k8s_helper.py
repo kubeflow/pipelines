@@ -13,8 +13,11 @@
 # limitations under the License.
 
 from datetime import datetime
+from kubernetes import client as k8s_client
+from kubernetes import config
 import time
 import logging
+
 
 class K8sHelper(object):
   """ Kubernetes Helper """
@@ -24,12 +27,6 @@ class K8sHelper(object):
       raise Exception('K8sHelper __init__ failure')
 
   def _configure_k8s(self):
-    try:
-      from kubernetes import client as k8s_client
-      from kubernetes import config
-    except ImportError:
-      logging.error('Kubernetes client is not installed')
-      return False
     config.load_incluster_config()
     self._api_client = k8s_client.ApiClient()
     self._corev1 = k8s_client.CoreV1Api(self._api_client)
@@ -37,12 +34,6 @@ class K8sHelper(object):
 
   def _create_k8s_job(self, yaml_spec):
     """ _create_k8s_job creates a kubernetes job based on the yaml spec """
-    try:
-      from kubernetes import client as k8s_client
-      from kubernetes import config
-    except ImportError:
-      logging.error('Kubernetes client is not installed')
-      return '', False
     pod = k8s_client.V1Pod(metadata=k8s_client.V1ObjectMeta(generate_name=yaml_spec['metadata']['generateName']))
     container = k8s_client.V1Container(name = yaml_spec['spec']['containers'][0]['name'],
                                        image= yaml_spec['spec']['containers'][0]['image'],
@@ -59,12 +50,6 @@ class K8sHelper(object):
 
   def _wait_for_k8s_job(self, pod_name, yaml_spec, timeout):
     """ _wait_for_k8s_job waits for the job to complete """
-    try:
-      from kubernetes import client as k8s_client
-      from kubernetes import config
-    except ImportError:
-      logging.error('Kubernetes client is not installed')
-      return False
     status = 'running'
     start_time = datetime.now()
     while status in ['pending', 'running']:
@@ -86,23 +71,11 @@ class K8sHelper(object):
   def _delete_k8s_job(self, pod_name, yaml_spec):
     """ _delete_k8s_job deletes a pod """
     try:
-      from kubernetes import client as k8s_client
-      from kubernetes import config
-    except ImportError:
-      logging.error('Kubernetes client is not installed')
-      return False
-    try:
       api_response = self._corev1.delete_namespaced_pod(pod_name, yaml_spec['metadata']['namespace'], k8s_client.V1DeleteOptions())
     except k8s_client.rest.ApiException as e:
       logging.exception('Exception when calling CoreV1Api->delete_namespaced_pod: {}\n'.format(str(e)))
 
   def _read_pod_log(self, pod_name, yaml_spec):
-    try:
-      from kubernetes import client as k8s_client
-      from kubernetes import config
-    except ImportError:
-      logging.error('Kubernetes client is not installed')
-      return False
     try:
       api_response = self._corev1.read_namespaced_pod_log(pod_name, yaml_spec['metadata']['namespace'])
     except k8s_client.rest.ApiException as e:
