@@ -72,7 +72,7 @@
               "---",
               "apiVersion: ambassador/v0",
               "kind:  Mapping",
-              "name: pipelineui-mapping",
+              "name: pipeline-tensorboard-ui-mapping",
               "prefix: /data",
               "rewrite: /data",
               "timeout_ms: 300000",
