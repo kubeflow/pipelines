@@ -70,11 +70,6 @@ if [ "$(whoami)" == root ]; then
   export USER=not-root
 fi
 
-#Copy the ssh keys
-ssh_key_file=${ssh_key_file:-/etc/ssh-knative/ssh-knative}
-gcloud compute ssh --zone=$ZONE $instance_name -- 'sudo mkdir -m 777 -p /etc/ssh-knative' #Making the directory writable by a non-root user so that we can copy the file
-gcloud compute scp --zone=$ZONE "$ssh_key_file" $instance_name:/etc/ssh-knative/ssh-knative
-
 #Copy repo
 git_root=$(git rev-parse --show-toplevel)
 git_root_parent=$(dirname "$git_root")
