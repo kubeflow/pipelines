@@ -32,7 +32,7 @@ export function _routePathWithReferer(proxyPrefix: string, path: string, referer
   // just trim out the /_proxy/ prefix. Use the origin of the resulting URL.
   const proxiedUrlInReferer = _extractUrlFromReferer(proxyPrefix, referer);
   let decodedPath =
-      decodeURIComponent(proxiedUrlInReferer || _trimProxyPrefix(proxyPrefix, path));
+    decodeURIComponent(proxiedUrlInReferer || _trimProxyPrefix(proxyPrefix, path));
   if (!decodedPath.startsWith('http://') && !decodedPath.startsWith('https://')) {
     decodedPath = 'http://' + decodedPath;
   }
@@ -57,8 +57,11 @@ export default (app: express.Application, apisPrefix: string) => {
     if (req.headers.referer) {
       const refererUrl = _extractUrlFromReferer(proxyPrefix, req.headers.referer as string);
       if (refererUrl && req.url.indexOf(proxyPrefix) !== 0) {
-        const proxiedUrl = decodeURIComponent(
-            _extractUrlFromReferer(proxyPrefix, req.headers.referer as string));
+        let proxiedUrl = decodeURIComponent(
+          _extractUrlFromReferer(proxyPrefix, req.headers.referer as string));
+        if (!proxiedUrl.startsWith('http://') && !proxiedUrl.startsWith('https://')) {
+          proxiedUrl = 'http://' + proxiedUrl;
+        }
         const proxiedOrigin = new URL(proxiedUrl).origin;
         req.url = proxyPrefix + encodeURIComponent(proxiedOrigin + req.url);
       }
