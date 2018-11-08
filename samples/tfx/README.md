@@ -1,4 +1,4 @@
-This sample runs a pipeline with tensorflow transform and model-analysis components.
+The `taxi-cab-classification-pipeline.py` sample runs a pipeline with TensorFlow's transform and model-analysis components.
 
 ## The dataset
 
@@ -25,28 +25,26 @@ Preprocessing and model analysis use [Apache Beam](https://beam.apache.org/).
 
 When run with the `cloud` mode (instead of the `local` mode), those steps use [Google Cloud DataFlow](https://beam.apache.org/) for running the Beam pipelines.
 
-As such, the DataFlow API needs to be enabled for the given project if you want to use `cloud` as the mode for either preprocessing or analysis.
-
-Instructions for enabling that can be found [here](https://cloud.google.com/endpoints/docs/openapi/enable-api).
+Therefore, you must enable the DataFlow API for the given GCP project if you want to use `cloud` as the mode for either preprocessing or analysis. See the [guide to enabling the DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api).
 
 ## Compiling the pipeline template
 
-Follow [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/README.md) to install the compiler and then run the following to compile the pipeline:
+Follow the guide to [building a pipeline](https://github.com/kubeflow/pipelines/wiki/Build-a-Pipeline) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
 
 ```bash
 dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
 ```
 
-## Deploying a pipeline
+## Deploying the pipeline
 
-Open the ML pipeline UI. Create a new pipeline, and then upload the compiled YAML file as a new pipeline template.
+Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compiled specification (`.tar.gz` file) as a new pipeline template.
 
-The pipeline will require two arguments:
+The pipeline requires two arguments:
 
 1. The name of a GCP project.
-2. An output directory in a GCS bucket, of the form `gs://<BUCKET>/<PATH>`.
+2. An output directory in a Google Cloud Storage bucket, of the form `gs://<BUCKET>/<PATH>`.
 
-## Components Source
+## Components source
 
 Preprocessing:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft) 
