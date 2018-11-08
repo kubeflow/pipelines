@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"io"
 	"os"
 
@@ -20,10 +21,12 @@ type ClientFactoryInterface interface {
 		client.RunInterface, error)
 	Time() util.TimeInterface
 	Writer() io.Writer
+	Result() string
 }
 
 type ClientFactory struct {
 	time   util.TimeInterface
+	buffer *bytes.Buffer
 	writer io.Writer
 }
 
@@ -31,6 +34,15 @@ func NewClientFactory() *ClientFactory {
 	return &ClientFactory{
 		time:   util.NewRealTime(),
 		writer: os.Stdout,
+	}
+}
+
+func NewClientFactoryWithByteBuffer() *ClientFactory {
+	buffer := new(bytes.Buffer)
+	return &ClientFactory{
+		time:   util.NewRealTime(),
+		buffer: buffer,
+		writer: buffer,
 	}
 }
 
@@ -60,4 +72,11 @@ func (f *ClientFactory) Time() util.TimeInterface {
 
 func (f *ClientFactory) Writer() io.Writer {
 	return f.writer
+}
+
+func (f *ClientFactory) Result() string {
+	if f.buffer == nil {
+		return "The writer is set to 'os.Stdout'. The result is not recorded."
+	}
+	return (*f.buffer).String()
 }

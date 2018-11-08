@@ -10,14 +10,13 @@ import (
 )
 
 func TestGetRun(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "get", "--no-color",
+	rootCmd, factory := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"run", "get",
 		fmt.Sprintf("%v", client.RunForDefaultTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 
 	expected := `
-SUCCESS
 pipeline_runtime: {}
 run:
   created_at: "1970-01-01T00:00:00.000Z"
@@ -45,8 +44,8 @@ workflow:
 }
 
 func TestGetRunClientError(t *testing.T) {
-	rootCmd, _ := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "get", "--no-color",
+	rootCmd, _ := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"run", "get",
 		fmt.Sprintf("%v", client.RunForClientErrorTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -54,21 +53,20 @@ func TestGetRunClientError(t *testing.T) {
 }
 
 func TestGetRunInvalidArgumentCount(t *testing.T) {
-	rootCmd, _ := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "get", "--no-color"})
+	rootCmd, _ := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"run", "get"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Missing 'ID' argument")
 }
 
 func TestListRun(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "list", "--no-color"})
+	rootCmd, factory := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"run", "list"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 
 	expected := `
-SUCCESS
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "100"
   metrics: []
@@ -93,14 +91,13 @@ SUCCESS
 }
 
 func TestListRunMaxItems(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "list", "--no-color",
+	rootCmd, factory := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"run", "list",
 		"--max-items", "1"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 
 	expected := `
-SUCCESS
 - created_at: "1970-01-01T00:00:00.000Z"
   id: "100"
   metrics: []
@@ -113,8 +110,8 @@ SUCCESS
 }
 
 func TestListRunInvalidMaxItems(t *testing.T) {
-	rootCmd, _ := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "list", "--no-color",
+	rootCmd, _ := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"run", "list",
 		"--max-items", "INVALID_MAX_ITEMS"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -122,8 +119,8 @@ func TestListRunInvalidMaxItems(t *testing.T) {
 }
 
 func TestListRunInvalidArgumentCount(t *testing.T) {
-	rootCmd, _ := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "list", "--no-color", "EXTRA_ARGUMENT"})
+	rootCmd, _ := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"run", "list", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Expected 0 arguments")
