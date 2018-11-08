@@ -19,6 +19,8 @@ type ClientFactoryInterface interface {
 		client.JobInterface, error)
 	CreateRunClient(config clientcmd.ClientConfig, debug bool) (
 		client.RunInterface, error)
+	CreateExperimentClient(config clientcmd.ClientConfig, debug bool) (
+		client.ExperimentInterface, error)
 	Time() util.TimeInterface
 	Writer() io.Writer
 	Result() string
@@ -64,6 +66,11 @@ func (f *ClientFactory) CreateJobClient(config clientcmd.ClientConfig, debug boo
 func (f *ClientFactory) CreateRunClient(config clientcmd.ClientConfig, debug bool) (
 	client.RunInterface, error) {
 	return client.NewRunClient(config, debug)
+}
+
+func (f *ClientFactory) CreateExperimentClient(config clientcmd.ClientConfig, debug bool) (
+	client.ExperimentInterface, error) {
+	return client.NewExperimentClient(config, debug)
 }
 
 func (f *ClientFactory) Time() util.TimeInterface {
