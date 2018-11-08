@@ -22,19 +22,18 @@ func NewRunCmd() *cobra.Command {
 func NewRunGetCmd(root *RootCommand) *cobra.Command {
 	var (
 		runID string
-		err   error
+	)
+	const (
+		flagNameID = "id"
 	)
 	var command = &cobra.Command{
-		Use:   "get ID",
+		Use:   "get",
 		Short: "Display a run",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			runID, err = ValidateSingleString(args, "ID")
-			if err != nil {
-				return err
-			}
-			return nil
+			_, err := ValidateArgumentCount(args, 0)
+			return err
 		},
 
 		// Execute
@@ -51,6 +50,9 @@ func NewRunGetCmd(root *RootCommand) *cobra.Command {
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&runID, flagNameID,
+		"", "The ID of the run")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 }
