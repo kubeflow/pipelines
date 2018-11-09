@@ -29,6 +29,7 @@ import { ApiRunDetail } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -80,7 +81,7 @@ class Compare extends Page<{}, CompareState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [{
         action: () => this.setState({ collapseSections: {} }),
@@ -102,7 +103,7 @@ class Compare extends Page<{}, CompareState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { collapseSections, selectedIds, viewersMap } = this.state;
 
     const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
@@ -173,15 +174,15 @@ class Compare extends Page<{}, CompareState> {
     </div>);
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return this.load();
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     return this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
 
     const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
@@ -243,7 +244,7 @@ class Compare extends Page<{}, CompareState> {
     this.setState({ viewersMap });
   }
 
-  private _collapseAllSections() {
+  private _collapseAllSections(): void {
     const collapseSections = { [overviewSectionName]: true, [paramsSectionName]: true };
     Array.from(this.state.viewersMap.keys()).map(t => {
       const sectionName = componentMap[t].prototype.getDisplayName();
@@ -254,11 +255,11 @@ class Compare extends Page<{}, CompareState> {
     });
   }
 
-  private _selectionChanged(selectedIds: string[]) {
+  private _selectionChanged(selectedIds: string[]): void {
     this.setState({ selectedIds }, () => this._loadParameters());
   }
 
-  private _loadParameters() {
+  private _loadParameters(): void {
     const { runs, selectedIds, workflowObjects } = this.state;
 
     const selectedIndices = selectedIds.map(id => runs.findIndex(r => r.run!.id === id));

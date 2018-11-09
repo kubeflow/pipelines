@@ -30,7 +30,7 @@ export interface StoragePath {
 }
 
 export default class WorkflowParser {
-  public static createRuntimeGraph(workflow: Workflow) {
+  public static createRuntimeGraph(workflow: Workflow): dagre.graphlib.Graph {
     const g = new dagre.graphlib.Graph();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
@@ -124,7 +124,7 @@ export default class WorkflowParser {
   // Makes sure the workflow object contains the node and returns its
   // inputs/outputs if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
-  public static getNodeInputOutputParams(workflow: Workflow, nodeId: string) {
+  public static getNodeInputOutputParams(workflow: Workflow, nodeId: string): [string[][], string[][]] {
     type paramList = string[][];
     if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
       return [[], []];
@@ -162,7 +162,7 @@ export default class WorkflowParser {
 
   // Returns a list of output paths for the entire workflow, by searching all nodes in
   // the workflow, and parsing outputs for each.
-  public static loadAllOutputPaths(workflow: Workflow) {
+  public static loadAllOutputPaths(workflow: Workflow): StoragePath[] {
     let outputPaths: StoragePath[] = [];
     if (workflow && workflow.status && workflow.status.nodes) {
       Object.keys(workflow.status.nodes).forEach(n =>

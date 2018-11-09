@@ -31,7 +31,7 @@ export interface ViewerConfig {
 }
 
 abstract class Viewer<P, S> extends React.Component<P, S> {
-  public isAggregatable() {
+  public isAggregatable(): boolean {
     return false;
   }
 

@@ -20,7 +20,7 @@ import datetime
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.1.0',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--train', train_data,
             '--eval', evaluation_data,
@@ -37,7 +37,7 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
 def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.0',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--transformed-data-dir', transformed_data_dir,
             '--schema', schema,
@@ -54,7 +54,7 @@ def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', l
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.1.0',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--data', evaluation_data,
             '--schema', schema,
@@ -70,7 +70,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
 def confusion_matrix_op(predictions, output, step_name='confusionmatrix'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.1.0',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
           '--predictions', predictions,
           '--output', output,
