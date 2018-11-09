@@ -51,12 +51,8 @@ BASE_DIR=/go/src/github.com/${GITHUB_REPO}
 JUNIT_TEST_RESULT=junit_BackendUnitTestOutput.xml
 TEST_DIR=backend/src
 
-# Add github to SSH known host.
-ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts
-cp ~/.ssh/github/* ~/.ssh
-
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
-git clone git@github.com:${GITHUB_REPO}.git ${BASE_DIR}
+git clone https://github.com/${GITHUB_REPO} ${BASE_DIR}
 cd ${BASE_DIR}/${TEST_DIR}
 git checkout ${COMMIT_SHA}
 
