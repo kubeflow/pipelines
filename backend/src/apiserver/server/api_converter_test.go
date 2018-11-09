@@ -15,15 +15,27 @@
 package server
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestFoo(t *testing.T) {
+	//foo := `{"id":"ace71a48-5a9c-4d57-9694-eeb39edc410f","name":"arguments-parameters.yaml","parameters":[{"name":"param1","value":"hello"},{"name":"param2"}],"created_at":"2018-11-09T08:50:05Z"}`
+	var Payload pipeline_upload_model.APIPipeline
+	Payload.Name = "123"
+	b, err := json.Marshal(Payload)
+	err = json.Unmarshal(b, &Payload)
+	println(Payload.Name)
+	println(err.Error())
+}
 
 func TestToApiPipeline(t *testing.T) {
 	modelPipeline := &model.Pipeline{

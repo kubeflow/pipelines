@@ -44,7 +44,6 @@ func (o *UploadPipelineReader) ReadResponse(response runtime.ClientResponse, con
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
-		println("******" + result.Payload.Name)
 		return result, nil
 
 	default:
