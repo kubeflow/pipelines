@@ -62,11 +62,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- Upload pipelines YAML ---------- */
 	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
-	println(argumentYAMLPipeline.ID)
-	println(argumentYAMLPipeline.Name)
-	println(argumentYAMLPipeline.CreatedAt.String())
-	println(argumentYAMLPipeline.Description)
 	assert.NotNil(t, err)
+	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
 	_, err = s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
@@ -85,6 +82,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
 		"resources/zip-arguments.tar.gz", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
@@ -188,6 +186,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
+	assert.NotNil(t, *pipeline)
 	assert.NotNil(t, pipeline.CreatedAt)
 	expected := model.APIPipeline{
 		ID:        pipeline.ID,
