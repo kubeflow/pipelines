@@ -20,7 +20,6 @@ import { create } from 'react-test-renderer';
 
 describe('Hr', () => {
   it('renders with the right styles', () => {
-    throw new Error('what?!');
     const tree = create(<Hr fields={[]} />);
     expect(tree).toMatchSnapshot();
   });
