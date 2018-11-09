@@ -16,6 +16,6 @@ The Kubeflow pipelines service has the following goals:
 
 Get started with your first pipeline and read further information in the [documentation](https://github.com/kubeflow/pipelines/wiki).
 
-## Aknowledgments
+## Acknowledgments
 
 Kubeflow pipelines uses [Argo](https://github.com/argoproj/argo) under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful.
