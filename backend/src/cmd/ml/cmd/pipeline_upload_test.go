@@ -10,49 +10,53 @@ import (
 )
 
 func TestPipelineUpload(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "--no-color",
+	rootCmd, factory := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"pipeline", "upload",
 		client.FileForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 
 	expected := `
-SUCCESS
+created_at: "1970-01-01T00:00:00.000Z"
+description: PIPELINE_DESCRIPTION
+id: "500"
+name: PIPELINE_NAME
+parameters:
+- name: PARAM_NAME
+  value: PARAM_VALUE
 `
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
 	fmt.Println(factory.Result())
 }
 
 func TestPipelineUploadJson(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "--no-color", "-o", "json",
+	rootCmd, factory := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "-o", "json",
 		client.FileForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 
 	expected := `
-SUCCESS
+{
+  "created_at": "1970-01-01T00:00:00.000Z",
+  "description": "PIPELINE_DESCRIPTION",
+  "id": "500",
+  "name": "PIPELINE_NAME",
+  "parameters": [
+    {
+      "name": "PARAM_NAME",
+      "value": "PARAM_VALUE"
+    }
+  ]
+}
 `
 	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
 	fmt.Println(factory.Result())
 }
 
-func TestPipelineUploadColor(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload", client.FileForDefaultTest})
-	_, err := rootCmd.Command().ExecuteC()
-	assert.Nil(t, err)
-
-	expected := fmt.Sprintf(`
-%s[32mSUCCESS%s[0m
-`, Escape, Escape)
-	assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(factory.Result()))
-	fmt.Println(factory.Result())
-}
-
 func TestPipelineUploadNoFile(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "--no-color"})
+	rootCmd, factory := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"pipeline", "upload"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Missing 'FILE' argument")
@@ -60,8 +64,8 @@ func TestPipelineUploadNoFile(t *testing.T) {
 }
 
 func TestPipelineUploadClientError(t *testing.T) {
-	rootCmd, factory := getFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "--no-color",
+	rootCmd, factory := GetFakeRootCommand()
+	rootCmd.Command().SetArgs([]string{"pipeline", "upload",
 		client.FileForClientErrorTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)

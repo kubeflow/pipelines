@@ -56,7 +56,7 @@ func (f *ClientFactoryFake) Result() string {
 	return (*f.buffer).String()
 }
 
-func getFakeRootCommand() (*RootCommand, *ClientFactoryFake) {
+func GetFakeRootCommand() (*RootCommand, *ClientFactoryFake) {
 	factory := NewClientFactoryFake()
 	rootCmd := NewRootCmd(factory)
 	rootCmd = CreateSubCommands(rootCmd, 10)

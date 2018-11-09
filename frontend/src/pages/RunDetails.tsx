@@ -35,6 +35,7 @@ import { Apis } from '../lib/Apis';
 import { NodePhase } from './Status';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -115,7 +116,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [{
         action: this._cloneRun.bind(this),
@@ -123,7 +124,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         title: 'Clone',
         tooltip: 'Clone',
       }, {
-        action: this.load.bind(this),
+        action: this.refresh.bind(this),
         id: 'refreshBtn',
         title: 'Refresh',
         tooltip: 'Refresh',
@@ -135,7 +136,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { graph, runMetadata, selectedTab, selectedNodeDetails, sidepanelSelectedTab,
       workflow } = this.state;
 
@@ -249,7 +250,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                   ['Duration', getRunTime(workflow)],
                 ]} />
 
-                {workflowParameters && workflowParameters.length && (<div>
+                {workflowParameters && !!workflowParameters.length && (<div>
                   <div className={commonCss.header}>Run parameters</div>
                   <DetailsTable fields={workflowParameters.map(p => [p.name, p.value || ''])} />
                 </div>)}
@@ -261,7 +262,16 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     );
   }
 
-  public async load() {
+  public async componentDidMount(): Promise<void> {
+    await this.load();
+  }
+
+  public async refresh(): Promise<void> {
+    await this.load();
+  }
+
+  public async load(): Promise<void> {
+    this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
     try {
@@ -318,14 +328,19 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
       logger.error('Error loading run:', runId);
     }
+
+    // These are called here to ensure that logs and artifacts in the side panel are refreshed when
+    // the user hits "Refresh", either in the top toolbar or in an error banner.
+    this._loadSelectedNodeLogs();
+    this._loadSelectedNodeOutputs();
   }
 
-  private _selectNode(id: string) {
+  private _selectNode(id: string): void {
     this.setState({ selectedNodeDetails: { id } }, () =>
       this._sidePaneTabSwitched(this.state.sidepanelSelectedTab));
   }
 
-  private async _sidePaneTabSwitched(tab: SidePaneTab) {
+  private _sidePaneTabSwitched(tab: SidePaneTab): void {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
@@ -351,11 +366,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
   }
 
-  private async _loadSelectedNodeOutputs() {
+  private async _loadSelectedNodeOutputs(): Promise<void> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (!selectedNodeDetails) {
-      // This should never happen
-      logger.error('Tried to load outputs for a node that is not selected');
       return;
     }
     this.setState({ sidepanelBusy: true });
@@ -376,11 +389,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this.setState({ sidepanelBusy: false });
   }
 
-  private async _loadSelectedNodeLogs() {
+  private async _loadSelectedNodeLogs(): Promise<void> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (!selectedNodeDetails) {
-      // This should never happen
-      logger.error('Tried to load outputs for a node that is not selected');
       return;
     }
     this.setState({ sidepanelBusy: true });
@@ -402,7 +413,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
   }
 
-  private _cloneRun() {
+  private _cloneRun(): void {
     if (this.state.runMetadata) {
       const searchString = new URLParser(this.props).build({
         [QUERY_PARAMS.cloneFromRun]: this.state.runMetadata.id || ''

@@ -23,12 +23,14 @@ usage()
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [--cluster-type         the type of cluster to use for the tests. One of: create-gke,none. Default is create-gke ]
+    [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
     [-h help]"
 }
 
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 CLUSTER_TYPE=create-gke
+TIMEOUT_SECONDS=1800
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -44,6 +46,9 @@ while [ "$1" != "" ]; do
              --cluster-type )         shift
                                       CLUSTER_TYPE=$1
                                       ;;
+             --timeout )              shift
+                                      TIMEOUT_SECONDS=$1
+                                      ;;
              -h | --help )            usage
                                       exit
                                       ;;
@@ -54,13 +59,16 @@ while [ "$1" != "" ]; do
 done
 
 ZONE=us-west1-a
-PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=90
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
+PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
 echo "presubmit test starts"
+
+# activating the service account
+gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 
 #Creating a new GKE cluster if needed
 if [ "$CLUSTER_TYPE" == "create-gke" ]; then
@@ -94,10 +102,6 @@ echo "Add necessary cluster role bindings"
 ACCOUNT=$(gcloud info --format='value(config.account)')
 kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT
 kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default
-
-echo "Create k8s secret for github SSH credentials"
-cp /etc/ssh-knative/ssh-knative ./id_rsa
-kubectl create secret generic ssh-key-secret --from-file=id_rsa=./id_rsa
 
 echo "install argo"
 ARGO_VERSION=v2.2.0

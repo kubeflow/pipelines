@@ -37,10 +37,8 @@ func (c *RunClientFake) Get(params *runparams.GetRunParams) (*runmodel.APIRunDet
 	switch params.RunID {
 	case RunForClientErrorTest:
 		return nil, nil, fmt.Errorf(ClientErrorString)
-	case RunForDefaultTest:
-		return getDefaultRun(params.RunID, "RUN_NAME"), getDefaultWorkflow(), nil
 	default:
-		return nil, nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultRun(params.RunID, "RUN_NAME"), getDefaultWorkflow(), nil
 	}
 }
 
@@ -68,7 +66,7 @@ func (c *RunClientFake) List(params *runparams.ListRunsParams) (
 			getDefaultRun("102", "MY_THIRD_RUN").Run,
 		}, FinalToken, nil
 	default:
-		return nil, "", fmt.Errorf(InvalidFakeRequest)
+		return nil, "", fmt.Errorf(InvalidFakeRequest, token)
 	}
 }
 

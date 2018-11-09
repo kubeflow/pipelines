@@ -2,6 +2,7 @@
   all(namespace, ui_image):: [
     $.parts(namespace).serviceAccount,
     $.parts(namespace).serviceUi,
+    $.parts(namespace).tensorboardData,
     $.parts(namespace).roleBinding,
     $.parts(namespace).role,
     $.parts(namespace).deployUi(ui_image),
@@ -55,6 +56,46 @@
         loadBalancer: {}
       },
     }, //serviceUi
+
+    tensorboardData: {
+      apiVersion: "v1",
+      kind: "Service",
+      metadata: {
+        labels: {
+          app: "ml-pipeline-tensorboard-ui",
+        },
+        name: "ml-pipeline-tensorboard-ui",
+        namespace: namespace,
+        annotations: {
+          "getambassador.io/config":
+            std.join("\n", [
+              "---",
+              "apiVersion: ambassador/v0",
+              "kind:  Mapping",
+              "name: pipeline-tensorboard-ui-mapping",
+              "prefix: /data",
+              "rewrite: /data",
+              "timeout_ms: 300000",
+              "service: ml-pipeline-ui." + namespace,
+              "use_websocket: true",
+            ]),
+        },  //annotations
+      },
+      spec: {
+        ports: [
+          {
+            port: 80,
+            targetPort: 3000,
+          },
+        ],
+        selector: {
+          app: "ml-pipeline-tensorboard-ui",
+        },
+      },
+      status: {
+        loadBalancer: {}
+      },
+    }, //tensorboardData
 
     roleBinding:: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",

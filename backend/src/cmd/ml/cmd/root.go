@@ -15,7 +15,6 @@ type RootCommand struct {
 	command              *cobra.Command
 	outputFormat         string
 	debug                bool
-	noColor              bool
 	clientConfig         clientcmd.ClientConfig
 	pipelineUploadClient client.PipelineUploadInterface
 	pipelineClient       client.PipelineInterface
@@ -64,17 +63,16 @@ func NewRootCmd(factory ClientFactoryInterface) *RootCommand {
 	root.command = command
 	root.command.SilenceErrors = true
 	root.command.SilenceUsage = true
-	addStandardFlagsToCmd(command, &root.outputFormat, &root.debug, &root.noColor)
+	addStandardFlagsToCmd(command, &root.outputFormat, &root.debug)
 	root.clientConfig = addKubectlFlagsToCmd(command)
 	return root
 }
 
-func addStandardFlagsToCmd(cmd *cobra.Command, outputFormat *string, debug *bool, noColor *bool) {
+func addStandardFlagsToCmd(cmd *cobra.Command, outputFormat *string, debug *bool) {
 	cmd.PersistentFlags().StringVarP(outputFormat, "output", "o", "yaml",
 		"Output format. One of: json|yaml|go")
 	cmd.PersistentFlags().BoolVarP(debug, "debug", "d", false,
 		"Enable debug mode")
-	cmd.PersistentFlags().BoolVar(noColor, "no-color", false, "Disable colorized output")
 }
 
 func addKubectlFlagsToCmd(cmd *cobra.Command) clientcmd.ClientConfig {
@@ -109,10 +107,6 @@ func (r *RootCommand) OutputFormat() string {
 
 func (r *RootCommand) Debug() bool {
 	return r.debug
-}
-
-func (r *RootCommand) NoColor() bool {
-	return r.noColor
 }
 
 func (r *RootCommand) ClientConfig() clientcmd.ClientConfig {

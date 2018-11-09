@@ -26,6 +26,21 @@ import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss, color } from '../Css';
 import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
 import { orderBy } from 'lodash';
+import { stylesheet } from 'typestyle';
+
+const css = stylesheet({
+  metricContainer: {
+    background: '#f6f7f9',
+    marginRight: 10,
+  },
+  metricFill: {
+    background: '#cbf0f8',
+    boxSizing: 'border-box',
+    color: '#202124',
+    fontFamily: 'Roboto',
+    fontSize: 13,
+  },
+});
 
 interface ExperimentInfo {
   displayName: string;
@@ -87,7 +102,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     // Only show the two most prevalent metrics
     const metricMetadata: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
@@ -153,27 +168,27 @@ class RunList extends React.Component<RunListProps, RunListState> {
     });
 
     return (<div>
-      <CustomTable columns={columns} rows={rows}
-        initialSortColumn={this.state.sortBy}
-        updateSelection={this.props.onSelectionChange} selectedIds={this.props.selectedIds}
-        disablePaging={this.props.disablePaging} reload={this._loadRuns.bind(this)}
-        disableSelection={this.props.disableSelection} disableSorting={this.props.disableSorting}
+      <CustomTable columns={columns} rows={rows} selectedIds={this.props.selectedIds}
+        initialSortColumn={this.state.sortBy} ref={this._tableRef}
+        updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
+        disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
+        disableSelection={this.props.disableSelection}
         emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
       />
     </div>);
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
-      this._tableRef.current.reload();
+      await this._tableRef.current.reload();
     }
   }
 
-  private _metricBufferCustomRenderer() {
+  private _metricBufferCustomRenderer(): JSX.Element {
     return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
   }
 
-  private _metricCustomRenderer(displayMetric: DisplayMetric) {
+  private _metricCustomRenderer(displayMetric: DisplayMetric): JSX.Element {
     if (!displayMetric.metric || !displayMetric.metric.number_value) {
       return <div />;
     }
@@ -214,8 +229,8 @@ class RunList extends React.Component<RunListProps, RunListState> {
       width = `calc(${barWidth}%)`;
     }
     return (
-      <div style={{ background: '#f6f7f9', marginLeft: leftSpace, marginRight: 10 }}>
-        <div style={{ background: '#cbf0f8', paddingLeft: leftSpace, width }}>
+      <div className={css.metricContainer} style={{ marginLeft: leftSpace }}>
+        <div className={css.metricFill} style={{ textIndent: leftSpace, width }}>
           {displayString}
         </div>
       </div>
@@ -315,7 +330,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private _pipelineCustomRenderer(pipelineInfo?: PipelineInfo) {
+  private _pipelineCustomRenderer(pipelineInfo?: PipelineInfo): JSX.Element {
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
     if (!pipelineInfo || !pipelineInfo.id) {
       return <div>-</div>;
@@ -355,7 +370,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private _experimentCustomRenderer(experimentInfo?: ExperimentInfo) {
+  private _experimentCustomRenderer(experimentInfo?: ExperimentInfo): JSX.Element {
     // If the getExperiment call failed or a run has no experiment, we display a placeholder.
     if (!experimentInfo || !experimentInfo.id) {
       return <div>-</div>;
@@ -368,16 +383,16 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private _nameCustomRenderer(value: string, id: string) {
+  private _nameCustomRenderer(value: string, id: string): JSX.Element {
     return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
       to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, id)}>{value}</Link>;
   }
 
-  private _statusCustomRenderer(status: NodePhase) {
+  private _statusCustomRenderer(status: NodePhase): JSX.Element {
     return statusToIcon(status);
   }
 
-  private _extractMetricMetadata(runs: DisplayRun[]) {
+  private _extractMetricMetadata(runs: DisplayRun[]): MetricMetadata[] {
     const metrics = Array.from(
       runs.reduce((metricMetadatas, run) => {
         if (!run.metadata || !run.metadata.metrics) {

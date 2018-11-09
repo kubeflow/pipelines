@@ -264,7 +264,7 @@ const experiments: ApiExperiment[] = [
   {
     description: 'A Pipeline experiment with runs',
     id: '275ea11d-ac63-4ce3-bc33-ec81981ed56a',
-    name: 'ML Pipelines Experiment',
+    name: 'Kubeflow Pipelines Experiment',
   },
   {
     description: 'A different Pipeline experiment used to group runs. ' +
@@ -541,7 +541,7 @@ function generateNPipelines(): ApiPipeline[] {
       created_at: new Date('2018-02-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
       description: `A dummy pipeline (${i})`,
       id: 'Some-pipeline-id-' + i,
-      name: 'ML Pipeline number ' + i,
+      name: 'Kubeflow Pipeline number ' + i,
       parameters: [
         {
           name: 'project',

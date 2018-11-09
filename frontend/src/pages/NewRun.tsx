@@ -34,6 +34,7 @@ import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
@@ -83,17 +84,17 @@ class NewRun extends Page<{}, NewRunState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [],
       breadcrumbs: [
         { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: 'Start a new run', href: RoutePage.NEW_RUN }
+        { displayName: 'Start a new run', href: '' }
       ]
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const {
       errorMessage,
       experimentName,
@@ -165,7 +166,7 @@ class NewRun extends Page<{}, NewRunState> {
           <div className={commonCss.header}>Run parameters</div>
           <div>{this._runParametersMessage(pipeline)}</div>
 
-          {pipeline && pipeline.parameters && pipeline.parameters.length && (
+          {pipeline && pipeline.parameters && !!pipeline.parameters.length && (
             <div>
               {pipeline && (pipeline.parameters || []).map((param, i) =>
                 <TextField key={i} variant='outlined' label={param.name} value={param.value || ''}
@@ -194,7 +195,16 @@ class NewRun extends Page<{}, NewRunState> {
     );
   }
 
+  public async refresh(): Promise<void> {
+    return this.load();
+  }
+
+  public async componentDidMount(): Promise<void> {
+    return this.load();
+  }
+
   public async load(): Promise<void> {
+    this.clearBanner();
     const urlParser = new URLParser(this.props);
     let experimentId: string | null = urlParser.get(QUERY_PARAMS.experimentId);
 
@@ -229,30 +239,33 @@ class NewRun extends Page<{}, NewRunState> {
 
     let experiment: ApiExperiment | undefined;
     let experimentName: string | undefined;
+    const breadcrumbs = [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }];
     if (experimentId) {
       try {
         experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
         experimentName = experiment.name;
-        const breadcrumbs = [
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experimentName!,
-            href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
-          },
-          { displayName: 'Start a new run', href: RoutePage.NEW_RUN }
-        ];
-        this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+        breadcrumbs.push({
+          displayName: experimentName!,
+          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
+        });
       } catch (err) {
         await this.showPageError(`Error: failed to get associated experiment: ${experimentId}.`, err);
         logger.error(`Failed to get associated experiment ${experimentId}`, err);
       }
     }
 
+    const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
+    breadcrumbs.push({
+      displayName: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
+      href: '',
+    });
+    this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+
     this.setState({
       experiment,
       experimentName,
       isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
-      isRecurringRun: urlParser.get(QUERY_PARAMS.isRecurring) === '1',
+      isRecurringRun,
     });
 
     this._validate();

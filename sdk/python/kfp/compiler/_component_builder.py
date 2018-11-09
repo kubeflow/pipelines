@@ -319,7 +319,7 @@ def _generate_pythonop(component_func, target_image):
       'name': input,
       'type': 'str'
     })
-    component_artifact['implementation']['dockerContainer']['arguments'].append(['Value', input])
+    component_artifact['implementation']['dockerContainer']['arguments'].append({'value': input})
   return _create_task_factory_from_component_dict(component_artifact)
 
 def build_python_component(component_func, staging_gcs_path, target_image, build_image=True, timeout=600, namespace='kubeflow'):

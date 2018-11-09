@@ -20,6 +20,7 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ExperimentsIcon from '../icons/experiments';
 import IconButton from '@material-ui/core/IconButton';
 import JupyterhubIcon from '@material-ui/icons/Code';
+import KubeflowLogo from '../icons/kubeflowLogo';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import PipelinesIcon from '../icons/pipelines';
 import { Link } from 'react-router-dom';
@@ -27,11 +28,11 @@ import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { RoutePage } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
-import { fontsize, spacing, dimension, commonCss } from '../Css';
+import { fontsize, dimension, commonCss } from '../Css';
 
 export const sideNavColors = {
   bg: '#0f4471',
-  fgActive: 'rgb(227, 233, 237, 1)', // #e3e9ed
+  fgActive: '#fff',
   fgActiveInvisible: 'rgb(227, 233, 237, 0)',
   fgDefault: '#87a1b8',
   hover: '#3f698d',
@@ -50,7 +51,7 @@ export const css = stylesheet({
     fontSize: fontsize.medium,
     fontWeight: 'bold',
     height: dimension.base,
-    marginBottom: 10,
+    marginBottom: 16,
     marginLeft: 16,
     maxWidth: 186,
     overflow: 'hidden',
@@ -68,7 +69,6 @@ export const css = stylesheet({
     transition: 'transform 0.3s',
   },
   collapsedButton: {
-    marginLeft: spacing.units(-2),
     maxWidth: dimension.base,
     minWidth: dimension.base,
     padding: 10,
@@ -84,23 +84,39 @@ export const css = stylesheet({
     width: '72px !important',
   },
   collapsedSeparator: {
-    margin: `12px !important`,
+    margin: `20px !important`,
   },
   label: {
-    marginLeft: 10,
+    fontSize: fontsize.base,
+    letterSpacing: 0.25,
+    marginLeft: 20,
     transition: 'color 0.3s',
     verticalAlign: 'super',
   },
+  logo: {
+    display: 'flex',
+    marginBottom: 16,
+    marginLeft: '9px !important',
+
+  },
+  logoLabel: {
+    color: sideNavColors.fgActive,
+    display: 'flex',
+    flexDirection: 'column',
+    fontSize: fontsize.title,
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
   root: {
     background: sideNavColors.bg,
-    paddingTop: 24,
+    paddingTop: 12,
     transition: 'width 0.3s',
     width: 220,
   },
   separator: {
     border: '0px none transparent',
     borderTop: `1px solid ${sideNavColors.separator}`,
-    margin: 12,
+    margin: 20,
   },
 });
 
@@ -130,7 +146,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     };
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     window.addEventListener('resize', this._maybeResize.bind(this));
     this._maybeResize();
 
@@ -140,7 +156,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     }
   }
 
-  public render() {
+  public render(): JSX.Element {
     const page = this.props.page;
     const { collapsed } = this.state;
     const iconColor = {
@@ -150,6 +166,12 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
 
     return (
       <div id='sideNav' className={classes(css.root, commonCss.noShrink, collapsed && css.collapsedRoot)}>
+        <div className={classes(css.button, collapsed && css.collapsedButton, css.logo)}>
+          <KubeflowLogo color={iconColor.active} style={{ flexShrink: 0 }} />
+          <span className={classes(collapsed && css.collapsedLabel, css.label, css.logoLabel)}>
+            Kubeflow
+          </span>
+        </div>
         <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
           <Button className={classes(css.button,
             page.startsWith(RoutePage.PIPELINES) && css.active,
@@ -162,9 +184,9 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
           <Button className={
             classes(
               css.button,
-              page.startsWith(RoutePage.EXPERIMENTS) && css.active,
+              this._highlightExperimentsButton(page) && css.active,
               collapsed && css.collapsedButton)}>
-            <ExperimentsIcon color={page.startsWith(RoutePage.EXPERIMENTS) ? iconColor.active : iconColor.inactive} />
+            <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
             <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
           </Button>
         </Link>
@@ -187,7 +209,16 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     );
   }
 
-  private _toggleNavClicked() {
+  private _highlightExperimentsButton(page: string): boolean {
+    return page.startsWith(RoutePage.EXPERIMENTS)
+      || page.startsWith(RoutePage.RUNS)
+      // TODO: Router should have a constant for this, but it doesn't follow the naming convention
+      // of the other pages
+      || page.startsWith('/recurringrun')
+      || page.startsWith(RoutePage.COMPARE);
+  }
+
+  private _toggleNavClicked(): void {
     this.setState({
       collapsed: !this.state.collapsed,
       manualCollapseState: true,
@@ -201,7 +232,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     });
   }
 
-  private _maybeResize() {
+  private _maybeResize(): void {
     if (!this.state.manualCollapseState) {
       this._toggleNavCollapsed(window.innerWidth < this._AUTO_COLLAPSE_WIDTH);
     }

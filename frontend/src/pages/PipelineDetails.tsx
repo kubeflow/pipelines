@@ -33,12 +33,13 @@ import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -96,7 +97,7 @@ const css = stylesheet({
     overflow: 'auto',
     padding: 10,
     position: 'absolute',
-    width: 250,
+    width: 500,
     zIndex: 1,
   },
   summaryKey: {
@@ -120,31 +121,28 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [
-        {
+      actions: [{
         action: this._createNewExperiment.bind(this),
         id: 'startNewExperimentBtn',
         // TODO: should be primary.
         outlined: true,
         title: 'Start an experiment',
         tooltip: 'Create a new experiment beginning with this pipeline',
-        },
-        {
-          action: () => this.props.updateDialog({
-            buttons: [
-              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-            ],
-            onClose: () => this._deleteDialogClosed(false),
-            title: 'Delete this Pipeline?',
-          }),
-          id: 'deleteBtn',
-          title: 'Delete',
-          tooltip: 'Delete this pipeline',
-        }
-      ],
+      }, {
+        action: () => this.props.updateDialog({
+          buttons: [
+            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+          ],
+          onClose: () => this._deleteDialogClosed(false),
+          title: 'Delete this Pipeline?',
+        }),
+        id: 'deleteBtn',
+        title: 'Delete',
+        tooltip: 'Delete this pipeline',
+      }],
       breadcrumbs: [
         { displayName: 'Pipelines', href: RoutePage.PIPELINES },
         { displayName: this.props.match.params[RouteParams.pipelineId], href: '' }
@@ -244,7 +242,16 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     );
   }
 
+  public async refresh(): Promise<void> {
+    return this.load();
+  }
+
+  public async componentDidMount(): Promise<void> {
+    return this.load();
+  }
+
   public async load(): Promise<void> {
+    this.clearBanner();
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
     // TODO: Show spinner while waiting for responses
@@ -297,6 +304,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   private _selectNode(id: string): void {
     let nodeInfoJsx: JSX.Element = <div>Unable to retrieve node info</div>;
     const nodeInfo = StaticGraphParser.getNodeInfo(this.state.template, id);
+
+    if (!nodeInfo) {
+      logger.error(`Node with ID: ${id} was not found in the graph`);
+      return;
+    }
 
     switch (nodeInfo.nodeType) {
       case 'container':
