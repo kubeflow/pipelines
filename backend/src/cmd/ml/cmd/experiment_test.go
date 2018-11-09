@@ -10,7 +10,7 @@ import (
 
 func TestCreateExperiment(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"experiment", "create",
+	rootCmd.Command().SetArgs([]string{"experiment", "create", "--name",
 		client.ExperimentForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -27,7 +27,7 @@ name: EXPERIMENT_DEFAULT
 
 func TestCreateExperimentClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"experiment", "create",
+	rootCmd.Command().SetArgs([]string{"experiment", "create", "--name",
 		client.ExperimentForClientErrorTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -36,15 +36,15 @@ func TestCreateExperimentClientError(t *testing.T) {
 
 func TestCreateExperimentInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"experiment", "create"})
+	rootCmd.Command().SetArgs([]string{"experiment", "create", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'NAME' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestGetExperiment(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"experiment", "get",
+	rootCmd.Command().SetArgs([]string{"experiment", "get", "--id",
 		client.ExperimentForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -61,7 +61,7 @@ name: EXPERIMENT_NAME
 
 func TestGetExperimentClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"experiment", "get",
+	rootCmd.Command().SetArgs([]string{"experiment", "get", "--id",
 		client.ExperimentForClientErrorTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -70,10 +70,10 @@ func TestGetExperimentClientError(t *testing.T) {
 
 func TestGetExperimentInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"experiment", "get"})
+	rootCmd.Command().SetArgs([]string{"experiment", "get", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestListExperiment(t *testing.T) {
