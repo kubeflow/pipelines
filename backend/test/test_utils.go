@@ -25,9 +25,14 @@ import (
 
 	"flag"
 
+	"testing"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -135,4 +140,12 @@ func getClientConfig(namespace string) clientcmd.ClientConfig {
 	overrides := clientcmd.ConfigOverrides{Context: clientcmdapi.Context{Namespace: namespace}}
 	return clientcmd.NewInteractiveDeferredLoadingClientConfig(loadingRules,
 		&overrides, os.Stdin)
+}
+
+func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
+	pipelines, _, err := client.List(params.NewListPipelinesParams())
+	assert.Nil(t, err)
+	for _, p := range pipelines {
+		assert.Nil(t, client.Delete(&params.DeletePipelineParams{ID: p.ID}))
+	}
 }

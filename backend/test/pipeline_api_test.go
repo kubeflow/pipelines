@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
-	yaml "gopkg.in/yaml.v2"
 
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -53,22 +53,17 @@ func (s *PipelineApiTest) TearDownTest() {
 func (s *PipelineApiTest) TestPipelineAPI() {
 	t := s.T()
 
-	/* ---------- Delete pipelines if any, ensuring there is no pipeline ---------- */
-	pipelines, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
-	assert.Nil(t, err)
-	for _, p := range pipelines {
-		assert.Nil(t, s.pipelineClient.Delete(&params.DeletePipelineParams{ID: p.ID}))
-	}
+	deleteAllPipelines(s.pipelineClient, t)
 
 	/* ---------- Upload pipelines YAML ---------- */
 	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
 	_, err = s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a new name.")
+	assert.Contains(t, err.Error(), "Failed to upload pipeline.")
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
@@ -93,7 +88,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "arguments.tar.gz", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
-	pipelines, _, err = s.pipelineClient.List(params.NewListPipelinesParams())
+	pipelines, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(pipelines))
 	for _, p := range pipelines {
@@ -141,7 +136,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	_, _, err = s.pipelineClient.List(&params.ListPipelinesParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "InvalidArgument")
+	assert.Contains(t, err.Error(), "Failed to list pipelines")
 
 	/* ---------- List pipelines sorted by names descend order ---------- */
 	listFirstPagePipelines, nextPageToken, err = s.pipelineClient.List(
@@ -175,14 +170,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, expectedWorkflow, *template)
 
 	/* ---------- Clean up ---------- */
-	err = s.pipelineClient.Delete(&params.DeletePipelineParams{ID: sequentialPipeline.ID})
-	assert.Nil(t, err)
-	err = s.pipelineClient.Delete(&params.DeletePipelineParams{ID: argumentYAMLPipeline.ID})
-	assert.Nil(t, err)
-	err = s.pipelineClient.Delete(&params.DeletePipelineParams{ID: argumentUploadPipeline.ID})
-	assert.Nil(t, err)
-	err = s.pipelineClient.Delete(&params.DeletePipelineParams{ID: argumentUrlPipeline.ID})
-	assert.Nil(t, err)
+	deleteAllPipelines(s.pipelineClient, t)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
