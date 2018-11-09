@@ -117,7 +117,7 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), job)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), job)
 			return nil
 		},
 	}
@@ -223,7 +223,7 @@ func NewJobGetCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pkg)
 			return nil
 		},
 	}
@@ -259,7 +259,7 @@ func NewJobListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), results)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), results)
 			return nil
 		},
 	}
@@ -292,7 +292,7 @@ func NewJobEnableCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "")
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), "")
 			return nil
 		},
 	}
@@ -323,7 +323,7 @@ func NewJobDisableCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "")
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), "")
 			return nil
 		},
 	}
@@ -354,7 +354,7 @@ func NewJobDeleteCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "")
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), "")
 			return nil
 		},
 	}

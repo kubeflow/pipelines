@@ -35,7 +35,7 @@ export enum NodePhase {
   UNKNOWN = 'Unknown',
 }
 
-export function statusToIcon(status: NodePhase) {
+export function statusToIcon(status: NodePhase): JSX.Element {
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
