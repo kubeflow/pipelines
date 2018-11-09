@@ -20,7 +20,7 @@ const (
 	// If false, run as an integration test calling the service.
 	// This is useful to test locally before running an e2e test (which takes a while).
 	// IMPORTANT: This should always be set to FALSE in the checked-in code.
-	runAsUnitTest = true
+	runAsUnitTest = false
 )
 
 func GetRealRootCommand() (*cmd.RootCommand, cmd.ClientFactoryInterface) {
