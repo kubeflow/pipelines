@@ -29,7 +29,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
+	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -143,9 +144,17 @@ func getClientConfig(namespace string) clientcmd.ClientConfig {
 }
 
 func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
-	pipelines, _, err := client.List(params.NewListPipelinesParams())
+	pipelines, _, err := client.List(pipelineparams.NewListPipelinesParams())
 	assert.Nil(t, err)
 	for _, p := range pipelines {
-		assert.Nil(t, client.Delete(&params.DeletePipelineParams{ID: p.ID}))
+		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineParams{ID: p.ID}))
+	}
+}
+
+func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
+	pipelines, _, err := client.List(experimentparams.NewListExperimentParams())
+	assert.Nil(t, err)
+	for _, p := range pipelines {
+		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: p.ID}))
 	}
 }

@@ -47,9 +47,6 @@ func (s *PipelineApiTest) SetupTest() {
 	}
 }
 
-func (s *PipelineApiTest) TearDownTest() {
-}
-
 func (s *PipelineApiTest) TestPipelineAPI() {
 	t := s.T()
 
