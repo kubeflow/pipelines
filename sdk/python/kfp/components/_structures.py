@@ -86,6 +86,7 @@ class InputOrOutputSpec:
         
     def to_struct(self):
         struct = OrderedDict()
+        struct['name'] = self.name
         if self.type:
             struct['type'] = self.type
         if self.description:
@@ -96,7 +97,7 @@ class InputOrOutputSpec:
         if self.pattern:
             struct['pattern'] = self.pattern
         
-        return (self.name, struct)
+        return struct
     
     def __repr__(self):
         return self.__class__.__name__ + '.from_struct(' + str(self.to_struct()) + ')'
@@ -473,9 +474,9 @@ class ComponentSpec:
         if self.source:
             struct['source'] = self.source.to_struct()
         if self.inputs:
-            struct['inputs'] = OrderedDict([input.to_struct() for input in self.inputs])
+            struct['inputs'] = [input.to_struct() for input in self.inputs]
         if self.outputs:
-            struct['outputs'] = OrderedDict([output.to_struct() for output in self.outputs])
+            struct['outputs'] = [output.to_struct() for output in self.outputs]
         if self.implementation:
             struct['implementation'] = self.implementation.to_struct()
         
