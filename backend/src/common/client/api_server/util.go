@@ -64,10 +64,24 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 }
 
 func CreateErrorFromAPIStatus(error string, code int32) error {
-	return fmt.Errorf("%v (code: %v)", error, code)
+	return fmt.Errorf("Raw error from the service: %v (code: %v)", error, code)
 }
 
-func CreateErrorCouldNotRecoverAPIStatus(err error) error {
-	return fmt.Errorf("Issue calling the service. Use the '--debug' flag to see the HTTP request/response. Raw error from the client: %v",
-		err.Error())
+func CreateErrorCouldNotRecoverAPIStatus(err error, debug bool) error {
+
+	rawError := ""
+	if debug {
+		rawError = fmt.Sprintf("Raw error from the client: %v\n", err.Error())
+	}
+
+	return fmt.Errorf("Issue calling the service.\n" +
+		"Verify that kubectl is configured to call the correct namespace in the correct cluster using the commands:\n" +
+		"- kubectl config current-context\n" +
+		"- kubectl config view\n" +
+		"To configure the cluster/zone/project when using GKE, use the following command:\n" +
+		"- gcloud container clusters get-credentials <cluster> --zone <zone> --project <project>\n" +
+		"To configure the namespace, use the following command:\n" +
+		"- kubectl config set-context <context> --namespace <namespace>\n" +
+		"Use the '--debug' flag to see the raw HTTP request/response.\n" +
+		rawError)
 }

@@ -73,7 +73,7 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
 	}
 	if len(experiments) == 0 {
-		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(uuid))
+		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(uuid))
 	}
 	return &experiments[0], nil
 }

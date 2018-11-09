@@ -56,9 +56,6 @@ type APIRun struct {
 	// or auto generated if run is created by scheduled job. Not unique.
 	Name string `json:"name,omitempty"`
 
-	// namespace
-	Namespace string `json:"namespace,omitempty"`
-
 	// Required input field.
 	// Describing what the pipeline manifest and parameters to use for the run.
 	PipelineSpec *APIPipelineSpec `json:"pipeline_spec,omitempty"`

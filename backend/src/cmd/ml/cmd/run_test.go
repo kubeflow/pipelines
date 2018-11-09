@@ -62,7 +62,7 @@ func TestGetRunInvalidArgumentCount(t *testing.T) {
 
 func TestListRun(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "list"})
+	rootCmd.Command().SetArgs([]string{"run", "list", "--job-id", "JOB_ID"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 
@@ -92,7 +92,7 @@ func TestListRun(t *testing.T) {
 
 func TestListRunMaxItems(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "list",
+	rootCmd.Command().SetArgs([]string{"run", "list", "--job-id", "JOB_ID",
 		"--max-items", "1"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)

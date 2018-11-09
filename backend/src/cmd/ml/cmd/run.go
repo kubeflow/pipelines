@@ -6,6 +6,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+	model "github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -60,6 +61,10 @@ func NewRunGetCmd(root *RootCommand) *cobra.Command {
 func NewRunListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 	var (
 		maxResultSize int
+		experimentID  string
+	)
+	const (
+		flagNameExperimentID = "job-id"
 	)
 	var command = &cobra.Command{
 		Use:   "list",
@@ -81,6 +86,9 @@ func NewRunListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			params := params.NewListRunsParams()
 			params.PageSize = util.Int32Pointer(pageSize)
+			params.ResourceReferenceKeyID = &experimentID
+			resourceReferenceKeyTypeAsString := string(model.APIResourceTypeJOB)
+			params.ResourceReferenceKeyType = &resourceReferenceKeyTypeAsString
 			results, err := root.RunClient().ListAll(params, maxResultSize)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
@@ -91,6 +99,9 @@ func NewRunListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 	}
 	command.PersistentFlags().IntVarP(&maxResultSize, "max-items", "m", math.MaxInt32,
 		"Maximum number of items to list")
+	command.PersistentFlags().StringVar(&experimentID, flagNameExperimentID, "",
+		"The ID of the experiment owning the jobs to list")
+	command.MarkPersistentFlagRequired(flagNameExperimentID)
 	command.SetOutput(root.Writer())
 	return command
 }

@@ -24,6 +24,7 @@ type jobCreateParams struct {
 	cron           string
 	period         time.Duration
 	parameters     []string
+	experimentID   string
 }
 
 type jobCreateParamsValidated struct {
@@ -37,6 +38,7 @@ type jobCreateParamsValidated struct {
 	cron           *string
 	intervalSecond *int64
 	parameters     map[string]string
+	experimentID   string
 }
 
 func NewJobCmd() *cobra.Command {
@@ -56,6 +58,7 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 		flagNameName           = "name"
 		flagNameDescription    = "description"
 		flagNameDisable        = "disable"
+		flagNameExperimentID   = "experiment-id"
 		flagNameMaxConcurrency = "max-concurrency"
 		flagNamePipelineID     = "pipeline-id"
 		flagNameParameter      = "parameter"
@@ -108,6 +111,8 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 				return fmt.Errorf("Only one of period|cron can be specified")
 			}
 
+			validated.experimentID = raw.experimentID // validated by the API Server
+
 			return nil
 		},
 
@@ -124,8 +129,12 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 	}
 
 	// Flags
+	command.PersistentFlags().StringVar(&raw.experimentID, flagNameExperimentID, "",
+		"The ID of the experiment owning this job")
+	command.MarkPersistentFlagRequired(flagNameExperimentID)
 	command.PersistentFlags().StringVar(&raw.name, flagNameName,
 		"default", "The name of the job")
+	command.MarkPersistentFlagRequired(flagNameName)
 	command.PersistentFlags().StringVar(&raw.description, flagNameDescription,
 		"No description provided", "A description of the job")
 	command.PersistentFlags().BoolVar(&raw.disable, flagNameDisable, false,
@@ -136,18 +145,18 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 		"The ID of the pipeline used to create the job")
 	command.MarkPersistentFlagRequired(flagNamePipelineID)
 	// Note: Another example: "-p key=[[Index]]"
-	command.Flags().StringArrayVarP(&raw.parameters, flagNameParameter, "p", []string{},
+	command.PersistentFlags().StringArrayVarP(&raw.parameters, flagNameParameter, "p", []string{},
 		"Provide an input parameter to the workflow (e.g.: '-p key=value', '-p key=[[ScheduledTime]]')")
 	// Note: in strfmt format: https://godoc.org/github.com/go-openapi/strfmt
-	command.Flags().StringVar(&raw.startTime, flagNameStartTime, "",
+	command.PersistentFlags().StringVar(&raw.startTime, flagNameStartTime, "",
 		"The start time of cron|periodic execution (e.g.: '2006-01-02T15:04:05.000Z'). Defaults to current time")
 	// Note: in strfmt format: https://godoc.org/github.com/go-openapi/strfmt
-	command.Flags().StringVar(&raw.endTime, flagNameEndTime, "",
+	command.PersistentFlags().StringVar(&raw.endTime, flagNameEndTime, "",
 		"The end time of a cron|periodic execution (e.g.: '2006-01-02T15:04:05.000Z'). Defaults to never")
 	// Note: in the cron format detailed here: https://godoc.org/github.com/robfig/cron
-	command.Flags().StringVar(&raw.cron, flagNameCron, "",
+	command.PersistentFlags().StringVar(&raw.cron, flagNameCron, "",
 		"A cron schedule (e.g. '0 30 * * * *')")
-	command.Flags().DurationVar(&raw.period, flagNamePeriod, 0*time.Second,
+	command.PersistentFlags().DurationVar(&raw.period, flagNamePeriod, 0*time.Second,
 		"A period to trigger executions periodically")
 
 	command.SetOutput(root.Writer())
@@ -162,6 +171,12 @@ func newCreateJobParams(validated *jobCreateParamsValidated) *params.CreateJobPa
 		Enabled:        validated.enabled,
 		MaxConcurrency: validated.maxConcurrency,
 		PipelineSpec:   &model.APIPipelineSpec{PipelineID: validated.pipelineId},
+		ResourceReferences: []*model.APIResourceReference{{
+			Key: &model.APIResourceKey{
+				ID:   validated.experimentID,
+				Type: model.APIResourceTypeEXPERIMENT,
+			},
+			Relationship: model.APIRelationshipOWNER}},
 	}
 
 	var trigger *model.APITrigger
@@ -242,6 +257,10 @@ func NewJobGetCmd(root *RootCommand) *cobra.Command {
 func NewJobListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 	var (
 		maxResultSize int
+		experimentID  string
+	)
+	const (
+		flagNameExperimentID = "experiment-id"
 	)
 	var command = &cobra.Command{
 		Use:   "list",
@@ -263,6 +282,9 @@ func NewJobListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			params := params.NewListJobsParams()
 			params.PageSize = util.Int32Pointer(pageSize)
+			params.ResourceReferenceKeyID = &experimentID
+			resourceReferenceKeyTypeAsString := string(model.APIResourceTypeEXPERIMENT)
+			params.ResourceReferenceKeyType = &resourceReferenceKeyTypeAsString
 			results, err := root.JobClient().ListAll(params, maxResultSize)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
@@ -273,6 +295,9 @@ func NewJobListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 	}
 	command.PersistentFlags().IntVarP(&maxResultSize, "max-items", "m", math.MaxInt32,
 		"Maximum number of items to list")
+	command.PersistentFlags().StringVar(&experimentID, flagNameExperimentID, "",
+		"The ID of the experiment owning the jobs to list")
+	command.MarkPersistentFlagRequired(flagNameExperimentID)
 	command.SetOutput(root.Writer())
 	return command
 }

@@ -27,6 +27,7 @@ type PipelineInterface interface {
 
 type PipelineClient struct {
 	apiClient *apiclient.Pipeline
+	debug     bool
 }
 
 func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -42,6 +43,7 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	// Creating upload client
 	return &PipelineClient{
 		apiClient: apiClient,
+		debug:     debug,
 	}, nil
 }
 
@@ -57,7 +59,7 @@ func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model
 		if defaultError, ok := err.(*params.CreatePipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, util.NewUserError(err,
@@ -81,7 +83,7 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.APIPi
 		if defaultError, ok := err.(*params.GetPipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, util.NewUserError(err,
@@ -104,7 +106,7 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
 		if defaultError, ok := err.(*params.DeletePipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return util.NewUserError(err,
@@ -128,7 +130,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (
 		if defaultError, ok := err.(*params.GetTemplateDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, util.NewUserError(err,
@@ -162,7 +164,7 @@ func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 		if defaultError, ok := err.(*params.ListPipelinesDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, "", util.NewUserError(err,

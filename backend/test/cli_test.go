@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	"github.com/kubeflow/pipelines/backend/src/cmd/ml/cmd"
 	"github.com/stretchr/testify/assert"
@@ -63,25 +64,12 @@ func (c *CLIIntegrationTest) TearDownTest() {
 func (c *CLIIntegrationTest) TestPipelineListSuccess() {
 	t := c.T()
 
-	// Create pipelines
-	rootCmd, _ := GetRealRootCommand()
-	args := []string{"pipeline", "create", "--url",
-		"https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}
-	args = addCommonArgs(args, c.namespace)
-	rootCmd.Command().SetArgs(args)
-	_, err := rootCmd.Command().ExecuteC()
+	// Create pipeline
+	_, err := c.createPipeline("TestPipelineListSuccess")
 	assert.Nil(t, err)
 
-	// List pipeline
-	rootCmd, factory := GetRealRootCommand()
-	args = []string{"pipeline", "list"}
-	args = addCommonArgs(args, c.namespace)
-	rootCmd.Command().SetArgs(args)
-	_, err = rootCmd.Command().ExecuteC()
-	assert.Nil(t, err)
-
-	// Convert and assert result
-	pipelines, err := toPipelines(factory.Result())
+	// List pipelines
+	pipelines, err := c.listPipelines()
 	assert.Nil(t, err)
 	assert.True(t, len(pipelines) >= 1)
 }
@@ -98,33 +86,20 @@ func (c *CLIIntegrationTest) TestPipelineListFailureInvalidArgument() {
 
 func (c *CLIIntegrationTest) TestPipelineUploadSuccess() {
 	t := c.T()
-	rootCmd, _ := GetRealRootCommand()
-	args := []string{"pipeline", "upload", "--name", myUploadedPipeline, "--file",
-		"./resources/hello-world.yaml"}
-	args = addCommonArgs(args, c.namespace)
-	rootCmd.Command().SetArgs(args)
-	_, err := rootCmd.Command().ExecuteC()
+	_, err := c.createPipeline("TestPipelineUploadSuccess")
 	assert.Nil(t, err)
 }
 
 func (c *CLIIntegrationTest) TestPipelineCreateGetDeleteSuccess() {
 	t := c.T()
-	rootCmd, factory := GetRealRootCommand()
 
 	// Create pipeline
-	args := []string{"pipeline", "create", "--url",
-		"https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}
-	args = addCommonArgs(args, c.namespace)
-	rootCmd.Command().SetArgs(args)
-	_, err := rootCmd.Command().ExecuteC()
-	assert.Nil(t, err)
-
-	// Get ID
-	pipelineID, err := toPipelineID(factory.Result())
+	pipelineID, err := c.createPipeline("TestPipelineCreateGetDeleteSuccess")
 	assert.Nil(t, err)
 
 	// Get pipeline
-	args = []string{"pipeline", "get", "--id", pipelineID}
+	rootCmd, _ := GetRealRootCommand()
+	args := []string{"pipeline", "get", "--id", pipelineID}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
 	_, err = rootCmd.Command().ExecuteC()
@@ -145,66 +120,116 @@ func (c *CLIIntegrationTest) TestPipelineCreateGetDeleteSuccess() {
 	assert.Nil(t, err)
 }
 
-// TODO: uncomment these tests once the "Delete Experiment" API is available.
-//func (c *CLIIntegrationTest) TestExperimentListSuccess() {
-//	t := c.T()
-//
-//	// Create pipelines
-//	rootCmd, _ := GetRealRootCommand()
-//	args := []string{"experiment", "create", "--name",
-//		"MY_EXPERIMENT"}
-//	args = addCommonArgs(args, c.namespace)
-//	rootCmd.Command().SetArgs(args)
-//	_, err := rootCmd.Command().ExecuteC()
-//	assert.Nil(t, err)
-//
-//	// List pipeline
-//	rootCmd, factory := GetRealRootCommand()
-//	args = []string{"pipeline", "list"}
-//	args = addCommonArgs(args, c.namespace)
-//	rootCmd.Command().SetArgs(args)
-//	_, err = rootCmd.Command().ExecuteC()
-//	assert.Nil(t, err)
-//
-//	// Convert and assert result
-//	pipelines, err := toExperiments(factory.Result())
-//	assert.Nil(t, err)
-//	assert.True(t, len(pipelines) >= 1)
-//}
-//
-//func (c *CLIIntegrationTest) TestExperimentListFailureInvalidArgument() {
-//	t := c.T()
-//	rootCmd, _ := GetRealRootCommand()
-//	args := []string{"experiment", "list", "EXTRA_ARGUMENT"}
-//	args = addCommonArgs(args, c.namespace)
-//	rootCmd.Command().SetArgs(args)
-//	_, err := rootCmd.Command().ExecuteC()
-//	assert.NotNil(t, err)
-//}
-//
-//func (c *CLIIntegrationTest) TestExperimentCreateGetSuccess() {
-//	t := c.T()
-//	rootCmd, factory := GetRealRootCommand()
-//
-//	// Create pipeline
-//	args := []string{"experiment", "create", "--name",
-//		"MY_EXPERIMENT"}
-//	args = addCommonArgs(args, c.namespace)
-//	rootCmd.Command().SetArgs(args)
-//	_, err := rootCmd.Command().ExecuteC()
-//	assert.Nil(t, err)
-//
-//	// Get ID
-//	experimentID, err := toExperimentID(factory.Result())
-//	assert.Nil(t, err)
-//
-//	// Get pipeline
-//	args = []string{"experiment", "get", "--id", experimentID}
-//	args = addCommonArgs(args, c.namespace)
-//	rootCmd.Command().SetArgs(args)
-//	_, err = rootCmd.Command().ExecuteC()
-//	assert.Nil(t, err)
-//}
+func (c *CLIIntegrationTest) TestExperimentListSuccess() {
+	t := c.T()
+
+	// Create experiment
+	_, err := c.createExperiment("TestExperimentCreateGetSuccess")
+	assert.Nil(t, err)
+
+	// List experiments
+	pipelines, err := c.listExperiments()
+	assert.Nil(t, err)
+	assert.True(t, len(pipelines) >= 1)
+}
+
+func (c *CLIIntegrationTest) TestExperimentListFailureInvalidArgument() {
+	t := c.T()
+	rootCmd, _ := GetRealRootCommand()
+	args := []string{"experiment", "list", "EXTRA_ARGUMENT"}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err := rootCmd.Command().ExecuteC()
+	assert.NotNil(t, err)
+}
+
+func (c *CLIIntegrationTest) TestExperimentCreateGetSuccess() {
+	t := c.T()
+
+	// Create experiment
+	experimentID, err := c.createExperiment("TestExperimentCreateGetSuccess")
+	assert.Nil(t, err)
+
+	// Get pipeline
+	rootCmd, _ := GetRealRootCommand()
+	args := []string{"experiment", "get", "--id", experimentID}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err = rootCmd.Command().ExecuteC()
+	assert.Nil(t, err)
+}
+
+func (c *CLIIntegrationTest) TestJobCreateGetEnableDisableDeleteSuccess() {
+	t := c.T()
+
+	// Create experiment
+	experimentID, err := c.createExperiment("TestJobCreateGetEnableDisableDeleteSuccess")
+	assert.Nil(t, err)
+
+	// Create pipeline
+	pipelineID, err := c.createPipeline("TestJobCreateGetEnableDisableDeleteSuccess")
+	assert.Nil(t, err)
+
+	// Create job
+	jobID, err := c.createJob("TestJobCreateGetEnableDisableDeleteSuccess", pipelineID, experimentID)
+	assert.Nil(t, err)
+
+	rootCmd, _ := GetRealRootCommand()
+
+	// Get job
+	args := []string{"job", "get", "--id", jobID}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err = rootCmd.Command().ExecuteC()
+	assert.Nil(t, err)
+
+	// Disable job
+	args = []string{"job", "disable", "--id", jobID}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err = rootCmd.Command().ExecuteC()
+	assert.Nil(t, err)
+
+	// Enable job
+	args = []string{"job", "enable", "--id", jobID}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err = rootCmd.Command().ExecuteC()
+	assert.Nil(t, err)
+
+	// Delete job
+	args = []string{"job", "delete", "--id", jobID}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err = rootCmd.Command().ExecuteC()
+	assert.Nil(t, err)
+
+}
+
+func (c *CLIIntegrationTest) TestJobListSuccess() {
+	t := c.T()
+
+	// Create experiment
+	experimentID, err := c.createExperiment("TestJobListSuccess")
+	assert.Nil(t, err)
+
+	// Create pipeline
+	_, err = c.createPipeline("TestJobListSuccess")
+	assert.Nil(t, err)
+
+	// Create job
+	// TODO: add a job once issue is resolved: https://github.com/kubeflow/pipelines/issues/171
+	// _, err = c.createJob("TestJobListSuccess", pipelineID, experimentID)
+	// assert.Nil(t, err)
+
+	// List jobs
+	jobs, err := c.listJobsInExperiment(experimentID)
+	assert.Nil(t, err)
+	// TODO: uncomment this check once issue is resolve: https://github.com/kubeflow/pipelines/issues/171
+	assert.True(t, len(jobs) >= 1)
+}
+
+// TODO: add tests for runs, including the creation of a run without a job.
 
 func TestPipelineAPI(t *testing.T) {
 	suite.Run(t, new(CLIIntegrationTest))
@@ -240,6 +265,24 @@ func toExperimentID(jsonExperiment string) (string, error) {
 		return "", err
 	}
 	return experiment.ID, nil
+}
+
+func toJobID(jsonJob string) (string, error) {
+	var job job_model.APIJob
+	err := json.Unmarshal([]byte(jsonJob), &job)
+	if err != nil {
+		return "", err
+	}
+	return job.ID, nil
+}
+
+func toJobs(jsonJobs string) ([]job_model.APIJob, error) {
+	var jobs []job_model.APIJob
+	err := json.Unmarshal([]byte(jsonJobs), &jobs)
+	if err != nil {
+		return nil, err
+	}
+	return jobs, nil
 }
 
 func toExperiments(jsonExperiments string) ([]experiment_model.APIExperiment, error) {
@@ -284,4 +327,71 @@ func (c *CLIIntegrationTest) listPipelines() ([]pipeline_model.APIPipeline, erro
 		return nil, err
 	}
 	return toPipelines(factory.Result())
+}
+
+func (c *CLIIntegrationTest) listExperiments() ([]experiment_model.APIExperiment, error) {
+	rootCmd, factory := GetRealRootCommand()
+	args := []string{"experiment", "list"}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err := rootCmd.Command().ExecuteC()
+	if err != nil {
+		return nil, err
+	}
+	return toExperiments(factory.Result())
+}
+
+func (c *CLIIntegrationTest) listJobsInExperiment(experimentID string) ([]job_model.APIJob, error) {
+	rootCmd, factory := GetRealRootCommand()
+	args := []string{"job", "list", "--experiment-id", experimentID}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err := rootCmd.Command().ExecuteC()
+	if err != nil {
+		return nil, err
+	}
+	return toJobs(factory.Result())
+}
+
+func (c *CLIIntegrationTest) createPipeline(name string) (string, error) {
+	rootCmd, factory := GetRealRootCommand()
+	args := []string{"pipeline", "upload", "--name", name, "--file",
+		"./resources/hello-world.yaml"}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err := rootCmd.Command().ExecuteC()
+	if err != nil {
+		return "", err
+	}
+	return toPipelineID(factory.Result())
+}
+
+func (c *CLIIntegrationTest) createExperiment(name string) (string, error) {
+	rootCmd, factory := GetRealRootCommand()
+
+	// Create experiment
+	args := []string{"experiment", "create", "--name",
+		name}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err := rootCmd.Command().ExecuteC()
+	if err != nil {
+		return "", err
+	}
+
+	// Get ID
+	return toExperimentID(factory.Result())
+}
+
+func (c *CLIIntegrationTest) createJob(name string, pipelineID string, experimentID string) (string, error) {
+	rootCmd, factory := GetRealRootCommand()
+	args := []string{"job", "create", "--name", name, "--pipeline-id", pipelineID, "--experiment-id",
+		experimentID}
+	args = addCommonArgs(args, c.namespace)
+	rootCmd.Command().SetArgs(args)
+	_, err := rootCmd.Command().ExecuteC()
+	if err != nil {
+		return "", err
+	}
+	return toJobID(factory.Result())
 }

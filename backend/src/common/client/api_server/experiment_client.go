@@ -22,6 +22,7 @@ type ExperimentInterface interface {
 
 type ExperimentClient struct {
 	apiClient *apiclient.Experiment
+	debug     bool
 }
 
 func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -37,6 +38,7 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	// Creating upload client
 	return &ExperimentClient{
 		apiClient: apiClient,
+		debug:     debug,
 	}, nil
 }
 
@@ -53,7 +55,7 @@ func (c *ExperimentClient) Create(parameters *params.CreateExperimentParams) (*m
 		if defaultError, ok := err.(*params.CreateExperimentDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, util.NewUserError(err,
@@ -77,7 +79,7 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentParams) (*model.A
 		if defaultError, ok := err.(*params.GetExperimentDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, util.NewUserError(err,
@@ -101,7 +103,7 @@ func (c *ExperimentClient) List(parameters *params.ListExperimentParams) (
 		if defaultError, ok := err.(*params.ListExperimentDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, "", util.NewUserError(err,

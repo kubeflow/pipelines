@@ -25,6 +25,7 @@ type JobInterface interface {
 
 type JobClient struct {
 	apiClient *apiclient.Job
+	debug     bool
 }
 
 func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -40,6 +41,7 @@ func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	// Creating upload client
 	return &JobClient{
 		apiClient: apiClient,
+		debug:     debug,
 	}, nil
 }
 
@@ -56,7 +58,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 		if defaultError, ok := err.(*params.CreateJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, util.NewUserError(err,
@@ -80,7 +82,7 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
 		if defaultError, ok := err.(*params.GetJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, util.NewUserError(err,
@@ -103,7 +105,7 @@ func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
 		if defaultError, ok := err.(*params.DeleteJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return util.NewUserError(err,
@@ -126,7 +128,7 @@ func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
 		if defaultError, ok := err.(*params.EnableJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return util.NewUserError(err,
@@ -149,7 +151,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 		if defaultError, ok := err.(*params.DisableJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return util.NewUserError(err,
@@ -173,7 +175,7 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 		if defaultError, ok := err.(*params.ListJobsDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, "", util.NewUserError(err,

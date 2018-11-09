@@ -28,6 +28,7 @@ type PipelineUploadInterface interface {
 
 type PipelineUploadClient struct {
 	apiClient *apiclient.PipelineUpload
+	debug     bool
 }
 
 func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -43,6 +44,7 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	// Creating upload client
 	return &PipelineUploadClient{
 		apiClient: apiClient,
+		debug:     debug,
 	}, nil
 }
 
@@ -73,7 +75,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 		if defaultError, ok := err.(*params.UploadPipelineDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, util.NewUserError(err,

@@ -23,6 +23,7 @@ type RunInterface interface {
 
 type RunClient struct {
 	apiClient *apiclient.Run
+	debug     bool
 }
 
 func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -38,6 +39,7 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	// Creating upload client
 	return &RunClient{
 		apiClient: apiClient,
+		debug:     debug,
 	}, nil
 }
 
@@ -54,7 +56,7 @@ func (c *RunClient) Get(parameters *params.GetRunParams) (*model.APIRunDetail,
 		if defaultError, ok := err.(*params.GetRunDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, nil, util.NewUserError(err,
@@ -89,7 +91,7 @@ func (c *RunClient) List(parameters *params.ListRunsParams) (
 		if defaultError, ok := err.(*params.ListRunsDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
-			err = CreateErrorCouldNotRecoverAPIStatus(err)
+			err = CreateErrorCouldNotRecoverAPIStatus(err, c.debug)
 		}
 
 		return nil, "", util.NewUserError(err,
