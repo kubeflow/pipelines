@@ -39,6 +39,9 @@ TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
 machine_type=n1-standard-2
 num_nodes=3
 
+# activating the service account
+gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+
 function delete_cluster {
     echo "Delete cluster..."
     gcloud container clusters delete ${TEST_CLUSTER} --async

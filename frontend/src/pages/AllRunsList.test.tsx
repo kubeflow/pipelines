@@ -17,7 +17,7 @@
 import * as React from 'react';
 import AllRunsList from './AllRunsList';
 import { RoutePage } from '../components/Router';
-import { shallow } from 'enzyme';
+import { shallow, ShallowWrapper } from 'enzyme';
 import { PageProps } from './Page';
 
 describe('AllRunsList', () => {
@@ -36,7 +36,7 @@ describe('AllRunsList', () => {
     updateToolbar: updateToolbarSpy,
   };
 
-  function mountComponent() {
+  function mountComponent(): ShallowWrapper {
     const tree = shallow(<AllRunsList {...props} />);
     // Necessary since the component calls updateToolbar with the toolbar props,
     // then expects to get them back in props

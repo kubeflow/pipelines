@@ -49,7 +49,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.JobService.CreateJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -73,7 +73,7 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.JobService.GetJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -96,7 +96,7 @@ func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	_, err := c.apiClient.JobService.DeleteJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -119,7 +119,7 @@ func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	_, err := c.apiClient.JobService.EnableJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -142,7 +142,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	_, err := c.apiClient.JobService.DisableJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -166,7 +166,7 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.JobService.ListJobs(parameters, PassThroughAuth)
 	if err != nil {

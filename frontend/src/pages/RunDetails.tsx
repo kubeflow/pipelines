@@ -35,6 +35,7 @@ import { Apis } from '../lib/Apis';
 import { NodePhase } from './Status';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -115,7 +116,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [{
         action: this._cloneRun.bind(this),
@@ -135,7 +136,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { graph, runMetadata, selectedTab, selectedNodeDetails, sidepanelSelectedTab,
       workflow } = this.state;
 
@@ -261,15 +262,15 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     );
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     await this.load();
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     await this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
@@ -334,12 +335,12 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this._loadSelectedNodeOutputs();
   }
 
-  private _selectNode(id: string) {
+  private _selectNode(id: string): void {
     this.setState({ selectedNodeDetails: { id } }, () =>
       this._sidePaneTabSwitched(this.state.sidepanelSelectedTab));
   }
 
-  private async _sidePaneTabSwitched(tab: SidePaneTab) {
+  private _sidePaneTabSwitched(tab: SidePaneTab): void {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
@@ -365,7 +366,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
   }
 
-  private async _loadSelectedNodeOutputs() {
+  private async _loadSelectedNodeOutputs(): Promise<void> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (!selectedNodeDetails) {
       return;
@@ -388,7 +389,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this.setState({ sidepanelBusy: false });
   }
 
-  private async _loadSelectedNodeLogs() {
+  private async _loadSelectedNodeLogs(): Promise<void> {
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (!selectedNodeDetails) {
       return;
@@ -412,7 +413,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
   }
 
-  private _cloneRun() {
+  private _cloneRun(): void {
     if (this.state.runMetadata) {
       const searchString = new URLParser(this.props).build({
         [QUERY_PARAMS.cloneFromRun]: this.state.runMetadata.id || ''

@@ -44,12 +44,12 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
 
   public abstract refresh(): Promise<void>;
 
-  public componentWillUnmount() {
+  public componentWillUnmount(): void {
     this.clearBanner();
     this._isMounted = false;
   }
 
-  public async clearBanner() {
+  public clearBanner(): void {
     this.props.updateBanner({});
   }
 
@@ -71,7 +71,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
     });
   }
 
-  protected setStateSafe(newState: Partial<S>, cb?: () => void) {
+  protected setStateSafe(newState: Partial<S>, cb?: () => void): void {
     if (this._isMounted) {
       this.setState(newState as any, cb);
     }

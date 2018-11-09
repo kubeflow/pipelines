@@ -10,7 +10,7 @@ import (
 
 func TestCreateJob(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForDefaultTest, "--pipeline-id", "5"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -29,7 +29,7 @@ updated_at: "0001-01-01T00:00:00.000Z"
 
 func TestCreateJobClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForClientErrorTest, "--pipeline-id", "5"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -38,15 +38,15 @@ func TestCreateJobClientError(t *testing.T) {
 
 func TestCreateJobInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "--pipeline-id", "5", "create"})
+	rootCmd.Command().SetArgs([]string{"job", "--pipeline-id", "5", "create", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'NAME' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestCreateJobInvalidMaxConcurrency(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForDefaultTest, "--pipeline-id", "5", "--max-concurrency", "0"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -55,7 +55,7 @@ func TestCreateJobInvalidMaxConcurrency(t *testing.T) {
 
 func TestCreateJobInvalidStartTime(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForDefaultTest, "--pipeline-id", "5", "--start-time", "INVALID_TIME"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -65,7 +65,7 @@ func TestCreateJobInvalidStartTime(t *testing.T) {
 
 func TestCreateJobInvalidEndTime(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForDefaultTest, "--pipeline-id", "5", "--end-time", "INVALID_TIME"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -75,7 +75,7 @@ func TestCreateJobInvalidEndTime(t *testing.T) {
 
 func TestCreateJobInvalidCron(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForDefaultTest, "--pipeline-id", "5", "--cron", "INVALID_CRON"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -85,7 +85,7 @@ func TestCreateJobInvalidCron(t *testing.T) {
 
 func TestCreateJobInvalidInterval(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForDefaultTest, "--pipeline-id", "5", "--period", "INVALID_PERIOD"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -95,7 +95,7 @@ func TestCreateJobInvalidInterval(t *testing.T) {
 
 func TestCreateJobInvalidParameter(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForDefaultTest, "--pipeline-id", "5", "-p", "WRONG_PARAMETER"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -105,7 +105,7 @@ func TestCreateJobInvalidParameter(t *testing.T) {
 
 func TestCreateJobBothCronAndInterval(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "create",
+	rootCmd.Command().SetArgs([]string{"job", "create", "--name",
 		client.JobForDefaultTest, "--pipeline-id", "5", "--cron", "0 30 * * * *",
 		"--period", "10s"})
 	_, err := rootCmd.Command().ExecuteC()
@@ -116,7 +116,7 @@ func TestCreateJobBothCronAndInterval(t *testing.T) {
 
 func TestGetJob(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "get",
+	rootCmd.Command().SetArgs([]string{"job", "get", "--id",
 		client.JobForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -135,7 +135,7 @@ updated_at: "0001-01-01T00:00:00.000Z"
 
 func TestGetJobClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "get",
+	rootCmd.Command().SetArgs([]string{"job", "get", "--id",
 		client.JobForClientErrorTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -144,10 +144,10 @@ func TestGetJobClientError(t *testing.T) {
 
 func TestGetJobInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "get"})
+	rootCmd.Command().SetArgs([]string{"job", "get", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestListJob(t *testing.T) {
@@ -218,7 +218,7 @@ func TestListJobInvalidArgumentCount(t *testing.T) {
 
 func TestEnableJob(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "enable",
+	rootCmd.Command().SetArgs([]string{"job", "enable", "--id",
 		client.JobForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -230,7 +230,7 @@ func TestEnableJob(t *testing.T) {
 
 func TestEnableJobClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "enable",
+	rootCmd.Command().SetArgs([]string{"job", "enable", "--id",
 		client.JobForClientErrorTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -239,15 +239,15 @@ func TestEnableJobClientError(t *testing.T) {
 
 func TestEnableJobInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "enable"})
+	rootCmd.Command().SetArgs([]string{"job", "enable", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestDisableJob(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "disable",
+	rootCmd.Command().SetArgs([]string{"job", "disable", "--id",
 		client.JobForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -259,7 +259,7 @@ func TestDisableJob(t *testing.T) {
 
 func TestDisableJobClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "disable",
+	rootCmd.Command().SetArgs([]string{"job", "disable", "--id",
 		client.JobForClientErrorTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -268,15 +268,15 @@ func TestDisableJobClientError(t *testing.T) {
 
 func TestDisableJobInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "disable"})
+	rootCmd.Command().SetArgs([]string{"job", "disable", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestDeleteJob(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "delete",
+	rootCmd.Command().SetArgs([]string{"job", "delete", "--id",
 		client.JobForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -288,7 +288,7 @@ func TestDeleteJob(t *testing.T) {
 
 func TestDeleteJobClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "delete",
+	rootCmd.Command().SetArgs([]string{"job", "delete", "--id",
 		client.JobForClientErrorTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -297,8 +297,8 @@ func TestDeleteJobClientError(t *testing.T) {
 
 func TestDeleteJobInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"job", "delete"})
+	rootCmd.Command().SetArgs([]string{"job", "delete", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }

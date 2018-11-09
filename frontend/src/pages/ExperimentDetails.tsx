@@ -159,7 +159,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [{
         action: this.refresh.bind(this),
@@ -174,7 +174,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { activeRecurringRunsCount, experiment } = this.state;
     const description = experiment ? experiment.description || '' : '';
 
@@ -242,15 +242,15 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return this.load();
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     return this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
 
     const experimentId = this.props.match.params[RouteParams.experimentId];
@@ -306,7 +306,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     this.props.history.push(RoutePage.NEW_RUN + searchString);
   }
 
-  private _cloneRun() {
+  private _cloneRun(): void {
     if (this.state.selectedRunIds.length === 1) {
       const runId = this.state.selectedRunIds[0];
       const searchString = new URLParser(this.props).build({
@@ -316,7 +316,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     }
   }
 
-  private _selectionChanged(selectedRunIds: string[]) {
+  private _selectionChanged(selectedRunIds: string[]): void {
     const toolbarActions = [...this.state.runListToolbarProps.actions];
     // Compare runs button
     toolbarActions[2].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
@@ -332,7 +332,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     });
   }
 
-  private _recurringRunsManagerClosed() {
+  private _recurringRunsManagerClosed(): void {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
     this.refresh();

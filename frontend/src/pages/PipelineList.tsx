@@ -24,6 +24,7 @@ import { Apis, PipelineSortKeys, ListRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
@@ -47,7 +48,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [{
         action: () => this.setStateSafe({ uploadDialogOpen: true }),

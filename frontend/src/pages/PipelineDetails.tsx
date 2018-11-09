@@ -33,12 +33,13 @@ import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -120,7 +121,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [{
         action: this._createNewExperiment.bind(this),
@@ -241,15 +242,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return this.load();
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     return this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 

@@ -41,8 +41,8 @@ const css = stylesheet({
   fullscreenDialog: {
     alignItems: 'center',
     justifyContent: 'center',
-    maxHeight: '80%',
-    maxWidth: '80%',
+    minHeight: '80%',
+    minWidth: '80%',
     padding: 20,
   },
   fullscreenViewerContainer: {
@@ -99,7 +99,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element | null {
     const { title, configs, maxDimension, ...otherProps } = this.props;
 
     if (!configs || !configs.length) {

@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/kubeflow/pipelines.svg?branch=master)](https://travis-ci.com/kubeflow/pipelines)
+[![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg)](https://coveralls.io/github/kubeflow/pipelines?branch=yebrahim%2Fcoveralls)
 
 ## Overview of the Kubeflow pipelines service
 
@@ -15,3 +16,7 @@ The Kubeflow pipelines service has the following goals:
 ## Documentation
 
 Get started with your first pipeline and read further information in the [documentation](https://github.com/kubeflow/pipelines/wiki).
+
+## Acknowledgments
+
+Kubeflow pipelines uses [Argo](https://github.com/argoproj/argo) under the hood to orchestrate Kubernetes resources. The Argo community has been very supportive and we are very grateful.
