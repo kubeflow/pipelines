@@ -51,7 +51,7 @@ export const css = stylesheet({
     fontSize: fontsize.medium,
     fontWeight: 'bold',
     height: dimension.base,
-    marginBottom: 10,
+    marginBottom: 16,
     marginLeft: 16,
     maxWidth: 186,
     overflow: 'hidden',
@@ -84,16 +84,20 @@ export const css = stylesheet({
     width: '72px !important',
   },
   collapsedSeparator: {
-    margin: `12px !important`,
+    margin: `20px !important`,
   },
   label: {
-    marginLeft: 10,
+    fontSize: fontsize.base,
+    letterSpacing: 0.25,
+    marginLeft: 20,
     transition: 'color 0.3s',
     verticalAlign: 'super',
   },
   logo: {
     display: 'flex',
+    marginBottom: 16,
     marginLeft: '9px !important',
+
   },
   logoLabel: {
     color: sideNavColors.fgActive,
@@ -101,17 +105,18 @@ export const css = stylesheet({
     flexDirection: 'column',
     fontSize: fontsize.title,
     justifyContent: 'center',
+    marginLeft: 12,
   },
   root: {
     background: sideNavColors.bg,
-    paddingTop: 20,
+    paddingTop: 12,
     transition: 'width 0.3s',
     width: 220,
   },
   separator: {
     border: '0px none transparent',
     borderTop: `1px solid ${sideNavColors.separator}`,
-    margin: 12,
+    margin: 20,
   },
 });
 
@@ -141,7 +146,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     };
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     window.addEventListener('resize', this._maybeResize.bind(this));
     this._maybeResize();
 
@@ -151,7 +156,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     }
   }
 
-  public render() {
+  public render(): JSX.Element {
     const page = this.props.page;
     const { collapsed } = this.state;
     const iconColor = {
@@ -179,9 +184,9 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
           <Button className={
             classes(
               css.button,
-              page.startsWith(RoutePage.EXPERIMENTS) && css.active,
+              this._highlightExperimentsButton(page) && css.active,
               collapsed && css.collapsedButton)}>
-            <ExperimentsIcon color={page.startsWith(RoutePage.EXPERIMENTS) ? iconColor.active : iconColor.inactive} />
+            <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
             <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
           </Button>
         </Link>
@@ -204,7 +209,16 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     );
   }
 
-  private _toggleNavClicked() {
+  private _highlightExperimentsButton(page: string): boolean {
+    return page.startsWith(RoutePage.EXPERIMENTS)
+      || page.startsWith(RoutePage.RUNS)
+      // TODO: Router should have a constant for this, but it doesn't follow the naming convention
+      // of the other pages
+      || page.startsWith('/recurringrun')
+      || page.startsWith(RoutePage.COMPARE);
+  }
+
+  private _toggleNavClicked(): void {
     this.setState({
       collapsed: !this.state.collapsed,
       manualCollapseState: true,
@@ -218,7 +232,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     });
   }
 
-  private _maybeResize() {
+  private _maybeResize(): void {
     if (!this.state.manualCollapseState) {
       this._toggleNavCollapsed(window.innerWidth < this._AUTO_COLLAPSE_WIDTH);
     }

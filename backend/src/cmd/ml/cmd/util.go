@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -28,17 +26,12 @@ const (
 	endOfTime = math.MaxInt32 * 100
 )
 
-func PrettyPrintResult(writer io.Writer, noColor bool, outputFormat string, vs ...interface{}) {
-	PrettyPrintSuccess(writer, noColor)
+func PrettyPrintResult(writer io.Writer, outputFormat string, vs ...interface{}) {
 	for _, v := range vs {
 		if v != "" {
 			PrettyPrint(writer, v, OutputFormat(outputFormat))
 		}
 	}
-}
-
-func PrettyPrintSuccess(writer io.Writer, noColor bool) {
-	fmt.Fprintln(writer, ansiFormat(noColor, "SUCCESS", FgGreen))
 }
 
 func PrettyPrintGo(writer io.Writer, v interface{}) {
@@ -76,34 +69,6 @@ func PrettyPrint(writer io.Writer, v interface{}, format OutputFormat) {
 	}
 }
 
-// ANSI escape codes
-const (
-	Escape    = "\x1b"
-	noFormat  = 0
-	Bold      = 1
-	FgBlack   = 30
-	FgRed     = 31
-	FgGreen   = 32
-	FgYellow  = 33
-	FgBlue    = 34
-	FgMagenta = 35
-	FgCyan    = 36
-	FgWhite   = 37
-	FgDefault = 39
-)
-
-func ansiFormat(noColor bool, s string, codes ...int) string {
-	if noColor || os.Getenv("TERM") == "dumb" || len(codes) == 0 {
-		return s
-	}
-	codeStrs := make([]string, len(codes))
-	for i, code := range codes {
-		codeStrs[i] = strconv.Itoa(code)
-	}
-	sequence := strings.Join(codeStrs, ";")
-	return fmt.Sprintf("%s[%sm%s%s[%dm", Escape, sequence, s, Escape, noFormat)
-}
-
 func ValidateSingleString(args []string, argumentName string) (string, error) {
 	if len(args) < 1 {
 		return "", fmt.Errorf("Missing '%s' argument", argumentName)
@@ -119,45 +84,6 @@ func ValidateArgumentCount(args []string, expectedCount int) ([]string, error) {
 		return nil, fmt.Errorf("Expected %d arguments", expectedCount)
 	}
 	return args, nil
-}
-
-func ValidateSingleInt32(args []string, argumentName string) (int32, error) {
-	if len(args) < 1 {
-		return 0, fmt.Errorf("Missing '%s' argument\n", argumentName)
-	}
-	if len(args) > 1 {
-		return 0, fmt.Errorf("Too many arguments")
-	}
-
-	result, err := strconv.ParseInt(args[0], 10, 32)
-	if err != nil {
-		return 0, fmt.Errorf("Cannot convert '%s' into an int32: %s\n", args[0], err.Error())
-	}
-
-	return int32(result), nil
-}
-
-func ValidateSingleInt64(args []string, argumentName string) (int64, error) {
-	if len(args) < 1 {
-		return 0, fmt.Errorf("Missing '%s' argument\n", argumentName)
-	}
-	if len(args) > 1 {
-		return 0, fmt.Errorf("Too many arguments")
-	}
-
-	result, err := strconv.ParseInt(args[0], 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("Cannot convert '%s' into an int64: %s\n", args[0], err.Error())
-	}
-
-	return result, nil
-}
-
-func ValidateInt32Min(value int32, minValue int32, flagName string) (int32, error) {
-	if value < minValue {
-		return 0, fmt.Errorf("Flag '%s' must be at least %d", flagName, minValue)
-	}
-	return value, nil
 }
 
 func ValidateInt64Min(value int64, minValue int64, flagName string) (int64, error) {

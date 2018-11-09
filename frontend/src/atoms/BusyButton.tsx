@@ -27,6 +27,7 @@ const css = stylesheet({
   },
   root: {
     cursor: 'pointer',
+    marginBottom: 2, // To prevent container from flickering as the spinner shows up
     position: 'relative',
     transition: 'padding 0.3s',
   },
@@ -53,7 +54,7 @@ interface BusyButtonProps extends ButtonProps {
 }
 
 class BusyButton extends React.Component<BusyButtonProps> {
-  public render() {
+  public render(): JSX.Element {
     const { title, busy, className, disabled, icon, outlined, ...rest } = this.props;
 
     return <Button {...rest} color={outlined ? 'primary' : 'secondary'}
