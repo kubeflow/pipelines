@@ -51,7 +51,6 @@ func NewJobCreateCmd(root *RootCommand) *cobra.Command {
 	var (
 		raw       jobCreateParams
 		validated jobCreateParamsValidated
-		err       error
 	)
 	const (
 		flagNameName           = "name"
@@ -280,8 +279,7 @@ func NewJobListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 
 func NewJobEnableCmd(root *RootCommand) *cobra.Command {
 	var (
-		id  string
-		err error
+		id string
 	)
 	const (
 		flagNameID = "id"
@@ -317,8 +315,7 @@ func NewJobEnableCmd(root *RootCommand) *cobra.Command {
 
 func NewJobDisableCmd(root *RootCommand) *cobra.Command {
 	var (
-		id  string
-		err error
+		id string
 	)
 	const (
 		flagNameID = "id"
@@ -354,8 +351,7 @@ func NewJobDisableCmd(root *RootCommand) *cobra.Command {
 
 func NewJobDeleteCmd(root *RootCommand) *cobra.Command {
 	var (
-		id  string
-		err error
+		id string
 	)
 	const (
 		flagNameID = "id"

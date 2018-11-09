@@ -11,7 +11,7 @@ import (
 
 func TestPipelineUpload(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload",
+	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "--file",
 		client.FileForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -31,7 +31,7 @@ parameters:
 
 func TestPipelineUploadJson(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "-o", "json",
+	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "-o", "json", "--file",
 		client.FileForDefaultTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -56,16 +56,16 @@ func TestPipelineUploadJson(t *testing.T) {
 
 func TestPipelineUploadNoFile(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload"})
+	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'FILE' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 	fmt.Println(factory.Result())
 }
 
 func TestPipelineUploadClientError(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "upload",
+	rootCmd.Command().SetArgs([]string{"pipeline", "upload", "--file",
 		client.FileForClientErrorTest})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
