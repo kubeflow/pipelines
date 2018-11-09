@@ -69,8 +69,8 @@ def main():
   job_name = 'kubeflow_sample'
   params = {'output': args.output,
             'project': 'ml-pipeline-test',
-            'evaluation': 'gs://ml-pipeline-playground/IntegTest/flower/eval15.csv',
-            'train': 'gs://ml-pipeline-playground/IntegTest/flower/train30.csv',
+            'evaluation': 'gs://ml-pipeline-dataset/sample-test/flower/eval15.csv',
+            'train': 'gs://ml-pipeline-dataset/sample-test/flower/train30.csv',
             'hidden-layer-size': '10,5',
             'steps': '5'}
   response = client.run_pipeline(experiment_id, job_name, args.input, params)
