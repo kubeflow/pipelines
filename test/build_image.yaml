@@ -110,7 +110,7 @@ spec:
         value: Dockerfile
       - name: image-name
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-38-g93afa4d-e3b0c4
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-39-g2274e35-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
