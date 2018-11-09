@@ -60,7 +60,7 @@ BASE_DIR=/ml
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
 git clone https://github.com/kubeflow/pipelines ${BASE_DIR}
 cd ${BASE_DIR}
-git checkout ${COMMIT_SHA}
+git merge --no-ff ${COMMIT_SHA} -m "Merged PR ${COMMIT_SHA}"
 
 echo "Waiting for dind to start..."
 until docker ps; do sleep 3; done;
