@@ -110,7 +110,7 @@ spec:
         value: Dockerfile
       - name: image-name
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181102-0.0.20-195-g2c8e37ab-e3b0c4
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-38-g93afa4d-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
@@ -118,9 +118,6 @@ spec:
         "--docker_file", "{{inputs.parameters.docker-file}}",
         "--image_name", "{{inputs.parameters.image-name}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
@@ -130,9 +127,3 @@ spec:
       securityContext:
         privileged: true
       mirrorVolumeMounts: true
-
-  volumes:
-  - name: secret-volume
-    secret:
-      defaultMode: 256
-      secretName: ssh-key-secret
