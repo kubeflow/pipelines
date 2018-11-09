@@ -67,6 +67,9 @@ PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
 echo "presubmit test starts"
 
+# activating the service account
+gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+
 #Creating a new GKE cluster if needed
 if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   echo "create test cluster"
@@ -99,10 +102,6 @@ echo "Add necessary cluster role bindings"
 ACCOUNT=$(gcloud info --format='value(config.account)')
 kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT
 kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default
-
-echo "Create k8s secret for github SSH credentials"
-cp /etc/ssh-knative/ssh-knative ./id_rsa
-kubectl create secret generic ssh-key-secret --from-file=id_rsa=./id_rsa
 
 echo "install argo"
 ARGO_VERSION=v2.2.0
