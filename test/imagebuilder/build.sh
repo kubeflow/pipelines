@@ -60,6 +60,8 @@ BASE_DIR=/ml
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
 git clone https://github.com/kubeflow/pipelines ${BASE_DIR}
 cd ${BASE_DIR}
+git config --local user.name 'K8S Bootstrap'
+git config --local user.email k8s_bootstrap@localhost
 git merge --no-ff ${COMMIT_SHA} -m "Merged PR ${COMMIT_SHA}"
 
 echo "Waiting for dind to start..."
