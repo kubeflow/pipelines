@@ -1,21 +1,22 @@
 package test
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"net/url"
 	"testing"
 	"time"
 
 	"io/ioutil"
 
+	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
+	model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"google.golang.org/grpc"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // This test suit tests various methods to import pipeline to pipeline system, including
@@ -25,9 +26,8 @@ import (
 // - Providing tarball file url
 type PipelineApiTest struct {
 	suite.Suite
-	namespace      string
-	conn           *grpc.ClientConn
-	pipelineClient api.PipelineServiceClient
+	pipelineClient       *api_server.PipelineClient
+	pipelineUploadClient *api_server.PipelineUploadClient
 }
 
 // Check the namespace have ML job installed and ready
@@ -36,91 +36,67 @@ func (s *PipelineApiTest) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 	}
-	s.namespace = *namespace
-	s.conn, err = getRpcConnection(s.namespace)
+	clientConfig := getClientConfig(*namespace)
+	api_server.NewPipelineClient(clientConfig, true)
+	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, true)
 	if err != nil {
-		glog.Exitf("Failed to get RPC connection. Error: %s", err.Error())
+		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
-	s.pipelineClient = api.NewPipelineServiceClient(s.conn)
+	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, true)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
+	}
 }
 
 func (s *PipelineApiTest) TearDownTest() {
-	s.conn.Close()
 }
 
 func (s *PipelineApiTest) TestPipelineAPI() {
 	t := s.T()
-	clientSet, err := getKubernetesClient()
-	if err != nil {
-		t.Fatalf("Can't initialize a Kubernete client. Error: %s", err.Error())
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
 
 	/* ---------- Delete pipelines if any, ensuring there is no pipeline ---------- */
-	listPipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
-	for _, p := range listPipelineResponse.Pipelines {
-		_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: p.Id})
-		assert.Nil(t, err)
+	pipelines, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
+	assert.Nil(t, err)
+	for _, p := range pipelines {
+		assert.Nil(t, s.pipelineClient.Delete(&params.DeletePipelineParams{ID: p.ID}))
 	}
 
 	requestStartTime := time.Now().Unix()
 	/* ---------- Upload pipelines YAML ---------- */
-	pipelineBody, writer := uploadPipelineFileOrFail("resources/arguments-parameters.yaml")
-	response, err := clientSet.RESTClient().Post().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
-		SetHeader("Content-Type", writer.FormDataContentType()).
-		Body(pipelineBody).Do().Raw()
-	assert.Nil(t, err)
-	var argumentYAMLPipeline api.Pipeline
-	json.Unmarshal(response, &argumentYAMLPipeline)
+	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
-	pipelineBody, writer = uploadPipelineFileOrFail("resources/arguments-parameters.yaml")
-	_, err = clientSet.RESTClient().Post().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
-		SetHeader("Content-Type", writer.FormDataContentType()).
-		Body(pipelineBody).Do().Raw()
+	_, err = s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a new name.")
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipeline, err := s.pipelineClient.CreatePipeline(
-		ctx, &api.CreatePipelineRequest{
-			Url:  &api.Url{PipelineUrl: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"},
-			Name: "sequential"})
+	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
+		Body: &pipeline_model.APIURL{
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}})
 	assert.Nil(t, err)
-	assert.Equal(t, "sequential", sequentialPipeline.Name)
+	assert.Equal(t, "sequential.yaml", sequentialPipeline.Name)
 
 	/* ---------- Upload pipelines tarball ---------- */
 	time.Sleep(1 * time.Second)
-	pipelineBody, writer = uploadPipelineFileOrFail("resources/arguments.tar.gz")
-	response, err = clientSet.RESTClient().Post().
-		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
-		Param("name", url.PathEscape("arguments-parameters")).
-		SetHeader("Content-Type", writer.FormDataContentType()).
-		Body(pipelineBody).Do().Raw()
-	assert.Nil(t, err)
-	var argumentUploadPipeline api.Pipeline
-	json.Unmarshal(response, &argumentUploadPipeline)
-	assert.Equal(t, "arguments-parameters", argumentUploadPipeline.Name)
+	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile("resources/zip-arguments.tar.gz", &uploadParams.UploadPipelineParams{Name: util.StringPointer("arguments-parameters")})
+	assert.Equal(t, "zip-arguments.tar.gz", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	argumentUrlPipeline, err := s.pipelineClient.CreatePipeline(
-		ctx, &api.CreatePipelineRequest{
-			Url:  &api.Url{PipelineUrl: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.tar.gz"},
-			Name: "url-arguments-parameters"})
+	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
+		Body: &pipeline_model.APIURL{
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.tar.gz"}})
 	assert.Nil(t, err)
-	assert.Equal(t, "url-arguments-parameters", argumentUrlPipeline.Name)
+	assert.Equal(t, "arguments.tar.gz", sequentialPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
-	listPipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{})
+	pipelines, _, err = s.pipelineClient.List(params.NewListPipelinesParams())
 	assert.Nil(t, err)
-	assert.Equal(t, 4, len(listPipelineResponse.Pipelines))
-	for _, p := range listPipelineResponse.Pipelines {
+	assert.Equal(t, 4, len(pipelines))
+	for _, p := range pipelines {
 		// Sampling one of the pipelines and verify the result is expected.
 		if p.Name == "arguments-parameters.yaml" {
 			verifyPipeline(t, p, requestStartTime)
@@ -128,89 +104,98 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	}
 
 	/* ---------- Verify list pipeline sorted by names ---------- */
-	listFirstPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "name"})
+	listFirstPagePipelines, nextPageToken, err := s.pipelineClient.List(
+		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
-	assert.Equal(t, "arguments-parameters", listFirstPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelineResponse.Pipelines[1].Name)
-	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
+	assert.Equal(t, 2, len(listFirstPagePipelines))
+	assert.Equal(t, "arguments-parameters", listFirstPagePipelines[0].Name)
+	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[1].Name)
+	assert.NotEmpty(t, nextPageToken)
 
-	listSecondPagePipelineResponse, err := s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "name"})
+	listSecondPagePipelines, nextPageToken, err := s.pipelineClient.List(
+		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listSecondPagePipelineResponse.Pipelines))
-	assert.Equal(t, "sequential", listSecondPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "url-arguments-parameters", listSecondPagePipelineResponse.Pipelines[1].Name)
-	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
+	assert.Equal(t, 2, len(listSecondPagePipelines))
+	assert.Equal(t, "sequential.yaml", listSecondPagePipelines[0].Name)
+	assert.Equal(t, "zip-arguments.tar.gz", listSecondPagePipelines[1].Name)
+	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
-	listFirstPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "created_at"})
+	listFirstPagePipelines, nextPageToken, err = s.pipelineClient.List(
+		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
-	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "sequential", listFirstPagePipelineResponse.Pipelines[1].Name)
-	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
+	assert.Equal(t, 2, len(listFirstPagePipelines))
+	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
+	assert.Equal(t, "sequential.yaml", listFirstPagePipelines[1].Name)
+	assert.NotEmpty(t, nextPageToken)
 
-	listSecondPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "created_at"})
+	listSecondPagePipelines, nextPageToken, err = s.pipelineClient.List(
+		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listSecondPagePipelineResponse.Pipelines))
-	assert.Equal(t, "arguments-parameters", listSecondPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "url-arguments-parameters", listSecondPagePipelineResponse.Pipelines[1].Name)
-	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
+	assert.Equal(t, 2, len(listSecondPagePipelines))
+	assert.Equal(t, "arguments-parameters", listSecondPagePipelines[0].Name)
+	assert.Equal(t, "zip-arguments.tar.gz", listSecondPagePipelines[1].Name)
+	assert.Empty(t, nextPageToken)
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
-	_, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "description"})
+	_, _, err = s.pipelineClient.List(&params.ListPipelinesParams{
+		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "InvalidArgument")
 
 	/* ---------- List pipelines sorted by names descend order ---------- */
-	listFirstPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageSize: 2, SortBy: "name desc"})
+	listFirstPagePipelines, nextPageToken, err = s.pipelineClient.List(
+		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listFirstPagePipelineResponse.Pipelines))
-	assert.Equal(t, "url-arguments-parameters", listFirstPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "sequential", listFirstPagePipelineResponse.Pipelines[1].Name)
-	assert.NotEmpty(t, listFirstPagePipelineResponse.NextPageToken)
+	assert.Equal(t, 2, len(listFirstPagePipelines))
+	assert.Equal(t, "zip-arguments.tar.gz", listFirstPagePipelines[0].Name)
+	assert.Equal(t, "sequential.yaml", listFirstPagePipelines[1].Name)
+	assert.NotEmpty(t, nextPageToken)
 
-	listSecondPagePipelineResponse, err = s.pipelineClient.ListPipelines(ctx, &api.ListPipelinesRequest{PageToken: listFirstPagePipelineResponse.NextPageToken, PageSize: 2, SortBy: "name desc"})
+	listSecondPagePipelines, nextPageToken, err = s.pipelineClient.List(&params.ListPipelinesParams{
+		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(listSecondPagePipelineResponse.Pipelines))
-	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelineResponse.Pipelines[0].Name)
-	assert.Equal(t, "arguments-parameters", listSecondPagePipelineResponse.Pipelines[1].Name)
-	assert.Empty(t, listSecondPagePipelineResponse.NextPageToken)
+	assert.Equal(t, 2, len(listSecondPagePipelines))
+	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[0].Name)
+	assert.Equal(t, "arguments-parameters", listSecondPagePipelines[1].Name)
+	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get pipeline works ---------- */
-	pipeline, err := s.pipelineClient.GetPipeline(ctx, &api.GetPipelineRequest{Id: argumentYAMLPipeline.Id})
+	pipeline, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: argumentYAMLPipeline.ID})
 	assert.Nil(t, err)
 	verifyPipeline(t, pipeline, requestStartTime)
 
 	/* ---------- Verify get template works ---------- */
-	getTmpResponse, err := s.pipelineClient.GetTemplate(ctx, &api.GetTemplateRequest{Id: argumentYAMLPipeline.Id})
+	template, err := s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: argumentYAMLPipeline.ID})
 	assert.Nil(t, err)
 	expected, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
-	assert.Equal(t, string(expected), getTmpResponse.Template)
+	var expectedWorkflow v1alpha1.Workflow
+	err = yaml.Unmarshal(expected, &expectedWorkflow)
+	assert.Equal(t, expectedWorkflow, *template)
 
 	/* ---------- Clean up ---------- */
-	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: sequentialPipeline.Id})
+	err = s.pipelineClient.Delete(&params.DeletePipelineParams{ID: sequentialPipeline.ID})
 	assert.Nil(t, err)
-	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: argumentYAMLPipeline.Id})
+	err = s.pipelineClient.Delete(&params.DeletePipelineParams{ID: argumentYAMLPipeline.ID})
 	assert.Nil(t, err)
-	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: argumentUploadPipeline.Id})
+	err = s.pipelineClient.Delete(&params.DeletePipelineParams{ID: argumentUploadPipeline.ID})
 	assert.Nil(t, err)
-	_, err = s.pipelineClient.DeletePipeline(ctx, &api.DeletePipelineRequest{Id: argumentUrlPipeline.Id})
+	err = s.pipelineClient.Delete(&params.DeletePipelineParams{ID: argumentUrlPipeline.ID})
 	assert.Nil(t, err)
 }
 
-func verifyPipeline(t *testing.T, pipeline *api.Pipeline, requestStartTime int64) {
+func verifyPipeline(t *testing.T, pipeline *model.APIPipeline, requestStartTime int64) {
 	// Only verify the time fields have valid value and in the right range.
 	assert.NotNil(t, *pipeline)
 	assert.NotNil(t, pipeline.CreatedAt)
 	// TODO: Investigate this. This is flaky for some reason.
 	//assert.True(t, pipeline.CreatedAt.GetSeconds() >= requestStartTime)
-	expected := api.Pipeline{
-		Id:        pipeline.Id,
-		CreatedAt: &timestamp.Timestamp{Seconds: pipeline.CreatedAt.Seconds},
+	expected := model.APIPipeline{
+		ID:        pipeline.ID,
+		CreatedAt: pipeline.CreatedAt,
 		Name:      "arguments-parameters.yaml",
-		Parameters: []*api.Parameter{
+		Parameters: []*model.APIParameter{
 			{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 			{Name: "param2"},                 // No default value in the pipeline
 		},

@@ -32,6 +32,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 const (
@@ -125,4 +127,12 @@ func getRpcConnection(namespace string) (*grpc.ClientConn, error) {
 		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
 	}
 	return conn, nil
+}
+
+func getClientConfig(namespace string) clientcmd.ClientConfig {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	loadingRules.DefaultClientConfig = &clientcmd.DefaultClientConfig
+	overrides := clientcmd.ConfigOverrides{Context: clientcmdapi.Context{Namespace: namespace}}
+	return clientcmd.NewInteractiveDeferredLoadingClientConfig(loadingRules,
+		&overrides, os.Stdin)
 }
