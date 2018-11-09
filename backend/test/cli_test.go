@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	defaultPageSize    = int32(10)
+	defaultPageSize    = int32(11)
 	myUploadedPipeline = "my-uploaded-pipeline"
 	// If true, run as a unit test using a fake client.
 	// If false, run as an integration test calling the service.
