@@ -49,7 +49,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { pipelines, selectedIds, sortBy, toolbarActions } = this.state;
 
     const columns: Column[] = [
@@ -81,9 +81,9 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
-      this._tableRef.current.reload();
+      await this._tableRef.current.reload();
     }
   }
 
