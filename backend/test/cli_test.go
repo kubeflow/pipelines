@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	"github.com/kubeflow/pipelines/backend/src/cmd/ml/cmd"
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func (c *CLIIntegrationTest) TestPipelineListSuccess() {
 
 	// Create pipelines
 	rootCmd, _ := GetRealRootCommand()
-	args := []string{"pipeline", "create",
+	args := []string{"pipeline", "create", "--url",
 		"https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
@@ -88,7 +89,7 @@ func (c *CLIIntegrationTest) TestPipelineListSuccess() {
 func (c *CLIIntegrationTest) TestPipelineListFailureInvalidArgument() {
 	t := c.T()
 	rootCmd, _ := GetRealRootCommand()
-	args := []string{"pipeline", "list", "askjdfskldjf"}
+	args := []string{"pipeline", "list", "EXTRA_ARGUMENT"}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
 	_, err := rootCmd.Command().ExecuteC()
@@ -98,7 +99,7 @@ func (c *CLIIntegrationTest) TestPipelineListFailureInvalidArgument() {
 func (c *CLIIntegrationTest) TestPipelineUploadSuccess() {
 	t := c.T()
 	rootCmd, _ := GetRealRootCommand()
-	args := []string{"pipeline", "upload", "--name", myUploadedPipeline,
+	args := []string{"pipeline", "upload", "--name", myUploadedPipeline, "--file",
 		"./resources/hello-world.yaml"}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
@@ -111,7 +112,7 @@ func (c *CLIIntegrationTest) TestPipelineCreateGetDeleteSuccess() {
 	rootCmd, factory := GetRealRootCommand()
 
 	// Create pipeline
-	args := []string{"pipeline", "create",
+	args := []string{"pipeline", "create", "--url",
 		"https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
@@ -123,26 +124,87 @@ func (c *CLIIntegrationTest) TestPipelineCreateGetDeleteSuccess() {
 	assert.Nil(t, err)
 
 	// Get pipeline
-	args = []string{"pipeline", "get", pipelineID}
+	args = []string{"pipeline", "get", "--id", pipelineID}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
 	_, err = rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 
 	// Get manifest
-	args = []string{"pipeline", "get-manifest", pipelineID}
+	args = []string{"pipeline", "get-manifest", "--id", pipelineID}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
 	_, err = rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 
 	// Delete pipeline
-	args = []string{"pipeline", "delete", pipelineID}
+	args = []string{"pipeline", "delete", "--id", pipelineID}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
 	_, err = rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
 }
+
+// TODO: uncomment these tests once the "Delete Experiment" API is available.
+//func (c *CLIIntegrationTest) TestExperimentListSuccess() {
+//	t := c.T()
+//
+//	// Create pipelines
+//	rootCmd, _ := GetRealRootCommand()
+//	args := []string{"experiment", "create", "--name",
+//		"MY_EXPERIMENT"}
+//	args = addCommonArgs(args, c.namespace)
+//	rootCmd.Command().SetArgs(args)
+//	_, err := rootCmd.Command().ExecuteC()
+//	assert.Nil(t, err)
+//
+//	// List pipeline
+//	rootCmd, factory := GetRealRootCommand()
+//	args = []string{"pipeline", "list"}
+//	args = addCommonArgs(args, c.namespace)
+//	rootCmd.Command().SetArgs(args)
+//	_, err = rootCmd.Command().ExecuteC()
+//	assert.Nil(t, err)
+//
+//	// Convert and assert result
+//	pipelines, err := toExperiments(factory.Result())
+//	assert.Nil(t, err)
+//	assert.True(t, len(pipelines) >= 1)
+//}
+//
+//func (c *CLIIntegrationTest) TestExperimentListFailureInvalidArgument() {
+//	t := c.T()
+//	rootCmd, _ := GetRealRootCommand()
+//	args := []string{"experiment", "list", "EXTRA_ARGUMENT"}
+//	args = addCommonArgs(args, c.namespace)
+//	rootCmd.Command().SetArgs(args)
+//	_, err := rootCmd.Command().ExecuteC()
+//	assert.NotNil(t, err)
+//}
+//
+//func (c *CLIIntegrationTest) TestExperimentCreateGetSuccess() {
+//	t := c.T()
+//	rootCmd, factory := GetRealRootCommand()
+//
+//	// Create pipeline
+//	args := []string{"experiment", "create", "--name",
+//		"MY_EXPERIMENT"}
+//	args = addCommonArgs(args, c.namespace)
+//	rootCmd.Command().SetArgs(args)
+//	_, err := rootCmd.Command().ExecuteC()
+//	assert.Nil(t, err)
+//
+//	// Get ID
+//	experimentID, err := toExperimentID(factory.Result())
+//	assert.Nil(t, err)
+//
+//	// Get pipeline
+//	args = []string{"experiment", "get", "--id", experimentID}
+//	args = addCommonArgs(args, c.namespace)
+//	rootCmd.Command().SetArgs(args)
+//	_, err = rootCmd.Command().ExecuteC()
+//	assert.Nil(t, err)
+//}
 
 func TestPipelineAPI(t *testing.T) {
 	suite.Run(t, new(CLIIntegrationTest))
@@ -171,6 +233,24 @@ func toPipelines(jsonPipelines string) ([]pipeline_model.APIPipeline, error) {
 	return pipelines, nil
 }
 
+func toExperimentID(jsonExperiment string) (string, error) {
+	var experiment experiment_model.APIExperiment
+	err := json.Unmarshal([]byte(jsonExperiment), &experiment)
+	if err != nil {
+		return "", err
+	}
+	return experiment.ID, nil
+}
+
+func toExperiments(jsonExperiments string) ([]experiment_model.APIExperiment, error) {
+	var experiments []experiment_model.APIExperiment
+	err := json.Unmarshal([]byte(jsonExperiments), &experiments)
+	if err != nil {
+		return nil, err
+	}
+	return experiments, nil
+}
+
 func (c *CLIIntegrationTest) deletePipelines() error {
 	pipelines, err := c.listPipelines()
 	if err != nil {
@@ -187,7 +267,7 @@ func (c *CLIIntegrationTest) deletePipelines() error {
 
 func (c *CLIIntegrationTest) deletePipeline(pipeline pipeline_model.APIPipeline) error {
 	rootCmd, _ := GetRealRootCommand()
-	args := []string{"pipeline", "delete", pipeline.ID}
+	args := []string{"pipeline", "delete", "--id", pipeline.ID}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
 	_, err := rootCmd.Command().ExecuteC()
