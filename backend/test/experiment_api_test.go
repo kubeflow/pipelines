@@ -119,7 +119,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	_, _, err = s.experimentClient.List(&params.ListExperimentParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "InvalidArgument")
+	assert.Contains(t, err.Error(), "Failed to list experiments")
 
 	/* ---------- List experiments sorted by names descend order ---------- */
 	experiments, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{

@@ -31,6 +31,7 @@ import (
 	"github.com/golang/glog"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -152,9 +153,17 @@ func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 }
 
 func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
-	pipelines, _, err := client.List(experimentparams.NewListExperimentParams())
+	experiments, _, err := client.List(experimentparams.NewListExperimentParams())
 	assert.Nil(t, err)
-	for _, p := range pipelines {
-		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: p.ID}))
+	for _, e := range experiments {
+		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: e.ID}))
+	}
+}
+
+func deleteAllRuns(client *api_server.RunClient, t *testing.T) {
+	runs, _, err := client.List(runparams.NewListRunsParams())
+	assert.Nil(t, err)
+	for _, r := range runs {
+		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
 	}
 }
