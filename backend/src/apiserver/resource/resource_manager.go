@@ -236,8 +236,8 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	}
 	err = r.workflowClient.Delete(runDetail.Name, &v1.DeleteOptions{})
 	if err != nil {
-		// TODO(IronPan) This should return error if swf CRD doesn't cascade delete runs.
-		//return util.NewInternalServerError(err, "Delete run CRD failed.")
+		// API won't need to delete the workflow CRD
+		// once persistent agent sync the state to DB and set TTL for it.
 		glog.Warningf("Failed to delete run %v. Error: %v", runDetail.Name, err.Error())
 	}
 	err = r.runStore.DeleteRun(runID)
@@ -425,14 +425,6 @@ func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) 
 	if err != nil {
 		return nil, util.Wrap(err, "Check run exist failed")
 	}
-	// TODO(IronPan) Enable following check once SWF CRD doesn't cascade delete runs.
-	//workflow, err := r.workflowClient.Get(runDetail.Name, v1.GetOptions{})
-	//if err != nil {
-	//	return nil, util.NewInternalServerError(err, "Check run exist failed")
-	//}
-	//if workflow == nil || string(workflow.UID) != runID {
-	//	return nil, util.NewResourceNotFoundError("run", runDetail.Name)
-	//}
 	return runDetail, nil
 }
 
