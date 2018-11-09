@@ -43,11 +43,11 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
     },
   });
 
-  public getDisplayName() {
+  public getDisplayName(): string {
     return 'Static HTML';
   }
 
-  public componentDidMount() {
+  public componentDidMount(): void {
     // TODO: iframe.srcdoc doesn't work on Edge yet. It's been added, but not
     // yet rolled out as of the time of writing this (6/14/18):
     // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/12375527/
@@ -59,7 +59,7 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
     }
   }
 
-  public render() {
+  public render(): JSX.Element | null {
     if (!this._config) {
       return null;
     }

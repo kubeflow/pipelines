@@ -48,13 +48,13 @@ describe('SideNav', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders experiments as active page', () => {
-    const tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...routerProps} />);
+  it('renders Pipelines as active when on PipelineDetails page', () => {
+    const tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders Pipelines as active when on PipelineDetails page', () => {
-    const tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...routerProps} />);
+  it('renders experiments as active page', () => {
+    const tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -63,8 +63,33 @@ describe('SideNav', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders nothing as active page', () => {
+  it('renders experiments as active page when on NewExperiment page', () => {
+    const tree = shallow(<SideNav page={RoutePage.NEW_EXPERIMENT} {...routerProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders experiments as active page when on Compare page', () => {
     const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders experiments as active page when on AllRuns page', () => {
+    const tree = shallow(<SideNav page={RoutePage.RUNS} {...routerProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders experiments as active page when on RunDetails page', () => {
+    const tree = shallow(<SideNav page={RoutePage.RUN_DETAILS} {...routerProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders experiments as active page when on RecurringRunDetails page', () => {
+    const tree = shallow(<SideNav page={RoutePage.RECURRING_RUN} {...routerProps} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders experiments as active page when on NewRun page', () => {
+    const tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 

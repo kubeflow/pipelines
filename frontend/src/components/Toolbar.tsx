@@ -37,6 +37,11 @@ export interface ToolbarActionConfig {
   tooltip: string;
 }
 
+export interface Breadcrumb {
+  displayName: string;
+  href: string;
+}
+
 const backIconHeight = 24;
 
 const css = stylesheet({
@@ -92,11 +97,6 @@ const css = stylesheet({
   },
 });
 
-export interface Breadcrumb {
-  displayName: string;
-  href: string;
-}
-
 export interface ToolbarProps {
   actions: ToolbarActionConfig[];
   breadcrumbs: Breadcrumb[];
@@ -106,7 +106,7 @@ export interface ToolbarProps {
 
 class Toolbar extends React.Component<ToolbarProps> {
 
-  public render() {
+  public render(): JSX.Element {
     const currentPage = this.props.breadcrumbs.length ?
       this.props.breadcrumbs[this.props.breadcrumbs.length - 1].displayName : '';
     const breadcrumbs = this.props.breadcrumbs.slice(0, this.props.breadcrumbs.length - 1);

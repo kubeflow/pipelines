@@ -33,6 +33,9 @@ instance_name=${instance_name:-test-minikube-${PULL_PULL_SHA:0:6}-$(date +%s)-$(
 
 firewall_rule_name=allow-prow-ssh-$instance_name
 
+# activating the service account
+gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+
 #Function to delete VM
 function delete_vm {
     if [ "$keep_created_vm" != true ]; then
@@ -66,11 +69,6 @@ gcloud compute firewall-rules create $firewall_rule_name --allow tcp:22 --source
 if [ "$(whoami)" == root ]; then
   export USER=not-root
 fi
-
-#Copy the ssh keys
-ssh_key_file=${ssh_key_file:-/etc/ssh-knative/ssh-knative}
-gcloud compute ssh --zone=$ZONE $instance_name -- 'sudo mkdir -m 777 -p /etc/ssh-knative' #Making the directory writable by a non-root user so that we can copy the file
-gcloud compute scp --zone=$ZONE "$ssh_key_file" $instance_name:/etc/ssh-knative/ssh-knative
 
 #Copy repo
 git_root=$(git rev-parse --show-toplevel)
