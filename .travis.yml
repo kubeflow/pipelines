@@ -26,7 +26,6 @@ script:
   # Frontend tests
   - cd $TRAVIS_BUILD_DIR/frontend
   - npm i
-  - CI=true npm test
   - npm run test:coveralls
 
   # DSL tests
