@@ -38,4 +38,4 @@ script:
 
   # SDK Components tests
   - cd $TRAVIS_BUILD_DIR/sdk/python
-  - python3 -m unittest --verbose
+  - python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
