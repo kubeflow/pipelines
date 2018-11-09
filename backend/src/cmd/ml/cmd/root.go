@@ -20,6 +20,7 @@ type RootCommand struct {
 	pipelineClient       client.PipelineInterface
 	jobClient            client.JobInterface
 	runClient            client.RunInterface
+	experimentClient     client.ExperimentInterface
 	time                 util.TimeInterface
 	writer               io.Writer
 }
@@ -52,10 +53,16 @@ func NewRootCmd(factory ClientFactoryInterface) *RootCommand {
 			if err != nil {
 				fmt.Errorf("Could not create runClient: %v", err)
 			}
+
+			experimentClient, err := factory.CreateExperimentClient(root.ClientConfig(), root.debug)
+			if err != nil {
+				fmt.Errorf("Could not create experimentClient: %v", err)
+			}
 			root.pipelineUploadClient = pipelineUploadClient
 			root.pipelineClient = pipelineClient
 			root.jobClient = jobClient
 			root.runClient = runClient
+			root.experimentClient = experimentClient
 			return nil
 		},
 	}
@@ -129,6 +136,10 @@ func (r *RootCommand) RunClient() client.RunInterface {
 	return r.runClient
 }
 
+func (r *RootCommand) ExperimentClient() client.ExperimentInterface {
+	return r.experimentClient
+}
+
 func (r *RootCommand) Time() util.TimeInterface {
 	return r.time
 }
@@ -144,6 +155,8 @@ func (r *RootCommand) AddCommand(commands ...*cobra.Command) {
 func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 
 	// Create commands
+
+	// Pipeline
 	pipelineCmd := NewPipelineCmd()
 	pipelineUploadCmd := NewPipelineUploadCmd(rootCmd)
 	pipelineCreateCmd := NewPipelineCreateCmd(rootCmd)
@@ -151,9 +164,13 @@ func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 	pipelineDeleteCmd := NewPipelineDeleteCmd(rootCmd)
 	pipelineGetCmd := NewPipelineGetCmd(rootCmd)
 	pipelineGetTemplateCmd := NewPipelineGetTemplateCmd(rootCmd)
+
+	// Run
 	runCmd := NewRunCmd()
 	runGetCmd := NewRunGetCmd(rootCmd)
 	runListCmd := NewRunListCmd(rootCmd, pageSize)
+
+	// Job
 	jobCmd := NewJobCmd()
 	jobCreateCmd := NewJobCreateCmd(rootCmd)
 	jobGetCmd := NewJobGetCmd(rootCmd)
@@ -162,15 +179,26 @@ func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 	jobDisableCmd := NewJobDisableCmd(rootCmd)
 	jobDeleteCmd := NewJobDeleteCmd(rootCmd)
 
+	// Experiment
+	experimentCmd := NewExperimentCmd()
+	experimentCreateCmd := NewExperimentCreateCmd(rootCmd)
+	experimentGetCmd := NewExperimentGetCmd(rootCmd)
+	experimentListCmd := NewExperimentListCmd(rootCmd, pageSize)
+
 	// Specify subcommands
 	rootCmd.AddCommand(pipelineCmd)
 	pipelineCmd.AddCommand(pipelineUploadCmd, pipelineCreateCmd, pipelineListCmd, pipelineDeleteCmd,
 		pipelineGetCmd, pipelineGetTemplateCmd)
+
 	rootCmd.AddCommand(runCmd)
 	runCmd.AddCommand(runGetCmd, runListCmd)
+
 	rootCmd.AddCommand(jobCmd)
 	jobCmd.AddCommand(jobCreateCmd, jobGetCmd, jobListCmd, jobEnableCmd,
 		jobDisableCmd, jobDeleteCmd)
+
+	rootCmd.AddCommand(experimentCmd)
+	experimentCmd.AddCommand(experimentCreateCmd, experimentGetCmd, experimentListCmd)
 
 	return rootCmd
 }
