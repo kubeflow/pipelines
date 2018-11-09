@@ -146,7 +146,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     };
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     window.addEventListener('resize', this._maybeResize.bind(this));
     this._maybeResize();
 
@@ -156,7 +156,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     }
   }
 
-  public render() {
+  public render(): JSX.Element {
     const page = this.props.page;
     const { collapsed } = this.state;
     const iconColor = {
@@ -184,9 +184,9 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
           <Button className={
             classes(
               css.button,
-              page.startsWith(RoutePage.EXPERIMENTS) && css.active,
+              this._highlightExperimentsButton(page) && css.active,
               collapsed && css.collapsedButton)}>
-            <ExperimentsIcon color={page.startsWith(RoutePage.EXPERIMENTS) ? iconColor.active : iconColor.inactive} />
+            <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
             <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
           </Button>
         </Link>
@@ -209,7 +209,16 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     );
   }
 
-  private _toggleNavClicked() {
+  private _highlightExperimentsButton(page: string): boolean {
+    return page.startsWith(RoutePage.EXPERIMENTS)
+      || page.startsWith(RoutePage.RUNS)
+      // TODO: Router should have a constant for this, but it doesn't follow the naming convention
+      // of the other pages
+      || page.startsWith('/recurringrun')
+      || page.startsWith(RoutePage.COMPARE);
+  }
+
+  private _toggleNavClicked(): void {
     this.setState({
       collapsed: !this.state.collapsed,
       manualCollapseState: true,
@@ -223,7 +232,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     });
   }
 
-  private _maybeResize() {
+  private _maybeResize(): void {
     if (!this.state.manualCollapseState) {
       this._toggleNavCollapsed(window.innerWidth < this._AUTO_COLLAPSE_WIDTH);
     }

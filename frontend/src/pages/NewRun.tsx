@@ -34,6 +34,7 @@ import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
@@ -83,7 +84,7 @@ class NewRun extends Page<{}, NewRunState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [],
       breadcrumbs: [
@@ -93,7 +94,7 @@ class NewRun extends Page<{}, NewRunState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const {
       errorMessage,
       experimentName,
@@ -194,7 +195,7 @@ class NewRun extends Page<{}, NewRunState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return this.load();
   }
 
@@ -202,7 +203,7 @@ class NewRun extends Page<{}, NewRunState> {
     return this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
     const urlParser = new URLParser(this.props);
     let experimentId: string | null = urlParser.get(QUERY_PARAMS.experimentId);

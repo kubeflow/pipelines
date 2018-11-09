@@ -44,19 +44,19 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     };
   }
 
-  public getDisplayName() {
+  public getDisplayName(): string {
     return 'Tensorboard';
   }
 
-  public isAggregatable() {
+  public isAggregatable(): boolean {
     return true;
   }
 
-  public componentDidMount() {
+  public componentDidMount(): void {
     this._checkTensorboardApp();
   }
 
-  public render() {
+  public render(): JSX.Element {
     // Strip the protocol from the URL. This is a workaround for cloud shell
     // incorrectly decoding the address and replacing the protocol's // with /.
     const podAddress = encodeURIComponent(this.state.podAddress.replace(/(^\w+:|^)\/\//, ''));
@@ -77,19 +77,19 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     </div>;
   }
 
-  private _buildUrl() {
+  private _buildUrl(): string {
     const urls = this.props.configs.map(c => c.url).sort();
     return urls.length === 1 ? urls[0] : urls.map((c, i) => `Series${i + 1}:` + c).join(',');
   }
 
-  private async _checkTensorboardApp() {
+  private async _checkTensorboardApp(): Promise<void> {
     this.setState({ busy: true }, async () => {
       const podAddress = await Apis.getTensorboardApp(this._buildUrl());
       this.setState({ busy: false, podAddress });
     });
   }
 
-  private async _startTensorboard() {
+  private async _startTensorboard(): Promise<void> {
     this.setState({ busy: true }, async () => {
       await Apis.startTensorboardApp(encodeURIComponent(this._buildUrl()));
       this.setState({ busy: false }, () => {

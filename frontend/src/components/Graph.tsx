@@ -119,7 +119,7 @@ interface GraphProps {
 }
 
 export default class Graph extends React.Component<GraphProps> {
-  public render() {
+  public render(): JSX.Element {
     const { graph } = this.props;
     const displayEdges: Edge[] = [];
     const displayEdgeStartPoints: number[][] = [];

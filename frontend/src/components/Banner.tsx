@@ -77,7 +77,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
 
     // Default to error styles.
     let bannerModeCss = stylesheet({ mode: { backgroundColor: color.errorBg, color: color.errorText, } });
@@ -121,12 +121,12 @@ class Banner extends React.Component<BannerProps, BannerState> {
 
         {this.props.additionalInfo
           && <Dialog open={this.state.dialogOpen} onClose={this._dialogClosed.bind(this)}>
-          <DialogTitle>{dialogTitle}</DialogTitle>
-          <DialogContent className={commonCss.prewrap}>{this.props.additionalInfo}</DialogContent>
-          <DialogActions>
-            <Button id='dismissDialogBtn' onClick={this._dialogClosed.bind(this)}>Dismiss</Button>
-          </DialogActions>
-        </Dialog>}
+            <DialogTitle>{dialogTitle}</DialogTitle>
+            <DialogContent className={commonCss.prewrap}>{this.props.additionalInfo}</DialogContent>
+            <DialogActions>
+              <Button id='dismissDialogBtn' onClick={this._dialogClosed.bind(this)}>Dismiss</Button>
+            </DialogActions>
+          </Dialog>}
       </div>
     );
   }
