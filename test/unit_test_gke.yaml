@@ -45,18 +45,9 @@ spec:
       - name: commit-sha
       - name: test-results-gcs-dir
     container:
-      image: gcr.io/ml-pipeline-staging/backend-unit-test:v20181102-0.0.20-196-g4d66038f-e3b0c4
+      image: gcr.io/ml-pipeline-staging/backend-unit-test:v20181108-0.1.1-37-gbd71789-e3b0c4
       imagePullPolicy: 'Always'
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
-      volumeMounts:
-      - name: secret-volume
-        mountPath: "/root/.ssh/github"
-
-  volumes:
-  - name: secret-volume
-    secret:
-      defaultMode: 256
-      secretName: ssh-key-secret

@@ -102,7 +102,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     // Only show the two most prevalent metrics
     const metricMetadata: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
@@ -178,17 +178,17 @@ class RunList extends React.Component<RunListProps, RunListState> {
     </div>);
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
-      this._tableRef.current.reload();
+      await this._tableRef.current.reload();
     }
   }
 
-  private _metricBufferCustomRenderer() {
+  private _metricBufferCustomRenderer(): JSX.Element {
     return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
   }
 
-  private _metricCustomRenderer(displayMetric: DisplayMetric) {
+  private _metricCustomRenderer(displayMetric: DisplayMetric): JSX.Element {
     if (!displayMetric.metric || !displayMetric.metric.number_value) {
       return <div />;
     }
@@ -330,7 +330,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private _pipelineCustomRenderer(pipelineInfo?: PipelineInfo) {
+  private _pipelineCustomRenderer(pipelineInfo?: PipelineInfo): JSX.Element {
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
     if (!pipelineInfo || !pipelineInfo.id) {
       return <div>-</div>;
@@ -370,7 +370,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private _experimentCustomRenderer(experimentInfo?: ExperimentInfo) {
+  private _experimentCustomRenderer(experimentInfo?: ExperimentInfo): JSX.Element {
     // If the getExperiment call failed or a run has no experiment, we display a placeholder.
     if (!experimentInfo || !experimentInfo.id) {
       return <div>-</div>;
@@ -383,16 +383,16 @@ class RunList extends React.Component<RunListProps, RunListState> {
     );
   }
 
-  private _nameCustomRenderer(value: string, id: string) {
+  private _nameCustomRenderer(value: string, id: string): JSX.Element {
     return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
       to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, id)}>{value}</Link>;
   }
 
-  private _statusCustomRenderer(status: NodePhase) {
+  private _statusCustomRenderer(status: NodePhase): JSX.Element {
     return statusToIcon(status);
   }
 
-  private _extractMetricMetadata(runs: DisplayRun[]) {
+  private _extractMetricMetadata(runs: DisplayRun[]): MetricMetadata[] {
     const metrics = Array.from(
       runs.reduce((metricMetadatas, run) => {
         if (!run.metadata || !run.metadata.metrics) {
