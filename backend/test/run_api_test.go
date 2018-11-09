@@ -131,7 +131,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, "argument parameter", runs[0].Name)
 
 	/* ---------- List the runs, paginated, sort by name ---------- */
-	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+	runs, nextPageToken, err = s.runClient.List(&runparams.ListRunsParams{
 		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
@@ -146,7 +146,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	_, _, err = s.runClient.List(&runparams.ListRunsParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "InvalidArgument")
+	assert.Contains(t, err.Error(), "Failed to list runs")
 
 	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
 	runs, _, err = s.runClient.List(&runparams.ListRunsParams{

@@ -15,12 +15,8 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"mime/multipart"
 	"os"
-	"path/filepath"
 	"time"
 
 	"flag"
@@ -28,15 +24,13 @@ import (
 	"testing"
 
 	"github.com/cenkalti/backoff"
-	"github.com/golang/glog"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
+	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
 	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -93,49 +87,6 @@ func waitForReady(namespace string, initializeTimeout time.Duration) error {
 	return errors.Wrapf(err, "Waiting for ml pipeline failed after all attempts.")
 }
 
-func uploadPipelineFileOrFail(path string) (*bytes.Buffer, *multipart.Writer) {
-	file, err := os.Open(path)
-	if err != nil {
-		glog.Fatalf("Failed to open the pipeline file: %v", err.Error())
-	}
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("uploadfile", filepath.Base(path))
-	if err != nil {
-		glog.Fatalf("Failed to create form file: %v", err.Error())
-	}
-	_, err = io.Copy(part, file)
-	if err != nil {
-		glog.Fatalf("Failed to copy file to multipart writer: %v", err.Error())
-	}
-
-	err = writer.Close()
-	if err != nil {
-		glog.Fatalf("Failed to close multipart writer: %v", err.Error())
-	}
-
-	return body, writer
-}
-
-func getRpcConnection(namespace string) (*grpc.ClientConn, error) {
-	clientSet, err := getKubernetesClient()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get K8s client set when getting RPC connection")
-	}
-	svc, err := clientSet.CoreV1().Services(namespace).Get("ml-pipeline", metav1.GetOptions{})
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get ml-pipeline service")
-	}
-	rpcAddress := svc.Spec.ClusterIP + ":8887"
-	conn, err := grpc.Dial(rpcAddress, grpc.WithInsecure())
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
-	}
-	return conn, nil
-}
-
 func getClientConfig(namespace string) clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	loadingRules.DefaultClientConfig = &clientcmd.DefaultClientConfig
@@ -145,7 +96,7 @@ func getClientConfig(namespace string) clientcmd.ClientConfig {
 }
 
 func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
-	pipelines, _, err := client.List(pipelineparams.NewListPipelinesParams())
+	pipelines, _, err := client.List(&pipelineparams.ListPipelinesParams{})
 	assert.Nil(t, err)
 	for _, p := range pipelines {
 		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineParams{ID: p.ID}))
@@ -153,7 +104,7 @@ func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 }
 
 func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
-	experiments, _, err := client.List(experimentparams.NewListExperimentParams())
+	experiments, _, err := client.List(&experimentparams.ListExperimentParams{})
 	assert.Nil(t, err)
 	for _, e := range experiments {
 		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: e.ID}))
@@ -161,9 +112,17 @@ func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
 }
 
 func deleteAllRuns(client *api_server.RunClient, t *testing.T) {
-	runs, _, err := client.List(runparams.NewListRunsParams())
+	runs, _, err := client.List(&runparams.ListRunsParams{})
 	assert.Nil(t, err)
 	for _, r := range runs {
 		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
+	}
+}
+
+func deleteAllJobs(client *api_server.JobClient, t *testing.T) {
+	jobs, _, err := client.List(&jobparams.ListJobsParams{})
+	assert.Nil(t, err)
+	for _, j := range jobs {
+		assert.Nil(t, client.Delete(&jobparams.DeleteJobParams{ID: j.ID}))
 	}
 }
