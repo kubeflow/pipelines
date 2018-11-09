@@ -41,8 +41,8 @@ const css = stylesheet({
   fullscreenDialog: {
     alignItems: 'center',
     justifyContent: 'center',
-    maxHeight: '80%',
-    maxWidth: '80%',
+    minHeight: '80%',
+    minWidth: '80%',
     padding: 20,
   },
   fullscreenViewerContainer: {
