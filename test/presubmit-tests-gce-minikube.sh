@@ -79,7 +79,7 @@ gcloud compute scp --zone=$ZONE --verbosity=error --recurse "$git_root" $instanc
 gcloud compute ssh --zone=$ZONE $instance_name -- "~/pipelines/test/minikube/install_docker_minikube_argo.sh"
 
 #Running the presubmit tests
-gcloud compute ssh --zone=$ZONE $instance_name -- PULL_PULL_SHA="$PULL_PULL_SHA" WORKSPACE="~/${WORKSPACE}" "~/pipelines/test/presubmit-tests.sh" --cluster-type none "$@"
+gcloud compute ssh --zone=$ZONE $instance_name -- PULL_PULL_SHA="$PULL_PULL_SHA" WORKSPACE="~/${WORKSPACE}" GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS "~/pipelines/test/presubmit-tests.sh" --cluster-type none "$@"
 
 #Copy back the artifacts
 mkdir -p "${ARTIFACT_DIR}"
