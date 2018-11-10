@@ -525,8 +525,12 @@ class Compiler(object):
     """
     workflow = self._compile(pipeline_func)
     yaml.Dumper.ignore_aliases = lambda *args : True
-    with tempfile.NamedTemporaryFile() as tmp:
-      with open(tmp.name, 'w') as fd:
-        yaml.dump(workflow, fd, default_flow_style=False)
-      with tarfile.open(package_path, "w:gz") as tar:
-        tar.add(tmp.name, arcname="pipeline.yaml")
+    yaml_text = yaml.dump(workflow, default_flow_style=False)
+
+    from contextlib import closing
+    from io import BytesIO
+    with tarfile.open(package_path, "w:gz") as tar:
+      with closing(BytesIO(yaml_text.encode())) as yaml_file:
+        tarinfo = tarfile.TarInfo('pipeline.yaml')
+        tarinfo.size = len(yaml_file.getvalue())
+        tar.addfile(tarinfo, fileobj=yaml_file)
