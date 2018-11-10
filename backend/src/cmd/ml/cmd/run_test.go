@@ -11,7 +11,7 @@ import (
 
 func TestGetRun(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "get",
+	rootCmd.Command().SetArgs([]string{"run", "get", "--id",
 		fmt.Sprintf("%v", client.RunForDefaultTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -45,7 +45,7 @@ workflow:
 
 func TestGetRunClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "get",
+	rootCmd.Command().SetArgs([]string{"run", "get", "--id",
 		fmt.Sprintf("%v", client.RunForClientErrorTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -54,10 +54,10 @@ func TestGetRunClientError(t *testing.T) {
 
 func TestGetRunInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"run", "get"})
+	rootCmd.Command().SetArgs([]string{"run", "get", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestListRun(t *testing.T) {
