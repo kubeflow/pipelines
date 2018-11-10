@@ -23,7 +23,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { History } from 'history';
 import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
-import { spacing, fontsize, color, dimension, commonCss } from '../Css';
+import { spacing, fonts, fontsize, color, dimension, commonCss } from '../Css';
 
 export interface ToolbarActionConfig {
   action: () => void;
@@ -35,6 +35,11 @@ export interface ToolbarActionConfig {
   outlined?: boolean;
   title: string;
   tooltip: string;
+}
+
+export interface Breadcrumb {
+  displayName: string;
+  href: string;
 }
 
 const backIconHeight = 24;
@@ -55,7 +60,10 @@ const css = stylesheet({
     padding: 3,
   },
   breadcrumbs: {
-    fontSize: fontsize.medium,
+    color: color.inactive,
+    fontFamily: fonts.secondary,
+    fontSize: fontsize.small,
+    letterSpacing: 0.25,
     margin: '10px 37px',
   },
   chevron: {
@@ -89,11 +97,6 @@ const css = stylesheet({
   },
 });
 
-export interface Breadcrumb {
-  displayName: string;
-  href: string;
-}
-
 export interface ToolbarProps {
   actions: ToolbarActionConfig[];
   breadcrumbs: Breadcrumb[];
@@ -103,7 +106,7 @@ export interface ToolbarProps {
 
 class Toolbar extends React.Component<ToolbarProps> {
 
-  public render() {
+  public render(): JSX.Element {
     const currentPage = this.props.breadcrumbs.length ?
       this.props.breadcrumbs[this.props.breadcrumbs.length - 1].displayName : '';
     const breadcrumbs = this.props.breadcrumbs.slice(0, this.props.breadcrumbs.length - 1);

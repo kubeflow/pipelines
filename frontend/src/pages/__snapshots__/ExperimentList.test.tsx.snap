@@ -1,0 +1,298 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ExperimentList renders a list of one experiment 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 2,
+          "label": "Description",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Last 5 runs",
+        },
+      ]
+    }
+    disableSelection={true}
+    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    getExpandComponent={[Function]}
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "expandState": 0,
+          "id": undefined,
+          "otherFields": Array [
+            "test experiment name",
+            "test experiment description",
+            undefined,
+          ],
+        },
+      ]
+    }
+    toggleExpansion={[Function]}
+  />
+</div>
+`;
+
+exports[`ExperimentList renders a list of one experiment with error 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 2,
+          "label": "Description",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Last 5 runs",
+        },
+      ]
+    }
+    disableSelection={true}
+    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    getExpandComponent={[Function]}
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={Array []}
+    toggleExpansion={[Function]}
+  />
+</div>
+`;
+
+exports[`ExperimentList renders a list of one experiment with no description 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 2,
+          "label": "Description",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Last 5 runs",
+        },
+      ]
+    }
+    disableSelection={true}
+    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    getExpandComponent={[Function]}
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={Array []}
+    toggleExpansion={[Function]}
+  />
+</div>
+`;
+
+exports[`ExperimentList renders an empty list with empty state message 1`] = `
+<div
+  className="page"
+>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 2,
+          "label": "Description",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Last 5 runs",
+        },
+      ]
+    }
+    disableSelection={true}
+    emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    getExpandComponent={[Function]}
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={Array []}
+    toggleExpansion={[Function]}
+  />
+</div>
+`;
+
+exports[`ExperimentList renders experiment names as links to their details pages 1`] = `
+<Link
+  className="link"
+  onClick={[Function]}
+  replace={false}
+  to="/experiments/details/experiment-id"
+>
+  <a
+    className="link"
+    href="/experiments/details/experiment-id"
+    onClick={[Function]}
+  >
+    experiment name
+  </a>
+</Link>
+`;
+
+exports[`ExperimentList renders last 5 runs statuses 1`] = `
+<div
+  className="flex"
+>
+  <span
+    key="0"
+    style={
+      Object {
+        "margin": "0 1px",
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      title="Executed successfully"
+    >
+      <span>
+        <pure(CheckCircleIcon)
+          style={
+            Object {
+              "color": "#34a853",
+              "height": 18,
+              "width": 18,
+            }
+          }
+        />
+      </span>
+    </WithStyles(Tooltip)>
+  </span>
+  <span
+    key="1"
+    style={
+      Object {
+        "margin": "0 1px",
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      title="Pending execution"
+    >
+      <span>
+        <pure(ScheduleIcon)
+          style={
+            Object {
+              "color": "#999",
+              "height": 18,
+              "width": 18,
+            }
+          }
+        />
+      </span>
+    </WithStyles(Tooltip)>
+  </span>
+  <span
+    key="2"
+    style={
+      Object {
+        "margin": "0 1px",
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      title="Resource failed to execute"
+    >
+      <span>
+        <pure(ErrorIcon)
+          style={
+            Object {
+              "color": "#D50000",
+              "height": 18,
+              "width": 18,
+            }
+          }
+        />
+      </span>
+    </WithStyles(Tooltip)>
+  </span>
+  <span
+    key="3"
+    style={
+      Object {
+        "margin": "0 1px",
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      title="Unknown status"
+    >
+      <span>
+        <pure(HelpIcon)
+          style={
+            Object {
+              "color": "#5F6368",
+              "height": 18,
+              "width": 18,
+            }
+          }
+        />
+      </span>
+    </WithStyles(Tooltip)>
+  </span>
+  <span
+    key="4"
+    style={
+      Object {
+        "margin": "0 1px",
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      title="Executed successfully"
+    >
+      <span>
+        <pure(CheckCircleIcon)
+          style={
+            Object {
+              "color": "#34a853",
+              "height": 18,
+              "width": 18,
+            }
+          }
+        />
+      </span>
+    </WithStyles(Tooltip)>
+  </span>
+</div>
+`;

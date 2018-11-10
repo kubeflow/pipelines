@@ -44,6 +44,11 @@ func (f *ClientFactoryFake) CreateRunClient(config clientcmd.ClientConfig, debug
 	return client.NewRunClientFake(), nil
 }
 
+func (f *ClientFactoryFake) CreateExperimentClient(config clientcmd.ClientConfig, debug bool) (
+	client.ExperimentInterface, error) {
+	return client.NewExperimentClientFake(), nil
+}
+
 func (f *ClientFactoryFake) Time() util.TimeInterface {
 	return f.time
 }
@@ -56,7 +61,7 @@ func (f *ClientFactoryFake) Result() string {
 	return (*f.buffer).String()
 }
 
-func getFakeRootCommand() (*RootCommand, *ClientFactoryFake) {
+func GetFakeRootCommand() (*RootCommand, *ClientFactoryFake) {
 	factory := NewClientFactoryFake()
 	rootCmd := NewRootCmd(factory)
 	rootCmd = CreateSubCommands(rootCmd, 10)

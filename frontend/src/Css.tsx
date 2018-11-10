@@ -15,8 +15,8 @@
  */
 
 import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
-import { style, stylesheet } from 'typestyle';
 import { NestedCSSProperties } from 'typestyle/lib/types';
+import { style, stylesheet } from 'typestyle';
 
 export const color = {
   activeBg: '#eaf1fd',
@@ -29,10 +29,10 @@ export const color = {
   foreground: '#000',
   graphBg: '#f5f5f5',
   hoverBg: '#eee',
-  inactive: '#616161',
+  inactive: '#5F6368',
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
-  strong: '#000',
+  strong: '#212121',
   success: '#34a853',
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
@@ -60,13 +60,14 @@ export const spacing = {
 export const fonts = {
   code: '"Source Code Pro", monospace',
   main: '"Google Sans", "Helvetica Neue", sans-serif',
+  secondary: '"Roboto", "Helvetica Neue", sans-serif',
 };
 
 export const fontsize = {
-  base: 13,
-  large: 16,
-  medium: 14,
-  small: 11,
+  base: 14,
+  large: 18,
+  medium: 16,
+  small: 12,
   title: 18,
 };
 
@@ -144,14 +145,14 @@ export const theme = createMuiTheme({
       },
     },
     MuiInput: {
-      input: {padding: 0},
-      root: {padding: 0}
+      input: { padding: 0 },
+      root: { padding: 0 }
     },
     MuiInputAdornment: {
       positionEnd: {
         paddingRight: 0,
       },
-      root: {padding: 0},
+      root: { padding: 0 },
     },
     MuiTooltip: {
       tooltip: {
@@ -218,7 +219,7 @@ export const commonCss = stylesheet({
         textDecoration: 'underline',
       },
     },
-    color: 'inherit',
+    color: color.strong,
     cursor: 'pointer',
     textDecoration: 'none',
   },
@@ -266,7 +267,7 @@ export const commonCss = stylesheet({
   },
 });
 
-export function _paddingInternal(units?: number, directions?: string) {
+export function _paddingInternal(units?: number, directions?: string): NestedCSSProperties {
   units = units || baseSpacing;
   directions = directions || 'blrt';
   const rules: NestedCSSProperties = {};
@@ -285,6 +286,6 @@ export function _paddingInternal(units?: number, directions?: string) {
   return rules;
 }
 
-export function padding(units?: number, directions?: string) {
+export function padding(units?: number, directions?: string): string {
   return style(_paddingInternal(units, directions));
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"io"
 	"os"
 
@@ -18,12 +19,16 @@ type ClientFactoryInterface interface {
 		client.JobInterface, error)
 	CreateRunClient(config clientcmd.ClientConfig, debug bool) (
 		client.RunInterface, error)
+	CreateExperimentClient(config clientcmd.ClientConfig, debug bool) (
+		client.ExperimentInterface, error)
 	Time() util.TimeInterface
 	Writer() io.Writer
+	Result() string
 }
 
 type ClientFactory struct {
 	time   util.TimeInterface
+	buffer *bytes.Buffer
 	writer io.Writer
 }
 
@@ -31,6 +36,15 @@ func NewClientFactory() *ClientFactory {
 	return &ClientFactory{
 		time:   util.NewRealTime(),
 		writer: os.Stdout,
+	}
+}
+
+func NewClientFactoryWithByteBuffer() *ClientFactory {
+	buffer := new(bytes.Buffer)
+	return &ClientFactory{
+		time:   util.NewRealTime(),
+		buffer: buffer,
+		writer: buffer,
 	}
 }
 
@@ -54,10 +68,22 @@ func (f *ClientFactory) CreateRunClient(config clientcmd.ClientConfig, debug boo
 	return client.NewRunClient(config, debug)
 }
 
+func (f *ClientFactory) CreateExperimentClient(config clientcmd.ClientConfig, debug bool) (
+	client.ExperimentInterface, error) {
+	return client.NewExperimentClient(config, debug)
+}
+
 func (f *ClientFactory) Time() util.TimeInterface {
 	return f.time
 }
 
 func (f *ClientFactory) Writer() io.Writer {
 	return f.writer
+}
+
+func (f *ClientFactory) Result() string {
+	if f.buffer == nil {
+		return "The writer is set to 'os.Stdout'. The result is not recorded."
+	}
+	return (*f.buffer).String()
 }

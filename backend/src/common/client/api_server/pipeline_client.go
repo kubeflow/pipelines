@@ -74,7 +74,7 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.APIPi
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.PipelineService.GetPipeline(parameters, PassThroughAuth)
 	if err != nil {
@@ -97,7 +97,7 @@ func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	_, err := c.apiClient.PipelineService.DeletePipeline(parameters, PassThroughAuth)
 	if err != nil {
@@ -121,7 +121,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.PipelineService.GetTemplate(parameters, PassThroughAuth)
 	if err != nil {
@@ -155,7 +155,7 @@ func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.PipelineService.ListPipelines(parameters, PassThroughAuth)
 	if err != nil {

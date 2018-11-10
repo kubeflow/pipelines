@@ -15,11 +15,12 @@
  */
 
 import * as React from 'react';
-import ExperimentList from './ExperimentList';
 import AllRunsList from './AllRunsList';
+import ExperimentList from './ExperimentList';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 
@@ -38,11 +39,11 @@ interface ExperimentAndRunsState {
 
 class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsState> {
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return { actions: [], breadcrumbs: [] };
   }
 
-  public render() {
+  public render(): JSX.Element {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs tabs={['All experiments', 'All runs']} selectedTab={this.props.view}
@@ -62,7 +63,7 @@ class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsS
     return;
   }
 
-  private _tabSwitched(newTab: ExperimentsAndRunsTab) {
+  private _tabSwitched(newTab: ExperimentsAndRunsTab): void {
     this.props.history.push(
       newTab === ExperimentsAndRunsTab.EXPERIMENTS ? RoutePage.EXPERIMENTS : RoutePage.RUNS);
   }

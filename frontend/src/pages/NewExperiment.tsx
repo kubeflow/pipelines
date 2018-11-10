@@ -18,15 +18,16 @@ import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Input from '../atoms/Input';
-import { Apis } from '../lib/Apis';
 import { ApiExperiment } from '../apis/experiment';
+import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage } from '../components/Router';
 import { TextFieldProps } from '@material-ui/core/TextField';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewExperimentState {
   description: string;
@@ -61,7 +62,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [],
       breadcrumbs: [
@@ -71,7 +72,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { validationError } = this.state;
 
     return (
@@ -94,7 +95,9 @@ class NewExperiment extends Page<{}, NewExperimentState> {
             <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={this.state.isbeingCreated}
               className={commonCss.buttonAction} title={'Next'}
               onClick={this._create.bind(this)} />
-            <Button onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>Cancel</Button>
+            <Button id='cancelNewExperimentBtn' onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>
+              Cancel
+            </Button>
             <div className={css.errorMessage}>{validationError}</div>
           </div>
         </div>
@@ -102,11 +105,11 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return;
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
@@ -150,14 +153,15 @@ class NewExperiment extends Page<{}, NewExperimentState> {
           open: true,
         });
       } catch (err) {
-        await this.showErrorDialog('Experiment creation failed', err);
+        const errorMessage = await errorToMessage(err);
+        await this.showErrorDialog('Experiment creation failed', errorMessage);
         logger.error('Error creating experiment:', err);
         this.setState({ isbeingCreated: false });
       }
     });
   }
 
-  private _validate() {
+  private _validate(): void {
     // Validate state
     const { experimentName } = this.state;
     try {
