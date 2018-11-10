@@ -16,6 +16,7 @@ from kfp.compiler._component_builder import GCSHelper
 from kfp.compiler._component_builder import DockerfileHelper
 from kfp.compiler._component_builder import CodeGenerator
 from kfp.compiler._component_builder import ImageBuilder
+from kfp.compiler._component_builder import DependencyVersion
 
 import os
 import unittest
@@ -48,6 +49,33 @@ class TestGCSHelper(unittest.TestCase):
     # clean up
     os.remove(temp_file)
     os.remove(temp_downloaded_file)
+
+class TestDependencyVersion(unittest.TestCase):
+
+  def test_version(self):
+    """ test version overrides min_version and max_version """
+    version = DependencyVersion(version='0.3.0', min_version='0.1.0', max_version='0.4.0')
+    self.assertTrue(version.min_version == '0.3.0')
+    self.assertTrue(version.max_version == '0.3.0')
+    self.assertTrue(version.has_versions())
+    self.assertTrue(version.has_min_version())
+    self.assertTrue(version.has_max_version())
+
+  def test_minmax_version(self):
+    """ test if min_version and max_version are configured when version is not given """
+    version = DependencyVersion(min_version='0.1.0', max_version='0.4.0')
+    self.assertTrue(version.min_version == '0.1.0')
+    self.assertTrue(version.max_version == '0.4.0')
+    self.assertTrue(version.has_versions())
+    self.assertTrue(version.has_min_version())
+    self.assertTrue(version.has_max_version())
+
+  def test_no_version(self):
+    """ test the no version scenario """
+    version = DependencyVersion()
+    self.assertFalse(version.has_min_version())
+    self.assertFalse(version.has_max_version())
+    self.assertFalse(version.has_versions())
 
 class TestDockerfileHelper(unittest.TestCase):
 
