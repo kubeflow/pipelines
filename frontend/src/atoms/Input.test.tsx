@@ -20,29 +20,18 @@ import Input from './Input';
 import { shallow } from 'enzyme';
 import toJson from 'enzyme-to-json';
 
-const mockInstance = { state: {} } as any;
 
 describe('Input', () => {
+  const handleChange = jest.fn();
+  const value = 'some input value';
+
   it('renders with the right styles by default', () => {
-    const tree = shallow(<Input instance={mockInstance} field='fieldname' />);
+    const tree = shallow(<Input onChange={handleChange('fieldname')} value={value} />);
     expect(toJson(tree)).toMatchSnapshot();
   });
 
   it('accepts height and width as prop overrides', () => {
-    const tree = shallow(<Input instance={mockInstance} height={123} width={456} field='fieldname' />);
+    const tree = shallow(<Input height={123} width={456} onChange={handleChange('fieldname')} value={value} />);
     expect(toJson(tree)).toMatchSnapshot();
-  });
-
-  it('gets its value from the instance state field', () => {
-    mockInstance.state.fieldname = 'field value';
-    const tree = shallow(<Input instance={mockInstance} field='fieldname' />);
-    expect(toJson(tree)).toMatchSnapshot();
-  });
-
-  it('calls the instance handleChange function if defined', () => {
-    mockInstance.handleChange = jest.fn();
-    const tree = shallow(<Input instance={mockInstance} field='fieldname' />);
-    tree.simulate('change');
-    expect(mockInstance.handleChange).toHaveBeenCalledWith('fieldname');
   });
 });
