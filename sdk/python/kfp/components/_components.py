@@ -231,19 +231,15 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         file_outputs = file_outputs_from_def.copy()
         
         def expand_command_part(arg): #input values with original names
-            #(Union[str,List],Mapping[str, Any]) -> str
-            if isinstance(arg, dict) or isinstance(arg, list):
-                if isinstance(arg, list):
-                    (func_name, func_argument) = (arg[0], arg[1:])
-                    if len(func_argument) == 1:
-                        func_argument = func_argument[0]
-                elif isinstance(arg, dict):
-                    if len(arg) != 1:
-                        raise ValueError('Failed to parse argument dict: "{}"'.format(arg))
-                    (func_name, func_argument) = list(arg.items())[0]
-                else:
-                    raise TypeError()
+            #(Union[str,Mapping[str, Any]]) -> Union[str,List[str]]
+            if isinstance(arg, str):
+                return arg
+            elif isinstance(arg, dict):
+                if len(arg) != 1:
+                    raise ValueError('Failed to parse argument dict: "{}"'.format(arg))
+                (func_name, func_argument) = list(arg.items())[0]
                 func_name=func_name.lower()
+
                 if func_name == 'value':
                     assert isinstance(func_argument, str)
                     port_name = func_argument
@@ -285,19 +281,14 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     return ''.join(expanded_argument_strings)
                 
                 elif func_name == 'if':
-                    if isinstance(func_argument, dict):
-                        condition_node = func_argument['cond']
-                        then_node = func_argument['then']
-                        else_node = func_argument.get('else', None)
-                    elif isinstance(func_argument, list):
-                        assert len(func_argument) in [2, 3]
-                        condition_node = func_argument[0]
-                        then_node = func_argument[1]
-                        else_node = func_argument[2] if len(func_argument) == 3 else None
-                    else:
-                        raise TypeError()
+                    assert isinstance(func_argument, dict)
+                    condition_node = func_argument['cond']
+                    then_node = func_argument['then']
+                    else_node = func_argument.get('else', None)
                     condition_result = bool(expand_command_part(condition_node))
                     result_node = then_node if condition_result else else_node
+                    if result_node is None:
+                        return []
                     if isinstance(result_node, list):
                         expanded_result = [expand_command_part(arg1) for arg1 in result_node]
                     else:
@@ -311,7 +302,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     argument_is_present = pythonic_input_name in pythonic_input_argument_values
                     return str(argument_is_present)
             else:
-                return arg
+                raise TypeError('Unrecognized argument type: {}'.format(arg))
         
         expanded_command = []
         if container_spec.command != None:
