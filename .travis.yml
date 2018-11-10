@@ -35,3 +35,7 @@ script:
   - pip install /tmp/kfp.tar.gz
   - python tests/dsl/main.py
   - python tests/compiler/main.py
+
+  # SDK Components tests
+  - cd $TRAVIS_BUILD_DIR/sdk/python
+  - python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
