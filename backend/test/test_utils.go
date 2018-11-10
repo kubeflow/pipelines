@@ -15,23 +15,26 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"mime/multipart"
 	"os"
-	"path/filepath"
 	"time"
 
 	"flag"
 
+	"testing"
+
 	"github.com/cenkalti/backoff"
-	"github.com/golang/glog"
+	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
+	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
+	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 const (
@@ -84,45 +87,42 @@ func waitForReady(namespace string, initializeTimeout time.Duration) error {
 	return errors.Wrapf(err, "Waiting for ml pipeline failed after all attempts.")
 }
 
-func uploadPipelineFileOrFail(path string) (*bytes.Buffer, *multipart.Writer) {
-	file, err := os.Open(path)
-	if err != nil {
-		glog.Fatalf("Failed to open the pipeline file: %v", err.Error())
-	}
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("uploadfile", filepath.Base(path))
-	if err != nil {
-		glog.Fatalf("Failed to create form file: %v", err.Error())
-	}
-	_, err = io.Copy(part, file)
-	if err != nil {
-		glog.Fatalf("Failed to copy file to multipart writer: %v", err.Error())
-	}
-
-	err = writer.Close()
-	if err != nil {
-		glog.Fatalf("Failed to close multipart writer: %v", err.Error())
-	}
-
-	return body, writer
+func getClientConfig(namespace string) clientcmd.ClientConfig {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	loadingRules.DefaultClientConfig = &clientcmd.DefaultClientConfig
+	overrides := clientcmd.ConfigOverrides{Context: clientcmdapi.Context{Namespace: namespace}}
+	return clientcmd.NewInteractiveDeferredLoadingClientConfig(loadingRules,
+		&overrides, os.Stdin)
 }
 
-func getRpcConnection(namespace string) (*grpc.ClientConn, error) {
-	clientSet, err := getKubernetesClient()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get K8s client set when getting RPC connection")
+func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
+	pipelines, _, err := client.List(&pipelineparams.ListPipelinesParams{})
+	assert.Nil(t, err)
+	for _, p := range pipelines {
+		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineParams{ID: p.ID}))
 	}
-	svc, err := clientSet.CoreV1().Services(namespace).Get("ml-pipeline", metav1.GetOptions{})
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get ml-pipeline service")
+}
+
+func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
+	experiments, _, err := client.List(&experimentparams.ListExperimentParams{})
+	assert.Nil(t, err)
+	for _, e := range experiments {
+		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: e.ID}))
 	}
-	rpcAddress := svc.Spec.ClusterIP + ":8887"
-	conn, err := grpc.Dial(rpcAddress, grpc.WithInsecure())
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to create gRPC connection")
+}
+
+func deleteAllRuns(client *api_server.RunClient, t *testing.T) {
+	runs, _, err := client.List(&runparams.ListRunsParams{})
+	assert.Nil(t, err)
+	for _, r := range runs {
+		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
 	}
-	return conn, nil
+}
+
+func deleteAllJobs(client *api_server.JobClient, t *testing.T) {
+	jobs, _, err := client.List(&jobparams.ListJobsParams{})
+	assert.Nil(t, err)
+	for _, j := range jobs {
+		assert.Nil(t, client.Delete(&jobparams.DeleteJobParams{ID: j.ID}))
+	}
 }

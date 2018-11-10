@@ -37,6 +37,9 @@ type RunStoreInterface interface {
 	// Update run table. Only condition and runtime manifest is allowed to be updated.
 	UpdateRun(id string, condition string, workflowRuntimeManifest string) (err error)
 
+	// Delete a run entry from the database
+	DeleteRun(id string) error
+
 	// Update the run table or create one if the run doesn't exist
 	CreateOrUpdateRun(run *model.RunDetail) error
 
@@ -50,7 +53,6 @@ type RunStore struct {
 	time                   util.TimeInterface
 }
 
-// ListRuns list the run metadata for a job from DB
 func (s *RunStore) ListRuns(
 	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.Run, string, error) {
 	queryRunTable := func(request *common.PaginationContext) ([]model.ListableDataModel, error) {
@@ -76,7 +78,7 @@ func (s *RunStore) queryRunTable(
 	// Add pagination condition
 	sql, args, err := toPaginationQuery(sqlBuilder, paginationContext).Limit(uint64(paginationContext.PageSize)).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
+		return nil, util.NewInternalServerError(err, "Failed to create query to list runs: %v",
 			err.Error())
 	}
 	r, err := s.db.Query(sql, args...)
@@ -314,6 +316,35 @@ func (s *RunStore) CreateOrUpdateRun(runDetail *model.RunDetail) error {
 		return util.Wrap(updateError, fmt.Sprintf(
 			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
 			runDetail.Namespace, runDetail.Name, createError.Error(), updateError.Error()))
+	}
+	return nil
+}
+
+func (s *RunStore) DeleteRun(id string) error {
+	runSql, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to delete run: %s", id)
+	}
+	// Use a transaction to make sure both run and its resource references are stored.
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run.")
+	}
+	_, err = tx.Exec(runSql, runArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete run %s from table", id)
+	}
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, common.Run)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete resource references from table for run %v ", id)
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete run %v and its resource references from table", id)
 	}
 	return nil
 }

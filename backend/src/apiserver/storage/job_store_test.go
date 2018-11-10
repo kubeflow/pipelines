@@ -81,7 +81,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-				Cron: util.StringPointer("1 * *"),
+				Cron:                       util.StringPointer("1 * *"),
 			},
 		},
 		Enabled:        true,
@@ -156,7 +156,7 @@ func TestListJobs_Pagination(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -206,7 +206,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -321,7 +321,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -463,17 +463,6 @@ func TestGetJob_InternalError(t *testing.T) {
 	_, err := jobStore.GetJob("1")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected get job to return internal error")
-}
-
-func TestDeleteJob_InternalError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
-	defer db.Close()
-
-	db.Close()
-
-	err := jobStore.DeleteJob("1")
-	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
-		"Expected delete job to return internal error")
 }
 
 func TestCreateJob(t *testing.T) {
@@ -747,7 +736,7 @@ func TestUpdateJob_Success(t *testing.T) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(10),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(20),
-				Cron: util.StringPointer("MY_CRON"),
+				Cron:                       util.StringPointer("MY_CRON"),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(30),
@@ -833,7 +822,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: nil,
 				CronScheduleEndTimeInSec:   nil,
-				Cron: util.StringPointer(""),
+				Cron:                       util.StringPointer(""),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: nil,
@@ -911,4 +900,15 @@ func TestDeleteJob(t *testing.T) {
 	_, err = resourceReferenceStore.GetResourceReference("1", common.Job, common.Experiment)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteJob_InternalError(t *testing.T) {
+	db, jobStore := initializeDbAndStore()
+	defer db.Close()
+
+	db.Close()
+
+	err := jobStore.DeleteJob("1")
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
+		"Expected delete job to return internal error")
 }

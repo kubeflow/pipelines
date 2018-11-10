@@ -41,6 +41,40 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
+func (c *RunClient) Create(parameters *params.CreateRunParams) (*model.APIRunDetail,
+	*workflowapi.Workflow, error) {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	response, err := c.apiClient.RunService.CreateRun(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.GetRunDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return nil, nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to create run. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to create run '%v'", parameters.Body.Name))
+	}
+
+	// Unmarshal response
+	var workflow workflowapi.Workflow
+	err = yaml.Unmarshal([]byte(response.Payload.PipelineRuntime.WorkflowManifest), &workflow)
+	if err != nil {
+		return nil, nil, util.NewUserError(err,
+			fmt.Sprintf("Failed to unmarshal reponse. Params: %+v. Response: %s", parameters,
+				response.Payload.PipelineRuntime.WorkflowManifest),
+			fmt.Sprintf("Failed to unmarshal reponse"))
+	}
+
+	return response.Payload, &workflow, nil
+}
+
 func (c *RunClient) Get(parameters *params.GetRunParams) (*model.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	// Create context with timeout
@@ -73,6 +107,30 @@ func (c *RunClient) Get(parameters *params.GetRunParams) (*model.APIRunDetail,
 	}
 
 	return response.Payload, &workflow, nil
+}
+
+func (c *RunClient) Delete(parameters *params.DeleteRunParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.RunService.DeleteRun(parameters, PassThroughAuth)
+
+	if err != nil {
+		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to delete runs. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to delete runs"))
+	}
+
+	return nil
 }
 
 func (c *RunClient) List(parameters *params.ListRunsParams) (
