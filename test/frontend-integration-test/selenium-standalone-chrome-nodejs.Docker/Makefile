@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMG = gcr.io/ml-pipeline-staging/selenium-standalone-chrome-nodejs
+IMG = gcr.io/ml-pipeline-test/selenium-standalone-chrome-nodejs
 
 # Unique tag including date, commit SHA and a random number
 TAG := $(shell date +v%Y%m%d)-$(shell git describe --tags --always --dirty)-$(shell git diff | shasum -a256 | cut -c -6)
