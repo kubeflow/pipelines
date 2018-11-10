@@ -70,6 +70,9 @@ if [ "$(whoami)" == root ]; then
   export USER=not-root
 fi
 
+#Copy service account keys
+gcloud compute scp --zone=$ZONE --verbosity=error "$GOOGLE_APPLICATION_CREDENTIALS" $instance_name:"$GOOGLE_APPLICATION_CREDENTIALS"
+
 #Copy repo
 git_root=$(git rev-parse --show-toplevel)
 git_root_parent=$(dirname "$git_root")
