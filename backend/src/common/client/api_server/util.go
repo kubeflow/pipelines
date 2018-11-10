@@ -74,14 +74,14 @@ func CreateErrorCouldNotRecoverAPIStatus(err error, debug bool) error {
 		rawError = fmt.Sprintf("Raw error from the client: %v\n", err.Error())
 	}
 
-	return fmt.Errorf("Issue calling the service.\n" +
+	return fmt.Errorf("Issue calling the service.\n\n" +
 		"Verify that kubectl is configured to call the correct namespace in the correct cluster using the commands:\n" +
 		"- kubectl config current-context\n" +
-		"- kubectl config view\n" +
-		"To configure the cluster/zone/project when using GKE, use the following command:\n" +
+		"- kubectl config view\n\n" +
+		"To configure the cluster/zone/project/namespace, use one of the following commands:\n" +
 		"- gcloud container clusters get-credentials <cluster> --zone <zone> --project <project>\n" +
-		"To configure the namespace, use the following command:\n" +
-		"- kubectl config set-context <context> --namespace <namespace>\n" +
-		"Use the '--debug' flag to see the raw HTTP request/response.\n" +
+		"- kubectl config set-context <context> --namespace <namespace>\n\n" +
+		"Alternatively, you can add flags to this CLI (e.g.: '--namespace kubeflow'). Use '--help' for more instructions.\n\n" +
+		"If the problem persists use the '--debug' flag to see the raw HTTP request/response.\n" +
 		rawError)
 }
