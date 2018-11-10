@@ -97,7 +97,3 @@ all:
 	# Instructions to install the 'autogen' command are located here:
 	# https://github.com/mbrukman/autogen
 	find ./ -name "*.go" -exec autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
-
-	# Hack to fix an issue with go-swagger.
-	# See https://github.com/go-swagger/go-swagger/issues/1170
-	cp ./text_marshmaller_hack.txt ./go_http_client/pipeline_upload_model/text_marshmaller_hack.go

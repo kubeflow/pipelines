@@ -206,7 +206,7 @@ func (c *CLIIntegrationTest) TestPipelineCreateGetDeleteSuccess() {
 //	assert.Nil(t, err)
 //}
 
-func TestPipelineAPI(t *testing.T) {
+func TestCLI(t *testing.T) {
 	suite.Run(t, new(CLIIntegrationTest))
 }
 

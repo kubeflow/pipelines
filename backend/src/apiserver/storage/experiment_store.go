@@ -15,12 +15,14 @@ type ExperimentStoreInterface interface {
 	ListExperiments(*common.PaginationContext) ([]model.Experiment, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
+	DeleteExperiment(uuid string) error
 }
 
 type ExperimentStore struct {
-	db   *DB
-	time util.TimeInterface
-	uuid util.UUIDGeneratorInterface
+	db                     *DB
+	time                   util.TimeInterface
+	uuid                   util.UUIDGeneratorInterface
+	resourceReferenceStore *ResourceReferenceStore
 }
 
 func (s *ExperimentStore) ListExperiments(context *common.PaginationContext) ([]model.Experiment, string, error) {
@@ -73,7 +75,7 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 		return nil, util.NewInternalServerError(err, "Failed to get experiment: %v", err.Error())
 	}
 	if len(experiments) == 0 {
-		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(uuid))
+		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(uuid))
 	}
 	return &experiments[0], nil
 }
@@ -131,6 +133,35 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	return &newExperiment, nil
 }
 
+func (s *ExperimentStore) DeleteExperiment(id string) error {
+	experimentSql, experimentArgs, err := sq.Delete("experiments").Where(sq.Eq{"UUID": id}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to delete experiment: %s", id)
+	}
+	// Use a transaction to make sure both experiment and its resource references are stored.
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create a new transaction to delete experiment.")
+	}
+	_, err = tx.Exec(experimentSql, experimentArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete experiment %s from table", id)
+	}
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, common.Run)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete resource references from table for experiment %v ", id)
+	}
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete experiment %v and its resource references from table", id)
+	}
+	return nil
+}
+
 func (s *ExperimentStore) toListableModels(experiments []model.Experiment) []model.ListableDataModel {
 	models := make([]model.ListableDataModel, len(experiments))
 	for i := range models {
@@ -149,5 +180,5 @@ func (s *ExperimentStore) toExperiments(models []model.ListableDataModel) []mode
 
 // factory function for experiment store
 func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
-	return &ExperimentStore{db: db, time: time, uuid: uuid}
+	return &ExperimentStore{db: db, time: time, uuid: uuid, resourceReferenceStore: NewResourceReferenceStore(db)}
 }

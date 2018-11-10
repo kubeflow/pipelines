@@ -85,6 +85,7 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Error creating pipeline"))
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(pipelineJson)
 }
 
