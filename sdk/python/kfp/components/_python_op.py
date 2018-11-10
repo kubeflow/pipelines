@@ -46,6 +46,14 @@ def _python_function_name_to_component_name(name):
 
 
 def _func_to_component_spec(func, extra_code='', base_image=_default_base_image) -> ComponentSpec:
+    '''Takes a self-contained python function and converts it to component
+
+    Args:
+        func: Required. The function to be converted
+        base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
+        extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
+    '''
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
         if base_image is not _default_base_image and decorator_base_image != base_image:
@@ -208,6 +216,8 @@ for idx, filename in enumerate(_output_files):
     #Removing consecutive blank lines
     full_source = re.sub('\n\n\n+', '\n\n', full_source).strip('\n') + '\n'
 
+    #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
+    #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
     component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
     description = getattr(func, '_component_description', None) or func.__doc__
     if description:
@@ -249,8 +259,9 @@ def func_to_component_text(func, extra_code='', base_image=_default_base_image):
 
     Args:
         func: The python function to convert
-        base_image: Optional. Specify a custom Docker containerimage to use in the component. For lightweight components, the image needs to have python and the fire package.
-        extra_code: Optional. Extra code to add before the function code. May contain imports and other functions.
+        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
+        extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
     
     Returns:
         Textual representation of a component definition
@@ -275,8 +286,9 @@ def func_to_component_file(func, output_component_file, base_image=_default_base
     Args:
         func: The python function to convert
         output_component_file: Write a component definition to a local file. Can be used for sharing.
-        base_image: Optional. Specify a custom Docker containerimage to use in the component. For lightweight components, the image needs to have python and the fire package.
-        extra_code: Optional. Extra code to add before the function code. May contain imports and other functions.
+        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
+        extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
     '''
 
     component_yaml = func_to_component_text(func, extra_code, base_image)
@@ -299,9 +311,10 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
 
     Args:
         func: The python function to convert
-        base_image: Optional. Specify a custom Docker containerimage to use in the component. For lightweight components, the image needs to have python and the fire package.
+        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
-        extra_code: Optional. Extra code to add before the function code. May contain imports and other functions.
+        extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.

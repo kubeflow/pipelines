@@ -299,6 +299,8 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
 
   from ..components._python_op import _python_function_name_to_component_name
 
+  #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
+  #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
   component_name = getattr(component_func, '_component_human_name', None) or _python_function_name_to_component_name(component_func.__name__)
   component_description = getattr(component_func, '_component_description', None) or (component_func.__doc__.strip() if component_func.__doc__ else None)
 
