@@ -112,6 +112,29 @@ func (c *ExperimentClient) List(parameters *params.ListExperimentParams) (
 	return response.Payload.Experiments, response.Payload.NextPageToken, nil
 }
 
+func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.ExperimentService.DeleteExperiment(parameters, PassThroughAuth)
+	if err != nil {
+		if defaultError, ok := err.(*params.DeleteExperimentDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to delete experiments. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to delete experiment"))
+	}
+
+	return nil
+}
+
 func (c *ExperimentClient) ListAll(parameters *params.ListExperimentParams, maxResultSize int) (
 	[]*model.APIExperiment, error) {
 	return listAllForExperiment(c, parameters, maxResultSize)
