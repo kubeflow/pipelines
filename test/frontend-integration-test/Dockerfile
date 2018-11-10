@@ -1,18 +1,8 @@
-FROM selenium/standalone-chrome
-
-USER root
+FROM gcr.io/ml-pipeline-staging/selenium-standalone-chrome-nodejs:v20181109-0.1.1-56-gb190e72-dirty-28e8ac
+#To build this image: cd selenium-standalone-chrome-nodejs.Docker && make push
 
 WORKDIR /src
 
 COPY . . 
-
-RUN apt-get update -y && apt-get install -y curl && \
-    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get remove -y curl && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /usr/share/locale/* /usr/share/i18n/locales/* && \
-    chown -R seluser /src && chmod -R 777 /src
-
-USER seluser
 
 ENTRYPOINT [ "./run_test.sh" ]
