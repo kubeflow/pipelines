@@ -17,6 +17,6 @@
 repo_test_dir=$(dirname $0)
 
 "${repo_test_dir}/install_docker.sh"
-MINIKUBE_VERSION=v0.28.2 KUBECTL_VERSION=v1.11.2 "${repo_test_dir}/install_and_start_minikube_without_vm.sh"
+MINIKUBE_VERSION=v0.30.0 KUBECTL_VERSION=v1.12.2 KUBERNETES_VERSION=v1.12.2 "${repo_test_dir}/install_and_start_minikube_without_vm.sh"
 ARGO_VERSION=v2.2.0 "${repo_test_dir}/install_argo_client.sh"
 sudo apt-get install socat #needed for port forwarding
