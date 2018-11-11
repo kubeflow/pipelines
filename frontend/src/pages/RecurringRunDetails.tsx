@@ -25,7 +25,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarActionConfig, Breadcrumb, ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { formatDateString, enabledDisplayString, logger, errorToMessage } from '../lib/Utils';
+import { formatDateString, enabledDisplayString, errorToMessage } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 
 interface RecurringRunConfigState {
@@ -181,18 +181,20 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       });
 
       const toolbarActions = [...this.props.toolbarProps.actions];
-      toolbarActions[1].disabled = run.enabled === true;
-      toolbarActions[2].disabled = run.enabled === false;
+      toolbarActions[1].disabled = !!run.enabled;
+      toolbarActions[2].disabled = !run.enabled;
 
       this.props.updateToolbar({ actions: toolbarActions, breadcrumbs });
 
       this.setState({ run });
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve recurring run: ${runId}.`, err);
+      const errorMessage = await errorToMessage(err);
+      await this.showPageError(
+        `Error: failed to retrieve recurring run: ${runId}.`, new Error(errorMessage));
     }
   }
 
-  private async _setEnabledState(enabled: boolean): Promise<void> {
+  protected async _setEnabledState(enabled: boolean): Promise<void> {
     if (this.state.run) {
       const toolbarActions = [...this.props.toolbarProps.actions];
 
@@ -215,11 +217,11 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     }
   }
 
-  private _updateToolbar(actions: ToolbarActionConfig[]): void {
+  protected _updateToolbar(actions: ToolbarActionConfig[]): void {
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions });
   }
 
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
+  protected async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
     if (deleteConfirmed) {
       // TODO: Show spinner during wait.
       try {
@@ -235,7 +237,6 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         this.showErrorDialog('Failed to delete recurring run', errorMessage);
-        logger.error('Deleting recurring run failed with error:', err);
       }
     }
   }
