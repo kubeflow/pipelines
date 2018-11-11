@@ -57,6 +57,21 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
         ]
       }
     />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <Component
+      fields={
+        Array [
+          Array [
+            "param1",
+            "value1",
+          ],
+        ]
+      }
+    />
   </div>
 </div>
 `;
@@ -114,6 +129,21 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           Array [
             "End time",
             "2018-11-9 08:07:06",
+          ],
+        ]
+      }
+    />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <Component
+      fields={
+        Array [
+          Array [
+            "param1",
+            "value1",
           ],
         ]
       }

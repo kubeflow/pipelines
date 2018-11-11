@@ -209,7 +209,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         this.showErrorDialog(
-          `Failed to ${enabled ? 'enable' : 'disable'} recurring schedule`, errorMessage);
+          `Failed to ${enabled ? 'enable' : 'disable'} recurring run`, errorMessage);
       } finally {
         toolbarActions[buttonIndex].busy = false;
         this._updateToolbar(toolbarActions);

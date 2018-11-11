@@ -43,22 +43,7 @@ describe('RecurringRunDetails', () => {
   const disableJobSpy = jest.spyOn(Apis.jobServiceApi, 'disableJob');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
 
-  const fullTestJob = {
-    created_at: new Date(2018, 8, 5, 4, 3, 2),
-    description: 'test job description',
-    enabled: true,
-    id: 'test-job-id',
-    max_concurrency: '50',
-    name: 'test job',
-    pipeline_spec: { pipeline_id: 'some-pipeline-id' },
-    trigger: {
-      periodic_schedule: {
-        end_time: new Date(2018, 10, 9, 8, 7, 6),
-        interval_second: '3600',
-        start_time: new Date(2018, 9, 8, 7, 6),
-      }
-    },
-  } as ApiJob;
+  let fullTestJob: ApiJob = {};
 
   function generateProps(): PageProps {
     return {
@@ -74,6 +59,26 @@ describe('RecurringRunDetails', () => {
   }
 
   beforeEach(() => {
+    fullTestJob = {
+      created_at: new Date(2018, 8, 5, 4, 3, 2),
+      description: 'test job description',
+      enabled: true,
+      id: 'test-job-id',
+      max_concurrency: '50',
+      name: 'test job',
+      pipeline_spec: {
+        parameters: [{ name: 'param1', value: 'value1' }],
+        pipeline_id: 'some-pipeline-id',
+      },
+      trigger: {
+        periodic_schedule: {
+          end_time: new Date(2018, 10, 9, 8, 7, 6),
+          interval_second: '3600',
+          start_time: new Date(2018, 9, 8, 7, 6),
+        }
+      },
+    } as ApiJob;
+
     historyPushSpy.mockClear();
     updateBannerSpy.mockClear();
     updateDialogSpy.mockClear();
@@ -84,7 +89,9 @@ describe('RecurringRunDetails', () => {
     deleteJobSpy.mockClear();
     deleteJobSpy.mockImplementation();
     enableJobSpy.mockClear();
+    enableJobSpy.mockImplementation();
     disableJobSpy.mockClear();
+    disableJobSpy.mockImplementation();
     getExperimentSpy.mockImplementation();
     getExperimentSpy.mockClear();
   });
@@ -116,7 +123,6 @@ describe('RecurringRunDetails', () => {
   });
 
   it('loads the recurring run given its id in query params', async () => {
-    fullTestJob.resource_references = [];
     shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(getJobSpy).toHaveBeenLastCalledWith(fullTestJob.id);
@@ -124,7 +130,6 @@ describe('RecurringRunDetails', () => {
   });
 
   it('shows All runs -> run name when there is no experiment', async () => {
-    fullTestJob.resource_references = [];
     const tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -165,7 +170,6 @@ describe('RecurringRunDetails', () => {
   });
 
   it('shows error banner if run cannot be fetched', async () => {
-    fullTestJob.resource_references = [];
     TestUtils.makeErrorResponseOnce(getJobSpy, 'woops!');
     const tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
@@ -204,7 +208,6 @@ describe('RecurringRunDetails', () => {
   });
 
   it('shows enabled Disable, and disabled Enable buttons if the run is enabled', async () => {
-    fullTestJob.enabled = true;
     const tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
@@ -245,6 +248,64 @@ describe('RecurringRunDetails', () => {
     const disableBtn = lastToolbarButtons.find(b => b.title === 'Disable');
     expect(disableBtn).toBeDefined();
     expect(disableBtn!.disabled).toBe(true);
+    tree.unmount();
+  });
+
+  it('calls disable API when disable button is clicked, refreshes the page', async () => {
+    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RecurringRunDetails;
+    const disableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Disable');
+    await disableBtn!.action();
+    expect(disableJobSpy).toHaveBeenCalledTimes(1);
+    expect(disableJobSpy).toHaveBeenLastCalledWith('test-job-id');
+    expect(getJobSpy).toHaveBeenCalledTimes(2);
+    expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
+    tree.unmount();
+  });
+
+  it('shows error dialog if disable fails', async () => {
+    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    TestUtils.makeErrorResponseOnce(disableJobSpy, 'could not disable');
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RecurringRunDetails;
+    const disableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Disable');
+    await disableBtn!.action();
+    expect(updateDialogSpy).toHaveBeenCalledTimes(1);
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      content: 'could not disable',
+      title: 'Failed to disable recurring run',
+    }));
+    tree.unmount();
+  });
+
+  it('shows error dialog if enable fails', async () => {
+    fullTestJob.enabled = false;
+    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    TestUtils.makeErrorResponseOnce(enableJobSpy, 'could not enable');
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RecurringRunDetails;
+    const enableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Enable');
+    await enableBtn!.action();
+    expect(updateDialogSpy).toHaveBeenCalledTimes(1);
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      content: 'could not enable',
+      title: 'Failed to enable recurring run',
+    }));
+    tree.unmount();
+  });
+
+  it('calls enable API when enable button is clicked, refreshes the page', async () => {
+    fullTestJob.enabled = false;
+    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RecurringRunDetails;
+    const enableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Enable');
+    await enableBtn!.action();
+    expect(enableJobSpy).toHaveBeenCalledTimes(1);
+    expect(enableJobSpy).toHaveBeenLastCalledWith('test-job-id');
+    expect(getJobSpy).toHaveBeenCalledTimes(2);
+    expect(getJobSpy).toHaveBeenLastCalledWith('test-job-id');
     tree.unmount();
   });
 
