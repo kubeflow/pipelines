@@ -96,12 +96,15 @@ class NewRun extends Page<{}, NewRunState> {
 
   public render(): JSX.Element {
     const {
+      description,
       errorMessage,
       experimentName,
       isRecurringRun,
       isFirstRunInExperiment,
       pipeline,
+      pipelineName,
       pipelineSelectorOpen,
+      runName,
       unconfirmedDialogPipelineId,
     } = this.state;
 
@@ -111,7 +114,8 @@ class NewRun extends Page<{}, NewRunState> {
 
           <div className={commonCss.header}>Run details</div>
 
-          <Input field='pipelineName' instance={this} required={true} label='Pipeline' disabled={true}
+          <Input onChange={this.handleChange('pipelineName')} value={pipelineName}
+            required={true} label='Pipeline' disabled={true}
             InputProps={{
               endAdornment: (
                 <InputAdornment position='end'>
@@ -141,14 +145,16 @@ class NewRun extends Page<{}, NewRunState> {
             </DialogActions>
           </Dialog>
 
-          <Input label='Run name' required={true} instance={this} field='runName' autoFocus={true} />
-          <Input label='Description (optional)' multiline={true} instance={this}
-            field='description' height='auto' />
+          <Input label='Run name' required={true} onChange={this.handleChange('runName')}
+            autoFocus={true} value={runName} />
+          <Input label='Description (optional)' multiline={true}
+            onChange={this.handleChange('description')} value={description} />
 
           {experimentName && (
             <div>
               <div>This run will be associated with the following experiment</div>
-              <Input label='Experiment' instance={this} disabled={true} field='experimentName' />
+              <Input label='Experiment' onChange={this.handleChange('experimentName')}
+                disabled={true} value={experimentName} />
             </div>
           )}
 

@@ -69,6 +69,7 @@
             "watch",
             "update",
             "patch",
+            "delete",
           ],
         },
         {

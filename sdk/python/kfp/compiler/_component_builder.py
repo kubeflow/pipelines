@@ -21,8 +21,8 @@ import tempfile
 import logging
 from google.cloud import storage
 from pathlib import PurePath, Path
-from kfp import dsl
-from kfp.components._components import _create_task_factory_from_component_dict
+from .. import dsl
+from ..components._components import _create_task_factory_from_component_dict
 from ._k8s_helper import K8sHelper
 
 class GCSHelper(object):

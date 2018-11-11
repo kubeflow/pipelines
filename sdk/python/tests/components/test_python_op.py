@@ -20,13 +20,6 @@ import unittest
 from pathlib import Path
 
 
-_this_file = Path(__file__).resolve()
-_this_dir = _this_file.parent
-_test_data_dir = _this_dir.joinpath('test_data')
-_tests_root_dir = _this_dir.parent.parent
-_sdk_root_dir = _tests_root_dir.parent
-
-sys.path.insert(0, _sdk_root_dir)
 
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml

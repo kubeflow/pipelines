@@ -11,7 +11,7 @@ import (
 
 func TestGetPipeline(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "get",
+	rootCmd.Command().SetArgs([]string{"pipeline", "get", "--id",
 		fmt.Sprintf("%v", client.PipelineForDefaultTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -31,7 +31,7 @@ parameters:
 
 func TestGetPipelineJson(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "get", "-o", "json",
+	rootCmd.Command().SetArgs([]string{"pipeline", "get", "-o", "json", "--id",
 		fmt.Sprintf("%v", client.PipelineForDefaultTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -56,7 +56,7 @@ func TestGetPipelineJson(t *testing.T) {
 
 func TestGetPipelineClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "get",
+	rootCmd.Command().SetArgs([]string{"pipeline", "get", "--id",
 		fmt.Sprintf("%v", client.PipelineForClientErrorTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -65,10 +65,10 @@ func TestGetPipelineClientError(t *testing.T) {
 
 func TestGetPipelineInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "get"})
+	rootCmd.Command().SetArgs([]string{"pipeline", "get", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestListPipeline(t *testing.T) {
@@ -143,7 +143,7 @@ func TestListPipelineInvalidArgumentCount(t *testing.T) {
 
 func TestDeletePipeline(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "delete",
+	rootCmd.Command().SetArgs([]string{"pipeline", "delete", "--id",
 		fmt.Sprintf("%v", client.PipelineForDefaultTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -155,7 +155,7 @@ func TestDeletePipeline(t *testing.T) {
 
 func TestDeletePipelineClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "delete",
+	rootCmd.Command().SetArgs([]string{"pipeline", "delete", "--id",
 		fmt.Sprintf("%v", client.PipelineForClientErrorTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -164,15 +164,15 @@ func TestDeletePipelineClientError(t *testing.T) {
 
 func TestDeletePipelineInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "delete"})
+	rootCmd.Command().SetArgs([]string{"pipeline", "delete", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestGetTemplate(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "get-manifest",
+	rootCmd.Command().SetArgs([]string{"pipeline", "get-manifest", "--id",
 		fmt.Sprintf("%v", client.PipelineForDefaultTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -196,7 +196,7 @@ status:
 
 func TestGetTemplateClientError(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "get-manifest",
+	rootCmd.Command().SetArgs([]string{"pipeline", "get-manifest", "--id",
 		fmt.Sprintf("%v", client.PipelineForClientErrorTest)})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -205,15 +205,15 @@ func TestGetTemplateClientError(t *testing.T) {
 
 func TestGetTemplateInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "get-manifest"})
+	rootCmd.Command().SetArgs([]string{"pipeline", "get-manifest", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'ID' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
 
 func TestCreatePipeline(t *testing.T) {
 	rootCmd, factory := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "create",
+	rootCmd.Command().SetArgs([]string{"pipeline", "create", "--url",
 		client.PipelineValidURL})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.Nil(t, err)
@@ -232,7 +232,7 @@ parameters:
 
 func TestCreatePipelineInvalidUrlFormat(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "create",
+	rootCmd.Command().SetArgs([]string{"pipeline", "create", "--url",
 		client.PipelineInvalidURL})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
@@ -241,8 +241,8 @@ func TestCreatePipelineInvalidUrlFormat(t *testing.T) {
 
 func TestCreatePipelineInvalidArgumentCount(t *testing.T) {
 	rootCmd, _ := GetFakeRootCommand()
-	rootCmd.Command().SetArgs([]string{"pipeline", "create"})
+	rootCmd.Command().SetArgs([]string{"pipeline", "create", "EXTRA_ARGUMENT"})
 	_, err := rootCmd.Command().ExecuteC()
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Missing 'url' argument")
+	assert.Contains(t, err.Error(), "Expected 0 arguments")
 }
