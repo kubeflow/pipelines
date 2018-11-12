@@ -30,7 +30,7 @@ spec:
             value: '{{tasks.flip-again.outputs.parameters.flip-again-output}}'
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
-        name: condition-2
+        name: condition-2-task
         template: condition-2
         dependencies:
         - flip-again
@@ -39,7 +39,7 @@ spec:
           parameters:
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
-        name: flip-again
+        name: flip-again-task
         template: flip-again
     inputs:
       parameters:
@@ -53,7 +53,7 @@ spec:
             value: '{{inputs.parameters.flip-again-output}}'
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
-        name: print1
+        name: print1-task
         template: print1
     inputs:
       parameters:
@@ -66,7 +66,7 @@ spec:
           parameters:
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
-        name: print2
+        name: print2-task
         template: print2
     inputs:
       parameters:
@@ -106,7 +106,7 @@ spec:
           parameters:
           - name: flip-output
             value: '{{tasks.flip.outputs.parameters.flip-output}}'
-        name: condition-1
+        name: condition-1-task
         template: condition-1
         dependencies:
         - flip
@@ -115,12 +115,12 @@ spec:
           parameters:
           - name: flip-output
             value: '{{tasks.flip.outputs.parameters.flip-output}}'
-        name: condition-3
+        name: condition-3-task
         template: condition-3
         dependencies:
         - flip
         when: '{{tasks.flip.outputs.parameters.flip-output}} == tails'
-      - name: flip
+      - name: flip-task
         template: flip
     name: pipeline-flip-coin
   - container:

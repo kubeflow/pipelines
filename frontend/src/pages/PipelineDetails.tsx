@@ -38,7 +38,7 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, padding } from '../Css';
+import { color, commonCss, padding, fontsize } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 
 interface PipelineDetailsState {
@@ -74,6 +74,9 @@ const css = stylesheet({
     },
     background: '#f7f7f7',
   },
+  fontSizeTitle: {
+    fontSize: fontsize.title,
+  },
   nodeName: {
     flexGrow: 1,
     textAlign: 'center',
@@ -103,6 +106,28 @@ const css = stylesheet({
   summaryKey: {
     color: color.strong,
     marginTop: 10,
+  },
+  task: {
+    paddingLeft: 10,
+  },
+  taskInfo: {
+    paddingLeft: 10,
+  },
+  taskInfoHeader: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    paddingBottom: 16,
+    paddingTop: 20,
+  },
+  taskName: {
+    fontSize: fontsize.large,
+    fontWeight: 'bold',
+    paddingTop: 20,
+  },
+  taskTitle: {
+    fontSize: fontsize.title,
+    fontWeight: 'bold',
+    paddingTop: 20,
   },
 });
 
@@ -316,33 +341,37 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           // TODO: The headers for these DetailsTables should just be a part of DetailsTables
           nodeInfoJsx =
             <div>
-              <div className={commonCss.header}>Input parameters</div>
+              <div className={classes(commonCss.header, css.fontSizeTitle)}>Input parameters</div>
               <DetailsTable fields={nodeInfo.containerInfo.inputs} />
 
-              <div className={commonCss.header}>Output parameters</div>
+              <div className={classes(commonCss.header, css.fontSizeTitle)}>Output parameters</div>
               <DetailsTable fields={nodeInfo.containerInfo.outputs} />
 
-              <div className={commonCss.header}>Arguments</div>
+              <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
               {nodeInfo.containerInfo.args.map((arg, i) =>
                 <div key={i} style={{ fontFamily: 'mono' }}>{arg}</div>)}
 
-              <div className={commonCss.header}>Command</div>
+              <div className={classes(commonCss.header, css.fontSizeTitle)}>Command</div>
               {nodeInfo.containerInfo.command.map((c, i) => <div key={i}>{c}</div>)}
 
-              <div className={commonCss.header}>Image</div>
+              <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
               <div>{nodeInfo.containerInfo.image}</div>
             </div>;
         }
         break;
-      case 'steps':
-        if (nodeInfo.stepsInfo) {
+      case 'dag':
+        if (nodeInfo.dagInfo) {
           nodeInfoJsx =
             <div>
-              <div className={commonCss.header}>Conditional</div>
-              <div>{nodeInfo.stepsInfo.conditional}</div>
-
-              <div className={commonCss.header}>Parameters</div>
-              <DetailsTable fields={nodeInfo.stepsInfo.parameters} />
+              {nodeInfo.dagInfo.conditionalTasks && !!nodeInfo.dagInfo.conditionalTasks.length && (
+                <div className={css.taskTitle}>Conditionals</div>
+              )}
+              {nodeInfo.dagInfo.conditionalTasks.map((conditionalTask, i) =>
+                <div key={i} className={css.task}>
+                  <div>When: {conditionalTask.condition}</div>
+                  <div>Run task: {conditionalTask.taskName}</div>
+                </div>
+              )}
             </div>;
         }
         break;

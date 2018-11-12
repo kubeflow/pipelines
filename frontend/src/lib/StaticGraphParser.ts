@@ -17,8 +17,13 @@
 import * as dagre from 'dagre';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 
+interface ConditionalInfo {
+  condition: string;
+  taskName: string;
+}
+
 export interface SelectedNodeInfo {
-  nodeType: 'container' | 'steps' | 'unknown';
+  nodeType: 'container' | 'dag' | 'unknown';
   containerInfo?: {
     args: string[];
     command: string[];
@@ -26,9 +31,8 @@ export interface SelectedNodeInfo {
     inputs: string[][];
     outputs: string[][];
   };
-  stepsInfo?: {
-    conditional: string;
-    parameters: string[][];
+  dagInfo?: {
+    conditionalTasks: ConditionalInfo[];
   };
 }
 
@@ -58,8 +62,15 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
       });
     }
 
+    // TODO remove
+    // g.setNode(template.name, {
+    //   height: NODE_HEIGHT,
+    //   label: template.name,
+    //   width: NODE_WIDTH,
+    // });
     // DAGs are the main component making up a Pipeline, and each DAG is composed of tasks.
     if (template.dag && template.dag.tasks) {
+
       template.dag.tasks.forEach((task) => {
         // tslint:disable-next-line:no-console
         console.log('task', task);
@@ -72,13 +83,16 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
           });
         }
 
+        // TODO remove
+        // g.setEdge(task.name, task.template);
+
         if (template.name !== workflow.spec.entrypoint && !template.name.startsWith('exit-handler')) {
-          g.setEdge(template.name, task.name);
+          // g.setEdge(template.name, task.name);
         }
 
         // DAG tasks can indicate dependencies which are graphically shown as parents with edges
         // pointing to their children (the task(s)).
-        (task.dependencies || []).forEach((dep) => g.setEdge(dep, task.name));
+        // (task.dependencies || []).forEach((dep) => g.setEdge(dep, task.name));
       });
     }
   }
@@ -135,18 +149,16 @@ export function getNodeInfo(workflow?: Workflow, nodeId?: string): SelectedNodeI
           return [p.name, value];
         });
       }
-    } else if (template.steps && template.steps[0] && template.steps[0].length) {
-      // 'template.steps' represent conditionals.
-      // There should only ever be 1 WorkflowStep in a steps template, and it should have a 'when'.
-      info.nodeType = 'steps';
-      info.stepsInfo = { conditional: '', parameters: [[]] };
-
-      info.stepsInfo.conditional = template.steps[0][0].when || '';
-
-      if (template.steps[0][0].arguments) {
-        info.stepsInfo.parameters =
-          (template.steps[0][0].arguments!.parameters || []).map(p => [p.name, p.value || '']);
-      }
+    } else if (template.dag && template.dag.tasks) {
+      // Conditionals are represented by DAG tasks with 'when' properties.
+      info.nodeType = 'dag';
+      const conditionalTasks: ConditionalInfo[] = [];
+      template.dag.tasks.forEach((task) => {
+        if (task.when) {
+          conditionalTasks.push({ condition: task.when, taskName: task.name });
+        }
+      });
+      info.dagInfo = { conditionalTasks };
     }
   }
   return info;
