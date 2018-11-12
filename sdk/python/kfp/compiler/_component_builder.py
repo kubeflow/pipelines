@@ -19,7 +19,6 @@ import inspect
 import re
 import tempfile
 import logging
-from google.cloud import storage
 from pathlib import PurePath, Path
 from .. import dsl
 from ..components._components import _create_task_factory_from_component_dict
@@ -29,35 +28,30 @@ class GCSHelper(object):
   """ GCSHelper manages the connection with the GCS storage """
 
   @staticmethod
-  def upload_gcs_file(local_path, gcs_path):
+  def get_blob_from_gcs_uri(gcs_path):
+    from google.cloud import storage
     pure_path = PurePath(gcs_path)
     gcs_bucket = pure_path.parts[1]
     gcs_blob = '/'.join(pure_path.parts[2:])
     client = storage.Client()
-    bucket = client.get_bucket(gcs_bucket)
+    bucket = client.bucket(gcs_bucket)
     blob = bucket.blob(gcs_blob)
+    return blob
+
+  @staticmethod
+  def upload_gcs_file(local_path, gcs_path):
+    blob = GCSHelper.get_blob_from_gcs_uri(gcs_path)
     blob.upload_from_filename(local_path)
 
   @staticmethod
   def remove_gcs_blob(gcs_path):
-    pure_path = PurePath(gcs_path)
-    gcs_bucket = pure_path.parts[1]
-    gcs_blob = '/'.join(pure_path.parts[2:])
-    client = storage.Client()
-    bucket = client.get_bucket(gcs_bucket)
-    blob = bucket.blob(gcs_blob)
+    blob = GCSHelper.get_blob_from_gcs_uri(gcs_path)
     blob.delete()
 
   @staticmethod
   def download_gcs_blob(local_path, gcs_path):
-    pure_path = PurePath(gcs_path)
-    gcs_bucket = pure_path.parts[1]
-    gcs_blob = '/'.join(pure_path.parts[2:])
-    client = storage.Client()
-    bucket = client.get_bucket(gcs_bucket)
-    blob = bucket.blob(gcs_blob)
+    blob = GCSHelper.get_blob_from_gcs_uri(gcs_path)
     blob.download_to_filename(local_path)
-
 
 class DockerfileHelper(object):
   """ Dockerfile Helper generates a tarball with dockerfile, ready for docker build
