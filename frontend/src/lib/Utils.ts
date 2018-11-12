@@ -30,9 +30,9 @@ export const logger = {
 };
 
 /**
- * Removes id from props so it can be safely passed to children
+ * Removes id from props so that the props object is safe to pass to children
  */
-export function sanitizeProps(props: any) {
+export function sanitizeProps(props: any): any {
   const { id, ...rest } = props;
   return rest;
 }
