@@ -290,7 +290,7 @@ implementation:
 
         self.assertEqual(task1.arguments, ['somedata'])
 
-    def test_command_if_then(self):
+    def test_command_if_is_present_then(self):
         component_text = '''\
 inputs:
 - {name: In, required: false}
@@ -312,7 +312,7 @@ implementation:
         #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
         #self.assertEqual(task_else.arguments, [])
 
-    def test_command_if_then_else(self):
+    def test_command_if_is_present_then_else(self):
         component_text = '''\
 inputs:
 - {name: In, required: false}
