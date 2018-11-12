@@ -19,6 +19,7 @@ import {
   formatDateString,
   enabledDisplayString,
   getRunTime,
+  sanitizeProps,
 } from './Utils';
 
 describe('Utils', () => {
@@ -41,6 +42,33 @@ describe('Utils', () => {
       // tslint:disable-next-line:no-console
       expect(console.error).toBeCalledWith('something to console error');
       global.console.error = backup;
+    });
+  });
+
+  describe('sanitizeProps', () => {
+    it('removes ID from props if present', () => {
+      const props = {
+        bar: 2,
+        foo: 'foo',
+        id: 'some-id',
+        qux: { key: 'value' },
+      };
+
+      expect(sanitizeProps(props)).toEqual({
+        bar: 2,
+        foo: 'foo',
+        qux: { key: 'value' },
+      });
+    });
+
+    it('does not alter props if ID is not present', () => {
+      const props = {
+        bar: 2,
+        foo: 'foo',
+        qux: { key: 'value' },
+      };
+
+      expect(sanitizeProps(props)).toEqual(props);
     });
   });
 
