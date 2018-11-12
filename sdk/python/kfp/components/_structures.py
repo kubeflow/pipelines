@@ -34,13 +34,13 @@ from typing import Union, List, Sequence, Mapping, Tuple
 
 
 class InputOrOutputSpec:
-    def __init__(self, name:str, type:str=None, description:str=None, required:bool=True, pattern:str=None):
+    def __init__(self, name:str, type:str=None, description:str=None, optional:bool=False, pattern:str=None):
         if not isinstance(name, str):
             raise ValueError('name must be a string')
         self.name = name
         self.type = type
         self.description = description
-        self.required = required
+        self.optional = optional
         self.pattern = pattern
 
     @classmethod
@@ -73,12 +73,12 @@ class InputOrOutputSpec:
         if 'description' in spec_dict:
             port_spec.description = str(spec_dict.pop('description'))
 
-        if 'required' in spec_dict:
-            port_spec.required = bool(spec_dict.pop('required'))
+        if 'optional' in spec_dict:
+            port_spec.optional = bool(spec_dict.pop('optional'))
         
         if 'pattern' in spec_dict:
             port_spec.pattern = str(spec_dict.pop('pattern'))
-        
+
         if spec_dict:
             raise ValueError('Found unrecognized properties: {}'.format(spec_dict))
         
@@ -91,9 +91,8 @@ class InputOrOutputSpec:
             struct['type'] = self.type
         if self.description:
             struct['description'] = self.description
-        if self.required != True: #Only outputting when not default
-            print(self.required)
-            struct['required'] = self.required
+        if self.optional:
+            struct['optional'] = self.optional
         if self.pattern:
             struct['pattern'] = self.pattern
         
