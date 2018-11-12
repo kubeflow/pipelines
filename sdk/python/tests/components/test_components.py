@@ -349,6 +349,67 @@ implementation:
 
         self.assertEqual(task1.arguments, ['somedata'])
 
+    def test_command_if_boolean_true_then_else(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: true
+          then: --true-arg
+          else: --false-arg
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task = task_factory1()
+        self.assertEqual(task.arguments, ['--true-arg']) 
+
+    def test_command_if_boolean_false_then_else(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: false
+          then: --true-arg
+          else: --false-arg
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task = task_factory1()
+        self.assertEqual(task.arguments, ['--false-arg']) 
+
+    def test_command_if_true_string_then_else(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: 'true'
+          then: --true-arg
+          else: --false-arg
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task = task_factory1()
+        self.assertEqual(task.arguments, ['--true-arg']) 
+
+    def test_command_if_false_string_then_else(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: 'false'
+          then: --true-arg
+          else: --false-arg
+'''
+        task_factory1 = comp.load_component(text=component_text)
+
+        task = task_factory1()
+        self.assertEqual(task.arguments, ['--false-arg']) 
+
     def test_command_if_is_present_then(self):
         component_text = '''\
 inputs:
