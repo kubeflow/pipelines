@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 import kfp.components as comp
-from kfp.components._yaml_utils import load_yaml
-
 
 def add_two_numbers(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
@@ -106,6 +102,7 @@ class PythonOpTestCase(unittest.TestCase):
         op = comp.func_to_container_op(func,output_component_file='add_two_numbers_indented.component.yaml')
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
+        Path('add_two_numbers_indented.component.yaml').unlink()
 
     def test_indented_decorated_func_to_container_op_local_call(self):
         @comp.python_op
