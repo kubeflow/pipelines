@@ -301,7 +301,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     assert isinstance(func_argument, str)
                     input_name = func_argument
                     pythonic_input_name = input_name_to_pythonic[input_name]
-                    argument_is_present = pythonic_input_name in pythonic_input_argument_values
+                    argument_is_present = pythonic_input_argument_values[pythonic_input_name] is not None
                     return str(argument_is_present)
             else:
                 raise TypeError('Unrecognized argument type: {}'.format(arg))
