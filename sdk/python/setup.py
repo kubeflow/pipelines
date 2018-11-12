@@ -33,6 +33,7 @@ setup(
       'kfp.compiler',
       'kfp.components',
       'kfp.dsl',
+      'kfp.dsl.components',
       'kfp.notebook',
       'kfp_experiment',
       'kfp_experiment.api',
