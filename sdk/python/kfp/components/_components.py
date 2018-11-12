@@ -285,8 +285,10 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     condition_node = func_argument['cond']
                     then_node = func_argument['then']
                     else_node = func_argument.get('else', None)
-                    condition_result = bool(expand_command_part(condition_node))
-                    result_node = then_node if condition_result else else_node
+                    condition_result = expand_command_part(condition_node)
+                    from distutils.util import strtobool
+                    condition_result_bool = condition_result and strtobool(condition_result) #Python gotcha: bool('False') == True; Need to use strtobool; Also need to handle None and []
+                    result_node = then_node if condition_result_bool else else_node
                     if result_node is None:
                         return []
                     if isinstance(result_node, list):
