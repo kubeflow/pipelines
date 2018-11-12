@@ -127,7 +127,7 @@ class Router extends React.Component<{}, RouteComponentState> {
               (<SideNav page={props.location.pathname} {...sanitizeProps(props)} />)} />
             <div className={classes(commonCss.page)}>
               <Route render={({ ...props }) =>
-                (<Toolbar {...sanitizeProps(this.state.toolbarProps)} {...sanitizeProps(props)} />)} />
+                (<Toolbar {...this.state.toolbarProps} {...sanitizeProps(props)} />)} />
               {this.state.bannerProps.message
                 && <Banner
                   message={this.state.bannerProps.message}

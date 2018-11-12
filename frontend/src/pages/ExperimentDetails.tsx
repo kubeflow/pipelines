@@ -218,7 +218,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                 {description.split('\n').length > 2 ? '...' : ''}
               </Paper>
             </div>
-            <Toolbar {...sanitizeProps(this.state.runListToolbarProps)} />
+            <Toolbar {...this.state.runListToolbarProps} />
             <RunList onError={this.showPageError.bind(this)}
               experimentIdMask={experiment.id} ref={this._runlistRef}
               selectedIds={this.state.selectedRunIds}
