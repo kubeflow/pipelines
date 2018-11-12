@@ -17,6 +17,7 @@ from kfp.compiler._component_builder import DockerfileHelper
 from kfp.compiler._component_builder import CodeGenerator
 from kfp.compiler._component_builder import ImageBuilder
 from kfp.compiler._component_builder import DependencyVersion
+from kfp.compiler._component_builder import DependencyHelper
 
 import os
 import unittest
@@ -24,6 +25,7 @@ import yaml
 import tarfile
 from pathlib import Path
 import inspect
+from collections import OrderedDict
 
 GCS_BASE = 'gs://ngao-mlpipeline-testing/'
 
@@ -77,6 +79,29 @@ class TestDependencyVersion(unittest.TestCase):
     self.assertFalse(version.has_max_version())
     self.assertFalse(version.has_versions())
 
+class TestDependencyHelper(unittest.TestCase):
+
+  def test_generate_requirement(self):
+    """ Test generating requirement file """
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
+
+    dependency_helper = DependencyHelper()
+    dependency_helper.add_python_package(name='tensorflow', version=DependencyVersion(min_version='0.10.0', max_version='0.11.0'))
+    dependency_helper.add_python_package(name='kubernetes', version=DependencyVersion(min_version='0.6.0'))
+    dependency_helper.generate_pip_requirements(temp_file)
+
+    golden_requirement_payload = '''\
+tensorflow >= 0.10.0, <= 0.11.0
+kubernetes >= 0.6.0
+'''
+    with open(temp_file, 'r') as f:
+      target_requirement_payload = f.read()
+    self.assertEqual(target_requirement_payload, golden_requirement_payload)
+    os.remove(temp_file)
+
 class TestDockerfileHelper(unittest.TestCase):
 
   def test_wrap_files_in_tarball(self):
@@ -94,7 +119,7 @@ class TestDockerfileHelper(unittest.TestCase):
 
     # check
     docker_helper = DockerfileHelper(arc_dockerfile_name='', gcs_path='')
-    self.assertTrue(docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two}))
+    docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
     self.assertTrue(os.path.exists(temp_tarball))
     temp_tarball_handler = tarfile.open(temp_tarball)
     temp_files = temp_tarball_handler.getmembers()
@@ -113,19 +138,30 @@ class TestDockerfileHelper(unittest.TestCase):
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     target_dockerfile = os.path.join(test_data_dir, 'component.temp.dockerfile')
-    golden_dockerfile_payload = '''\
+    golden_dockerfile_payload_one = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
 RUN pip3 install fire
 ADD main.py /ml/
 ENTRYPOINT ["python3", "/ml/main.py"]'''
+    golden_dockerfile_payload_two = '''\
+FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
+RUN pip3 install fire
+RUN pip3 install -r requirements.txt
+ADD main.py /ml/
+ENTRYPOINT ["python3", "/ml/main.py"]'''
 
     # check
     docker_helper = DockerfileHelper(arc_dockerfile_name=target_dockerfile, gcs_path='')
-    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py')
+    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py', has_requirement_file=False)
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
-    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload)
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_one)
+    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py', has_requirement_file=True)
+    with open(target_dockerfile, 'r') as f:
+      target_dockerfile_payload = f.read()
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_two)
 
     # clean up
     os.remove(target_dockerfile)
@@ -148,6 +184,33 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     self.assertTrue(len(temp_files) == 2)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
+
+    # clean up
+    os.remove(downloaded_tarball)
+    GCSHelper.remove_gcs_blob(gcs_tar_path)
+
+  def test_prepare_docker_with_py_and_dependency(self):
+    """ Test the whole prepare docker from python function and dependencies """
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    python_filepath = os.path.join(test_data_dir, 'basic.py')
+    downloaded_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
+    gcs_tar_path = os.path.join(GCS_BASE, 'test_docker.tar.gz')
+
+    # check
+    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile', gcs_path=gcs_tar_path)
+    dependencies = {
+      'tensorflow': DependencyVersion(min_version='0.10.0', max_version='0.11.0'),
+      'kubernetes': DependencyVersion(min_version='0.6.0'),
+    }
+    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0', dependency=dependencies)
+    GCSHelper.download_gcs_blob(downloaded_tarball, gcs_tar_path)
+    temp_tarball_handler = tarfile.open(downloaded_tarball)
+    temp_files = temp_tarball_handler.getmembers()
+    self.assertTrue(len(temp_files) == 3)
+    for temp_file in temp_files:
+      self.assertTrue(temp_file.name in ['dockerfile', 'main.py', 'requirements.txt'])
 
     # clean up
     os.remove(downloaded_tarball)

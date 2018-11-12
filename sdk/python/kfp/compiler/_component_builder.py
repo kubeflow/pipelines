@@ -19,6 +19,7 @@ import inspect
 import re
 import tempfile
 import logging
+from collections import OrderedDict
 from google.cloud import storage
 from pathlib import PurePath, Path
 from kfp import dsl
@@ -93,18 +94,18 @@ class DependencyVersion(object):
     return self._max_version != None
 
   def has_versions(self):
-    return (not self.has_min_version()) and (not self.has_max_version())
+    return (self.has_min_version()) or (self.has_max_version())
 
 
 class DependencyHelper(object):
   """ DependencyHelper manages software dependency information """
   def __init__(self):
     self._PYTHON_PACKAGE = 'PYTHON_PACKAGE'
-    self._dependency = {self.PYTHON_PACKAGE:{}}
+    self._dependency = {self._PYTHON_PACKAGE:OrderedDict()}
 
   @property
-  def python_pacakge(self):
-    return self._dependency[self.self._PYTHON_PACKAGE]
+  def python_package(self):
+    return self._dependency[self._PYTHON_PACKAGE]
 
   def add_python_package(self, name, version=DependencyVersion(), override=True):
     """ add_single_python_package adds a dependency for the python package
@@ -115,20 +116,21 @@ class DependencyHelper(object):
         if not specified, the default is resolved automatically by the pip system.
       override: whether to override the version if already existing in the dependency.
     """
-    if name in self.python_pacakge and not override:
+    if name in self.python_package and not override:
       return
-    self.python_pacakge[name] = version
+    self.python_package[name] = version
 
   def generate_pip_requirements(self, target_file):
-    """ write the python packages to a requirement file """
+    """ write the python packages to a requirement file
+    the generated file follows the order of which the packages are added """
     with open(target_file, 'w') as f:
-      for name, version in self.python_pacakge.items():
+      for name, version in self.python_package.items():
         version_str = ''
         if version.has_min_version():
-          version += ' >= ' + version.min_version
+          version_str += ' >= ' + version.min_version
         if version.has_max_version():
-          version += ', <= ' + version.max_version
-        f.write(name + version)
+          version_str += ', <= ' + version.max_version
+        f.write(name + version_str + '\n')
 
 class DockerfileHelper(object):
   """ Dockerfile Helper generates a tarball with dockerfile, ready for docker build
@@ -153,7 +155,7 @@ class DockerfileHelper(object):
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
       f.write('RUN pip3 install fire\n')
       if has_requirement_file:
-        f.write('RUN pip3 install -r ' + self._ARC_REQUIREMENT_FILE)
+        f.write('RUN pip3 install -r ' + self._ARC_REQUIREMENT_FILE + '\n')
       f.write('ADD ' + python_filepath + " /ml/" + '\n')
       f.write('ENTRYPOINT ["python3", "/ml/' + python_filepath + '"]')
 
@@ -166,7 +168,7 @@ class DockerfileHelper(object):
       for key, value in files.items():
         tarball.add(value, arcname=key)
 
-  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image, dependency):
+  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image, dependency=None):
     """ prepare_docker_tarball is the API to generate dockerfile and prepare the tarball with python scripts """
     with tempfile.TemporaryDirectory() as local_build_dir:
       has_requirement_file = False
@@ -441,7 +443,7 @@ def build_python_component(component_func, staging_gcs_path, target_image, build
   if build_image:
     builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
     builder.build_image_from_func(component_func, namespace=namespace,
-                                  base_image=component_meta['base_image'], timeout=timeout, dependency)
+                                  base_image=component_meta['base_image'], timeout=timeout, dependency=dependency)
     logging.info('Build component complete.')
   return _generate_pythonop(component_func, target_image)
 
