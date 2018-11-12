@@ -232,8 +232,10 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         
         def expand_command_part(arg): #input values with original names
             #(Union[str,Mapping[str, Any]]) -> Union[str,List[str]]
-            if isinstance(arg, str):
-                return arg
+            if arg is None:
+                return None
+            if isinstance(arg, (str, int, float, bool)):
+                return str(arg)
             elif isinstance(arg, dict):
                 if len(arg) != 1:
                     raise ValueError('Failed to parse argument dict: "{}"'.format(arg))
