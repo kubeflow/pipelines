@@ -276,8 +276,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                 elif func_name == 'concat':
                     assert isinstance(func_argument, list)
                     items_to_concatenate = func_argument
-                    expanded_arguments = [expand_command_part(arg1) for arg1 in items_to_concatenate]
-                    expanded_argument_strings = [str(arg2) for arg2 in expanded_arguments if arg2 is not None]
+                    expanded_argument_strings = expand_argument_list(items_to_concatenate)
                     return ''.join(expanded_argument_strings)
                 
                 elif func_name == 'if':
@@ -292,7 +291,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     if result_node is None:
                         return []
                     if isinstance(result_node, list):
-                        expanded_result = [expand_command_part(arg1) for arg1 in result_node]
+                        expanded_result = expand_argument_list(result_node)
                     else:
                         expanded_result = expand_command_part(result_node)
                     return expanded_result
@@ -306,25 +305,20 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             else:
                 raise TypeError('Unrecognized argument type: {}'.format(arg))
         
-        expanded_command = []
-        if container_spec.command != None:
-            for part in container_spec.command:
-                expanded_part = expand_command_part(part)
-                if expanded_part is not None:
-                    if isinstance(expanded_part, list):
-                        expanded_command.extend(expanded_part)
-                    else:
-                        expanded_command.append(str(expanded_part))
+        def expand_argument_list(argument_list):
+            expanded_list = []
+            if argument_list is not None:
+                for part in argument_list:
+                    expanded_part = expand_command_part(part)
+                    if expanded_part is not None:
+                        if isinstance(expanded_part, list):
+                            expanded_list.extend(expanded_part)
+                        else:
+                            expanded_list.append(str(expanded_part))
+            return expanded_list
 
-        expanded_args = []
-        if container_spec.arguments != None:
-            for part in container_spec.arguments:
-                expanded_part = expand_command_part(part)
-                if expanded_part is not None:
-                    if isinstance(expanded_part, list):
-                        expanded_args.extend(expanded_part)
-                    else:
-                        expanded_args.append(str(expanded_part))
+        expanded_command = expand_argument_list(container_spec.command)
+        expanded_args = expand_argument_list(container_spec.arguments)
 
         #Working around Python's variable scoping. Do not write to variable from global scope as that makes the variable local.
 
