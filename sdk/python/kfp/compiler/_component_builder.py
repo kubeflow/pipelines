@@ -34,7 +34,9 @@ class GCSHelper(object):
     gcs_bucket = pure_path.parts[1]
     gcs_blob = '/'.join(pure_path.parts[2:])
     client = storage.Client()
-    bucket = client.get_bucket(gcs_bucket)
+    bucket = client.bucket(gcs_bucket)
+    if not bucket.exists():
+      raise RuntimeError('Bucket {} does not exist (or the user does not have permission to access it).'.format(gcs_bucket))
     blob = bucket.blob(gcs_blob)
     return blob
 
