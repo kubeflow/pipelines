@@ -119,7 +119,7 @@ steps:
   id: 'buildDeployer'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash' 
-  args: ['-c', 'cd /workspace/components/kubeflow/container/launcher && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/kubeflow/launcher && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildLauncher'
 
 # Build the Dataproc-based pipeline component images
