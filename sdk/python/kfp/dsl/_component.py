@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
 def python_component(name, description, base_image):
   """Decorator of component functions.
 
@@ -28,7 +27,7 @@ def python_component(name, description, base_image):
   ```
   """
   def _python_component(func):
-    dsl.PythonComponent.add_python_component(name, description, base_image, func)
+    PythonComponent.add_python_component(name, description, base_image, func)
     return func
 
   return _python_component
@@ -50,7 +49,7 @@ class PythonComponent():
   @staticmethod
   def add_python_component(name, description, base_image, func):
     """ Add a python component """
-    dsl.PythonComponent._component_functions[func] = {
+    PythonComponent._component_functions[func] = {
       'name': name,
       'description': description,
       'base_image': base_image
@@ -59,4 +58,4 @@ class PythonComponent():
   @staticmethod
   def get_python_component(func):
     """ Get a python component """
-    return dsl.PythonComponent._component_functions.get(func, None)
+    return PythonComponent._component_functions.get(func, None)

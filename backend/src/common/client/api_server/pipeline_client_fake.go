@@ -61,10 +61,8 @@ func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineParams)
 	switch params.Body.PipelineURL {
 	case PipelineInvalidURL:
 		return nil, fmt.Errorf(ClientErrorString)
-	case PipelineValidURL:
-		return getDefaultPipeline(path.Base(params.Body.PipelineURL)), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultPipeline(path.Base(params.Body.PipelineURL)), nil
 	}
 }
 
@@ -73,10 +71,8 @@ func (c *PipelineClientFake) Get(params *pipelineparams.GetPipelineParams) (
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
-	case PipelineForDefaultTest:
-		return getDefaultPipeline(params.ID), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultPipeline(params.ID), nil
 	}
 }
 
@@ -84,10 +80,8 @@ func (c *PipelineClientFake) Delete(params *pipelineparams.DeletePipelineParams)
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)
-	case PipelineForDefaultTest:
-		return nil
 	default:
-		return fmt.Errorf(InvalidFakeRequest)
+		return nil
 	}
 }
 
@@ -96,10 +90,8 @@ func (c *PipelineClientFake) GetTemplate(params *pipelineparams.GetTemplateParam
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
-	case PipelineForDefaultTest:
-		return getDefaultWorkflow(), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultWorkflow(), nil
 	}
 }
 
@@ -128,7 +120,7 @@ func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesParams) (
 			getDefaultPipeline("PIPELINE_ID_102"),
 		}, FinalToken, nil
 	default:
-		return nil, "", fmt.Errorf(InvalidFakeRequest)
+		return nil, "", fmt.Errorf(InvalidFakeRequest, token)
 	}
 }
 

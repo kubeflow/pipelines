@@ -56,7 +56,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { runs, selectedIds, sortBy, toolbarActions } = this.state;
 
     const columns: Column[] = [
@@ -91,9 +91,9 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     </React.Fragment>);
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
-      this._tableRef.current.reload();
+      await this._tableRef.current.reload();
     }
   }
 
@@ -124,12 +124,12 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     return nextPageToken;
   }
 
-  private _nameCustomRenderer(value: string, id: string) {
+  private _nameCustomRenderer(value: string, id: string): JSX.Element {
     return <Link className={commonCss.link}
       to={RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, id)}>{value}</Link>;
   }
 
-  private async _setEnabledState(id: string, enabled: boolean) {
+  private async _setEnabledState(id: string, enabled: boolean): Promise<void> {
     try {
       await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
     } catch (err) {
@@ -143,7 +143,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     }
   }
 
-  private _enabledCustomRenderer(value: boolean | undefined, id: string) {
+  private _enabledCustomRenderer(value: boolean | undefined, id: string): JSX.Element {
     const isBusy = this.state.busyIds.has(id);
     return <BusyButton outlined={value} title={value === true ? 'Enabled' : 'Disabled'}
       busy={isBusy} onClick={() => {

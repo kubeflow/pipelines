@@ -34,6 +34,7 @@ import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
@@ -83,7 +84,7 @@ class NewRun extends Page<{}, NewRunState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [],
       breadcrumbs: [
@@ -93,14 +94,17 @@ class NewRun extends Page<{}, NewRunState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const {
+      description,
       errorMessage,
       experimentName,
       isRecurringRun,
       isFirstRunInExperiment,
       pipeline,
+      pipelineName,
       pipelineSelectorOpen,
+      runName,
       unconfirmedDialogPipelineId,
     } = this.state;
 
@@ -110,7 +114,8 @@ class NewRun extends Page<{}, NewRunState> {
 
           <div className={commonCss.header}>Run details</div>
 
-          <Input field='pipelineName' instance={this} required={true} label='Pipeline' disabled={true}
+          <Input onChange={this.handleChange('pipelineName')} value={pipelineName}
+            required={true} label='Pipeline' disabled={true}
             InputProps={{
               endAdornment: (
                 <InputAdornment position='end'>
@@ -140,14 +145,16 @@ class NewRun extends Page<{}, NewRunState> {
             </DialogActions>
           </Dialog>
 
-          <Input label='Run name' required={true} instance={this} field='runName' autoFocus={true} />
-          <Input label='Description (optional)' multiline={true} instance={this}
-            field='description' height='auto' />
+          <Input label='Run name' required={true} onChange={this.handleChange('runName')}
+            autoFocus={true} value={runName} />
+          <Input label='Description (optional)' multiline={true}
+            onChange={this.handleChange('description')} value={description} />
 
           {experimentName && (
             <div>
               <div>This run will be associated with the following experiment</div>
-              <Input label='Experiment' instance={this} disabled={true} field='experimentName' />
+              <Input label='Experiment' onChange={this.handleChange('experimentName')}
+                disabled={true} value={experimentName} />
             </div>
           )}
 
@@ -194,7 +201,7 @@ class NewRun extends Page<{}, NewRunState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return this.load();
   }
 
@@ -202,7 +209,7 @@ class NewRun extends Page<{}, NewRunState> {
     return this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
     const urlParser = new URLParser(this.props);
     let experimentId: string | null = urlParser.get(QUERY_PARAMS.experimentId);

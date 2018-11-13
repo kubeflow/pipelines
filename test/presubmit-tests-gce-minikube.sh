@@ -33,6 +33,9 @@ instance_name=${instance_name:-test-minikube-${PULL_PULL_SHA:0:6}-$(date +%s)-$(
 
 firewall_rule_name=allow-prow-ssh-$instance_name
 
+# activating the service account
+gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+
 #Function to delete VM
 function delete_vm {
     if [ "$keep_created_vm" != true ]; then
@@ -67,10 +70,8 @@ if [ "$(whoami)" == root ]; then
   export USER=not-root
 fi
 
-#Copy the ssh keys
-ssh_key_file=${ssh_key_file:-/etc/ssh-knative/ssh-knative}
-gcloud compute ssh --zone=$ZONE $instance_name -- 'sudo mkdir -m 777 -p /etc/ssh-knative' #Making the directory writable by a non-root user so that we can copy the file
-gcloud compute scp --zone=$ZONE "$ssh_key_file" $instance_name:/etc/ssh-knative/ssh-knative
+#Copy service account keys
+gcloud compute scp --zone=$ZONE --verbosity=error "$GOOGLE_APPLICATION_CREDENTIALS" $instance_name:"~/service-account.json"
 
 #Copy repo
 git_root=$(git rev-parse --show-toplevel)
@@ -81,7 +82,7 @@ gcloud compute scp --zone=$ZONE --verbosity=error --recurse "$git_root" $instanc
 gcloud compute ssh --zone=$ZONE $instance_name -- "~/pipelines/test/minikube/install_docker_minikube_argo.sh"
 
 #Running the presubmit tests
-gcloud compute ssh --zone=$ZONE $instance_name -- PULL_PULL_SHA="$PULL_PULL_SHA" WORKSPACE="~/${WORKSPACE}" "~/pipelines/test/presubmit-tests.sh" --cluster-type none "$@"
+gcloud compute ssh --zone=$ZONE $instance_name -- PULL_PULL_SHA="$PULL_PULL_SHA" WORKSPACE="~/${WORKSPACE}" GOOGLE_APPLICATION_CREDENTIALS="~/service-account.json" "~/pipelines/test/presubmit-tests.sh" --cluster-type none "$@"
 
 #Copy back the artifacts
 mkdir -p "${ARTIFACT_DIR}"

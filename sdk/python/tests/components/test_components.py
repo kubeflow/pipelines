@@ -17,19 +17,15 @@ import sys
 import unittest
 from pathlib import Path
 
-_this_file = Path(__file__).resolve()
-_this_dir = _this_file.parent
-_test_data_dir = _this_dir.joinpath('test_data')
-_tests_root_dir = _this_dir.parent
-_sdk_root_dir = _tests_root_dir.parent
-
-sys.path.insert(0, _sdk_root_dir)
 
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
 
 class LoadComponentTestCase(unittest.TestCase):
     def test_load_component_from_file(self):
+        _this_file = Path(__file__).resolve()
+        _this_dir = _this_file.parent
+        _test_data_dir = _this_dir.joinpath('test_data')
         component_path_obj = _test_data_dir.joinpath('python_add.component.yaml')
         component_text = component_path_obj.read_text()
         component_dict = load_yaml(component_text)
@@ -230,23 +226,7 @@ implementation:
     def test_load_component_from_text_fail_on_none_arg(self):
         comp.load_component_from_text(None)
 
-    def test_input_value_resolving_syntax1(self):
-        component_text = '''\
-inputs:
-- {name: Data}
-implementation:
-  dockerContainer:
-    image: busybox
-    arguments:
-      - --data
-      - [value, Data]
-'''
-        task_factory1 = comp.load_component(text=component_text)
-        task1 = task_factory1('some-data')
-
-        self.assertEqual(task1.arguments, ['--data', 'some-data'])
-
-    def test_input_value_resolving_syntax3(self):
+    def test_input_value_resolving(self):
         component_text = '''\
 inputs:
 - {name: Data}
@@ -261,22 +241,6 @@ implementation:
         task1 = task_factory1('some-data')
 
         self.assertEqual(task1.arguments, ['--data', 'some-data'])
-
-    def test_output_resolving_syntax1(self):
-        component_text = '''\
-outputs:
-- {name: Data}
-implementation:
-  dockerContainer:
-    image: busybox
-    arguments:
-      - --output-data
-      - [output, Data]
-'''
-        task_factory1 = comp.load_component(text=component_text)
-        task1 = task_factory1(data='/outputs/some-data')
-
-        self.assertEqual(task1.arguments, ['--output-data', '/outputs/some-data'])
 
     def test_output_resolving(self):
         component_text = '''\
@@ -293,22 +257,6 @@ implementation:
         task1 = task_factory1(data='/outputs/some-data')
 
         self.assertEqual(task1.arguments, ['--output-data', '/outputs/some-data'])
-
-    def test_automatic_output_resolving_syntax1(self):
-        component_text = '''\
-outputs:
-- {name: Data}
-implementation:
-  dockerContainer:
-    image: busybox
-    arguments:
-      - --output-data
-      - [output, Data]
-'''
-        task_factory1 = comp.load_component(text=component_text)
-        task1 = task_factory1()
-
-        self.assertEqual(len(task1.arguments), 2)
 
     def test_automatic_output_resolving(self):
         component_text = '''\
@@ -341,44 +289,6 @@ implementation:
         task1 = task_factory1('some', 'data')
 
         self.assertEqual(task1.arguments, ['somedata'])
-
-    def test_command_if_then_else_syntax1(self):
-        component_text = '''\
-inputs:
-- {name: In, required: false}
-implementation:
-  dockerContainer:
-    image: busybox
-    arguments:
-      - [if, [isPresent, In], [--in, [value, In]], --no-in]
-'''
-        task_factory1 = comp.load_component(text=component_text)
-
-        task_then = task_factory1('data')
-        self.assertEqual(task_then.arguments, ['--in', 'data']) 
-        
-        #TODO: Fix optional arguments
-        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
-        #self.assertEqual(task_else.arguments, ['--no-in'])
-
-    def test_command_if_then_syntax1(self):
-        component_text = '''\
-inputs:
-- {name: In, required: false}
-implementation:
-  dockerContainer:
-    image: busybox
-    arguments:
-      - [if, [isPresent, In], [--in, [value, In]]]
-'''
-        task_factory1 = comp.load_component(text=component_text)
-
-        task_then = task_factory1('data')
-        self.assertEqual(task_then.arguments, ['--in', 'data']) 
-        
-        #TODO: Fix optional arguments
-        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
-        #self.assertEqual(task_else.arguments, [])
 
     def test_command_if_then(self):
         component_text = '''\

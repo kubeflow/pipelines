@@ -18,11 +18,12 @@ import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Input from '../atoms/Input';
-import { Apis } from '../lib/Apis';
 import { ApiExperiment } from '../apis/experiment';
+import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage } from '../components/Router';
 import { TextFieldProps } from '@material-ui/core/TextField';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
@@ -61,7 +62,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [],
       breadcrumbs: [
@@ -71,8 +72,8 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     };
   }
 
-  public render() {
-    const { validationError } = this.state;
+  public render(): JSX.Element {
+    const { description, experimentName, isbeingCreated, validationError } = this.state;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
@@ -86,12 +87,13 @@ class NewExperiment extends Page<{}, NewExperimentState> {
           </div>
 
           <Input id='experimentName' label='Experiment name' inputRef={this._experimentNameRef}
-            required={true} instance={this} field='experimentName' autoFocus={true} />
+            required={true} onChange={this.handleChange('experimentName')} value={experimentName}
+            autoFocus={true} />
           <Input id='experimentDescription' label='Description (optional)' multiline={true}
-            instance={this} field='description' height='auto' />
+            onChange={this.handleChange('description')} value={description} />
 
           <div className={commonCss.flex}>
-            <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={this.state.isbeingCreated}
+            <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={isbeingCreated}
               className={commonCss.buttonAction} title={'Next'}
               onClick={this._create.bind(this)} />
             <Button id='cancelNewExperimentBtn' onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>
@@ -104,11 +106,11 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return;
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     const urlParser = new URLParser(this.props);
     const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
     if (pipelineId) {
@@ -160,7 +162,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
     });
   }
 
-  private _validate() {
+  private _validate(): void {
     // Validate state
     const { experimentName } = this.state;
     try {

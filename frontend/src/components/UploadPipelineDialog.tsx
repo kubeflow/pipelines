@@ -76,8 +76,8 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
     };
   }
 
-  public render() {
-    const { dropzoneActive, file, uploadPipelineName, busy } = this.state;
+  public render(): JSX.Element {
+    const { dropzoneActive, file, fileName, uploadPipelineName, busy } = this.state;
     return (
       <Dialog id='uploadDialog' onClose={() => this._uploadDialogClosed(false)}
         open={this.props.open} classes={{ paper: css.root }}>
@@ -94,7 +94,7 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
             <br />
             You can also drag and drop the file here.
           </div>
-          <Input field='fileName' instance={this} required={true} label='File'
+          <Input onChange={this.handleChange('fileName')} value={fileName} required={true} label='File'
             InputProps={{
               endAdornment: (
                 <InputAdornment position='end'>
@@ -107,11 +107,13 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
               readOnly: true,
             }} />
 
-          <Input id='uploadFileName' label='Pipeline name' instance={this} required={true}
-            field='uploadPipelineName' />
+          <Input id='uploadFileName' label='Pipeline name'
+            onChange={this.handleChange('uploadPipelineName')}
+            required={true} value={uploadPipelineName} />
 
-          {/* <Input label='Pipeline description' instance={this} field='uploadPipelineDescription'
-            multiline={true} height='auto' /> */}
+          {/* <Input label='Pipeline description'
+            onChange={this.handleChange('uploadPipelineDescription')}
+            value={uploadPipelineDescription} multiline={true} /> */}
         </Dropzone>
 
         <DialogActions>
@@ -131,15 +133,15 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
     } as any);
   }
 
-  private _onDropzoneDragEnter() {
+  private _onDropzoneDragEnter(): void {
     this.setState({ dropzoneActive: true });
   }
 
-  private _onDropzoneDragLeave() {
+  private _onDropzoneDragLeave(): void {
     this.setState({ dropzoneActive: false });
   }
 
-  private _onDrop(files: File[]) {
+  private _onDrop(files: File[]): void {
     this.setState({
       dropzoneActive: false,
       file: files[0],
@@ -148,7 +150,7 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
     });
   }
 
-  private _uploadDialogClosed(confirmed: boolean) {
+  private _uploadDialogClosed(confirmed: boolean): void {
     const file = confirmed ? this.state.file : null;
     this.setState({ busy: true }, async () => {
       const success = await this.props.onClose(

@@ -16,7 +16,7 @@
 
 set -x
 
-KUBERNETES_NAMESPACE="${KUBERNETES_NAMESPACE:-default}"
+KUBERNETES_NAMESPACE="${KUBERNETES_NAMESPACE:-kubeflow}"
 SERVER_NAME="${SERVER_NAME:-model-server}"
 
 while (($#)); do

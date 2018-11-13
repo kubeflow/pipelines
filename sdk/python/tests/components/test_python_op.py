@@ -12,23 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 import kfp.components as comp
-from kfp.components._yaml_utils import load_yaml
-
-_this_file = Path(__file__).resolve()
-_this_dir = _this_file.parent
-_test_data_dir = _this_dir.joinpath('test_data')
-_tests_root_dir = _this_dir.parent.parent
-_sdk_root_dir = _tests_root_dir.parent
-
-sys.path.insert(0, _sdk_root_dir)
 
 def add_two_numbers(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
@@ -110,7 +99,7 @@ class PythonOpTestCase(unittest.TestCase):
             return a + b
 
         func = add_two_numbers_indented
-        op = comp.func_to_container_op(func,output_component_file='add_two_numbers_indented.component.yaml')
+        op = comp.func_to_container_op(func)
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
@@ -243,7 +232,7 @@ class PythonOpTestCase(unittest.TestCase):
                 task_3 = subtract_op(task_12.output, task_22.output)
 
             #Compiling the pipleine:
-            pipeline_filename = Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz')
+            pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
             import kfp.compiler as compiler
             compiler.Compiler().compile(calc_pipeline, pipeline_filename)
 

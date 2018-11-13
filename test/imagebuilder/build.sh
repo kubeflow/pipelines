@@ -57,13 +57,12 @@ done
 
 BASE_DIR=/ml
 
-ssh-keygen -F github.com || ssh-keyscan github.com >>~/.ssh/known_hosts
-cp ~/.ssh/github/* ~/.ssh
-
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
-git clone git@github.com:kubeflow/pipelines.git ${BASE_DIR}
+git clone https://github.com/kubeflow/pipelines ${BASE_DIR}
 cd ${BASE_DIR}
-git checkout ${COMMIT_SHA}
+git config --local user.name 'K8S Bootstrap'
+git config --local user.email k8s_bootstrap@localhost
+git merge --no-ff ${COMMIT_SHA} -m "Merged PR ${COMMIT_SHA}"
 
 echo "Waiting for dind to start..."
 until docker ps; do sleep 3; done;

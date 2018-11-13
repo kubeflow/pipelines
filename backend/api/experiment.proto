@@ -17,6 +17,7 @@ syntax = "proto3";
 package api;
 
 import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
@@ -73,6 +74,12 @@ service ExperimentService {
       get: "/apis/v1beta1/experiments"
     };
   }
+
+  rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/experiments/{id}"
+    };
+  }
 }
 
 message CreateExperimentRequest {
@@ -94,6 +101,10 @@ message ListExperimentsRequest {
 message ListExperimentsResponse {
   repeated Experiment experiments = 1;
   string next_page_token = 2;
+}
+
+message DeleteExperimentRequest{
+  string id = 1;
 }
 
 message Experiment {
