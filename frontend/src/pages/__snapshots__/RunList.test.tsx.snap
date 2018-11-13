@@ -389,7 +389,7 @@ exports[`RunList displays error in run row if pipeline could not be fetched 1`] 
 </div>
 `;
 
-exports[`RunList loads multiple run 1`] = `
+exports[`RunList loads multiple runs 1`] = `
 <div>
   <CustomTable
     columns={
@@ -6616,6 +6616,40 @@ exports[`RunList reloads the run when refresh is called 1`] = `
 
 exports[`RunList renders a empty metric container when a metric has value of zero 1`] = `<div />`;
 
+exports[`RunList renders a metric container when a percentage metric has value of zero 1`] = `
+<div
+  className="metricContainer"
+>
+  <div
+    className="metricFill"
+    style={
+      Object {
+        "width": "calc(0.000%)",
+      }
+    }
+  >
+    0.000%
+  </div>
+</div>
+`;
+
+exports[`RunList renders a metric container when a raw metric has value of zero 1`] = `
+<div
+  className="metricContainer"
+>
+  <div
+    className="metricFill"
+    style={
+      Object {
+        "width": "calc(0%)",
+      }
+    }
+  >
+    0.000
+  </div>
+</div>
+`;
+
 exports[`RunList renders an empty metric when there is no data 1`] = `<div />`;
 
 exports[`RunList renders an empty metric when there is no data 2`] = `<div />`;
@@ -6713,7 +6747,7 @@ exports[`RunList renders raw metric 1`] = `
 </div>
 `;
 
-exports[`RunList renders raw metric that is greater than its max value 1`] = `
+exports[`RunList renders raw metric that is greater than its max value, logs error to console 1`] = `
 <div
   style={
     Object {
@@ -6725,7 +6759,7 @@ exports[`RunList renders raw metric that is greater than its max value 1`] = `
 </div>
 `;
 
-exports[`RunList renders raw metric that is less than its min value 1`] = `
+exports[`RunList renders raw metric that is less than its min value, logs error to console 1`] = `
 <div
   style={
     Object {

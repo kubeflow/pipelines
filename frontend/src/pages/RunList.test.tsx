@@ -27,10 +27,10 @@ import { shallow } from 'enzyme';
 
 describe('RunList', () => {
   const onErrorSpy = jest.fn();
-  const listRunsMock = jest.spyOn(Apis.runServiceApi, 'listRuns');
-  const getRunMock = jest.spyOn(Apis.runServiceApi, 'getRun');
-  const getPipelineMock = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-  const getExperimentMock = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
+  const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+  const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
 
   function generateProps(): RunListProps {
     return {
@@ -41,8 +41,8 @@ describe('RunList', () => {
     };
   }
 
-  function mockNRuns(n: number, runTemplate: Partial<ApiRunDetail>) {
-    getRunMock.mockImplementation(id => Promise.resolve(
+  function mockNRuns(n: number, runTemplate: Partial<ApiRunDetail>): void {
+    getRunSpy.mockImplementation(id => Promise.resolve(
       produce(runTemplate, draft => {
         draft.pipeline_runtime = draft.pipeline_runtime || { workflow_manifest: '' };
         draft.run = draft.run || {};
@@ -51,23 +51,23 @@ describe('RunList', () => {
       })
     ));
 
-    listRunsMock.mockImplementation(() => Promise.resolve({
+    listRunsSpy.mockImplementation(() => Promise.resolve({
       runs: range(1, n + 1).map(i => ({
         id: 'testrun' + i,
         name: 'run with id: testrun' + i,
       } as ApiRun)),
     }));
 
-    getPipelineMock.mockImplementation(() => ({ name: 'some pipeline' }));
-    getExperimentMock.mockImplementation(() => ({ name: 'some experiment' }));
+    getPipelineSpy.mockImplementation(() => ({ name: 'some pipeline' }));
+    getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
   }
 
   beforeEach(() => {
     onErrorSpy.mockClear();
-    listRunsMock.mockClear();
-    getRunMock.mockClear();
-    getPipelineMock.mockClear();
-    getExperimentMock.mockClear();
+    listRunsSpy.mockClear();
+    getRunSpy.mockClear();
+    getPipelineSpy.mockClear();
+    getExperimentSpy.mockClear();
   });
 
   it('renders the empty experience', () => {
@@ -89,12 +89,13 @@ describe('RunList', () => {
     const props = generateProps();
     const tree = TestUtils.mountWithRouter(<RunList {...props} />);
     await (tree.instance() as RunList).refresh();
+    expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(2);
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith('', 10, RunSortKeys.CREATED_AT + ' desc', undefined, undefined);
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
 
-  it('loads multiple run', async () => {
+  it('loads multiple runs', async () => {
     mockNRuns(5, {});
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
@@ -121,7 +122,7 @@ describe('RunList', () => {
 
   it('displays error in run row if pipeline could not be fetched', async () => {
     mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' } } });
-    TestUtils.makeErrorResponseOnce(getPipelineMock, 'bad stuff happened');
+    TestUtils.makeErrorResponseOnce(getPipelineSpy, 'bad stuff happened');
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
     await (tree.instance() as any)._loadRuns({});
@@ -136,7 +137,7 @@ describe('RunList', () => {
         }]
       }
     });
-    TestUtils.makeErrorResponseOnce(getExperimentMock, 'bad stuff happened');
+    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'bad stuff happened');
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
     await (tree.instance() as any)._loadRuns({});
@@ -220,7 +221,7 @@ describe('RunList', () => {
 
   it('shows pipeline name', async () => {
     mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' } } });
-    getPipelineMock.mockImplementationOnce(() => ({ name: 'test pipeline' }));
+    getPipelineSpy.mockImplementationOnce(() => ({ name: 'test pipeline' }));
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
     await (tree.instance() as any)._loadRuns({});
@@ -236,9 +237,7 @@ describe('RunList', () => {
         }]
       }
     });
-    getExperimentMock.mockImplementationOnce(() => {
-      return ({ name: 'test experiment' });
-    });
+    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
     await (tree.instance() as any)._loadRuns({});
@@ -303,6 +302,21 @@ describe('RunList', () => {
     expect(noMetricTree).toMatchSnapshot();
   });
 
+  it('renders a metric container when a percentage metric has value of zero', () => {
+    const noMetricTree = shallow((RunList.prototype as any)._metricCustomRenderer(
+      { metric: { number_value: 0, format: RunMetricFormat.PERCENTAGE } }));
+    expect(noMetricTree).toMatchSnapshot();
+  });
+
+  it('renders a metric container when a raw metric has value of zero', () => {
+    const noMetricTree = shallow((RunList.prototype as any)._metricCustomRenderer(
+      {
+        metadata: { maxValue: 10, minValue: 0 },
+        metric: { number_value: 0, format: RunMetricFormat.RAW },
+      }));
+    expect(noMetricTree).toMatchSnapshot();
+  });
+
   it('renders percentage metric', () => {
     const tree = shallow((RunList.prototype as any)._metricCustomRenderer(
       { metric: { number_value: 0.3, format: RunMetricFormat.PERCENTAGE } as ApiRunMetric }));
@@ -327,7 +341,7 @@ describe('RunList', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders raw metric that is less than its min value', () => {
+  it('renders raw metric that is less than its min value, logs error to console', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     const tree = shallow((RunList.prototype as any)._metricCustomRenderer(
       {
@@ -338,7 +352,7 @@ describe('RunList', () => {
     expect(consoleSpy).toHaveBeenCalled();
   });
 
-  it('renders raw metric that is greater than its max value', () => {
+  it('renders raw metric that is greater than its max value, logs error to console', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     const tree = shallow((RunList.prototype as any)._metricCustomRenderer(
       {
