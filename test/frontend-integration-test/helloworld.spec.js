@@ -169,14 +169,15 @@ describe('deploy helloworld sample run', () => {
     assert(logs.indexOf(outputParameterValue + ' from node: ') > -1,
       'logs do not look right: ' + logs);
   });
-
-  it('deletes the uploaded pipeline', () => {
-    $('#pipelinesBtn').click();
-
-    browser.waitForVisible('.tableRow', waitTimeout);
-    $('.tableRow').click();
-    $('#deleteBtn').click();
-    $('.dialogButton').click();
-    $('.dialog').waitForVisible(waitTimeout, true);
-  });
+  //TODO: enable this after we change the pipeline to a unique name such that deleting this
+  // pipeline will not jeopardize the concurrent basic e2e tests.
+  // it('deletes the uploaded pipeline', () => {
+  //   $('#pipelinesBtn').click();
+  //
+  //   browser.waitForVisible('.tableRow', waitTimeout);
+  //   $('.tableRow').click();
+  //   $('#deleteBtn').click();
+  //   $('.dialogButton').click();
+  //   $('.dialog').waitForVisible(waitTimeout, true);
+  // });
 });
