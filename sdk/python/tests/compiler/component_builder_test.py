@@ -66,7 +66,7 @@ class TestDockerfileHelper(unittest.TestCase):
 
     # check
     docker_helper = DockerfileHelper(arc_dockerfile_name='', gcs_path='')
-    self.assertTrue(docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two}))
+    docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
     self.assertTrue(os.path.exists(temp_tarball))
     temp_tarball_handler = tarfile.open(temp_tarball)
     temp_files = temp_tarball_handler.getmembers()
