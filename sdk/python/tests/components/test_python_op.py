@@ -99,10 +99,9 @@ class PythonOpTestCase(unittest.TestCase):
             return a + b
 
         func = add_two_numbers_indented
-        op = comp.func_to_container_op(func,output_component_file='add_two_numbers_indented.component.yaml')
+        op = comp.func_to_container_op(func)
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
-        Path('add_two_numbers_indented.component.yaml').unlink()
 
     def test_indented_decorated_func_to_container_op_local_call(self):
         @comp.python_op
