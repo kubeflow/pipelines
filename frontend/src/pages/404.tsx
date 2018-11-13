@@ -15,24 +15,24 @@
  */
 
 import * as React from 'react';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
-import { commonCss } from '../Css';
+import { Page } from './Page';
+import { ToolbarProps } from '../components/Toolbar';
 
-interface InputProps extends TextFieldProps {
-  height?: number | string;
-  width?: number;
+export default class Page404 extends Page<{}, {}> {
+  public getInitialToolbarState(): ToolbarProps {
+    return { actions: [], breadcrumbs: [] };
+  }
+
+  public async refresh(): Promise<void> {
+    return;
+  }
+
+  public render(): JSX.Element {
+    return (
+      <div style={{ margin: '100px auto', textAlign: 'center' }}>
+        <div style={{ color: '#aaa', fontSize: 50, fontWeight: 'bold' }}>404</div>
+        <div style={{ fontSize: 16 }}>Page Not Found: {this.props.location.pathname}</div>
+      </div>
+    );
+  }
 }
-
-export default (props: InputProps) => {
-  const { height, width, ...rest } = props;
-  return (
-    <TextField variant='outlined' className={commonCss.textField} spellCheck={false}
-        style={{
-          height: !!props.multiline ? 'auto' : (height || 40),
-          maxWidth: 600,
-          width: width || '100%' }}
-        {...rest}>
-      {props.children}
-    </TextField>
-  );
-};

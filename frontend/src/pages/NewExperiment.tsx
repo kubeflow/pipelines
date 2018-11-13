@@ -73,7 +73,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
   }
 
   public render(): JSX.Element {
-    const { validationError } = this.state;
+    const { description, experimentName, isbeingCreated, validationError } = this.state;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
@@ -87,12 +87,13 @@ class NewExperiment extends Page<{}, NewExperimentState> {
           </div>
 
           <Input id='experimentName' label='Experiment name' inputRef={this._experimentNameRef}
-            required={true} instance={this} field='experimentName' autoFocus={true} />
+            required={true} onChange={this.handleChange('experimentName')} value={experimentName}
+            autoFocus={true} />
           <Input id='experimentDescription' label='Description (optional)' multiline={true}
-            instance={this} field='description' height='auto' />
+            onChange={this.handleChange('description')} value={description} />
 
           <div className={commonCss.flex}>
-            <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={this.state.isbeingCreated}
+            <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={isbeingCreated}
               className={commonCss.buttonAction} title={'Next'}
               onClick={this._create.bind(this)} />
             <Button id='cancelNewExperimentBtn' onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>

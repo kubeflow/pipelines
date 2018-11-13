@@ -70,6 +70,9 @@ if [ "$(whoami)" == root ]; then
   export USER=not-root
 fi
 
+#Copy service account keys
+gcloud compute scp --zone=$ZONE --verbosity=error "$GOOGLE_APPLICATION_CREDENTIALS" $instance_name:"~/service-account.json"
+
 #Copy repo
 git_root=$(git rev-parse --show-toplevel)
 git_root_parent=$(dirname "$git_root")
@@ -79,7 +82,7 @@ gcloud compute scp --zone=$ZONE --verbosity=error --recurse "$git_root" $instanc
 gcloud compute ssh --zone=$ZONE $instance_name -- "~/pipelines/test/minikube/install_docker_minikube_argo.sh"
 
 #Running the presubmit tests
-gcloud compute ssh --zone=$ZONE $instance_name -- PULL_PULL_SHA="$PULL_PULL_SHA" WORKSPACE="~/${WORKSPACE}" "~/pipelines/test/presubmit-tests.sh" --cluster-type none "$@"
+gcloud compute ssh --zone=$ZONE $instance_name -- PULL_PULL_SHA="$PULL_PULL_SHA" WORKSPACE="~/${WORKSPACE}" GOOGLE_APPLICATION_CREDENTIALS="~/service-account.json" "~/pipelines/test/presubmit-tests.sh" --cluster-type none "$@"
 
 #Copy back the artifacts
 mkdir -p "${ARTIFACT_DIR}"

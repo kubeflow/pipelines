@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/kubeflow/pipelines.svg?token=JjfzFsYGxZwkHvXFCpwt&branch=master)](https://travis-ci.com/kubeflow/pipelines)
+[![Build Status](https://travis-ci.com/kubeflow/pipelines.svg?branch=master)](https://travis-ci.com/kubeflow/pipelines)
 [![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg)](https://coveralls.io/github/kubeflow/pipelines?branch=yebrahim%2Fcoveralls)
 
 ## Overview of the Kubeflow pipelines service
