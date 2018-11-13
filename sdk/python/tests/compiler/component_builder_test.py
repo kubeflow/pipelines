@@ -16,7 +16,7 @@ from kfp.compiler._component_builder import GCSHelper
 from kfp.compiler._component_builder import DockerfileHelper
 from kfp.compiler._component_builder import CodeGenerator
 from kfp.compiler._component_builder import ImageBuilder
-from kfp.compiler._component_builder import DependencyVersion
+from kfp.compiler._component_builder import VersionedDependency
 from kfp.compiler._component_builder import DependencyHelper
 
 import os
@@ -52,29 +52,43 @@ class TestGCSHelper(unittest.TestCase):
     os.remove(temp_file)
     os.remove(temp_downloaded_file)
 
-class TestDependencyVersion(unittest.TestCase):
+class TestVersionedDependency(unittest.TestCase):
 
   def test_version(self):
     """ test version overrides min_version and max_version """
-    version = DependencyVersion(version='0.3.0', min_version='0.1.0', max_version='0.4.0')
+    version = VersionedDependency(name='tensorflow', version='0.3.0', min_version='0.1.0', max_version='0.4.0')
     self.assertTrue(version.min_version == '0.3.0')
     self.assertTrue(version.max_version == '0.3.0')
     self.assertTrue(version.has_versions())
     self.assertTrue(version.has_min_version())
     self.assertTrue(version.has_max_version())
+    self.assertTrue(version.name == 'tensorflow')
 
   def test_minmax_version(self):
     """ test if min_version and max_version are configured when version is not given """
-    version = DependencyVersion(min_version='0.1.0', max_version='0.4.0')
+    version = VersionedDependency(name='tensorflow', min_version='0.1.0', max_version='0.4.0')
     self.assertTrue(version.min_version == '0.1.0')
     self.assertTrue(version.max_version == '0.4.0')
     self.assertTrue(version.has_versions())
     self.assertTrue(version.has_min_version())
     self.assertTrue(version.has_max_version())
 
+  def test_min_or_max_version(self):
+    """ test if min_version and max_version are configured when version is not given """
+    version = VersionedDependency(name='tensorflow', min_version='0.1.0')
+    self.assertTrue(version.min_version == '0.1.0')
+    self.assertTrue(version.has_versions())
+    self.assertTrue(version.has_min_version())
+    self.assertFalse(version.has_max_version())
+    version = VersionedDependency(name='tensorflow', max_version='0.3.0')
+    self.assertTrue(version.max_version == '0.3.0')
+    self.assertTrue(version.has_versions())
+    self.assertTrue(version.has_max_version())
+    self.assertFalse(version.has_min_version())
+
   def test_no_version(self):
     """ test the no version scenario """
-    version = DependencyVersion()
+    version = VersionedDependency(name='tensorflow')
     self.assertFalse(version.has_min_version())
     self.assertFalse(version.has_max_version())
     self.assertFalse(version.has_versions())
@@ -89,8 +103,8 @@ class TestDependencyHelper(unittest.TestCase):
     temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
 
     dependency_helper = DependencyHelper()
-    dependency_helper.add_python_package(name='tensorflow', version=DependencyVersion(min_version='0.10.0', max_version='0.11.0'))
-    dependency_helper.add_python_package(name='kubernetes', version=DependencyVersion(min_version='0.6.0'))
+    dependency_helper.add_python_package(version=VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'))
+    dependency_helper.add_python_package(version=VersionedDependency(name='kubernetes', min_version='0.6.0'))
     dependency_helper.generate_pip_requirements(temp_file)
 
     golden_requirement_payload = '''\
@@ -201,8 +215,8 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     # check
     docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile', gcs_path=gcs_tar_path)
     dependencies = {
-      'tensorflow': DependencyVersion(min_version='0.10.0', max_version='0.11.0'),
-      'kubernetes': DependencyVersion(min_version='0.6.0'),
+      VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'),
+      VersionedDependency(name='kubernetes', min_version='0.6.0'),
     }
     docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0', dependency=dependencies)
     GCSHelper.download_gcs_blob(downloaded_tarball, gcs_tar_path)

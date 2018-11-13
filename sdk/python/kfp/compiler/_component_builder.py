@@ -59,17 +59,22 @@ class GCSHelper(object):
     blob = bucket.blob(gcs_blob)
     blob.download_to_filename(local_path)
 
-class DependencyVersion(object):
+class VersionedDependency(object):
   """ DependencyVersion specifies the versions """
-  def __init__(self, version=None, min_version=None, max_version=None):
+  def __init__(self, name, version=None, min_version=None, max_version=None):
     """ if version is specified, no need for min_version or max_version;
      if both are specified, version is adopted """
+    self._name = name
     if version is not None:
       self._min_version = version
       self._max_version = version
     else:
       self._min_version = min_version
       self._max_version = max_version
+
+  @property
+  def name(self):
+    return self._name
 
   @property
   def min_version(self):
@@ -104,10 +109,10 @@ class DependencyHelper(object):
     self._dependency = {self._PYTHON_PACKAGE:OrderedDict()}
 
   @property
-  def python_package(self):
+  def python_packages(self):
     return self._dependency[self._PYTHON_PACKAGE]
 
-  def add_python_package(self, name, version=DependencyVersion(), override=True):
+  def add_python_package(self, version=VersionedDependency(name='default'), override=True):
     """ add_single_python_package adds a dependency for the python package
 
     Args:
@@ -116,15 +121,15 @@ class DependencyHelper(object):
         if not specified, the default is resolved automatically by the pip system.
       override: whether to override the version if already existing in the dependency.
     """
-    if name in self.python_package and not override:
+    if version.name in self.python_packages and not override:
       return
-    self.python_package[name] = version
+    self.python_packages[version.name] = version
 
   def generate_pip_requirements(self, target_file):
     """ write the python packages to a requirement file
     the generated file follows the order of which the packages are added """
     with open(target_file, 'w') as f:
-      for name, version in self.python_package.items():
+      for name, version in self.python_packages.items():
         version_str = ''
         if version.has_min_version():
           version_str += ' >= ' + version.min_version
@@ -144,8 +149,8 @@ class DockerfileHelper(object):
 
   def _generate_pip_requirement(self, dependency, requirement_filepath):
     dependency_helper = DependencyHelper()
-    for name, version in dependency.items():
-      dependency_helper.add_python_package(name, version)
+    for version in dependency:
+      dependency_helper.add_python_package(version)
     dependency_helper.generate_pip_requirements(requirement_filepath)
 
   def _generate_dockerfile_with_py(self, target_file, base_image, python_filepath, has_requirement_file):
@@ -412,7 +417,7 @@ def _generate_pythonop(component_func, target_image):
     component_artifact['implementation']['dockerContainer']['arguments'].append({'value': input})
   return _create_task_factory_from_component_dict(component_artifact)
 
-def build_python_component(component_func, staging_gcs_path, target_image, build_image=True, timeout=600, namespace='kubeflow', dependency={}):
+def build_python_component(component_func, staging_gcs_path, target_image, build_image=True, timeout=600, namespace='kubeflow', dependency=[]):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -423,7 +428,7 @@ def build_python_component(component_func, staging_gcs_path, target_image, build
     build_image (bool): whether to build the image or not. Default is True.
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
-    dependency (dict): a dictionary with key as the package name and value as the DependencyVersion, default is empty
+    dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
 
   Raises:
     ValueError: The function is not decorated with python_component decorator
