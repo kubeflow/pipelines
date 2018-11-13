@@ -95,7 +95,7 @@ describe('deploy helloworld sample run', () => {
     browser.keys(outputParameterValue);
 
     // Deploy
-    $('#createBtn').click();
+    $('#createNewRunBtn').click();
   });
 
   it('redirects back to experiment page', () => {
