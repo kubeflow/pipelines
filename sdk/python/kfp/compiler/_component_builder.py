@@ -61,8 +61,7 @@ class GCSHelper(object):
 
 class DockerfileHelper(object):
   """ Dockerfile Helper generates a tarball with dockerfile, ready for docker build
-      arc_dockerfile_name: dockerfile filename that is stored in the tarball
-      gcs_path: the gcs path to store the tarball that contains both the dockerfile and the python file """
+      arc_dockerfile_name: dockerfile filename that is stored in the tarball """
 
   def __init__(self, arc_dockerfile_name):
     self._arc_dockerfile_name = arc_dockerfile_name
@@ -249,7 +248,7 @@ class ImageBuilder(object):
       local_tarball_file = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
       docker_helper.prepare_docker_tarball_with_py(python_filepath=local_python_filepath,
                                                    arc_python_filename=self._arc_python_filepath,
-                                                   base_image=base_image, local_tarball_file=local_tarball_file)
+                                                   base_image=base_image, local_tarball_path=local_tarball_file)
       GCSHelper.upload_gcs_file(local_tarball_file, self._gcs_path)
 
       kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
@@ -271,7 +270,7 @@ class ImageBuilder(object):
       logging.info('Generate build files.')
       docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
       local_tarball_file = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
-      docker_helper.prepare_docker_tarball(dockerfile_path, local_tarball_file=local_tarball_file)
+      docker_helper.prepare_docker_tarball(dockerfile_path, local_tarball_path=local_tarball_file)
       GCSHelper.upload_gcs_file(local_tarball_file, self._gcs_path)
 
       kaniko_spec = self._generate_kaniko_spec(namespace=namespace, arc_dockerfile_name=self._arc_dockerfile_name,
