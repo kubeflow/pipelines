@@ -239,7 +239,7 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: components/kubeflow/container/deployer
+            value: components/kubeflow/deployer
           - name: image-suffix
             value: "{{inputs.parameters.kubeflow-deployer-image-suffix}}"
       - name: build-local-confusion-matrix
