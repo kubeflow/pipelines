@@ -155,43 +155,55 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
+    let run: ApiJob;
     try {
-      const run = await Apis.jobServiceApi.getJob(runId);
-      const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(run);
-      let experiment: ApiExperiment | undefined;
-      if (relatedExperimentId) {
-        experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
-      }
-      const breadcrumbs: Breadcrumb[] = [];
-      if (experiment) {
-        breadcrumbs.push(
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experiment.name!,
-            href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
-          });
-      } else {
-        breadcrumbs.push(
-          { displayName: 'All runs', href: RoutePage.RUNS }
-        );
-      }
-      breadcrumbs.push({
-        displayName: run ? run.name! : runId,
-        href: '',
-      });
-
-      const toolbarActions = [...this.props.toolbarProps.actions];
-      toolbarActions[1].disabled = !!run.enabled;
-      toolbarActions[2].disabled = !run.enabled;
-
-      this.props.updateToolbar({ actions: toolbarActions, breadcrumbs });
-
-      this.setState({ run });
+      run = await Apis.jobServiceApi.getJob(runId);
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       await this.showPageError(
         `Error: failed to retrieve recurring run: ${runId}.`, new Error(errorMessage));
+      return;
     }
+
+    const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(run);
+    let experiment: ApiExperiment | undefined;
+    if (relatedExperimentId) {
+      try {
+        experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        await this.showPageError(
+          `Error: failed to retrieve this recurring run\'s experiment.`,
+          new Error(errorMessage),
+          'warning'
+        );
+      }
+    }
+    const breadcrumbs: Breadcrumb[] = [];
+    if (experiment) {
+      breadcrumbs.push(
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+        {
+          displayName: experiment.name!,
+          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+        });
+    } else {
+      breadcrumbs.push(
+        { displayName: 'All runs', href: RoutePage.RUNS }
+      );
+    }
+    breadcrumbs.push({
+      displayName: run ? run.name! : runId,
+      href: '',
+    });
+
+    const toolbarActions = [...this.props.toolbarProps.actions];
+    toolbarActions[1].disabled = !!run.enabled;
+    toolbarActions[2].disabled = !run.enabled;
+
+    this.props.updateToolbar({ actions: toolbarActions, breadcrumbs });
+
+    this.setState({ run });
   }
 
   protected async _setEnabledState(enabled: boolean): Promise<void> {
