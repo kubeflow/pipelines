@@ -59,8 +59,8 @@ class BusyButton extends React.Component<BusyButtonProps> {
     // TODO: we should not be passing className here to the child Element button. Instead, we should
     // allow the parent of BusyButton to declare explicitly which styles should be applied to
     // BusyButton and which, if any, should be applied to Button, CircularProgress, etc.
-    const { title, busy, className, disabled, icon, outlined, ...rest } = this.props;
-    return <Button {...sanitizeProps(rest)} color={outlined ? 'primary' : 'secondary'}
+    const { title, busy, className, disabled, icon, id, outlined, ...rest } = this.props;
+    return <Button {...sanitizeProps(rest)} id={id} color={outlined ? 'primary' : 'secondary'}
         className={classes(css.root, busy && css.rootBusy, className)}
         disabled={busy || disabled}>
         {!!icon && <this.props.icon className={css.icon} />}
