@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { createGraph, getNodeInfo, SelectedNodeInfo } from './StaticGraphParser';
+import { createGraph } from './StaticGraphParser';
 
 describe('StaticGraphParser', () => {
 
@@ -243,280 +243,280 @@ describe('StaticGraphParser', () => {
     });
   });
 
-  describe('getNodeInfo', () => {
-    it('Returns null if nodeId is undefined', () => {
-      const nodeInfo = getNodeInfo(newWorkflow(), undefined);
-      expect(nodeInfo).toBeNull();
-    });
+  // describe('getNodeInfo', () => {
+  //   it('Returns null if nodeId is undefined', () => {
+  //     const nodeInfo = getNodeInfo(newWorkflow(), undefined);
+  //     expect(nodeInfo).toBeNull();
+  //   });
 
-    it('Returns null if nodeId is empty', () => {
-      const nodeInfo = getNodeInfo(newWorkflow(), '');
-      expect(nodeInfo).toBeNull();
-    });
+  //   it('Returns null if nodeId is empty', () => {
+  //     const nodeInfo = getNodeInfo(newWorkflow(), '');
+  //     expect(nodeInfo).toBeNull();
+  //   });
 
-    it('Returns null if workflow is undefined', () => {
-      const nodeInfo = getNodeInfo(undefined, 'someId');
-      expect(nodeInfo).toBeNull();
-    });
+  //   it('Returns null if workflow is undefined', () => {
+  //     const nodeInfo = getNodeInfo(undefined, 'someId');
+  //     expect(nodeInfo).toBeNull();
+  //   });
 
-    it('Returns null if workflow.spec is undefined', () => {
-      const workflow = newWorkflow();
-      workflow.spec = undefined;
-      const nodeInfo = getNodeInfo(workflow, 'someId');
-      expect(nodeInfo).toBeNull();
-    });
+  //   it('Returns null if workflow.spec is undefined', () => {
+  //     const workflow = newWorkflow();
+  //     workflow.spec = undefined;
+  //     const nodeInfo = getNodeInfo(workflow, 'someId');
+  //     expect(nodeInfo).toBeNull();
+  //   });
 
-    it('Returns null if workflow.spec.templates is undefined', () => {
-      const workflow = newWorkflow();
-      workflow.spec.templates = undefined;
-      const nodeInfo = getNodeInfo(workflow, 'someId');
-      expect(nodeInfo).toBeNull();
-    });
+  //   it('Returns null if workflow.spec.templates is undefined', () => {
+  //     const workflow = newWorkflow();
+  //     workflow.spec.templates = undefined;
+  //     const nodeInfo = getNodeInfo(workflow, 'someId');
+  //     expect(nodeInfo).toBeNull();
+  //   });
 
-    it('Returns nodeInfo containing only \'unknown\' nodeType if no template matches provided ID', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              container: {},
-              name: 'template-1',
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = getNodeInfo(workflow, 'id-not-in-spec');
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
-    });
+  //   it('Returns nodeInfo containing only \'unknown\' nodeType if no template matches provided ID', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             container: {},
+  //             name: 'template-1',
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = getNodeInfo(workflow, 'id-not-in-spec');
+  //     expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+  //   });
 
-    it('Returns nodeInfo containing only \'unknown\' nodeType if template matching provided ID has no container or steps', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              // No container or steps here
-              name: 'template-1',
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
-    });
+  //   it('Returns nodeInfo containing only \'unknown\' nodeType if template matching provided ID has no container or steps', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             // No container or steps here
+  //             name: 'template-1',
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = getNodeInfo(workflow, 'template-1');
+  //     expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+  //   });
 
-    it('Returns nodeInfo containing only \'unknown\' nodeType if template matching provided ID has no container and empty steps', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              // No container here
-              name: 'template-1',
-              steps: [],
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
-    });
+  //   it('Returns nodeInfo containing only \'unknown\' nodeType if template matching provided ID has no container and empty steps', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             // No container here
+  //             name: 'template-1',
+  //             steps: [],
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = getNodeInfo(workflow, 'template-1');
+  //     expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+  //   });
 
-    it('Returns nodeInfo containing only \'unknown\' nodeType if template matching provided ID has no container and array of empty steps', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              // No container here
-              name: 'template-1',
-              steps: [[]],
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = getNodeInfo(workflow, 'template-1');
-      expect(nodeInfo).toEqual({ nodeType: 'unknown' });
-    });
+  //   it('Returns nodeInfo containing only \'unknown\' nodeType if template matching provided ID has no container and array of empty steps', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             // No container here
+  //             name: 'template-1',
+  //             steps: [[]],
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = getNodeInfo(workflow, 'template-1');
+  //     expect(nodeInfo).toEqual({ nodeType: 'unknown' });
+  //   });
 
-    it('Returns nodeInfo containing container args', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              container: {
-                args: ['arg1', 'arg2'],
-              },
-              name: 'template-1',
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
-      expect(nodeInfo.nodeType).toBe('container');
-      expect(nodeInfo.containerInfo!.args).toEqual(['arg1', 'arg2']);
-    });
+  //   it('Returns nodeInfo containing container args', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             container: {
+  //               args: ['arg1', 'arg2'],
+  //             },
+  //             name: 'template-1',
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
+  //     expect(nodeInfo.nodeType).toBe('container');
+  //     expect(nodeInfo.containerInfo!.args).toEqual(['arg1', 'arg2']);
+  //   });
 
-    it('Returns nodeInfo containing container commands', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              container: {
-                command: ['command1', 'command2']
-              },
-              name: 'template-1',
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
-      expect(nodeInfo.nodeType).toBe('container');
-      expect(nodeInfo.containerInfo!.command).toEqual(['command1', 'command2']);
-    });
+  //   it('Returns nodeInfo containing container commands', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             container: {
+  //               command: ['command1', 'command2']
+  //             },
+  //             name: 'template-1',
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
+  //     expect(nodeInfo.nodeType).toBe('container');
+  //     expect(nodeInfo.containerInfo!.command).toEqual(['command1', 'command2']);
+  //   });
 
-    it('Returns nodeInfo containing container image name', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              container: {
-                image: 'someImageID'
-              },
-              name: 'template-1',
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
-      expect(nodeInfo.nodeType).toBe('container');
-      expect(nodeInfo.containerInfo!.image).toBe('someImageID');
-    });
+  //   it('Returns nodeInfo containing container image name', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             container: {
+  //               image: 'someImageID'
+  //             },
+  //             name: 'template-1',
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
+  //     expect(nodeInfo.nodeType).toBe('container');
+  //     expect(nodeInfo.containerInfo!.image).toBe('someImageID');
+  //   });
 
-    it('Returns nodeInfo containing container inputs as list of name/value tuples', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              container: {},
-              inputs: {
-                parameters: [
-                  { name: 'param1', value: 'val1' },
-                  { name: 'param2', value: 'val2' },
-                ],
-              },
-              name: 'template-1',
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
-      expect(nodeInfo.nodeType).toBe('container');
-      expect(nodeInfo.containerInfo!.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
-    });
+  //   it('Returns nodeInfo containing container inputs as list of name/value tuples', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             container: {},
+  //             inputs: {
+  //               parameters: [
+  //                 { name: 'param1', value: 'val1' },
+  //                 { name: 'param2', value: 'val2' },
+  //               ],
+  //             },
+  //             name: 'template-1',
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
+  //     expect(nodeInfo.nodeType).toBe('container');
+  //     expect(nodeInfo.containerInfo!.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
+  //   });
 
-    it('Returns empty strings for inputs with no specified value', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              container: {},
-              inputs: {
-                parameters: [
-                  { name: 'param1' },
-                  { name: 'param2' },
-                ],
-              },
-              name: 'template-1',
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
-      expect(nodeInfo.nodeType).toBe('container');
-      expect(nodeInfo.containerInfo!.inputs).toEqual([['param1', ''], ['param2', '']]);
-    });
+  //   it('Returns empty strings for inputs with no specified value', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             container: {},
+  //             inputs: {
+  //               parameters: [
+  //                 { name: 'param1' },
+  //                 { name: 'param2' },
+  //               ],
+  //             },
+  //             name: 'template-1',
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
+  //     expect(nodeInfo.nodeType).toBe('container');
+  //     expect(nodeInfo.containerInfo!.inputs).toEqual([['param1', ''], ['param2', '']]);
+  //   });
 
-    it('Returns nodeInfo containing container outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              container: {},
-              name: 'template-1',
-              outputs: {
-                parameters: [
-                  { name: 'param1', value: 'val1' },
-                  { name: 'param2', valueFrom: { jsonPath: 'jsonPath' } },
-                  { name: 'param3', valueFrom: { path: 'path' } },
-                  { name: 'param4', valueFrom: { parameter: 'parameterReference' } },
-                  { name: 'param5', valueFrom: { jqFilter: 'jqFilter' } },
-                ],
-              },
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
-      expect(nodeInfo.nodeType).toBe('container');
-      expect(nodeInfo.containerInfo!.outputs).toEqual([
-        ['param1', 'val1'],
-        ['param2', 'jsonPath'],
-        ['param3', 'path'],
-        ['param4', 'parameterReference'],
-        ['param5', 'jqFilter'],
-      ]);
-    });
+  //   it('Returns nodeInfo containing container outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             container: {},
+  //             name: 'template-1',
+  //             outputs: {
+  //               parameters: [
+  //                 { name: 'param1', value: 'val1' },
+  //                 { name: 'param2', valueFrom: { jsonPath: 'jsonPath' } },
+  //                 { name: 'param3', valueFrom: { path: 'path' } },
+  //                 { name: 'param4', valueFrom: { parameter: 'parameterReference' } },
+  //                 { name: 'param5', valueFrom: { jqFilter: 'jqFilter' } },
+  //               ],
+  //             },
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
+  //     expect(nodeInfo.nodeType).toBe('container');
+  //     expect(nodeInfo.containerInfo!.outputs).toEqual([
+  //       ['param1', 'val1'],
+  //       ['param2', 'jsonPath'],
+  //       ['param3', 'path'],
+  //       ['param4', 'parameterReference'],
+  //       ['param5', 'jqFilter'],
+  //     ]);
+  //   });
 
-    it('Returns empty strings for outputs with no specified value', () => {
-      const workflow = {
-        spec: {
-          entrypoint: 'template-1',
-          templates: [
-            {
-              container: {},
-              name: 'template-1',
-              outputs: {
-                parameters: [
-                  { name: 'param1' },
-                  { name: 'param2' },
-                ],
-              },
-            },
-          ],
-        },
-      } as any;
-      const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
-      expect(nodeInfo.nodeType).toBe('container');
-      expect(nodeInfo.containerInfo!.outputs).toEqual([['param1', ''], ['param2', '']]);
-    });
+  //   it('Returns empty strings for outputs with no specified value', () => {
+  //     const workflow = {
+  //       spec: {
+  //         entrypoint: 'template-1',
+  //         templates: [
+  //           {
+  //             container: {},
+  //             name: 'template-1',
+  //             outputs: {
+  //               parameters: [
+  //                 { name: 'param1' },
+  //                 { name: 'param2' },
+  //               ],
+  //             },
+  //           },
+  //         ],
+  //       },
+  //     } as any;
+  //     const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
+  //     expect(nodeInfo.nodeType).toBe('container');
+  //     expect(nodeInfo.containerInfo!.outputs).toEqual([['param1', ''], ['param2', '']]);
+  //   });
 
-    it('Returns nodeType \'steps\' when node template has steps', () => {
-      // const workflow = {
-      //   spec: {
-      //     entrypoint: 'template-1',
-      //     templates: [
-      //       {
-      //         name: 'template-1',
-      //         steps: [[
-      //           'something',
-      //         ]]
-      //       },
-      //     ],
-      //   },
-      // } as any;
-      // const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
-      // expect(nodeInfo.nodeType).toBe('steps');
-      // expect(nodeInfo.stepsInfo).toEqual({ conditional: '', parameters: [[]] });
-    });
+    // it('Returns nodeType \'steps\' when node template has steps', () => {
+    //   const workflow = {
+    //     spec: {
+    //       entrypoint: 'template-1',
+    //       templates: [
+    //         {
+    //           name: 'template-1',
+    //           steps: [[
+    //             'something',
+    //           ]]
+    //         },
+    //       ],
+    //     },
+    //   } as any;
+    //   const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
+    //   expect(nodeInfo.nodeType).toBe('steps');
+    //   expect(nodeInfo.stepsInfo).toEqual({ conditional: '', parameters: [[]] });
+    // });
 
-    it('Returns nodeInfo with step template\'s conditional when node template has \'when\' property', () => {
+    // it('Returns nodeInfo with step template\'s conditional when node template has \'when\' property', () => {
       // const workflow = {
       //   spec: {
       //     entrypoint: 'template-1',
@@ -531,9 +531,9 @@ describe('StaticGraphParser', () => {
       // const nodeInfo = verifyNodeInfoNotNull(getNodeInfo(workflow, 'template-1'));
       // expect(nodeInfo.nodeType).toBe('steps');
       // expect(nodeInfo.stepsInfo).toEqual({ conditional: '{{someVar}} == something', parameters: [[]] });
-    });
+    // });
 
-    it('Returns nodeInfo with step template\'s arguments', () => {
+    // it('Returns nodeInfo with step template\'s arguments', () => {
       // const workflow = {
       //   spec: {
       //     entrypoint: 'template-1',
@@ -556,11 +556,11 @@ describe('StaticGraphParser', () => {
       // expect(nodeInfo.nodeType).toBe('steps');
       // expect(nodeInfo.stepsInfo)
       //   .toEqual({ conditional: '', parameters: [['param1', 'val1'], ['param2', 'val2']] });
-    });
-  });
+    // });
+  // });
 
-  function verifyNodeInfoNotNull(nodeInfo: SelectedNodeInfo | null): SelectedNodeInfo {
-    expect(nodeInfo).not.toBeNull();
-    return nodeInfo!;
-  }
+  // function verifyNodeInfoNotNull(nodeInfo: SelectedNodeInfo | null): SelectedNodeInfo {
+  //   expect(nodeInfo).not.toBeNull();
+  //   return nodeInfo!;
+  // }
 });

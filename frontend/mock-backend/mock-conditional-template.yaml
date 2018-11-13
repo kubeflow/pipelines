@@ -27,14 +27,14 @@ spec:
       - arguments:
           parameters:
           - name: flip-again-output
-            value: '{{tasks.flip-again.outputs.parameters.flip-again-output}}'
+            value: '{{tasks.flip-again-task.outputs.parameters.flip-again-output}}'
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
         name: condition-2-task
         template: condition-2
         dependencies:
-        - flip-again
-        when: '{{tasks.flip-again.outputs.parameters.flip-again-output}} == tails'
+        - flip-again-task
+        when: '{{tasks.flip-again-task.outputs.parameters.flip-again-output}} == tails'
       - arguments:
           parameters:
           - name: flip-output
@@ -105,21 +105,21 @@ spec:
       - arguments:
           parameters:
           - name: flip-output
-            value: '{{tasks.flip.outputs.parameters.flip-output}}'
+            value: '{{tasks.flip-task.outputs.parameters.flip-output}}'
         name: condition-1-task
         template: condition-1
         dependencies:
-        - flip
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == heads'
+        - flip-task
+        when: '{{tasks.flip-task.outputs.parameters.flip-output}} == heads'
       - arguments:
           parameters:
           - name: flip-output
-            value: '{{tasks.flip.outputs.parameters.flip-output}}'
+            value: '{{tasks.flip-task.outputs.parameters.flip-output}}'
         name: condition-3-task
         template: condition-3
         dependencies:
-        - flip
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == tails'
+        - flip-task
+        when: '{{tasks.flip-task.outputs.parameters.flip-output}} == tails'
       - name: flip-task
         template: flip
     name: pipeline-flip-coin

@@ -328,58 +328,49 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   private _selectNode(id: string): void {
     let nodeInfoJsx: JSX.Element = <div>Unable to retrieve node info</div>;
-    const nodeInfo = StaticGraphParser.getNodeInfo(this.state.template, id);
+    const nodeInfo = this.state.graph!.node(id).info as StaticGraphParser.SelectedNodeInfo;
 
     if (!nodeInfo) {
       logger.error(`Node with ID: ${id} was not found in the graph`);
       return;
     }
 
-    switch (nodeInfo.nodeType) {
-      case 'container':
-        if (nodeInfo.containerInfo) {
-          // TODO: The headers for these DetailsTables should just be a part of DetailsTables
-          nodeInfoJsx =
-            <div>
-              <div className={classes(commonCss.header, css.fontSizeTitle)}>Input parameters</div>
-              <DetailsTable fields={nodeInfo.containerInfo.inputs} />
+    // TODO: The headers for these DetailsTables should just be a part of DetailsTables
+    nodeInfoJsx =
+      <div>
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Input parameters</div>
+        <DetailsTable fields={nodeInfo.inputs} />
 
-              <div className={classes(commonCss.header, css.fontSizeTitle)}>Output parameters</div>
-              <DetailsTable fields={nodeInfo.containerInfo.outputs} />
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Output parameters</div>
+        <DetailsTable fields={nodeInfo.outputs} />
 
-              <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
-              {nodeInfo.containerInfo.args.map((arg, i) =>
-                <div key={i} style={{ fontFamily: 'mono' }}>{arg}</div>)}
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
+        {nodeInfo.args.map((arg, i) =>
+          <div key={i} style={{ fontFamily: 'mono' }}>{arg}</div>)}
 
-              <div className={classes(commonCss.header, css.fontSizeTitle)}>Command</div>
-              {nodeInfo.containerInfo.command.map((c, i) => <div key={i}>{c}</div>)}
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Command</div>
+        {nodeInfo.command.map((c, i) => <div key={i}>{c}</div>)}
 
-              <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
-              <div>{nodeInfo.containerInfo.image}</div>
-            </div>;
-        }
-        break;
-      case 'dag':
-        if (nodeInfo.dagInfo) {
-          nodeInfoJsx =
-            <div>
-              {nodeInfo.dagInfo.conditionalTasks && !!nodeInfo.dagInfo.conditionalTasks.length && (
-                <div className={css.taskTitle}>Conditionals</div>
-              )}
-              {nodeInfo.dagInfo.conditionalTasks.map((conditionalTask, i) =>
-                <div key={i} className={css.task}>
-                  <div>When: {conditionalTask.condition}</div>
-                  <div>Run task: {conditionalTask.taskName}</div>
-                </div>
-              )}
-            </div>;
-        }
-        break;
-      default:
-        // TODO: display using error banner within side panel.
-        nodeInfoJsx = <div>{`Node ${id} has unknown node type.`}</div>;
-        logger.error(`Node ${id} has unknown node type.`);
-    }
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
+        <div>{nodeInfo.image}</div>
+
+        {!!nodeInfo.condition && (
+          <div>
+            <div className={css.taskTitle}>Condition</div>
+            <div>Run when: {nodeInfo.condition}</div>
+          </div>
+        )}
+
+        {nodeInfo.conditionalTasks && !!nodeInfo.conditionalTasks.length && (
+          <div className={css.taskTitle}>Conditionals</div>
+        )}
+        {nodeInfo.conditionalTasks.map((conditionalTask, i) =>
+          <div key={i} className={css.task}>
+            <div>When: {conditionalTask.condition}</div>
+            <div>Run task: {conditionalTask.taskName}</div>
+          </div>
+        )}
+      </div>;
 
     this.setState({
       selectedNodeId: id,

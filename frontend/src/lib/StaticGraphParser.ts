@@ -15,34 +15,142 @@
  */
 
 import * as dagre from 'dagre';
-import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { Workflow, Template } from '../../third_party/argo-ui/argo_template';
+import { logger } from './Utils';
 
 interface ConditionalInfo {
   condition: string;
   taskName: string;
 }
 
-export interface SelectedNodeInfo {
-  nodeType: 'container' | 'dag' | 'unknown';
-  containerInfo?: {
-    args: string[];
-    command: string[];
-    image: string;
-    inputs: string[][];
-    outputs: string[][];
-  };
-  dagInfo?: {
-    conditionalTasks: ConditionalInfo[];
-  };
+export type nodeType = 'container' | 'dag' | 'unknown';
+
+export class SelectedNodeInfo {
+  public args: string[];
+  public command: string[];
+  public condition: string;
+  public conditionalTasks: ConditionalInfo[];
+  public image: string;
+  public inputs: string[][];
+  public nodeType: nodeType;
+  public outputs: string[][];
+
+  constructor() {
+    this.args = [];
+    this.command = [];
+    this.condition = '';
+    this.conditionalTasks = [];
+    this.image = '';
+    this.inputs = [[]];
+    this.nodeType = 'unknown';
+    this.outputs = [[]];
+  }
+}
+
+
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 70;
+
+function populateInfoFromTemplate(info: SelectedNodeInfo, template: Template): SelectedNodeInfo {
+  if (!template.container) {
+    return info;
+  }
+
+  info.nodeType = 'container';
+  info.args = template.container.args || [],
+  info.command = template.container.command || [],
+  info.image = template.container.image || '';
+
+  if (template.inputs) {
+    info.inputs =
+      (template.inputs.parameters || []).map(p => [p.name, p.value || '']);
+  }
+  if (template.outputs) {
+    info.outputs = (template.outputs.parameters || []).map(p => {
+      let value = '';
+      if (p.value) {
+        value = p.value;
+      } else if (p.valueFrom) {
+        value = p.valueFrom.jqFilter || p.valueFrom.jsonPath || p.valueFrom.parameter || p.valueFrom.path || '';
+      }
+      return [p.name, value];
+    });
+  }
+  return info;
+}
+
+/**
+ * Recursively construct the static graph of the Pipeline.
+ *
+ * @param graph The dagre graph object
+ * @param rootTemplateId The current template being explored at this level of recursion
+ * @param templates An unchanging map of template name to template and type
+ * @param parent The task that was being examined when the function recursed
+ */
+function buildDag(
+    graph: dagre.graphlib.Graph,
+    rootTemplateId: string,
+    templates: Map<string, { nodeType: nodeType, template: Template }>,
+    parent?: string): void {
+
+  const root = templates.get(rootTemplateId);
+
+  if (root && root.nodeType === 'dag') {
+    const template = root.template;
+
+    (template.dag.tasks || []).forEach((task) => {
+      // If the user specifies an exit handler, then the compiler will wrap the entire Pipeline
+      // within an additional DAG template prefixed with "exit-handler".
+      // If this is the case, we simply treat it as the root of the graph and work from there
+      if (task.name.startsWith('exit-handler')) {
+        buildDag(graph, task.template, templates);
+      } else {
+
+        // Parent here will be the task that pointed to this DAG template
+        if (parent) {
+          graph.setEdge(parent, task.name);
+        }
+
+        // This object contains information about the node that we display to the user when they
+        // click on a node in the graph
+        const info = new SelectedNodeInfo();
+        if (task.when) {
+          info.condition = task.when;
+        }
+
+        // "Child" here is the template that this task points to. This template should either be a
+        // DAG, in which case we recurse, or a container which can be thought of as a leaf node.
+        const child = templates.get(task.template);
+        if (child) {
+          if (child.nodeType === 'dag') {
+            buildDag(graph, task.template, templates, task.name);
+          } else if (child.nodeType === 'container' ) {
+            populateInfoFromTemplate(info, child.template);
+          } else {
+            logger.error(`Unknown nodetype: ${child.nodeType} on template: ${child.template}`);
+          }
+        }
+
+        graph.setNode(task.name, {
+          bgColor: task.when ? 'cornsilk' : undefined,
+          height: NODE_HEIGHT,
+          info,
+          label: task.name,
+          width: NODE_WIDTH,
+        });
+      }
+
+      // DAG tasks can indicate dependencies which are graphically shown as parents with edges
+      // pointing to their children (the task(s)).
+      (task.dependencies || []).forEach((dep) => graph.setEdge(dep, task.name));
+    });
+  }
 }
 
 export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({});
-  g.setDefaultEdgeLabel(() => ({}));
-
-  const NODE_WIDTH = 180;
-  const NODE_HEIGHT = 70;
+  const graph = new dagre.graphlib.Graph();
+  graph.setGraph({});
+  graph.setDefaultEdgeLabel(() => ({}));
 
   if (!workflow.spec || !workflow.spec.templates) {
     throw new Error('Could not generate graph. Provided Pipeline had no components.');
@@ -50,63 +158,42 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
 
   const workflowTemplates = workflow.spec.templates;
 
-  // Iterate through the workflow's templates to construct the graph
-  for (const template of workflowTemplates) {
-    // Argo allows specifying a single global exit handler. We also highlight that node.
+  const templates = new Map<string, { nodeType: nodeType, template: Template }>();
+
+  // Iterate through the workflow's templates to construct a map which will be used to traverse and
+  // construct the graph
+  for (const template of workflowTemplates.filter(t => !!t && !!t.name)) {
+    // Argo allows specifying a single global exit handler. We also highlight that node
     if (template.name === workflow.spec.onExit) {
-      g.setNode(template.name, {
+      const info = new SelectedNodeInfo();
+      populateInfoFromTemplate(info, template);
+      graph.setNode(template.name, {
         bgColor: '#eee',
         height: NODE_HEIGHT,
+        info,
         label: 'onExit - ' + template.name,
         width: NODE_WIDTH,
       });
     }
 
-    // TODO remove
-    // g.setNode(template.name, {
-    //   height: NODE_HEIGHT,
-    //   label: template.name,
-    //   width: NODE_WIDTH,
-    // });
-    // DAGs are the main component making up a Pipeline, and each DAG is composed of tasks.
-    if (template.dag && template.dag.tasks) {
-
-      template.dag.tasks.forEach((task) => {
-        // tslint:disable-next-line:no-console
-        console.log('task', task);
-        if (!task.name.startsWith('exit-handler')) {
-          g.setNode(task.name, {
-            bgColor: task.when ? 'cornsilk' : undefined,
-            height: NODE_HEIGHT,
-            label: task.name,
-            width: NODE_WIDTH,
-          });
-        }
-
-        // TODO remove
-        // g.setEdge(task.name, task.template);
-
-        if (template.name !== workflow.spec.entrypoint && !template.name.startsWith('exit-handler')) {
-          // g.setEdge(template.name, task.name);
-        }
-
-        // DAG tasks can indicate dependencies which are graphically shown as parents with edges
-        // pointing to their children (the task(s)).
-        // (task.dependencies || []).forEach((dep) => g.setEdge(dep, task.name));
-      });
+    if (template.container) {
+      templates.set(template.name, { nodeType: 'container', template });
+    } else if (template.dag) {
+      templates.set(template.name, { nodeType: 'dag', template });
+    } else {
+      logger.verbose(`Template: ${template.name} was neither a Container nor a DAG`);
     }
   }
 
-  // tslint:disable-next-line:no-console
-  console.log(g);
+  buildDag(graph, workflow.spec.entrypoint, templates);
 
   // DSL-compiled Pipelines will always include a DAG, so they should never reach this point.
   // It is, however, possible for users to upload manually constructed Pipelines, and extremely
   // simple ones may have no steps or DAGs, just an entry point container.
-  if (g.nodeCount() === 0) {
+  if (graph.nodeCount() === 0) {
     const entryPointTemplate = workflowTemplates.find((t) => t.name === workflow.spec.entrypoint);
     if (entryPointTemplate) {
-      g.setNode(entryPointTemplate.name, {
+      graph.setNode(entryPointTemplate.name, {
         height: NODE_HEIGHT,
         label: entryPointTemplate.name,
         width: NODE_WIDTH,
@@ -114,52 +201,5 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
     }
   }
 
-  return g;
-}
-
-export function getNodeInfo(workflow?: Workflow, nodeId?: string): SelectedNodeInfo | null {
-  if (!nodeId || !workflow || !workflow.spec || !workflow.spec.templates) {
-    return null;
-  }
-
-  const info: SelectedNodeInfo = { nodeType: 'unknown' };
-  const template = workflow.spec.templates.find((t) => t.name === nodeId);
-  if (template) {
-    if (template.container) {
-      info.nodeType = 'container';
-      info.containerInfo = {
-        args: template.container.args || [],
-        command: template.container.command || [],
-        image: template.container.image || '',
-        inputs: [[]],
-        outputs: [[]]
-      };
-      if (template.inputs) {
-        info.containerInfo.inputs =
-          (template.inputs.parameters || []).map(p => [p.name, p.value || '']);
-      }
-      if (template.outputs) {
-        info.containerInfo.outputs = (template.outputs.parameters || []).map(p => {
-          let value = '';
-          if (p.value) {
-            value = p.value;
-          } else if (p.valueFrom) {
-            value = p.valueFrom.jqFilter || p.valueFrom.jsonPath || p.valueFrom.parameter || p.valueFrom.path || '';
-          }
-          return [p.name, value];
-        });
-      }
-    } else if (template.dag && template.dag.tasks) {
-      // Conditionals are represented by DAG tasks with 'when' properties.
-      info.nodeType = 'dag';
-      const conditionalTasks: ConditionalInfo[] = [];
-      template.dag.tasks.forEach((task) => {
-        if (task.when) {
-          conditionalTasks.push({ condition: task.when, taskName: task.name });
-        }
-      });
-      info.dagInfo = { conditionalTasks };
-    }
-  }
-  return info;
+  return graph;
 }
