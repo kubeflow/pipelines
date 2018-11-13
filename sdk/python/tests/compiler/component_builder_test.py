@@ -103,8 +103,8 @@ class TestDependencyHelper(unittest.TestCase):
     temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
 
     dependency_helper = DependencyHelper()
-    dependency_helper.add_python_package(version=VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'))
-    dependency_helper.add_python_package(version=VersionedDependency(name='kubernetes', min_version='0.6.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.6.0'))
     dependency_helper.generate_pip_requirements(temp_file)
 
     golden_requirement_payload = '''\

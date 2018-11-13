@@ -112,7 +112,7 @@ class DependencyHelper(object):
   def python_packages(self):
     return self._dependency[self._PYTHON_PACKAGE]
 
-  def add_python_package(self, version=VersionedDependency(name='default'), override=True):
+  def add_python_package(self, dependency, override=True):
     """ add_single_python_package adds a dependency for the python package
 
     Args:
@@ -121,9 +121,9 @@ class DependencyHelper(object):
         if not specified, the default is resolved automatically by the pip system.
       override: whether to override the version if already existing in the dependency.
     """
-    if version.name in self.python_packages and not override:
+    if dependency.name in self.python_packages and not override:
       return
-    self.python_packages[version.name] = version
+    self.python_packages[dependency.name] = dependency
 
   def generate_pip_requirements(self, target_file):
     """ write the python packages to a requirement file
