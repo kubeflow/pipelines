@@ -154,11 +154,18 @@ fi
 ( cd ${APP_DIR} && ks param set ml-pipeline report_usage ${REPORT_USAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
 
+# Get current active service account and create a user-gcp-sa secret with the service key
+SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+echo service account is $SERVICE_ACCOUNT
+gcloud iam service-accounts keys create service_account_key --iam-account $SERVICE_ACCOUNT
+kubectl create secret generic --namespace=${NAMESPACE} user-gcp-sa --from-file=user-gcp-sa.json=service_account_key
+rm service_account_key
+
 if [ "$WITH_KUBEFLOW" = true ]; then
   # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
   # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
   mkdir -p ${KF_DIR}
-  # We use kubeflow v0.3.0 by default
+  # We use kubeflow v0.3.2 by default
   KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.3.2"}
   (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
   tar -xzf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
@@ -172,6 +179,7 @@ fi
 
 if ${UNINSTALL} ; then
   ( cd ${APP_DIR} && ks delete default)
+  kubectl delete secret --namespace=${NAMESPACE} user-gcp-sa
   if [ "$WITH_KUBEFLOW" = true ]; then
     KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
     # Uninstall Kubeflow
