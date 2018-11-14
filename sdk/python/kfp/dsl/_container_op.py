@@ -24,7 +24,7 @@ class ContainerOp(object):
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
                file_inputs : Dict[_pipeline_param.PipelineParam, str]=None,
-               file_outputs : Dict[str, str]=None, secret: str=None, is_exit_handler=False):
+               file_outputs : Dict[str, str]=None, gcp_secret: str=None, is_exit_handler=False):
     """Create a new instance of ContainerOp.
 
     Args:
@@ -53,12 +53,12 @@ class ContainerOp(object):
     self.image = image
     self.command = command
     self.arguments = arguments
+    self.gcp_secret = gcp_secret
     self.is_exit_handler = is_exit_handler
     self.memory_limit = None
     self.memory_request = None
     self.cpu_limit = None
     self.cpu_request = None
-    self.secret = None
 
     matches = []
     if arguments:

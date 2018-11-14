@@ -144,13 +144,17 @@ class Compiler(object):
       if op.cpu_request:
         template['container']['resources']['requests']['cpu'] = op.cpu_request
 
-    if op.secret:
+    if op.gcp_secret:
+      template['container']['env'] = {}
       template['container']['env']['name'] = 'GOOGLE_APPLICATION_CREDENTIALS'
       template['container']['env']['value'] = '/secret/gcp-credentials/user-gcp-sa.json'
+      template['container']['volumeMounts'] = {}
       template['container']['volumeMounts']['mountPath'] = '/secret/gcp-credentials'
       template['container']['volumeMounts']['name'] = 'gcp-credentials'
+      template['volumes'] = {}
       template['volumes']['name'] = 'gcp-credentials'
-      template['volumes']['secret']['secretName'] = op.secret
+      template['volumes']['secret'] = {}
+      template['volumes']['secret']['secretName'] = op.gcp_secret
     return template
 
   def _get_groups_for_ops(self, root_group):
