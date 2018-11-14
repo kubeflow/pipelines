@@ -41,7 +41,8 @@ class ContainerOp(object):
       file_outputs: Maps output labels to local file paths. At pipeline run time,
           the value of a PipelineParam is saved to its corresponding local file. It's
           one way for outside world to receive outputs of the container.
-      secret: What secret to mount to the container. Used for authentication.
+      gcp_secret: Specifying what secret to mount to the container for accessing
+          GCP APIs.
       is_exit_handler: Whether it is used as an exit handler.
     """
 
