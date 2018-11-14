@@ -61,12 +61,10 @@ class GCSHelper(object):
 
 class DockerfileHelper(object):
   """ Dockerfile Helper generates a tarball with dockerfile, ready for docker build
-      arc_dockerfile_name: dockerfile filename that is stored in the tarball
-      gcs_path: the gcs path to store the tarball that contains both the dockerfile and the python file """
+      arc_dockerfile_name: dockerfile filename that is stored in the tarball """
 
-  def __init__(self, arc_dockerfile_name, gcs_path):
+  def __init__(self, arc_dockerfile_name):
     self._arc_dockerfile_name = arc_dockerfile_name
-    self._gcs_path = gcs_path
 
   def _generate_dockerfile_with_py(self, target_file, base_image, python_filepath):
     """ _generate_docker_file generates a simple dockerfile with the python path """
@@ -86,22 +84,17 @@ class DockerfileHelper(object):
       for key, value in files.items():
         tarball.add(value, arcname=key)
 
-  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image):
+  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image, local_tarball_path):
     """ prepare_docker_tarball is the API to generate dockerfile and prepare the tarball with python scripts """
     with tempfile.TemporaryDirectory() as local_build_dir:
       local_dockerfile_path = os.path.join(local_build_dir, self._arc_dockerfile_name)
       self._generate_dockerfile_with_py(local_dockerfile_path, base_image, arc_python_filename)
-      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
       self._wrap_files_in_tarball(local_tarball_path, {self._arc_dockerfile_name:local_dockerfile_path,
                                                        arc_python_filename:python_filepath})
-      GCSHelper.upload_gcs_file(local_tarball_path, self._gcs_path)
 
-  def prepare_docker_tarball(self, dockerfile_path):
+  def prepare_docker_tarball(self, dockerfile_path, local_tarball_path):
     """ prepare_docker_tarball is the API to prepare a tarball with the dockerfile """
-    with tempfile.TemporaryDirectory() as local_build_dir:
-      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
-      self._wrap_files_in_tarball(local_tarball_path, {self._arc_dockerfile_name:dockerfile_path})
-      GCSHelper.upload_gcs_file(local_tarball_path, self._gcs_path)
+    self._wrap_files_in_tarball(local_tarball_path, {self._arc_dockerfile_name:dockerfile_path})
 
 class CodeGenerator(object):
   """ CodeGenerator helps to generate python codes with identation """
@@ -246,11 +239,26 @@ class ImageBuilder(object):
     complete_component_code = dedecorated_component_src + '\n' + wrapper_code + '\n' + codegen.end()
     return complete_component_code
 
-  def build_image_from_func(self, component_func, namespace, base_image, timeout):
-    """ build_image builds an image for the given python function"""
+  def _build_image_from_tarball(self, local_tarball_path, namespace, timeout):
+    GCSHelper.upload_gcs_file(local_tarball_path, self._gcs_path)
+    kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
+                                             arc_dockerfile_name=self._arc_dockerfile_name,
+                                             gcs_path=self._gcs_path,
+                                             target_image=self._target_image)
+    # Run kaniko job
+    logging.info('Start a kaniko job for build.')
+    k8s_helper = K8sHelper()
+    k8s_helper.run_job(kaniko_spec, timeout)
+    logging.info('Kaniko job complete.')
 
-    # Generate entrypoint and serialization python codes
+    # Clean up
+    GCSHelper.remove_gcs_blob(self._gcs_path)
+
+  def build_image_from_func(self, component_func, namespace, base_image, timeout):
+    """ build_image builds an image for the given python function """
+
     with tempfile.TemporaryDirectory() as local_build_dir:
+      # Generate entrypoint and serialization python codes
       local_python_filepath = os.path.join(local_build_dir, self._arc_python_filepath)
       logging.info('Generate entrypoint and serialization codes.')
       complete_component_code = self._generate_entrypoint(component_func)
@@ -259,39 +267,24 @@ class ImageBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name, gcs_path=self._gcs_path)
+      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
+      docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
       docker_helper.prepare_docker_tarball_with_py(python_filepath=local_python_filepath,
                                                    arc_python_filename=self._arc_python_filepath,
-                                                   base_image=base_image)
+                                                   base_image=base_image,
+                                                   local_tarball_path=local_tarball_path)
+      self._build_image_from_tarball(local_tarball_path, namespace, timeout)
 
-      kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
-                                               arc_dockerfile_name=self._arc_dockerfile_name,
-                                               gcs_path=self._gcs_path,
-                                               target_image=self._target_image)
-      # Run kaniko job
-      logging.info('Start a kaniko job for build.')
-      k8s_helper = K8sHelper()
-      k8s_helper.run_job(kaniko_spec, timeout)
-      logging.info('Kaniko job complete.')
-
-      # Clean up
-      GCSHelper.remove_gcs_blob(self._gcs_path)
 
   def build_image_from_dockerfile(self, dockerfile_path, timeout, namespace):
-    """ build_image_from_dockerfile builds an image directly """
-    logging.info('Generate build files.')
-    docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name, gcs_path=self._gcs_path)
-    docker_helper.prepare_docker_tarball(dockerfile_path)
-
-    kaniko_spec = self._generate_kaniko_spec(namespace=namespace, arc_dockerfile_name=self._arc_dockerfile_name,
-                                             gcs_path=self._gcs_path, target_image=self._target_image)
-    logging.info('Start a kaniko job for build.')
-    k8s_helper = K8sHelper()
-    k8s_helper.run_job(kaniko_spec, timeout)
-    logging.info('Kaniko job complete.')
-
-    # Clean up
-    GCSHelper.remove_gcs_blob(self._gcs_path)
+    """ build_image_from_dockerfile builds an image based on the dockerfile """
+    with tempfile.TemporaryDirectory() as local_build_dir:
+      # Prepare build files
+      logging.info('Generate build files.')
+      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
+      docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
+      docker_helper.prepare_docker_tarball(dockerfile_path, local_tarball_path=local_tarball_path)
+      self._build_image_from_tarball(local_tarball_path, namespace, timeout)
 
 def _generate_pythonop(component_func, target_image):
   """ Generate operator for the pipeline authors
