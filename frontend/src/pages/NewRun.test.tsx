@@ -25,7 +25,6 @@ import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline } from '../apis/pipeline';
 import { QUERY_PARAMS } from '../lib/URLParser';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
-import { range } from 'lodash';
 
 class TestNewRun extends NewRun {
   public _pipelineSelectionChanged(selectedId: string): void {
@@ -38,6 +37,7 @@ class TestNewRun extends NewRun {
 }
 
 describe('NewRun', () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error');
   const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
   const createRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
@@ -45,11 +45,14 @@ describe('NewRun', () => {
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const historyPushSpy = jest.fn();
   const historyReplaceSpy = jest.fn();
-  const listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
+
+  const MOCK_EXPERIMENT = newMockExperiment();
+  const MOCK_PIPELINE = newMockPipeline();
+  const MOCK_RUN_DETAIL = newMockRunDetail();
 
   function newMockExperiment(): ApiExperiment {
     return {
@@ -87,7 +90,7 @@ describe('NewRun', () => {
       location: {
         pathname: RoutePage.NEW_RUN,
         // TODO: this should be removed once experiments are no longer required to reach this page.
-        search: `?${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
+        search: `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
       } as any,
       match: '' as any,
       toolbarProps: TestNewRun.prototype.getInitialToolbarState(),
@@ -100,6 +103,7 @@ describe('NewRun', () => {
 
   beforeEach(() => {
     // Reset mocks
+    consoleErrorSpy.mockReset();
     createJobSpy.mockReset();
     createRunSpy.mockReset();
     getExperimentSpy.mockReset();
@@ -107,20 +111,20 @@ describe('NewRun', () => {
     getRunSpy.mockReset();
     historyPushSpy.mockReset();
     historyReplaceSpy.mockReset();
-    listPipelinesSpy.mockReset();
     updateBannerSpy.mockReset();
     updateDialogSpy.mockReset();
     updateSnackbarSpy.mockReset();
     updateToolbarSpy.mockReset();
 
+    consoleErrorSpy.mockImplementation(() => null);
     createRunSpy.mockImplementation(() => ({ id: 'new-run-id' }));
-    getExperimentSpy.mockImplementation(() => newMockExperiment());
-    getPipelineSpy.mockImplementation(() => newMockPipeline());
-    getRunSpy.mockImplementation(() => newMockRunDetail());
+    getExperimentSpy.mockImplementation(() => MOCK_EXPERIMENT);
+    getPipelineSpy.mockImplementation(() => MOCK_PIPELINE);
+    getRunSpy.mockImplementation(() => MOCK_RUN_DETAIL);
   });
 
   it('renders the new run page', async () => {
-    const tree = shallow(<TestNewRun {...generateProps() as any} />);
+    const tree = shallow(<TestNewRun {...generateProps()} />);
     await TestUtils.flushPromises();
 
     expect(tree).toMatchSnapshot();
@@ -133,7 +137,7 @@ describe('NewRun', () => {
     // breadcrumb, and we cover that in a later test.
     props.location.search = '';
 
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
     expect(updateToolbarSpy).toHaveBeenLastCalledWith({
@@ -168,7 +172,7 @@ describe('NewRun', () => {
     const tree = shallow(<TestNewRun {...generateProps() as any} />);
     await TestUtils.flushPromises();
 
-    (tree.instance() as any).handleChange('runName')({ target: { value: 'run name' } });
+    (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'run name' } });
 
     expect(tree.state()).toHaveProperty('runName', 'run name');
     tree.unmount();
@@ -177,7 +181,7 @@ describe('NewRun', () => {
   it('allows updating the run description', async () => {
     const tree = shallow(<TestNewRun {...generateProps() as any} />);
     await TestUtils.flushPromises();
-    (tree.instance() as any).handleChange('description')({ target: { value: 'run description' } });
+    (tree.instance() as TestNewRun).handleChange('description')({ target: { value: 'run description' } });
 
     expect(tree.state()).toHaveProperty('description', 'run description');
     tree.unmount();
@@ -188,7 +192,7 @@ describe('NewRun', () => {
     // Clear query params which might otherwise include an experiment ID.
     props.location.search = '';
 
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
     tree.find('#exitNewRunPageBtn').simulate('click');
 
@@ -197,43 +201,34 @@ describe('NewRun', () => {
   });
 
   it('fetches the associated experiment if one is present in the query params', async () => {
-    const experiment = newMockExperiment();
     const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.experimentId}=${experiment.id}`;
+    props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
-    getExperimentSpy.mockImplementation(() => experiment);
-
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
-    expect(getExperimentSpy).toHaveBeenLastCalledWith(experiment.id);
+    expect(getExperimentSpy).toHaveBeenLastCalledWith(MOCK_EXPERIMENT.id);
     tree.unmount();
   });
 
   it('updates the run\'s state with the associated experiment if one is present in the query params', async () => {
-    const experiment = newMockExperiment();
     const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.experimentId}=${experiment.id}`;
+    props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
-    getExperimentSpy.mockImplementation(() => experiment);
-
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
-    expect(tree.state()).toHaveProperty('experiment', experiment);
-    expect(tree.state()).toHaveProperty('experimentName', experiment.name);
+    expect(tree.state()).toHaveProperty('experiment', MOCK_EXPERIMENT);
+    expect(tree.state()).toHaveProperty('experimentName', MOCK_EXPERIMENT.name);
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });
 
   it('updates the breadcrumb with the associated experiment if one is present in the query params', async () => {
-    const experiment = newMockExperiment();
     const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.experimentId}=${experiment.id}`;
+    props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
-    getExperimentSpy.mockImplementation(() => experiment);
-
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
     expect(updateToolbarSpy).toHaveBeenLastCalledWith({
@@ -241,8 +236,8 @@ describe('NewRun', () => {
       breadcrumbs: [
         { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
         {
-          displayName: experiment.name,
-          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+          displayName: MOCK_EXPERIMENT.name,
+          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, MOCK_EXPERIMENT.id!),
         },
         { displayName: 'Start a new run', href: '' }
       ],
@@ -251,32 +246,26 @@ describe('NewRun', () => {
   });
 
   it('exits to the associated experiment\'s details page if one is present in the query params', async () => {
-    const experiment = newMockExperiment();
     const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.experimentId}=${experiment.id}`;
+    props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
-    getExperimentSpy.mockImplementation(() => experiment);
-
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
     tree.find('#exitNewRunPageBtn').simulate('click');
 
     expect(historyPushSpy).toHaveBeenCalledWith(
-      RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+      RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, MOCK_EXPERIMENT.id!)
     );
     tree.unmount();
   });
 
   it('changes the exit button\'s text if query params indicate this is the first run of an experiment', async () => {
-    const experiment = newMockExperiment();
     const props = generateProps();
     props.location.search =
-      `?${QUERY_PARAMS.experimentId}=${experiment.id}`
+      `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
       + `&${QUERY_PARAMS.firstRunInExperiment}=1`;
 
-    getExperimentSpy.mockImplementation(() => experiment);
-
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
     expect(tree).toMatchSnapshot();
@@ -284,74 +273,54 @@ describe('NewRun', () => {
   });
 
   it('shows a page error if getExperiment fails', async () => {
-    // Don't actually log to console.
-    // tslint:disable-next-line:no-console
-    console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
-    const experiment = newMockExperiment();
     const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.experimentId}=${experiment.id}`;
+    props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'test error message');
 
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       additionalInfo: 'test error message',
-      message: `Error: failed to retrieve associated experiment: ${experiment.id}. Click Details for more information.`,
+      message: `Error: failed to retrieve associated experiment: ${MOCK_EXPERIMENT.id}. Click Details for more information.`,
       mode: 'error',
     }));
     tree.unmount();
   });
 
   it('fetches the associated pipeline if one is present in the query params', async () => {
-    const pipeline = newMockPipeline();
     const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.pipelineId}=${pipeline.id}`;
+    props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-    getPipelineSpy.mockImplementation(() => pipeline);
-
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
-    expect(tree.state()).toHaveProperty('pipeline', pipeline);
-    expect(tree.state()).toHaveProperty('pipelineName', pipeline.name);
+    expect(tree.state()).toHaveProperty('pipeline', MOCK_PIPELINE);
+    expect(tree.state()).toHaveProperty('pipelineName', MOCK_PIPELINE.name);
     expect(tree.state()).toHaveProperty('errorMessage', 'Run name is required');
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });
 
   it('shows a page error if getPipeline fails', async () => {
-    // Don't actually log to console.
-    // tslint:disable-next-line:no-console
-    console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
-    const pipeline = newMockPipeline();
     const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.pipelineId}=${pipeline.id}`;
+    props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
     TestUtils.makeErrorResponseOnce(getPipelineSpy, 'test error message');
 
-    const tree = shallow(<TestNewRun {...props as any} />);
+    const tree = shallow(<TestNewRun {...props} />);
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       additionalInfo: 'test error message',
-      message: `Error: failed to retrieve pipeline: ${pipeline.id}. Click Details for more information.`,
+      message: `Error: failed to retrieve pipeline: ${MOCK_PIPELINE.id}. Click Details for more information.`,
       mode: 'error',
     }));
     tree.unmount();
   });
 
   describe('choosing a pipeline', () => {
-
-    beforeEach(() => {
-      listPipelinesSpy.mockImplementation(() => ({
-        pipelines: range(5).map(i => ({ id: 'test-pipeline-id' + i, name: 'test pipeline name' + i })),
-      }));
-    });
-
     it('opens up the pipeline selector modal when users clicks \'Choose\'', async () => {
       const tree = TestUtils.mountWithRouter(<TestNewRun {...generateProps() as any} />);
       await TestUtils.flushPromises();
@@ -394,11 +363,14 @@ describe('NewRun', () => {
       newPipeline.name = 'new-pipeline-name';
       getPipelineSpy.mockImplementation(() => newPipeline);
       tree.setState({ pipeline: oldPipeline, pipelineName: oldPipeline.name });
-      const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectionChanged(newPipeline.id);
 
       tree.find('#choosePipelineBtn').at(0).simulate('click');
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
+
+      // Simulate selecting pipeline
+      const instance = tree.instance() as TestNewRun;
+      instance._pipelineSelectionChanged(newPipeline.id);
+
       // Confirm pipeline selector
       tree.find('#usePipelineBtn').at(0).simulate('click');
       await TestUtils.flushPromises();
@@ -423,11 +395,14 @@ describe('NewRun', () => {
       newPipeline.name = 'new-pipeline-name';
       getPipelineSpy.mockImplementation(() => newPipeline);
       tree.setState({ pipeline: oldPipeline, pipelineName: oldPipeline.name });
-      const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectionChanged(newPipeline.id);
 
       tree.find('#choosePipelineBtn').at(0).simulate('click');
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
+
+      // Simulate selecting pipeline
+      const instance = tree.instance() as TestNewRun;
+      instance._pipelineSelectionChanged(newPipeline.id);
+
       // Cancel pipeline selector
       tree.find('#cancelPipelineSelectionBtn').at(0).simulate('click');
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
@@ -443,11 +418,7 @@ describe('NewRun', () => {
     // works, this will not be possible until it's wrapped in some manner, like UploadPipelineDialog
     // in PipelineList
 
-    it('shows a page error if fetching the selected pipeline fails', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
+    it('shows an error dialog if fetching the selected pipeline fails', async () => {
       const tree = shallow(<TestNewRun {...generateProps() as any} />);
       await TestUtils.flushPromises();
 
@@ -460,13 +431,12 @@ describe('NewRun', () => {
       await instance._pipelineSelectorClosed(true);
       await TestUtils.flushPromises();
 
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-        additionalInfo: 'test getPipeline error',
-        message:
-          `Error: failed to retrieve pipeline with ID: ${pipelineId}.`
-          + ' Click Details for more information.',
-        mode: 'error',
-      }));
+      expect(updateDialogSpy).toHaveBeenCalledTimes(1);
+      expect(updateDialogSpy.mock.calls[0][0]).toMatchObject({
+        content: 'test getPipeline error',
+        title: `Failed to retrieve pipeline with ID: ${pipelineId}`,
+      });
+      expect(tree.state('pipelineSelectorOpen')).toBe(false);
       tree.unmount();
     });
   });
@@ -477,7 +447,7 @@ describe('NewRun', () => {
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${run.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(getRunSpy).toHaveBeenCalledTimes(1);
@@ -493,7 +463,7 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(tree.state('runName')).toBe('Clone of -original run-');
@@ -508,7 +478,7 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(tree.state('runName')).toBe('Clone (2) of some run');
@@ -528,7 +498,7 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(getRunSpy).toHaveBeenCalledTimes(1);
@@ -549,7 +519,7 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(getRunSpy).toHaveBeenCalledTimes(1);
@@ -569,7 +539,7 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(getPipelineSpy).toHaveBeenCalledTimes(1);
@@ -578,35 +548,25 @@ describe('NewRun', () => {
     });
 
     it('shows a page error if getPipeline fails to find the pipeline from the original run', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
-      const runDetail = newMockRunDetail();
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_DETAIL.run!.id}`;
 
-      getRunSpy.mockImplementation(() => runDetail);
       TestUtils.makeErrorResponseOnce(getPipelineSpy, 'test error message');
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
         additionalInfo: 'test error message',
         message:
           'Error: failed to find a pipeline corresponding to that of the original run:'
-          + ` ${runDetail.run!.id}. Click Details for more information.`,
+          + ` ${MOCK_RUN_DETAIL.run!.id}. Click Details for more information.`,
         mode: 'error',
       }));
       tree.unmount();
     });
 
-    it('does not show an error if getPipeline fails to find the pipeline from the original run', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.log = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-
+    it('logs an error if getPipeline fails to find the pipeline from the original run', async () => {
       const runDetail = newMockRunDetail();
       runDetail.run!.pipeline_spec!.pipeline_id = undefined;
       const props = generateProps();
@@ -614,19 +574,15 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       // tslint:disable-next-line:no-console
-      expect(console.log).toHaveBeenLastCalledWith('Original run did not have an associated pipeline ID');
+      expect(consoleErrorSpy).toHaveBeenLastCalledWith('Original run did not have an associated pipeline ID');
       tree.unmount();
     });
 
     it('shows a page error if the original run\'s workflow_manifest is undefined', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
       const runDetail = newMockRunDetail();
       runDetail.pipeline_runtime!.workflow_manifest = undefined;
       const props = generateProps();
@@ -634,7 +590,7 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -645,10 +601,6 @@ describe('NewRun', () => {
     });
 
     it('shows a page error if the original run\'s workflow_manifest is invalid JSON', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
       const runDetail = newMockRunDetail();
       runDetail.pipeline_runtime!.workflow_manifest = 'not json';
       const props = generateProps();
@@ -656,7 +608,7 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -683,7 +635,7 @@ describe('NewRun', () => {
 
       getRunSpy.mockImplementation(() => runDetail);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(tree.state('pipeline')).toHaveProperty('parameters', originalRunPipelineParams);
@@ -692,22 +644,17 @@ describe('NewRun', () => {
 
 
     it('shows a page error if getRun fails', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
-      const runDetail = newMockRunDetail();
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_DETAIL.run!.id}`;
 
       TestUtils.makeErrorResponseOnce(getRunSpy, 'test error message');
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
         additionalInfo: 'test error message',
-        message: `Error: failed to retrieve original run: ${runDetail.run!.id}. Click Details for more information.`,
+        message: `Error: failed to retrieve original run: ${MOCK_RUN_DETAIL.run!.id}. Click Details for more information.`,
         mode: 'error',
       }));
       tree.unmount();
@@ -727,10 +674,10 @@ describe('NewRun', () => {
 
     it('enables the \'Create\' new run button if pipeline ID in query params and run name entered', async () => {
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+      props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'run name' } });
       await TestUtils.flushPromises();
 
       expect(tree.find('#createNewRunBtn').props()).toHaveProperty('disabled', false);
@@ -739,14 +686,14 @@ describe('NewRun', () => {
 
     it('re-disables the \'Create\' new run button if pipeline ID in query params and run name entered then cleared', async () => {
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+      props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'run name' } });
       await TestUtils.flushPromises();
       expect(tree.find('#createNewRunBtn').props()).toHaveProperty('disabled', false);
 
-      (tree.instance() as any).handleChange('runName')({ target: { value: '' } });
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: '' } });
       expect(tree.find('#createNewRunBtn').props()).toHaveProperty('disabled', true);
 
       tree.unmount();
@@ -754,18 +701,13 @@ describe('NewRun', () => {
 
     it('sends a request to create a new run when \'Create\' is clicked', async () => {
       const props = generateProps();
-      const experiment = newMockExperiment();
-      const pipeline = newMockPipeline();
       props.location.search =
-        `?${QUERY_PARAMS.experimentId}=${experiment.id}`
-        + `&${QUERY_PARAMS.pipelineId}=${pipeline.id}`;
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+          + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      getExperimentSpy.mockImplementation(() => experiment);
-      getPipelineSpy.mockImplementation(() => pipeline);
-
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
-      (tree.instance() as any).handleChange('description')({ target: { value: 'test run description' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
+      (tree.instance() as TestNewRun).handleChange('description')({ target: { value: 'test run description' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
@@ -777,12 +719,12 @@ describe('NewRun', () => {
         description: 'test run description',
         name: 'test run name',
         pipeline_spec: {
-          parameters: pipeline.parameters,
-          pipeline_id: pipeline.id,
+          parameters: MOCK_PIPELINE.parameters,
+          pipeline_id: MOCK_PIPELINE.id,
         },
         resource_references: [{
           key: {
-            id: experiment.id,
+            id: MOCK_EXPERIMENT.id,
             type: ApiResourceType.EXPERIMENT,
           },
           relationship: ApiRelationship.OWNER,
@@ -802,9 +744,9 @@ describe('NewRun', () => {
 
       getPipelineSpy.mockImplementation(() => pipeline);
 
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       // Fill in the first pipeline parameter
       tree.find('#newRunPipelineParam0').simulate('change', { target: { value: 'test param value' } });
       await TestUtils.flushPromises();
@@ -823,17 +765,51 @@ describe('NewRun', () => {
           pipeline_id: pipeline.id,
         },
       }));
+      expect(tree).toMatchSnapshot();
       tree.unmount();
     });
 
-    it('sets the page to a busy state upon clicking \'Create\' is clicked', async () => {
+    it('updates the pipeline params as user selects different pipelines', async () => {
+      const tree = shallow(<TestNewRun {...generateProps()} />);
+      await TestUtils.flushPromises();
+
+      // No parameters should be showing
+      expect(tree).toMatchSnapshot();
+
+      // Select a pipeline with parameters
+      const pipelineWithParams = newMockPipeline();
+      pipelineWithParams.id = 'pipeline-with-params';
+      pipelineWithParams.parameters = [
+        { name: 'param-1', value: 'prefilled value 1' },
+        { name: 'param-2', value: 'prefilled value 2' },
+      ];
+      getPipelineSpy.mockImplementationOnce(() => pipelineWithParams);
+      const instance = tree.instance() as TestNewRun;
+      instance._pipelineSelectionChanged(pipelineWithParams.id!);
+      instance._pipelineSelectorClosed(true);
+      await TestUtils.flushPromises();
+      expect(tree).toMatchSnapshot();
+
+      // Select a new pipeline with no parameters
+      const noParamsPipeline = newMockPipeline();
+      noParamsPipeline.id = 'no-params-pipeline';
+      noParamsPipeline.parameters = [];
+      getPipelineSpy.mockImplementationOnce(() => noParamsPipeline);
+      instance._pipelineSelectionChanged(noParamsPipeline.id!);
+      instance._pipelineSelectorClosed(true);
+      await TestUtils.flushPromises();
+      expect(tree).toMatchSnapshot();
+      tree.unmount();
+    });
+
+    it('sets the page to a busy state upon clicking \'Create\'', async () => {
       const props = generateProps();
       props.location.search =
-        `?${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
-        + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
@@ -846,13 +822,12 @@ describe('NewRun', () => {
 
     it('navigates to the ExperimentDetails page upon successful creation if there was an experiment', async () => {
       const props = generateProps();
-      const experiment = newMockExperiment();
       props.location.search =
-        `?${QUERY_PARAMS.experimentId}=${experiment.id}`
-        + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
@@ -860,17 +835,17 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(historyPushSpy).toHaveBeenCalledWith(
-        RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!));
+        RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, MOCK_EXPERIMENT.id!));
       tree.unmount();
     });
 
     it('navigates to the AllRuns page upon successful creation if there was not an experiment', async () => {
       const props = generateProps();
       // No experiment in query params
-      props.location.search = `?${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+      props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
@@ -882,19 +857,15 @@ describe('NewRun', () => {
     });
 
     it('shows an error dialog if creating the new run fails', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
       const props = generateProps();
       props.location.search =
-        `?${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
-        + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
       TestUtils.makeErrorResponseOnce(createRunSpy, 'test error message');
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
@@ -910,15 +881,11 @@ describe('NewRun', () => {
     });
 
     it('shows an error dialog if \'Create\' is clicked and the new run somehow has no pipeline', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`;
+      props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
@@ -934,19 +901,15 @@ describe('NewRun', () => {
     });
 
     it('unsets the page to a busy state if creation fails', async () => {
-      // Don't actually log to console.
-      // tslint:disable-next-line:no-console
-      console.error = jest.spyOn(console, 'error').mockImplementationOnce(() => null);
-
       const props = generateProps();
       props.location.search =
-        `?${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
-        + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
       TestUtils.makeErrorResponseOnce(createRunSpy, 'test error message');
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
@@ -960,11 +923,11 @@ describe('NewRun', () => {
     it('shows snackbar confirmation after experiment is created', async () => {
       const props = generateProps();
       props.location.search =
-        `?${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
-        + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+        `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
@@ -985,7 +948,7 @@ describe('NewRun', () => {
     it('changes the title if the new run will recur, based on query param', async () => {
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.isRecurring}=1`;
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(updateToolbarSpy).toHaveBeenLastCalledWith({
@@ -1001,29 +964,25 @@ describe('NewRun', () => {
     it('includes additional trigger input fields if run will be recurring', async () => {
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.isRecurring}=1`;
-      const tree = shallow(<TestNewRun {...props as any} />);
+      const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(tree).toMatchSnapshot();
       tree.unmount();
     });
 
-    it('sends a request to create a new recurring run when \'Create\' is clicked', async () => {
+    it('sends a request to create a new recurring run with default periodic schedule when \'Create\' is clicked', async () => {
 
       const props = generateProps();
-      const experiment = newMockExperiment();
-      const pipeline = newMockPipeline();
       props.location.search =
         `?${QUERY_PARAMS.isRecurring}=1`
-        + `&${QUERY_PARAMS.experimentId}=${experiment.id}`
-        + `&${QUERY_PARAMS.pipelineId}=${pipeline.id}`;
+        + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      getExperimentSpy.mockImplementation(() => experiment);
-      getPipelineSpy.mockImplementation(() => pipeline);
-
-      const tree = TestUtils.mountWithRouter(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
-      (tree.instance() as any).handleChange('description')({ target: { value: 'test run description' } });
+      const tree = TestUtils.mountWithRouter(<TestNewRun {...props} />);
+      const instance = tree.instance() as TestNewRun;
+      instance.handleChange('runName')({ target: { value: 'test run name' } });
+      instance.handleChange('description')({ target: { value: 'test run description' } });
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').at(0).simulate('click');
@@ -1038,12 +997,12 @@ describe('NewRun', () => {
         max_concurrency: '10',
         name: 'test run name',
         pipeline_spec: {
-          parameters: pipeline.parameters,
-          pipeline_id: pipeline.id,
+          parameters: MOCK_PIPELINE.parameters,
+          pipeline_id: MOCK_PIPELINE.id,
         },
         resource_references: [{
           key: {
-            id: experiment.id,
+            id: MOCK_EXPERIMENT.id,
             type: ApiResourceType.EXPERIMENT,
           },
           relationship: ApiRelationship.OWNER,
@@ -1064,12 +1023,11 @@ describe('NewRun', () => {
       const props = generateProps();
       props.location.search =
       `?${QUERY_PARAMS.isRecurring}=1`
-      + `&${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
-      + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+      + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+      + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
-      // TODO: figure out how to do this by interacting with the Trigger element
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       tree.setState({
         trigger: {
           periodic_schedule: {
@@ -1088,12 +1046,11 @@ describe('NewRun', () => {
       const props = generateProps();
       props.location.search =
       `?${QUERY_PARAMS.isRecurring}=1`
-      + `&${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
-      + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+      + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+      + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
-      // TODO: figure out how to do this by interacting with the Trigger element
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       tree.setState({
         trigger: {
           cron_schedule: {
@@ -1112,14 +1069,13 @@ describe('NewRun', () => {
       const props = generateProps();
       props.location.search =
       `?${QUERY_PARAMS.isRecurring}=1`
-      + `&${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
-      + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+      + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+      + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
-      // TODO: figure out how to do this by interacting with the Trigger element
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       tree.setState({
-        maxConcurrentRuns: -1,
+        maxConcurrentRuns: '-1',
         trigger: {
           periodic_schedule: {
             interval_second: '60',
@@ -1136,12 +1092,11 @@ describe('NewRun', () => {
       const props = generateProps();
       props.location.search =
       `?${QUERY_PARAMS.isRecurring}=1`
-      + `&${QUERY_PARAMS.experimentId}=${newMockExperiment().id}`
-      + `&${QUERY_PARAMS.pipelineId}=${newMockPipeline().id}`;
+      + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+      + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      const tree = shallow(<TestNewRun {...props as any} />);
-      (tree.instance() as any).handleChange('runName')({ target: { value: 'test run name' } });
-      // TODO: figure out how to do this by interacting with the Trigger element
+      const tree = shallow(<TestNewRun {...props} />);
+      (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       tree.setState({
         maxConcurrentRuns: 'not a number',
         trigger: {

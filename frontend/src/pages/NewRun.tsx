@@ -301,8 +301,13 @@ class NewRun extends Page<{}, NewRunState> {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
       } catch (err) {
-        await this.showPageError(`Error: failed to retrieve pipeline with ID: ${pipelineId}.`, err);
-        logger.error(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
+        this.setState({ pipelineSelectorOpen: false }, async () => {
+          const errorMessage = await errorToMessage(err);
+          await this.showErrorDialog(
+            `Failed to retrieve pipeline with ID: ${pipelineId}`,
+            errorMessage);
+          logger.error(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
+        });
         return;
       }
     }
@@ -318,8 +323,9 @@ class NewRun extends Page<{}, NewRunState> {
 
   private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
     const associatedPipelineId = RunUtils.getPipelineId(originalRun.run);
+    // TODO: Support runs without associated pipeline IDs (e.g. those created via notebooks)
     if (!originalRun.run || !associatedPipelineId) {
-      logger.verbose('Original run did not have an associated pipeline ID');
+      logger.error('Original run did not have an associated pipeline ID');
       return;
     }
 
