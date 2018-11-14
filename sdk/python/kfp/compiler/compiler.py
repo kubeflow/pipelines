@@ -145,16 +145,26 @@ class Compiler(object):
         template['container']['resources']['requests']['cpu'] = op.cpu_request
 
     if op.gcp_secret:
-      template['container']['env'] = {}
-      template['container']['env']['name'] = 'GOOGLE_APPLICATION_CREDENTIALS'
-      template['container']['env']['value'] = '/secret/gcp-credentials/user-gcp-sa.json'
-      template['container']['volumeMounts'] = {}
-      template['container']['volumeMounts']['mountPath'] = '/secret/gcp-credentials'
-      template['container']['volumeMounts']['name'] = 'gcp-credentials'
-      template['volumes'] = {}
-      template['volumes']['name'] = 'gcp-credentials'
-      template['volumes']['secret'] = {}
-      template['volumes']['secret']['secretName'] = op.gcp_secret
+      template['container']['env'] = [
+        {
+          'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+          'value': '/secret/gcp-credentials/user-gcp-sa.json',
+        },
+      ]
+      template['container']['volumeMounts'] = [
+        {
+          'name': 'gcp-credentials',
+          'mountPath': '/secret/gcp-credentials',
+        },
+      ]
+      template['volumes'] = [
+        {
+          'name': 'gcp-credentials',
+          'secret': {
+            'secretName': op.gcp_secret,
+          }
+        },
+      ]
     return template
 
   def _get_groups_for_ops(self, root_group):

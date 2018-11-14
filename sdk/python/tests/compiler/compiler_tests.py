@@ -43,14 +43,18 @@ class TestCompiler(unittest.TestCase):
           'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
         ],
         'command': ['sh', '-c'],
-        'env': {
-          'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-          'value': '/secret/gcp-credentials/user-gcp-sa.json'
-        },
-        'volumeMounts': {
-          'mountPath': '/secret/gcp-credentials',
-          'name': 'gcp-credentials'
-        }
+        'env': [
+          {
+            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+            'value': '/secret/gcp-credentials/user-gcp-sa.json'
+          }
+        ],
+        'volumeMounts':[
+          {
+            'mountPath': '/secret/gcp-credentials',
+            'name': 'gcp-credentials'
+          }
+        ]
       },
       'inputs': {'parameters':
         [
@@ -99,12 +103,14 @@ class TestCompiler(unittest.TestCase):
           }
         }]
       },
-      'volumes': {
-        'name': 'gcp-credentials',
-        'secret': {
-          'secretName': 'user-gcp-sa'
+      'volumes': [
+        {
+          'name': 'gcp-credentials',
+          'secret': {
+            'secretName': 'user-gcp-sa'
+          }
         }
-      }
+      ]
     }
 
     self.maxDiff = None
