@@ -22,7 +22,7 @@ RUN chmod +x /ml-pipeline/bootstrapper.sh
 RUN chmod +x /ml-pipeline/deploy.sh
 
 # install uuidgen. Used for reporting usage
-RUN apt-get install uuid-runtime
+RUN apt-get install -y uuid-runtime
 
 # Specify the release version and images as a build time arguments so that it can be specified in the `docker build ...` command.
 ARG RELEASE_VERSION
