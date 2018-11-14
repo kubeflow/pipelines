@@ -31,6 +31,8 @@ spec:
       value: api_integration_test
     - name: frontend-integration-tests-image-suffix
       value: frontend-integration-tests
+    - name: basic-e2e-tests-image-suffix
+      value: basic-e2e-tests
     - name: cluster-type
       value: gke
   templates:
@@ -46,6 +48,7 @@ spec:
       - name: persistenceagent-image
       - name: api-integration-test-image-suffix
       - name: frontend-integration-tests-image-suffix
+      - name: basic-e2e-tests-image-suffix
     steps:
     - - name: get-project
         template: get-project
@@ -73,6 +76,18 @@ spec:
             value: test/frontend-integration-test
           - name: image-suffix
             value: "{{inputs.parameters.frontend-integration-tests-image-suffix}}"
+      - name: build-basic-e2e-tests-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: test/sample-test
+          - name: image-suffix
+            value: "{{inputs.parameters.basic-e2e-tests-image-suffix}}"
     - - name: deploy-ml-pipeline
         template: deploy-ml-pipeline
         arguments:
@@ -110,6 +125,66 @@ spec:
         #TODO: Uncomment to disable the test on Minikube
         #TODO: Change the cluster-type to "minikube" once https://github.com/kubeflow/pipelines/pull/1285 and related PRs are merged.
         #when: "{{workflow.parameters.cluster-type}} != none" #Do not run the test on Minikube
+      - name: run-condition-tests
+        template: run-basic-e2e-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: sample-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+          - name: test-name
+            value: "condition"
+      - name: run-exit-handler-tests
+        template: run-basic-e2e-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: sample-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+          - name: test-name
+            value: "exithandler"
+      - name: run-sequential-tests
+        template: run-basic-e2e-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: sample-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+          - name: test-name
+            value: "sequential"
+      - name: run-immediate-value-tests
+        template: run-basic-e2e-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: sample-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+          - name: test-name
+            value: "immediatevalue"
+      - name: run-parallel-join-tests
+        template: run-basic-e2e-tests
+        arguments:
+          parameters:
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: sample-tests-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+          - name: test-name
+            value: "paralleljoin"
 
   - name: get-project
     script:
@@ -194,5 +269,19 @@ spec:
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+      ]
+  - name: run-basic-e2e-tests
+    inputs:
+      parameters:
+      - name: commit-sha
+      - name: test-results-gcs-dir
+      - name: sample-tests-image
+      - name: test-name
+    container:
+      image: "{{inputs.parameters.sample-tests-image}}"
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--test-name", "{{inputs.parameters.test-name}}",
       ]
 
