@@ -166,7 +166,7 @@ if [ "$WITH_KUBEFLOW" = true ]; then
   if [[ ${REPORT_USAGE} != "true" ]]; then
       (cd ${KUBEFLOW_REPO} && sed -i -e 's/--reportUsage\=true/--reportUsage\=false/g' scripts/util.sh)
   fi
-  (${KUBEFLOW_REPO}/scripts/kfctl.sh init ${KFAPP} --platform none)
+  (${KUBEFLOW_REPO}/scripts/kfctl.sh init ${KFAPP} --platform gcp)
   (cd ${KFAPP} && ${KUBEFLOW_REPO}/scripts/kfctl.sh generate k8s && ${KUBEFLOW_REPO}/scripts/kfctl.sh apply k8s)
 fi
 
