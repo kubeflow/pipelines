@@ -360,16 +360,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             <div>Run when: {nodeInfo.condition}</div>
           </div>
         )}
-
-        {nodeInfo.conditionalTasks && !!nodeInfo.conditionalTasks.length && (
-          <div className={css.taskTitle}>Conditionals</div>
-        )}
-        {nodeInfo.conditionalTasks.map((conditionalTask, i) =>
-          <div key={i} className={css.task}>
-            <div>When: {conditionalTask.condition}</div>
-            <div>Run task: {conditionalTask.taskName}</div>
-          </div>
-        )}
       </div>;
 
     this.setState({

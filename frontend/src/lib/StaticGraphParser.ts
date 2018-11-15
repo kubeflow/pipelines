@@ -18,18 +18,12 @@ import * as dagre from 'dagre';
 import { Workflow, Template } from '../../third_party/argo-ui/argo_template';
 import { logger } from './Utils';
 
-interface ConditionalInfo {
-  condition: string;
-  taskName: string;
-}
-
 export type nodeType = 'container' | 'dag' | 'unknown';
 
 export class SelectedNodeInfo {
   public args: string[];
   public command: string[];
   public condition: string;
-  public conditionalTasks: ConditionalInfo[];
   public image: string;
   public inputs: string[][];
   public nodeType: nodeType;
@@ -39,7 +33,6 @@ export class SelectedNodeInfo {
     this.args = [];
     this.command = [];
     this.condition = '';
-    this.conditionalTasks = [];
     this.image = '';
     this.inputs = [[]];
     this.nodeType = 'unknown';
@@ -51,8 +44,8 @@ export class SelectedNodeInfo {
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 70;
 
-function populateInfoFromTemplate(info: SelectedNodeInfo, template: Template): SelectedNodeInfo {
-  if (!template.container) {
+export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Template): SelectedNodeInfo {
+  if (!template || !template.container) {
     return info;
   }
 
@@ -119,13 +112,13 @@ function buildDag(
         }
 
         // "Child" here is the template that this task points to. This template should either be a
-        // DAG, in which case we recurse, or a container which can be thought of as a leaf node.
+        // DAG, in which case we recurse, or a container which can be thought of as a leaf node
         const child = templates.get(task.template);
         if (child) {
           if (child.nodeType === 'dag') {
             buildDag(graph, task.template, templates, task.name);
           } else if (child.nodeType === 'container' ) {
-            populateInfoFromTemplate(info, child.template);
+            _populateInfoFromTemplate(info, child.template);
           } else {
             logger.error(`Unknown nodetype: ${child.nodeType} on template: ${child.template}`);
           }
@@ -166,7 +159,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
     // Argo allows specifying a single global exit handler. We also highlight that node
     if (template.name === workflow.spec.onExit) {
       const info = new SelectedNodeInfo();
-      populateInfoFromTemplate(info, template);
+      _populateInfoFromTemplate(info, template);
       graph.setNode(template.name, {
         bgColor: '#eee',
         height: NODE_HEIGHT,
