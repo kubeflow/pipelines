@@ -449,6 +449,7 @@ class Compiler(object):
           }
         }
         volumes.append(volume)
+    volumes.sort(key=lambda x: x['name'])
     return volumes
 
   def _create_pipeline_workflow(self, args, pipeline):
