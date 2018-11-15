@@ -60,8 +60,6 @@ class TestVersionedDependency(unittest.TestCase):
     self.assertTrue(version.min_version == '0.3.0')
     self.assertTrue(version.max_version == '0.3.0')
     self.assertTrue(version.has_versions())
-    self.assertTrue(version.has_min_version())
-    self.assertTrue(version.has_max_version())
     self.assertTrue(version.name == 'tensorflow')
 
   def test_minmax_version(self):
@@ -70,21 +68,15 @@ class TestVersionedDependency(unittest.TestCase):
     self.assertTrue(version.min_version == '0.1.0')
     self.assertTrue(version.max_version == '0.4.0')
     self.assertTrue(version.has_versions())
-    self.assertTrue(version.has_min_version())
-    self.assertTrue(version.has_max_version())
 
   def test_min_or_max_version(self):
     """ test if min_version and max_version are configured when version is not given """
     version = VersionedDependency(name='tensorflow', min_version='0.1.0')
     self.assertTrue(version.min_version == '0.1.0')
     self.assertTrue(version.has_versions())
-    self.assertTrue(version.has_min_version())
-    self.assertFalse(version.has_max_version())
     version = VersionedDependency(name='tensorflow', max_version='0.3.0')
     self.assertTrue(version.max_version == '0.3.0')
     self.assertTrue(version.has_versions())
-    self.assertTrue(version.has_max_version())
-    self.assertFalse(version.has_min_version())
 
   def test_no_version(self):
     """ test the no version scenario """
@@ -109,6 +101,28 @@ class TestDependencyHelper(unittest.TestCase):
 
     golden_requirement_payload = '''\
 tensorflow >= 0.10.0, <= 0.11.0
+kubernetes >= 0.6.0
+'''
+    with open(temp_file, 'r') as f:
+      target_requirement_payload = f.read()
+    self.assertEqual(target_requirement_payload, golden_requirement_payload)
+    os.remove(temp_file)
+
+  def test_add_python_package(self):
+    """ Test add_python_package """
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
+
+    dependency_helper = DependencyHelper()
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.6.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='tensorflow', min_version='0.12.0'), override=True)
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.8.0'), override=False)
+    dependency_helper.generate_pip_requirements(temp_file)
+    golden_requirement_payload = '''\
+tensorflow >= 0.12.0
 kubernetes >= 0.6.0
 '''
     with open(temp_file, 'r') as f:
