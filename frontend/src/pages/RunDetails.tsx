@@ -129,10 +129,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         title: 'Refresh',
         tooltip: 'Refresh',
       }],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: this.props.runId!, href: '' },
-      ],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: this.props.runId!,
     };
   }
 
@@ -310,13 +308,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
           { displayName: 'All runs', href: RoutePage.RUNS }
         );
       }
-      breadcrumbs.push({
-        displayName: runMetadata ? runMetadata.name! : this.props.runId!,
-        href: '',
-      });
+      const pageTitle = runMetadata ? runMetadata.name! : this.props.runId!;
 
       // TODO: run status next to page name
-      this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+      this.props.updateToolbar({ breadcrumbs, pageTitle, pageTitleTooltip: pageTitle });
 
       this.setState({
         experiment,

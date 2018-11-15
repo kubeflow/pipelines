@@ -40,7 +40,7 @@ interface ExperimentAndRunsState {
 class ExperimentsAndRuns extends Page<ExperimentAndRunsProps, ExperimentAndRunsState> {
 
   public getInitialToolbarState(): ToolbarProps {
-    return { actions: [], breadcrumbs: [] };
+    return { actions: [], breadcrumbs: [], pageTitle: '' };
   }
 
   public render(): JSX.Element {
