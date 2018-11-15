@@ -24,7 +24,7 @@ class ContainerOp(object):
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
                file_inputs : Dict[_pipeline_param.PipelineParam, str]=None,
-               file_outputs : Dict[str, str]=None, is_exit_handler=False):
+               file_outputs : Dict[str, str]=None, gcp_secret: str=None, is_exit_handler=False):
     """Create a new instance of ContainerOp.
 
     Args:
@@ -41,6 +41,8 @@ class ContainerOp(object):
       file_outputs: Maps output labels to local file paths. At pipeline run time,
           the value of a PipelineParam is saved to its corresponding local file. It's
           one way for outside world to receive outputs of the container.
+      gcp_secret: Specifying what secret to mount to the container for accessing
+          GCP APIs.
       is_exit_handler: Whether it is used as an exit handler.
     """
 
@@ -52,6 +54,7 @@ class ContainerOp(object):
     self.image = image
     self.command = command
     self.arguments = arguments
+    self.gcp_secret = gcp_secret
     self.is_exit_handler = is_exit_handler
     self.memory_limit = None
     self.memory_request = None
@@ -150,6 +153,6 @@ class ContainerOp(object):
 
     self._validate_cpu_string(cpu)
     self.cpu_limit = cpu
-    
+
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
