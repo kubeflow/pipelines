@@ -51,6 +51,9 @@ DEPLOY_ARGO="true"
 # Whether to include kubeflow or not.
 WITH_KUBEFLOW="true"
 
+# The platform to deploy to. By default it's GCP
+PLATFORM="gcp"
+
 # Whether this is an install or uninstall.
 UNINSTALL=false
 
@@ -155,11 +158,13 @@ fi
 ( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
 
 # Get current active service account and create a user-gcp-sa secret with the service key
-SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
-echo service account is $SERVICE_ACCOUNT
-gcloud iam service-accounts keys create service_account_key --iam-account $SERVICE_ACCOUNT
-kubectl create secret generic --namespace=${NAMESPACE} user-gcp-sa --from-file=user-gcp-sa.json=service_account_key
-rm service_account_key
+if [ "$PLATFORM" = "gcp" ]; then
+  gcloud services enable servicemanagement.googleapis.com iam.googleapis.com
+  SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+  gcloud iam service-accounts keys create service_account_key --iam-account $SERVICE_ACCOUNT
+  kubectl create secret generic --namespace=${NAMESPACE} user-gcp-sa --from-file=user-gcp-sa.json=service_account_key
+  rm service_account_key
+fi
 
 if [ "$WITH_KUBEFLOW" = true ]; then
   # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
