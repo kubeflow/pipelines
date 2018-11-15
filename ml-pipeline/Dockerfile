@@ -8,10 +8,10 @@ RUN apt-get install -y curl
 
 # Install ksonnet
 ARG KS_VERSION="0.11.0"
-RUN curl -LO https://github.com/ksonnet/ksonnet/releases/download/v$KS_VERSION/ks_$KS_VERSION_linux_amd64.tar.gz
-RUN tar -xzf ks_$KS_VERSION_linux_amd64.tar.gz
-RUN chmod +x ./ks_$KS_VERSION_linux_amd64/ks
-RUN mv ./ks_$KS_VERSION_linux_amd64/ks /usr/local/bin/
+RUN curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
+RUN tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
+RUN chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
+RUN mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
 
 # Set USER env variable to workaround a known issue
 # https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#error-user-current-not-implemented-on-linuxamd64

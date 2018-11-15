@@ -67,6 +67,7 @@ usage()
     [-u | --ui_image ml-pipeline frontend UI docker image]
     [-r | --report_usage deploy roles or not. Roles are needed for GKE]
     [--with_kubeflow whether to include kubeflow or not]
+    [--platform what cloud platform to deploy to]
     [--deploy_argo whether to deploy argo or not]
     [--uninstall uninstall ml pipeline]
     [-h help]"
@@ -94,6 +95,9 @@ while [ "$1" != "" ]; do
                                              ;;
         --with_kubeflow )                    shift
                                              WITH_KUBEFLOW=$1
+                                             ;;
+        --platform )                         shift
+                                             PLATFORM=$1
                                              ;;
         --deploy_argo )                      shift
                                              DEPLOY_ARGO=$1
