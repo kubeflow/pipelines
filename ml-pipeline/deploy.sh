@@ -188,7 +188,9 @@ fi
 
 if ${UNINSTALL} ; then
   ( cd ${APP_DIR} && ks delete default)
-  kubectl delete secret --namespace=${NAMESPACE} user-gcp-sa
+  if [ "$PLATFORM" = "gcp" ]; then
+    kubectl delete secret --namespace=${NAMESPACE} user-gcp-sa
+  fi
   if [ "$WITH_KUBEFLOW" = true ]; then
     KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
     # Uninstall Kubeflow
