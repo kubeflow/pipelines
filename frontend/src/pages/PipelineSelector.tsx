@@ -103,7 +103,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       return;
     }
     this.props.pipelineSelectionChanged(selectedIds[0]);
-    this.setState({ selectedIds });
+    this.setStateSafe({ selectedIds });
   }
 
   private async _loadPipelines(request: ListRequest): Promise<string> {
@@ -124,7 +124,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       logger.error('Could not get list of pipelines', errorMessage);
     }
 
-    this.setState({ pipelines });
+    this.setStateSafe({ pipelines });
     return nextPageToken;
   }
 }
