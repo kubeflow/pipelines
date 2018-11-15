@@ -58,39 +58,45 @@ const history = createBrowserHistory({});
 
 describe('Toolbar', () => {
   it('renders nothing when there are no breadcrumbs or actions', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={[]} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={[]} actions={[]} history={history} pageTitle='' />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders without breadcrumbs and one action', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={[actions[0]]} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={[]} actions={[actions[0]]} history={history}
+      pageTitle='' />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders without actions and one breadcrumb', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[breadcrumbs[0]]} actions={[]} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={[breadcrumbs[0]]} actions={[]} history={history}
+      pageTitle='' />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders without actions, one breadcrumb, and a page name', () => {
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={[]} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={[]} history={history}
+      pageTitle='test page title' />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders without breadcrumbs and two actions', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={actions} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={[]} actions={actions} history={history}
+      pageTitle='' />);
     expect(tree).toMatchSnapshot();
   });
 
   it('fires the right action function when button is clicked', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={actions} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={[]} actions={actions} history={history}
+      pageTitle='' />);
     tree.find('BusyButton').at(0).simulate('click');
     expect(action1).toHaveBeenCalled();
     action2.mockClear();
   });
 
   it('renders with two breadcrumbs and two actions', () => {
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} history={history}
+      pageTitle='' />);
     expect(tree).toMatchSnapshot();
   });
 });
