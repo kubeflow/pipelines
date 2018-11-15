@@ -52,7 +52,7 @@ class TestCompiler(unittest.TestCase):
         'volumeMounts':[
           {
             'mountPath': '/secret/gcp-credentials',
-            'name': 'gcp-credentials'
+            'name': 'echo-gcp-credentials'
           }
         ]
       },
@@ -102,15 +102,7 @@ class TestCompiler(unittest.TestCase):
             }
           }
         }]
-      },
-      'volumes': [
-        {
-          'name': 'gcp-credentials',
-          'secret': {
-            'secretName': 'user-gcp-sa'
-          }
-        }
-      ]
+      }
     }
 
     self.maxDiff = None
@@ -245,4 +237,8 @@ class TestCompiler(unittest.TestCase):
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile('default_value')
+
+  def test_py_secret(self):
+    """Test a pipeline with a GCP secret."""
+    self._test_py_compile('secret')
 
