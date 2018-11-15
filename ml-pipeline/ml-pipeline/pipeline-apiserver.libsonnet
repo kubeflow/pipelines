@@ -202,9 +202,100 @@
       },
       rules: [
         {
-          apiGroups: ["*"],
-          resources: ["*"],
-          verbs: ["*"],
+          apiGroups: [""],
+          resources: [
+            "secrets",
+          ],
+          verbs: [
+            "get",
+          ],
+        },
+        {
+          apiGroups: [""],
+          resources: [
+            "configmaps",
+          ],
+          verbs: [
+            "get",
+            "watch",
+            "list",
+          ],
+        },
+        {
+          apiGroups: [
+            "",
+          ],
+          resources: [
+            "persistentvolumeclaims",
+          ],
+          verbs: [
+            "create",
+            "delete",
+          ],
+        },
+        {
+          apiGroups: [
+            "argoproj.io",
+          ],
+          resources: [
+            "workflows",
+          ],
+          verbs: [
+            "get",
+            "list",
+            "watch",
+            "update",
+            "patch",
+          ],
+        },
+        {
+          apiGroups: [
+            "",
+          ],
+          resources: [
+            "pods",
+            "pods/exec",
+            "services",
+          ],
+          verbs: [
+            "*",
+          ],
+        },
+        {
+          apiGroups: [
+            "",
+            "apps",
+            "extensions",
+          ],
+          resources: [
+            "deployments",
+            "replicasets",
+          ],
+          verbs: [
+            "*",
+          ],
+        },
+        {
+          apiGroups: [
+            "kubeflow.org",
+          ],
+          resources: [
+            "*",
+          ],
+          verbs: [
+            "*",
+          ],
+        },
+        {
+          apiGroups: [
+            "batch",
+          ],
+          resources: [
+            "jobs",
+          ],
+          verbs: [
+            "*",
+          ],
         },
       ],
     },  // operator-role
