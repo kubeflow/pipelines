@@ -24,30 +24,7 @@ import tarfile
 from pathlib import Path
 import inspect
 
-GCS_BASE = 'gs://ngao-mlpipeline-testing/'
-
-class TestGCSHelper(unittest.TestCase):
-
-  def test_upload_gcs_path(self):
-    """ test uploading gcs file """
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    temp_file = os.path.join(test_data_dir, 'test_data.tmp')
-    temp_downloaded_file = os.path.join(test_data_dir, 'test_data.tmp.downloaded')
-    Path(temp_file).touch()
-    gcs_path = os.path.join(GCS_BASE, 'test_data.tmp')
-
-    # check
-    try:
-      GCSHelper.upload_gcs_file(temp_file, gcs_path)
-      GCSHelper.download_gcs_blob(temp_downloaded_file, gcs_path)
-      GCSHelper.remove_gcs_blob(gcs_path)
-    except:
-      self.fail('GCS helper failure')
-
-    # clean up
-    os.remove(temp_file)
-    os.remove(temp_downloaded_file)
+GCS_BASE = 'gs://kfp-testing/'
 
 class TestDockerfileHelper(unittest.TestCase):
 
@@ -65,7 +42,7 @@ class TestDockerfileHelper(unittest.TestCase):
       f.write('temporary file two content')
 
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='', gcs_path='')
+    docker_helper = DockerfileHelper(arc_dockerfile_name='')
     docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
     self.assertTrue(os.path.exists(temp_tarball))
     temp_tarball_handler = tarfile.open(temp_tarball)
@@ -93,7 +70,7 @@ ADD main.py /ml/
 ENTRYPOINT ["python3", "/ml/main.py"]'''
 
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name=target_dockerfile, gcs_path='')
+    docker_helper = DockerfileHelper(arc_dockerfile_name=target_dockerfile)
     docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py')
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
@@ -108,22 +85,21 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     python_filepath = os.path.join(test_data_dir, 'basic.py')
-    downloaded_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
-    gcs_tar_path = os.path.join(GCS_BASE, 'test_docker.tar.gz')
+    generated_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
 
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile', gcs_path=gcs_tar_path)
-    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0')
-    GCSHelper.download_gcs_blob(downloaded_tarball, gcs_tar_path)
-    temp_tarball_handler = tarfile.open(downloaded_tarball)
+    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
+    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
+                                                 base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
+                                                 local_tarball_path=generated_tarball)
+    temp_tarball_handler = tarfile.open(generated_tarball)
     temp_files = temp_tarball_handler.getmembers()
     self.assertTrue(len(temp_files) == 2)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
 
     # clean up
-    os.remove(downloaded_tarball)
-    GCSHelper.remove_gcs_blob(gcs_tar_path)
+    os.remove(generated_tarball)
 
   def test_prepare_docker_tarball(self):
     """ Test the whole prepare docker tarball """
@@ -132,23 +108,20 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     dockerfile_path = os.path.join(test_data_dir, 'component.target.dockerfile')
     Path(dockerfile_path).touch()
-    downloaded_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
-    gcs_tar_path = os.path.join(GCS_BASE, 'test_docker.tar.gz')
+    generated_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
 
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile', gcs_path=gcs_tar_path)
-    docker_helper.prepare_docker_tarball(dockerfile_path=dockerfile_path)
-    GCSHelper.download_gcs_blob(downloaded_tarball, gcs_tar_path)
-    temp_tarball_handler = tarfile.open(downloaded_tarball)
+    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
+    docker_helper.prepare_docker_tarball(dockerfile_path=dockerfile_path, local_tarball_path=generated_tarball)
+    temp_tarball_handler = tarfile.open(generated_tarball)
     temp_files = temp_tarball_handler.getmembers()
     self.assertTrue(len(temp_files) == 1)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile'])
 
     # clean up
-    os.remove(downloaded_tarball)
+    os.remove(generated_tarball)
     os.remove(dockerfile_path)
-    GCSHelper.remove_gcs_blob(gcs_tar_path)
 
 # hello function is used by the TestCodeGenerator to verify the auto generated python function
 def hello():
