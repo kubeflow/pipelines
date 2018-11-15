@@ -31,11 +31,11 @@ interface PipelineSelectorProps extends RouteComponentProps {
 interface PipelineSelectorState {
   pipelines: ApiPipeline[];
   selectedIds: string[];
-  sortBy: string;
   toolbarActions: ToolbarActionConfig[];
 }
 
 class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSelectorState> {
+  protected _isMounted = true;
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -44,13 +44,12 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     this.state = {
       pipelines: [],
       selectedIds: [],
-      sortBy: PipelineSortKeys.CREATED_AT,
       toolbarActions: [],
     };
   }
 
   public render(): JSX.Element {
-    const { pipelines, selectedIds, sortBy, toolbarActions } = this.state;
+    const { pipelines, selectedIds, toolbarActions } = this.state;
 
     const columns: Column[] = [
       { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
@@ -75,16 +74,26 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
         <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
           updateSelection={this._pipelineSelectionChanged.bind(this)}
-          initialSortColumn={sortBy} ref={this._tableRef}
+          initialSortColumn={PipelineSortKeys.CREATED_AT} ref={this._tableRef}
           reload={this._loadPipelines.bind(this)}
           emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
       </React.Fragment>
     );
   }
 
+  public componentWillUnmount(): void {
+    this._isMounted = false;
+  }
+
   public async refresh(): Promise<void> {
     if (this._tableRef.current) {
       await this._tableRef.current.reload();
+    }
+  }
+
+  protected setStateSafe(newState: Partial<PipelineSelectorState>, cb?: () => void): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
     }
   }
 
@@ -94,7 +103,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       return;
     }
     this.props.pipelineSelectionChanged(selectedIds[0]);
-    this.setState({ selectedIds });
+    this.setStateSafe({ selectedIds });
   }
 
   private async _loadPipelines(request: ListRequest): Promise<string> {
@@ -115,10 +124,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       logger.error('Could not get list of pipelines', errorMessage);
     }
 
-    // Warnings are showing up here in tests when the NewRun component is unmounted before being
-    // closed, saying setState is being called after the component is unmounted.
-    // The warning doesn't show up when actually using the app though.
-    this.setState({ pipelines, sortBy: request.sortBy! });
+    this.setStateSafe({ pipelines });
     return nextPageToken;
   }
 }
