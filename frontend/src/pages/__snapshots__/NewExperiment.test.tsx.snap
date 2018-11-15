@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`NewExperiment Enables the 'Next' button when an experiment name is entered 1`] = `
+exports[`NewExperiment enables the 'Next' button when an experiment name is entered 1`] = `
 <div
   className="page"
 >
@@ -62,7 +62,7 @@ exports[`NewExperiment Enables the 'Next' button when an experiment name is ente
 </div>
 `;
 
-exports[`NewExperiment Re-disables the 'Next' button when an experiment name is cleared after having been entered 1`] = `
+exports[`NewExperiment re-disables the 'Next' button when an experiment name is cleared after having been entered 1`] = `
 <div
   className="page"
 >

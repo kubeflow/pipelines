@@ -74,9 +74,10 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       <React.Fragment>
         <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={ids => { this._pipelineSelectionChanged(ids); this.setState({ selectedIds: ids }); }}
+          updateSelection={this._pipelineSelectionChanged.bind(this)}
           initialSortColumn={sortBy} ref={this._tableRef}
-          reload={this._loadPipelines.bind(this)} emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
+          reload={this._loadPipelines.bind(this)}
+          emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
       </React.Fragment>
     );
   }
@@ -93,6 +94,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       return;
     }
     this.props.pipelineSelectionChanged(selectedIds[0]);
+    this.setState({ selectedIds });
   }
 
   private async _loadPipelines(request: ListRequest): Promise<string> {
@@ -113,6 +115,9 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       logger.error('Could not get list of pipelines', errorMessage);
     }
 
+    // Warnings are showing up here in tests when the NewRun component is unmounted before being
+    // closed, saying setState is being called after the component is unmounted.
+    // The warning doesn't show up when actually using the app though.
     this.setState({ pipelines, sortBy: request.sortBy! });
     return nextPageToken;
   }
