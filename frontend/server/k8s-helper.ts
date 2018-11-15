@@ -62,6 +62,20 @@ export async function newTensorboardPod(logdir: string): Promise<void> {
         ports: [{
           containerPort: 6006,
         }],
+        env: [{
+          name: 'GOOGLE_APPLICATION_CREDENTIALS',
+          value: '/secret/gcp-credentials/user-gcp-sa.json'
+        }],
+        volumeMounts: [{
+          mountPath: '/secret/gcp-credentials',
+          name: 'gcp-credentials',
+        }],
+      }],
+      volumes:[{
+        name: 'gcp-credentials',
+        secret:{
+          secretName: 'user-gcp-sa',
+        },
       }],
       selector: {
         app: podName,
