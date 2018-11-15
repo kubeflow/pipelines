@@ -357,6 +357,9 @@ describe('RecurringRunDetails', () => {
     tree.unmount();
   });
 
+  // TODO: need to test the dismiss path too--when the dialog is dismissed using ESC
+  // or clicking outside it, it should be treated the same way as clicking Cancel.
+
   it('redirects back to parent experiment after delete', async () => {
     const tree = shallow(<TestRecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
