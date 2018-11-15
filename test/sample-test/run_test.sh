@@ -141,15 +141,11 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
   #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. 
   # Compile samples
   cd ${BASE_DIR}/samples/kubeflow-tf
-  DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DNNTRAINER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED=$(echo ${LOCAL_CONFUSIONMATRIX_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFT_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_PREDICT_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+/${LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" kubeflow-training-classification.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" kubeflow-training-classification.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" kubeflow-training-classification.py
 
   dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
 
@@ -164,19 +160,13 @@ elif [ "$TEST_NAME" == "tfx" ]; then
   
   # Compile samples
   cd ${BASE_DIR}/samples/tfx
-  DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAFLOW_TFDV_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFDV_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAFLOW_TFMA_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFMA_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DNNTRAINER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  KUBEFLOW_DEPLOYER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DEPLOYER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFT_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_PREDICT_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFDV_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFMA_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DEPLOYER_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.py
 
   dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
   cd /
@@ -254,24 +244,15 @@ elif [ "$TEST_NAME" == "xgboost" ]; then
 
   # Compile samples
   cd ${BASE_DIR}/samples/xgboost-spark
-  DATAPROC_CREATE_CLUSTER_IMAGE_FOR_SED=$(echo ${DATAPROC_CREATE_CLUSTER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_DELETE_CLUSTER_IMAGE_FOR_SED=$(echo ${DATAPROC_DELETE_CLUSTER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_ANALYZE_IMAGE_FOR_SED=$(echo ${DATAPROC_ANALYZE_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_TRANSFORM_IMAGE_FOR_SED=$(echo ${DATAPROC_TRANSFORM_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_TRAIN_IMAGE_FOR_SED=$(echo ${DATAPROC_TRAIN_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_PREDICT_IMAGE_FOR_SED=$(echo ${DATAPROC_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  LOCAL_ROC_IMAGE_FOR_SED=$(echo ${LOCAL_ROC_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED=$(echo ${LOCAL_CONFUSIONMATRIX_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 
-
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_CREATE_CLUSTER_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_DELETE_CLUSTER_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_ANALYZE_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_TRANSFORM_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_TRAIN_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_PREDICT_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+/${LOCAL_ROC_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+/${LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.py
 
   dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.tar.gz
 
