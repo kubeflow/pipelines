@@ -44,14 +44,14 @@ describe('UploadPipelineDialog', () => {
   it('calls close callback with null and empty string when canceled', () => {
     const spy = jest.fn();
     const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.find('#cancelUploadBtn').at(0).simulate('click');
+    tree.find('#cancelUploadBtn').simulate('click');
     expect(spy).toHaveBeenCalledWith('', null, '');
   });
 
   it('calls close callback with null and empty string when dialog is closed', () => {
     const spy = jest.fn();
     const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
-    tree.find('WithStyles(Dialog)').at(0).simulate('close');
+    tree.find('WithStyles(Dialog)').simulate('close');
     expect(spy).toHaveBeenCalledWith('', null, '');
   });
 
@@ -60,7 +60,7 @@ describe('UploadPipelineDialog', () => {
     const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     (tree.instance() as any)._dropzoneRef = { current: { open: () => null } };
     (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({ target: { value: 'test name' } });
-    tree.find('#confirmUploadBtn').at(0).simulate('click');
+    tree.find('#confirmUploadBtn').simulate('click');
     expect(spy).toHaveBeenLastCalledWith('test name', null, '');
   });
 

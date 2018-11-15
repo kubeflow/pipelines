@@ -53,6 +53,8 @@ interface NewRunState {
   pipeline?: ApiPipeline;
   // TODO: this is only here to properly display the name in the text field.
   // There is definitely a way to do this that doesn't necessitate this being in state.
+  // Note: this cannot be undefined/optional or the label animation for the input field will not
+  // work properly.
   pipelineName: string;
   pipelineSelectorOpen: boolean;
   runName: string;
@@ -114,8 +116,7 @@ class NewRun extends Page<{}, NewRunState> {
 
           <div className={commonCss.header}>Run details</div>
 
-          <Input onChange={this.handleChange('pipelineName')} value={pipelineName}
-            required={true} label='Pipeline' disabled={true}
+          <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
             InputProps={{
               endAdornment: (
                 <InputAdornment position='end'>
@@ -129,13 +130,15 @@ class NewRun extends Page<{}, NewRunState> {
               readOnly: true,
             }} />
 
-          <Dialog open={pipelineSelectorOpen} classes={{ paper: css.pipelineSelectorDialog }}
-            onClose={() => this._pipelineSelectorClosed(false)} PaperProps={{ id: 'pipelineSelectorDialog' }}>
+          <Dialog open={pipelineSelectorOpen}
+            classes={{ paper: css.pipelineSelectorDialog }}
+            onClose={() => this._pipelineSelectorClosed(false)}
+            PaperProps={{ id: 'pipelineSelectorDialog' }}>
             <DialogContent>
               <PipelineSelector {...this.props} pipelineSelectionChanged={this._pipelineSelectionChanged.bind(this)} />
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>
+              <Button id='cancelPipelineSelectionBtn' onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>
                 Cancel
               </Button>
               <Button id='usePipelineBtn' onClick={() => this._pipelineSelectorClosed(true)}
@@ -172,20 +175,22 @@ class NewRun extends Page<{}, NewRunState> {
           <div className={commonCss.header}>Run parameters</div>
           <div>{this._runParametersMessage(pipeline)}</div>
 
-          {pipeline && pipeline.parameters && !!pipeline.parameters.length && (
+          {pipeline && Array.isArray(pipeline.parameters) && !!pipeline.parameters.length && (
             <div>
-              {pipeline && (pipeline.parameters || []).map((param, i) =>
-                <TextField key={i} variant='outlined' label={param.name} value={param.value || ''}
+              {pipeline.parameters.map((param, i) =>
+                <TextField id={`newRunPipelineParam${i}`} key={i} variant='outlined'
+                  label={param.name} value={param.value || ''}
                   onChange={(ev) => this._handleParamChange(i, ev.target.value || '')}
                   style={{ height: 40, maxWidth: 600 }} className={commonCss.textField} />)}
             </div>
           )}
 
           <div className={classes(commonCss.flex, padding(20, 'tb'))}>
-            <BusyButton id='createBtn' disabled={!!errorMessage} busy={this.state.isBeingCreated}
+            <BusyButton id='createNewRunBtn' disabled={!!errorMessage}
+              busy={this.state.isBeingCreated}
               className={commonCss.buttonAction} title='Create'
               onClick={this._create.bind(this)} />
-            <Button onClick={() => {
+            <Button id='exitNewRunPageBtn' onClick={() => {
               this.props.history.push(
                 !!this.state.experiment
                   ? RoutePage.EXPERIMENT_DETAILS.replace(
@@ -225,7 +230,8 @@ class NewRun extends Page<{}, NewRunState> {
           experimentId = RunUtils.getFirstExperimentReferenceId(originalRun.run);
         }
       } catch (err) {
-        await this.showPageError(`Error: failed to get original run: ${originalRunId}.`, err);
+        await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
+        logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
       }
     } else {
       // Get pipeline id from querystring if any
@@ -237,8 +243,8 @@ class NewRun extends Page<{}, NewRunState> {
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
-            'Error: failed to find a pipeline corresponding to that of the original run:'
-            + ` ${originalRunId}.`, err);
+            `Error: failed to retrieve pipeline: ${possiblePipelineId}.`, err);
+          logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
         }
       }
     }
@@ -255,8 +261,9 @@ class NewRun extends Page<{}, NewRunState> {
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
         });
       } catch (err) {
-        await this.showPageError(`Error: failed to get associated experiment: ${experimentId}.`, err);
-        logger.error(`Failed to get associated experiment ${experimentId}`, err);
+        await this.showPageError(
+          `Error: failed to retrieve associated experiment: ${experimentId}.`, err);
+        logger.error(`Failed to retrieve associated experiment: ${experimentId}`, err);
       }
     }
 
@@ -279,70 +286,28 @@ class NewRun extends Page<{}, NewRunState> {
 
   public handleChange = (name: string) => (event: any) => {
     const value = (event.target as TextFieldProps).value;
-    this.setState({
-      [name]: value,
-    } as any, () => {
-      // Set querystring if pipeline id has changed
-      if (name === 'pipelineId') {
-        const urlParser = new URLParser(this.props);
-        urlParser.set(QUERY_PARAMS.pipelineId, (value || '').toString());
-
-        // Clear other query params so as not to confuse the user
-        urlParser.clear(QUERY_PARAMS.cloneFromRun);
-      }
-
-      this._validate();
-    });
+    this.setState({ [name]: value, } as any, () => { this._validate(); });
   }
 
-  private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
-    const associatedPipelineId = RunUtils.getPipelineId(originalRun.run);
-    if (originalRun.run && associatedPipelineId) {
-      let pipeline: ApiPipeline;
-      let workflow: Workflow;
-
-      try {
-        pipeline = await Apis.pipelineServiceApi.getPipeline(associatedPipelineId);
-      } catch (err) {
-        await this.showPageError(
-          'Error: failed to find a pipeline corresponding to that of the original run:'
-          + ` ${originalRun.run.id}.`, err);
-        return;
-      }
-
-      if (originalRun.pipeline_runtime!.workflow_manifest === undefined) {
-        await this.showPageError(`Error: run ${originalRun.run.id} had no workflow manifest`);
-        logger.error(originalRun.pipeline_runtime!.workflow_manifest);
-        return;
-      }
-      try {
-        workflow = JSON.parse(originalRun.pipeline_runtime!.workflow_manifest!) as Workflow;
-      } catch (err) {
-        await this.showPageError('Error: failed to parse the original run\'s runtime', err);
-        logger.error(originalRun.pipeline_runtime!.workflow_manifest);
-        return;
-      }
-
-      pipeline.parameters = WorkflowParser.getParameters(workflow);
-
-      this.setState({
-        pipeline,
-        pipelineName: (pipeline && pipeline.name) || '',
-        runName: this._getCloneName(originalRun.run.name!)
-      });
-      return;
-    }
+  /* This function is passed as a callback to the PipelineSelector dialog. */
+  protected _pipelineSelectionChanged(selectedId: string): void {
+    this.setState({ unconfirmedDialogPipelineId: selectedId });
   }
 
-  private async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
+  protected async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
     let { pipeline } = this.state;
     if (confirmed && this.state.unconfirmedDialogPipelineId) {
       const pipelineId = this.state.unconfirmedDialogPipelineId;
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
       } catch (err) {
-        await this.showPageError(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
-        logger.error(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
+        this.setState({ pipelineSelectorOpen: false }, async () => {
+          const errorMessage = await errorToMessage(err);
+          await this.showErrorDialog(
+            `Failed to retrieve pipeline with ID: ${pipelineId}`,
+            errorMessage);
+          logger.error(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
+        });
         return;
       }
     }
@@ -356,9 +321,50 @@ class NewRun extends Page<{}, NewRunState> {
     this._validate();
   }
 
-  /* This function is passed as a callback to the PipelineSelector dialog. */
-  private _pipelineSelectionChanged(selectedId: string): void {
-    this.setState({ unconfirmedDialogPipelineId: selectedId });
+  private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
+    const associatedPipelineId = RunUtils.getPipelineId(originalRun.run);
+    // TODO: Support runs without associated pipeline IDs (e.g. those created via notebooks)
+    if (!originalRun.run || !associatedPipelineId) {
+      logger.error('Original run did not have an associated pipeline ID');
+      return;
+    }
+
+    let pipeline: ApiPipeline;
+    let workflow: Workflow;
+
+    try {
+      pipeline = await Apis.pipelineServiceApi.getPipeline(associatedPipelineId);
+    } catch (err) {
+      await this.showPageError(
+        'Error: failed to find a pipeline corresponding to that of the original run:'
+        + ` ${originalRun.run.id}.`, err);
+      return;
+    }
+
+    // TODO: Determine what is actually required from the pipeline if we have this manifest
+    if (originalRun.pipeline_runtime!.workflow_manifest === undefined) {
+      await this.showPageError(`Error: run ${originalRun.run.id} had no workflow manifest`);
+      logger.error(originalRun.pipeline_runtime!.workflow_manifest);
+      return;
+    }
+    try {
+      workflow = JSON.parse(originalRun.pipeline_runtime!.workflow_manifest!) as Workflow;
+    } catch (err) {
+      await this.showPageError('Error: failed to parse the original run\'s runtime.', err);
+      logger.error(originalRun.pipeline_runtime!.workflow_manifest);
+      return;
+    }
+
+    // Set pipeline parameter values from run's workflow
+    pipeline.parameters = WorkflowParser.getParameters(workflow);
+
+    this.setState({
+      pipeline,
+      pipelineName: (pipeline && pipeline.name) || '',
+      runName: this._getCloneName(originalRun.run.name!)
+    });
+
+    this._validate();
   }
 
   private _runParametersMessage(selectedPipeline: ApiPipeline | undefined): string {
@@ -374,6 +380,8 @@ class NewRun extends Page<{}, NewRunState> {
 
   private _create(): void {
     const { pipeline } = this.state;
+    // TODO: This cannot currently be reached because _validate() is called everywhere and blocks
+    // the button from being clicked without first having a pipeline.
     if (!pipeline) {
       this.showErrorDialog('Run creation failed', 'Cannot create run without pipeline');
       logger.error('Cannot create run without pipeline');
@@ -478,13 +486,12 @@ class NewRun extends Page<{}, NewRunState> {
         if (startDate && endDate && startDate > endDate) {
           throw new Error('End date/time cannot be earlier than start date/time');
         }
-      }
-      const validMaxConcurrentRuns = (input: string) =>
-        !isNaN(Number.parseInt(input, 10)) && +input > 0;
+        const validMaxConcurrentRuns = (input: string) =>
+          !isNaN(Number.parseInt(input, 10)) && +input > 0;
 
-      if (hasTrigger && maxConcurrentRuns !== undefined &&
-        !validMaxConcurrentRuns(maxConcurrentRuns)) {
-        throw new Error('For triggered runs, maximum concurrent runs must be a positive number');
+        if (maxConcurrentRuns !== undefined && !validMaxConcurrentRuns(maxConcurrentRuns)) {
+          throw new Error('For triggered runs, maximum concurrent runs must be a positive number');
+        }
       }
 
       this.setState({ errorMessage: '' });
