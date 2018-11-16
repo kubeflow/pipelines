@@ -18,10 +18,10 @@ import kfp.dsl as dsl
 import datetime
 
 
-def dataflow_tf_model_analyze_op(csv_eval_path_with_predict: 'GscUri', schema: 'GcsUri[text/json]', output: 'analysis_output', step_name='analysis'):
+def dataflow_tf_model_analyze_op(image: 'GcrUri', csv_eval_path_with_predict: 'GscUri', schema: 'GcsUri[text/json]', output: 'analysis_output', step_name='analysis'):
     return mlp.ContainerOp(
         name = step_name,
-        image = 'gcr.io/caipe-dev/test10:frederickliu',
+        image = image,
         arguments = [
             '--csv_eval_with_predict_path', csv_eval_path_with_predict,
             '--schema_path', schema,
@@ -37,15 +37,18 @@ def model_analysis(
     output: dsl.PipelineParam,
     project: dsl.PipelineParam,
 
+    image: mlp.PipelineParam=mlp.PipelineParam(
+        name='image',
+        value=''),
     eval_with_predict: mlp.PipelineParam=mlp.PipelineParam(
         name='csv-eval-path-with-predict',
-        value='gs://model-agnostic-test/eval_with_predict.csv'),
+        value=''),
     schema: mlp.PipelineParam=mlp.PipelineParam(
         name='schema',
-        value='gs://model-agnostic-test/schema.json')):
+        value='')):
   analysis_output = '%s/{{workflow.name}}/analysis' % output
 
-  analysis = dataflow_tf_model_analyze_op(eval_with_predict, schema, analysis_output)
+  analysis = dataflow_tf_model_analyze_op(image, eval_with_predict, schema, analysis_output)
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
