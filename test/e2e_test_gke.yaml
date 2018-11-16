@@ -170,7 +170,7 @@ spec:
       imagePullPolicy: 'Always'
       command: [
         sh, -c, 
-        'docker pull gcr.io/ml-pipeline-test/selenium-standalone-chrome-nodejs:v20181109-0.1.1-56-gb190e72-dirty-28e8ac && /build.sh "$@"', '__inline-script',
+        'sleep 60 && docker pull gcr.io/ml-pipeline-test/selenium-standalone-chrome-nodejs:v20181109-0.1.1-56-gb190e72-dirty-28e8ac && /build.sh "$@"', '__inline-script',
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
         "--docker_file", "{{inputs.parameters.docker-file}}",
