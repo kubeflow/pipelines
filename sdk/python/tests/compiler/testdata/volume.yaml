@@ -73,13 +73,7 @@ spec:
       command:
       - sh
       - -c
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/admin-gcp-sa.json
       image: library/bash
-      volumeMounts:
-      - mountPath: /secret/gcp-credentials
-        name: echo-gcp-credentials
     inputs:
       parameters:
       - name: download-downloaded
@@ -129,6 +123,3 @@ spec:
   - name: download-gcp-credentials
     secret:
       secretName: user-gcp-sa
-  - name: echo-gcp-credentials
-    secret:
-      secretName: admin-gcp-sa

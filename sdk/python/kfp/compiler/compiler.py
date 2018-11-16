@@ -144,19 +144,10 @@ class Compiler(object):
       if op.cpu_request:
         template['container']['resources']['requests']['cpu'] = op.cpu_request
 
-    if op.gcp_secret:
-      template['container']['env'] = [
-        {
-          'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-          'value': ('/secret/gcp-credentials/%s.json' % op.gcp_secret),
-        },
-      ]
-      template['container']['volumeMounts'] = [
-        {
-          'name': op.name + '-gcp-credentials',
-          'mountPath': '/secret/gcp-credentials',
-        },
-      ]
+    if op.env_variable:
+      template['container']['env'] = op.env_variable.to_dict()
+    if op.volume_mount:
+      template['container']['volumeMounts'] = op.volume_mount.to_dict()
     return template
 
   def _get_groups_for_ops(self, root_group):
@@ -441,14 +432,8 @@ class Compiler(object):
     """Create volumes required for the templates"""
     volumes = []
     for op in pipeline.ops.values():
-      if op.gcp_secret:
-        volume = {
-          'name': op.name + '-gcp-credentials',
-          'secret': {
-            'secretName': op.gcp_secret,
-          }
-        }
-        volumes.append(volume)
+      if op.volume:
+        volumes.append(op.volume.to_dict())
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
