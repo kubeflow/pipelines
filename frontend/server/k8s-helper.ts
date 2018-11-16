@@ -42,13 +42,11 @@ export async function newTensorboardPod(logdir: string): Promise<void> {
     return;
   }
 
-  const podName = 'tensorboard-' + Utils.generateRandomString(15);
-
   // TODO: take the configuration below to a separate file
   const pod = {
     kind: 'Pod',
     metadata: {
-      name: podName,
+      generateName: 'tensorboard-',
     },
     spec: {
       containers: [{
@@ -77,9 +75,6 @@ export async function newTensorboardPod(logdir: string): Promise<void> {
           secretName: 'user-gcp-sa',
         },
       }],
-      selector: {
-        app: podName,
-      },
     },
   };
 
