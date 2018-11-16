@@ -20,7 +20,6 @@ import sys
 import tarfile
 import tempfile
 import unittest
-
 import kfp.compiler as compiler
 import kfp.dsl as dsl
 import yaml
@@ -39,10 +38,10 @@ class TestCompiler(unittest.TestCase):
                            arguments=['echo %s %s | tee /tmp/message.txt' % (
                            msg1, msg2)],
                            file_outputs={'merged': '/tmp/message.txt'},
-                           volume_mounts=list[k8s_client.V1VolumeMount(
+                           volume_mounts=[k8s_client.V1VolumeMount(
                                mount_path='/secret/gcp-credentials',
                                name='gcp-credentials')],
-                           env_variables=list[k8s_client.V1EnvVar(
+                           env_variables=[k8s_client.V1EnvVar(
                                name='GOOGLE_APPLICATION_CREDENTIALS',
                                value='/secret/gcp-credentials/user-gcp-sa.json')])
     golden_output = {

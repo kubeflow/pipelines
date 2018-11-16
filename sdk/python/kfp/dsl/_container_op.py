@@ -29,9 +29,9 @@ class ContainerOp(object):
       arguments: str = None,
       file_inputs: Dict[_pipeline_param.PipelineParam, str] = None,
       file_outputs: Dict[str, str] = None,
-      volumes: list[k8s_client.V1Volume] = None,
-      volume_mounts: list[k8s_client.V1VolumeMount] = None,
-      env_variables: list[k8s_client.V1EnvVar] = None,
+      volumes: [k8s_client.V1Volume] = None,
+      volume_mounts: [k8s_client.V1VolumeMount] = None,
+      env_variables: [k8s_client.V1EnvVar] = None,
       is_exit_handler=False):
     """Create a new instance of ContainerOp.
 
