@@ -19,6 +19,7 @@ import inspect
 import re
 import tempfile
 import logging
+import sys
 from google.cloud import storage
 from pathlib import PurePath, Path
 from .. import dsl
@@ -61,12 +62,10 @@ class GCSHelper(object):
 
 class DockerfileHelper(object):
   """ Dockerfile Helper generates a tarball with dockerfile, ready for docker build
-      arc_dockerfile_name: dockerfile filename that is stored in the tarball
-      gcs_path: the gcs path to store the tarball that contains both the dockerfile and the python file """
+      arc_dockerfile_name: dockerfile filename that is stored in the tarball """
 
-  def __init__(self, arc_dockerfile_name, gcs_path):
+  def __init__(self, arc_dockerfile_name):
     self._arc_dockerfile_name = arc_dockerfile_name
-    self._gcs_path = gcs_path
 
   def _generate_dockerfile_with_py(self, target_file, base_image, python_filepath):
     """ _generate_docker_file generates a simple dockerfile with the python path """
@@ -86,22 +85,17 @@ class DockerfileHelper(object):
       for key, value in files.items():
         tarball.add(value, arcname=key)
 
-  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image):
+  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image, local_tarball_path):
     """ prepare_docker_tarball is the API to generate dockerfile and prepare the tarball with python scripts """
     with tempfile.TemporaryDirectory() as local_build_dir:
       local_dockerfile_path = os.path.join(local_build_dir, self._arc_dockerfile_name)
       self._generate_dockerfile_with_py(local_dockerfile_path, base_image, arc_python_filename)
-      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
       self._wrap_files_in_tarball(local_tarball_path, {self._arc_dockerfile_name:local_dockerfile_path,
                                                        arc_python_filename:python_filepath})
-      GCSHelper.upload_gcs_file(local_tarball_path, self._gcs_path)
 
-  def prepare_docker_tarball(self, dockerfile_path):
+  def prepare_docker_tarball(self, dockerfile_path, local_tarball_path):
     """ prepare_docker_tarball is the API to prepare a tarball with the dockerfile """
-    with tempfile.TemporaryDirectory() as local_build_dir:
-      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
-      self._wrap_files_in_tarball(local_tarball_path, {self._arc_dockerfile_name:dockerfile_path})
-      GCSHelper.upload_gcs_file(local_tarball_path, self._gcs_path)
+    self._wrap_files_in_tarball(local_tarball_path, {self._arc_dockerfile_name:dockerfile_path})
 
 class CodeGenerator(object):
   """ CodeGenerator helps to generate python codes with identation """
@@ -144,18 +138,10 @@ class ImageBuilder(object):
   def _check_gcs_path(self, gcs_path):
     """ _check_gcs_path check both the path validity and write permissions """
     logging.info('Checking path: {}...'.format(gcs_path))
-    if gcs_path.startswith('gs://'):
-      with tempfile.TemporaryDirectory() as local_build_dir:
-        rand_filename = str(uuid.uuid4()) + '.txt'
-        local_rand_file = os.path.join(local_build_dir, rand_filename)
-        Path(local_rand_file).touch()
-        random_gcs_bucket = os.path.join(gcs_path, rand_filename)
-        GCSHelper.upload_gcs_file(local_rand_file, random_gcs_bucket)
-        GCSHelper.remove_gcs_blob(random_gcs_bucket)
-        return True
-    else:
+    if not gcs_path.startswith('gs://'):
       logging.error('Error: {} should be a GCS path.'.format(gcs_path))
       return False
+    return True
 
   def _generate_kaniko_spec(self, namespace, arc_dockerfile_name, gcs_path, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
@@ -259,10 +245,12 @@ class ImageBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name, gcs_path=self._gcs_path)
+      docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
+      local_tarball_file = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
       docker_helper.prepare_docker_tarball_with_py(python_filepath=local_python_filepath,
                                                    arc_python_filename=self._arc_python_filepath,
-                                                   base_image=base_image)
+                                                   base_image=base_image, local_tarball_path=local_tarball_file)
+      GCSHelper.upload_gcs_file(local_tarball_file, self._gcs_path)
 
       kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
                                                arc_dockerfile_name=self._arc_dockerfile_name,
@@ -279,19 +267,39 @@ class ImageBuilder(object):
 
   def build_image_from_dockerfile(self, dockerfile_path, timeout, namespace):
     """ build_image_from_dockerfile builds an image directly """
-    logging.info('Generate build files.')
-    docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name, gcs_path=self._gcs_path)
-    docker_helper.prepare_docker_tarball(dockerfile_path)
+    with tempfile.TemporaryDirectory() as local_build_dir:
+      logging.info('Generate build files.')
+      docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
+      local_tarball_file = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
+      docker_helper.prepare_docker_tarball(dockerfile_path, local_tarball_path=local_tarball_file)
+      GCSHelper.upload_gcs_file(local_tarball_file, self._gcs_path)
 
-    kaniko_spec = self._generate_kaniko_spec(namespace=namespace, arc_dockerfile_name=self._arc_dockerfile_name,
+      kaniko_spec = self._generate_kaniko_spec(namespace=namespace, arc_dockerfile_name=self._arc_dockerfile_name,
                                              gcs_path=self._gcs_path, target_image=self._target_image)
-    logging.info('Start a kaniko job for build.')
-    k8s_helper = K8sHelper()
-    k8s_helper.run_job(kaniko_spec, timeout)
-    logging.info('Kaniko job complete.')
+      logging.info('Start a kaniko job for build.')
+      k8s_helper = K8sHelper()
+      k8s_helper.run_job(kaniko_spec, timeout)
+      logging.info('Kaniko job complete.')
 
-    # Clean up
-    GCSHelper.remove_gcs_blob(self._gcs_path)
+      # Clean up
+      GCSHelper.remove_gcs_blob(self._gcs_path)
+
+def _configure_logger(logger):
+  """ _configure_logger configures the logger such that the info level logs
+  go to the stdout and the error(or above) level logs go to the stderr.
+  It is important for the Jupyter notebook log rendering """
+  if logger.hasHandlers():
+    # If the logger has handlers, it has been configured, thus return immediately.
+    return
+  logger.setLevel(logging.INFO)
+  info_handler = logging.StreamHandler(stream=sys.stdout)
+  info_handler.addFilter(lambda record: record.levelno <= logging.INFO)
+  info_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+  error_handler = logging.StreamHandler(sys.stderr)
+  error_handler.addFilter(lambda record: record.levelno > logging.INFO)
+  error_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+  logger.addHandler(info_handler)
+  logger.addHandler(error_handler)
 
 def _generate_pythonop(component_func, target_image):
   """ Generate operator for the pipeline authors
@@ -336,8 +344,7 @@ def build_python_component(component_func, staging_gcs_path, target_image, build
   Raises:
     ValueError: The function is not decorated with python_component decorator
   """
-  logging.basicConfig()
-  logging.getLogger().setLevel('INFO')
+  _configure_logger(logging.getLogger())
   component_meta = dsl.PythonComponent.get_python_component(component_func)
   component_meta['inputs'] = inspect.getfullargspec(component_func)[0]
 
@@ -366,8 +373,7 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
-  logging.basicConfig()
-  logging.getLogger().setLevel('INFO')
+  _configure_logger(logging.getLogger())
   builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
   builder.build_image_from_dockerfile(dockerfile_path=dockerfile_path, timeout=timeout, namespace=namespace)
   logging.info('Build image complete.')
