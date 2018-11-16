@@ -24,7 +24,7 @@ else
 fi
 
 if [ -z "$2" ]; then
-  TAG_NAME="latest"
+  TAG_NAME=$(date +v%Y%m%d)-$(git describe --tags --always --dirty)-$(git diff | shasum -a256 | cut -c -6)
 else
   TAG_NAME="$2"
 fi

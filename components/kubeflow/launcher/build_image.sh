@@ -41,7 +41,7 @@ if [ -z "${PROJECT_ID}" ]; then
 fi
 
 if [ -z "${TAG_NAME}" ]; then
-  TAG_NAME="latest"
+  TAG_NAME=$(date +v%Y%m%d)-$(git describe --tags --always --dirty)-$(git diff | shasum -a256 | cut -c -6)
 fi
 
 mkdir -p ./build
