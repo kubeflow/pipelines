@@ -92,6 +92,9 @@ function buildDag(
     const template = root.template;
 
     (template.dag.tasks || []).forEach((task) => {
+
+      const nodeId = (parent || '') + '/' + task.name;
+
       // If the user specifies an exit handler, then the compiler will wrap the entire Pipeline
       // within an additional DAG template prefixed with "exit-handler".
       // If this is the case, we simply treat it as the root of the graph and work from there
@@ -101,7 +104,7 @@ function buildDag(
 
         // Parent here will be the task that pointed to this DAG template
         if (parent) {
-          graph.setEdge(parent, task.name);
+          graph.setEdge(parent, nodeId);
         }
 
         // This object contains information about the node that we display to the user when they
@@ -116,7 +119,7 @@ function buildDag(
         const child = templates.get(task.template);
         if (child) {
           if (child.nodeType === 'dag') {
-            buildDag(graph, task.template, templates, task.name);
+            buildDag(graph, task.template, templates, nodeId);
           } else if (child.nodeType === 'container' ) {
             _populateInfoFromTemplate(info, child.template);
           } else {
@@ -124,18 +127,21 @@ function buildDag(
           }
         }
 
-        graph.setNode(task.name, {
+        graph.setNode(nodeId, {
           bgColor: task.when ? 'cornsilk' : undefined,
           height: NODE_HEIGHT,
           info,
-          label: task.name,
+          label: task.template,
           width: NODE_WIDTH,
         });
       }
 
       // DAG tasks can indicate dependencies which are graphically shown as parents with edges
       // pointing to their children (the task(s)).
-      (task.dependencies || []).forEach((dep) => graph.setEdge(dep, task.name));
+      // TODO: The addition of the parent prefix to the dependency here is only valid if nodes only
+      // ever directly depend on their siblings. This is true now but may change in the future, and
+      // this will need to be updated.
+      (task.dependencies || []).forEach((dep) => graph.setEdge((parent || '') + '/' + dep, nodeId));
     });
   }
 }

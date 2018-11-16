@@ -24,7 +24,7 @@ describe('StaticGraphParser', () => {
         entrypoint: 'template-1',
         templates: [
           {
-            dag: { tasks: [{ name: 'task-1', template: 'task-1', },], },
+            dag: { tasks: [{ name: 'task-1', template: 'container-1' }] },
             name: 'template-1',
           },
           {
@@ -62,26 +62,16 @@ describe('StaticGraphParser', () => {
             },
             name: 'pipeline-flip-coin',
           },
-          // Container that flips the coin and outputs the result
-          {
-            container: { args: [ /* omitted */], command: ['sh', '-c'], },
-            name: 'flip',
-            outputs: { parameters: [{ name: 'flip-output', valueFrom: { path: '/tmp/output' } }] }
-          },
           // DAG representing execution if result is 'heads'
-          {
-            dag: { tasks: [{ name: 'heads-task', template: 'heads' }] },
-            name: 'condition-1',
-          },
-          // Container that is run if result is 'heads'
-          { container: { command: ['echo', '\'heads\''], }, name: 'heads', },
+          { dag: { tasks: [{ name: 'heads-task', template: 'heads' }] }, name: 'condition-1' },
           // DAG representing execution if result is 'tails'
-          {
-            dag: { tasks: [{ name: 'tails-task', template: 'tails' }] },
-            name: 'condition-2',
-          },
+          { dag: { tasks: [{ name: 'tails-task', template: 'tails' }] }, name: 'condition-2' },
+          // Container that flips the coin and outputs the result
+          { container: {}, name: 'flip' },
+          // Container that is run if result is 'heads'
+          { container: {}, name: 'heads' },
           // Container that is run if result is 'tails'
-          { container: { command: ['echo', '\'tails\''], }, name: 'tails', },
+          { container: {}, name: 'tails' },
         ]
       }
     };
@@ -93,7 +83,8 @@ describe('StaticGraphParser', () => {
       const g = createGraph(workflow);
       expect(g.nodeCount()).toBe(1);
       expect(g.edgeCount()).toBe(0);
-      expect(g.node(workflow.spec.templates[0].dag.tasks[0].name).label).toBe('task-1');
+      expect(g.nodes()[0]).toBe('/task-1');
+      expect(g.node('/task-1').label).toBe('container-1');
     });
 
     it('adds an unconnected node for the onExit template, if onExit is specified', () => {
@@ -113,27 +104,68 @@ describe('StaticGraphParser', () => {
       const g = createGraph(workflow);
       expect(g.nodeCount()).toBe(2);
       expect(g.edgeCount()).toBe(1);
-      expect(g.edges()[0].v).toBe('task-1');
-      expect(g.edges()[0].w).toBe('task-2');
+      expect(g.edges()[0].v).toBe('/task-1');
+      expect(g.edges()[0].w).toBe('/task-2');
     });
 
-    it('allows there to be and connects nodes based on listed dependencies', () => {
-      const workflow = newWorkflow();
-      workflow.spec.templates[0].dag.tasks.push({ name: 'task-2', dependencies: ['task-1'] });
-      const g = createGraph(workflow);
-      expect(g.nodeCount()).toBe(2);
-      expect(g.edgeCount()).toBe(1);
-      expect(g.edges()[0].v).toBe('task-1');
-      expect(g.edges()[0].w).toBe('task-2');
+    const nestedWorkflow = {
+      spec: {
+        entrypoint: 'dag-1',
+        templates: [
+          {
+            dag: { tasks: [{ name: 'task-1-1', template: 'dag-2' }] },
+            name: 'dag-1',
+          },
+          {
+            dag: {
+              tasks: [
+                { name: 'task-2-1', template: 'container-2-1' },
+                { name: 'task-2-2', template: 'dag-3' },
+              ]
+            },
+            name: 'dag-2',
+          },
+          {
+            dag: { tasks: [{ name: 'task-3-1', template: 'container-3-1' }] },
+            name: 'dag-3',
+          },
+          { container: {}, name: 'container-2-1' },
+          { container: {}, name: 'container-3-1' },
+        ],
+      },
+    } as any;
+
+    it('uses path to task as node ID', () => {
+      const g = createGraph(nestedWorkflow);
+      expect(g.nodeCount()).toBe(4);
+      expect(g.edgeCount()).toBe(3);
+      [
+        '/task-1-1',
+        '/task-1-1/task-2-1',
+        '/task-1-1/task-2-2',
+        '/task-1-1/task-2-2/task-3-1',
+      ].forEach((nodeId) => expect(g.nodes()).toContain(nodeId));
+    });
+
+    it('uses task\'s template as node label', () => {
+      const g = createGraph(nestedWorkflow);
+      expect(g.nodeCount()).toBe(4);
+      expect(g.edgeCount()).toBe(3);
+      [
+        { id: '/task-1-1', label: 'dag-2' },
+        { id: '/task-1-1/task-2-1', label: 'container-2-1' },
+        { id: '/task-1-1/task-2-2', label: 'dag-3' },
+        { id: '/task-1-1/task-2-2/task-3-1', label: 'container-3-1' },
+      ].forEach((idAndLabel) => expect(g.node(idAndLabel.id).label).toBe(idAndLabel.label));
     });
 
     it('connects conditional graph correctly', () => {
       const g = createGraph(newConditionalWorkflow());
       // 'flip' has two possible outcomes: 'condition-1' and 'condition-2'
-      expect(g.edges()).toContainEqual({ v: 'flip-task', w: 'condition-1-task' });
-      expect(g.edges()).toContainEqual({ v: 'flip-task', w: 'condition-2-task' });
-      expect(g.edges()).toContainEqual({ v: 'condition-1-task', w: 'heads-task' });
-      expect(g.edges()).toContainEqual({ v: 'condition-2-task', w: 'tails-task' });
+      expect(g.edges()).toContainEqual({ v: '/flip-task', w: '/condition-1-task' });
+      expect(g.edges()).toContainEqual({ v: '/flip-task', w: '/condition-2-task' });
+      expect(g.edges()).toContainEqual({ v: '/condition-1-task', w: '/condition-1-task/heads-task' });
+      expect(g.edges()).toContainEqual({ v: '/condition-2-task', w: '/condition-2-task/tails-task' });
       expect(g.nodeCount()).toBe(5);
       expect(g.edgeCount()).toBe(4);
     });
@@ -142,7 +174,7 @@ describe('StaticGraphParser', () => {
       const g = createGraph(newConditionalWorkflow());
       g.nodes().forEach((nodeName) => {
         const node = g.node(nodeName);
-        if (nodeName.startsWith('condition')) {
+        if (nodeName === '/condition-1-task' || nodeName === '/condition-2-task') {
           expect(node.bgColor).toBe('cornsilk');
         } else {
           expect(node.bgColor).toBeUndefined();
