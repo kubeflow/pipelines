@@ -151,12 +151,12 @@ class Compiler(object):
     if op.env_variables:
       env_variables = []
       for e in op.env_variables:
-        env_variables.append(self._to_json(e))
+        env_variables.append(self._convert_k8s_obj_to_dic(e))
       template['container']['env'] = env_variables
     if op.volume_mounts:
       volume_mounts = []
       for vm in op.volume_mounts:
-        volume_mounts.append(self._to_json(vm))
+        volume_mounts.append(self._convert_k8s_obj_to_dic(vm))
       template['container']['volumeMounts'] = volume_mounts
     return template
 
@@ -453,7 +453,7 @@ class Compiler(object):
     for op in pipeline.ops.values():
       if op.volumes:
         for v in op.volumes:
-          volumes.append(self._to_json(v))
+          volumes.append(self._convert_k8s_obj_to_dic(v))
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
@@ -555,7 +555,7 @@ class Compiler(object):
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
-  def _to_json(self, obj):
+  def _convert_k8s_obj_to_dic(self, obj):
     """
     Builds a JSON K8s object.
 
@@ -579,10 +579,10 @@ class Compiler(object):
     elif isinstance(obj, PRIMITIVE_TYPES):
       return obj
     elif isinstance(obj, list):
-      return [self._to_json(sub_obj)
+      return [self._convert_k8s_obj_to_dic(sub_obj)
               for sub_obj in obj]
     elif isinstance(obj, tuple):
-      return tuple(self._to_json(sub_obj)
+      return tuple(self._convert_k8s_obj_to_dic(sub_obj)
                    for sub_obj in obj)
     elif isinstance(obj, (datetime, date)):
       return obj.isoformat()
@@ -600,7 +600,7 @@ class Compiler(object):
                   for attr, _ in iteritems(obj.swagger_types)
                   if getattr(obj, attr) is not None}
 
-    return {key: self._to_json(val)
+    return {key: self._convert_k8s_obj_to_dic(val)
             for key, val in iteritems(obj_dict)}
 
   def compile(self, pipeline_func, package_path):
