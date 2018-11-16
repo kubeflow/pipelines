@@ -257,7 +257,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
     try {
       const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-      const pageTitle = experiment && experiment.name ?
+      const pageTitle = (experiment && experiment.name) ?
         experiment.name : this.props.match.params[RouteParams.experimentId];
 
       this.props.updateToolbar({
