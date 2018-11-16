@@ -238,7 +238,7 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile('default_value')
 
-  def test_py_secret(self):
-    """Test a pipeline with a GCP secret."""
-    self._test_py_compile('secret')
+  def test_py_volume(self):
+    """Test a pipeline with a volume and volume mount."""
+    self._test_py_compile('volume')
 
