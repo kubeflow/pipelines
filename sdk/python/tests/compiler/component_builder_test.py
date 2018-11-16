@@ -202,26 +202,25 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     python_filepath = os.path.join(test_data_dir, 'basic.py')
-    downloaded_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
-    gcs_tar_path = os.path.join(GCS_BASE, 'test_docker.tar.gz')
+    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
 
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile', gcs_path=gcs_tar_path)
+    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
     dependencies = {
       VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'),
       VersionedDependency(name='kubernetes', min_version='0.6.0'),
     }
-    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0', dependency=dependencies)
-    GCSHelper.download_gcs_blob(downloaded_tarball, gcs_tar_path)
-    temp_tarball_handler = tarfile.open(downloaded_tarball)
+    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
+                                                 base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
+                                                 local_tarball_path=local_tarball_path, dependency=dependencies)
+    temp_tarball_handler = tarfile.open(local_tarball_path)
     temp_files = temp_tarball_handler.getmembers()
     self.assertTrue(len(temp_files) == 3)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py', 'requirements.txt'])
 
     # clean up
-    os.remove(downloaded_tarball)
-    GCSHelper.remove_gcs_blob(gcs_tar_path)
+    os.remove(local_tarball_path)
 
   def test_prepare_docker_tarball(self):
     """ Test the whole prepare docker tarball """
