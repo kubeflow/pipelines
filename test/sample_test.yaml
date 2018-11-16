@@ -229,7 +229,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
           - name: build-script
-            value: components/kubeflow/container/trainer/build.sh
+            value: components/kubeflow/dnntrainer/build_image.sh
       - name: build-kubeflow-deployer-image
         template: build-image-by-dockerfile
         arguments:
@@ -239,7 +239,7 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: components/kubeflow/container/deployer
+            value: components/kubeflow/deployer
           - name: image-suffix
             value: "{{inputs.parameters.kubeflow-deployer-image-suffix}}"
       - name: build-local-confusion-matrix
