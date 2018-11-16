@@ -14,11 +14,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: gcp-secret-
+  generateName: volume-
 spec:
   arguments:
     parameters: []
-  entrypoint: gcp-secret
+  entrypoint: volume
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -118,7 +118,7 @@ spec:
         - download
         name: echo
         template: echo
-    name: gcp-secret
+    name: volume
   volumes:
   - name: download-gcp-credentials
     secret:
