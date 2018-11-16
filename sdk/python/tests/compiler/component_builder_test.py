@@ -120,15 +120,18 @@ kubernetes >= 0.6.0
     dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.6.0'))
     dependency_helper.add_python_package(dependency=VersionedDependency(name='tensorflow', min_version='0.12.0'), override=True)
     dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.8.0'), override=False)
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='pytorch', version='0.3.0'))
     dependency_helper.generate_pip_requirements(temp_file)
     golden_requirement_payload = '''\
 tensorflow >= 0.12.0
 kubernetes >= 0.6.0
+pytorch >= 0.3.0, <= 0.3.0
 '''
     with open(temp_file, 'r') as f:
       target_requirement_payload = f.read()
     self.assertEqual(target_requirement_payload, golden_requirement_payload)
     os.remove(temp_file)
+
 
 class TestDockerfileHelper(unittest.TestCase):
 
