@@ -13,18 +13,24 @@
 # limitations under the License.
 
 
-import sys
-import unittest
-
-import compiler_tests
-import component_builder_test
+import kfp.dsl as dsl
 
 
-if __name__ == '__main__':
-  suite = unittest.TestSuite()
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(compiler_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(component_builder_test))
-  runner = unittest.TextTestRunner()
-  if not runner.run(suite).wasSuccessful():
-    sys.exit(1)
-
+@dsl.pipeline(
+    name='GCP Secret',
+    description='A pipeline with gcp secret.'
+)
+def gcp_secret_pipeline():
+  op1 = dsl.ContainerOp(
+      name='download',
+      image='google/cloud-sdk',
+      command=['sh', '-c'],
+      arguments=['ls | tee /tmp/results.txt'],
+      gcp_secret='user-gcp-sa',
+      file_outputs={'downloaded': '/tmp/results.txt'})
+  op2 = dsl.ContainerOp(
+      name='echo',
+      image='library/bash',
+      command=['sh', '-c'],
+      arguments=['echo %s' % op1.output],
+      gcp_secret='admin-gcp-sa')

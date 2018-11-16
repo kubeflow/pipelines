@@ -24,30 +24,7 @@ import tarfile
 from pathlib import Path
 import inspect
 
-GCS_BASE = 'gs://ngao-mlpipeline-testing/'
-
-class TestGCSHelper(unittest.TestCase):
-
-  def test_upload_gcs_path(self):
-    """ test uploading gcs file """
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    temp_file = os.path.join(test_data_dir, 'test_data.tmp')
-    temp_downloaded_file = os.path.join(test_data_dir, 'test_data.tmp.downloaded')
-    Path(temp_file).touch()
-    gcs_path = os.path.join(GCS_BASE, 'test_data.tmp')
-
-    # check
-    try:
-      GCSHelper.upload_gcs_file(temp_file, gcs_path)
-      GCSHelper.download_gcs_blob(temp_downloaded_file, gcs_path)
-      GCSHelper.remove_gcs_blob(gcs_path)
-    except:
-      self.fail('GCS helper failure')
-
-    # clean up
-    os.remove(temp_file)
-    os.remove(temp_downloaded_file)
+GCS_BASE = 'gs://kfp-testing/'
 
 class TestDockerfileHelper(unittest.TestCase):
 

@@ -19,6 +19,7 @@ import inspect
 import re
 import tempfile
 import logging
+import sys
 from google.cloud import storage
 from pathlib import PurePath, Path
 from .. import dsl
@@ -137,18 +138,10 @@ class ImageBuilder(object):
   def _check_gcs_path(self, gcs_path):
     """ _check_gcs_path check both the path validity and write permissions """
     logging.info('Checking path: {}...'.format(gcs_path))
-    if gcs_path.startswith('gs://'):
-      with tempfile.TemporaryDirectory() as local_build_dir:
-        rand_filename = str(uuid.uuid4()) + '.txt'
-        local_rand_file = os.path.join(local_build_dir, rand_filename)
-        Path(local_rand_file).touch()
-        random_gcs_bucket = os.path.join(gcs_path, rand_filename)
-        GCSHelper.upload_gcs_file(local_rand_file, random_gcs_bucket)
-        GCSHelper.remove_gcs_blob(random_gcs_bucket)
-        return True
-    else:
+    if not gcs_path.startswith('gs://'):
       logging.error('Error: {} should be a GCS path.'.format(gcs_path))
       return False
+    return True
 
   def _generate_kaniko_spec(self, namespace, arc_dockerfile_name, gcs_path, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
@@ -286,6 +279,23 @@ class ImageBuilder(object):
       docker_helper.prepare_docker_tarball(dockerfile_path, local_tarball_path=local_tarball_path)
       self._build_image_from_tarball(local_tarball_path, namespace, timeout)
 
+def _configure_logger(logger):
+  """ _configure_logger configures the logger such that the info level logs
+  go to the stdout and the error(or above) level logs go to the stderr.
+  It is important for the Jupyter notebook log rendering """
+  if logger.hasHandlers():
+    # If the logger has handlers, it has been configured, thus return immediately.
+    return
+  logger.setLevel(logging.INFO)
+  info_handler = logging.StreamHandler(stream=sys.stdout)
+  info_handler.addFilter(lambda record: record.levelno <= logging.INFO)
+  info_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+  error_handler = logging.StreamHandler(sys.stderr)
+  error_handler.addFilter(lambda record: record.levelno > logging.INFO)
+  error_handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+  logger.addHandler(info_handler)
+  logger.addHandler(error_handler)
+
 def _generate_pythonop(component_func, target_image):
   """ Generate operator for the pipeline authors
   component_meta is a dict of name, description, base_image, target_image, input_list
@@ -329,8 +339,7 @@ def build_python_component(component_func, staging_gcs_path, target_image, build
   Raises:
     ValueError: The function is not decorated with python_component decorator
   """
-  logging.basicConfig()
-  logging.getLogger().setLevel('INFO')
+  _configure_logger(logging.getLogger())
   component_meta = dsl.PythonComponent.get_python_component(component_func)
   component_meta['inputs'] = inspect.getfullargspec(component_func)[0]
 
@@ -359,8 +368,7 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
-  logging.basicConfig()
-  logging.getLogger().setLevel('INFO')
+  _configure_logger(logging.getLogger())
   builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
   builder.build_image_from_dockerfile(dockerfile_path=dockerfile_path, timeout=timeout, namespace=namespace)
   logging.info('Build image complete.')
