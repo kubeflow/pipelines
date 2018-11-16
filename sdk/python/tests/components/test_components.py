@@ -226,6 +226,65 @@ implementation:
     def test_load_component_from_text_fail_on_none_arg(self):
         comp.load_component_from_text(None)
 
+    def test_command_yaml_types(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      # Nulls:
+      - null #A null
+      - #Also a null
+      # Strings:
+      - "" #empty string
+      - "string"
+      # Booleans
+      - true
+      - True
+      - false
+      - FALSE
+      # Integers
+      - 0
+      - 0o7
+      - 0x3A
+      - -19
+      # Floats
+      - 0.
+      - -0.0
+      - .5
+      - +12e03
+      - -2E+05
+      # Infinite floats
+      - .inf
+      - -.Inf
+      - +.INF
+      - .NAN
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task = task_factory1()
+        self.assertEqual(task.arguments, [
+            #Nulls are skipped
+            '',
+            'string',
+            'True',
+            'True',
+            'False',
+            'False',
+            '0',
+            '0o7',
+            '58',
+            '-19',
+            '0.0',
+            '-0.0',
+            '0.5',
+            '+12e03',
+            '-2E+05',
+            'inf',
+            '-inf',
+            'inf',
+            'nan',
+        ])
+
     def test_input_value_resolving(self):
         component_text = '''\
 inputs:
@@ -290,7 +349,68 @@ implementation:
 
         self.assertEqual(task1.arguments, ['somedata'])
 
-    def test_command_if_then(self):
+    def test_command_if_boolean_true_then_else(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: true
+          then: --true-arg
+          else: --false-arg
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task = task_factory1()
+        self.assertEqual(task.arguments, ['--true-arg']) 
+
+    def test_command_if_boolean_false_then_else(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: false
+          then: --true-arg
+          else: --false-arg
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task = task_factory1()
+        self.assertEqual(task.arguments, ['--false-arg']) 
+
+    def test_command_if_true_string_then_else(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: 'true'
+          then: --true-arg
+          else: --false-arg
+'''
+        task_factory1 = comp.load_component(text=component_text)
+        task = task_factory1()
+        self.assertEqual(task.arguments, ['--true-arg']) 
+
+    def test_command_if_false_string_then_else(self):
+        component_text = '''\
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: 'false'
+          then: --true-arg
+          else: --false-arg
+'''
+        task_factory1 = comp.load_component(text=component_text)
+
+        task = task_factory1()
+        self.assertEqual(task.arguments, ['--false-arg']) 
+
+    def test_command_if_is_present_then(self):
         component_text = '''\
 inputs:
 - {name: In, required: false}
@@ -312,7 +432,7 @@ implementation:
         #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
         #self.assertEqual(task_else.arguments, [])
 
-    def test_command_if_then_else(self):
+    def test_command_if_is_present_then_else(self):
         component_text = '''\
 inputs:
 - {name: In, required: false}
