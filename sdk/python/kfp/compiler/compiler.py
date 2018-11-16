@@ -144,9 +144,9 @@ class Compiler(object):
         template['container']['resources']['requests']['cpu'] = op.cpu_request
 
     if op.env_variables:
-      template['container']['env'] = op.env_variables.to_dict()
+      template['container']['env'] = op.env_variables
     if op.volume_mounts:
-      template['container']['volumeMounts'] = op.volume_mounts.to_dict()
+      template['container']['volumeMounts'] = op.volume_mounts
     return template
 
   def _get_groups_for_ops(self, root_group):
@@ -433,7 +433,7 @@ class Compiler(object):
     for op in pipeline.ops.values():
       if op.volumes:
         for v in op.volumes:
-          volumes.append(v.to_dict())
+          volumes += op.volumes
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
