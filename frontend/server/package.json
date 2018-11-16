@@ -3,7 +3,7 @@
   "main": "server.js",
   "dependencies": {
     "@google-cloud/storage": "^1.6.0",
-    "@kubernetes/client-node": "^0.5.2",
+    "@kubernetes/client-node": "^0.5.3",
     "express": "^4.16.3",
     "http-proxy-middleware": "^0.18.0",
     "minio": "^7.0.0",
