@@ -36,85 +36,85 @@ class TestCompiler(unittest.TestCase):
       msg2 = dsl.PipelineParam('msg2', value='value2')
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (
-                           msg1, msg2)],
-                           file_outputs={'merged': '/tmp/message.txt'},
-                           volume_mounts=[k8s_client.V1VolumeMount(
-                               mount_path='/secret/gcp-credentials',
-                               name='gcp-credentials')],
-                           env_variables=[k8s_client.V1EnvVar(
-                               name='GOOGLE_APPLICATION_CREDENTIALS',
-                               value='/secret/gcp-credentials/user-gcp-sa.json')])
-    golden_output = {
-      'container': {
-        'image': 'image',
-        'args': [
-          'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
-        ],
-        'command': ['sh', '-c'],
-        'env': [
-          {
-            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-            'value': '/secret/gcp-credentials/user-gcp-sa.json'
-          }
-        ],
-        'volumeMounts': [
-          {
-            'mountPath': '/secret/gcp-credentials',
-            'name': 'gcp-credentials'
-          }
-        ]
-      },
-      'inputs': {'parameters':
-        [
-          {'name': 'msg1'},
-          {'name': 'msg2', 'value': 'value2'},
-        ]},
-      'name': 'echo',
-      'outputs': {
-        'parameters': [
-          {'name': 'echo-merged',
-           'valueFrom': {'path': '/tmp/message.txt'}
-           }],
-        'artifacts': [{
-          'name': 'mlpipeline-ui-metadata',
-          'path': '/mlpipeline-ui-metadata.json',
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
+                             msg1, msg2)],
+                           file_outputs={'merged': '/tmp/message.txt'})
+      op.set_volume_mounts([k8s_client.V1VolumeMount(
+          mount_path='/secret/gcp-credentials',
+          name='gcp-credentials')])
+      op.set_env_variables([k8s_client.V1EnvVar(
+          name='GOOGLE_APPLICATION_CREDENTIALS',
+          value='/secret/gcp-credentials/user-gcp-sa.json')])
+      golden_output = {
+        'container': {
+          'image': 'image',
+          'args': [
+            'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
+          ],
+          'command': ['sh', '-c'],
+          'env': [
+            {
+              'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+              'value': '/secret/gcp-credentials/user-gcp-sa.json',
             }
-          }
-        }, {
-          'name': 'mlpipeline-metrics',
-          'path': '/mlpipeline-metrics.json',
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
+          ],
+          'volumeMounts': [
+            {
+              'mountPath': '/secret/gcp-credentials',
+              'name': 'gcp-credentials',
             }
-          }
-        }]
+          ]
+        },
+        'inputs': {'parameters':
+          [
+            {'name': 'msg1'},
+            {'name': 'msg2', 'value': 'value2'},
+          ]},
+        'name': 'echo',
+        'outputs': {
+          'parameters': [
+            {'name': 'echo-merged',
+             'valueFrom': {'path': '/tmp/message.txt'}
+             }],
+          'artifacts': [{
+            'name': 'mlpipeline-ui-metadata',
+            'path': '/mlpipeline-ui-metadata.json',
+            's3': {
+              'accessKeySecret': {
+                'key': 'accesskey',
+                'name': 'mlpipeline-minio-artifact',
+              },
+              'bucket': 'mlpipeline',
+              'endpoint': 'minio-service.kubeflow:9000',
+              'insecure': True,
+              'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
+              'secretKeySecret': {
+                'key': 'secretkey',
+                'name': 'mlpipeline-minio-artifact',
+              }
+            }
+          }, {
+            'name': 'mlpipeline-metrics',
+            'path': '/mlpipeline-metrics.json',
+            's3': {
+              'accessKeySecret': {
+                'key': 'accesskey',
+                'name': 'mlpipeline-minio-artifact',
+              },
+              'bucket': 'mlpipeline',
+              'endpoint': 'minio-service.kubeflow:9000',
+              'insecure': True,
+              'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
+              'secretKeySecret': {
+                'key': 'secretkey',
+                'name': 'mlpipeline-minio-artifact',
+              }
+            }
+          }]
+        }
       }
-    }
 
-    self.maxDiff = None
-    self.assertEqual(golden_output, compiler.Compiler()._op_to_template(op))
+      self.maxDiff = None
+      self.assertEqual(golden_output, compiler.Compiler()._op_to_template(op))
 
   def _get_yaml_from_tar(self, tar_file):
     with tarfile.open(tar_file, 'r:gz') as tar:

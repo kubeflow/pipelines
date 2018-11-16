@@ -33,7 +33,7 @@ spec:
       image: google/cloud-sdk
       volumeMounts:
       - mountPath: /secret/gcp-credentials
-        name: download-gcp-credentials
+        name: gcp-credentials
     name: download
     outputs:
       artifacts:
@@ -120,6 +120,6 @@ spec:
         template: echo
     name: volume
   volumes:
-  - name: download-gcp-credentials
+  - name: gcp-credentials
     secret:
       secretName: user-gcp-sa
