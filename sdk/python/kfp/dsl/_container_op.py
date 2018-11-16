@@ -41,8 +41,6 @@ class ContainerOp(object):
       file_outputs: Maps output labels to local file paths. At pipeline run time,
           the value of a PipelineParam is saved to its corresponding local file. It's
           one way for outside world to receive outputs of the container.
-      gcp_secret: Specifying what secret to mount to the container for accessing
-          GCP APIs.
       is_exit_handler: Whether it is used as an exit handler.
     """
 
@@ -60,6 +58,9 @@ class ContainerOp(object):
     self.memory_request = None
     self.cpu_limit = None
     self.cpu_request = None
+    self.volumes = None
+    self.volume_mounts = None
+    self.env_variables = None
 
     matches = []
     if arguments:
@@ -153,6 +154,21 @@ class ContainerOp(object):
 
     self._validate_cpu_string(cpu)
     self.cpu_limit = cpu
+
+  def set_volumes(self, volumes):
+    """Specifying what K8s volumes the container depends on"""
+
+    self.volumes = volumes
+
+  def set_volume_mounts(self, volume_mounts):
+    """Specifying how volumes are mounted to the container"""
+
+    self.volume_mounts = volume_mounts
+
+  def set_env_variables(self, env_variables):
+    """Set environment variables available in the container."""
+
+    self.env_variables = env_variables
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
