@@ -8,7 +8,7 @@ later by the Inference Engine.
 Learn more about [OpenVINO model optimizer](https://software.intel.com/en-us/articles/OpenVINO-ModelOptimizer)
 
 *Note:* Executing this pipeline required building the docker image according to the guidelines on 
-[OpenVINO model converted doc](../../../components/openvino/model_convert). 
+[OpenVINO model converted doc](../../../contrib/components/openvino/model_convert). 
 The image name pushed to the docker registry should be configured in the pipeline script `convert_model_pipeline.py` 
 
 ## Examples of the parameters
