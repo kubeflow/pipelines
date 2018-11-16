@@ -45,10 +45,10 @@ if [ -z "${TAG_NAME}" ]; then
 fi
 
 mkdir -p ./build
-rsync -arvp "../../launcher"/ ./build/
+rsync -arvp ./src/ ./build/
 
-cp ../../../license.sh ./build
-cp ../../../third_party_licenses.csv ./build
+cp ../../license.sh ./build
+cp ../../third_party_licenses.csv ./build
 
 # Build the trainer image
 if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then
@@ -67,12 +67,12 @@ fi
 bash_dir=`dirname $0`
 bash_dir_abs=`realpath $bash_dir`
 parent_dir=`dirname ${bash_dir_abs}`
-trainer_dir=${parent_dir}/trainer
+trainer_dir=${parent_dir}/dnntrainer
 cd ${trainer_dir}
 if [ -z "${LAUNCHER_IMAGE_NAME}" ]; then
-  ./build.sh -p ${PROJECT_ID} -t ${TAG_NAME}
+  ./build_image.sh -p ${PROJECT_ID} -t ${TAG_NAME}
 else
-  ./build.sh -i ${TRAINER_IMAGE_NAME}
+  ./build_image.sh -i ${TRAINER_IMAGE_NAME}
 fi
 cd -
 
