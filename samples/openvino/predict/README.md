@@ -12,7 +12,7 @@ This pipeline execute the predict operation and sends the results for each model
 representing the output tensor name. 
 
 *Note:* Executing this pipeline required building the docker image according to the guidelines on 
-[OpenVINO predict component doc](../../../components/openvino/predict). 
+[OpenVINO predict component doc](../../../contrib/components/openvino/predict). 
 The image name pushed to the docker registry should be configured in the pipeline script `numpy_predict` 
 
 ## Examples of the parameters
