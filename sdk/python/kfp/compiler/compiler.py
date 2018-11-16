@@ -452,7 +452,7 @@ class Compiler(object):
     volumes = []
     for op in pipeline.ops.values():
       if op.volumes:
-        for v in volumes:
+        for v in op.volumes:
           volumes.append(self._to_json(v))
     volumes.sort(key=lambda x: x['name'])
     return volumes
