@@ -363,11 +363,12 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unrecognized input parameter")
 }
+
 func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	manager.workflowClient = &storage.FakeBadWorkflowClient{}
+	manager.workflowClient = &FakeBadWorkflowClient{}
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
@@ -398,6 +399,48 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	}
 	_, err := manager.CreateRun(apiRun)
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestDeleteRun(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	err := manager.DeleteRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	_, err = manager.GetRun(runDetail.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRun_RunNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.DeleteRun("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRun_CrdFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	err := manager.DeleteRun(runDetail.UUID)
+	//assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	//assert.Contains(t, err.Error(), "some error")
+	// TODO(IronPan) This should return error if swf CRD doesn't cascade delete runs.
+	assert.Nil(t, err)
+}
+
+func TestDeleteRun_DbFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	store.DB().Close()
+	err := manager.DeleteRun(runDetail.UUID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
 

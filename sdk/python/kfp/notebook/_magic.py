@@ -20,9 +20,9 @@ except ImportError:
   raise Exception('This module can only be loaded in Jupyter.')
 
 
-from kfp.compiler import build_docker_image
 import os
 import tempfile
+from ..compiler import build_docker_image
 
 
 @IPython.core.magic.register_cell_magic

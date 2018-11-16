@@ -37,6 +37,7 @@ export function formatDateString(date: Date | string | undefined): string {
   }
 }
 
+// TODO: add tests
 export async function errorToMessage(error: any): Promise<string> {
   if (error instanceof Error) {
     return error.message;
@@ -46,7 +47,7 @@ export async function errorToMessage(error: any): Promise<string> {
     return await error.text();
   }
 
-  return JSON.stringify(error || '');
+  return JSON.stringify(error) || '';
 }
 
 export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: boolean): string {

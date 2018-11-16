@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -63,6 +64,14 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 		return nil, util.Wrap(err, "Failed to list runs.")
 	}
 	return &api.ListRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
+}
+
+func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.DeleteRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {

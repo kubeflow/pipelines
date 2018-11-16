@@ -1,5 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Toolbar renders nothing when there are no breadcrumbs or actions 1`] = `""`;
+
 exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
 <div
   className="root topLevelToolbar"
@@ -298,34 +300,5 @@ exports[`Toolbar renders without breadcrumbs and two actions 1`] = `
       </div>
     </WithStyles(Tooltip)>
   </div>
-</div>
-`;
-
-exports[`Toolbar renders without breadcrumbs or actions 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    />
-    <div
-      className="flex"
-    >
-      <span
-        className="pageName ellipsis"
-        title=""
-      />
-    </div>
-  </div>
-  <div
-    className="actions"
-  />
 </div>
 `;

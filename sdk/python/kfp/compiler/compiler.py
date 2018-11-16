@@ -16,12 +16,13 @@
 from collections import defaultdict
 import copy
 import inspect
-import kfp.dsl as dsl
 import re
 import string
 import tarfile
 import tempfile
 import yaml
+
+from .. import dsl
 
 
 class Compiler(object):
@@ -143,6 +144,19 @@ class Compiler(object):
       if op.cpu_request:
         template['container']['resources']['requests']['cpu'] = op.cpu_request
 
+    if op.gcp_secret:
+      template['container']['env'] = [
+        {
+          'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+          'value': ('/secret/gcp-credentials/%s.json' % op.gcp_secret),
+        },
+      ]
+      template['container']['volumeMounts'] = [
+        {
+          'name': op.name + '-gcp-credentials',
+          'mountPath': '/secret/gcp-credentials',
+        },
+      ]
     return template
 
   def _get_groups_for_ops(self, root_group):
@@ -423,6 +437,21 @@ class Compiler(object):
       templates.append(self._op_to_template(op))
     return templates
 
+  def _create_volumes(self, pipeline):
+    """Create volumes required for the templates"""
+    volumes = []
+    for op in pipeline.ops.values():
+      if op.gcp_secret:
+        volume = {
+          'name': op.name + '-gcp-credentials',
+          'secret': {
+            'secretName': op.gcp_secret,
+          }
+        }
+        volumes.append(volume)
+    volumes.sort(key=lambda x: x['name'])
+    return volumes
+
   def _create_pipeline_workflow(self, args, pipeline):
     """Create workflow for the pipeline."""
 
@@ -442,6 +471,7 @@ class Compiler(object):
       if first_group.type == 'exit_handler':
         exit_handler = first_group.exit_op
 
+    volumes = self._create_volumes(pipeline)
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
@@ -455,6 +485,8 @@ class Compiler(object):
     }
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
+    if volumes:
+      workflow['spec']['volumes'] = volumes
     return workflow
 
   def _validate_args(self, argspec):
@@ -525,8 +557,12 @@ class Compiler(object):
     """
     workflow = self._compile(pipeline_func)
     yaml.Dumper.ignore_aliases = lambda *args : True
-    with tempfile.NamedTemporaryFile() as tmp:
-      with open(tmp.name, 'w') as fd:
-        yaml.dump(workflow, fd, default_flow_style=False)
-      with tarfile.open(package_path, "w:gz") as tar:
-        tar.add(tmp.name, arcname="pipeline.yaml")
+    yaml_text = yaml.dump(workflow, default_flow_style=False)
+
+    from contextlib import closing
+    from io import BytesIO
+    with tarfile.open(package_path, "w:gz") as tar:
+      with closing(BytesIO(yaml_text.encode())) as yaml_file:
+        tarinfo = tarfile.TarInfo('pipeline.yaml')
+        tarinfo.size = len(yaml_file.getvalue())
+        tar.addfile(tarinfo, fileobj=yaml_file)

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -51,6 +52,14 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 			Experiments:   ToApiExperiments(experiments),
 			NextPageToken: nextPageToken},
 		nil
+}
+
+func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *api.DeleteExperimentRequest) (*empty.Empty, error) {
+	err := s.resourceManager.DeleteExperiment(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error {

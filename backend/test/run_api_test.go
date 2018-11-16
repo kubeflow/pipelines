@@ -1,206 +1,223 @@
 package test
 
-//type RunApiTestSuite struct {
-//	suite.Suite
-//	namespace        string
-//	conn             *grpc.ClientConn
-//	experimentClient api.ExperimentServiceClient
-//	jobClient        api.JobServiceClient
-//	pipelineClient   api.PipelineServiceClient
-//	runClient        api.RunServiceClient
-//}
-//
-//// Check the namespace have ML pipeline installed and ready
-//func (s *RunApiTestSuite) SetupTest() {
-//	err := waitForReady(*namespace, *initializeTimeout)
-//	if err != nil {
-//		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
-//	}
-//	s.namespace = *namespace
-//	s.conn, err = getRpcConnection(s.namespace)
-//	if err != nil {
-//		glog.Exitf("Failed to get RPC connection. Error: %s", err.Error())
-//	}
-//	s.experimentClient = api.NewExperimentServiceClient(s.conn)
-//	s.jobClient = api.NewJobServiceClient(s.conn)
-//	s.pipelineClient = api.NewPipelineServiceClient(s.conn)
-//	s.runClient = api.NewRunServiceClient(s.conn)
-//}
-//
-//func (s *RunApiTestSuite) TearDownTest() {
-//	s.conn.Close()
-//}
-//
-//func (s *RunApiTestSuite) TestRunApis() {
-//	t := s.T()
-//	clientSet, err := getKubernetesClient()
-//	if err != nil {
-//		t.Fatalf("Can't initialize a Kubernete client. Error: %s", err.Error())
-//	}
-//
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-//	defer cancel()
-//
-//	/* ---------- Upload a pipeline ---------- */
-//	pipelineBody, writer := uploadPipelineFileOrFail("resources/hello-world.yaml")
-//	response, err := clientSet.RESTClient().Post().
-//		AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, s.namespace, "pipelines/upload")).
-//		SetHeader("Content-Type", writer.FormDataContentType()).
-//		Body(pipelineBody).Do().Raw()
-//	assert.Nil(t, err)
-//	var helloWorldPipeline api.Pipeline
-//	json.Unmarshal(response, &helloWorldPipeline)
-//	assert.Equal(t, "hello-world.yaml", helloWorldPipeline.Name)
-//
-//	/* ---------- Create a new hello world experiment ---------- */
-//	createExperimentRequest := &api.CreateExperimentRequest{Experiment: &api.Experiment{Name: "hello world experiment"}}
-//	helloWorldExperiment, err := s.experimentClient.CreateExperiment(ctx, createExperimentRequest)
-//	assert.Nil(t, err)
-//
-//	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
-//	requestStartTime := time.Now().Unix()
-//	createRunRequest := &api.CreateRunRequest{Run: &api.Run{
-//		Name:        "hello world",
-//		Description: "this is hello world",
-//		PipelineSpec: &api.PipelineSpec{
-//			PipelineId: helloWorldPipeline.Id,
-//		},
-//		ResourceReferences: []*api.ResourceReference{
-//			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: helloWorldExperiment.Id}},
-//		},
-//	}}
-//	runDetail, err := s.runClient.CreateRun(ctx, createRunRequest)
-//	assert.Nil(t, err)
-//	s.checkHelloWorldRunDetail(t, runDetail, helloWorldExperiment.Id, helloWorldPipeline.Id, requestStartTime)
-//
-//	/* ---------- Get hello world run ---------- */
-//	runDetail, err = s.runClient.GetRun(ctx, &api.GetRunRequest{RunId: runDetail.Run.Id})
-//	assert.Nil(t, err)
-//	s.checkHelloWorldRunDetail(t, runDetail, helloWorldExperiment.Id, helloWorldPipeline.Id, requestStartTime)
-//
-//	/* ---------- Create a new argument parameter experiment ---------- */
-//	createExperimentRequest = &api.CreateExperimentRequest{Experiment: &api.Experiment{Name: "argument parameter experiment"}}
-//	argParamsExperiment, err := s.experimentClient.CreateExperiment(ctx, createExperimentRequest)
-//	assert.Nil(t, err)
-//
-//	/* ---------- Create a new argument parameter run by uploading workflow manifest ---------- */
-//	requestStartTime = time.Now().Unix()
-//	argParamsBytes, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
-//	assert.Nil(t, err)
-//	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
-//	assert.Nil(t, err)
-//	createRunRequest = &api.CreateRunRequest{Run: &api.Run{
-//		Name:        "argument parameter",
-//		Description: "this is argument parameter",
-//		PipelineSpec: &api.PipelineSpec{
-//			WorkflowManifest: string(argParamsBytes),
-//			Parameters: []*api.Parameter{
-//				{Name: "param1", Value: "goodbye"},
-//				{Name: "param2", Value: "world"},
-//			},
-//		},
-//		ResourceReferences: []*api.ResourceReference{
-//			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: argParamsExperiment.Id}},
-//		},
-//	}}
-//	runDetail, err = s.runClient.CreateRun(ctx, createRunRequest)
-//	assert.Nil(t, err)
-//	s.checkArgParamsRunDetail(t, runDetail, argParamsExperiment.Id, requestStartTime)
-//
-//	/* ---------- List all the runs. Both runs should be returned ---------- */
-//	listRunsResponse, err := s.runClient.ListRuns(ctx, &api.ListRunsRequest{})
-//	assert.Nil(t, err)
-//	assert.Equal(t, len(listRunsResponse.Runs), 2)
-//
-//	/* ---------- List the runs, paginated, default sort ---------- */
-//	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 1})
-//	assert.Nil(t, err)
-//	assert.Equal(t, len(listRunsResponse.Runs), 1)
-//	assert.Equal(t, listRunsResponse.Runs[0].Name, "hello world")
-//	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 1, PageToken: listRunsResponse.NextPageToken})
-//	assert.Nil(t, err)
-//	assert.Equal(t, len(listRunsResponse.Runs), 1)
-//	assert.Equal(t, listRunsResponse.Runs[0].Name, "argument parameter")
-//
-//	/* ---------- List the runs, paginated, sort by name ---------- */
-//	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 1, SortBy: "name"})
-//	assert.Nil(t, err)
-//	assert.Equal(t, len(listRunsResponse.Runs), 1)
-//	assert.Equal(t, listRunsResponse.Runs[0].Name, "argument parameter")
-//	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 1, SortBy: "name", PageToken: listRunsResponse.NextPageToken})
-//	assert.Nil(t, err)
-//	assert.Equal(t, len(listRunsResponse.Runs), 1)
-//	assert.Equal(t, listRunsResponse.Runs[0].Name, "hello world")
-//
-//	/* ---------- List the runs, sort by unsupported field ---------- */
-//	_, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{PageSize: 2, SortBy: "description"})
-//	assert.NotNil(t, err)
-//	assert.Contains(t, err.Error(), "InvalidArgument")
-//
-//	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
-//	listRunsResponse, err = s.runClient.ListRuns(ctx, &api.ListRunsRequest{
-//		ResourceReferenceKey: &api.ResourceKey{
-//			Type: api.ResourceType_EXPERIMENT, Id: helloWorldExperiment.Id}})
-//	assert.Nil(t, err)
-//	assert.Equal(t, len(listRunsResponse.Runs), 1)
-//	assert.Equal(t, listRunsResponse.Runs[0].Name, "hello world")
-//}
-//
-//func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *api.RunDetail, experimentId string, pipelineId string, requestStartTime int64) {
-//	assert.NotNil(t, runDetail)
-//	assert.NotNil(t, runDetail.Run)
-//	assert.NotNil(t, runDetail.Run.PipelineSpec)
-//	assert.NotNil(t, runDetail.PipelineRuntime)
-//	assert.NotNil(t, runDetail.Run.CreatedAt)
-//
-//	// Check workflow manifest is not empty
-//	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
-//	// Check runtime workflow manifest is not empty
-//	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
-//	assert.True(t, runDetail.Run.CreatedAt.Seconds > requestStartTime)
-//
-//	runDetail.Run.PipelineSpec.WorkflowManifest = ""
-//	runDetail.Run.Status = ""
-//	expectedRun := api.Run{
-//		Id:          runDetail.Run.Id,
-//		Name:        "hello world",
-//		Description: "this is hello world",
-//		PipelineSpec: &api.PipelineSpec{
-//			PipelineId: pipelineId,
-//		},
-//		ResourceReferences: []*api.ResourceReference{
-//			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experimentId}},
-//		},
-//		CreatedAt: &timestamp.Timestamp{Seconds: runDetail.Run.CreatedAt.Seconds},
-//	}
-//	assert.Equal(t, expectedRun, &runDetail.Run)
-//}
-//
-//func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *api.RunDetail, experimentId string, requestStartTime int64) {
-//	argParamsBytes, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
-//	assert.Nil(t, err)
-//	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
-//	assert.Nil(t, err)
-//	// Check runtime workflow manifest is not empty
-//	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
-//	assert.True(t, runDetail.Run.CreatedAt.Seconds > requestStartTime)
-//
-//	runDetail.Run.Status = ""
-//	expectedRun := api.Run{
-//		Id:          runDetail.Run.Id,
-//		Name:        "hello world",
-//		Description: "this is hello world",
-//		PipelineSpec: &api.PipelineSpec{
-//			WorkflowManifest: string(argParamsBytes),
-//		},
-//		ResourceReferences: []*api.ResourceReference{
-//			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experimentId}},
-//		},
-//		CreatedAt: &timestamp.Timestamp{Seconds: runDetail.Run.CreatedAt.Seconds},
-//	}
-//	assert.Equal(t, expectedRun, &runDetail.Run)
-//}
-//
-//func TestRunApi(t *testing.T) {
-//	//suite.Run(t, new(RunApiTestSuite))
-//}
+import (
+	"io/ioutil"
+	"testing"
+
+	"github.com/golang/glog"
+	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"k8s.io/apimachinery/pkg/util/yaml"
+)
+
+type RunApiTestSuite struct {
+	suite.Suite
+	namespace            string
+	experimentClient     *api_server.ExperimentClient
+	pipelineClient       *api_server.PipelineClient
+	pipelineUploadClient *api_server.PipelineUploadClient
+	runClient            *api_server.RunClient
+}
+
+// Check the namespace have ML pipeline installed and ready
+func (s *RunApiTestSuite) SetupTest() {
+	err := waitForReady(*namespace, *initializeTimeout)
+	if err != nil {
+		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+	}
+	s.namespace = *namespace
+	clientConfig := getClientConfig(*namespace)
+	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
+	}
+	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
+	}
+	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
+	}
+	s.runClient, err = api_server.NewRunClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get run client. Error: %s", err.Error())
+	}
+}
+
+func (s *RunApiTestSuite) TestRunApis() {
+	t := s.T()
+
+	/* ---------- Upload pipelines YAML ---------- */
+	helloWorldPipeline, err := s.pipelineUploadClient.UploadFile("resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
+	assert.Nil(t, err)
+
+	/* ---------- Create a new hello world experiment ---------- */
+	experiment := &experiment_model.APIExperiment{Name: "hello world experiment"}
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	assert.Nil(t, err)
+
+	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
+	createRunRequest := &runparams.CreateRunParams{Body: &run_model.APIRun{
+		Name:        "hello world",
+		Description: "this is hello world",
+		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID: helloWorldPipeline.ID,
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER},
+		},
+	}}
+	helloWorldRunDetail, _, err := s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
+	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldPipeline.ID)
+
+	/* ---------- Get hello world run ---------- */
+	helloWorldRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: helloWorldRunDetail.Run.ID})
+	assert.Nil(t, err)
+	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldPipeline.ID)
+
+	/* ---------- Create a new argument parameter experiment ---------- */
+	createExperimentRequest := &experimentparams.CreateExperimentParams{Body: &experiment_model.APIExperiment{Name: "argument parameter experiment"}}
+	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
+	assert.Nil(t, err)
+
+	/* ---------- Create a new argument parameter run by uploading workflow manifest ---------- */
+	argParamsBytes, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
+	assert.Nil(t, err)
+	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
+	assert.Nil(t, err)
+	createRunRequest = &runparams.CreateRunParams{Body: &run_model.APIRun{
+		Name:        "argument parameter",
+		Description: "this is argument parameter",
+		PipelineSpec: &run_model.APIPipelineSpec{
+			WorkflowManifest: string(argParamsBytes),
+			Parameters: []*run_model.APIParameter{
+				{Name: "param1", Value: "goodbye"},
+				{Name: "param2", Value: "world"},
+			},
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER},
+		},
+	}}
+	argParamsRunDetail, _, err := s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
+	s.checkArgParamsRunDetail(t, argParamsRunDetail, argParamsExperiment.ID)
+
+	/* ---------- List all the runs. Both runs should be returned ---------- */
+	runs, _, err := s.runClient.List(&runparams.ListRunsParams{})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(runs))
+
+	/* ---------- List the runs, paginated, default sort ---------- */
+	runs, nextPageToken, err := s.runClient.List(&runparams.ListRunsParams{PageSize: util.Int32Pointer(1)})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, "hello world", runs[0].Name)
+	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+		PageSize: util.Int32Pointer(1), PageToken: util.StringPointer(nextPageToken)})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, "argument parameter", runs[0].Name)
+
+	/* ---------- List the runs, paginated, sort by name ---------- */
+	runs, nextPageToken, err = s.runClient.List(&runparams.ListRunsParams{
+		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name")})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, "argument parameter", runs[0].Name)
+	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name"), PageToken: util.StringPointer(nextPageToken)})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, "hello world", runs[0].Name)
+
+	/* ---------- List the runs, sort by unsupported field ---------- */
+	_, _, err = s.runClient.List(&runparams.ListRunsParams{
+		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to list runs")
+
+	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
+	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, "hello world", runs[0].Name)
+
+	/* ---------- Clean up ---------- */
+	deleteAllExperiments(s.experimentClient, t)
+	deleteAllPipelines(s.pipelineClient, t)
+	deleteAllRuns(s.runClient, t)
+}
+
+func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, pipelineId string) {
+	// Check workflow manifest is not empty
+	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
+	// Check runtime workflow manifest is not empty
+	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
+
+	expectedRun := &run_model.APIRun{
+		ID:          runDetail.Run.ID,
+		Name:        "hello world",
+		Description: "this is hello world",
+		Status:      runDetail.Run.Status,
+		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       pipelineId,
+			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Relationship: run_model.APIRelationshipOWNER,
+			},
+		},
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+	}
+	assert.Equal(t, expectedRun, runDetail.Run)
+}
+
+func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string) {
+	argParamsBytes, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
+	assert.Nil(t, err)
+	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
+	assert.Nil(t, err)
+	// Check runtime workflow manifest is not empty
+	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
+	expectedRun := &run_model.APIRun{
+		ID:          runDetail.Run.ID,
+		Name:        "argument parameter",
+		Description: "this is argument parameter",
+		Status:      runDetail.Run.Status,
+		PipelineSpec: &run_model.APIPipelineSpec{
+			WorkflowManifest: string(argParamsBytes),
+			Parameters: []*run_model.APIParameter{
+				{Name: "param1", Value: "goodbye"},
+				{Name: "param2", Value: "world"},
+			},
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Relationship: run_model.APIRelationshipOWNER,
+			},
+		},
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+	}
+	assert.Equal(t, expectedRun, runDetail.Run)
+}
+
+func TestRunApi(t *testing.T) {
+	suite.Run(t, new(RunApiTestSuite))
+}
