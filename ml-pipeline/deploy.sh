@@ -51,6 +51,9 @@ DEPLOY_ARGO="true"
 # Whether to include kubeflow or not.
 WITH_KUBEFLOW="true"
 
+# The platform to deploy to. By default it's GCP
+PLATFORM="gcp"
+
 # Whether this is an install or uninstall.
 UNINSTALL=false
 
@@ -64,6 +67,7 @@ usage()
     [-u | --ui_image ml-pipeline frontend UI docker image]
     [-r | --report_usage deploy roles or not. Roles are needed for GKE]
     [--with_kubeflow whether to include kubeflow or not]
+    [--platform what cloud platform to deploy to]
     [--deploy_argo whether to deploy argo or not]
     [--uninstall uninstall ml pipeline]
     [-h help]"
@@ -91,6 +95,9 @@ while [ "$1" != "" ]; do
                                              ;;
         --with_kubeflow )                    shift
                                              WITH_KUBEFLOW=$1
+                                             ;;
+        --platform )                         shift
+                                             PLATFORM=$1
                                              ;;
         --deploy_argo )                      shift
                                              DEPLOY_ARGO=$1
@@ -154,11 +161,20 @@ fi
 ( cd ${APP_DIR} && ks param set ml-pipeline report_usage ${REPORT_USAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
 
+# Get current active service account and create a user-gcp-sa secret with the service key
+if [ "$PLATFORM" = "gcp" ]; then
+  gcloud services enable servicemanagement.googleapis.com iam.googleapis.com
+  SERVICE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
+  gcloud iam service-accounts keys create service_account_key --iam-account $SERVICE_ACCOUNT
+  kubectl create secret generic --namespace=${NAMESPACE} user-gcp-sa --from-file=user-gcp-sa.json=service_account_key
+  rm service_account_key
+fi
+
 if [ "$WITH_KUBEFLOW" = true ]; then
   # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
   # https://github.com/kubeflow/kubeflow/blob/master/scripts/deploy.sh#L43
   mkdir -p ${KF_DIR}
-  # We use kubeflow v0.3.0 by default
+  # We use kubeflow v0.3.2 by default
   KUBEFLOW_VERSION=${KUBEFLOW_VERSION:-"v0.3.2"}
   (cd ${KF_DIR} && curl -L -o kubeflow.tar.gz https://github.com/kubeflow/kubeflow/archive/${KUBEFLOW_VERSION}.tar.gz)
   tar -xzf ${KF_DIR}/kubeflow.tar.gz  -C ${KF_DIR}
@@ -172,6 +188,9 @@ fi
 
 if ${UNINSTALL} ; then
   ( cd ${APP_DIR} && ks delete default)
+  if [ "$PLATFORM" = "gcp" ]; then
+    kubectl delete secret --namespace=${NAMESPACE} user-gcp-sa
+  fi
   if [ "$WITH_KUBEFLOW" = true ]; then
     KUBEFLOW_REPO=$(find ${KF_DIR} -maxdepth 1 -type d -name "kubeflow*")
     # Uninstall Kubeflow
