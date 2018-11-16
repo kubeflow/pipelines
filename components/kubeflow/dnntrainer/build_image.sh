@@ -43,9 +43,9 @@ if [ -z "${TAG_NAME}" ]; then
 fi
 
 mkdir -p ./build
-rsync -arvp "../../dnntrainer"/ ./build/
-cp ../../../license.sh ./build
-cp ../../../third_party_licenses.csv ./build
+rsync -arvp ./src/ ./build/
+cp ../../license.sh ./build
+cp ../../third_party_licenses.csv ./build
 
 docker build -t ${LOCAL_IMAGE_NAME} .
 if [ -z "${IMAGE_NAME}" ]; then
