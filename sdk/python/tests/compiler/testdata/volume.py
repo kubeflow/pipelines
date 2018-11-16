@@ -27,6 +27,7 @@ def volume_pipeline():
       image='google/cloud-sdk',
       command=['sh', '-c'],
       arguments=['ls | tee /tmp/results.txt'],
+      file_outputs={'downloaded': '/tmp/results.txt'},
       volumes=[k8s_client.V1Volume(name='gcp-credentials',
                                  secret=k8s_client.V1SecretVolumeSource(
                                      secret_name='user-gcp-sa'))],
@@ -34,9 +35,7 @@ def volume_pipeline():
           mount_path='/secret/gcp-credentials', name='gcp-credentials')],
       env_variables=[k8s_client.V1EnvVar(
           name='GOOGLE_APPLICATION_CREDENTIALS',
-          value='/secret/gcp-credentials/user-gcp-sa.json',
-      )],
-      file_outputs={'downloaded': '/tmp/results.txt'})
+          value='/secret/gcp-credentials/user-gcp-sa.json')])
   op2 = dsl.ContainerOp(
       name='echo',
       image='library/bash',
