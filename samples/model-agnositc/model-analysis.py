@@ -27,7 +27,6 @@ def dataflow_tf_model_analyze_op(csv_eval_path_with_predict: 'GscUri', schema: '
             '--schema_path', schema,
             '--output', output,
         ],
-        file_outputs = {'analysis': '/output.txt'}
     )
 
 @dsl.pipeline(
