@@ -35,7 +35,7 @@ class TestCompiler(unittest.TestCase):
       msg2 = dsl.PipelineParam('msg2', value='value2')
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
-                           file_outputs={'merged': '/tmp/message.txt'})
+                           file_outputs={'merged': '/tmp/message.txt'}, gcp_secret='user-gcp-sa')
     golden_output = {
       'container': {
         'image': 'image',
@@ -43,6 +43,18 @@ class TestCompiler(unittest.TestCase):
           'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
         ],
         'command': ['sh', '-c'],
+        'env': [
+          {
+            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+            'value': '/secret/gcp-credentials/user-gcp-sa.json'
+          }
+        ],
+        'volumeMounts':[
+          {
+            'mountPath': '/secret/gcp-credentials',
+            'name': 'echo-gcp-credentials'
+          }
+        ]
       },
       'inputs': {'parameters':
         [
@@ -225,4 +237,8 @@ class TestCompiler(unittest.TestCase):
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile('default_value')
+
+  def test_py_secret(self):
+    """Test a pipeline with a GCP secret."""
+    self._test_py_compile('secret')
 

@@ -57,6 +57,6 @@ RUN cd /src && \
     cd kubeflow && \
     git checkout ${KUBEFLOW_VERSION}
 
-ADD deploy.sh /bin/.
+ADD ./src/deploy.sh /bin/.
 
 ENTRYPOINT ["/bin/deploy.sh"]

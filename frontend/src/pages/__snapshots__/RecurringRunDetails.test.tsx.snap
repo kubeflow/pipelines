@@ -1,0 +1,153 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <div
+      className="header"
+    >
+      Recurring run details
+    </div>
+    <Component
+      fields={
+        Array [
+          Array [
+            "Description",
+            "test job description",
+          ],
+          Array [
+            "Created at",
+            "2018-9-5 04:03:02",
+          ],
+        ]
+      }
+    />
+    <div
+      className="header"
+    >
+      Run trigger
+    </div>
+    <Component
+      fields={
+        Array [
+          Array [
+            "Enabled",
+            "Yes",
+          ],
+          Array [
+            "Trigger",
+            "* * * 0 0 !",
+          ],
+          Array [
+            "Max. concurrent runs",
+            "50",
+          ],
+          Array [
+            "Start time",
+            "2018-10-8 07:06:00",
+          ],
+          Array [
+            "End time",
+            "2018-11-9 08:07:06",
+          ],
+        ]
+      }
+    />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <Component
+      fields={
+        Array [
+          Array [
+            "param1",
+            "value1",
+          ],
+        ]
+      }
+    />
+  </div>
+</div>
+`;
+
+exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <div
+      className="header"
+    >
+      Recurring run details
+    </div>
+    <Component
+      fields={
+        Array [
+          Array [
+            "Description",
+            "test job description",
+          ],
+          Array [
+            "Created at",
+            "2018-9-5 04:03:02",
+          ],
+        ]
+      }
+    />
+    <div
+      className="header"
+    >
+      Run trigger
+    </div>
+    <Component
+      fields={
+        Array [
+          Array [
+            "Enabled",
+            "Yes",
+          ],
+          Array [
+            "Trigger",
+            "Every 1 hours",
+          ],
+          Array [
+            "Max. concurrent runs",
+            "50",
+          ],
+          Array [
+            "Start time",
+            "2018-10-8 07:06:00",
+          ],
+          Array [
+            "End time",
+            "2018-11-9 08:07:06",
+          ],
+        ]
+      }
+    />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <Component
+      fields={
+        Array [
+          Array [
+            "param1",
+            "value1",
+          ],
+        ]
+      }
+    />
+  </div>
+</div>
+`;
