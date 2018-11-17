@@ -160,8 +160,8 @@ class ContainerOp(object):
 
     Args:
       volumes: a list of Kubernetes volumes
-      For detailed spec, check
-      https://github.com/kubernetes-client/python/tree/master/kubernetes/client/models
+      For detailed spec, check volume definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
     """
 
     self.volumes = volumes
@@ -171,8 +171,8 @@ class ContainerOp(object):
 
     Args:
       volume_mounts: a list of Kubernetes volume mounts
-      For detailed spec, check
-      https://github.com/kubernetes-client/python/tree/master/kubernetes/client/models
+      For detailed spec, check volume mount definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume_mount.py
     """
 
     self.volume_mounts = volume_mounts
@@ -182,8 +182,8 @@ class ContainerOp(object):
 
     Args:
       env_variables: a list of Kubernetes environment variable
-      For detailed spec, check
-      https://github.com/kubernetes-client/python/tree/master/kubernetes/client/models
+      For detailed spec, check environment variable definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_env_var.py
     """
 
     self.env_variables = env_variables
