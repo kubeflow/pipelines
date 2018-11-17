@@ -74,11 +74,13 @@ class TestDependencyHelper(unittest.TestCase):
     dependency_helper = DependencyHelper()
     dependency_helper.add_python_package(dependency=VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'))
     dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.6.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='pytorch', max_version='0.3.0'))
     dependency_helper.generate_pip_requirements(temp_file)
 
     golden_requirement_payload = '''\
 tensorflow >= 0.10.0, <= 0.11.0
 kubernetes >= 0.6.0
+pytorch <= 0.3.0
 '''
     with open(temp_file, 'r') as f:
       target_requirement_payload = f.read()

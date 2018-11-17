@@ -133,10 +133,10 @@ class DependencyHelper(object):
       for name, version in self.python_packages.items():
         version_str = ''
         if version.has_min_version():
-          version_str += ' >= ' + version.min_version
+          version_str += ' >= ' + version.min_version + ','
         if version.has_max_version():
-          version_str += ', <= ' + version.max_version
-        f.write(name + version_str + '\n')
+          version_str += ' <= ' + version.max_version + ','
+        f.write(name + version_str.rstrip(',') + '\n')
 
 class DockerfileHelper(object):
   """ Dockerfile Helper generates a tarball with dockerfile, ready for docker build
