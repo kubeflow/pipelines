@@ -301,16 +301,22 @@ def _configure_logger(logger):
   logger.addHandler(info_handler)
   logger.addHandler(error_handler)
 
-def _generate_pythonop(component_func, target_image):
+def _generate_pythonop(component_func, target_image, target_component_file=None):
   """ Generate operator for the pipeline authors
-  component_meta is a dict of name, description, base_image, target_image, input_list
   The returned value is in fact a function, which should generates a container_op instance. """
-  component_meta = dsl.PythonComponent.get_python_component(component_func)
+
+  from ..components._python_op import _python_function_name_to_component_name
+
+  #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
+  #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
+  component_name = getattr(component_func, '_component_human_name', None) or _python_function_name_to_component_name(component_func.__name__)
+  component_description = getattr(component_func, '_component_description', None) or (component_func.__doc__.strip() if component_func.__doc__ else None)
+
   input_names = inspect.getfullargspec(component_func)[0]
 
   component_artifact = {}
-  component_artifact['name'] = component_meta['name']
-  component_artifact['description'] = component_meta['description']
+  component_artifact['name'] = component_name
+  component_artifact['description'] = component_description
   component_artifact['outputs'] = [{'name': 'output'}]
   component_artifact['inputs'] = []
   component_artifact['implementation'] = {
@@ -328,14 +334,23 @@ def _generate_pythonop(component_func, target_image):
       'type': 'str'
     })
     component_artifact['implementation']['dockerContainer']['arguments'].append({'value': input})
+  
+  target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
+  if target_component_file:
+    from ..components._yaml_utils import dump_yaml
+    component_text = dump_yaml(component_artifact)
+    Path(target_component_file).write_text(component_text)
+
   return _create_task_factory_from_component_dict(component_artifact)
 
-def build_python_component(component_func, staging_gcs_path, target_image, build_image=True, timeout=600, namespace='kubeflow'):
+def build_python_component(component_func, target_image, base_image=None, staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
   Args:
     component_func (python function): The python function to build components upon
+    base_image (str): Docker image to use as a base image
+    target_image (str): Full URI to push the target image
     staging_gcs_path (str): GCS blob that can store temporary build files
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
@@ -344,23 +359,32 @@ def build_python_component(component_func, staging_gcs_path, target_image, build
   Raises:
     ValueError: The function is not decorated with python_component decorator
   """
-  _configure_logger(logging.getLogger())
-  component_meta = dsl.PythonComponent.get_python_component(component_func)
-  component_meta['inputs'] = inspect.getfullargspec(component_func)[0]
 
-  if component_meta is None:
-    raise ValueError('The function "%s" does not exist. '
-                     'Did you forget @dsl.python_component decoration?' % component_func)
-  logging.info('Build an image that is based on ' +
-                                   component_meta['base_image'] +
+  _configure_logger(logging.getLogger())
+
+  if component_func is None:
+    raise ValueError('component_func must not be None')
+  if target_image is None:
+    raise ValueError('target_image must not be None')
+
+  if build_image:
+    if staging_gcs_path is None:
+      raise ValueError('staging_gcs_path must not be None')
+
+    if base_image is None:
+      base_image = getattr(component_func, '_component_base_image', None)
+    if base_image is None:
+      raise ValueError('base_image must not be None')
+
+    logging.info('Build an image that is based on ' +
+                                   base_image +
                                    ' and push the image to ' +
                                    target_image)
-  if build_image:
     builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
     builder.build_image_from_func(component_func, namespace=namespace,
-                                  base_image=component_meta['base_image'], timeout=timeout)
+                                  base_image=base_image, timeout=timeout)
     logging.info('Build component complete.')
-  return _generate_pythonop(component_func, target_image)
+  return _generate_pythonop(component_func, target_image, target_component_file)
 
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
