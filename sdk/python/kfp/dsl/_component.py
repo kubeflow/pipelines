@@ -12,50 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def python_component(name, description, base_image):
-  """Decorator of component functions.
+def python_component(name, description=None, base_image=None, target_component_file: str = None):
+  """Decorator for Python component functions.
+  This decorator adds the metadata to the function object itself.
+
+  Args:
+      name: Human-readable name of the component
+      description: Optional. Description of the component
+      base_image: Optional. Docker container image to use as the base of the component. Needs to have Python 3.5+ installed.
+      target_component_file: Optional. Local file to store the component definition. The file can then be used for sharing.
+
+  Returns:
+      The same function (with some metadata fields set).
 
   Usage:
   ```python
   @dsl.python_component(
     name='my awesome component',
-    description='Come, Let's play'
-    base_image='tensorflow/tensorflow'
+    description='Come, Let's play',
+    base_image='tensorflow/tensorflow:1.11.0-py3',
   )
   def my_component(a: str, b: int) -> str:
     ...
   ```
   """
   def _python_component(func):
-    PythonComponent.add_python_component(name, description, base_image, func)
+    func._component_human_name = name
+    if description:
+      func._component_description = description
+    if base_image:
+      func._component_base_image = base_image
+    if target_component_file:
+      func._component_target_component_file = target_component_file
     return func
 
   return _python_component
-
-class PythonComponent():
-  """A pipeline contains a list of operators.
-
-  This class is not supposed to be used by component authors since component authors can use
-  component functions (decorated with @python_component) to reference their pipelines. This class
-  is useful for implementing a compiler. For example, the compiler can use the following
-  to get the PythonComponent object:
-  """
-
-
-  # All pipeline functions with @pipeline decorator that are imported.
-  # Each key is a pipeline function. Each value is a dictionary of name, description, base_image.
-  _component_functions = {}
-
-  @staticmethod
-  def add_python_component(name, description, base_image, func):
-    """ Add a python component """
-    PythonComponent._component_functions[func] = {
-      'name': name,
-      'description': description,
-      'base_image': base_image
-    }
-
-  @staticmethod
-  def get_python_component(func):
-    """ Get a python component """
-    return PythonComponent._component_functions.get(func, None)

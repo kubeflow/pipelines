@@ -229,7 +229,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       lineNumbers: true,
                       lineWrapping: true,
                       mode: 'text/yaml',
-                      readOnly: 'nocursor',
+                      readOnly: true,
                       theme: 'default',
                     }}
                   />
