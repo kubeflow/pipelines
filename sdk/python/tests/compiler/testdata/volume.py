@@ -14,23 +14,30 @@
 
 
 import kfp.dsl as dsl
+from kubernetes import client as k8s_client
 
 
 @dsl.pipeline(
-    name='GCP Secret',
-    description='A pipeline with gcp secret.'
+    name='Volume',
+    description='A pipeline with volume.'
 )
-def gcp_secret_pipeline():
+def volume_pipeline():
   op1 = dsl.ContainerOp(
       name='download',
       image='google/cloud-sdk',
       command=['sh', '-c'],
       arguments=['ls | tee /tmp/results.txt'],
-      gcp_secret='user-gcp-sa',
       file_outputs={'downloaded': '/tmp/results.txt'})
+  op1.set_volumes([k8s_client.V1Volume(name='gcp-credentials',
+                                       secret=k8s_client.V1SecretVolumeSource(
+                                           secret_name='user-gcp-sa'))])
+  op1.set_volume_mounts([k8s_client.V1VolumeMount(
+      mount_path='/secret/gcp-credentials', name='gcp-credentials')])
+  op1.set_env_variables([k8s_client.V1EnvVar(
+      name='GOOGLE_APPLICATION_CREDENTIALS',
+      value='/secret/gcp-credentials/user-gcp-sa.json')])
   op2 = dsl.ContainerOp(
       name='echo',
       image='library/bash',
       command=['sh', '-c'],
-      arguments=['echo %s' % op1.output],
-      gcp_secret='admin-gcp-sa')
+      arguments=['echo %s' % op1.output])
