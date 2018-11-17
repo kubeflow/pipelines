@@ -150,7 +150,7 @@ class Client(object):
     
     if self._is_ipython():
       import IPython
-      html = ('Job link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
+      html = ('Run link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
               % response.run.id)
       IPython.display.display(IPython.display.HTML(html))
     return response.run
