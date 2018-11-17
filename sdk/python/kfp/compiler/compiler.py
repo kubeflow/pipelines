@@ -144,19 +144,10 @@ class Compiler(object):
       if op.cpu_request:
         template['container']['resources']['requests']['cpu'] = op.cpu_request
 
-    if op.gcp_secret:
-      template['container']['env'] = [
-        {
-          'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-          'value': ('/secret/gcp-credentials/%s.json' % op.gcp_secret),
-        },
-      ]
-      template['container']['volumeMounts'] = [
-        {
-          'name': op.name + '-gcp-credentials',
-          'mountPath': '/secret/gcp-credentials',
-        },
-      ]
+    if op.env_variables:
+      template['container']['env'] = list(map(self._convert_k8s_obj_to_dic, op.env_variables))
+    if op.volume_mounts:
+      template['container']['volumeMounts'] = list(map(self._convert_k8s_obj_to_dic, op.volume_mounts))
     return template
 
   def _get_groups_for_ops(self, root_group):
@@ -441,14 +432,9 @@ class Compiler(object):
     """Create volumes required for the templates"""
     volumes = []
     for op in pipeline.ops.values():
-      if op.gcp_secret:
-        volume = {
-          'name': op.name + '-gcp-credentials',
-          'secret': {
-            'secretName': op.gcp_secret,
-          }
-        }
-        volumes.append(volume)
+      if op.volumes:
+        for v in op.volumes:
+          volumes.append(self._convert_k8s_obj_to_dic(v))
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
@@ -547,6 +533,55 @@ class Compiler(object):
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
+
+  def _convert_k8s_obj_to_dic(self, obj):
+    """
+    Builds a JSON K8s object.
+
+    If obj is None, return None.
+    If obj is str, int, long, float, bool, return directly.
+    If obj is datetime.datetime, datetime.date
+        convert to string in iso8601 format.
+    If obj is list, sanitize each element in the list.
+    If obj is dict, return the dict.
+    If obj is swagger model, return the properties dict.
+
+    Args:
+      obj: The data to serialize.
+    Returns: The serialized form of data.
+    """
+
+    from six import text_type, integer_types
+    PRIMITIVE_TYPES = (float, bool, bytes, text_type) + integer_types
+    from datetime import date, datetime
+    if obj is None:
+      return None
+    elif isinstance(obj, PRIMITIVE_TYPES):
+      return obj
+    elif isinstance(obj, list):
+      return [self._convert_k8s_obj_to_dic(sub_obj)
+              for sub_obj in obj]
+    elif isinstance(obj, tuple):
+      return tuple(self._convert_k8s_obj_to_dic(sub_obj)
+                   for sub_obj in obj)
+    elif isinstance(obj, (datetime, date)):
+      return obj.isoformat()
+
+    if isinstance(obj, dict):
+      obj_dict = obj
+    else:
+      # Convert model obj to dict except
+      # attributes `swagger_types`, `attribute_map`
+      # and attributes which value is not None.
+      # Convert attribute name to json key in
+      # model definition for request.
+      from six import iteritems
+      obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
+                  for attr, _ in iteritems(obj.swagger_types)
+                  if getattr(obj, attr) is not None}
+
+    return {key: self._convert_k8s_obj_to_dic(val)
+            for key, val in iteritems(obj_dict)}
 
   def compile(self, pipeline_func, package_path):
     """Compile the given pipeline function into workflow yaml.
