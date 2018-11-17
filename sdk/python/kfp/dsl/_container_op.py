@@ -156,17 +156,35 @@ class ContainerOp(object):
     self.cpu_limit = cpu
 
   def set_volumes(self, volumes):
-    """Specifying what K8s volumes the container depends on"""
+    """Specifying what K8s volumes the container depends on
+
+    Args:
+      volumes: a list of Kubernetes volumes
+      For detailed spec, check
+      https://github.com/kubernetes-client/python/tree/master/kubernetes/client/models
+    """
 
     self.volumes = volumes
 
   def set_volume_mounts(self, volume_mounts):
-    """Specifying how volumes are mounted to the container"""
+    """Specifying how volumes are mounted to the container
+
+    Args:
+      volume_mounts: a list of Kubernetes volume mounts
+      For detailed spec, check
+      https://github.com/kubernetes-client/python/tree/master/kubernetes/client/models
+    """
 
     self.volume_mounts = volume_mounts
 
   def set_env_variables(self, env_variables):
-    """Set environment variables available in the container."""
+    """Set environment variables available in the container.
+
+    Args:
+      env_variables: a list of Kubernetes environment variable
+      For detailed spec, check
+      https://github.com/kubernetes-client/python/tree/master/kubernetes/client/models
+    """
 
     self.env_variables = env_variables
 

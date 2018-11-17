@@ -145,15 +145,9 @@ class Compiler(object):
         template['container']['resources']['requests']['cpu'] = op.cpu_request
 
     if op.env_variables:
-      env_variables = []
-      for e in op.env_variables:
-        env_variables.append(self._convert_k8s_obj_to_dic(e))
-      template['container']['env'] = env_variables
+      template['container']['env'] = list(map(self._convert_k8s_obj_to_dic, op.env_variables))
     if op.volume_mounts:
-      volume_mounts = []
-      for vm in op.volume_mounts:
-        volume_mounts.append(self._convert_k8s_obj_to_dic(vm))
-      template['container']['volumeMounts'] = volume_mounts
+      template['container']['volumeMounts'] = list(map(self._convert_k8s_obj_to_dic, op.volume_mounts))
     return template
 
   def _get_groups_for_ops(self, root_group):
@@ -552,8 +546,9 @@ class Compiler(object):
     If obj is dict, return the dict.
     If obj is swagger model, return the properties dict.
 
-    :param obj: The data to serialize.
-    :return: The serialized form of data.
+    Args:
+      obj: The data to serialize.
+    Returns: The serialized form of data.
     """
 
     from six import text_type, integer_types
