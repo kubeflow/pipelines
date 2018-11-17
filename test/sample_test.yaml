@@ -57,6 +57,8 @@ spec:
       value: local-roc
     - name: sample-tests-image-suffix
       value: sample-tests
+    - name: namespace
+      value: kubeflow
   templates:
   - name: sample-test
     inputs:
@@ -83,6 +85,7 @@ spec:
       - name: local-confusionmatrix-image-suffix
       - name: local-roc-image-suffix
       - name: sample-tests-image-suffix
+      - name: namespace
     steps:
     - - name: get-project
         template: get-project
@@ -318,6 +321,8 @@ spec:
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
           - name: sample-tests-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: namespace
+            value: "{{inputs.parameters.namespace}}"
           - name: test-name
             value: "tf-training"
       - name: run-tfx-tests
@@ -358,6 +363,8 @@ spec:
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
           - name: sample-tests-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: namespace
+            value: "{{inputs.parameters.namespace}}"
           - name: test-name
             value: "tfx"
       - name: run-xgboost-tests
@@ -398,6 +405,8 @@ spec:
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
           - name: sample-tests-image
             value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: namespace
+            value: "{{inputs.parameters.namespace}}"
           - name: test-name
             value: "xgboost"
   - name: get-project
@@ -507,6 +516,7 @@ spec:
       - name: local-confusionmatrix-image
       - name: local-roc-image
       - name: sample-tests-image
+      - name: namespace
       - name: test-name
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
@@ -527,6 +537,7 @@ spec:
         "--kubeflow-deployer-image","{{inputs.parameters.kubeflow-deployer-image}}",
         "--local-confusionmatrix-image", "{{inputs.parameters.local-confusionmatrix-image}}",
         "--local-roc-image", "{{inputs.parameters.local-roc-image}}",
+        "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
 

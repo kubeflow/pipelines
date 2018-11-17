@@ -35,6 +35,8 @@ spec:
       value: basic-e2e-tests
     - name: cluster-type
       value: gke
+    - name: namespace
+      value: kubeflow
   templates:
   - name: integration-test
     inputs:
@@ -49,6 +51,7 @@ spec:
       - name: api-integration-test-image-suffix
       - name: frontend-integration-tests-image-suffix
       - name: basic-e2e-tests-image-suffix
+      - name: namespace
     steps:
     - - name: get-project
         template: get-project
@@ -136,6 +139,8 @@ spec:
 #            value: "{{inputs.parameters.test-results-gcs-dir}}"
 #          - name: sample-tests-image
 #            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+#          - name: namespace
+#            value: "{{inputs.parameters.namespace}}"
 #          - name: test-name
 #            value: "condition"
 #      - name: run-exit-handler-tests
@@ -148,6 +153,8 @@ spec:
 #            value: "{{inputs.parameters.test-results-gcs-dir}}"
 #          - name: sample-tests-image
 #            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+#          - name: namespace
+#            value: "{{inputs.parameters.namespace}}"
 #          - name: test-name
 #            value: "exithandler"
 #      - name: run-sequential-tests
@@ -160,6 +167,8 @@ spec:
 #            value: "{{inputs.parameters.test-results-gcs-dir}}"
 #          - name: sample-tests-image
 #            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+#          - name: namespace
+#            value: "{{inputs.parameters.namespace}}"
 #          - name: test-name
 #            value: "sequential"
 #      - name: run-immediate-value-tests
@@ -172,6 +181,8 @@ spec:
 #            value: "{{inputs.parameters.test-results-gcs-dir}}"
 #          - name: sample-tests-image
 #            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+#          - name: namespace
+#            value: "{{inputs.parameters.namespace}}"
 #          - name: test-name
 #            value: "immediatevalue"
 #      - name: run-parallel-join-tests
@@ -184,6 +195,8 @@ spec:
 #            value: "{{inputs.parameters.test-results-gcs-dir}}"
 #          - name: sample-tests-image
 #            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+#          - name: namespace
+#            value: "{{inputs.parameters.namespace}}"
 #          - name: test-name
 #            value: "paralleljoin"
 
@@ -277,12 +290,14 @@ spec:
       - name: commit-sha
       - name: test-results-gcs-dir
       - name: sample-tests-image
+      - name: namespace
       - name: test-name
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
 
