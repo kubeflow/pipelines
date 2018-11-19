@@ -36,7 +36,6 @@ interface PipelineSelectorState {
 
 class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSelectorState> {
   protected _isMounted = true;
-  private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
@@ -74,8 +73,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
         <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
           updateSelection={this._pipelineSelectionChanged.bind(this)}
-          initialSortColumn={PipelineSortKeys.CREATED_AT} ref={this._tableRef}
-          reload={this._loadPipelines.bind(this)}
+          initialSortColumn={PipelineSortKeys.CREATED_AT} reload={this._loadPipelines.bind(this)}
           emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
       </React.Fragment>
     );

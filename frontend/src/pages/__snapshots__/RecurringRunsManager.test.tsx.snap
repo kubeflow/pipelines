@@ -1,0 +1,92 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
+<Fragment>
+  <Toolbar
+    actions={Array []}
+    breadcrumbs={
+      Array [
+        Object {
+          "displayName": "Recurring runs",
+          "href": "",
+        },
+      ]
+    }
+  />
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 2,
+          "label": "Run name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 2,
+          "label": "Created at",
+          "sortKey": "created_at",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "",
+        },
+      ]
+    }
+    disableSelection={true}
+    emptyMessage="No recurring runs found in this experiment."
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "id": undefined,
+          "otherFields": Array [
+            "test recurring run name",
+            "2018-11-9 08:07:06",
+            true,
+          ],
+        },
+        Object {
+          "error": undefined,
+          "id": undefined,
+          "otherFields": Array [
+            "test recurring run name2",
+            "2018-11-9 08:07:06",
+            false,
+          ],
+        },
+        Object {
+          "error": undefined,
+          "id": undefined,
+          "otherFields": Array [
+            "test recurring run name3",
+            "2018-11-9 08:07:06",
+            undefined,
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    updateSelection={[Function]}
+  />
+</Fragment>
+`;
+
+exports[`RecurringRunsManager renders run name as link to its details page 1`] = `
+<Link
+  className="link"
+  replace={false}
+  to="/recurringrun/details/run-id"
+>
+  <a
+    className="link"
+    href="/recurringrun/details/run-id"
+    onClick={[Function]}
+  >
+    test-run
+  </a>
+</Link>
+`;
