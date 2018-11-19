@@ -24,18 +24,25 @@ import tempfile
 import unittest
 import yaml
 
-
 class TestCompiler(unittest.TestCase):
 
   def test_operator_to_template(self):
     """Test converting operator to template"""
+
+    from kubernetes import client as k8s_client
 
     with dsl.Pipeline('somename') as p:
       msg1 = dsl.PipelineParam('msg1')
       msg2 = dsl.PipelineParam('msg2', value='value2')
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
-                           file_outputs={'merged': '/tmp/message.txt'}, gcp_secret='user-gcp-sa')
+                           file_outputs={'merged': '/tmp/message.txt'})
+      op.set_volume_mounts([k8s_client.V1VolumeMount(
+          mount_path='/secret/gcp-credentials',
+          name='gcp-credentials')])
+      op.set_env_variables([k8s_client.V1EnvVar(
+          name='GOOGLE_APPLICATION_CREDENTIALS',
+          value='/secret/gcp-credentials/user-gcp-sa.json')])
     golden_output = {
       'container': {
         'image': 'image',
@@ -52,7 +59,7 @@ class TestCompiler(unittest.TestCase):
         'volumeMounts':[
           {
             'mountPath': '/secret/gcp-credentials',
-            'name': 'echo-gcp-credentials'
+            'name': 'gcp-credentials',
           }
         ]
       },
@@ -238,7 +245,6 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile('default_value')
 
-  def test_py_secret(self):
-    """Test a pipeline with a GCP secret."""
-    self._test_py_compile('secret')
-
+  def test_py_volume(self):
+    """Test a pipeline with a volume and volume mount."""
+    self._test_py_compile('volume')

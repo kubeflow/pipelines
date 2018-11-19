@@ -14,4 +14,4 @@
 
 
 from .compiler import Compiler
-from ._component_builder import build_python_component, build_docker_image
+from ._component_builder import build_python_component, build_docker_image, VersionedDependency
