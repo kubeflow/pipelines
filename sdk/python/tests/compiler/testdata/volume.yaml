@@ -30,6 +30,8 @@ spec:
       env:
       - name: GOOGLE_APPLICATION_CREDENTIALS
         value: /secret/gcp-credentials/user-gcp-sa.json
+      - name: Foo
+        value: bar
       image: google/cloud-sdk
       volumeMounts:
       - mountPath: /secret/gcp-credentials

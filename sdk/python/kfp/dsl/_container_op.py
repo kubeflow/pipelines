@@ -58,9 +58,9 @@ class ContainerOp(object):
     self.memory_request = None
     self.cpu_limit = None
     self.cpu_request = None
-    self.volumes = None
-    self.volume_mounts = None
-    self.env_variables = None
+    self.volumes = []
+    self.volume_mounts = []
+    self.env_variables = []
 
     matches = []
     if arguments:
@@ -155,38 +155,38 @@ class ContainerOp(object):
     self._validate_cpu_string(cpu)
     self.cpu_limit = cpu
 
-  def set_volumes(self, volumes):
-    """Specifying what K8s volumes the container depends on
+  def add_volume(self, volume):
+    """Add K8s volume to the container
 
     Args:
-      volumes: a list of Kubernetes volumes
+      volume: Kubernetes volumes
       For detailed spec, check volume definition
       https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
     """
 
-    self.volumes = volumes
+    self.volumes.append(volume)
 
-  def set_volume_mounts(self, volume_mounts):
-    """Specifying how volumes are mounted to the container
+  def add_volume_mount(self, volume_mount):
+    """Add volume to the container
 
     Args:
-      volume_mounts: a list of Kubernetes volume mounts
+      volume_mount: Kubernetes volume mount
       For detailed spec, check volume mount definition
       https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume_mount.py
     """
 
-    self.volume_mounts = volume_mounts
+    self.volume_mounts.append(volume_mount)
 
-  def set_env_variables(self, env_variables):
-    """Set environment variables available in the container.
+  def add_env_variable(self, env_variable):
+    """Add environment variable to the container.
 
     Args:
-      env_variables: a list of Kubernetes environment variable
+      env_variable: Kubernetes environment variable
       For detailed spec, check environment variable definition
       https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_env_var.py
     """
 
-    self.env_variables = env_variables
+    self.env_variables.append(env_variable)
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
