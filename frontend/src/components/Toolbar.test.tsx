@@ -115,7 +115,8 @@ describe('Toolbar', () => {
       tooltip: 'test tooltip',
     }];
 
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} pageTitle=''
+      history={history} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -128,7 +129,8 @@ describe('Toolbar', () => {
       tooltip: 'test tooltip',
     }];
 
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} pageTitle=''
+      history={history} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -142,13 +144,14 @@ describe('Toolbar', () => {
       tooltip: 'test tooltip',
     }];
 
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} pageTitle=''
+      history={history} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders with two breadcrumbs and two actions', () => {
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} history={history}
-      pageTitle='' />);
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} pageTitle=''
+      history={history} />);
     expect(tree).toMatchSnapshot();
   });
 });
