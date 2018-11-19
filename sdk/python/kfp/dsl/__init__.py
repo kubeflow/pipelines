@@ -17,4 +17,4 @@ from ._pipeline_param import PipelineParam
 from ._pipeline import Pipeline, pipeline
 from ._container_op import ContainerOp
 from ._ops_group import OpsGroup, ExitHandler, Condition
-from ._component import PythonComponent, python_component
+from ._component import python_component
