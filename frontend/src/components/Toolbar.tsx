@@ -157,7 +157,7 @@ class Toolbar extends React.Component<ToolbarProps> {
                 <BusyButton id={b.id} color='secondary' onClick={b.action} disabled={b.disabled}
                   title={b.title} icon={b.icon} busy={b.busy || false}
                   outlined={(b.outlined && !b.primary) || false}
-                  className={b.primary ? commonCss.buttonAction : ''}/>
+                  className={b.primary ? commonCss.buttonAction : ''} />
               </div>
             </Tooltip>
           ))}
