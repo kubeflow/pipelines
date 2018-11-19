@@ -64,6 +64,7 @@ describe('PipelineSelector', () => {
     expect(listPipelinesSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
     expect(tree.state('pipelines')).toEqual(PIPELINES);
     expect(tree).toMatchSnapshot();
+    tree.unmount();
   });
 
   it('shows error dialog if listing fails', async () => {
@@ -77,6 +78,7 @@ describe('PipelineSelector', () => {
       title: 'Error retrieving pipelines',
     }));
     expect(tree.state('pipelines')).toEqual([]);
+    tree.unmount();
   });
 
   it('calls selection callback when a pipeline is selected', async () => {
@@ -86,6 +88,7 @@ describe('PipelineSelector', () => {
     (tree.instance() as TestPipelineSelector)._pipelineSelectionChanged(['pipeline-id']);
     expect(pipelineSelectionChangedCbSpy).toHaveBeenLastCalledWith('pipeline-id');
     expect(tree.state('selectedIds')).toEqual(['pipeline-id']);
+    tree.unmount();
   });
 
   it('logs error if more than one pipeline are selected', async () => {
@@ -97,5 +100,6 @@ describe('PipelineSelector', () => {
     expect(pipelineSelectionChangedCbSpy).not.toHaveBeenCalled();
     expect(tree.state('selectedIds')).toEqual([]);
     expect(consoleSpy).toHaveBeenCalled();
+    tree.unmount();
   });
 });
