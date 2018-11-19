@@ -105,11 +105,8 @@ const css = stylesheet({
     zIndex: 2,
   },
   summaryCard: {
-    backgroundColor: color.background,
     bottom: 20,
     left: 20,
-    maxHeight: 350,
-    overflow: 'auto',
     padding: 10,
     position: 'absolute',
     width: 500,
@@ -209,8 +206,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                         <div className={commonCss.header}>
                           Summary
                         </div>
-                        <Button onClick={() => this.setState({ summaryShown: !summaryShown })} color='secondary'>
-                          {summaryShown ? 'Hide' : 'Show'}
+                        <Button onClick={() => this.setState({ summaryShown: false })} color='secondary'>
+                          Hide
                         </Button>
                       </div>
                       <div className={css.summaryKey}>Uploaded on</div>
