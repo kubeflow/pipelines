@@ -37,12 +37,12 @@ class TestCompiler(unittest.TestCase):
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
                            file_outputs={'merged': '/tmp/message.txt'})
-      op.set_volume_mounts([k8s_client.V1VolumeMount(
+      op.add_volume_mount(k8s_client.V1VolumeMount(
           mount_path='/secret/gcp-credentials',
-          name='gcp-credentials')])
-      op.set_env_variables([k8s_client.V1EnvVar(
+          name='gcp-credentials'))
+      op.add_env_variable(k8s_client.V1EnvVar(
           name='GOOGLE_APPLICATION_CREDENTIALS',
-          value='/secret/gcp-credentials/user-gcp-sa.json')])
+          value='/secret/gcp-credentials/user-gcp-sa.json'))
     golden_output = {
       'container': {
         'image': 'image',
