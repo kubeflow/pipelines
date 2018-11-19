@@ -19,6 +19,7 @@ import 'codemirror/mode/yaml/yaml.js';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
+import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CloseIcon from '@material-ui/icons/Close';
@@ -125,9 +126,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return {
       actions: [{
         action: this._createNewExperiment.bind(this),
+        icon: AddIcon,
         id: 'startNewExperimentBtn',
-        // TODO: should be primary.
-        outlined: true,
+        primary: true,
         title: 'Start an experiment',
         tooltip: 'Create a new experiment beginning with this pipeline',
       }, {
