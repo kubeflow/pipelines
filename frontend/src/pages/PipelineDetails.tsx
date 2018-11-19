@@ -39,7 +39,7 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, padding } from '../Css';
+import { color, commonCss, padding, fontsize } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 
 interface PipelineDetailsState {
@@ -75,6 +75,9 @@ const css = stylesheet({
     },
     background: '#f7f7f7',
   },
+  fontSizeTitle: {
+    fontSize: fontsize.title,
+  },
   nodeName: {
     flexGrow: 1,
     textAlign: 'center',
@@ -104,6 +107,28 @@ const css = stylesheet({
   summaryKey: {
     color: color.strong,
     marginTop: 10,
+  },
+  task: {
+    paddingLeft: 10,
+  },
+  taskInfo: {
+    paddingLeft: 10,
+  },
+  taskInfoHeader: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    paddingBottom: 16,
+    paddingTop: 20,
+  },
+  taskName: {
+    fontSize: fontsize.large,
+    fontWeight: 'bold',
+    paddingTop: 20,
+  },
+  taskTitle: {
+    fontSize: fontsize.title,
+    fontWeight: 'bold',
+    paddingTop: 20,
   },
 });
 
@@ -304,54 +329,39 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   private _selectNode(id: string): void {
     let nodeInfoJsx: JSX.Element = <div>Unable to retrieve node info</div>;
-    const nodeInfo = StaticGraphParser.getNodeInfo(this.state.template, id);
+    const nodeInfo = this.state.graph!.node(id).info as StaticGraphParser.SelectedNodeInfo;
 
     if (!nodeInfo) {
       logger.error(`Node with ID: ${id} was not found in the graph`);
       return;
     }
 
-    switch (nodeInfo.nodeType) {
-      case 'container':
-        if (nodeInfo.containerInfo) {
-          // TODO: The headers for these DetailsTables should just be a part of DetailsTables
-          nodeInfoJsx =
-            <div>
-              <div className={commonCss.header}>Input parameters</div>
-              <DetailsTable fields={nodeInfo.containerInfo.inputs} />
+    // TODO: The headers for these DetailsTables should just be a part of DetailsTables
+    nodeInfoJsx =
+      <div>
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Input parameters</div>
+        <DetailsTable fields={nodeInfo.inputs} />
 
-              <div className={commonCss.header}>Output parameters</div>
-              <DetailsTable fields={nodeInfo.containerInfo.outputs} />
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Output parameters</div>
+        <DetailsTable fields={nodeInfo.outputs} />
 
-              <div className={commonCss.header}>Arguments</div>
-              {nodeInfo.containerInfo.args.map((arg, i) =>
-                <div key={i} style={{ fontFamily: 'mono' }}>{arg}</div>)}
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
+        {nodeInfo.args.map((arg, i) =>
+          <div key={i} style={{ fontFamily: 'mono' }}>{arg}</div>)}
 
-              <div className={commonCss.header}>Command</div>
-              {nodeInfo.containerInfo.command.map((c, i) => <div key={i}>{c}</div>)}
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Command</div>
+        {nodeInfo.command.map((c, i) => <div key={i}>{c}</div>)}
 
-              <div className={commonCss.header}>Image</div>
-              <div>{nodeInfo.containerInfo.image}</div>
-            </div>;
-        }
-        break;
-      case 'steps':
-        if (nodeInfo.stepsInfo) {
-          nodeInfoJsx =
-            <div>
-              <div className={commonCss.header}>Conditional</div>
-              <div>{nodeInfo.stepsInfo.conditional}</div>
+        <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
+        <div>{nodeInfo.image}</div>
 
-              <div className={commonCss.header}>Parameters</div>
-              <DetailsTable fields={nodeInfo.stepsInfo.parameters} />
-            </div>;
-        }
-        break;
-      default:
-        // TODO: display using error banner within side panel.
-        nodeInfoJsx = <div>{`Node ${id} has unknown node type.`}</div>;
-        logger.error(`Node ${id} has unknown node type.`);
-    }
+        {!!nodeInfo.condition && (
+          <div>
+            <div className={css.taskTitle}>Condition</div>
+            <div>Run when: {nodeInfo.condition}</div>
+          </div>
+        )}
+      </div>;
 
     this.setState({
       selectedNodeId: id,
