@@ -30,6 +30,7 @@ func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 		Id:          experiment.UUID,
 		Name:        experiment.Name,
 		Description: experiment.Description,
+		CreatedAt:   &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
 	}
 }
 

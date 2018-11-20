@@ -116,14 +116,15 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     icon: AddIcon,
     id: 'startNewRunBtn',
     outlined: true,
-    title: 'Start new run',
+    primary: true,
+    title: 'Create run',
     tooltip: 'Start a new run within this experiment',
   }, {
     action: () => this._startNewRun(true),
     icon: AddIcon,
     id: 'startNewRecurringRunBtn',
     outlined: true,
-    title: 'Start recurring run',
+    title: 'Create recurring run',
     tooltip: 'Start a new recurring run in this experiment',
   }, {
     action: this._compareRuns.bind(this),

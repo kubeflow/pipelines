@@ -33,6 +33,7 @@ export interface ToolbarActionConfig {
   icon?: any;
   id?: string;
   outlined?: boolean;
+  primary?: boolean;
   title: string;
   tooltip: string;
 }
@@ -106,10 +107,14 @@ export interface ToolbarProps {
 
 class Toolbar extends React.Component<ToolbarProps> {
 
-  public render(): JSX.Element {
+  public render(): JSX.Element | null {
     const currentPage = this.props.breadcrumbs.length ?
       this.props.breadcrumbs[this.props.breadcrumbs.length - 1].displayName : '';
     const breadcrumbs = this.props.breadcrumbs.slice(0, this.props.breadcrumbs.length - 1);
+
+    if (!this.props.actions.length && !this.props.breadcrumbs.length) {
+      return null;
+    }
 
     return (
       <div className={
@@ -151,7 +156,8 @@ class Toolbar extends React.Component<ToolbarProps> {
               <div>{/* Extra level needed by tooltip when child is disabled */}
                 <BusyButton id={b.id} color='secondary' onClick={b.action} disabled={b.disabled}
                   title={b.title} icon={b.icon} busy={b.busy || false}
-                  outlined={b.outlined || false} />
+                  outlined={(b.outlined && !b.primary) || false}
+                  className={b.primary ? commonCss.buttonAction : ''}/>
               </div>
             </Tooltip>
           ))}

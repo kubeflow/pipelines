@@ -83,6 +83,9 @@ exports[`Router initial render 1`] = `
             path="/compare"
             render={[Function]}
           />
+          <Route
+            render={[Function]}
+          />
         </Switch>
         <WithStyles(Snackbar)
           autoHideDuration={5000}

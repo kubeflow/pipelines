@@ -624,3 +624,36 @@ func TestListRuns_WithMetrics(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 }
+
+func TestDeleteRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+	resourceReferenceStore := NewResourceReferenceStore(db)
+	// Check resource reference exists
+	r, err := resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
+
+	// Delete run
+	err = runStore.DeleteRun("1")
+	assert.Nil(t, err)
+	_, err = runStore.GetRun("1")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Run 1 not found")
+
+	// Check resource reference deleted
+	_, err = resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRun_InternalError(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	db.Close()
+
+	err := runStore.DeleteRun("1")
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
+		"Expected delete run to return internal error")
+}

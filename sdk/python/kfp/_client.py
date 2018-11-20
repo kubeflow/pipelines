@@ -27,11 +27,12 @@ class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
 
-  def __init__(self, host='ml-pipeline.kubeflow.svc.cluster.local:8888'):
+  def __init__(self, namespace='kubeflow'):
     """Create a new instance of kfp client.
 
     Args:
-      host: the API host. If running inside the cluster as a Pod, default value should work.
+      namespace: the namespace where pipelines are deployed. Default is kubeflow
+        TODO: check if it works outside of the cluster.
     """
 
     try:
@@ -44,6 +45,7 @@ class Client(object):
     except ImportError:
       raise Exception('This module requires installation of kfp_run')
 
+    host='ml-pipeline.' + namespace + '.svc.cluster.local:8888'
     config = kfp_run.configuration.Configuration()
     config.host = host
     api_client = kfp_run.api_client.ApiClient(config)
@@ -150,7 +152,7 @@ class Client(object):
     
     if self._is_ipython():
       import IPython
-      html = ('Job link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
+      html = ('Run link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
               % response.run.id)
       IPython.display.display(IPython.display.HTML(html))
     return response.run

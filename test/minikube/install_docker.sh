@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DOCKER_VERSION=18.06.1~ce~3-0~$(. /etc/os-release; echo "$ID")
+
 sudo apt-get update -y
 sudo apt-get install -y \
     apt-transport-https \
@@ -29,4 +31,4 @@ sudo add-apt-repository \
    stable"
    
 sudo apt-get update -y   
-sudo apt-get install docker-ce -y
+sudo apt-get install docker-ce="${DOCKER_VERSION}" -y

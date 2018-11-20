@@ -57,7 +57,7 @@ const breadcrumbs = [
 const history = createBrowserHistory({});
 
 describe('Toolbar', () => {
-  it('renders without breadcrumbs or actions', () => {
+  it('renders nothing when there are no breadcrumbs or actions', () => {
     const tree = shallow(<Toolbar breadcrumbs={[]} actions={[]} history={history} />);
     expect(tree).toMatchSnapshot();
   });
@@ -87,6 +87,46 @@ describe('Toolbar', () => {
     tree.find('BusyButton').at(0).simulate('click');
     expect(action1).toHaveBeenCalled();
     action2.mockClear();
+  });
+
+  it('renders outlined action buttons', () => {
+    const outlinedActions = [{
+      action: jest.fn(),
+      id: 'test id',
+      outlined: true,
+      title: 'test title',
+      tooltip: 'test tooltip',
+    }];
+
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders primary action buttons', () => {
+    const outlinedActions = [{
+      action: jest.fn(),
+      id: 'test id',
+      primary: true,
+      title: 'test title',
+      tooltip: 'test tooltip',
+    }];
+
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders primary action buttons without outline, even if outline is true', () => {
+    const outlinedActions = [{
+      action: jest.fn(),
+      id: 'test id',
+      outlined: true,
+      primary: true,
+      title: 'test title',
+      tooltip: 'test tooltip',
+    }];
+
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    expect(tree).toMatchSnapshot();
   });
 
   it('renders with two breadcrumbs and two actions', () => {

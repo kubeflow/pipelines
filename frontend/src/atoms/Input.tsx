@@ -19,18 +19,20 @@ import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import { commonCss } from '../Css';
 
 interface InputProps extends TextFieldProps {
-  field: string;
   height?: number | string;
-  instance: any;
   width?: number;
 }
 
 export default (props: InputProps) => {
-  const { field, height, instance, width, ...rest } = props;
-  return <TextField variant='outlined' value={instance.state[field]}
-    className={commonCss.textField} spellCheck={false}
-    style={{ height: height || 40, maxWidth: 600, width: width || '100%' }}
-    onChange={instance.handleChange && instance.handleChange(field)} {...rest}>
-    {props.children}
-  </TextField>;
+  const { height, width, ...rest } = props;
+  return (
+    <TextField variant='outlined' className={commonCss.textField} spellCheck={false}
+        style={{
+          height: !!props.multiline ? 'auto' : (height || 40),
+          maxWidth: 600,
+          width: width || '100%' }}
+        {...rest}>
+      {props.children}
+    </TextField>
+  );
 };
