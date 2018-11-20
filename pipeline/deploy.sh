@@ -107,7 +107,7 @@ while [ "$1" != "" ]; do
 done
 
 echo "Configure ksonnet ..."
-/ml-pipeline/bootstrapper.sh
+/pipeline/bootstrapper.sh
 echo "Configure ksonnet completed successfully"
 
 echo "Initialize a ksonnet APP ..."
@@ -120,17 +120,17 @@ echo "Initialized ksonnet APP completed successfully"
 # an known issue: https://github.com/ksonnet/ksonnet/issues/232, we are working around by creating
 # a symbolic links in ./vendor and manually modifying app.yaml
 # when the repo is public we can do following:
-# ks registry add ml-pipeline github.com/kubeflow/pipelines/tree/master/ml-pipeline
-# ks pkg install ml-pipeline/ml-pipeline
+# ks registry add pipeline github.com/kubeflow/pipelines/tree/master/pipeline
+# ks pkg install pipeline/pipeline
 BASEDIR=$(cd $(dirname "$0") && pwd)
-ln -s ${BASEDIR} ${APP_DIR}/vendor/ml-pipeline
+ln -s ${BASEDIR} ${APP_DIR}/vendor/pipeline
 
 # Modifying the app.yaml
 sed '/kind: ksonnet.io\/app/r '<(cat<<'EOF'
 libraries:
-  ml-pipeline:
-    name: ml-pipeline
-    registry: ml-pipeline
+  pipeline:
+    name: pipeline
+    registry: pipeline
 EOF
 )  ${APP_DIR}/app.yaml > ${APP_DIR}/tmp.yaml
 mv ${APP_DIR}/tmp.yaml ${APP_DIR}/app.yaml
@@ -145,14 +145,14 @@ else
 fi
 
 # Generate a ksonnet component manifest and assign parameters
-( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline --namespace=${NAMESPACE} )
-( cd ${APP_DIR} && ks param set ml-pipeline api_image ${API_SERVER_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline scheduledworkflow_image ${SCHEDULED_WORKFLOW_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline persistenceagent_image ${PERSISTENCE_AGENT_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline ui_image ${UI_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline deploy_argo ${DEPLOY_ARGO} )
-( cd ${APP_DIR} && ks param set ml-pipeline report_usage ${REPORT_USAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
+( cd ${APP_DIR} && ks generate pipeline pipeline --namespace=${NAMESPACE} )
+( cd ${APP_DIR} && ks param set pipeline api_image ${API_SERVER_IMAGE} )
+( cd ${APP_DIR} && ks param set pipeline scheduledworkflow_image ${SCHEDULED_WORKFLOW_IMAGE} )
+( cd ${APP_DIR} && ks param set pipeline persistenceagent_image ${PERSISTENCE_AGENT_IMAGE} )
+( cd ${APP_DIR} && ks param set pipeline ui_image ${UI_IMAGE} )
+( cd ${APP_DIR} && ks param set pipeline deploy_argo ${DEPLOY_ARGO} )
+( cd ${APP_DIR} && ks param set pipeline report_usage ${REPORT_USAGE} )
+( cd ${APP_DIR} && ks param set pipeline usage_id $(uuidgen) )
 
 if [ "$WITH_KUBEFLOW" = true ]; then
   # v0.2 non-gke deploy script doesn't create a namespace. This would be fixed in the later version.
@@ -181,7 +181,7 @@ if ${UNINSTALL} ; then
 fi
 
 # Install ML pipeline
-( cd ${APP_DIR} && ks apply default -c ml-pipeline)
+( cd ${APP_DIR} && ks apply default -c pipeline)
 
 # Wait for service to be ready
 

@@ -1,5 +1,5 @@
 // @apiVersion 0.1
-// @name io.ksonnet.pkg.ml-pipeline
+// @name io.ksonnet.pkg.pipeline
 // @description ML pipeline. Currently includes pipeline API server, frontend and dependencies.
 // @shortDescription ML pipeline
 // @param name string Name to give to each of the components
@@ -12,6 +12,6 @@
 // @optionalParam report_usage string false flag to report usage
 
 local k = import "k.libsonnet";
-local all = import "ml-pipeline/ml-pipeline/all.libsonnet";
+local all = import "pipeline/pipeline/all.libsonnet";
 
 std.prune(k.core.v1.list.new(all.parts(params).all))
