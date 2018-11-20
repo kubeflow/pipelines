@@ -27,7 +27,7 @@ KF_DIR=/kf-app
 KFAPP=/kubeflow-ks-app
 
 # Version number of this release.
-RELEASE_VERSION="${RELEASE_VERSION:-0.0.20}"
+RELEASE_VERSION="${RELEASE_VERSION:-0.1.2}"
 
 # Default ml pipeline api server image
 API_SERVER_IMAGE="${API_SERVER_IMAGE:-gcr.io/ml-pipeline/api-server:${RELEASE_VERSION}}"
@@ -113,36 +113,6 @@ while [ "$1" != "" ]; do
     shift
 done
 
-echo "Configure ksonnet ..."
-/ml-pipeline/bootstrapper.sh
-echo "Configure ksonnet completed successfully"
-
-echo "Initialize a ksonnet APP ..."
-ks init ${APP_DIR}
-echo "Initialized ksonnet APP completed successfully"
-
-
-# Import pipeline registry
-# Note: Since the repository is not yet public, and ksonnet can't add a local registry due to
-# an known issue: https://github.com/ksonnet/ksonnet/issues/232, we are working around by creating
-# a symbolic links in ./vendor and manually modifying app.yaml
-# when the repo is public we can do following:
-# ks registry add ml-pipeline github.com/kubeflow/pipelines/tree/master/ml-pipeline
-# ks pkg install ml-pipeline/ml-pipeline
-BASEDIR=$(cd $(dirname "$0") && pwd)
-ln -s ${BASEDIR} ${APP_DIR}/vendor/ml-pipeline
-
-# Modifying the app.yaml
-sed '/kind: ksonnet.io\/app/r '<(cat<<'EOF'
-libraries:
-  ml-pipeline:
-    name: ml-pipeline
-    registry: ml-pipeline
-EOF
-)  ${APP_DIR}/app.yaml > ${APP_DIR}/tmp.yaml
-mv ${APP_DIR}/tmp.yaml ${APP_DIR}/app.yaml
-
-
 kubectl get ns ${NAMESPACE} &>/dev/null
 if [ $? == 0 ]; then
   echo "namespace ${NAMESPACE} exist"
@@ -151,16 +121,22 @@ else
   kubectl create ns ${NAMESPACE}
 fi
 
-# Generate a ksonnet component manifest and assign parameters
-( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline )
-( cd ${APP_DIR} && ks env set default --namespace ${NAMESPACE} )
-( cd ${APP_DIR} && ks param set ml-pipeline api_image ${API_SERVER_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline scheduledworkflow_image ${SCHEDULED_WORKFLOW_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline persistenceagent_image ${PERSISTENCE_AGENT_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline ui_image ${UI_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline deploy_argo ${DEPLOY_ARGO} )
-( cd ${APP_DIR} && ks param set ml-pipeline report_usage ${REPORT_USAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
+ks init ${APP_DIR}
+
+# Initialize pipeline ksonnet application
+pushd ${APP_DIR}
+ks registry add ml-pipeline /ml-pipeline
+ks pkg install ml-pipeline/pipeline
+ks env set default --namespace kubeflow
+ks generate ml-pipeline ml-pipeline
+ks param set ml-pipeline api_image ${API_SERVER_IMAGE}
+ks param set ml-pipeline scheduledworkflow_image ${SCHEDULED_WORKFLOW_IMAGE}
+ks param set ml-pipeline persistenceagent_image ${PERSISTENCE_AGENT_IMAGE}
+ks param set ml-pipeline ui_image ${UI_IMAGE}
+ks param set ml-pipeline deploy_argo ${DEPLOY_ARGO}
+ks param set ml-pipeline report_usage ${REPORT_USAGE}
+ks param set ml-pipeline usage_id $(uuidgen)
+popd
 
 # Get current active service account and create a user-gcp-sa secret with the service key
 if [ "$PLATFORM" = "gcp" ]; then
