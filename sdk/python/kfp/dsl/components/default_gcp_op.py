@@ -67,12 +67,3 @@ def default_gcp_op(name: str, image: str, command: str = None,
           )
       )
   )
-                         file_outputs, is_exit_handler) \
-    .add_volume(k8s_client.V1Volume(name='gcp-credentials',
-                                   secret=k8s_client.V1SecretVolumeSource(
-                                       secret_name='user-gcp-sa'))) \
-    .add_volume_mount(k8s_client.V1VolumeMount(
-      mount_path='/secret/gcp-credentials', name='gcp-credentials')) \
-    .add_env_variable(k8s_client.V1EnvVar(
-      name='GOOGLE_APPLICATION_CREDENTIALS',
-      value='/secret/gcp-credentials/user-gcp-sa.json'))
