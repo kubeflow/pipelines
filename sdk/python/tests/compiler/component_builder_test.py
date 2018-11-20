@@ -131,8 +131,8 @@ class TestDockerfileHelper(unittest.TestCase):
     docker_helper = DockerfileHelper(arc_dockerfile_name='')
     docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
     self.assertTrue(os.path.exists(temp_tarball))
-    temp_tarball_handler = tarfile.open(temp_tarball)
-    temp_files = temp_tarball_handler.getmembers()
+    temp_tarball_handle = tarfile.open(temp_tarball)
+    temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 2)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
@@ -189,8 +189,8 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
                                                  base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
                                                  local_tarball_path=local_tarball_path)
-    temp_tarball_handler = tarfile.open(local_tarball_path)
-    temp_files = temp_tarball_handler.getmembers()
+    temp_tarball_handle = tarfile.open(local_tarball_path)
+    temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 2)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
@@ -215,8 +215,8 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
                                                  base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
                                                  local_tarball_path=local_tarball_path, dependency=dependencies)
-    temp_tarball_handler = tarfile.open(local_tarball_path)
-    temp_files = temp_tarball_handler.getmembers()
+    temp_tarball_handle = tarfile.open(local_tarball_path)
+    temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 3)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py', 'requirements.txt'])
@@ -236,8 +236,8 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     # check
     docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
     docker_helper.prepare_docker_tarball(dockerfile_path=dockerfile_path, local_tarball_path=local_tarball_path)
-    temp_tarball_handler = tarfile.open(local_tarball_path)
-    temp_files = temp_tarball_handler.getmembers()
+    temp_tarball_handle = tarfile.open(local_tarball_path)
+    temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 1)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile'])
