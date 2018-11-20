@@ -14,7 +14,6 @@
 
 from kfp import dsl
 from typing import Dict
-from kubernetes import client as k8s_client
 
 
 def default_gcp_op(name: str, image: str, command: str = None,
@@ -35,13 +34,15 @@ def default_gcp_op(name: str, image: str, command: str = None,
     If you want to call the GCP APIs in a different project, grant the kf-user
     service account access permission.
   """
+  from kubernetes import client as k8s_client
+
   return dsl.ContainerOp(name, image, command, arguments, file_inputs,
-                         file_outputs, is_exit_handler). \
-    add_volume(k8s_client.V1Volume(name='gcp-credentials',
+                         file_outputs, is_exit_handler) \
+    .add_volume(k8s_client.V1Volume(name='gcp-credentials',
                                    secret=k8s_client.V1SecretVolumeSource(
-                                       secret_name='user-gcp-sa'))). \
-    add_volume_mount(k8s_client.V1VolumeMount(
-      mount_path='/secret/gcp-credentials', name='gcp-credentials')). \
-    add_env_variable(k8s_client.V1EnvVar(
+                                       secret_name='user-gcp-sa'))) \
+    .add_volume_mount(k8s_client.V1VolumeMount(
+      mount_path='/secret/gcp-credentials', name='gcp-credentials')) \
+    .add_env_variable(k8s_client.V1EnvVar(
       name='GOOGLE_APPLICATION_CREDENTIALS',
       value='/secret/gcp-credentials/user-gcp-sa.json'))
