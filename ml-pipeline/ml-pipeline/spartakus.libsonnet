@@ -1,9 +1,9 @@
 {
-  all(namespace, usage_id):: [
+  all(namespace, usageId):: [
     $.parts(namespace).serviceAccount,
     $.parts(namespace).clusterRole,
     $.parts(namespace).clusterRoleBinding,
-    $.parts(namespace).deployVolunteer(usage_id),
+    $.parts(namespace).deployVolunteer(usageId),
   ],
 
   parts(namespace):: {
@@ -54,12 +54,12 @@
         },
       ],
     },  // clusterRoleBinding
-    deployVolunteer(usage_id): {
+    deployVolunteer(usageId): {
       apiVersion: "apps/v1beta2",
       kind: "Deployment",
       metadata: {
-        "labels": {
-          "app": "pipeline-spartakus-volunteer",
+        labels: {
+          app: "pipeline-spartakus-volunteer",
         },
         name: "pipeline-spartakus-volunteer",
         namespace: namespace,
@@ -73,8 +73,8 @@
         replicas: 1,
         template: {
           metadata: {
-            "labels": {
-              "app": "pipeline-spartakus-volunteer",
+            labels: {
+              app: "pipeline-spartakus-volunteer",
             },
           },
           spec: {
@@ -85,7 +85,7 @@
                 imagePullPolicy: "IfNotPresent",
                 args: [
                   "volunteer",
-                  "--cluster-id=" + usage_id,
+                  "--cluster-id=" + usageId,
                   "--database=https://ml-pipeline-reporting.appspot.com/",
                 ],
               },
@@ -94,6 +94,6 @@
           },
         },
       },
-    }, // deployVolunteer
+    },  // deployVolunteer
   },  // parts
 }

@@ -225,7 +225,7 @@
       //  \n   name: mlpipeline-minio-artifact\n   key: secretkey"
       //},
       data: {
-        config: "executorImage: argoproj/argoexec:v2.2.0"
+        config: "executorImage: argoproj/argoexec:v2.2.0",
       },
       kind: "ConfigMap",
       metadata: {
