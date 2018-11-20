@@ -36,11 +36,11 @@ class TestCompiler(unittest.TestCase):
       msg2 = dsl.PipelineParam('msg2', value='value2')
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
-                           file_outputs={'merged': '/tmp/message.txt'}). \
-        add_volume_mount(k8s_client.V1VolumeMount(
+                           file_outputs={'merged': '/tmp/message.txt'}) \
+        .add_volume_mount(k8s_client.V1VolumeMount(
           mount_path='/secret/gcp-credentials',
-          name='gcp-credentials')). \
-        add_env_variable(k8s_client.V1EnvVar(
+          name='gcp-credentials')) \
+        .add_env_variable(k8s_client.V1EnvVar(
           name='GOOGLE_APPLICATION_CREDENTIALS',
           value='/secret/gcp-credentials/user-gcp-sa.json'))
     golden_output = {

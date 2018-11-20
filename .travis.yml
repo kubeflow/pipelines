@@ -22,9 +22,13 @@ addons:
       - wget
   chrome: stable
 
+before_install: npm i -g npm@latest
+
 script:
   # Frontend tests
   - cd $TRAVIS_BUILD_DIR/frontend
+  - nvm install node
+  - node -v
   - npm i
   - npm run test:coveralls
 
