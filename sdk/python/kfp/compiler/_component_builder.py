@@ -159,7 +159,8 @@ class DockerfileHelper(object):
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
       f.write('RUN pip3 install fire\n')
       if has_requirement_file:
-        f.write('RUN pip3 install -r ' + self._ARC_REQUIREMENT_FILE + '\n')
+        f.write('ADD ' + self._ARC_REQUIREMENT_FILE + ' /ml/\n')
+        f.write('RUN pip3 install -r /ml/' + self._ARC_REQUIREMENT_FILE + '\n')
       f.write('ADD ' + python_filepath + " /ml/" + '\n')
       f.write('ENTRYPOINT ["python3", "/ml/' + python_filepath + '"]')
 
