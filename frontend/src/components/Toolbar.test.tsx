@@ -89,6 +89,46 @@ describe('Toolbar', () => {
     action2.mockClear();
   });
 
+  it('renders outlined action buttons', () => {
+    const outlinedActions = [{
+      action: jest.fn(),
+      id: 'test id',
+      outlined: true,
+      title: 'test title',
+      tooltip: 'test tooltip',
+    }];
+
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders primary action buttons', () => {
+    const outlinedActions = [{
+      action: jest.fn(),
+      id: 'test id',
+      primary: true,
+      title: 'test title',
+      tooltip: 'test tooltip',
+    }];
+
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders primary action buttons without outline, even if outline is true', () => {
+    const outlinedActions = [{
+      action: jest.fn(),
+      id: 'test id',
+      outlined: true,
+      primary: true,
+      title: 'test title',
+      tooltip: 'test tooltip',
+    }];
+
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={outlinedActions} history={history} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('renders with two breadcrumbs and two actions', () => {
     const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} history={history} />);
     expect(tree).toMatchSnapshot();

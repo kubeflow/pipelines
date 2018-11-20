@@ -1,0 +1,28 @@
+
+import kfp.dsl as dsl
+
+
+@dsl.pipeline(
+  name='Model-Optimization',
+  description='Convert model using OpenVINO model optimizer'
+)
+def download_optimize_and_upload(
+        input_path: dsl.PipelineParam,
+        output_path: dsl.PipelineParam,
+        mo_options: dsl.PipelineParam):
+    """A one-step pipeline."""
+
+    dsl.ContainerOp(
+        name='mo',
+        image='<image name>',
+        command=['python3', '../convert_model.py'],
+        arguments=[
+         '--input_path', input_path,
+         '--output_path', output_path,
+         '--mo_options', mo_options],
+        file_outputs={})
+
+
+if __name__ == '__main__':
+    import kfp.compiler as compiler
+    compiler.Compiler().compile(download_optimize_and_upload, __file__ + '.tar.gz')
