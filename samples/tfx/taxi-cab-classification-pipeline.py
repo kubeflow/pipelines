@@ -119,8 +119,8 @@ def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='dep
   description='Example pipeline that does classification with model analysis based on a public BigQuery dataset.'
 )
 def taxi_cab_classification(
-    output: dsl.PipelineParam,
-    project: dsl.PipelineParam,
+    output,
+    project,
     column_names='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json',
     key_columns='trip_start_timestamp',
     train='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv',
