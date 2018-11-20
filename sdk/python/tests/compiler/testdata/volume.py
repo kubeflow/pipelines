@@ -27,16 +27,16 @@ def volume_pipeline():
       image='google/cloud-sdk',
       command=['sh', '-c'],
       arguments=['ls | tee /tmp/results.txt'],
-      file_outputs={'downloaded': '/tmp/results.txt'})
-  op1.add_volume(k8s_client.V1Volume(name='gcp-credentials',
-                                       secret=k8s_client.V1SecretVolumeSource(
-                                           secret_name='user-gcp-sa')))
-  op1.add_volume_mount(k8s_client.V1VolumeMount(
-      mount_path='/secret/gcp-credentials', name='gcp-credentials'))
-  op1.add_env_variable(k8s_client.V1EnvVar(
+      file_outputs={'downloaded': '/tmp/results.txt'}) \
+    .add_volume(k8s_client.V1Volume(name='gcp-credentials',
+                                   secret=k8s_client.V1SecretVolumeSource(
+                                       secret_name='user-gcp-sa'))) \
+    .add_volume_mount(k8s_client.V1VolumeMount(
+      mount_path='/secret/gcp-credentials', name='gcp-credentials')) \
+    .add_env_variable(k8s_client.V1EnvVar(
       name='GOOGLE_APPLICATION_CREDENTIALS',
-      value='/secret/gcp-credentials/user-gcp-sa.json'))
-  op1.add_env_variable(k8s_client.V1EnvVar(name='Foo',value='bar'))
+      value='/secret/gcp-credentials/user-gcp-sa.json')) \
+    .add_env_variable(k8s_client.V1EnvVar(name='Foo', value='bar'))
   op2 = dsl.ContainerOp(
       name='echo',
       image='library/bash',

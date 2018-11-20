@@ -36,11 +36,11 @@ class TestCompiler(unittest.TestCase):
       msg2 = dsl.PipelineParam('msg2', value='value2')
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
-                           file_outputs={'merged': '/tmp/message.txt'})
-      op.add_volume_mount(k8s_client.V1VolumeMount(
+                           file_outputs={'merged': '/tmp/message.txt'}) \
+        .add_volume_mount(k8s_client.V1VolumeMount(
           mount_path='/secret/gcp-credentials',
-          name='gcp-credentials'))
-      op.add_env_variable(k8s_client.V1EnvVar(
+          name='gcp-credentials')) \
+        .add_env_variable(k8s_client.V1EnvVar(
           name='GOOGLE_APPLICATION_CREDENTIALS',
           value='/secret/gcp-credentials/user-gcp-sa.json'))
     golden_output = {
@@ -228,7 +228,7 @@ class TestCompiler(unittest.TestCase):
       self.assertEqual(golden, compiled)
     finally:
       shutil.rmtree(tmpdir)
-    
+
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
     self._test_py_compile('basic')
