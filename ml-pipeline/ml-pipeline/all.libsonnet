@@ -20,10 +20,10 @@
     local deployArgo = params.deployArgo,
     local reportUsage = params.reportUsage,
     local usageId = params.usageId,
-    reporting:: if (report_usage == true) || (report_usage == "true") then
+    reporting:: if (reportUsage == true) || (reportUsage == "true") then
       spartakus.all(namespace, usageId)
     else [],
-    argo:: if (deploy_argo == true) || (deploy_argo == "true") then
+    argo:: if (deployArgo == true) || (deployArgo == "true") then
       argo.parts(namespace).all
     else [],
     all:: minio.parts(namespace).all +
