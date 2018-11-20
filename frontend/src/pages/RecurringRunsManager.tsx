@@ -41,6 +41,8 @@ interface RecurringRunListState {
 }
 
 class RecurringRunsManager extends React.Component<RecurringRunListProps, RecurringRunListState> {
+  private _tableRef = React.createRef<CustomTable>();
+
   constructor(props: any) {
     super(props);
 
@@ -80,10 +82,17 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
 
     return (<div>
       <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Recurring runs', href: '' }]} />
-      <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} disableSelection={true}
+      <CustomTable columns={columns} rows={rows} ref={this._tableRef} selectedIds={selectedIds}
         updateSelection={ids => this.setState({ selectedIds: ids })} initialSortColumn={JobSortKeys.CREATED_AT}
-        reload={this._loadRuns.bind(this)} emptyMessage={'No recurring runs found in this experiment.'} />
+        reload={this._loadRuns.bind(this)} emptyMessage={'No recurring runs found in this experiment.'}
+        disableSelection={true} />
     </div>);
+  }
+
+  public async refresh(): Promise<void> {
+    if (this._tableRef.current) {
+      await this._tableRef.current.reload();
+    }
   }
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
@@ -129,6 +138,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
           busyIds = this.state.busyIds;
           busyIds.delete(id);
           this.setState({ busyIds });
+          await this.refresh();
         });
       }} />;
   }
