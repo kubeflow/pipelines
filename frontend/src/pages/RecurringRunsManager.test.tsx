@@ -47,13 +47,16 @@ describe('RecurringRunsManager', () => {
   const JOBS: ApiJob[] = [{
     created_at: new Date(2018, 10, 9, 8, 7, 6),
     enabled: true,
+    id: 'job1',
     name: 'test recurring run name',
   }, {
     created_at: new Date(2018, 10, 9, 8, 7, 6),
     enabled: false,
+    id: 'job2',
     name: 'test recurring run name2',
   }, {
     created_at: new Date(2018, 10, 9, 8, 7, 6),
+    id: 'job3',
     name: 'test recurring run name3',
   }];
 
@@ -148,10 +151,46 @@ describe('RecurringRunsManager', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders an enable button if the run is disabled, clicking the button calls enable API', () => {
-    const tree = TestUtils.mountWithRouter(
-      TestRecurringRunsManager.prototype._enabledCustomRenderer(true, 'run-id'));
-    expect(tree).toMatchSnapshot();
+  it('renders a disable button if the run is enabled, clicking the button calls disable API', async () => {
+    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    const enableBtn = tree.find('.tableRow Button').at(0);
+    expect(enableBtn).toMatchSnapshot();
+
+    enableBtn.simulate('click');
+    await TestUtils.flushPromises();
+    expect(disableJobSpy).toHaveBeenCalledTimes(1);
+    expect(disableJobSpy).toHaveBeenLastCalledWith(JOBS[0].id);
+  });
+
+  it('renders an enable button if the run is disabled, clicking the button calls enable API', async () => {
+    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    const enableBtn = tree.find('.tableRow Button').at(1);
+    expect(enableBtn).toMatchSnapshot();
+
+    enableBtn.simulate('click');
+    await TestUtils.flushPromises();
+    expect(enableJobSpy).toHaveBeenCalledTimes(1);
+    expect(enableJobSpy).toHaveBeenLastCalledWith(JOBS[1].id);
+  });
+
+  it('renders an enable button if the run\'s enabled field is undefined, clicking the button calls enable API', async () => {
+    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    const enableBtn = tree.find('.tableRow Button').at(2);
+    expect(enableBtn).toMatchSnapshot();
+
+    enableBtn.simulate('click');
+    await TestUtils.flushPromises();
+    expect(enableJobSpy).toHaveBeenCalledTimes(1);
+    expect(enableJobSpy).toHaveBeenLastCalledWith(JOBS[2].id);
   });
 
 });
