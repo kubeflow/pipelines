@@ -41,6 +41,8 @@ interface RecurringRunListState {
 }
 
 class RecurringRunsManager extends React.Component<RecurringRunListProps, RecurringRunListState> {
+  private _tableRef = React.createRef<CustomTable>();
+
   constructor(props: any) {
     super(props);
 
@@ -86,6 +88,12 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     </React.Fragment>);
   }
 
+  public async refresh(): Promise<void> {
+    if (this._tableRef.current) {
+      await this._tableRef.current.reload();
+    }
+  }
+
   protected async _loadRuns(request: ListRequest): Promise<string> {
     let runs: ApiJob[] = [];
     let nextPageToken = '';
@@ -129,6 +137,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
           busyIds = this.state.busyIds;
           busyIds.delete(id);
           this.setState({ busyIds });
+          await this.refresh();
         });
       }} />;
   }

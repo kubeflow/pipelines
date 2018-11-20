@@ -193,4 +193,17 @@ describe('RecurringRunsManager', () => {
     expect(enableJobSpy).toHaveBeenLastCalledWith(JOBS[2].id);
   });
 
+  it('reloads the list of runs after enable/disabling', async () => {
+    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    const enableBtn = tree.find('.tableRow Button').at(0);
+    expect(enableBtn).toMatchSnapshot();
+
+    expect(listJobsSpy).toHaveBeenCalledTimes(1);
+    enableBtn.simulate('click');
+    await TestUtils.flushPromises();
+    expect(listJobsSpy).toHaveBeenCalledTimes(2);
+  });
 });
