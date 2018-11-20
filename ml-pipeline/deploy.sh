@@ -160,7 +160,7 @@ fi
 ( cd ${APP_DIR} && ks param set ml-pipeline uiImage ${UI_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline deployArgo ${DEPLOY_ARGO} )
 ( cd ${APP_DIR} && ks param set ml-pipeline reportUsage ${REPORT_USAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
+( cd ${APP_DIR} && ks param set ml-pipeline usageId $(uuidgen) )
 
 # Get current active service account and create a user-gcp-sa secret with the service key
 if [ "$PLATFORM" = "gcp" ]; then
