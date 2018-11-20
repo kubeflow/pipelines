@@ -154,12 +154,12 @@ fi
 # Generate a ksonnet component manifest and assign parameters
 ( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline )
 ( cd ${APP_DIR} && ks env set default --namespace ${NAMESPACE} )
-( cd ${APP_DIR} && ks param set ml-pipeline api_image ${API_SERVER_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline scheduledworkflow_image ${SCHEDULED_WORKFLOW_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline persistenceagent_image ${PERSISTENCE_AGENT_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline ui_image ${UI_IMAGE} )
-( cd ${APP_DIR} && ks param set ml-pipeline deploy_argo ${DEPLOY_ARGO} )
-( cd ${APP_DIR} && ks param set ml-pipeline report_usage ${REPORT_USAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline apiImage ${API_SERVER_IMAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline scheduledWorkflowImage ${SCHEDULED_WORKFLOW_IMAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline persistenceAgentImage ${PERSISTENCE_AGENT_IMAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline uiImage ${UI_IMAGE} )
+( cd ${APP_DIR} && ks param set ml-pipeline deployArgo ${DEPLOY_ARGO} )
+( cd ${APP_DIR} && ks param set ml-pipeline reportUsage ${REPORT_USAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline usage_id $(uuidgen) )
 
 # Get current active service account and create a user-gcp-sa secret with the service key
