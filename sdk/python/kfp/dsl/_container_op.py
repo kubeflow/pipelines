@@ -16,7 +16,7 @@
 from . import _pipeline
 from . import _pipeline_param
 import re
-from typing import Dict, List
+from typing import Dict
 
 
 class ContainerOp(object):
@@ -24,7 +24,7 @@ class ContainerOp(object):
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
                file_inputs : Dict[_pipeline_param.PipelineParam, str]=None,
-               file_outputs : Dict[str, str]=None, gcp_secret: str=None, is_exit_handler=False):
+               file_outputs : Dict[str, str]=None, is_exit_handler=False):
     """Create a new instance of ContainerOp.
 
     Args:
@@ -41,8 +41,6 @@ class ContainerOp(object):
       file_outputs: Maps output labels to local file paths. At pipeline run time,
           the value of a PipelineParam is saved to its corresponding local file. It's
           one way for outside world to receive outputs of the container.
-      gcp_secret: Specifying what secret to mount to the container for accessing
-          GCP APIs.
       is_exit_handler: Whether it is used as an exit handler.
     """
 
@@ -54,12 +52,14 @@ class ContainerOp(object):
     self.image = image
     self.command = command
     self.arguments = arguments
-    self.gcp_secret = gcp_secret
     self.is_exit_handler = is_exit_handler
     self.memory_limit = None
     self.memory_request = None
     self.cpu_limit = None
     self.cpu_request = None
+    self.volumes = []
+    self.volume_mounts = []
+    self.env_variables = []
 
     matches = []
     if arguments:
@@ -88,7 +88,6 @@ class ContainerOp(object):
     self.output=None
     if len(self.outputs) == 1:
       self.output = list(self.outputs.values())[0]
-
 
   def after(self, op):
     """Specify explicit dependency on another op."""
@@ -123,6 +122,7 @@ class ContainerOp(object):
 
     self._validate_memory_string(memory)
     self.memory_request = memory
+    return self
 
   def set_memory_limit(self, memory):
     """Set memory limit (maximum) for this operator.
@@ -133,6 +133,7 @@ class ContainerOp(object):
     """
     self._validate_memory_string(memory)
     self.memory_limit = memory
+    return self
 
   def set_cpu_request(self, cpu):
     """Set cpu request (minimum) for this operator.
@@ -143,6 +144,7 @@ class ContainerOp(object):
 
     self._validate_cpu_string(cpu)
     self.cpu_request = cpu
+    return self
 
   def set_cpu_limit(self, cpu):
     """Set cpu limit (maximum) for this operator.
@@ -153,6 +155,43 @@ class ContainerOp(object):
 
     self._validate_cpu_string(cpu)
     self.cpu_limit = cpu
+    return self
+
+  def add_volume(self, volume):
+    """Add K8s volume to the container
+
+    Args:
+      volume: Kubernetes volumes
+      For detailed spec, check volume definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
+    """
+
+    self.volumes.append(volume)
+    return self
+
+  def add_volume_mount(self, volume_mount):
+    """Add volume to the container
+
+    Args:
+      volume_mount: Kubernetes volume mount
+      For detailed spec, check volume mount definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume_mount.py
+    """
+
+    self.volume_mounts.append(volume_mount)
+    return self
+
+  def add_env_variable(self, env_variable):
+    """Add environment variable to the container.
+
+    Args:
+      env_variable: Kubernetes environment variable
+      For detailed spec, check environment variable definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_env_var.py
+    """
+
+    self.env_variables.append(env_variable)
+    return self
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})

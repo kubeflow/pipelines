@@ -14,11 +14,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: gcp-secret-
+  generateName: volume-
 spec:
   arguments:
     parameters: []
-  entrypoint: gcp-secret
+  entrypoint: volume
   serviceAccountName: pipeline-runner
   templates:
   - container:
@@ -30,10 +30,12 @@ spec:
       env:
       - name: GOOGLE_APPLICATION_CREDENTIALS
         value: /secret/gcp-credentials/user-gcp-sa.json
+      - name: Foo
+        value: bar
       image: google/cloud-sdk
       volumeMounts:
       - mountPath: /secret/gcp-credentials
-        name: download-gcp-credentials
+        name: gcp-credentials
     name: download
     outputs:
       artifacts:
@@ -73,13 +75,7 @@ spec:
       command:
       - sh
       - -c
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/admin-gcp-sa.json
       image: library/bash
-      volumeMounts:
-      - mountPath: /secret/gcp-credentials
-        name: echo-gcp-credentials
     inputs:
       parameters:
       - name: download-downloaded
@@ -124,11 +120,8 @@ spec:
         - download
         name: echo
         template: echo
-    name: gcp-secret
+    name: volume
   volumes:
-  - name: download-gcp-credentials
+  - name: gcp-credentials
     secret:
       secretName: user-gcp-sa
-  - name: echo-gcp-credentials
-    secret:
-      secretName: admin-gcp-sa

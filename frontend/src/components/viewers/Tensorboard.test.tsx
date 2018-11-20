@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import { Apis } from '../../lib/Apis';
 import * as React from 'react';
-import { shallow } from 'enzyme';
-import { PlotType } from './Viewer';
 import TensorboardViewer from './Tensorboard';
+import TestUtils from '../../TestUtils';
+import { Apis } from '../../lib/Apis';
+import { PlotType } from './Viewer';
+import { shallow } from 'enzyme';
 
 describe('Tensorboard', () => {
   it('does not break on no config', () => {
@@ -44,6 +45,7 @@ describe('Tensorboard', () => {
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(mockGetApp);
     const tree = shallow(<TensorboardViewer configs={[config]} />);
     await mockGetApp;
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
@@ -53,6 +55,7 @@ describe('Tensorboard', () => {
     const spy = jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
     const tree = shallow(<TensorboardViewer configs={[config]} />);
     await getAppMock;
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     expect(spy).toHaveBeenCalledWith(config.url);
   });
