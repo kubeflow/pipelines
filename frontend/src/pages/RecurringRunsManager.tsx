@@ -78,12 +78,12 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       };
     });
 
-    return (<React.Fragment>
+    return (<div>
       <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Recurring runs', href: '' }]} />
       <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} disableSelection={true}
         updateSelection={ids => this.setState({ selectedIds: ids })} initialSortColumn={JobSortKeys.CREATED_AT}
         reload={this._loadRuns.bind(this)} emptyMessage={'No recurring runs found in this experiment.'} />
-    </React.Fragment>);
+    </div>);
   }
 
   protected async _loadRuns(request: ListRequest): Promise<string> {

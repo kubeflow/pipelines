@@ -43,7 +43,7 @@ exports[`PipelineSelector calls API to load pipelines 1`] = `
           "otherFields": Array [
             "test pipeline name",
             "test pipeline description",
-            "2018-11-9 08:07:06",
+            "11/9/2018, 8:07:06 AM",
           ],
         },
       ]
