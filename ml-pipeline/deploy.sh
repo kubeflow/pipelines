@@ -152,7 +152,8 @@ else
 fi
 
 # Generate a ksonnet component manifest and assign parameters
-( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline --namespace=${NAMESPACE} )
+( cd ${APP_DIR} && ks generate ml-pipeline ml-pipeline )
+( cd ${APP_DIR} && ks env set default --namespace ${NAMESPACE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline api_image ${API_SERVER_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline scheduledworkflow_image ${SCHEDULED_WORKFLOW_IMAGE} )
 ( cd ${APP_DIR} && ks param set ml-pipeline persistenceagent_image ${PERSISTENCE_AGENT_IMAGE} )
