@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .kubeflow_tfjob_launcher_op import kubeflow_tfjob_launcher_op
+from .default_gcp_op import default_gcp_op

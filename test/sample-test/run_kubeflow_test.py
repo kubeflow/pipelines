@@ -42,6 +42,10 @@ def parse_arguments():
                       type=str,
                       required=True,
                       help='The path of the test output')
+  parser.add_argument('--namespace',
+                      type=str,
+                      default='kubeflow',
+                      help="namespace of the deployed pipeline system. Default: kubeflow")
   args = parser.parse_args()
   return args
 
@@ -51,7 +55,7 @@ def main():
   test_name = 'Kubeflow Sample Test'
 
   ###### Initialization ######
-  client = Client()
+  client = Client(namespace=args.namespace)
 
   ###### Check Input File ######
   utils.add_junit_test(test_cases, 'input generated yaml file', os.path.exists(args.input), 'yaml file is not generated')
@@ -91,8 +95,7 @@ def main():
   ###### Output Argo Log for Debugging ######
   workflow_json = client._get_workflow_json(run_id)
   workflow_id = workflow_json['metadata']['name']
-  #TODO: remove the namespace dependency or make is configurable.
-  argo_log, _ = utils.run_bash_command('argo logs -n kubeflow -w {}'.format(workflow_id))
+  argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
   print("=========Argo Workflow Log=========")
   print(argo_log)
 

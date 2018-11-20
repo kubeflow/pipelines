@@ -144,19 +144,10 @@ class Compiler(object):
       if op.cpu_request:
         template['container']['resources']['requests']['cpu'] = op.cpu_request
 
-    if op.gcp_secret:
-      template['container']['env'] = [
-        {
-          'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-          'value': ('/secret/gcp-credentials/%s.json' % op.gcp_secret),
-        },
-      ]
-      template['container']['volumeMounts'] = [
-        {
-          'name': op.name + '-gcp-credentials',
-          'mountPath': '/secret/gcp-credentials',
-        },
-      ]
+    if op.env_variables:
+      template['container']['env'] = list(map(self._convert_k8s_obj_to_dic, op.env_variables))
+    if op.volume_mounts:
+      template['container']['volumeMounts'] = list(map(self._convert_k8s_obj_to_dic, op.volume_mounts))
     return template
 
   def _get_groups_for_ops(self, root_group):
@@ -303,14 +294,17 @@ class Compiler(object):
         dependencies[downstream_groups[0]].add(upstream_groups[0])
     return dependencies
 
-  def _create_condition(self, condition):
-    left = ('{{inputs.parameters.%s}}' % self._param_full_name(condition.operand1)
-            if isinstance(condition.operand1, dsl.PipelineParam)
-            else str(condition.operand1))
-    right = ('{{inputs.parameters.%s}}' % self._param_full_name(condition.operand2)
-             if isinstance(condition.operand2, dsl.PipelineParam)
-             else str(condition.operand2))
-    return ('%s == %s' % (left, right))
+  def _resolve_value_or_reference(self, value_or_reference, inputs):
+    if isinstance(value_or_reference, dsl.PipelineParam):
+      parameter_name = self._param_full_name(value_or_reference)
+      task_names = [task_name for param_name, task_name in inputs if param_name == parameter_name]
+      if task_names:
+        task_name = task_names[0]
+        return '{{tasks.%s.outputs.parameters.%s}}' % (task_name, parameter_name)
+      else:
+        return '{{inputs.parameters.%s}}' % parameter_name
+    else:
+      return str(value_or_reference)
 
   def _group_to_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
@@ -340,89 +334,56 @@ class Compiler(object):
       template_outputs.sort(key=lambda x: x['name'])
       template['outputs'] = {'parameters': template_outputs}
 
-    if group.type == 'condition':
-      # This is a workaround for the fact that argo does not support conditions in DAG mode.
-      # Basically, we insert an extra group that contains only the original group. The extra group
-      # operates in "step" mode where condition is supported.
-      only_child = group.groups[0]
-      step = {
-          'name': only_child.name,
-          'template': only_child.name,
+    # Generate tasks section.
+    tasks = []
+    for sub_group in group.groups + group.ops:
+      task = {
+        'name': sub_group.name,
+        'template': sub_group.name,
       }
-      if inputs.get(only_child.name, None):
+
+      if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
+        subgroup_inputs = inputs.get(sub_group.name, [])
+        condition = sub_group.condition
+        condition_operation = '=='
+        operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
+        operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
+        task['when'] = '{} {} {}'.format(operand1_value, condition_operation, operand2_value)
+
+      # Generate dependencies section for this task.
+      if dependencies.get(sub_group.name, None):
+        group_dependencies = list(dependencies[sub_group.name])
+        group_dependencies.sort()
+        task['dependencies'] = group_dependencies
+
+      # Generate arguments section for this task.
+      if inputs.get(sub_group.name, None):
         arguments = []
-        for param_name, dependent_name in inputs[only_child.name]:
-          arguments.append({
+        for param_name, dependent_name in inputs[sub_group.name]:
+          if dependent_name:
+            # The value comes from an upstream sibling.
+            arguments.append({
+              'name': param_name,
+              'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+            })
+          else:
+            # The value comes from its parent.
+            arguments.append({
               'name': param_name,
               'value': '{{inputs.parameters.%s}}' % param_name
-          })
+            })
         arguments.sort(key=lambda x: x['name'])
-        step['arguments'] = {'parameters': arguments}
-        step['when'] = self._create_condition(group.condition)
-      template['steps'] = [[step]]
-    else:
-      # Generate tasks section.
-      tasks = []
-      for sub_group in group.groups + group.ops:
-        task = {
-          'name': sub_group.name,
-          'template': sub_group.name,
-        }
-        # Generate dependencies section for this task.
-        if dependencies.get(sub_group.name, None):
-          group_dependencies = list(dependencies[sub_group.name])
-          group_dependencies.sort()
-          task['dependencies'] = group_dependencies
-
-        # Generate arguments section for this task.
-        if inputs.get(sub_group.name, None):
-          arguments = []
-          for param_name, dependent_name in inputs[sub_group.name]:
-            if dependent_name:
-              # The value comes from an upstream sibling.
-              arguments.append({
-                'name': param_name,
-                'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-              })
-            else:
-              # The value comes from its parent.
-              arguments.append({
-                'name': param_name,
-                'value': '{{inputs.parameters.%s}}' % param_name
-              })
-          arguments.sort(key=lambda x: x['name'])
-          task['arguments'] = {'parameters': arguments}
-        tasks.append(task)
-      tasks.sort(key=lambda x: x['name'])
-      template['dag'] = {'tasks': tasks}
+        task['arguments'] = {'parameters': arguments}
+      tasks.append(task)
+    tasks.sort(key=lambda x: x['name'])
+    template['dag'] = {'tasks': tasks}
     return template     
 
-  def _create_new_groups(self, root_group):
-    """Create a copy of the input group, and insert extra groups for conditions."""
-
-    new_group = copy.deepcopy(root_group)
-    
-    def _insert_group_for_condition_helper(group):
-      for i, g in enumerate(group.groups):
-        if g.type == 'condition':
-          child_condition_group = dsl.OpsGroup('condition-child', g.name + '-child')
-          child_condition_group.ops = g.ops
-          child_condition_group.groups = g.groups
-          g.groups = [child_condition_group]
-          g.ops = list()
-          _insert_group_for_condition_helper(child_condition_group)
-        else:
-          _insert_group_for_condition_helper(g)
-
-    _insert_group_for_condition_helper(new_group)
-    return new_group
     
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
-    # This is needed only because Argo does not support condition in DAG mode.
-    # Revisit when https://github.com/argoproj/argo/issues/921 is fixed.
-    new_root_group = self._create_new_groups(pipeline.groups[0])
+    new_root_group = pipeline.groups[0]
 
     op_groups = self._get_groups_for_ops(new_root_group)
     inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups)
@@ -441,14 +402,9 @@ class Compiler(object):
     """Create volumes required for the templates"""
     volumes = []
     for op in pipeline.ops.values():
-      if op.gcp_secret:
-        volume = {
-          'name': op.name + '-gcp-credentials',
-          'secret': {
-            'secretName': op.gcp_secret,
-          }
-        }
-        volumes.append(volume)
+      if op.volumes:
+        for v in op.volumes:
+          volumes.append(self._convert_k8s_obj_to_dic(v))
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
@@ -547,6 +503,55 @@ class Compiler(object):
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
+
+  def _convert_k8s_obj_to_dic(self, obj):
+    """
+    Builds a JSON K8s object.
+
+    If obj is None, return None.
+    If obj is str, int, long, float, bool, return directly.
+    If obj is datetime.datetime, datetime.date
+        convert to string in iso8601 format.
+    If obj is list, sanitize each element in the list.
+    If obj is dict, return the dict.
+    If obj is swagger model, return the properties dict.
+
+    Args:
+      obj: The data to serialize.
+    Returns: The serialized form of data.
+    """
+
+    from six import text_type, integer_types
+    PRIMITIVE_TYPES = (float, bool, bytes, text_type) + integer_types
+    from datetime import date, datetime
+    if obj is None:
+      return None
+    elif isinstance(obj, PRIMITIVE_TYPES):
+      return obj
+    elif isinstance(obj, list):
+      return [self._convert_k8s_obj_to_dic(sub_obj)
+              for sub_obj in obj]
+    elif isinstance(obj, tuple):
+      return tuple(self._convert_k8s_obj_to_dic(sub_obj)
+                   for sub_obj in obj)
+    elif isinstance(obj, (datetime, date)):
+      return obj.isoformat()
+
+    if isinstance(obj, dict):
+      obj_dict = obj
+    else:
+      # Convert model obj to dict except
+      # attributes `swagger_types`, `attribute_map`
+      # and attributes which value is not None.
+      # Convert attribute name to json key in
+      # model definition for request.
+      from six import iteritems
+      obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
+                  for attr, _ in iteritems(obj.swagger_types)
+                  if getattr(obj, attr) is not None}
+
+    return {key: self._convert_k8s_obj_to_dic(val)
+            for key, val in iteritems(obj_dict)}
 
   def compile(self, pipeline_func, package_path):
     """Compile the given pipeline function into workflow yaml.

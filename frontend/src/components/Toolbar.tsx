@@ -33,6 +33,7 @@ export interface ToolbarActionConfig {
   icon?: any;
   id?: string;
   outlined?: boolean;
+  primary?: boolean;
   title: string;
   tooltip: string;
 }
@@ -155,7 +156,8 @@ class Toolbar extends React.Component<ToolbarProps> {
               <div>{/* Extra level needed by tooltip when child is disabled */}
                 <BusyButton id={b.id} color='secondary' onClick={b.action} disabled={b.disabled}
                   title={b.title} icon={b.icon} busy={b.busy || false}
-                  outlined={b.outlined || false} />
+                  outlined={(b.outlined && !b.primary) || false}
+                  className={b.primary ? commonCss.buttonAction : ''}/>
               </div>
             </Tooltip>
           ))}
