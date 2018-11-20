@@ -63,7 +63,7 @@ RUN git clone --depth 1 https://github.com/tensorflow/models && rm -Rf models/.g
 RUN conda create --name myenv -y
 ENV PATH /opt/conda/envs/myenv/bin:$PATH
 
-RUN pip install --no-cache-dir tensorflow validators
+RUN pip install --no-cache-dir tensorflow validators google-cloud-storage
 ENV PYTHONPATH=models/research/slim:tensorflow/python/tools
 
 COPY --from=BUILD /tensorflow/bazel-bin/tensorflow/tools/graph_transforms/summarize_graph summarize_graph

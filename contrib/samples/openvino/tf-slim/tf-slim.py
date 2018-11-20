@@ -13,10 +13,10 @@ def tf_slim_optimize(
         export_dir: dsl.PipelineParam,
         saved_model_dir: dsl.PipelineParam,
         mo_options: dsl.PipelineParam):
-    """Simple two-steps pipeline."""
+
     slim = dsl.ContainerOp(
      name='tf-slim',
-     image='<tf-slim image>',
+     image='<tf-slim component image>',
      command=['python', 'slim_model.py'],
      arguments=[
          '--model_name', model_name,
@@ -27,15 +27,15 @@ def tf_slim_optimize(
          '--export_dir', export_dir],
      file_outputs={'saved-model-dir': '/tmp/saved_model_dir.txt'})
 
-    optim = dsl.ContainerOp(
+    dsl.ContainerOp(
      name='tf-slim',
-     image='<model optimizer image>',
+     image='<model optimizer component image>',
      command=['convert_model.py'],
      arguments=[
         '--input_path', '%s/saved_model.pb' % slim.output,
         '--mo_options', mo_options,
         '--output_path', slim.output],
-    file_outputs={})
+     file_outputs={})
 
 
 if __name__ == '__main__':

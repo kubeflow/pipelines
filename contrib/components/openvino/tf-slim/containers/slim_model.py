@@ -8,24 +8,16 @@ import validators
 import os
 import requests
 import tarfile
-from subprocess import call, Popen, PIPE
+from subprocess import Popen, PIPE
 import shutil
 import glob
 import re
-from  tensorflow.python.tools.freeze_graph import freeze_graph
-from  tensorflow.python.tools.saved_model_cli import _show_all
+from tensorflow.python.tools.freeze_graph import freeze_graph
+from tensorflow.python.tools.saved_model_cli import _show_all
 from urllib.parse import urlparse
 from shutil import copyfile
+from google.cloud import storage
 
-def delete_gcs_folder(path):
-    parsed_path = urlparse(path)
-    bucket_name = parsed_path.netloc
-    model_directory = parsed_path.path[1:]
-    gs_client = storage.Client()
-    bucket = gs_client.get_bucket(bucket_name)
-    blobs = bucket.list_blobs(prefix=model_directory)
-    for blob in blobs:
-        blob.delete()
 
 def upload_to_gcs(src, dst):
     parsed_path = urlparse(dst)
@@ -35,6 +27,7 @@ def upload_to_gcs(src, dst):
     bucket = gs_client.get_bucket(bucket_name)
     blob = bucket.blob(file_path)
     blob.upload_from_filename(src)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -65,32 +58,36 @@ def main():
     EXPORT_DIR = args.export_dir
     SAVED_MODEL_DIR = args.saved_model_dir
 
+    tmp_graph_file = os.path.join(TMP_DIR, MODEL + '_graph.pb')
+    export_graph_file = os.path.join(EXPORT_DIR, MODEL + '_graph.pb')
+    frozen_file = os.path.join(EXPORT_DIR, 'frozen_graph_' + MODEL + '.pb')
+
     if not os.path.exists(TMP_DIR):
         os.makedirs(TMP_DIR)
 
     if not os.path.exists(TMP_DIR + '/' + MODEL_FILE_NAME):
         print("Downloading and decompressing the model checkpoint...")
         response = requests.get(URL, stream=True)
-        with open(TMP_DIR + '/' + MODEL_FILE_NAME,'wb') as output:
+        with open(os.path.join(TMP_DIR, MODEL_FILE_NAME), 'wb') as output:
             output.write(response.content)
-            tar = tarfile.open(TMP_DIR + '/' + MODEL_FILE_NAME)
+            tar = tarfile.open(os.path.join(TMP_DIR, MODEL_FILE_NAME))
             tar.extractall(path=TMP_DIR)
             tar.close()
-            print("Model checkpoint downloaded and decompressed to:",TMP_DIR )
+            print("Model checkpoint downloaded and decompressed to:", TMP_DIR)
     else:
-        print("Reusing existing model file ",TMP_DIR + '/' + MODEL_FILE_NAME)
+        print("Reusing existing model file ",
+              os.path.join(TMP_DIR, MODEL_FILE_NAME))
 
     checkpoint = glob.glob(TMP_DIR + '/*.ckpt*')
-    print("checkpoint",checkpoint)
+    print("checkpoint", checkpoint)
     if len(checkpoint) > 0:
-        m = re.match("([\S]*.ckpt)",checkpoint[-1])
+        m = re.match(r"([\S]*.ckpt)", checkpoint[-1])
         print("checkpoint match", m)
         checkpoint = m[0]
         print(checkpoint)
     else:
         print("checkpoint file not detected in " + URL)
         exit(1)
-
 
     print("Saving graph def file")
     with tf.Graph().as_default() as graph:
@@ -99,7 +96,7 @@ def main():
                                                  num_classes=NUM_CLASSES,
                                                  is_training=False)
         image_size = network_fn.default_image_size
-        if BATCH_SIZE == "None" or  BATCH_SIZE == "-1":
+        if BATCH_SIZE == "None" or BATCH_SIZE == "-1":
             batchsize = None
         else:
             batchsize = BATCH_SIZE
@@ -109,63 +106,64 @@ def main():
         network_fn(placeholder)
         graph_def = graph.as_graph_def()
 
-        with gfile.GFile(os.path.join(TMP_DIR,MODEL + '_graph.pb'), 'wb') as f:
+        with gfile.GFile(tmp_graph_file, 'wb') as f:
             f.write(graph_def.SerializeToString())
     if urlparse(EXPORT_DIR).scheme == 'gs':
-        upload_to_gcs(os.path.join(TMP_DIR,MODEL + '_graph.pb'), os.path.join(EXPORT_DIR,MODEL + '_graph.pb'))
+        upload_to_gcs(tmp_graph_file, export_graph_file)
     elif urlparse(EXPORT_DIR).scheme == '':
         if not os.path.exists(EXPORT_DIR):
             os.makedirs(EXPORT_DIR)
-        copyfile(os.path.join(TMP_DIR,MODEL + '_graph.pb'), os.path.join(EXPORT_DIR,MODEL + '_graph.pb'))
+        copyfile(tmp_graph_file, export_graph_file)
     else:
         print("Invalid format of model export path")
-    print("Graph file saved to ", os.path.join(EXPORT_DIR,MODEL + '_graph.pb'))
-
+    print("Graph file saved to ",
+          os.path.join(EXPORT_DIR, MODEL + '_graph.pb'))
 
     print("Analysing graph")
-    p = Popen("./summarize_graph --in_graph=" + os.path.join(TMP_DIR,MODEL + '_graph.pb') + " --print_structure=false",
-              shell=True, stdout=PIPE, stderr=PIPE)
+    p = Popen("./summarize_graph --in_graph=" + tmp_graph_file +
+              " --print_structure=false", shell=True, stdout=PIPE, stderr=PIPE)
     summary, err = p.communicate()
     inputs = []
     outputs = []
     for line in summary.split(b'\n'):
-        if re.match("Found [\d]* possible inputs", line.decode()) is not None:
-            print("in",line)
-            m = re.findall('name=[\S]*,', line.decode())
+        line_str = line.decode()
+        if re.match(r"Found [\d]* possible inputs", line_str) is not None:
+            print("in", line)
+            m = re.findall(r'name=[\S]*,', line.decode())
             for match in m:
-                print("match",match)
+                print("match", match)
                 input = match[5:-1]
                 inputs.append(input)
-            print("inputs",inputs)
+            print("inputs", inputs)
 
-        if re.match("Found [\d]* possible outputs", line.decode()) is not None:
-            print("out",line)
-            m = re.findall('name=[\S]*,', line.decode())
+        if re.match(r"Found [\d]* possible outputs", line_str) is not None:
+            print("out", line)
+            m = re.findall(r'name=[\S]*,', line_str)
             for match in m:
-                print("match",match)
+                print("match", match)
                 output = match[5:-1]
                 outputs.append(output)
-            print("outputs",outputs)
-
+            print("outputs", outputs)
 
     output_node_names = ",".join(outputs)
     print("Creating freezed graph based on pretrained checkpoint")
-    freeze_graph(input_graph=os.path.join(TMP_DIR,MODEL + '_graph.pb'), \
-                 input_checkpoint=checkpoint, \
-                 input_binary=True, \
-                 clear_devices=True, \
-                 input_saver='', \
-                 output_node_names=output_node_names, \
-                 restore_op_name="save/restore_all", \
-                 filename_tensor_name="save/Const:0", \
-                 output_graph=os.path.join(EXPORT_DIR,'frozen_graph_'+MODEL+'.pb'), \
+    freeze_graph(input_graph=tmp_graph_file,
+                 input_checkpoint=checkpoint,
+                 input_binary=True,
+                 clear_devices=True,
+                 input_saver='',
+                 output_node_names=output_node_names,
+                 restore_op_name="save/restore_all",
+                 filename_tensor_name="save/Const:0",
+                 output_graph=frozen_file,
                  initializer_nodes="")
-    if urlparse(SAVED_MODEL_DIR).scheme == '' and os.path.exists(SAVED_MODEL_DIR):
-        shutil.rmtree(saved_model_dir)
+    if urlparse(SAVED_MODEL_DIR).scheme == '' and \
+            os.path.exists(SAVED_MODEL_DIR):
+        shutil.rmtree(SAVED_MODEL_DIR)
 
     builder = tf.saved_model.builder.SavedModelBuilder(SAVED_MODEL_DIR)
 
-    with tf.gfile.GFile(os.path.join(EXPORT_DIR,'frozen_graph_'+MODEL+'.pb'), "rb") as f:
+    with tf.gfile.GFile(frozen_file, "rb") as f:
         graph_def = tf.GraphDef()
         graph_def.ParseFromString(f.read())
 
@@ -187,8 +185,9 @@ def main():
             tf.saved_model.signature_def_utils.predict_signature_def(
                 inp_dic, out_dic)
 
-        builder.add_meta_graph_and_variables(sess,[tag_constants.SERVING],signature_def_map=sigs)
-    print("Exporting saved model to:", SAVED_MODEL_DIR+' ...')
+        builder.add_meta_graph_and_variables(sess, [tag_constants.SERVING],
+                                             signature_def_map=sigs)
+    print("Exporting saved model to:", SAVED_MODEL_DIR + ' ...')
     builder.save()
 
     print("Saved model exported to:", SAVED_MODEL_DIR)
@@ -201,5 +200,7 @@ def main():
         f.write(SAVED_MODEL_DIR)
     with open('/tmp/export_dir.txt', 'w') as f:
         f.write(EXPORT_DIR)
+
+
 if __name__ == "__main__":
     main()
