@@ -97,19 +97,19 @@ steps:
 # Build the Dataflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/predict && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildPredictComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/tfdv && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/tfdv && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTFDVComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/tft && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/tft && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTFTComponent'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/dataflow/containers/tfma && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/dataflow/tfma && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTMAComponent'
 
 # Build the Kubeflow-based pipeline component images
