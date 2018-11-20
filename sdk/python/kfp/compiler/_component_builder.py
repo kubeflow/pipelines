@@ -416,7 +416,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   component_artifact['outputs'] = [{'name': 'output'}]
   component_artifact['inputs'] = []
   component_artifact['implementation'] = {
-    'dockerContainer': {
+    'container': {
       'image': target_image,
       'arguments': [],
       'fileOutputs': {
@@ -429,7 +429,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
       'name': input,
       'type': 'str'
     })
-    component_artifact['implementation']['dockerContainer']['arguments'].append({'value': input})
+    component_artifact['implementation']['container']['arguments'].append({'value': input})
   
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
   if target_component_file:

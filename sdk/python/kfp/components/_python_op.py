@@ -19,7 +19,7 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._structures import InputSpec, OutputSpec, ImplementationSpec, DockerContainerSpec, ComponentSpec
+from ._structures import InputSpec, OutputSpec, ImplementationSpec, ContainerSpec, ComponentSpec
 
 from pathlib import Path
 from typing import TypeVar, Generic
@@ -229,7 +229,7 @@ for idx, filename in enumerate(_output_files):
         inputs=[InputSpec.from_struct(input) for input in inputs],
         outputs=[OutputSpec.from_struct(output) for output in outputs],
         implementation=ImplementationSpec(
-            docker_container=DockerContainerSpec(
+            container=ContainerSpec(
                 image=base_image,
                 command=['python3', '-c', full_source],
                 arguments=arguments,

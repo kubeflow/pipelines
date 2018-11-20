@@ -16,7 +16,7 @@ __all__ = [
     'InputOrOutputSpec',
     'InputSpec',
     'OutputSpec',
-    'DockerContainerSpec',
+    'ContainerSpec',
     'GraphInputReferenceSpec',
     'TaskOutputReferenceSpec',
     'DataValueOrReferenceSpec',
@@ -111,7 +111,7 @@ class OutputSpec(InputOrOutputSpec):
     pass
 
 
-class DockerContainerSpec:
+class ContainerSpec:
     def __init__(self, image:str, command:List=None, arguments:List=None, file_outputs:Mapping[str,str]=None):
         if not isinstance(image, str):
             raise ValueError('image must be a string')
@@ -126,7 +126,7 @@ class DockerContainerSpec:
         
         image = spec_dict.pop('image')
         
-        container_spec = DockerContainerSpec(image)
+        container_spec = ContainerSpec(image)
         
         if 'command' in spec_dict:
             container_spec.command = list(spec_dict.pop('command'))
@@ -324,13 +324,13 @@ class GraphSpec:
 
 
 class ImplementationSpec:
-    def __init__(self, docker_container=None, graph=None):
-        if not docker_container and not graph:
+    def __init__(self, container=None, graph=None):
+        if not container and not graph:
             raise ValueError('Implementation is required')
-        if docker_container and graph:
+        if container and graph:
             raise ValueError('Only one implementation can be specified')
 
-        self.docker_container = docker_container
+        self.container = container
         self.graph = graph
     
     @staticmethod
@@ -339,8 +339,8 @@ class ImplementationSpec:
             raise ValueError('There must be exactly one implementation')
         
         for name, value in spec_dict.items():
-            if name == 'dockerContainer':
-                return ImplementationSpec(DockerContainerSpec.from_struct(value))
+            if name == 'container':
+                return ImplementationSpec(ContainerSpec.from_struct(value))
             elif name == 'graph':
                 return ImplementationSpec(GraphSpec.from_struct(value))
             else:
@@ -348,8 +348,8 @@ class ImplementationSpec:
 
     def to_struct(self):
         struct = {}
-        if self.docker_container:
-            struct['dockerContainer'] = self.docker_container.to_struct()
+        if self.container:
+            struct['container'] = self.container.to_struct()
         if self.graph:
             struct['graph'] = self.graph.to_struct()
         
