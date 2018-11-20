@@ -44,7 +44,7 @@ fi
 
 # build base image
 pushd ../base
-build_image.sh
+./build_image.sh
 popd
 
 docker build -t ${LOCAL_IMAGE_NAME} .
