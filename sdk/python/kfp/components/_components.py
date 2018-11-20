@@ -219,7 +219,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         output_name_to_kubernetes[io_port.name] = kubernetes_name
         kubernetes_name_to_output_name[kubernetes_name] = io_port.name
 
-    container_spec = component_spec.implementation.docker_container
+    container_spec = component_spec.implementation.container
     container_image = container_spec.image
 
     file_inputs={}
