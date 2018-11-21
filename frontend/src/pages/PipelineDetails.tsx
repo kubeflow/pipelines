@@ -177,10 +177,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         title: 'Delete',
         tooltip: 'Delete this pipeline',
       }],
-      breadcrumbs: [
-        { displayName: 'Pipelines', href: RoutePage.PIPELINES },
-        { displayName: this.props.match.params[RouteParams.pipelineId], href: '' }
-      ],
+      breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
+      pageTitle: this.props.match.params[RouteParams.pipelineId],
     };
   }
 
@@ -314,14 +312,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         await this.showPageError('Error: failed to generate Pipeline graph.', err);
       }
 
-      const breadcrumbs = [
-        { displayName: 'Pipelines', href: RoutePage.PIPELINES },
-        { displayName: pipeline.name!, href: '' },
-      ];
+      const breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
+      const pageTitle = pipeline.name!;
 
       const toolbarActions = [...this.props.toolbarProps.actions];
       toolbarActions[0].disabled = false;
-      this.props.updateToolbar({ breadcrumbs, actions: toolbarActions });
+      this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
       this.setState({
         graph: g,

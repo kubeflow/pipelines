@@ -151,7 +151,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
         actions: this._runListToolbarActions,
-        breadcrumbs: [{ displayName: 'Runs', href: '' }],
+        breadcrumbs: [],
+        pageTitle: 'Runs',
         topLevelToolbar: false,
       },
       // TODO: remove
@@ -168,10 +169,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         title: 'Refresh',
         tooltip: 'Refresh',
       }],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: this.props.match.params[RouteParams.experimentId], href: '' }
-      ],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: this.props.match.params[RouteParams.experimentId],
     };
   }
 
@@ -258,15 +257,14 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
     try {
       const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+      const pageTitle = (experiment && experiment.name) ?
+        experiment.name : this.props.match.params[RouteParams.experimentId];
 
       this.props.updateToolbar({
         actions: this.props.toolbarProps.actions,
-        breadcrumbs: [
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experiment && experiment.name ? experiment.name : this.props.match.params[RouteParams.experimentId],
-            href: ''
-          }],
+        breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+        pageTitle,
+        pageTitleTooltip: pageTitle,
       });
 
       // TODO: get ALL jobs in the experiment
@@ -327,6 +325,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       runListToolbarProps: {
         actions: toolbarActions,
         breadcrumbs: this.state.runListToolbarProps.breadcrumbs,
+        pageTitle: this.state.runListToolbarProps.pageTitle,
         topLevelToolbar: this.state.runListToolbarProps.topLevelToolbar,
       },
       selectedRunIds

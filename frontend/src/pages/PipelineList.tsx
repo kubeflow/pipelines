@@ -77,7 +77,8 @@ class PipelineList extends Page<{}, PipelineListState> {
         title: 'Delete',
         tooltip: 'Delete',
       }],
-      breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
+      breadcrumbs: [],
+      pageTitle: 'Pipelines',
     };
   }
 
@@ -148,7 +149,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       // Delete pipeline
       draft[2].disabled = selectedIds.length < 1;
     });
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
+    this.props.updateToolbar({ actions: toolbarActions });
     this.setStateSafe({ selectedIds });
   }
 
