@@ -19,7 +19,7 @@ FROM python:3.5.0-slim as compiler
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q default-jdk libssl-dev libffi-dev wget
 
-RUN ./sdk/python/build.sh /kfp.tar.gz
+RUN /go/src/github.com/kubeflow/pipelines/sdk/python/build.sh /kfp.tar.gz
 RUN pip3 install /kfp.tar.gz
 
 WORKDIR /samples
