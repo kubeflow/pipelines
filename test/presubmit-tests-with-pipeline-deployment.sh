@@ -98,7 +98,8 @@ function delete_cluster {
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
-KFAPP=${TEST_CLUSTER}
+KFAPP=$(pwd)/${TEST_CLUSTER}
+
 function clean_up {
   echo "Clean up..."
   cd ${KFAPP}
