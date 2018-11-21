@@ -66,6 +66,7 @@ echo "presubmit test starts"
 # activating the service account
 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 gcloud config set compute/zone us-central1-a
+gcloud config set core/project ${PROJECT}
 
 # Install ksonnet
 KS_VERSION="0.11.0"
@@ -104,18 +105,17 @@ function clean_up {
 #  trap clean_up EXIT
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT}
-echo "*********124"
 ls ${KFAPP}
 
 cd ${KFAPP}
-echo "*********125"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
-echo "*********126"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
-echo "*********127"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
 ## Update pipeline component image
+echo "*********127"
+echo pwd
+echo ls
 pushd ks_app
 ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${PULL_PULL_SHA}
 ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${PULL_PULL_SHA}
