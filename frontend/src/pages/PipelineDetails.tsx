@@ -90,7 +90,7 @@ const css = stylesheet({
   },
   infoSpan: {
     color: color.lowContrast,
-    font: fonts.secondary,
+    fontFamily: fonts.secondary,
     fontSize: fontsize.small,
     letterSpacing: '0.21px',
     lineHeight: '24px',
@@ -265,7 +265,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       </Button>
                     )}
                     <div className={classes(commonCss.flex, summaryShown && css.footerInfoOffset)}>
-                      <InfoIcon style={{ color: color.lowContrast, height: 24, width: 13 }} />
+                      <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
                       <span className={css.infoSpan}>Static pipeline graph</span>
                     </div>
                   </div>
