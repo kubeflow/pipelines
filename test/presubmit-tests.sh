@@ -95,7 +95,7 @@ if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
 
   TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-  TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
+  TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
   function delete_cluster {
     echo "Delete cluster..."
     gcloud container clusters delete ${TEST_CLUSTER} --async
@@ -119,7 +119,7 @@ if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   gcloud container clusters get-credentials ${TEST_CLUSTER}
 fi
 
-kubectl config set-context $(kubectl config current-context) --namespace=default
+# TODO install argo if not install kubeflow
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
