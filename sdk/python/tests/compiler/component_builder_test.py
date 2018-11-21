@@ -131,8 +131,8 @@ class TestDockerfileHelper(unittest.TestCase):
     docker_helper = DockerfileHelper(arc_dockerfile_name='')
     docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
     self.assertTrue(os.path.exists(temp_tarball))
-    temp_tarball_handler = tarfile.open(temp_tarball)
-    temp_files = temp_tarball_handler.getmembers()
+    temp_tarball_handle = tarfile.open(temp_tarball)
+    temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 2)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
@@ -183,21 +183,21 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     python_filepath = os.path.join(test_data_dir, 'basic.py')
-    generated_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
+    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
 
     # check
     docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
     docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
                                                  base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
-                                                 local_tarball_path=generated_tarball)
-    temp_tarball_handler = tarfile.open(generated_tarball)
-    temp_files = temp_tarball_handler.getmembers()
+                                                 local_tarball_path=local_tarball_path)
+    temp_tarball_handle = tarfile.open(local_tarball_path)
+    temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 2)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
 
     # clean up
-    os.remove(generated_tarball)
+    os.remove(local_tarball_path)
 
   def test_prepare_docker_with_py_and_dependency(self):
     """ Test the whole prepare docker from python function and dependencies """
@@ -216,8 +216,8 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
                                                  base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
                                                  local_tarball_path=local_tarball_path, dependency=dependencies)
-    temp_tarball_handler = tarfile.open(local_tarball_path)
-    temp_files = temp_tarball_handler.getmembers()
+    temp_tarball_handle = tarfile.open(local_tarball_path)
+    temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 3)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile', 'main.py', 'requirements.txt'])
@@ -232,19 +232,19 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     dockerfile_path = os.path.join(test_data_dir, 'component.target.dockerfile')
     Path(dockerfile_path).touch()
-    generated_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
+    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
 
     # check
     docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
-    docker_helper.prepare_docker_tarball(dockerfile_path=dockerfile_path, local_tarball_path=generated_tarball)
-    temp_tarball_handler = tarfile.open(generated_tarball)
-    temp_files = temp_tarball_handler.getmembers()
+    docker_helper.prepare_docker_tarball(dockerfile_path=dockerfile_path, local_tarball_path=local_tarball_path)
+    temp_tarball_handle = tarfile.open(local_tarball_path)
+    temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 1)
     for temp_file in temp_files:
       self.assertTrue(temp_file.name in ['dockerfile'])
 
     # clean up
-    os.remove(generated_tarball)
+    os.remove(local_tarball_path)
     os.remove(dockerfile_path)
 
 # hello function is used by the TestCodeGenerator to verify the auto generated python function
