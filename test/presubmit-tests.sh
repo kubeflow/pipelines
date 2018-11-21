@@ -91,7 +91,6 @@ cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
 
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
-echo "*********121"
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
@@ -103,16 +102,17 @@ function clean_up {
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
 }
 #  trap clean_up EXIT
-echo "*********123"
-ls ${KFAPP}
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT}
 echo "*********124"
 ls ${KFAPP}
 
 cd ${KFAPP}
+echo "*********125"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
+echo "*********126"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
+echo "*********127"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
 ## Update pipeline component image
