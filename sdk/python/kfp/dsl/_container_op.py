@@ -54,11 +54,9 @@ class ContainerOp(object):
     self.arguments = arguments
     self.gcp_secret = gcp_secret
     self.is_exit_handler = is_exit_handler
-    self.memory_limit = None
-    self.memory_request = None
-    self.cpu_limit = None
-    self.cpu_request = None
-    self.nvidia_gpu_limit = None
+    self.resource_limits = {}
+    self.resource_requests = {}
+    self.node_selector = {}
     self.volumes = []
     self.volume_mounts = []
     self.env_variables = []
@@ -123,6 +121,26 @@ class ContainerOp(object):
     except ValueError:
       raise ValueError('Invalid gpu string. Should be integer.')
 
+  def add_resource_limit(self, resource_name, value):
+    """Add the resource limit of the container.
+
+    Args:
+      resource_name: The name of the resource. It can be cpu, memory, etc.
+      value: The string value of the limit.
+    """
+
+    self.resource_limits[resource_name] = value
+
+  def add_resource_request(self, resource_name, value):
+    """Add the resource request of the container.
+
+    Args:
+      resource_name: The name of the resource. It can be cpu, memory, etc.
+      value: The string value of the request.
+    """
+
+    self.resource_requests[resource_name] = value
+
   def set_memory_request(self, memory):
     """Set memory request (minimum) for this operator.
 
@@ -132,7 +150,7 @@ class ContainerOp(object):
     """
 
     self._validate_memory_string(memory)
-    self.memory_request = memory
+    self.add_resource_request("memory", memory)
 
   def set_memory_limit(self, memory):
     """Set memory limit (maximum) for this operator.
@@ -142,7 +160,7 @@ class ContainerOp(object):
               "E", "P", "T", "G", "M", "K".
     """
     self._validate_memory_string(memory)
-    self.memory_limit = memory
+    self.add_resource_limit("memory", memory)
 
   def set_cpu_request(self, cpu):
     """Set cpu request (minimum) for this operator.
@@ -152,7 +170,7 @@ class ContainerOp(object):
     """
 
     self._validate_cpu_string(cpu)
-    self.cpu_request = cpu
+    self.add_resource_request("cpu", cpu)
 
   def set_cpu_limit(self, cpu):
     """Set cpu limit (maximum) for this operator.
@@ -162,17 +180,7 @@ class ContainerOp(object):
     """
 
     self._validate_cpu_string(cpu)
-    self.cpu_limit = cpu
-
-  def set_nvidia_gpu_limit(self, gpu):
-    """Set nvidia gpu limit (maximum) for this operator.
-
-    Args:
-      gpu: A string which is the number of GPUs to consume.
-    """
-
-    self._validate_gpu_string(gpu)
-    self.nvidia_gpu_limit = gpu
+    self.add_resource_limit("cpu", cpu)
 
   def add_volume(self, volume):
     """Add K8s volume to the container
@@ -206,6 +214,18 @@ class ContainerOp(object):
     """
 
     self.env_variables.append(env_variable)
+
+  def add_node_selector_constraint(self, label_name, value):
+    """Add a constraint for nodeSelector. Each constraint is a key-value pair label. For the 
+    container to be eligible to run on a node, the node must have each of the constraints appeared
+    as labels.
+
+    Args:
+      label_name: The name of the constraint label.
+      value: The value of the constraint label.
+    """
+
+    self.node_selector[label_name] = value
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})

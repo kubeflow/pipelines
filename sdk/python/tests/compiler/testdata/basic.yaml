@@ -138,6 +138,8 @@ spec:
       - sh
       - -c
       image: google/cloud-sdk
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-k80 
       resources:
         limits:
           cpu: "0.5"
