@@ -95,7 +95,7 @@ TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-$
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
-KFAPP=${DIR}/${TEST_CLUSTER}
+KFAPP=${TEST_CLUSTER}
 
 function clean_up {
   echo "Clean up..."
