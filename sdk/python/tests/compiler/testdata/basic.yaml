@@ -138,8 +138,6 @@ spec:
       - sh
       - -c
       image: google/cloud-sdk
-      nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-tesla-k80 
       resources:
         limits:
           cpu: "0.5"
@@ -149,6 +147,8 @@ spec:
       - name: get-frequent-word
       - name: outputpath
     name: save
+    nodeSelector:
+      cloud.google.com/gke-accelerator: nvidia-tesla-k80 
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
