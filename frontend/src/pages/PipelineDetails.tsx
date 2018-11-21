@@ -23,9 +23,9 @@ import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CloseIcon from '@material-ui/icons/Close';
-import Collapse from '@material-ui/core/Collapse';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
+import InfoIcon from '@material-ui/icons/InfoOutlined';
 import MD2Tabs from '../atoms/MD2Tabs';
 import Paper from '@material-ui/core/Paper';
 import Resizable from 're-resizable';
@@ -78,6 +78,17 @@ const css = stylesheet({
   fontSizeTitle: {
     fontSize: fontsize.title,
   },
+  footer: {
+    background: color.graphBg,
+    display: 'flex',
+    padding: '0 0 20px 20px',
+  },
+  infoSpan: {
+    color: color.lowContrast,
+    fontSize: fontsize.small,
+    lineHeight: '24px',
+    paddingLeft: 6,
+  },
   nodeName: {
     flexGrow: 1,
     textAlign: 'center',
@@ -94,11 +105,8 @@ const css = stylesheet({
     zIndex: 2,
   },
   summaryCard: {
-    backgroundColor: color.background,
     bottom: 20,
     left: 20,
-    maxHeight: 350,
-    overflow: 'auto',
     padding: 10,
     position: 'absolute',
     width: 500,
@@ -192,23 +200,25 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             <div className={commonCss.page}>
               {selectedTab === 0 && <div className={commonCss.page}>
                 {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                  <Paper className={css.summaryCard}>
-                    <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
-                      <div className={commonCss.header}>
-                        Summary
+                  {summaryShown && (
+                    <Paper className={css.summaryCard}>
+                      <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
+                        <div className={commonCss.header}>
+                          Summary
+                        </div>
+                        <Button onClick={() => this.setState({ summaryShown: false })} color='secondary'>
+                          Hide
+                        </Button>
                       </div>
-                      <Button onClick={() => this.setState({ summaryShown: !summaryShown })} color='secondary'>
-                        {summaryShown ? 'Hide' : 'Show'}
-                      </Button>
-                    </div>
-                    <Collapse in={summaryShown}>
                       <div className={css.summaryKey}>Uploaded on</div>
                       <div>{new Date(pipeline.created_at!).toLocaleString()}</div>
                       <div className={css.summaryKey}>Description</div>
                       <div>{pipeline.description}</div>
-                    </Collapse>
-                  </Paper>
+                    </Paper>
+                  )}
+
                   <Graph graph={this.state.graph} selectedNodeId={selectedNodeId} onClick={(id) => this._selectNode(id)} />
+
                   <Slide in={!!selectedNodeId} direction='left'>
                     <Resizable className={css.sidepane} defaultSize={{ width: '40%' }} maxWidth='90%'
                       minWidth={100} enable={{
@@ -244,6 +254,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                     </Resizable>
                   </Slide>
                 </div>}
+                <div className={css.footer}>
+                  {!summaryShown && (
+                    <Button onClick={() => this.setState({ summaryShown: !summaryShown })} color='secondary'>
+                      Show summary
+                    </Button>
+                  )}
+                  <InfoIcon style={{ color: color.lowContrast, height: 24, width: 13 }} />
+                  <span className={css.infoSpan}>Static pipeline graph</span>
+                </div>
                 {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>}
               {selectedTab === 1 &&
