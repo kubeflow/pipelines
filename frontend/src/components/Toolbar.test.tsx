@@ -87,7 +87,7 @@ describe('Toolbar', () => {
   });
 
   it('renders without actions, one breadcrumb, and a page name', () => {
-    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={[]} history={history}
+    const tree = shallow(<Toolbar breadcrumbs={[breadcrumbs[0]]} actions={[]} history={history}
       pageTitle='test page title' />);
     expect(tree).toMatchSnapshot();
   });
