@@ -76,7 +76,7 @@ export function statusToIcon(status: NodePhase): JSX.Element {
       logger.verbose('Unknown node phase:', status);
   }
 
-  return <Tooltip title={title}><span>
+  return <Tooltip title={title}><span style={{ height: 18 }}>
     <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
   </span></Tooltip>;
 }

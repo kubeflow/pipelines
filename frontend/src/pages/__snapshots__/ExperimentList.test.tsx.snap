@@ -185,7 +185,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     <WithStyles(Tooltip)
       title="Executed successfully"
     >
-      <span>
+      <span
+        style={
+          Object {
+            "height": 18,
+          }
+        }
+      >
         <pure(CheckCircleIcon)
           style={
             Object {
@@ -209,7 +215,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     <WithStyles(Tooltip)
       title="Pending execution"
     >
-      <span>
+      <span
+        style={
+          Object {
+            "height": 18,
+          }
+        }
+      >
         <pure(ScheduleIcon)
           style={
             Object {
@@ -233,7 +245,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     <WithStyles(Tooltip)
       title="Resource failed to execute"
     >
-      <span>
+      <span
+        style={
+          Object {
+            "height": 18,
+          }
+        }
+      >
         <pure(ErrorIcon)
           style={
             Object {
@@ -257,7 +275,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     <WithStyles(Tooltip)
       title="Unknown status"
     >
-      <span>
+      <span
+        style={
+          Object {
+            "height": 18,
+          }
+        }
+      >
         <pure(HelpIcon)
           style={
             Object {
@@ -281,7 +305,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     <WithStyles(Tooltip)
       title="Executed successfully"
     >
-      <span>
+      <span
+        style={
+          Object {
+            "height": 18,
+          }
+        }
+      >
         <pure(CheckCircleIcon)
           style={
             Object {

@@ -130,10 +130,8 @@ describe('RecurringRunDetails', () => {
     const tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      breadcrumbs: [
-        { displayName: 'All runs', href: RoutePage.RUNS },
-        { displayName: fullTestJob.name, href: '' },
-      ],
+      breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
+      pageTitle: fullTestJob.name,
     }));
     tree.unmount();
   });
@@ -160,8 +158,8 @@ describe('RecurringRunDetails', () => {
           href: RoutePage.EXPERIMENT_DETAILS.replace(
             ':' + RouteParams.experimentId, 'test-experiment-id'),
         },
-        { displayName: fullTestJob.name, href: '' },
       ],
+      pageTitle: fullTestJob.name,
     }));
     tree.unmount();
   });
