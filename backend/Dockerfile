@@ -16,9 +16,12 @@ RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 
 FROM python:3.5.0-slim as compiler
 
-# This is hard coded to 0.0.26. Once kfp DSK release process is automated,
-# we can dynamically refer to the version from same commit SHA.
-RUN pip install https://storage.googleapis.com/ml-pipeline/release/0.0.26/kfp-0.0.26.tar.gz --upgrade
+RUN apt-get update -y && \
+    apt-get install --no-install-recommends -y -q default-jdk libssl-dev libffi-dev wget
+
+RUN ./sdk/python/build.sh /kfp.tar.gz
+RUN pip3 install /kfp.tar.gz
+
 WORKDIR /samples
 COPY ./samples .
 RUN  find . -maxdepth 2 -name "*.py" -exec dsl-compile --py {} --output {}.tar.gz \;
