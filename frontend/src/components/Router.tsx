@@ -99,7 +99,7 @@ class Router extends React.Component<{}, RouteComponentState> {
       updateBanner: this._updateBanner.bind(this),
       updateDialog: this._updateDialog.bind(this),
       updateSnackbar: this._updateSnackbar.bind(this),
-      updateToolbar: this._setToolbarActions.bind(this),
+      updateToolbar: this._updateToolbar.bind(this),
     };
 
     const routes: Array<{ path: string, Component: React.ComponentClass, view?: any }> = [
@@ -195,7 +195,8 @@ class Router extends React.Component<{}, RouteComponentState> {
     }
   }
 
-  private _setToolbarActions(toolbarProps: ToolbarProps): void {
+  private _updateToolbar(newToolbarProps: Partial<ToolbarProps>): void {
+    const toolbarProps = Object.assign(this.state.toolbarProps, newToolbarProps);
     this.setState({ toolbarProps });
   }
 

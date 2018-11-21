@@ -36,7 +36,7 @@ class LoadComponentTestCase(unittest.TestCase):
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
         assert task1.human_name == component_dict['name']
-        assert task1.image == component_dict['implementation']['dockerContainer']['image']
+        assert task1.image == component_dict['implementation']['container']['image']
 
         assert task1.arguments[0] == str(arg1)
         assert task1.arguments[1] == str(arg2)
@@ -56,7 +56,7 @@ class LoadComponentTestCase(unittest.TestCase):
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
         assert task1.human_name == component_dict['name']
-        assert task1.image == component_dict['implementation']['dockerContainer']['image']
+        assert task1.image == component_dict['implementation']['container']['image']
 
         assert task1.arguments[0] == str(arg1)
         assert task1.arguments[1] == str(arg2)
@@ -64,14 +64,14 @@ class LoadComponentTestCase(unittest.TestCase):
     def test_loading_minimal_component(self):
         component_text = '''\
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         component_dict = load_yaml(component_text)
         task_factory1 = comp.load_component(text=component_text)
 
         task1 = task_factory1()
-        assert task1.image == component_dict['implementation']['dockerContainer']['image']
+        assert task1.image == component_dict['implementation']['container']['image']
 
     @unittest.expectedFailure
     def test_fail_on_duplicate_input_names(self):
@@ -80,7 +80,7 @@ inputs:
 - {name: Data1}
 - {name: Data1}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -92,7 +92,7 @@ outputs:
 - {name: Data1}
 - {name: Data1}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -103,7 +103,7 @@ inputs:
 - {name: Data}
 - {name: _Data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -114,7 +114,7 @@ outputs:
 - {name: Data}
 - {name: _Data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -124,7 +124,7 @@ implementation:
 inputs:
 - {name: Training data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -134,7 +134,7 @@ implementation:
 outputs:
 - {name: Training data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -144,7 +144,7 @@ implementation:
 outputs:
 - {name: Output data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     fileOutputs:
       Output data: /outputs/output-data
@@ -158,7 +158,7 @@ inputs:
 - {name: Input_1}
 - {name: Input-1}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -170,7 +170,7 @@ inputs:
 outputs:
 - {name: Data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -182,7 +182,7 @@ implementation:
 inputs:
 - {name: Data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
         - [value, Wrong]
@@ -195,7 +195,7 @@ implementation:
 outputs:
 - {name: Data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     fileOutputs:
         Wrong: '/outputs/output.txt'
@@ -229,7 +229,7 @@ implementation:
     def test_command_yaml_types(self):
         component_text = '''\
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       # Nulls:
@@ -290,7 +290,7 @@ implementation:
 inputs:
 - {name: Data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - --data
@@ -306,7 +306,7 @@ implementation:
 outputs:
 - {name: Data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - --output-data
@@ -322,7 +322,7 @@ implementation:
 outputs:
 - {name: Data}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - --output-data
@@ -339,7 +339,7 @@ inputs:
 - {name: In1}
 - {name: In2}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - concat: [{value: In1}, {value: In2}]
@@ -352,7 +352,7 @@ implementation:
     def test_command_if_boolean_true_then_else(self):
         component_text = '''\
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - if:
@@ -367,7 +367,7 @@ implementation:
     def test_command_if_boolean_false_then_else(self):
         component_text = '''\
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - if:
@@ -382,7 +382,7 @@ implementation:
     def test_command_if_true_string_then_else(self):
         component_text = '''\
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - if:
@@ -397,7 +397,7 @@ implementation:
     def test_command_if_false_string_then_else(self):
         component_text = '''\
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - if:
@@ -415,7 +415,7 @@ implementation:
 inputs:
 - {name: In, required: false}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - if:
@@ -437,7 +437,7 @@ implementation:
 inputs:
 - {name: In, required: false}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - if:

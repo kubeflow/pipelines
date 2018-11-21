@@ -77,6 +77,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         tooltip: 'Delete this recurring run',
       }],
       breadcrumbs: [],
+      pageTitle: '',
     };
   }
 
@@ -192,16 +193,13 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         { displayName: 'All runs', href: RoutePage.RUNS }
       );
     }
-    breadcrumbs.push({
-      displayName: run ? run.name! : runId,
-      href: '',
-    });
+    const pageTitle = run ? run.name! : runId;
 
     const toolbarActions = [...this.props.toolbarProps.actions];
     toolbarActions[1].disabled = !!run.enabled;
     toolbarActions[2].disabled = !run.enabled;
 
-    this.props.updateToolbar({ actions: toolbarActions, breadcrumbs });
+    this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
     this.setState({ run });
   }
@@ -230,7 +228,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
   }
 
   protected _updateToolbar(actions: ToolbarActionConfig[]): void {
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions });
+    this.props.updateToolbar({ actions });
   }
 
   protected async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {

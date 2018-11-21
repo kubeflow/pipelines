@@ -20,7 +20,7 @@ import { ToolbarProps } from '../components/Toolbar';
 
 export default class Page404 extends Page<{}, {}> {
   public getInitialToolbarState(): ToolbarProps {
-    return { actions: [], breadcrumbs: [] };
+    return { actions: [], breadcrumbs: [], pageTitle: '' };
   }
 
   public async refresh(): Promise<void> {

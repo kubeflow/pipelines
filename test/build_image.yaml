@@ -45,7 +45,7 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: ml-pipeline
+            value: pipeline
           - name: image-name
             value: "{{inputs.parameters.bootstrapper-image}}"
       - name: build-api-server-image

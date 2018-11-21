@@ -65,7 +65,7 @@ spec:
     spec:
       containers:
       - name: deploy
-        image: gcr.io/ml-pipeline/bootstrapper:0.1.0 #TODO-release: update the release tag for the next release
+        image: gcr.io/ml-pipeline/bootstrapper:0.1.2 #TODO-release: update the release tag for the next release
         imagePullPolicy: 'Always'
         # Additional parameter available:
         args: [
