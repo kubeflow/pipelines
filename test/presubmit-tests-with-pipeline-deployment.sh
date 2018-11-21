@@ -90,11 +90,6 @@ cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
 
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
-function delete_cluster {
-  echo "Delete cluster..."
-  gcloud container clusters delete ${TEST_CLUSTER} --async
-}
-#  trap delete_cluster EXIT
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
@@ -105,7 +100,7 @@ function clean_up {
   cd ${KFAPP}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
 }
-#  trap delete_cluster EXIT
+#  trap clean_up EXIT
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT}
 cd ${KFAPP}

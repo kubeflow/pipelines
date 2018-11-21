@@ -22,11 +22,6 @@ spec:
     parameters:
     - name: commit-sha
     - name: test-results-gcs-dir
-    - name: bootstrapper-image
-    - name: api-image
-    - name: frontend-image
-    - name: scheduledworkflow-image
-    - name: persistenceagent-image
     - name: dataflow-tft-image-suffix
       value: dataflow-tft
     - name: dataflow-predict-image-suffix
@@ -65,11 +60,6 @@ spec:
       parameters:
       - name: commit-sha
       - name: test-results-gcs-dir
-      - name: bootstrapper-image
-      - name: api-image
-      - name: frontend-image
-      - name: scheduledworkflow-image
-      - name: persistenceagent-image
       - name: dataflow-tft-image-suffix
       - name: dataflow-predict-image-suffix
       - name: dataflow-tfma-image-suffix
@@ -112,7 +102,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: build-script
-            value: components/dataflow/tft/build_image.sh
+            value: components/dataflow/containers/tft/build.sh
       - name: build-dataflow-predict-image
         template: build-image-by-script
         arguments:
@@ -124,7 +114,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-predict-image-suffix}}"
           - name: build-script
-            value: components/dataflow/predict/build_image.sh
+            value: components/dataflow/containers/predict/build.sh
       - name: build-dataflow-tfma-image
         template: build-image-by-script
         arguments:
@@ -136,7 +126,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: build-script
-            value: components/dataflow/tfma/build_image.sh
+            value: components/dataflow/containers/tfma/build.sh
       - name: build-dataflow-tfdv-image
         template: build-image-by-script
         arguments:
@@ -148,7 +138,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tfdv-image-suffix}}"
           - name: build-script
-            value: components/dataflow/tfdv/build_image.sh
+            value: components/dataflow/containers/tfdv/build.sh
       - name: build-dataproc-create-cluster-image
         template: build-image-by-script
         arguments:
@@ -269,20 +259,6 @@ spec:
             value: "{{inputs.parameters.local-roc-image-suffix}}"
           - name: build-script
             value: components/local/containers/roc/build.sh
-    - - name: deploy-ml-pipeline
-        template: deploy-ml-pipeline
-        arguments:
-          parameters:
-          - name: bootstrapper-image
-            value: "{{inputs.parameters.bootstrapper-image}}"
-          - name: api-image
-            value: "{{inputs.parameters.api-image}}"
-          - name: frontend-image
-            value: "{{inputs.parameters.frontend-image}}"
-          - name: scheduledworkflow-image
-            value: "{{inputs.parameters.scheduledworkflow-image}}"
-          - name: persistenceagent-image
-            value: "{{inputs.parameters.persistenceagent-image}}"
     - - name: run-tf-training-tests
         template: run-sample-tests
         arguments:
@@ -477,25 +453,6 @@ spec:
         privileged: true
       mirrorVolumeMounts: true
 
-  - name: deploy-ml-pipeline
-    inputs:
-      parameters:
-      - name: bootstrapper-image
-      - name: api-image
-      - name: frontend-image
-      - name: scheduledworkflow-image
-      - name: persistenceagent-image
-    container:
-      image: "{{inputs.parameters.bootstrapper-image}}"
-      args: [
-        "--api_image", "{{inputs.parameters.api-image}}",
-        "--ui_image", "{{inputs.parameters.frontend-image}}",
-        "--scheduled_workflow_image", "{{inputs.parameters.scheduledworkflow-image}}",
-        "--persistence_agent_image", "{{inputs.parameters.persistenceagent-image}}",
-        "--deploy_argo", "false", # Argo is already installed in the cluster. No need to install again.
-        "--report_usage", "false" # Skip reporting usage for test
-      ]
-
   - name: run-sample-tests
     inputs:
       parameters:
@@ -540,3 +497,4 @@ spec:
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
+
