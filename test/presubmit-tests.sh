@@ -74,11 +74,11 @@ tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
 chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
 mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
 
-# Install kubeflow
+# Download kubeflow master
 KUBEFLOW_MASTER=${DIR}/kubeflow_master
 git clone https://github.com/kubeflow/kubeflow.git ${KUBEFLOW_MASTER}
 
-## Download latest release source code
+## Download latest kubeflow release source code
 KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
 mkdir ${KUBEFLOW_SRC}
 cd ${KUBEFLOW_SRC}
@@ -91,6 +91,7 @@ cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
 
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
+echo "*********121"
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
@@ -102,16 +103,17 @@ function clean_up {
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
 }
 #  trap clean_up EXIT
+echo "*********123"
+ls ${KFAPP}
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT}
+echo "*********124"
+ls ${KFAPP}
+
 cd ${KFAPP}
-echo "********* see generate platform"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
-echo "********* see apply platform"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
-echo "********* see generate k8s"
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
-echo "********* see apply k8s "
 
 ## Update pipeline component image
 pushd ks_app
@@ -121,11 +123,7 @@ ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledwork
 ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${PULL_PULL_SHA}
 popd
 
-echo "********* parameter done"
-
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
-
-echo "********* apllied done"
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
 
