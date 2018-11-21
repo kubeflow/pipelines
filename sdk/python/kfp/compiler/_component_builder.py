@@ -159,7 +159,8 @@ class DockerfileHelper(object):
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
       f.write('RUN pip3 install fire\n')
       if has_requirement_file:
-        f.write('RUN pip3 install -r ' + self._ARC_REQUIREMENT_FILE + '\n')
+        f.write('ADD ' + self._ARC_REQUIREMENT_FILE + ' /ml/\n')
+        f.write('RUN pip3 install -r /ml/' + self._ARC_REQUIREMENT_FILE + '\n')
       f.write('ADD ' + python_filepath + " /ml/" + '\n')
       f.write('ENTRYPOINT ["python3", "/ml/' + python_filepath + '"]')
 
@@ -278,7 +279,7 @@ class ImageBuilder(object):
 
     # Follow the same indentation with the component source codes.
     component_src = inspect.getsource(component_func)
-    match = re.search('\n([ \t]+)[\w]+', component_src)
+    match = re.search(r'\n([ \t]+)[\w]+', component_src)
     indentation = match.group(1) if match else '\t'
     codegen = CodeGenerator(indentation=indentation)
 
@@ -327,11 +328,25 @@ class ImageBuilder(object):
     complete_component_code = dedecorated_component_src + '\n' + wrapper_code + '\n' + codegen.end()
     return complete_component_code
 
+  def _build_image_from_tarball(self, local_tarball_path, namespace, timeout):
+    GCSHelper.upload_gcs_file(local_tarball_path, self._gcs_path)
+    kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
+                                             arc_dockerfile_name=self._arc_dockerfile_name,
+                                             gcs_path=self._gcs_path,
+                                             target_image=self._target_image)
+    # Run kaniko job
+    logging.info('Start a kaniko job for build.')
+    k8s_helper = K8sHelper()
+    k8s_helper.run_job(kaniko_spec, timeout)
+    logging.info('Kaniko job complete.')
+
+    # Clean up
+    GCSHelper.remove_gcs_blob(self._gcs_path)
+
   def build_image_from_func(self, component_func, namespace, base_image, timeout, dependency):
     """ build_image builds an image for the given python function"""
-
-    # Generate entrypoint and serialization python codes
     with tempfile.TemporaryDirectory() as local_build_dir:
+      # Generate entrypoint and serialization python codes
       local_python_filepath = os.path.join(local_build_dir, self._arc_python_filepath)
       logging.info('Generate entrypoint and serialization codes.')
       complete_component_code = self._generate_entrypoint(component_func)
@@ -340,45 +355,24 @@ class ImageBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
+      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
       docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
-      local_tarball_file = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
       docker_helper.prepare_docker_tarball_with_py(python_filepath=local_python_filepath,
                                                    arc_python_filename=self._arc_python_filepath,
-                                                   base_image=base_image, local_tarball_path=local_tarball_file,  
+                                                   base_image=base_image,
+                                                   local_tarball_path=local_tarball_path,
                                                    dependency=dependency)
-      GCSHelper.upload_gcs_file(local_tarball_file, self._gcs_path)
-
-      kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
-                                               arc_dockerfile_name=self._arc_dockerfile_name,
-                                               gcs_path=self._gcs_path,
-                                               target_image=self._target_image)
-      # Run kaniko job
-      logging.info('Start a kaniko job for build.')
-      k8s_helper = K8sHelper()
-      k8s_helper.run_job(kaniko_spec, timeout)
-      logging.info('Kaniko job complete.')
-
-      # Clean up
-      GCSHelper.remove_gcs_blob(self._gcs_path)
+      self._build_image_from_tarball(local_tarball_path, namespace, timeout)
 
   def build_image_from_dockerfile(self, dockerfile_path, timeout, namespace):
-    """ build_image_from_dockerfile builds an image directly """
+    """ build_image_from_dockerfile builds an image based on the dockerfile """
     with tempfile.TemporaryDirectory() as local_build_dir:
+      # Prepare build files
       logging.info('Generate build files.')
+      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
       docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
-      local_tarball_file = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
-      docker_helper.prepare_docker_tarball(dockerfile_path, local_tarball_path=local_tarball_file)
-      GCSHelper.upload_gcs_file(local_tarball_file, self._gcs_path)
-
-      kaniko_spec = self._generate_kaniko_spec(namespace=namespace, arc_dockerfile_name=self._arc_dockerfile_name,
-                                             gcs_path=self._gcs_path, target_image=self._target_image)
-      logging.info('Start a kaniko job for build.')
-      k8s_helper = K8sHelper()
-      k8s_helper.run_job(kaniko_spec, timeout)
-      logging.info('Kaniko job complete.')
-
-      # Clean up
-      GCSHelper.remove_gcs_blob(self._gcs_path)
+      docker_helper.prepare_docker_tarball(dockerfile_path, local_tarball_path=local_tarball_path)
+      self._build_image_from_tarball(local_tarball_path, namespace, timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
@@ -416,7 +410,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   component_artifact['outputs'] = [{'name': 'output'}]
   component_artifact['inputs'] = []
   component_artifact['implementation'] = {
-    'dockerContainer': {
+    'container': {
       'image': target_image,
       'arguments': [],
       'fileOutputs': {
@@ -429,7 +423,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
       'name': input,
       'type': 'str'
     })
-    component_artifact['implementation']['dockerContainer']['arguments'].append({'value': input})
+    component_artifact['implementation']['container']['arguments'].append({'value': input})
   
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
   if target_component_file:
