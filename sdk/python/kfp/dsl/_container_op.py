@@ -58,6 +58,7 @@ class ContainerOp(object):
     self.memory_request = None
     self.cpu_limit = None
     self.cpu_request = None
+    self.nvidia_gpu_limit = None
     self.volumes = []
     self.volume_mounts = []
     self.env_variables = []
@@ -114,6 +115,14 @@ class ContainerOp(object):
       raise ValueError('Invalid cpu string. Should be float or integer, or integer followed '
                        'by "m".')
 
+  def _validate_gpu_string(self, gpu_string):
+    "Validate a given string is valid for gpu limit."
+
+    try:
+      int(gpu_string)
+    except ValueError:
+      raise ValueError('Invalid gpu string. Should be integer.')
+
   def set_memory_request(self, memory):
     """Set memory request (minimum) for this operator.
 
@@ -154,6 +163,16 @@ class ContainerOp(object):
 
     self._validate_cpu_string(cpu)
     self.cpu_limit = cpu
+
+  def set_nvidia_gpu_limit(self, gpu):
+    """Set nvidia gpu limit (maximum) for this operator.
+
+    Args:
+      gpu: A string which is the number of GPUs to consume.
+    """
+
+    self._validate_gpu_string(gpu)
+    self.nvidia_gpu_limit = gpu
 
   def add_volume(self, volume):
     """Add K8s volume to the container

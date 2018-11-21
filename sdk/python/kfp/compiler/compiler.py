@@ -128,14 +128,16 @@ class Compiler(object):
       template['container']['command'] = op.command
 
     # Set resources.
-    if op.memory_limit or op.cpu_limit or op.memory_request or op.cpu_request:
+    if op.memory_limit or op.cpu_limit or op.memory_request or op.cpu_request or op.nvidia_gpu_limit:
       template['container']['resources'] = {}
-    if op.memory_limit or op.cpu_limit:
+    if op.memory_limit or op.cpu_limit or op.nvidia_gpu_limit:
       template['container']['resources']['limits'] = {}
       if op.memory_limit:
         template['container']['resources']['limits']['memory'] = op.memory_limit
       if op.cpu_limit:
         template['container']['resources']['limits']['cpu'] = op.cpu_limit
+      if op.nvidia_gpu_limit:
+        template['container']['resources']['limits']['nvidia.com/gpu'] = op.nvidia_gpu_limit
 
     if op.memory_request or op.cpu_request:
       template['container']['resources']['requests'] = {}

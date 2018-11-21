@@ -141,6 +141,7 @@ spec:
       resources:
         limits:
           cpu: "0.5"
+          nvidia.com/gpu: "2"
     inputs:
       parameters:
       - name: get-frequent-word
