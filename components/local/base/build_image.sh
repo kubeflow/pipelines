@@ -15,10 +15,11 @@
 
 
 mkdir -p ./build
-rsync -arvp "../../evaluation"/ ./build/
+rsync -arvp "../confusion_matrix/src"/ ./build/
+rsync -arvp "../roc/src"/ ./build/
 
-cp ../../../license.sh ./build
-cp ../../../third_party_licenses.csv ./build
+cp ../../license.sh ./build
+cp ../../third_party_licenses.csv ./build
 
 docker build -t ml-pipeline-local-base .
 rm -rf ./build
