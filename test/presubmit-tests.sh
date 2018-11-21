@@ -141,6 +141,8 @@ if [ "$WORKFLOW_FILE" == "e2e_test_gke.yaml" ]; then
   }
 #  trap delete_cluster EXIT
 
+  export CLIENT_ID=${RANDOM}
+  export CLIENT_SECRET=${RANDOM}
   KFAPP=${TEST_CLUSTER}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT}
   cd ${KFAPP}
