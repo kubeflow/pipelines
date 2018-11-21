@@ -36,7 +36,7 @@ import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, padding, fontsize } from '../Css';
+import { color, commonCss, padding, fontsize, fonts } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 
 interface PipelineDetailsState {
@@ -49,6 +49,8 @@ interface PipelineDetailsState {
   template?: Workflow;
   templateYaml?: string;
 }
+
+const summaryCardWidth = 500;
 
 const css = stylesheet({
   containerCss: {
@@ -69,9 +71,14 @@ const css = stylesheet({
     display: 'flex',
     padding: '0 0 20px 20px',
   },
+  footerInfoOffset: {
+    marginLeft: summaryCardWidth + 40,
+  },
   infoSpan: {
     color: color.lowContrast,
+    fontFamily: fonts.secondary,
     fontSize: fontsize.small,
+    letterSpacing: '0.21px',
     lineHeight: '24px',
     paddingLeft: 6,
   },
@@ -80,7 +87,7 @@ const css = stylesheet({
     left: 20,
     padding: 10,
     position: 'absolute',
-    width: 500,
+    width: summaryCardWidth,
     zIndex: 1,
   },
   summaryKey: {
@@ -183,16 +190,18 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       </div>}
                     </div>
                   </SidePanel>
+                  <div className={css.footer}>
+                    {!summaryShown && (
+                      <Button onClick={() => this.setState({ summaryShown: !summaryShown })} color='secondary'>
+                        Show summary
+                      </Button>
+                    )}
+                    <div className={classes(commonCss.flex, summaryShown && css.footerInfoOffset)}>
+                      <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
+                      <span className={css.infoSpan}>Static pipeline graph</span>
+                    </div>
+                  </div>
                 </div>}
-                <div className={css.footer}>
-                  {!summaryShown && (
-                    <Button onClick={() => this.setState({ summaryShown: !summaryShown })} color='secondary'>
-                      Show summary
-                    </Button>
-                  )}
-                  <InfoIcon style={{ color: color.lowContrast, height: 24, width: 13 }} />
-                  <span className={css.infoSpan}>Static pipeline graph</span>
-                </div>
                 {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>}
               {selectedTab === 1 &&
