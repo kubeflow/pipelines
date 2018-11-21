@@ -2,14 +2,14 @@
   parts(_env, _params):: {
     local params = _env + _params,
 
-    local argo = import "ml-pipeline/ml-pipeline/argo.libsonnet",
-    local minio = import "ml-pipeline/ml-pipeline/minio.libsonnet",
-    local mysql = import "ml-pipeline/ml-pipeline/mysql.libsonnet",
-    local pipeline_apiserver = import "ml-pipeline/ml-pipeline/pipeline-apiserver.libsonnet",
-    local pipeline_scheduledworkflow = import "ml-pipeline/ml-pipeline/pipeline-scheduledworkflow.libsonnet",
-    local pipeline_persistenceagent = import "ml-pipeline/ml-pipeline/pipeline-persistenceagent.libsonnet",
-    local pipeline_ui = import "ml-pipeline/ml-pipeline/pipeline-ui.libsonnet",
-    local spartakus = import "ml-pipeline/ml-pipeline/spartakus.libsonnet",
+    local argo = import "pipeline/pipeline/argo.libsonnet",
+    local minio = import "pipeline/pipeline/minio.libsonnet",
+    local mysql = import "pipeline/pipeline/mysql.libsonnet",
+    local pipeline_apiserver = import "pipeline/pipeline/pipeline-apiserver.libsonnet",
+    local pipeline_scheduledworkflow = import "pipeline/pipeline/pipeline-scheduledworkflow.libsonnet",
+    local pipeline_persistenceagent = import "pipeline/pipeline/pipeline-persistenceagent.libsonnet",
+    local pipeline_ui = import "pipeline/pipeline/pipeline-ui.libsonnet",
+    local spartakus = import "pipeline/pipeline/spartakus.libsonnet",
 
     local name = params.name,
     local namespace = params.namespace,
