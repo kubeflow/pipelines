@@ -59,6 +59,7 @@ ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
 
@@ -74,11 +75,11 @@ chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
 mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
 
 # Install kubeflow
-KUBEFLOW_MASTER=$(pwd)/kubeflow_master
+KUBEFLOW_MASTER=${DIR}/kubeflow_master
 git clone https://github.com/kubeflow/kubeflow.git ${KUBEFLOW_MASTER}
 
 ## Download latest release source code
-KUBEFLOW_SRC=$(pwd)/kubeflow_latest_release
+KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
 mkdir ${KUBEFLOW_SRC}
 cd ${KUBEFLOW_SRC}
 export KUBEFLOW_TAG=v0.3.1
@@ -93,7 +94,7 @@ TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-$
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
-KFAPP=$(pwd)/${TEST_CLUSTER}
+KFAPP=${DIR}/${TEST_CLUSTER}
 
 function clean_up {
   echo "Clean up..."
@@ -137,6 +138,5 @@ ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
 `
 echo argo workflow submitted successfully
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 source "${DIR}/check-argo-status.sh"
 
