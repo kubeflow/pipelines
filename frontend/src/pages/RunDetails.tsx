@@ -32,7 +32,7 @@ import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun } from '../apis/run';
 import { Apis } from '../lib/Apis';
-import { NodePhase } from './Status';
+import { NodePhase, statusToIcon } from './Status';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
@@ -129,10 +129,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         title: 'Refresh',
         tooltip: 'Refresh',
       }],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: this.props.runId!, href: '' },
-      ],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: this.props.runId!,
     };
   }
 
@@ -282,7 +280,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
       }
       const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
-      const runMetadata = runDetail.run;
+      const runMetadata = runDetail.run!;
 
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
@@ -310,13 +308,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
           { displayName: 'All runs', href: RoutePage.RUNS }
         );
       }
-      breadcrumbs.push({
-        displayName: runMetadata ? runMetadata.name! : this.props.runId!,
-        href: '',
-      });
+      const pageTitle = <div className={commonCss.flex}>
+        {statusToIcon(runMetadata.status as NodePhase)}
+        <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
+      </div>;
 
       // TODO: run status next to page name
-      this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+      this.props.updateToolbar({ breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setState({
         experiment,

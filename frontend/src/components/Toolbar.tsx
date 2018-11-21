@@ -102,17 +102,17 @@ export interface ToolbarProps {
   actions: ToolbarActionConfig[];
   breadcrumbs: Breadcrumb[];
   history?: History;
+  pageTitle: string | JSX.Element;
+  pageTitleTooltip?: string;
   topLevelToolbar?: boolean;
 }
 
 class Toolbar extends React.Component<ToolbarProps> {
 
   public render(): JSX.Element | null {
-    const currentPage = this.props.breadcrumbs.length ?
-      this.props.breadcrumbs[this.props.breadcrumbs.length - 1].displayName : '';
-    const breadcrumbs = this.props.breadcrumbs.slice(0, this.props.breadcrumbs.length - 1);
+    const { breadcrumbs, pageTitle, pageTitleTooltip } = { ...this.props };
 
-    if (!this.props.actions.length && !this.props.breadcrumbs.length) {
+    if (!this.props.actions.length && !this.props.breadcrumbs.length && !this.props.pageTitle) {
       return null;
     }
 
@@ -143,8 +143,8 @@ class Toolbar extends React.Component<ToolbarProps> {
                 </IconButton>
               </Tooltip>}
             {/* Resource Name */}
-            <span className={classes(css.pageName, commonCss.ellipsis)} title={currentPage}>
-              {currentPage}
+            <span className={classes(css.pageName, commonCss.ellipsis)} title={pageTitleTooltip}>
+              {pageTitle}
             </span>
           </div>
         </div>
@@ -157,7 +157,7 @@ class Toolbar extends React.Component<ToolbarProps> {
                 <BusyButton id={b.id} color='secondary' onClick={b.action} disabled={b.disabled}
                   title={b.title} icon={b.icon} busy={b.busy || false}
                   outlined={(b.outlined && !b.primary) || false}
-                  className={b.primary ? commonCss.buttonAction : ''}/>
+                  className={b.primary ? commonCss.buttonAction : ''} />
               </div>
             </Tooltip>
           ))}

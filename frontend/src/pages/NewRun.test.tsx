@@ -142,10 +142,8 @@ describe('NewRun', () => {
 
     expect(updateToolbarSpy).toHaveBeenLastCalledWith({
       actions: [],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: 'Start a new run', href: '' }
-      ],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: 'Start a new run',
     });
     tree.unmount();
   });
@@ -239,8 +237,8 @@ describe('NewRun', () => {
           displayName: MOCK_EXPERIMENT.name,
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, MOCK_EXPERIMENT.id!),
         },
-        { displayName: 'Start a new run', href: '' }
       ],
+      pageTitle: 'Start a new run',
     });
     tree.unmount();
   });
@@ -703,7 +701,7 @@ describe('NewRun', () => {
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
-          + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
       const tree = shallow(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
@@ -953,10 +951,8 @@ describe('NewRun', () => {
 
       expect(updateToolbarSpy).toHaveBeenLastCalledWith({
         actions: [],
-        breadcrumbs: [
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          { displayName: 'Start a recurring run', href: '' }
-        ],
+        breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+        pageTitle: 'Start a recurring run',
       });
       tree.unmount();
     });
@@ -1022,9 +1018,9 @@ describe('NewRun', () => {
     it('displays an error message if periodic schedule end date/time is earlier than start date/time', async () => {
       const props = generateProps();
       props.location.search =
-      `?${QUERY_PARAMS.isRecurring}=1`
-      + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
-      + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
+        `?${QUERY_PARAMS.isRecurring}=1`
+        + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
       const tree = shallow(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
@@ -1045,9 +1041,9 @@ describe('NewRun', () => {
     it('displays an error message if cron schedule end date/time is earlier than start date/time', async () => {
       const props = generateProps();
       props.location.search =
-      `?${QUERY_PARAMS.isRecurring}=1`
-      + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
-      + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
+        `?${QUERY_PARAMS.isRecurring}=1`
+        + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
       const tree = shallow(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
@@ -1068,9 +1064,9 @@ describe('NewRun', () => {
     it('displays an error message if max concurrent runs is negative', async () => {
       const props = generateProps();
       props.location.search =
-      `?${QUERY_PARAMS.isRecurring}=1`
-      + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
-      + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
+        `?${QUERY_PARAMS.isRecurring}=1`
+        + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
       const tree = shallow(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
@@ -1091,9 +1087,9 @@ describe('NewRun', () => {
     it('displays an error message if max concurrent runs is not a number', async () => {
       const props = generateProps();
       props.location.search =
-      `?${QUERY_PARAMS.isRecurring}=1`
-      + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
-      + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
+        `?${QUERY_PARAMS.isRecurring}=1`
+        + `&${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
+        + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
       const tree = shallow(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });

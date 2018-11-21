@@ -96,10 +96,8 @@ class Compare extends Page<{}, CompareState> {
         title: 'Collapse all',
         tooltip: 'Collapse all sections',
       }],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: 'Compare runs', href: '' },
-      ],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: 'Compare runs',
     };
   }
 

@@ -18,9 +18,9 @@ RUN mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
 ENV USER=default
 
 # Copy bootstrapper files
-COPY . /ml-pipeline/
-RUN chmod +x /ml-pipeline/bootstrapper.sh
-RUN chmod +x /ml-pipeline/deploy.sh
+COPY . /pipeline/
+RUN chmod +x /pipeline/bootstrapper.sh
+RUN chmod +x /pipeline/deploy.sh
 
 # install uuidgen. Used for reporting usage
 RUN apt-get install -y uuid-runtime
@@ -40,5 +40,5 @@ ENV SCHEDULED_WORKFLOW_IMAGE ${SCHEDULED_WORKFLOW_IMAGE}
 ENV PERSISTENCE_AGENT_IMAGE ${PERSISTENCE_AGENT_IMAGE}
 ENV UI_IMAGE ${UI_IMAGE}
 
-ENTRYPOINT ["/ml-pipeline/deploy.sh"]
+ENTRYPOINT ["/pipeline/deploy.sh"]
 CMD []

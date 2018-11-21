@@ -56,12 +56,7 @@ exports[`AllRunsList disables clone button and enables compare button when multi
                   "tooltip": "Refresh the list of runs",
                 },
               ],
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "",
-                },
-              ],
+              "breadcrumbs": Array [],
             },
           ],
           Array [
@@ -98,12 +93,8 @@ exports[`AllRunsList disables clone button and enables compare button when multi
                   "tooltip": "Refresh the list of runs",
                 },
               ],
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "",
-                },
-              ],
+              "breadcrumbs": Array [],
+              "pageTitle": "Experiments",
             },
           ],
         ],
@@ -169,12 +160,7 @@ exports[`AllRunsList enables clone button when one run is selected 1`] = `
                   "tooltip": "Refresh the list of runs",
                 },
               ],
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "",
-                },
-              ],
+              "breadcrumbs": Array [],
             },
           ],
           Array [
@@ -211,12 +197,8 @@ exports[`AllRunsList enables clone button when one run is selected 1`] = `
                   "tooltip": "Refresh the list of runs",
                 },
               ],
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "",
-                },
-              ],
+              "breadcrumbs": Array [],
+              "pageTitle": "Experiments",
             },
           ],
         ],
@@ -275,12 +257,8 @@ exports[`AllRunsList renders all runs 1`] = `
             "tooltip": "Refresh the list of runs",
           },
         ],
-        "breadcrumbs": Array [
-          Object {
-            "displayName": "Experiments",
-            "href": "",
-          },
-        ],
+        "breadcrumbs": Array [],
+        "pageTitle": "Experiments",
       }
     }
     updateBanner={[MockFunction]}
