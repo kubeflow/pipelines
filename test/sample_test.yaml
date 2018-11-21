@@ -112,7 +112,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: build-script
-            value: components/dataflow/containers/tft/build.sh
+            value: components/dataflow/tft/build_image.sh
       - name: build-dataflow-predict-image
         template: build-image-by-script
         arguments:
@@ -124,7 +124,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-predict-image-suffix}}"
           - name: build-script
-            value: components/dataflow/containers/predict/build.sh
+            value: components/dataflow/predict/build_image.sh
       - name: build-dataflow-tfma-image
         template: build-image-by-script
         arguments:
@@ -136,7 +136,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: build-script
-            value: components/dataflow/containers/tfma/build.sh
+            value: components/dataflow/tfma/build_image.sh
       - name: build-dataflow-tfdv-image
         template: build-image-by-script
         arguments:
@@ -148,7 +148,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.dataflow-tfdv-image-suffix}}"
           - name: build-script
-            value: components/dataflow/containers/tfdv/build.sh
+            value: components/dataflow/tfdv/build_image.sh
       - name: build-dataproc-create-cluster-image
         template: build-image-by-script
         arguments:

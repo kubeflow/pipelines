@@ -32,7 +32,7 @@ while getopts ":hp:t:i:" opt; do
   esac
 done
 
-LOCAL_IMAGE_NAME=ml-pipeline-dataflow-tf-predict
+LOCAL_IMAGE_NAME=ml-pipeline-dataflow-tft
 
 if [ -z "${PROJECT_ID}" ]; then
   PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
@@ -44,7 +44,7 @@ fi
 
 # build base image
 pushd ../base
-./build.sh
+./build_image.sh
 popd
 
 docker build -t ${LOCAL_IMAGE_NAME} .
@@ -52,6 +52,6 @@ if [ -z "${IMAGE_NAME}" ]; then
   docker tag ${LOCAL_IMAGE_NAME} gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
   docker push gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
 else
-  docker tag ${LOCAL_IMAGE_NAME} ${IMAGE_NAME}
-  docker push ${IMAGE_NAME}
+  docker tag ${LOCAL_IMAGE_NAME} "${IMAGE_NAME}"
+  docker push "${IMAGE_NAME}"
 fi
