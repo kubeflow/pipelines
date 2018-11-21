@@ -158,7 +158,8 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
 RUN pip3 install fire
-RUN pip3 install -r requirements.txt
+ADD requirements.txt /ml/
+RUN pip3 install -r /ml/requirements.txt
 ADD main.py /ml/
 ENTRYPOINT ["python3", "/ml/main.py"]'''
 

@@ -1,10 +1,9 @@
 {
-  all(namespace, scheduledworkflow_image):: [
+  all(namespace, persistenceAgentImage):: [
     $.parts(namespace).serviceAccount,
     $.parts(namespace).roleBinding,
     $.parts(namespace).role,
-    $.parts(namespace).deploy(scheduledworkflow_image),
-    $.parts(namespace).crd,
+    $.parts(namespace).deploy(persistenceAgentImage),
   ],
 
   parts(namespace):: {
@@ -12,7 +11,7 @@
       apiVersion: "v1",
       kind: "ServiceAccount",
       metadata: {
-        name: "ml-pipeline-scheduledworkflow",
+        name: "ml-pipeline-persistenceagent",
         namespace: namespace,
       },
     },  // service account
@@ -22,9 +21,9 @@
       kind: "ClusterRoleBinding",
       metadata: {
         labels: {
-          app: "ml-pipeline-scheduledworkflow",
+          app: "ml-pipeline-persistenceagent",
         },
-        name: "ml-pipeline-scheduledworkflow",
+        name: "ml-pipeline-persistenceagent",
       },
       roleRef: {
         apiGroup: "rbac.authorization.k8s.io",
@@ -35,7 +34,7 @@
       subjects: [
         {
           kind: "ServiceAccount",
-          name: "ml-pipeline-scheduledworkflow",
+          name: "ml-pipeline-persistenceagent",
           namespace: namespace,
         },
       ],
@@ -43,12 +42,12 @@
 
     role: {
       apiVersion: "rbac.authorization.k8s.io/v1beta1",
-      kind: "Role",
+      kind: "ClusterRole",
       metadata: {
         labels: {
-          app: "ml-pipeline-scheduledworkflow",
+          app: "ml-pipeline-persistenceagent",
         },
-        name: "ml-pipeline-scheduledworkflow",
+        name: "ml-pipeline-persistenceagent",
         namespace: namespace,
       },
       rules: [
@@ -60,13 +59,9 @@
             "workflows",
           ],
           verbs: [
-            "create",
             "get",
             "list",
             "watch",
-            "update",
-            "patch",
-            "delete",
           ],
         },
         {
@@ -77,13 +72,9 @@
             "scheduledworkflows",
           ],
           verbs: [
-            "create",
             "get",
             "list",
             "watch",
-            "update",
-            "patch",
-            "delete",
           ],
         },
       ],
@@ -93,30 +84,30 @@
       apiVersion: "apps/v1beta2",
       kind: "Deployment",
       metadata: {
-        "labels": {
-          "app": "ml-pipeline-scheduledworkflow",
+        labels: {
+          app: "ml-pipeline-persistenceagent",
         },
-        name: "ml-pipeline-scheduledworkflow",
+        name: "ml-pipeline-persistenceagent",
         namespace: namespace,
       },
       spec: {
         selector: {
           matchLabels: {
-            app: "ml-pipeline-scheduledworkflow",
+            app: "ml-pipeline-persistenceagent",
           },
         },
         template: {
           metadata: {
             labels: {
-              app: "ml-pipeline-scheduledworkflow",
+              app: "ml-pipeline-persistenceagent",
             },
           },
           spec: {
             containers: [
               {
-                name: "ml-pipeline-scheduledworkflow",
+                name: "ml-pipeline-persistenceagent",
                 image: image,
-                imagePullPolicy: 'Always',
+                imagePullPolicy: "Always",
                 env: [
                   {
                     name: "POD_NAMESPACE",
@@ -129,31 +120,10 @@
                 ],
               },
             ],
-            serviceAccountName: "ml-pipeline-scheduledworkflow",
+            serviceAccountName: "ml-pipeline-persistenceagent",
           },
         },
       },
-    }, // deploy
-    crd: {
-      apiVersion: "apiextensions.k8s.io/v1beta1",
-      kind: "CustomResourceDefinition",
-      metadata: {
-        name: "scheduledworkflows.kubeflow.org",
-      },
-      spec: {
-        group: "kubeflow.org",
-        names: {
-          kind: "ScheduledWorkflow",
-          listKind: "ScheduledWorkflowList",
-          plural: "scheduledworkflows",
-          shortNames: [
-            "swf",
-          ],
-          singular: "scheduledworkflow",
-        },
-        scope: "Namespaced",
-        version: "v1alpha1",
-      },
-    },  // crd
+    },  // deploy
   },  // parts
 }
