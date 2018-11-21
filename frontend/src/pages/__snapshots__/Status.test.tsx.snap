@@ -279,7 +279,13 @@ exports[`Status handles an unknown phase 1`] = `
   }
   title="Unknown status"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <pure(HelpIcon)
       style={
         Object {
@@ -572,7 +578,13 @@ exports[`Status renders an icon with tooltip for phase: ERROR 1`] = `
   }
   title="Error while running this resource"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <pure(ErrorIcon)
       style={
         Object {
@@ -865,7 +877,13 @@ exports[`Status renders an icon with tooltip for phase: FAILED 1`] = `
   }
   title="Resource failed to execute"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <pure(ErrorIcon)
       style={
         Object {
@@ -1158,7 +1176,13 @@ exports[`Status renders an icon with tooltip for phase: PENDING 1`] = `
   }
   title="Pending execution"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <pure(ScheduleIcon)
       style={
         Object {
@@ -1451,7 +1475,13 @@ exports[`Status renders an icon with tooltip for phase: RUNNING 1`] = `
   }
   title="Running"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <StatusRunning
       style={
         Object {
@@ -1744,7 +1774,13 @@ exports[`Status renders an icon with tooltip for phase: SKIPPED 1`] = `
   }
   title="Execution has been skipped for this resource"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <pure(SkipNextIcon)
       style={
         Object {
@@ -2037,7 +2073,13 @@ exports[`Status renders an icon with tooltip for phase: SUCCEEDED 1`] = `
   }
   title="Executed successfully"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <pure(CheckCircleIcon)
       style={
         Object {
@@ -2330,7 +2372,13 @@ exports[`Status renders an icon with tooltip for phase: UNKNOWN 1`] = `
   }
   title="Unknown status"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <pure(HelpIcon)
       style={
         Object {

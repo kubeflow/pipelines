@@ -16,7 +16,7 @@
 from . import _pipeline
 from . import _pipeline_param
 import re
-from typing import Dict, List
+from typing import Dict
 
 
 class ContainerOp(object):
@@ -24,7 +24,7 @@ class ContainerOp(object):
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
                file_inputs : Dict[_pipeline_param.PipelineParam, str]=None,
-               file_outputs : Dict[str, str]=None, gcp_secret: str=None, is_exit_handler=False):
+               file_outputs : Dict[str, str]=None, is_exit_handler=False):
     """Create a new instance of ContainerOp.
 
     Args:
@@ -52,7 +52,6 @@ class ContainerOp(object):
     self.image = image
     self.command = command
     self.arguments = arguments
-    self.gcp_secret = gcp_secret
     self.is_exit_handler = is_exit_handler
     self.resource_limits = {}
     self.resource_requests = {}
@@ -88,7 +87,6 @@ class ContainerOp(object):
     self.output=None
     if len(self.outputs) == 1:
       self.output = list(self.outputs.values())[0]
-
 
   def after(self, op):
     """Specify explicit dependency on another op."""
@@ -130,6 +128,7 @@ class ContainerOp(object):
     """
 
     self.resource_limits[resource_name] = value
+    return self
 
   def add_resource_request(self, resource_name, value):
     """Add the resource request of the container.
@@ -140,6 +139,7 @@ class ContainerOp(object):
     """
 
     self.resource_requests[resource_name] = value
+    return self
 
   def set_memory_request(self, memory):
     """Set memory request (minimum) for this operator.
@@ -150,7 +150,7 @@ class ContainerOp(object):
     """
 
     self._validate_memory_string(memory)
-    self.add_resource_request("memory", memory)
+    return self.add_resource_request("memory", memory)
 
   def set_memory_limit(self, memory):
     """Set memory limit (maximum) for this operator.
@@ -160,7 +160,7 @@ class ContainerOp(object):
               "E", "P", "T", "G", "M", "K".
     """
     self._validate_memory_string(memory)
-    self.add_resource_limit("memory", memory)
+    return self.add_resource_limit("memory", memory)
 
   def set_cpu_request(self, cpu):
     """Set cpu request (minimum) for this operator.
@@ -170,7 +170,7 @@ class ContainerOp(object):
     """
 
     self._validate_cpu_string(cpu)
-    self.add_resource_request("cpu", cpu)
+    return self.add_resource_request("cpu", cpu)
 
   def set_cpu_limit(self, cpu):
     """Set cpu limit (maximum) for this operator.
@@ -180,7 +180,7 @@ class ContainerOp(object):
     """
 
     self._validate_cpu_string(cpu)
-    self.add_resource_limit("cpu", cpu)
+    return self.add_resource_limit("cpu", cpu)
 
   def add_volume(self, volume):
     """Add K8s volume to the container
@@ -192,6 +192,7 @@ class ContainerOp(object):
     """
 
     self.volumes.append(volume)
+    return self
 
   def add_volume_mount(self, volume_mount):
     """Add volume to the container
@@ -203,6 +204,7 @@ class ContainerOp(object):
     """
 
     self.volume_mounts.append(volume_mount)
+    return self
 
   def add_env_variable(self, env_variable):
     """Add environment variable to the container.
@@ -214,6 +216,7 @@ class ContainerOp(object):
     """
 
     self.env_variables.append(env_variable)
+    return self
 
   def add_node_selector_constraint(self, label_name, value):
     """Add a constraint for nodeSelector. Each constraint is a key-value pair label. For the 
@@ -226,6 +229,7 @@ class ContainerOp(object):
     """
 
     self.node_selector[label_name] = value
+    return self
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})

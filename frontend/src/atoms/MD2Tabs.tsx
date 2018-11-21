@@ -113,6 +113,9 @@ class MD2Tabs extends React.Component<MD2TabsProps, any> {
   private _updateIndicator(): void {
     const selected = this._getSelectedIndex();
     const activeLabelElement = this._tabRefs[selected].current as HTMLSpanElement;
+    if (!activeLabelElement) {
+      return;
+    }
     const leftOffset = activeLabelElement.getBoundingClientRect().left -
       this._rootRef.current.getBoundingClientRect().left;
 

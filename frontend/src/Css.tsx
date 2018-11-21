@@ -30,6 +30,7 @@ export const color = {
   graphBg: '#f5f5f5',
   hoverBg: '#eee',
   inactive: '#5F6368',
+  lowContrast: '#80868b', // Google grey 600
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
   strong: '#212121',

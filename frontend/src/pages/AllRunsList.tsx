@@ -69,7 +69,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         title: 'Refresh',
         tooltip: 'Refresh the list of runs',
       }],
-      breadcrumbs: [{ displayName: 'Experiments', href: '' }],
+      breadcrumbs: [],
+      pageTitle: 'Experiments',
     };
   }
 

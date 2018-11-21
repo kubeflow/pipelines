@@ -7,11 +7,6 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
   <div
     className="page"
   >
-    <div
-      className="header"
-    >
-      Recurring run details
-    </div>
     <Component
       fields={
         Array [
@@ -21,16 +16,12 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
           ],
           Array [
             "Created at",
-            "2018-9-5 04:03:02",
+            "9/5/2018, 4:03:02 AM",
           ],
         ]
       }
+      title="Recurring run details"
     />
-    <div
-      className="header"
-    >
-      Run trigger
-    </div>
     <Component
       fields={
         Array [
@@ -48,20 +39,16 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
           ],
           Array [
             "Start time",
-            "2018-10-8 07:06:00",
+            "10/8/2018, 7:06:00 AM",
           ],
           Array [
             "End time",
-            "2018-11-9 08:07:06",
+            "11/9/2018, 8:07:06 AM",
           ],
         ]
       }
+      title="Run trigger"
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
     <Component
       fields={
         Array [
@@ -71,6 +58,7 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
           ],
         ]
       }
+      title="Run parameters"
     />
   </div>
 </div>
@@ -83,11 +71,6 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
   <div
     className="page"
   >
-    <div
-      className="header"
-    >
-      Recurring run details
-    </div>
     <Component
       fields={
         Array [
@@ -97,16 +80,12 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           ],
           Array [
             "Created at",
-            "2018-9-5 04:03:02",
+            "9/5/2018, 4:03:02 AM",
           ],
         ]
       }
+      title="Recurring run details"
     />
-    <div
-      className="header"
-    >
-      Run trigger
-    </div>
     <Component
       fields={
         Array [
@@ -124,20 +103,16 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           ],
           Array [
             "Start time",
-            "2018-10-8 07:06:00",
+            "10/8/2018, 7:06:00 AM",
           ],
           Array [
             "End time",
-            "2018-11-9 08:07:06",
+            "11/9/2018, 8:07:06 AM",
           ],
         ]
       }
+      title="Run trigger"
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
     <Component
       fields={
         Array [
@@ -147,6 +122,7 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           ],
         ]
       }
+      title="Run parameters"
     />
   </div>
 </div>

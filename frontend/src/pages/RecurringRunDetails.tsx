@@ -77,6 +77,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         tooltip: 'Delete this recurring run',
       }],
       breadcrumbs: [],
+      pageTitle: '',
     };
   }
 
@@ -121,21 +122,14 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
         {run && (
           <div className={commonCss.page}>
-            <div className={commonCss.header}>Recurring run details</div>
-            <DetailsTable fields={runDetails} />
+            <DetailsTable title='Recurring run details' fields={runDetails} />
 
             {!!triggerDetails.length && (
-              <React.Fragment>
-                <div className={commonCss.header}>Run trigger</div>
-                <DetailsTable fields={triggerDetails} />
-              </React.Fragment>
+              <DetailsTable title='Run trigger' fields={triggerDetails} />
             )}
 
             {!!inputParameters.length && (
-              <React.Fragment>
-                <div className={commonCss.header}>Run parameters</div>
-                <DetailsTable fields={inputParameters} />
-              </React.Fragment>
+              <DetailsTable title='Run parameters' fields={inputParameters} />
             )}
           </div>
         )}
@@ -192,16 +186,13 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         { displayName: 'All runs', href: RoutePage.RUNS }
       );
     }
-    breadcrumbs.push({
-      displayName: run ? run.name! : runId,
-      href: '',
-    });
+    const pageTitle = run ? run.name! : runId;
 
     const toolbarActions = [...this.props.toolbarProps.actions];
     toolbarActions[1].disabled = !!run.enabled;
     toolbarActions[2].disabled = !run.enabled;
 
-    this.props.updateToolbar({ actions: toolbarActions, breadcrumbs });
+    this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
     this.setState({ run });
   }
@@ -230,7 +221,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
   }
 
   protected _updateToolbar(actions: ToolbarActionConfig[]): void {
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions });
+    this.props.updateToolbar({ actions });
   }
 
   protected async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {

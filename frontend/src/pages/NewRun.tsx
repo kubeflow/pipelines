@@ -34,7 +34,7 @@ import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
@@ -89,10 +89,8 @@ class NewRun extends Page<{}, NewRunState> {
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: 'Start a new run', href: '' }
-      ]
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: 'Start a new run',
     };
   }
 
@@ -268,11 +266,8 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-    breadcrumbs.push({
-      displayName: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
-      href: '',
-    });
-    this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+    const pageTitle = isRecurringRun ? 'Start a recurring run' : 'Start a new run';
+    this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
     this.setState({
       experiment,

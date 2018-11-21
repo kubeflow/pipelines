@@ -170,7 +170,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(component_spec.name, expected_name)
         self.assertEqual(component_spec.description.strip(), expected_description.strip())
-        self.assertEqual(component_spec.implementation.docker_container.image, expected_image)
+        self.assertEqual(component_spec.implementation.container.image, expected_image)
 
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
