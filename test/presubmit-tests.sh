@@ -27,6 +27,7 @@ usage()
     [-h help]"
 }
 
+PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 CLUSTER_TYPE=create-gke
@@ -58,7 +59,6 @@ while [ "$1" != "" ]; do
     shift
 done
 
-ZONE=us-west1-a
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
@@ -72,47 +72,54 @@ gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIAL
 
 #Creating a new GKE cluster if needed
 if [ "$CLUSTER_TYPE" == "create-gke" ]; then
-  echo "create test cluster"
+  # Install ksonnet
+  KS_VERSION="0.11.0"
+  curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
+  tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
+  chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
+  mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
+
+  # Install kubeflow
+  KUBEFLOW_MASTER=$(pwd)/kubeflow_master
+  git clone https://github.com/kubeflow/kubeflow.git ${KUBEFLOW_MASTER}
+
+  ## Download latest release source code
+  KUBEFLOW_SRC=$(pwd)/kubeflow_latest_release
+  mkdir ${KUBEFLOW_SRC}
+  cd ${KUBEFLOW_SRC}
+  export KUBEFLOW_TAG=v0.3.1
+  curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash
+
+  ## Override the pipeline config with code from master
+  cp -r ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
+  cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
+
   TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
   TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
-
   function delete_cluster {
     echo "Delete cluster..."
     gcloud container clusters delete ${TEST_CLUSTER} --async
   }
-  trap delete_cluster EXIT
+#  trap delete_cluster EXIT
 
-  gcloud config set project ml-pipeline-test
-  gcloud config set compute/zone us-central1-a
-  gcloud container clusters create ${TEST_CLUSTER} \
-    --scopes cloud-platform \
-    --enable-cloud-logging \
-    --enable-cloud-monitoring \
-    --machine-type n1-standard-2 \
-    --num-nodes 3 \
-    --network test \
-    --subnetwork test-1
+  KFAPP=${TEST_CLUSTER}
+  ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT}
+  cd ${KFAPP}
+  ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
+  ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
+  ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
+
+  ## Update pipeline component image
+#  ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${PULL_PULL_SHA}
+#  ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${PULL_PULL_SHA}
+#  ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${PULL_PULL_SHA}
+#  ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${PULL_PULL_SHA}
+  ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
   gcloud container clusters get-credentials ${TEST_CLUSTER}
 fi
 
 kubectl config set-context $(kubectl config current-context) --namespace=default
-
-echo "Add necessary cluster role bindings"
-ACCOUNT=$(gcloud info --format='value(config.account)')
-kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT
-kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default
-
-echo "install argo"
-ARGO_VERSION=v2.2.0
-mkdir -p ~/bin/
-export PATH=~/bin/:$PATH
-curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
-chmod +x ~/bin/argo
-
-kubectl create ns argo
-kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
-
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
