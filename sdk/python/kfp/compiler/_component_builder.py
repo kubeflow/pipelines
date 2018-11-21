@@ -279,7 +279,7 @@ class ImageBuilder(object):
 
     # Follow the same indentation with the component source codes.
     component_src = inspect.getsource(component_func)
-    match = re.search('\n([ \t]+)[\w]+', component_src)
+    match = re.search(r'\n([ \t]+)[\w]+', component_src)
     indentation = match.group(1) if match else '\t'
     codegen = CodeGenerator(indentation=indentation)
 
