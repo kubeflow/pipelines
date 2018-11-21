@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: '0.1'
-kind: ksonnet.io/registry
-libraries:
-  ml-pipeline:
-    version: master
-    path: ml-pipeline
+set -xe
+
+REGISTRY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+ks registry add pipeline "${REGISTRY}"
+ks pkg install pipeline/pipeline
+ks generate pipeline pipeline
