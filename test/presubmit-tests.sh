@@ -114,8 +114,8 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
 ## Update pipeline component image
 echo "*********127"
-echo pwd
-echo ls
+pwd
+ls
 pushd ks_app
 ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${PULL_PULL_SHA}
 ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${PULL_PULL_SHA}
