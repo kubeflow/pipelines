@@ -144,7 +144,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                           <CircularProgress size={30} className={commonCss.absoluteCenter} />}
 
                         <div className={commonCss.page}>
-                          {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
+                          {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
                             <div className={commonCss.page}>
                               {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
                                 const title = componentMap[config.type].prototype.getDisplayName();
@@ -156,9 +156,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                 );
                               })}
                             </div>
-                          }
+                          )}
 
-                          {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
+                          {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                             <div className={padding(20)}>
                               <DetailsTable title='Input parameters'
                                 fields={WorkflowParser.getNodeInputOutputParams(
@@ -168,9 +168,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                 fields={WorkflowParser.getNodeInputOutputParams(
                                   workflow, selectedNodeId)[1]} />
                             </div>
-                          }
+                          )}
 
-                          {sidepanelSelectedTab === SidePaneTab.LOGS &&
+                          {sidepanelSelectedTab === SidePaneTab.LOGS && (
                             <div className={commonCss.page}>
                               {this.state.logsBannerMessage && (
                                 <Banner
@@ -184,7 +184,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                   classes={commonCss.page} />
                               )}
                             </div>
-                          }
+                          )}
                         </div>
                       </div>
                     </React.Fragment>)}

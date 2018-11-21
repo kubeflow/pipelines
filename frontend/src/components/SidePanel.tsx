@@ -70,25 +70,24 @@ class SidePanel extends React.Component<SidePanelProps> {
           topLeft: false,
           topRight: false,
         }}>
-        {isOpen && <div className={commonCss.page}>
-          <div className={commonCss.flex}>
-            <Button className={css.closeButton}
-              onClick={onClose}>
-              <CloseIcon />
-            </Button>
-            <div className={css.nodeName}>{title}</div>
-          </div>
+        {isOpen && (
           <div className={commonCss.page}>
-
-            {isBusy === true && (
-              <CircularProgress size={30} className={commonCss.absoluteCenter} />
-            )}
-
+            <div className={commonCss.flex}>
+              <Button className={css.closeButton} onClick={onClose}><CloseIcon /></Button>
+              <div className={css.nodeName}>{title}</div>
+            </div>
             <div className={commonCss.page}>
-              {this.props.children}
+
+              {isBusy === true && (
+                <CircularProgress size={30} className={commonCss.absoluteCenter} />
+              )}
+
+              <div className={commonCss.page}>
+                {this.props.children}
+              </div>
             </div>
           </div>
-        </div>}
+        )}
       </Resizable>
     </Slide>;
   }
