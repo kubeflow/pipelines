@@ -71,7 +71,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
+        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Choose a pipeline' />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
           updateSelection={this._pipelineSelectionChanged.bind(this)}
           initialSortColumn={PipelineSortKeys.CREATED_AT} ref={this._tableRef}

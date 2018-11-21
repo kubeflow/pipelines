@@ -66,10 +66,8 @@ describe('NewExperiment', () => {
 
     expect(updateToolbarSpy).toHaveBeenCalledWith({
       actions: [],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: 'New experiment', href: RoutePage.NEW_EXPERIMENT }
-      ],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: 'New experiment',
     });
     tree.unmount();
   });
