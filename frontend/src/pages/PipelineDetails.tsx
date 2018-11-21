@@ -23,13 +23,13 @@ import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CloseIcon from '@material-ui/icons/Close';
-import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import MD2Tabs from '../atoms/MD2Tabs';
 import Paper from '@material-ui/core/Paper';
 import Resizable from 're-resizable';
 import Slide from '@material-ui/core/Slide';
+import StaticNodeDetails from '../components/StaticNodeDetails';
 import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
@@ -74,9 +74,6 @@ const css = stylesheet({
       },
     },
     background: '#f7f7f7',
-  },
-  fontSizeTitle: {
-    fontSize: fontsize.title,
   },
   footer: {
     background: color.graphBg,
@@ -133,11 +130,6 @@ const css = stylesheet({
     fontWeight: 'bold',
     paddingTop: 20,
   },
-  taskTitle: {
-    fontSize: fontsize.title,
-    fontWeight: 'bold',
-    paddingTop: 20,
-  },
 });
 
 class PipelineDetails extends Page<{}, PipelineDetailsState> {
@@ -183,7 +175,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { pipeline, selectedNodeInfo, selectedNodeId, selectedTab, summaryShown, templateYaml } = this.state;
+    const { pipeline, selectedNodeId, selectedTab, summaryShown, templateYaml } = this.state;
+
+    let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
+    if (this.state.graph && this.state.graph.node(selectedNodeId)) {
+      selectedNodeInfo = this.state.graph.node(selectedNodeId).info;
+      if (!!selectedNodeId && !selectedNodeInfo) {
+        logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
+      }
+    }
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
@@ -215,7 +215,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                     </Paper>
                   )}
 
-                  <Graph graph={this.state.graph} selectedNodeId={selectedNodeId} onClick={(id) => this._selectNode(id)} />
+                  <Graph graph={this.state.graph} selectedNodeId={selectedNodeId}
+                    onClick={id => this.setState({ selectedNodeId: id })} />
 
                   <Slide in={!!selectedNodeId} direction='left'>
                     <Resizable className={css.sidepane} defaultSize={{ width: '40%' }} maxWidth='90%'
@@ -243,8 +244,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                             <CircularProgress size={30} className={commonCss.absoluteCenter} />}
 
                           <div className={commonCss.page}>
-                            {selectedNodeInfo && <div className={padding(20, 'lr')}>
-                              {this.state.selectedNodeInfo}
+                            {!selectedNodeInfo && <div>Unable to retrieve node info</div>}
+                            {!!selectedNodeInfo && <div className={padding(20, 'lr')}>
+                              <StaticNodeDetails nodeInfo={selectedNodeInfo} />
                             </div>}
                           </div>
                         </div>
@@ -340,48 +342,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || ''
     });
     this.props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
-  }
-
-  private _selectNode(id: string): void {
-    let nodeInfoJsx: JSX.Element = <div>Unable to retrieve node info</div>;
-    const nodeInfo = this.state.graph!.node(id).info as StaticGraphParser.SelectedNodeInfo;
-
-    if (!nodeInfo) {
-      logger.error(`Node with ID: ${id} was not found in the graph`);
-      return;
-    }
-
-    // TODO: The headers for these DetailsTables should just be a part of DetailsTables
-    nodeInfoJsx =
-      <div>
-        <div className={classes(commonCss.header, css.fontSizeTitle)}>Input parameters</div>
-        <DetailsTable fields={nodeInfo.inputs} />
-
-        <div className={classes(commonCss.header, css.fontSizeTitle)}>Output parameters</div>
-        <DetailsTable fields={nodeInfo.outputs} />
-
-        <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
-        {nodeInfo.args.map((arg, i) =>
-          <div key={i} style={{ fontFamily: 'mono' }}>{arg}</div>)}
-
-        <div className={classes(commonCss.header, css.fontSizeTitle)}>Command</div>
-        {nodeInfo.command.map((c, i) => <div key={i}>{c}</div>)}
-
-        <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
-        <div>{nodeInfo.image}</div>
-
-        {!!nodeInfo.condition && (
-          <div>
-            <div className={css.taskTitle}>Condition</div>
-            <div>Run when: {nodeInfo.condition}</div>
-          </div>
-        )}
-      </div>;
-
-    this.setState({
-      selectedNodeId: id,
-      selectedNodeInfo: nodeInfoJsx,
-    });
   }
 
   private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
