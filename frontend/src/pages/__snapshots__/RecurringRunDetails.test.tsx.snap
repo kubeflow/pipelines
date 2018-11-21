@@ -7,11 +7,6 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
   <div
     className="page"
   >
-    <div
-      className="header"
-    >
-      Recurring run details
-    </div>
     <Component
       fields={
         Array [
@@ -25,12 +20,8 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
           ],
         ]
       }
+      title="Recurring run details"
     />
-    <div
-      className="header"
-    >
-      Run trigger
-    </div>
     <Component
       fields={
         Array [
@@ -56,12 +47,8 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
           ],
         ]
       }
+      title="Run trigger"
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
     <Component
       fields={
         Array [
@@ -71,6 +58,7 @@ exports[`RecurringRunDetails renders a recurring run with cron schedule 1`] = `
           ],
         ]
       }
+      title="Run parameters"
     />
   </div>
 </div>
@@ -83,11 +71,6 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
   <div
     className="page"
   >
-    <div
-      className="header"
-    >
-      Recurring run details
-    </div>
     <Component
       fields={
         Array [
@@ -101,12 +84,8 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           ],
         ]
       }
+      title="Recurring run details"
     />
-    <div
-      className="header"
-    >
-      Run trigger
-    </div>
     <Component
       fields={
         Array [
@@ -132,12 +111,8 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           ],
         ]
       }
+      title="Run trigger"
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
     <Component
       fields={
         Array [
@@ -147,6 +122,7 @@ exports[`RecurringRunDetails renders a recurring run with periodic schedule 1`] 
           ],
         ]
       }
+      title="Run parameters"
     />
   </div>
 </div>
