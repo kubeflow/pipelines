@@ -95,6 +95,6 @@ class DownloadMessageOp(dsl.ContainerOp):
   name='Download and Save Most Frequent',
   description='Download and Get Most Frequent Word and Save to GCS'
 )
-def download_save_most_frequent_word(url: dsl.PipelineParam, outputpath: dsl.PipelineParam):
+def download_save_most_frequent_word(url: str, outputpath: str):
   downloader = DownloadMessageOp('download', url)
   save_most_frequent_word(downloader.output, outputpath)

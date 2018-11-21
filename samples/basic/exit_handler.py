@@ -21,8 +21,7 @@ import kfp.dsl as dsl
   name='Exit Handler',
   description='Download a message and print it out. Exit Handler will run at the end.'
 )
-def download_and_print(
-  url=dsl.PipelineParam(name='url', value='gs://ml-pipeline-playground/shakespeare1.txt')):
+def download_and_print(url='gs://ml-pipeline-playground/shakespeare1.txt'):
   """A sample pipeline showing exit handler."""
 
   exit_op = dsl.ContainerOp(

@@ -70,7 +70,7 @@ class ExitHandlerOp(dsl.ContainerOp):
   name='Save Most Frequent',
   description='Get Most Frequent Word and Save to GCS'
 )
-def save_most_frequent_word(message: dsl.PipelineParam, outputpath: dsl.PipelineParam):
+def save_most_frequent_word(message: str, outputpath: str):
   """A pipeline function describing the orchestration of the workflow."""
 
   exit_op = ExitHandlerOp('exiting')
