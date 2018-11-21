@@ -32,7 +32,7 @@ while getopts ":hp:t:i:" opt; do
   esac
 done
 
-LOCAL_IMAGE_NAME=ml-pipeline-dataflow-tft
+LOCAL_IMAGE_NAME=ml-pipeline-dataflow-tfma
 
 if [ -z "${PROJECT_ID}" ]; then
   PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
@@ -44,7 +44,7 @@ fi
 
 # build base image
 pushd ../base
-./build.sh
+./build_image.sh
 popd
 
 docker build -t ${LOCAL_IMAGE_NAME} .
