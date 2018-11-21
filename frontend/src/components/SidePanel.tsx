@@ -49,7 +49,7 @@ const css = stylesheet({
 });
 
 interface SidePanelProps {
-  isBusy: boolean;
+  isBusy?: boolean;
   isOpen: boolean;
   onClose: () => void;
   title: string;
@@ -80,8 +80,9 @@ class SidePanel extends React.Component<SidePanelProps> {
           </div>
           <div className={commonCss.page}>
 
-            {isBusy &&
-              <CircularProgress size={30} className={commonCss.absoluteCenter} />}
+            {isBusy === true && (
+              <CircularProgress size={30} className={commonCss.absoluteCenter} />
+            )}
 
             <div className={commonCss.page}>
               {this.props.children}

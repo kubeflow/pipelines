@@ -45,7 +45,6 @@ interface PipelineDetailsState {
   pipeline: ApiPipeline | null;
   selectedTab: number;
   selectedNodeId: string;
-  sidepanelBusy: boolean;
   summaryShown: boolean;
   template?: Workflow;
   templateYaml?: string;
@@ -100,7 +99,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       selectedNodeId: '',
       selectedNodeInfo: null,
       selectedTab: 0,
-      sidepanelBusy: false,
       summaryShown: true,
     };
   }
@@ -176,7 +174,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                   <Graph graph={this.state.graph} selectedNodeId={selectedNodeId}
                     onClick={id => this.setState({ selectedNodeId: id })} />
 
-                  <SidePanel isBusy={this.state.sidepanelBusy} isOpen={!!selectedNodeId}
+                  <SidePanel isOpen={!!selectedNodeId}
                     title={selectedNodeId} onClose={() => this.setState({ selectedNodeId: '' })}>
                     <div className={commonCss.page}>
                       {!selectedNodeInfo && <div>Unable to retrieve node info</div>}
@@ -231,7 +229,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     this.clearBanner();
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
-    // TODO: Show spinner while waiting for responses
     try {
       const [pipeline, templateResponse] = await Promise.all([
         Apis.pipelineServiceApi.getPipeline(pipelineId),
@@ -278,10 +275,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
     if (deleteConfirmed) {
-      // TODO: Show spinner during wait.
       try {
         await Apis.pipelineServiceApi.deletePipeline(this.state.pipeline!.id!);
-        // TODO: add success notification
+        this.props.updateSnackbar({
+          autoHideDuration: 10000,
+          message: `Successfully deleted pipeline: ${this.state.pipeline!.name}`,
+          open: true,
+        });
         this.props.history.push(RoutePage.PIPELINES);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
