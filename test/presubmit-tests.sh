@@ -151,16 +151,17 @@ if [ "$WORKFLOW_FILE" == "e2e_test_gke.yaml" ]; then
   ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
   ## Update pipeline component image
+  pushd ks_app
   ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${PULL_PULL_SHA}
   ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${PULL_PULL_SHA}
   ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${PULL_PULL_SHA}
   ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${PULL_PULL_SHA}
+  popd
+
   ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
   gcloud container clusters get-credentials ${TEST_CLUSTER}
 fi
-
-# TODO install argo if not install kubeflow
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
