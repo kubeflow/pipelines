@@ -69,9 +69,43 @@ echo "presubmit test starts"
 
 # activating the service account
 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+gcloud config set compute/zone us-central1-a
 
-#Creating a new GKE cluster if needed
-if [ "$CLUSTER_TYPE" == "create-gke" ]; then
+if [ "$WORKFLOW_FILE" == "build_image.yaml" ]; then
+  echo "create test cluster"
+  TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
+  TEST_CLUSTER=${TEST_CLUSTER_PREFIX//_}-${PULL_PULL_SHA:0:10}-${RANDOM}
+
+  function delete_cluster {
+    echo "Delete cluster..."
+    gcloud container clusters delete ${TEST_CLUSTER} --async
+  }
+  trap delete_cluster EXIT
+
+  gcloud config set project ml-pipeline-test
+  gcloud config set compute/zone us-central1-a
+  gcloud container clusters create ${TEST_CLUSTER} \
+    --scopes cloud-platform \
+    --enable-cloud-logging \
+    --enable-cloud-monitoring \
+    --machine-type n1-standard-2 \
+    --num-nodes 3 \
+    --network test \
+    --subnetwork test-1
+
+  gcloud container clusters get-credentials ${TEST_CLUSTER}
+
+  echo "install argo"
+  ARGO_VERSION=v2.2.0
+  mkdir -p ~/bin/
+  export PATH=~/bin/:$PATH
+  curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
+  chmod +x ~/bin/argo
+  kubectl create ns argo
+  kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+fi
+
+if [ "$WORKFLOW_FILE" == "e2e_test_gke.yaml" ]; then
   # Install ksonnet
   KS_VERSION="0.11.0"
   curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
@@ -110,10 +144,10 @@ if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
   ## Update pipeline component image
-#  ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${PULL_PULL_SHA}
-#  ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${PULL_PULL_SHA}
-#  ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${PULL_PULL_SHA}
-#  ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${PULL_PULL_SHA}
+  ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${PULL_PULL_SHA}
+  ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${PULL_PULL_SHA}
+  ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${PULL_PULL_SHA}
+  ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${PULL_PULL_SHA}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
   gcloud container clusters get-credentials ${TEST_CLUSTER}
