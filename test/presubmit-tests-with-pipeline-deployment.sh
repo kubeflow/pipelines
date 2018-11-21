@@ -99,6 +99,13 @@ function delete_cluster {
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
 KFAPP=${TEST_CLUSTER}
+function clean_up {
+  echo "Clean up..."
+  cd ${KFAPP}
+  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
+}
+#  trap delete_cluster EXIT
+
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT}
 cd ${KFAPP}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
@@ -128,3 +135,4 @@ echo argo workflow submitted successfully
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 source "${DIR}/check-argo-status.sh"
+
