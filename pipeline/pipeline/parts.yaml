@@ -13,7 +13,7 @@
 // limitations under the License.
 
 {
-  name: "ml-pipeline",
+  name: "pipeline",
   apiVersion: "0.0.1",
   kind: "ksonnet.io/parts",
   description: "Prototypes for running ML pipeline.\n",
@@ -32,13 +32,13 @@
     url: "https://github.com/kubeflow/pipelines/issues",
   },
   keywords: [
-    "ml-pipeline",
+    "pipeline",
   ],
   quickStart: {
-    prototype: "io.ksonnet.pkg.ml-pipeline",
-    componentName: "ml-pipeline",
+    prototype: "io.ksonnet.pkg.pipeline",
+    componentName: "pipeline",
     flags: {
-      name: "ml-pipeline",
+      name: "pipeline",
       namespace: "default",
     },
     comment: "Deploy ML pipeline",
