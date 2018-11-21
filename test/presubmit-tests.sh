@@ -96,6 +96,7 @@ if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   gcloud container clusters get-credentials ${TEST_CLUSTER}
 fi
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 source "${DIR}/install-argo.sh"
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
@@ -111,5 +112,4 @@ ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
 `
 echo argo workflow submitted successfully
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 source "${DIR}/check-argo-status.sh"
