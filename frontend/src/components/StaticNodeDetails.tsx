@@ -41,23 +41,20 @@ class StaticNodeDetails extends React.Component<StaticNodeDetailsProps> {
   public render(): JSX.Element {
     const nodeInfo = this.props.nodeInfo;
 
-    // TODO: The headers for these DetailsTables should just be a part of DetailsTables
     return <div>
-      <div className={classes(commonCss.header, css.fontSizeTitle)}>Input parameters</div>
-      <DetailsTable fields={nodeInfo.inputs} />
+      <DetailsTable title='Input parameters' fields={nodeInfo.inputs} />
 
-      <div className={classes(commonCss.header, css.fontSizeTitle)}>Output parameters</div>
-      <DetailsTable fields={nodeInfo.outputs} />
+      <DetailsTable title='Output parameters' fields={nodeInfo.outputs} />
 
       <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
       {nodeInfo.args.map((arg, i) =>
-        <div key={i} style={{ fontFamily: 'mono' }}>{arg}</div>)}
+        <div key={i} style={{ fontFamily: 'monospace' }}>{arg}</div>)}
 
       <div className={classes(commonCss.header, css.fontSizeTitle)}>Command</div>
-      {nodeInfo.command.map((c, i) => <div key={i}>{c}</div>)}
+      {nodeInfo.command.map((c, i) => <div key={i} style={{ fontFamily: 'monospace' }}>{c}</div>)}
 
       <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
-      <div>{nodeInfo.image}</div>
+      <div style={{ fontFamily: 'monospace' }}>{nodeInfo.image}</div>
 
       {!!nodeInfo.condition && (
         <div>

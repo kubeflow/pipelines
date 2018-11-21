@@ -202,13 +202,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
                             {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
                               <div className={padding(20)}>
-                                <div className={commonCss.header}>Input parameters</div>
-                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeDetails.id)[0]} />
+                                <DetailsTable title='Input parameters'
+                                  fields={WorkflowParser.getNodeInputOutputParams(
+                                    workflow, selectedNodeDetails.id)[0]} />
 
-                                <div className={commonCss.header}>Output parameters</div>
-                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeDetails.id)[1]} />
+                                <DetailsTable title='Output parameters'
+                                  fields={WorkflowParser.getNodeInputOutputParams(
+                                    workflow, selectedNodeDetails.id)[1]} />
                               </div>
                             }
 
@@ -237,9 +237,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               </div>}
 
               {selectedTab === 1 && <div className={padding()}>
-                <div className={commonCss.header}>Run details</div>
-                {/* TODO: show description */}
-                <DetailsTable fields={[
+                <DetailsTable title='Run details' fields={[
                   ['Status', workflow.status.phase],
                   ['Description', runMetadata ? runMetadata!.description! : ''],
                   ['Created at', formatDateString(workflow.metadata.creationTimestamp)],
@@ -249,8 +247,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                 ]} />
 
                 {workflowParameters && !!workflowParameters.length && (<div>
-                  <div className={commonCss.header}>Run parameters</div>
-                  <DetailsTable fields={workflowParameters.map(p => [p.name, p.value || ''])} />
+                  <DetailsTable title='Run parameters'
+                    fields={workflowParameters.map(p => [p.name, p.value || ''])} />
                 </div>)}
               </div>}
             </div>

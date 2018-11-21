@@ -122,21 +122,14 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
         {run && (
           <div className={commonCss.page}>
-            <div className={commonCss.header}>Recurring run details</div>
-            <DetailsTable fields={runDetails} />
+            <DetailsTable title='Recurring run details' fields={runDetails} />
 
             {!!triggerDetails.length && (
-              <React.Fragment>
-                <div className={commonCss.header}>Run trigger</div>
-                <DetailsTable fields={triggerDetails} />
-              </React.Fragment>
+              <DetailsTable title='Run trigger' fields={triggerDetails} />
             )}
 
             {!!inputParameters.length && (
-              <React.Fragment>
-                <div className={commonCss.header}>Run parameters</div>
-                <DetailsTable fields={inputParameters} />
-              </React.Fragment>
+              <DetailsTable title='Run parameters' fields={inputParameters} />
             )}
           </div>
         )}
