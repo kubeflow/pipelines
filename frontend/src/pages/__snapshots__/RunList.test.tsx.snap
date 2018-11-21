@@ -7079,7 +7079,13 @@ exports[`RunList renders status as icon 1`] = `
   }
   title="Executed successfully"
 >
-  <span>
+  <span
+    style={
+      Object {
+        "height": 18,
+      }
+    }
+  >
     <pure(CheckCircleIcon)
       style={
         Object {

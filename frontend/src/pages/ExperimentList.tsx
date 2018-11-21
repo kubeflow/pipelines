@@ -86,7 +86,8 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         title: 'Refresh',
         tooltip: 'Refresh the list of experiments',
       }],
-      breadcrumbs: [{ displayName: 'Experiments', href: '' }],
+      breadcrumbs: [],
+      pageTitle: 'Experiments',
     };
   }
 
@@ -206,7 +207,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       // Enable/Disable Clone button
       draft[2].disabled = selectedRunIds.length !== 1;
     });
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions });
+    this.props.updateToolbar({ actions });
     this.setState({ selectedRunIds });
   }
 

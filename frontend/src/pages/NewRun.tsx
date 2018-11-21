@@ -89,10 +89,8 @@ class NewRun extends Page<{}, NewRunState> {
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: [],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: 'Start a new run', href: '' }
-      ]
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: 'Start a new run',
     };
   }
 
@@ -268,11 +266,8 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-    breadcrumbs.push({
-      displayName: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
-      href: '',
-    });
-    this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+    const pageTitle = isRecurringRun ? 'Start a recurring run' : 'Start a new run';
+    this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
     this.setState({
       experiment,

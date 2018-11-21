@@ -78,11 +78,8 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -107,11 +104,8 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -126,11 +120,8 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                         "displayName": "some mock experiment name",
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
               ],
@@ -297,11 +288,8 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -326,11 +314,8 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -341,11 +326,8 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a recurring run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a recurring run",
                   },
                 ],
               ],
@@ -515,11 +497,8 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -555,11 +534,8 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -570,11 +546,8 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
               ],
@@ -764,11 +737,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -793,11 +763,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -812,11 +779,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                         "displayName": "some mock experiment name",
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
               ],
@@ -983,11 +947,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -1012,11 +973,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -1031,11 +989,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                         "displayName": "some mock experiment name",
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
               ],
@@ -1238,11 +1193,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -1267,11 +1219,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -1286,11 +1235,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
                         "displayName": "some mock experiment name",
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
               ],
@@ -1457,11 +1403,8 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -1486,11 +1429,8 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -1501,11 +1441,8 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
               ],
@@ -1661,11 +1598,8 @@ exports[`NewRun renders the new run page 1`] = `
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -1690,11 +1624,8 @@ exports[`NewRun renders the new run page 1`] = `
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -1709,11 +1640,8 @@ exports[`NewRun renders the new run page 1`] = `
                         "displayName": "some mock experiment name",
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
               ],
@@ -1880,11 +1808,8 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                   "displayName": "Experiments",
                   "href": "/experiments",
                 },
-                Object {
-                  "displayName": "Start a new run",
-                  "href": "",
-                },
               ],
+              "pageTitle": "Start a new run",
             }
           }
           updateBanner={
@@ -1909,11 +1834,8 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                         "displayName": "Experiments",
                         "href": "/experiments",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
                 Array [
@@ -1928,11 +1850,8 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                         "displayName": "some mock experiment name",
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
-                      Object {
-                        "displayName": "Start a new run",
-                        "href": "",
-                      },
                     ],
+                    "pageTitle": "Start a new run",
                   },
                 ],
               ],

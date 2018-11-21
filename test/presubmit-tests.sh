@@ -123,7 +123,9 @@ ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
 -p api-image="${GCR_IMAGE_BASE_DIR}/api" \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
 -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
--p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" | awk '/Name:/{print $NF}'`
+-p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
+-o name
+`
 echo argo workflow submitted successfully
 
 echo "check status of argo workflow $ARGO_WORKFLOW...."
