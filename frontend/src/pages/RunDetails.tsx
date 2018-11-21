@@ -16,18 +16,15 @@
 
 import * as React from 'react';
 import Banner, { Mode } from '../components/Banner';
-import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import CloseIcon from '@material-ui/icons/Close';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
 import PlotCard from '../components/PlotCard';
-import Resizable from 're-resizable';
 import RunUtils from '../lib/RunUtils';
-import Slide from '@material-ui/core/Slide';
+import SidePanel from '../components/SidePanel';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun } from '../apis/run';
@@ -35,39 +32,15 @@ import { Apis } from '../lib/Apis';
 import { NodePhase, statusToIcon } from './Status';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { commonCss, color, padding } from '../Css';
+import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
 import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
-import { stylesheet, classes } from 'typestyle';
-
-const css = stylesheet({
-  closeButton: {
-    color: color.inactive,
-    margin: 15,
-    minHeight: 0,
-    minWidth: 0,
-    padding: 0,
-  },
-  nodeName: {
-    flexGrow: 1,
-    textAlign: 'center',
-  },
-  sidepane: {
-    backgroundColor: color.background,
-    borderLeft: 'solid 1px #ddd',
-    bottom: 0,
-    display: 'flex',
-    flexFlow: 'column',
-    position: 'absolute !important' as any,
-    right: 0,
-    top: 0,
-  },
-});
+import { classes } from 'typestyle';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -137,6 +110,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   public render(): JSX.Element {
     const { graph, runMetadata, selectedTab, selectedNodeDetails, sidepanelSelectedTab,
       workflow } = this.state;
+    const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
 
@@ -151,95 +125,76 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
               {selectedTab === 0 && <div className={commonCss.page}>
                 {graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                  <Graph graph={graph} selectedNodeId={selectedNodeDetails ? selectedNodeDetails.id : ''}
+                  <Graph graph={graph} selectedNodeId={selectedNodeId}
                     onClick={(id) => this._selectNode(id)} />
-                  <Slide in={!!selectedNodeDetails} direction='left'>
-                    <Resizable className={css.sidepane} defaultSize={{ width: '70%' }} maxWidth='90%'
-                      minWidth={100} enable={{
-                        bottom: false,
-                        bottomLeft: false,
-                        bottomRight: false,
-                        left: true,
-                        right: false,
-                        top: false,
-                        topLeft: false,
-                        topRight: false,
-                      }}>
-                      {!!selectedNodeDetails && <div className={commonCss.page}>
-                        <div className={commonCss.flex}>
-                          <Button className={css.closeButton}
-                            onClick={() => this.setState({ selectedNodeDetails: null })}>
-                            <CloseIcon />
-                          </Button>
-                          <div className={css.nodeName}>{selectedNodeDetails.id}</div>
-                        </div>
-                        {this.state.selectedNodeDetails && this.state.selectedNodeDetails.phaseMessage && (
-                          <Banner mode='warning'
-                            message={this.state.selectedNodeDetails.phaseMessage} />
-                        )}
+
+                  <SidePanel isBusy={this.state.sidepanelBusy} isOpen={!!selectedNodeDetails}
+                    onClose={() => this.setState({ selectedNodeDetails: null })} title={selectedNodeId}>
+                    {!!selectedNodeDetails && (<React.Fragment>
+                      {!!selectedNodeDetails.phaseMessage && (
+                        <Banner mode='warning'
+                          message={selectedNodeDetails.phaseMessage} />
+                      )}
+                      <div className={commonCss.page}>
+                        <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
+                          selectedTab={sidepanelSelectedTab}
+                          onSwitch={this._sidePaneTabSwitched.bind(this)} />
+
+                        {this.state.sidepanelBusy &&
+                          <CircularProgress size={30} className={commonCss.absoluteCenter} />}
+
                         <div className={commonCss.page}>
-                          <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
-                            selectedTab={sidepanelSelectedTab}
-                            onSwitch={this._sidePaneTabSwitched.bind(this)} />
+                          {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
+                            <div className={commonCss.page}>
+                              {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
+                                const title = componentMap[config.type].prototype.getDisplayName();
+                                return (
+                                  <div key={i} className={padding(20, 'lrt')}>
+                                    <PlotCard configs={[config]} title={title} maxDimension={500} />
+                                    <Hr />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
 
-                          {this.state.sidepanelBusy &&
-                            <CircularProgress size={30} className={commonCss.absoluteCenter} />}
+                          {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
+                            <div className={padding(20)}>
+                              <DetailsTable title='Input parameters'
+                                fields={WorkflowParser.getNodeInputOutputParams(
+                                  workflow, selectedNodeId)[0]} />
 
-                          <div className={commonCss.page}>
-                            {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
-                              <div className={commonCss.page}>
-                                {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
-                                  const title = componentMap[config.type].prototype.getDisplayName();
-                                  return (
-                                    <div key={i} className={padding(20, 'lrt')}>
-                                      <PlotCard configs={[config]} title={title} maxDimension={500} />
-                                      <Hr />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            }
+                              <DetailsTable title='Output parameters'
+                                fields={WorkflowParser.getNodeInputOutputParams(
+                                  workflow, selectedNodeId)[1]} />
+                            </div>
+                          )}
 
-                            {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
-                              <div className={padding(20)}>
-                                <div className={commonCss.header}>Input parameters</div>
-                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeDetails.id)[0]} />
-
-                                <div className={commonCss.header}>Output parameters</div>
-                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeDetails.id)[1]} />
-                              </div>
-                            }
-
-                            {sidepanelSelectedTab === SidePaneTab.LOGS &&
-                              <div className={commonCss.page}>
-                                {this.state.logsBannerMessage && (
-                                  <Banner
-                                    message={this.state.logsBannerMessage}
-                                    mode={this.state.logsBannerMode}
-                                    additionalInfo={this.state.logsBannerAdditionalInfo}
-                                    refresh={this._loadSelectedNodeLogs.bind(this)} />
-                                )}
-                                {!this.state.logsBannerMessage && this.state.selectedNodeDetails && (
-                                  <LogViewer logLines={(this.state.selectedNodeDetails.logs || '').split('\n')}
-                                    classes={commonCss.page} />
-                                )}
-                              </div>
-                            }
-                          </div>
+                          {sidepanelSelectedTab === SidePaneTab.LOGS && (
+                            <div className={commonCss.page}>
+                              {this.state.logsBannerMessage && (
+                                <Banner
+                                  message={this.state.logsBannerMessage}
+                                  mode={this.state.logsBannerMode}
+                                  additionalInfo={this.state.logsBannerAdditionalInfo}
+                                  refresh={this._loadSelectedNodeLogs.bind(this)} />
+                              )}
+                              {!this.state.logsBannerMessage && this.state.selectedNodeDetails && (
+                                <LogViewer logLines={(this.state.selectedNodeDetails.logs || '').split('\n')}
+                                  classes={commonCss.page} />
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>}
-                    </Resizable>
-                  </Slide>
+                      </div>
+                    </React.Fragment>)}
+                  </SidePanel>
                 </div>}
                 {!graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>}
 
               {selectedTab === 1 && <div className={padding()}>
-                <div className={commonCss.header}>Run details</div>
-                {/* TODO: show description */}
-                <DetailsTable fields={[
+                <DetailsTable title='Run details' fields={[
                   ['Status', workflow.status.phase],
                   ['Description', runMetadata ? runMetadata!.description! : ''],
                   ['Created at', formatDateString(workflow.metadata.creationTimestamp)],
@@ -249,8 +204,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                 ]} />
 
                 {workflowParameters && !!workflowParameters.length && (<div>
-                  <div className={commonCss.header}>Run parameters</div>
-                  <DetailsTable fields={workflowParameters.map(p => [p.name, p.value || ''])} />
+                  <DetailsTable title='Run parameters'
+                    fields={workflowParameters.map(p => [p.name, p.value || ''])} />
                 </div>)}
               </div>}
             </div>
