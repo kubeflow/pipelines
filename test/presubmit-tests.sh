@@ -94,6 +94,11 @@ if [ "$WORKFLOW_FILE" == "build_image.yaml" ]; then
     --subnetwork test-1
 
   gcloud container clusters get-credentials ${TEST_CLUSTER}
+  kubectl config set-context $(kubectl config current-context) --namespace=default
+  echo "Add necessary cluster role bindings"
+  ACCOUNT=$(gcloud info --format='value(config.account)')
+  kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT
+  kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default
 
   echo "install argo"
   ARGO_VERSION=v2.2.0
