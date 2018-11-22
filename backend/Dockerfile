@@ -14,12 +14,19 @@ COPY . .
 RUN apk add --update gcc musl-dev
 RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 
-FROM python:3.5.0-slim as compiler
+FROM python:3.5 as compiler
 
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q default-jdk libssl-dev libffi-dev wget
+    apt-get install --no-install-recommends -y -q default-jdk libssl-dev libffi-dev wget 
 
-RUN /go/src/github.com/kubeflow/pipelines/sdk/python/build.sh /kfp.tar.gz
+RUN pip3 install setuptools==40.5.0
+
+RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
+
+WORKDIR /go/src/github.com/kubeflow/pipelines
+COPY . .
+WORKDIR /go/src/github.com/kubeflow/pipelines/sdk/python
+RUN ./build.sh /kfp.tar.gz
 RUN pip3 install /kfp.tar.gz
 
 WORKDIR /samples
