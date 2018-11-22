@@ -18,6 +18,10 @@ metadata:
   generateName: sample-test-
 spec:
   entrypoint: sample-test
+  volumes:
+  - name: gcp-credentials
+    secret:
+      secretName: user-gcp-sa
   arguments:
     parameters:
     - name: commit-sha
@@ -407,7 +411,7 @@ spec:
         value: Dockerfile
       - name: image-suffix
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-39-g2274e35-e3b0c4
+      image: gcr.io/ml-pipeline-test/image-builder:v20181122-0.1.3-rc.1-72-g4a98037-dirty-059a68
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
@@ -418,6 +422,11 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
@@ -436,7 +445,7 @@ spec:
       - name: build-script
       - name: image-suffix
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-39-g2274e35-e3b0c4
+      image: gcr.io/ml-pipeline-test/image-builder:v20181122-0.1.3-rc.1-72-g4a98037-dirty-059a68
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
@@ -446,6 +455,11 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
@@ -497,4 +511,10 @@ spec:
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
 
