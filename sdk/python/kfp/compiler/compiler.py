@@ -128,21 +128,16 @@ class Compiler(object):
       template['container']['command'] = op.command
 
     # Set resources.
-    if op.memory_limit or op.cpu_limit or op.memory_request or op.cpu_request:
+    if op.resource_limits or op.resource_requests:
       template['container']['resources'] = {}
-    if op.memory_limit or op.cpu_limit:
-      template['container']['resources']['limits'] = {}
-      if op.memory_limit:
-        template['container']['resources']['limits']['memory'] = op.memory_limit
-      if op.cpu_limit:
-        template['container']['resources']['limits']['cpu'] = op.cpu_limit
+    if op.resource_limits:
+      template['container']['resources']['limits'] = op.resource_limits
+    if op.resource_requests:
+      template['container']['resources']['requests'] = op.resource_requests
 
-    if op.memory_request or op.cpu_request:
-      template['container']['resources']['requests'] = {}
-      if op.memory_request:
-        template['container']['resources']['requests']['memory'] = op.memory_request
-      if op.cpu_request:
-        template['container']['resources']['requests']['cpu'] = op.cpu_request
+    # Set nodeSelector.
+    if op.node_selector:
+      template['nodeSelector'] = op.node_selector
 
     if op.env_variables:
       template['container']['env'] = list(map(self._convert_k8s_obj_to_dic, op.env_variables))
