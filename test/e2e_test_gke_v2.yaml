@@ -18,6 +18,7 @@ metadata:
   generateName: integration-test-
 spec:
   entrypoint: integration-test
+  serviceAccountName: pipeline-runner
   volumes:
   - name: gcp-credentials
     secret:

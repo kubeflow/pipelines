@@ -18,6 +18,7 @@ metadata:
   generateName: sample-test-
 spec:
   entrypoint: sample-test
+  serviceAccountName: pipeline-runner
   arguments:
     parameters:
     - name: commit-sha

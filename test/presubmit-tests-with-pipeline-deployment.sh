@@ -116,10 +116,10 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
 ## Update pipeline component image
 pushd ks_app
-ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${PULL_PULL_SHA}
-ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${PULL_PULL_SHA}
-ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${PULL_PULL_SHA}
-ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${PULL_PULL_SHA}
+ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
+ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
+ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
+ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
 popd
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
