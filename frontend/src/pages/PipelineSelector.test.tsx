@@ -91,7 +91,7 @@ describe('PipelineSelector', () => {
     tree.unmount();
   });
 
-  it('logs error if more than one pipeline are selected', async () => {
+  it('logs error if more than one pipeline is selected', async () => {
     const tree = shallow(<TestPipelineSelector {...generateProps()} />);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     await (tree.instance() as TestPipelineSelector)._loadPipelines({});
