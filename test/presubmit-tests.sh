@@ -87,10 +87,10 @@ export KUBEFLOW_TAG=v0.3.1
 curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash
 
 ## Override the pipeline config with code from master
-cp -r ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
-cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
+cp -rf ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
+cp -rf ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
 # TODO copying script is not needed once the release code has the pipeline component.
-cp -r ${KUBEFLOW_MASTER}/scripts ${KUBEFLOW_SRC}/scripts
+cp -rf ${KUBEFLOW_MASTER}/scripts ${KUBEFLOW_SRC}/scripts
 echo "foo..........."
 cat ${KUBEFLOW_MASTER}/scripts/kfctl.sh
 echo "bar..........."
