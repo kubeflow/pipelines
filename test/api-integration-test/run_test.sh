@@ -53,9 +53,7 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
-echo ${GOOGLE_APPLICATION_CREDENTIALS}
-if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-  echo activating......
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 
