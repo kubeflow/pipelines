@@ -4,14 +4,8 @@ exports[`PipelineSelector calls API to load pipelines 1`] = `
 <Fragment>
   <Toolbar
     actions={Array []}
-    breadcrumbs={
-      Array [
-        Object {
-          "displayName": "Choose a pipeline",
-          "href": "",
-        },
-      ]
-    }
+    breadcrumbs={Array []}
+    pageTitle="Choose a pipeline"
   />
   <CustomTable
     columns={

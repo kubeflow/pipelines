@@ -1,17 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
-<div>
+<Fragment>
   <Toolbar
     actions={Array []}
-    breadcrumbs={
-      Array [
-        Object {
-          "displayName": "Recurring runs",
-          "href": "",
-        },
-      ]
-    }
+    breadcrumbs={Array []}
+    pageTitle="Recurring runs"
   />
   <CustomTable
     columns={
@@ -72,7 +66,7 @@ exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
     selectedIds={Array []}
     updateSelection={[Function]}
   />
-</div>
+</Fragment>
 `;
 
 exports[`RecurringRunsManager reloads the list of runs after enable/disabling 1`] = `
