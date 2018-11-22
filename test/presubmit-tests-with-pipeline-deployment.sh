@@ -91,6 +91,9 @@ cp -r ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
 cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
 # TODO copying script is not needed once the release code has the pipeline component.
 cp -r ${KUBEFLOW_MASTER}/scripts ${KUBEFLOW_SRC}/scripts
+echo "foo..........."
+ls ${KUBEFLOW_SRC}/scripts
+ls ${KUBEFLOW_MASTER}
 
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
