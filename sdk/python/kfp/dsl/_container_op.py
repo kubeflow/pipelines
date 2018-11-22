@@ -115,9 +115,12 @@ class ContainerOp(object):
     "Validate a given string is valid for gpu limit."
 
     try:
-      int(gpu_string)
+      gpu_value = int(gpu_string)
     except ValueError:
       raise ValueError('Invalid gpu string. Should be integer.')
+
+    if gpu_value <= 0:
+      raise ValueError('gpu must be positive integer.')
 
   def add_resource_limit(self, resource_name, value):
     """Add the resource limit of the container.
@@ -181,6 +184,24 @@ class ContainerOp(object):
 
     self._validate_cpu_string(cpu)
     return self.add_resource_limit("cpu", cpu)
+
+  def set_gpu_limit(self, gpu, vendor = "nvidia"):
+    """Set gpu limit for the operator. This function add '<vendor>.com/gpu' into resource limit. 
+    Note that there is no need to add GPU request. GPUs are only supposed to be specified in 
+    the limits section. See https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/.
+
+    Args:
+      gpu: A string which must be a positive number.
+      vendor: Optional. A string which is the vendor of the requested gpu. The supported values 
+        are: 'nvidia' (default), and 'amd'. 
+    """
+
+    self._validate_gpu_string(gpu)
+    if vendor != 'nvidia' or vendor != 'amd':
+      raise ValueError('vendor can only be nvidia or amd.')
+
+    return self.add_resource_limit("%s.com/gpu" % vendor, gpu)
+
 
   def add_volume(self, volume):
     """Add K8s volume to the container
