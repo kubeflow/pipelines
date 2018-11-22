@@ -57,9 +57,7 @@ done
 
 BASE_DIR=/ml
 
-echo ${GOOGLE_APPLICATION_CREDENTIALS}
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-  echo activating.....
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 

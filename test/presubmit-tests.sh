@@ -71,6 +71,7 @@ echo "presubmit test starts"
 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 gcloud config set compute/zone us-central1-a
 
+#Creating a new GKE cluster if needed
 if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   echo "create test cluster"
   TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
