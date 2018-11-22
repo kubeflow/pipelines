@@ -14,18 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 echo "check status of argo workflow $ARGO_WORKFLOW...."
 # probing the argo workflow status until it completed. Timeout after 30 minutes
 for i in $(seq 1 ${PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT})
 do
-  WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW --show-labels`
+  WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW -n ${NAMESPACE} --show-labels`
   echo $WORKFLOW_STATUS | grep ${WORKFLOW_COMPLETE_KEYWORD} && s=0 && break || s=$? && printf "Workflow ${ARGO_WORKFLOW} is not finished.\n${WORKFLOW_STATUS}\nSleep for 20 seconds...\n" && sleep 20
 done
 
 # Check whether the argo workflow finished or not and exit if not.
 if [[ $s != 0 ]]; then
  echo "Prow job Failed: Argo workflow timeout.."
- argo logs -w ${ARGO_WORKFLOW}
+ argo logs -w ${ARGO_WORKFLOW} -n ${NAMESPACE}
  exit $s
 fi
 
@@ -41,11 +42,11 @@ fi
 if [[ $WORKFLOW_STATUS = *"${WORKFLOW_FAILED_KEYWORD}"* ]]; then
   echo "Test workflow failed."
   echo "=========Argo Workflow Logs========="
-  argo logs -w ${ARGO_WORKFLOW}
+  argo logs -w ${ARGO_WORKFLOW} -n ${NAMESPACE}
   echo "===================================="
-  argo get ${ARGO_WORKFLOW}
+  argo get ${ARGO_WORKFLOW} -n ${NAMESPACE}
   exit 1
 else
-  argo get ${ARGO_WORKFLOW}
+  argo get ${ARGO_WORKFLOW} -n ${NAMESPACE}
   exit 0
 fi

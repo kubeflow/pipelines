@@ -18,7 +18,6 @@ metadata:
   generateName: integration-test-
 spec:
   entrypoint: integration-test
-  serviceAccountName: pipeline-runner
   volumes:
   - name: gcp-credentials
     secret:
@@ -202,7 +201,7 @@ spec:
         value: Dockerfile
       - name: image-suffix
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-39-g2274e35-e3b0c4
+      image: gcr.io/ml-pipeline-test/image-builder:v20181122-0.1.3-rc.1-72-g4a98037-dirty-059a68
       imagePullPolicy: 'Always'
       args: [
         "--commit_sha", "{{inputs.parameters.commit-sha}}",

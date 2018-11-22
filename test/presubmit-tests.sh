@@ -32,6 +32,7 @@ TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 CLUSTER_TYPE=create-gke
 TIMEOUT_SECONDS=1800
+NAMESPCAE=default
 
 while [ "$1" != "" ]; do
     case $1 in

@@ -30,6 +30,7 @@ PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 TIMEOUT_SECONDS=1800
+NAMESPACE=kubeflow
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -133,7 +134,8 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p commit-sha="${PULL_PULL_SHA}" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
--n kubeflow \
+-n ${NAMESPACE} \
+--serviceaccount test-runner \
 -o name
 `
 
