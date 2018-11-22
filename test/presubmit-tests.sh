@@ -152,14 +152,14 @@ then
   gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
 fi
 
-ARGO_WORKFLOW_DETAILS=`argo get ${ARGO_WORKFLOW}`
-ARGO_WORKFLOW_LOGS=`argo logs -w ${ARGO_WORKFLOW}`
-
 if [[ $WORKFLOW_STATUS = *"${WORKFLOW_FAILED_KEYWORD}"* ]]; then
-  printf "The argo workflow failed.\n =========Argo Workflow=========\n${ARGO_WORKFLOW_DETAILS}\n==================\n"
-  printf "=========Argo Workflow Logs=========\n${ARGO_WORKFLOW_LOGS}\n==================\n"
+  echo "Test workflow failed."
+  echo "=========Argo Workflow Logs========="
+  argo logs -w ${ARGO_WORKFLOW}
+  echo "===================================="
+  argo get ${ARGO_WORKFLOW}
   exit 1
 else
-  printf ${ARGO_WORKFLOW_DETAILS}
+  argo get ${ARGO_WORKFLOW}
   exit 0
 fi
