@@ -74,9 +74,7 @@ fi
 gcloud compute scp --zone=$ZONE --verbosity=error "$GOOGLE_APPLICATION_CREDENTIALS" $instance_name:"~/service-account.json"
 
 #Copy repo
-git_root=$(git rev-parse --show-toplevel)
-git_root_parent=$(dirname "$git_root")
-gcloud compute scp --zone=$ZONE --verbosity=error --recurse "$git_root" $instance_name:'~' >/dev/null || true #Do not fail on error here because of broken symlinks until this is fixed: https://github.com/kubeflow/pipelines/issues/1084
+tar --directory=.. -cz pipelines | gcloud compute ssh --zone=$ZONE $instance_name -- tar -xz #Assumes that the current directory on target VM is ~
 
 #Installing software on VM
 gcloud compute ssh --zone=$ZONE $instance_name -- "~/pipelines/test/minikube/install_docker_minikube_argo.sh"
