@@ -136,6 +136,7 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -n kubeflow \
 -o name
 `
+
 echo argo workflow submitted successfully
 
 source "${DIR}/check-argo-status.sh"
