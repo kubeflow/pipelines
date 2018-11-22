@@ -197,7 +197,7 @@ class ContainerOp(object):
     """
 
     self._validate_gpu_string(gpu)
-    if vendor != 'nvidia' or vendor != 'amd':
+    if vendor != 'nvidia' and vendor != 'amd':
       raise ValueError('vendor can only be nvidia or amd.')
 
     return self.add_resource_limit("%s.com/gpu" % vendor, gpu)
