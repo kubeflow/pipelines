@@ -53,10 +53,9 @@ class ContainerOp(object):
     self.command = command
     self.arguments = arguments
     self.is_exit_handler = is_exit_handler
-    self.memory_limit = None
-    self.memory_request = None
-    self.cpu_limit = None
-    self.cpu_request = None
+    self.resource_limits = {}
+    self.resource_requests = {}
+    self.node_selector = {}
     self.volumes = []
     self.volume_mounts = []
     self.env_variables = []
@@ -112,6 +111,39 @@ class ContainerOp(object):
       raise ValueError('Invalid cpu string. Should be float or integer, or integer followed '
                        'by "m".')
 
+  def _validate_gpu_string(self, gpu_string):
+    "Validate a given string is valid for gpu limit."
+
+    try:
+      gpu_value = int(gpu_string)
+    except ValueError:
+      raise ValueError('Invalid gpu string. Should be integer.')
+
+    if gpu_value <= 0:
+      raise ValueError('gpu must be positive integer.')
+
+  def add_resource_limit(self, resource_name, value):
+    """Add the resource limit of the container.
+
+    Args:
+      resource_name: The name of the resource. It can be cpu, memory, etc.
+      value: The string value of the limit.
+    """
+
+    self.resource_limits[resource_name] = value
+    return self
+
+  def add_resource_request(self, resource_name, value):
+    """Add the resource request of the container.
+
+    Args:
+      resource_name: The name of the resource. It can be cpu, memory, etc.
+      value: The string value of the request.
+    """
+
+    self.resource_requests[resource_name] = value
+    return self
+
   def set_memory_request(self, memory):
     """Set memory request (minimum) for this operator.
 
@@ -121,8 +153,7 @@ class ContainerOp(object):
     """
 
     self._validate_memory_string(memory)
-    self.memory_request = memory
-    return self
+    return self.add_resource_request("memory", memory)
 
   def set_memory_limit(self, memory):
     """Set memory limit (maximum) for this operator.
@@ -132,8 +163,7 @@ class ContainerOp(object):
               "E", "P", "T", "G", "M", "K".
     """
     self._validate_memory_string(memory)
-    self.memory_limit = memory
-    return self
+    return self.add_resource_limit("memory", memory)
 
   def set_cpu_request(self, cpu):
     """Set cpu request (minimum) for this operator.
@@ -143,8 +173,7 @@ class ContainerOp(object):
     """
 
     self._validate_cpu_string(cpu)
-    self.cpu_request = cpu
-    return self
+    return self.add_resource_request("cpu", cpu)
 
   def set_cpu_limit(self, cpu):
     """Set cpu limit (maximum) for this operator.
@@ -154,8 +183,25 @@ class ContainerOp(object):
     """
 
     self._validate_cpu_string(cpu)
-    self.cpu_limit = cpu
-    return self
+    return self.add_resource_limit("cpu", cpu)
+
+  def set_gpu_limit(self, gpu, vendor = "nvidia"):
+    """Set gpu limit for the operator. This function add '<vendor>.com/gpu' into resource limit. 
+    Note that there is no need to add GPU request. GPUs are only supposed to be specified in 
+    the limits section. See https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/.
+
+    Args:
+      gpu: A string which must be a positive number.
+      vendor: Optional. A string which is the vendor of the requested gpu. The supported values 
+        are: 'nvidia' (default), and 'amd'. 
+    """
+
+    self._validate_gpu_string(gpu)
+    if vendor != 'nvidia' and vendor != 'amd':
+      raise ValueError('vendor can only be nvidia or amd.')
+
+    return self.add_resource_limit("%s.com/gpu" % vendor, gpu)
+
 
   def add_volume(self, volume):
     """Add K8s volume to the container
@@ -191,6 +237,19 @@ class ContainerOp(object):
     """
 
     self.env_variables.append(env_variable)
+    return self
+
+  def add_node_selector_constraint(self, label_name, value):
+    """Add a constraint for nodeSelector. Each constraint is a key-value pair label. For the 
+    container to be eligible to run on a node, the node must have each of the constraints appeared
+    as labels.
+
+    Args:
+      label_name: The name of the constraint label.
+      value: The value of the constraint label.
+    """
+
+    self.node_selector[label_name] = value
     return self
 
   def __repr__(self):

@@ -20,7 +20,7 @@ import TestUtils from '../TestUtils';
 import produce from 'immer';
 import { ApiRun, ApiRunDetail, ApiResourceType, ApiRunMetric, RunMetricFormat } from '../apis/run';
 import { Apis, RunSortKeys } from '../lib/Apis';
-import { MetricMetadata } from 'src/lib/RunUtils';
+import { MetricMetadata } from '../lib/RunUtils';
 import { NodePhase } from './Status';
 import { range } from 'lodash';
 import { shallow } from 'enzyme';

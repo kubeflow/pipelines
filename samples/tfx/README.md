@@ -47,17 +47,17 @@ The pipeline requires two arguments:
 ## Components source
 
 Preprocessing:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tft)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft)
 
 Training:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher)
 
 Analysis:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tfma)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma)
 
 Prediction:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict)

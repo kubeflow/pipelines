@@ -31,16 +31,16 @@ The pipeline requires one argument:
 ## Components source
 
 Preprocessing:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft), 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tft)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft)
 
 Training:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher/src), 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher)
 
 Prediction:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict), 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict)
 
 Confusion Matrix:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/evaluation), 
