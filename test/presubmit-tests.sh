@@ -90,7 +90,7 @@ curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts
 cp -rf ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
 cp -rf ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
 # TODO copying script is not needed once the release code has the pipeline component.
-cp -rf ${KUBEFLOW_MASTER}/scripts ${KUBEFLOW_SRC}/scripts
+cp -rf ${KUBEFLOW_MASTER}/scripts ${KUBEFLOW_SRC}
 echo "foo..........."
 cat ${KUBEFLOW_MASTER}/scripts/kfctl.sh
 echo "bar..........."
