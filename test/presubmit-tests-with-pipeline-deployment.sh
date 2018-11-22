@@ -106,7 +106,7 @@ function clean_up {
 }
 #  trap clean_up EXIT
 
-${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT}
+${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT} --skipInitProject
 ls ${KFAPP}
 
 cd ${KFAPP}
