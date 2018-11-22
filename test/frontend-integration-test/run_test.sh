@@ -53,6 +53,10 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
+if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 # Setup Google Cloud SDK, and use it to install kubectl so it gets the right context
 wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip
 unzip -qq google-cloud-sdk.zip -d tools

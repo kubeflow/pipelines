@@ -57,6 +57,10 @@ done
 
 BASE_DIR=/ml
 
+if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
 git clone https://github.com/kubeflow/pipelines ${BASE_DIR}
 cd ${BASE_DIR}
