@@ -85,3 +85,5 @@ def save_most_frequent_word(message: dsl.PipelineParam, outputpath: dsl.Pipeline
           message=counter.output,
           output_path=outputpath)
     saver.set_cpu_limit('0.5')
+    saver.set_gpu_limit('2')
+    saver.add_node_selector_constraint('cloud.google.com/gke-accelerator', 'nvidia-tesla-k80')
