@@ -100,7 +100,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 source "${DIR}/install-argo.sh"
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
+ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p commit-sha="${PULL_PULL_SHA}" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
