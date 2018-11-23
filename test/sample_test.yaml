@@ -98,7 +98,9 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: test/sample-test
+            value: .
+          - name: docker-file
+            value: test/sample-test/Dockerfile
           - name: image-suffix
             value: "{{inputs.parameters.sample-tests-image-suffix}}"
       - name: build-dataflow-tft-image
@@ -287,8 +289,6 @@ spec:
         template: run-sample-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: dataflow-tft-image
@@ -329,8 +329,6 @@ spec:
         template: run-sample-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: dataflow-tft-image
@@ -371,8 +369,6 @@ spec:
         template: run-sample-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: dataflow-tft-image
@@ -499,7 +495,6 @@ spec:
   - name: run-sample-tests
     inputs:
       parameters:
-      - name: commit-sha
       - name: test-results-gcs-dir
       - name: dataflow-tft-image
       - name: dataflow-predict-image
@@ -521,7 +516,6 @@ spec:
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
         "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",

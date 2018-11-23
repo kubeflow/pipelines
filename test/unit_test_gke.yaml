@@ -23,31 +23,83 @@ spec:
     - name: commit-sha
       value: master
     - name: test-results-gcs-dir
+    - name: backend-unit-test-image-suffix
+      value: backend-unit-test
   templates:
   - name: unit-test
     inputs:
       parameters:
       - name: commit-sha
       - name: test-results-gcs-dir
+      - name: backend-unit-test-image-suffix
+        value: backend-unit-test
     steps:
+    - - name: get-project
+        template: get-project
+    - - name: build-backend-unit-tests-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: project
+            value: "{{steps.get-project.outputs.result}}"
+          - name: commit-sha
+            value: "{{inputs.parameters.commit-sha}}"
+          - name: docker-path
+            value: .
+          - name: docker-file
+            value: test/backend-unit-test/Dockerfile
+          - name: image-suffix
+            value: "{{inputs.parameters.backend-unit-test-image-suffix}}"
     - - name: run-backend-unit-tests
         template: run-backend-unit-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: backend-unit-test-image
+            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.backend-unit-test-image-suffix}}"
 
   - name: run-backend-unit-tests
     inputs:
       parameters:
-      - name: commit-sha
       - name: test-results-gcs-dir
+      - name: backend-unit-test-image
     container:
-      image: gcr.io/ml-pipeline-staging/backend-unit-test:v20181109-0.1.1-39-g2274e35-e3b0c4
+      image: "{{inputs.parameters.backend-unit-test-image}}"
       imagePullPolicy: 'Always'
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
       ]
+
+  # Build image and upload to GCR in the specified project
+  - name: build-image
+    inputs:
+      parameters:
+      # The project that image deployed to
+      - name: project
+      # The github commit-sha to pull code from
+      - name: commit-sha
+      # The relative code path to the Dockerfile
+      - name: docker-path
+      # Name of the Docker file to use. "Dockerfile" by default
+      - name: docker-file
+        value: Dockerfile
+      - name: image-suffix
+    container:
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-39-g2274e35-e3b0c4
+      imagePullPolicy: 'Always'
+      args: [
+        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--docker_path", "{{inputs.parameters.docker-path}}",
+        "--docker_file", "{{inputs.parameters.docker-file}}",
+        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+      ]
+      env:
+      - name: DOCKER_HOST
+        value: 127.0.0.1
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind
+      securityContext:
+        privileged: true
+      mirrorVolumeMounts: true

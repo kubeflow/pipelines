@@ -64,7 +64,9 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: test/api-integration-test
+            value: .
+          - name: docker-file
+            value: test/api-integration-test/Dockerfile
           - name: image-suffix
             value: "{{inputs.parameters.api-integration-test-image-suffix}}"
       - name: build-frontend-integration-tests-image
@@ -88,7 +90,9 @@ spec:
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: test/sample-test
+            value: .
+          - name: docker-file
+            value: test/sample-test/Dockerfile
           - name: image-suffix
             value: "{{inputs.parameters.basic-e2e-tests-image-suffix}}"
     - - name: deploy-ml-pipeline
@@ -109,8 +113,6 @@ spec:
         template: run-api-integration-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: api-integration-test-image
@@ -119,8 +121,6 @@ spec:
         template: run-frontend-integration-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: frontend-integration-tests-image
@@ -132,8 +132,6 @@ spec:
         template: run-basic-e2e-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
@@ -146,8 +144,6 @@ spec:
         template: run-basic-e2e-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
@@ -160,8 +156,6 @@ spec:
         template: run-basic-e2e-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
@@ -174,8 +168,6 @@ spec:
         template: run-basic-e2e-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
@@ -188,8 +180,6 @@ spec:
         template: run-basic-e2e-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
@@ -261,32 +251,27 @@ spec:
   - name: run-api-integration-tests
     inputs:
       parameters:
-      - name: commit-sha
       - name: test-results-gcs-dir
       - name: api-integration-test-image
     container:
       image: "{{inputs.parameters.api-integration-test-image}}"
       args: [
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
 
   - name: run-frontend-integration-tests
     inputs:
       parameters:
-      - name: commit-sha
       - name: test-results-gcs-dir
       - name: frontend-integration-tests-image
     container:
       image: "{{inputs.parameters.frontend-integration-tests-image}}"
       args: [
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
   - name: run-basic-e2e-tests
     inputs:
       parameters:
-      - name: commit-sha
       - name: test-results-gcs-dir
       - name: sample-tests-image
       - name: namespace
@@ -294,7 +279,6 @@ spec:
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
