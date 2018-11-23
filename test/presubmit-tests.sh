@@ -117,6 +117,7 @@ kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_V
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
 -p commit-sha="${PULL_PULL_SHA}" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
 -p bootstrapper-image="${GCR_IMAGE_BASE_DIR}/bootstrapper" \

@@ -21,6 +21,7 @@ spec:
   arguments:
     parameters:
     - name: commit-sha
+    - name: target-image-prefix
     - name: test-results-gcs-dir
     - name: bootstrapper-image
     - name: api-image
@@ -42,6 +43,7 @@ spec:
     inputs:
       parameters:
       - name: commit-sha
+      - name: target-image-prefix
       - name: test-results-gcs-dir
       - name: bootstrapper-image
       - name: api-image
@@ -53,48 +55,40 @@ spec:
       - name: basic-e2e-tests-image-suffix
       - name: namespace
     steps:
-    - - name: get-project
-        template: get-project
     - - name: build-api-integration-test-image
         template: build-image
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: .
           - name: docker-file
             value: test/api-integration-test/Dockerfile
-          - name: image-suffix
-            value: "{{inputs.parameters.api-integration-test-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
       - name: build-frontend-integration-tests-image
         template: build-image
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: test/frontend-integration-test
-          - name: image-suffix
-            value: "{{inputs.parameters.frontend-integration-tests-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.frontend-integration-tests-image-suffix}}"
       - name: build-basic-e2e-tests-image
         template: build-image
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
           - name: commit-sha
             value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: .
           - name: docker-file
             value: test/sample-test/Dockerfile
-          - name: image-suffix
-            value: "{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
     - - name: deploy-ml-pipeline
         template: deploy-ml-pipeline
         arguments:
@@ -116,7 +110,7 @@ spec:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: api-integration-test-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.api-integration-test-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
     - - name: run-frontend-integration-tests
         template: run-frontend-integration-tests
         arguments:
@@ -124,7 +118,7 @@ spec:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: frontend-integration-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.frontend-integration-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.frontend-integration-tests-image-suffix}}"
         #TODO: Uncomment to disable the test on Minikube
         #TODO: Change the cluster-type to "minikube" once https://github.com/kubeflow/pipelines/pull/1285 and related PRs are merged.
         #when: "{{workflow.parameters.cluster-type}} != none" #Do not run the test on Minikube
@@ -135,7 +129,7 @@ spec:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
@@ -147,7 +141,7 @@ spec:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
@@ -159,7 +153,7 @@ spec:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
@@ -171,7 +165,7 @@ spec:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
@@ -183,25 +177,16 @@ spec:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: sample-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
             value: "paralleljoin"
 
-  - name: get-project
-    script:
-      image: google/cloud-sdk
-      command: [bash]
-      source: |
-        gcloud config config-helper --format "value(configuration.properties.core.project)"
-
-  # Build image and upload to GCR in the specified project
+  # Build and push image
   - name: build-image
     inputs:
       parameters:
-      # The project that image deployed to
-      - name: project
       # The github commit-sha to pull code from
       - name: commit-sha
       # The relative code path to the Dockerfile
@@ -209,7 +194,7 @@ spec:
       # Name of the Docker file to use. "Dockerfile" by default
       - name: docker-file
         value: Dockerfile
-      - name: image-suffix
+      - name: image-name
     container:
       image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-39-g2274e35-e3b0c4
       imagePullPolicy: 'Always'
@@ -217,7 +202,7 @@ spec:
         "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
         "--docker_file", "{{inputs.parameters.docker-file}}",
-        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+        "--image_name", "{{inputs.parameters.image-name}}",
       ]
       env:
       - name: DOCKER_HOST
