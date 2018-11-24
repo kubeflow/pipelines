@@ -20,7 +20,7 @@ DOCKER_FILE=Dockerfile
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: build.sh
     [--image-build-context-gcs-uri   GCS URI pointing to a .tar.gz archive of Docker build context]
     [--docker_path  path to the Dockerfile]
     [--docker_file  name of the Docker file. Dockerfile by default]
@@ -81,6 +81,8 @@ fi
 echo "Pushing image ${IMAGE_NAME}..."
 docker push ${IMAGE_NAME}
 
+#Output the strict image name (which contains the sha256 image digest)
+#This name can be used by the subsequent steps to refer to the exact image that was built even if another image with the same name was pushed.
 image_name_with_digest=$(docker inspect --format="{{index .RepoDigests 0}}" "$IMAGE_NAME")
 strict_image_name_output_file=/outputs/strict-image-name/file
 mkdir -p "$(dirname "$strict_image_name_output_file")"

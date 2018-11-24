@@ -23,7 +23,6 @@ usage()
 {
     echo "usage: run_test.sh
     --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test
-    [--image-build-context-gcs-uri GCS URI pointing to a .tar.gz archive of Docker image build context]
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
 }
