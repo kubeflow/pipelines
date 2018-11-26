@@ -27,7 +27,7 @@ import MD2Tabs from '../atoms/MD2Tabs';
 import Paper from '@material-ui/core/Paper';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
-import { ApiPipeline } from '../apis/pipeline';
+import { ApiPipeline, ApiGetTemplateResponse } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -238,41 +238,43 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     this.clearBanner();
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
+    let pipeline: ApiPipeline;
+    let templateResponse: ApiGetTemplateResponse;
     try {
-      const [pipeline, templateResponse] = await Promise.all([
-        Apis.pipelineServiceApi.getPipeline(pipelineId),
+      [pipeline, templateResponse] = await Promise.all([
+        Apis.pipelineServiceApi.getPipeline(pipelineId)
+          .catch(error => { throw { message: 'Cannot retrieve pipeline details', error }; }),
         Apis.pipelineServiceApi.getTemplate(pipelineId)
+          .catch(error => { throw { message: 'Cannot retrieve pipeline template', error }; }),
       ]);
-
-      const template: Workflow = JsYaml.safeLoad(templateResponse.template!);
-      let g: dagre.graphlib.Graph | undefined;
-      try {
-        g = StaticGraphParser.createGraph(template);
-      } catch (err) {
-        await this.showPageError('Error: failed to generate Pipeline graph.', err);
-      }
-
-      const breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
-      const pageTitle = pipeline.name!;
-
-      const toolbarActions = [...this.props.toolbarProps.actions];
-      toolbarActions[0].disabled = false;
-      this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
-
-      this.setState({
-        graph: g,
-        pipeline,
-        template,
-        templateYaml: templateResponse.template,
-      });
+    } catch (errObj) {
+      console.log('HERE! error:', errObj);
+      await this.showPageError(errObj.message, errObj.error);
+      logger.error(`${errObj.message} for pipeline: ${pipelineId}. ${errObj.error}`);
+      return;
     }
-    catch (err) {
-      await this.showPageError(
-        `Error: failed to retrieve pipeline or template for ID: ${pipelineId}.`,
-        err,
-      );
-      logger.error(`Error loading pipeline or template for ID: ${pipelineId}`, err);
+
+    const template: Workflow = JsYaml.safeLoad(templateResponse.template || '{}');
+    let g: dagre.graphlib.Graph | undefined;
+    try {
+      g = StaticGraphParser.createGraph(template);
+    } catch (err) {
+      await this.showPageError('Error: failed to generate Pipeline graph.', err);
     }
+
+    const breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
+    const pageTitle = pipeline.name!;
+
+    const toolbarActions = [...this.props.toolbarProps.actions];
+    toolbarActions[0].disabled = false;
+    this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
+
+    this.setState({
+      graph: g,
+      pipeline,
+      template,
+      templateYaml: templateResponse.template,
+    });
   }
 
   private _createNewExperiment(): void {

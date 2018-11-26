@@ -1,0 +1,189 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Source",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <WithStyles(Paper)
+            className="summaryCard"
+          >
+            <div
+              style={
+                Object {
+                  "alignItems": "baseline",
+                  "display": "flex",
+                  "justifyContent": "space-between",
+                }
+              }
+            >
+              <div
+                className="header"
+              >
+                Summary
+              </div>
+              <WithStyles(Button)
+                color="secondary"
+                onClick={[Function]}
+              >
+                Hide
+              </WithStyles(Button)>
+            </div>
+            <div
+              className="summaryKey"
+            >
+              Uploaded on
+            </div>
+            <div>
+              9/5/2018, 4:03:02 AM
+            </div>
+            <div
+              className="summaryKey"
+            >
+              Description
+            </div>
+            <div>
+              test job description
+            </div>
+          </WithStyles(Paper)>
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": undefined,
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId=""
+          />
+          <SidePanel
+            isOpen={false}
+            onClose={[Function]}
+            title=""
+          >
+            <div
+              className="page"
+            >
+              <div>
+                Unable to retrieve node info
+              </div>
+            </div>
+          </SidePanel>
+        </div>
+        <div
+          className="footer"
+        >
+          <pure(InfoOutlinedIcon)
+            style={
+              Object {
+                "color": "#80868b",
+                "height": 24,
+                "width": 13,
+              }
+            }
+          />
+          <span
+            className="infoSpan"
+          >
+            Static pipeline graph
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`PipelineDetails shows empty pipeline details with no graph graph 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Source",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="footer"
+        >
+          <pure(InfoOutlinedIcon)
+            style={
+              Object {
+                "color": "#80868b",
+                "height": 24,
+                "width": 13,
+              }
+            }
+          />
+          <span
+            className="infoSpan"
+          >
+            Static pipeline graph
+          </span>
+        </div>
+        <span
+          style={
+            Object {
+              "margin": "40px auto",
+            }
+          }
+        >
+          No graph to show
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+`;
