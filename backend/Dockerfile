@@ -17,7 +17,7 @@ RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 FROM python:3.5 as compiler
 
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q default-jdk libssl-dev libffi-dev wget 
+    apt-get install --no-install-recommends -y -q default-jdk wget 
 
 RUN pip3 install setuptools==40.5.0
 
