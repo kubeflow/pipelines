@@ -314,4 +314,15 @@ describe('PipelineDetails', () => {
     tree.find('Graph').simulate('click', 'node1');
     expect(tree).toMatchSnapshot();
   });
+
+  it('closes side panel when close button is clicked', async () => {
+    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    await getTemplateSpy;
+    await TestUtils.flushPromises();
+    tree.setState({ selectedNodeId: 'some-node-id' });
+    tree.find('SidePanel').simulate('close');
+    expect(tree.state('selectedNodeId')).toBe('');
+    expect(tree).toMatchSnapshot();
+    tree.unmount();
+  });
 });
