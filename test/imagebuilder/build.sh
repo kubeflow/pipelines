@@ -20,8 +20,8 @@ DOCKER_FILE=Dockerfile
 
 usage()
 {
-    echo "usage: deploy.sh
-    [--commit_sha   commit SHA to pull code from]
+    echo "usage: build.sh
+    [--image-build-context-gcs-uri   GCS URI pointing to a .tar.gz archive of Docker build context]
     [--docker_path  path to the Dockerfile]
     [--docker_file  name of the Docker file. Dockerfile by default]
     [--image_name   project of the GCR to upload image to]
@@ -31,8 +31,8 @@ usage()
 
 while [ "$1" != "" ]; do
     case $1 in
-             --commit_sha )     shift
-                                COMMIT_SHA=$1
+             --image-build-context-gcs-uri ) shift
+                                CONTEXT_GCS_URI=$1
                                 ;;
              --docker_path )    shift
                                 DOCKER_PATH=$1
@@ -40,7 +40,7 @@ while [ "$1" != "" ]; do
              --docker_file )    shift
                                 DOCKER_FILE=$1
                                 ;;
-             --image_name )     shift
+             --image_name )   shift
                                 IMAGE_NAME=$1
                                 ;;
              --build_script )   shift
@@ -55,28 +55,35 @@ while [ "$1" != "" ]; do
     shift
 done
 
-BASE_DIR=/ml
+BASE_DIR=/image_builder
+mkdir $BASE_DIR
+cd $BASE_DIR
 
-echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
-git clone https://github.com/kubeflow/pipelines ${BASE_DIR}
-cd ${BASE_DIR}
-git config --local user.name 'K8S Bootstrap'
-git config --local user.email k8s_bootstrap@localhost
-git merge --no-ff ${COMMIT_SHA} -m "Merged PR ${COMMIT_SHA}"
+echo "Downloading Docker build context from $CONTEXT_GCS_URI..."
+downloaded_code_archive_file=$(mktemp)
+gsutil cp "$CONTEXT_GCS_URI" "$downloaded_code_archive_file"
+tar -xzf "$downloaded_code_archive_file" --directory .
 
-echo "Waiting for dind to start..."
+echo "Waiting for Docker-in-Docker daemon to start..."
 until docker ps; do sleep 3; done;
+
+gcloud auth configure-docker
 
 if [ "$BUILD_SCRIPT" == "" ]; then
   echo "Build image ${IMAGE_NAME} using ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE}..."
-  docker build -t ${IMAGE_NAME} -f ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE} ${BASE_DIR}/${DOCKER_PATH}
+  docker build -t ${IMAGE_NAME} -f ${BASE_DIR}/${DOCKER_PATH}/${DOCKER_FILE} ${DOCKER_PATH}
 else
   echo "Build image ${IMAGE_NAME} using ${BUILD_SCRIPT}..."
   cd $(dirname ${BUILD_SCRIPT})
-  gcloud auth configure-docker
   bash $(basename ${BUILD_SCRIPT}) -i ${IMAGE_NAME}
 fi
 
-echo "Push image ${IMAGE_NAME} to gcr..."
-gcloud auth configure-docker
+echo "Pushing image ${IMAGE_NAME}..."
 docker push ${IMAGE_NAME}
+
+#Output the strict image name (which contains the sha256 image digest)
+#This name can be used by the subsequent steps to refer to the exact image that was built even if another image with the same name was pushed.
+image_name_with_digest=$(docker inspect --format="{{index .RepoDigests 0}}" "$IMAGE_NAME")
+strict_image_name_output_file=/outputs/strict-image-name/file
+mkdir -p "$(dirname "$strict_image_name_output_file")"
+echo $image_name_with_digest > "$strict_image_name_output_file"
