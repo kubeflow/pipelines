@@ -165,11 +165,11 @@ steps:
 # Build the local pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/local/containers/confusion_matrix && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/local/confusion_matrix && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildConfusionMatrix'
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/local/containers/roc && ./build.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/local/roc && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildROC'
 
 # Build the tagged samples
