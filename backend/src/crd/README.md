@@ -1,13 +1,12 @@
 ## Scheduled Workflow CRD/controller
 
-### How to generate the API client code from the API specification? 
+### How to generate the API client code from the API specification?
 
 Get the dependencies:
 
 ```
+dep ensure
 go get -u ./...
-go get -u k8s.io/client-go/...
-go get -u k8s.io/code-generator/...
 ```
 
 Generate the API client code from the API specification:
@@ -16,11 +15,11 @@ Generate the API client code from the API specification:
 ./hack/update-codegen.sh
 ```
 
-### How to run the ScheduledWorkflow controller from the command line? 
+### How to run the ScheduledWorkflow controller from the command line?
 
 The following assumes that your Kubernetes configuration file is located at '$HOME/.kube/config'.
 
-To create the resource for the CRD, execute: 
+To create the resource for the CRD, execute:
 
 ```
 kubectl create -f ./install/manifests/scheduledworkflow-crd.yaml
@@ -32,7 +31,7 @@ Output:
 customresourcedefinition.apiextensions.k8s.io "scheduledworkflows.kubeflow.org" created
 ```
 
-To run the controller locally, execute: 
+To run the controller locally, execute:
 configuration file
 
 ```
@@ -47,19 +46,19 @@ Started workers
 Wait for shut down
 ```
 
-To run a sample workflow on a schedule, execute: 
+To run a sample workflow on a schedule, execute:
 
 ```
 kubectl create -f ./samples/scheduledworkflow/every-minute-cron.yaml
 ```
 
-Output: 
+Output:
 
 ```
 scheduledworkflow.kubeflow.org "every-minute-cron" created
 ```
 
-To see the current list of ScheduledWorkflows, execute: 
+To see the current list of ScheduledWorkflows, execute:
 
 ```
 kubectl get swf
@@ -72,7 +71,7 @@ NAME                AGE
 every-minute-cron   1m
 ```
 
-To see the current status of the ScheduledWorklfow named 'every-minute-cron', execute: 
+To see the current status of the ScheduledWorklfow named 'every-minute-cron', execute:
 
 ```
 kubectl describe swf every-minute-cron
@@ -89,7 +88,7 @@ Annotations:  <none>
 API Version:  kubeflow.org/v1alpha1
 Kind:         ScheduledWorkflow
 Metadata:
-  Cluster Name:        
+  Cluster Name:
   Creation Timestamp:  2018-06-06T01:24:55Z
   Generation:          0
   Initializers:        <nil>
@@ -116,7 +115,7 @@ Spec:
           Command:
             cowsay
           Image:  docker/whalesay
-          Name:   
+          Name:
           Resources:
         Inputs:
           Parameters:
@@ -150,4 +149,4 @@ Status:
       UID:           b0b63a82-692a-11e8-9fd5-42010a8a0021
       [...]
 ```
-### 
+###

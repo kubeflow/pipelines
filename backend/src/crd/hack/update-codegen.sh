@@ -21,12 +21,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
+SCRIPT_ROOT=$(dirname ${BASH_SOURCE})
 echo "SCRIPT_ROOT is $SCRIPT_ROOT"
-CODEGEN_PKG=${SCRIPT_ROOT}/../../../../../../k8s.io/code-generator
+CODEGEN_PKG=${SCRIPT_ROOT}/../../../../vendor/k8s.io/code-generator
 echo "CODEGEN_PKG is $CODEGEN_PKG"
 
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
-  github.com/kubeflow/pipelines/backend/src/crd/pkg/client github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
+  github.com/kubeflow/pipelines/backend/src/crd/pkg/client \
+  github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
   scheduledworkflow:v1alpha1 \
-  --go-header-file ${SCRIPT_ROOT}/hack/custom-boilerplate.go.txt
+  --go-header-file ${SCRIPT_ROOT}/custom-boilerplate.go.txt
