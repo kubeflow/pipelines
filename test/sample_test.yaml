@@ -256,7 +256,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.local-confusionmatrix-image-suffix}}"
           - name: build-script
-            value: components/local/containers/confusion_matrix/build.sh
+            value: components/local/confusion_matrix/build_image.sh
       - name: build-local-roc
         template: build-image-by-script
         arguments:
@@ -268,7 +268,7 @@ spec:
           - name: image-suffix
             value: "{{inputs.parameters.local-roc-image-suffix}}"
           - name: build-script
-            value: components/local/containers/roc/build.sh
+            value: components/local/roc/build_image.sh
     - - name: deploy-ml-pipeline
         template: deploy-ml-pipeline
         arguments:
