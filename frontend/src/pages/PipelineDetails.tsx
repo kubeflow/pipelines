@@ -52,7 +52,7 @@ interface PipelineDetailsState {
 
 const summaryCardWidth = 500;
 
-const css = stylesheet({
+export const css = stylesheet({
   containerCss: {
     $nest: {
       '& .CodeMirror': {
@@ -126,7 +126,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
           ],
           onClose: () => this._deleteDialogClosed(false),
-          title: 'Delete this Pipeline?',
+          title: 'Delete this pipeline?',
         }),
         id: 'deleteBtn',
         title: 'Delete',
@@ -155,7 +155,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           <div className={commonCss.page}>
             <MD2Tabs
               selectedTab={selectedTab}
-              onSwitch={(tab: number) => this.setState({ selectedTab: tab })}
+              onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })}
               tabs={['Graph', 'Source']}
             />
             <div className={commonCss.page}>
@@ -167,7 +167,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                         <div className={commonCss.header}>
                           Summary
                         </div>
-                        <Button onClick={() => this.setState({ summaryShown: false })} color='secondary'>
+                        <Button onClick={() => this.setStateSafe({ summaryShown: false })} color='secondary'>
                           Hide
                         </Button>
                       </div>
@@ -179,10 +179,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                   )}
 
                   <Graph graph={this.state.graph} selectedNodeId={selectedNodeId}
-                    onClick={id => this.setState({ selectedNodeId: id })} />
+                    onClick={id => this.setStateSafe({ selectedNodeId: id })} />
 
                   <SidePanel isOpen={!!selectedNodeId}
-                    title={selectedNodeId} onClose={() => this.setState({ selectedNodeId: '' })}>
+                    title={selectedNodeId} onClose={() => this.setStateSafe({ selectedNodeId: '' })}>
                     <div className={commonCss.page}>
                       {!selectedNodeInfo && <div>Unable to retrieve node info</div>}
                       {!!selectedNodeInfo && <div className={padding(20, 'lr')}>
@@ -192,7 +192,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                   </SidePanel>
                   <div className={css.footer}>
                     {!summaryShown && (
-                      <Button onClick={() => this.setState({ summaryShown: !summaryShown })} color='secondary'>
+                      <Button onClick={() => this.setStateSafe({ summaryShown: !summaryShown })} color='secondary'>
                         Show summary
                       </Button>
                     )}
@@ -240,17 +240,20 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     let pipeline: ApiPipeline;
     let templateResponse: ApiGetTemplateResponse;
+
     try {
-      [pipeline, templateResponse] = await Promise.all([
-        Apis.pipelineServiceApi.getPipeline(pipelineId)
-          .catch(error => { throw { message: 'Cannot retrieve pipeline details', error }; }),
-        Apis.pipelineServiceApi.getTemplate(pipelineId)
-          .catch(error => { throw { message: 'Cannot retrieve pipeline template', error }; }),
-      ]);
-    } catch (errObj) {
-      console.log('HERE! error:', errObj);
-      await this.showPageError(errObj.message, errObj.error);
-      logger.error(`${errObj.message} for pipeline: ${pipelineId}. ${errObj.error}`);
+      pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
+    } catch (err) {
+      await this.showPageError('Cannot retrieve pipeline details.', err);
+      logger.error('Cannot retrieve pipeline details.', err);
+      return;
+    }
+
+    try {
+      templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
+    } catch (err) {
+      await this.showPageError('Cannot retrieve pipeline template.', err);
+      logger.error('Cannot retrieve pipeline details.', err);
       return;
     }
 
@@ -269,7 +272,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     toolbarActions[0].disabled = false;
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
-    this.setState({
+    this.setStateSafe({
       graph: g,
       pipeline,
       template,
