@@ -20,7 +20,8 @@ spec:
   entrypoint: sample-test
   arguments:
     parameters:
-    - name: commit-sha
+    - name: image-build-context-gcs-uri
+    - name: target-image-prefix
     - name: test-results-gcs-dir
     - name: bootstrapper-image
     - name: api-image
@@ -63,7 +64,7 @@ spec:
   - name: sample-test
     inputs:
       parameters:
-      - name: commit-sha
+      - name: target-image-prefix
       - name: test-results-gcs-dir
       - name: bootstrapper-image
       - name: api-image
@@ -87,186 +88,126 @@ spec:
       - name: sample-tests-image-suffix
       - name: namespace
     steps:
-    - - name: get-project
-        template: get-project
     - - name: build-sample-tests-image
         template: build-image-by-dockerfile
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
-            value: test/sample-test
-          - name: image-suffix
-            value: "{{inputs.parameters.sample-tests-image-suffix}}"
+            value: .
+          - name: docker-file
+            value: test/sample-test/Dockerfile
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
       - name: build-dataflow-tft-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataflow-tft-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: build-script
             value: components/dataflow/tft/build_image.sh
       - name: build-dataflow-predict-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataflow-predict-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-predict-image-suffix}}"
           - name: build-script
             value: components/dataflow/predict/build_image.sh
       - name: build-dataflow-tfma-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataflow-tfma-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: build-script
             value: components/dataflow/tfma/build_image.sh
       - name: build-dataflow-tfdv-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tfdv-image-suffix}}"
           - name: build-script
             value: components/dataflow/tfdv/build_image.sh
       - name: build-dataproc-create-cluster-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
           - name: build-script
             value: components/dataproc/containers/create_cluster/build.sh
       - name: build-dataproc-delete-cluster-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
           - name: build-script
             value: components/dataproc/containers/delete_cluster/build.sh
       - name: build-dataproc-analyze-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataproc-analyze-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-analyze-image-suffix}}"
           - name: build-script
             value: components/dataproc/containers/analyze/build.sh
       - name: build-dataproc-transform-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataproc-transform-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-transform-image-suffix}}"
           - name: build-script
             value: components/dataproc/containers/transform/build.sh
       - name: build-dataproc-train-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataproc-train-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-train-image-suffix}}"
           - name: build-script
             value: components/dataproc/containers/train/build.sh
       - name: build-dataproc-predict-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.dataproc-predict-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-predict-image-suffix}}"
           - name: build-script
             value: components/dataproc/containers/predict/build.sh
       - name: build-kubeflow-dnntrainer-image
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
           - name: build-script
             value: components/kubeflow/dnntrainer/build_image.sh
       - name: build-kubeflow-deployer-image
         template: build-image-by-dockerfile
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: docker-path
             value: components/kubeflow/deployer
-          - name: image-suffix
-            value: "{{inputs.parameters.kubeflow-deployer-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.kubeflow-deployer-image-suffix}}"
       - name: build-local-confusion-matrix
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-confusionmatrix-image-suffix}}"
           - name: build-script
             value: components/local/confusion_matrix/build_image.sh
       - name: build-local-roc
         template: build-image-by-script
         arguments:
           parameters:
-          - name: project
-            value: "{{steps.get-project.outputs.result}}"
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
-          - name: image-suffix
-            value: "{{inputs.parameters.local-roc-image-suffix}}"
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-roc-image-suffix}}"
           - name: build-script
             value: components/local/roc/build_image.sh
     - - name: deploy-ml-pipeline
@@ -287,40 +228,38 @@ spec:
         template: run-sample-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: dataflow-tft-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tft-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: dataflow-predict-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-predict-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-predict-image-suffix}}"
           - name: dataflow-tfma-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfma-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: dataflow-tfdv-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tfdv-image-suffix}}"
           - name: dataproc-create-cluster-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
           - name: dataproc-delete-cluster-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
           - name: dataproc-analyze-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-analyze-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-analyze-image-suffix}}"
           - name: dataproc-transform-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-transform-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-transform-image-suffix}}"
           - name: dataproc-train-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-train-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-train-image-suffix}}"
           - name: dataproc-predict-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-predict-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-predict-image-suffix}}"
           - name: kubeflow-dnntrainer-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
           - name: kubeflow-deployer-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-deployer-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.kubeflow-deployer-image-suffix}}"
           - name: local-confusionmatrix-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-confusionmatrix-image-suffix}}"
           - name: local-roc-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-roc-image-suffix}}"
           - name: sample-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
@@ -329,40 +268,38 @@ spec:
         template: run-sample-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: dataflow-tft-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tft-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: dataflow-predict-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-predict-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-predict-image-suffix}}"
           - name: dataflow-tfma-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfma-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: dataflow-tfdv-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tfdv-image-suffix}}"
           - name: dataproc-create-cluster-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
           - name: dataproc-delete-cluster-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
           - name: dataproc-analyze-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-analyze-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-analyze-image-suffix}}"
           - name: dataproc-transform-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-transform-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-transform-image-suffix}}"
           - name: dataproc-train-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-train-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-train-image-suffix}}"
           - name: dataproc-predict-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-predict-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-predict-image-suffix}}"
           - name: kubeflow-dnntrainer-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
           - name: kubeflow-deployer-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-deployer-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.kubeflow-deployer-image-suffix}}"
           - name: local-confusionmatrix-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-confusionmatrix-image-suffix}}"
           - name: local-roc-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-roc-image-suffix}}"
           - name: sample-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
@@ -371,73 +308,69 @@ spec:
         template: run-sample-tests
         arguments:
           parameters:
-          - name: commit-sha
-            value: "{{inputs.parameters.commit-sha}}"
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: dataflow-tft-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tft-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: dataflow-predict-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-predict-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-predict-image-suffix}}"
           - name: dataflow-tfma-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfma-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tfma-image-suffix}}"
           - name: dataflow-tfdv-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataflow-tfdv-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tfdv-image-suffix}}"
           - name: dataproc-create-cluster-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
           - name: dataproc-delete-cluster-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
           - name: dataproc-analyze-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-analyze-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-analyze-image-suffix}}"
           - name: dataproc-transform-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-transform-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-transform-image-suffix}}"
           - name: dataproc-train-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-train-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-train-image-suffix}}"
           - name: dataproc-predict-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.dataproc-predict-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-predict-image-suffix}}"
           - name: kubeflow-dnntrainer-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.kubeflow-dnntrainer-image-suffix}}"
           - name: kubeflow-deployer-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.kubeflow-deployer-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.kubeflow-deployer-image-suffix}}"
           - name: local-confusionmatrix-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-confusionmatrix-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-confusionmatrix-image-suffix}}"
           - name: local-roc-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.local-roc-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-roc-image-suffix}}"
           - name: sample-tests-image
-            value: "gcr.io/{{steps.get-project.outputs.result}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.sample-tests-image-suffix}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
             value: "xgboost"
-  - name: get-project
-    script:
-      image: google/cloud-sdk
-      command: [bash]
-      source: |
-        gcloud config config-helper --format "value(configuration.properties.core.project)"
 
-  # Build image and upload to GCR in the specified project
+  # Build and push image
   - name: build-image-by-dockerfile
     inputs:
       parameters:
-      # The project that image deployed to
-      - name: project
-      # The github commit-sha to pull code from
-      - name: commit-sha
+      # GCS URI prefix pointing to a .tar.gz archive of Docker build context
+      - name: image-build-context-gcs-uri
+        value: "{{workflow.parameters.image-build-context-gcs-uri}}"
       # The relative code path to the Dockerfile
       - name: docker-path
       # Name of the Docker file to use. "Dockerfile" by default
       - name: docker-file
         value: Dockerfile
-      - name: image-suffix
+      - name: image-name
+    outputs:
+      parameters:
+        - name: strict-image-name
+          valueFrom:
+            path: /outputs/strict-image-name/file
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-39-g2274e35-e3b0c4
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181120-0.1.3-rc.1-21-gb7c8af0-dirty-9786df
       imagePullPolicy: 'Always'
       args: [
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
         "--docker_path", "{{inputs.parameters.docker-path}}",
         "--docker_file", "{{inputs.parameters.docker-file}}",
-        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+        "--image_name", "{{inputs.parameters.image-name}}",
       ]
       env:
       - name: DOCKER_HOST
@@ -452,20 +385,24 @@ spec:
   - name: build-image-by-script
     inputs:
       parameters:
-      # The project that image deployed to
-      - name: project
-      # The github commit-sha to pull code from
-      - name: commit-sha
+      # GCS URI prefix pointing to a .tar.gz archive of Docker build context
+      - name: image-build-context-gcs-uri
+        value: "{{workflow.parameters.image-build-context-gcs-uri}}"
       # the path to the build script
       - name: build-script
-      - name: image-suffix
+      - name: image-name
+    outputs:
+      parameters:
+        - name: strict-image-name
+          valueFrom:
+            path: /outputs/strict-image-name/file
     container:
-      image: gcr.io/ml-pipeline-staging/image-builder:v20181108-0.1.1-39-g2274e35-e3b0c4
+      image: gcr.io/ml-pipeline-staging/image-builder:v20181120-0.1.3-rc.1-21-gb7c8af0-dirty-9786df
       imagePullPolicy: 'Always'
       args: [
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
+        "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
         "--build_script", "{{inputs.parameters.build-script}}",
-        "--image_name", "gcr.io/{{inputs.parameters.project}}/{{inputs.parameters.commit-sha}}/{{inputs.parameters.image-suffix}}",
+        "--image_name", "{{inputs.parameters.image-name}}",
       ]
       env:
       - name: DOCKER_HOST
@@ -499,7 +436,6 @@ spec:
   - name: run-sample-tests
     inputs:
       parameters:
-      - name: commit-sha
       - name: test-results-gcs-dir
       - name: dataflow-tft-image
       - name: dataflow-predict-image
@@ -521,7 +457,6 @@ spec:
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
-        "--commit_sha", "{{inputs.parameters.commit-sha}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
         "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
