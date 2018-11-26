@@ -257,10 +257,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       return;
     }
 
-    const template: Workflow = JsYaml.safeLoad(templateResponse.template || '{}');
+    let template: Workflow | undefined;
     let g: dagre.graphlib.Graph | undefined;
     try {
-      g = StaticGraphParser.createGraph(template);
+      template = JsYaml.safeLoad(templateResponse.template || '{}');
+      g = StaticGraphParser.createGraph(template!);
     } catch (err) {
       await this.showPageError('Error: failed to generate Pipeline graph.', err);
     }
