@@ -141,11 +141,14 @@ spec:
       resources:
         limits:
           cpu: "0.5"
+          nvidia.com/gpu: "2"
     inputs:
       parameters:
       - name: get-frequent-word
       - name: outputpath
     name: save
+    nodeSelector:
+      cloud.google.com/gke-accelerator: nvidia-tesla-k80 
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata

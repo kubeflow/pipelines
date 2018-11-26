@@ -241,18 +241,36 @@ class ImageBuilder(object):
 
   def _generate_kaniko_spec(self, namespace, arc_dockerfile_name, gcs_path, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
-    content = {'apiVersion': 'v1',
-               'metadata': {
-                 'generateName': 'kaniko-',
-                 'namespace': 'default'},
-               'kind': 'Pod',
-               'spec': {
-                 'restartPolicy': 'Never',
-                 'containers': [
-                   {'name': 'kaniko',
-                    'args': ['--cache=true'],
-                    'image': 'gcr.io/kaniko-project/executor:v0.5.0'}],
-                 'serviceAccountName': 'default'}}
+    content = {
+      'apiVersion': 'v1',
+      'metadata': {
+        'generateName': 'kaniko-',
+        'namespace': 'kubeflow',
+      },
+      'kind': 'Pod',
+      'spec': {
+        'restartPolicy': 'Never',
+        'containers': [{
+          'name': 'kaniko',
+          'args': ['--cache=true'],
+          'image': 'gcr.io/kaniko-project/executor:v0.5.0',
+          'env': [{
+            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+            'value': '/secret/gcp-credentials/user-gcp-sa.json'
+          }],
+          'volumeMounts': [{
+            'mountPath': '/secret/gcp-credentials',
+            'name': 'gcp-credentials',
+          }],
+        }],
+        'volumes': [{
+          'name': 'gcp-credentials',
+          'secret': {
+            'secretName': 'user-gcp-sa',
+          },
+        }],
+        'serviceAccountName': 'default'}
+    }
 
     content['metadata']['namespace'] = namespace
     args = content['spec']['containers'][0]['args']
