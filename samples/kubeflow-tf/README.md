@@ -43,5 +43,5 @@ Prediction:
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict)
 
 Confusion Matrix:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/evaluation), 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/containers/confusion_matrix)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix)

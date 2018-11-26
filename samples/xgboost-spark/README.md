@@ -51,8 +51,14 @@ Distributed Predictions:
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/containers/predict)
 
 Confusion Matrix:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/evaluation) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/containers/confusion_matrix)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix)
+ 
+
+ROC:
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/roc/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/roc)
+
 
 Delete Cluster:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/delete_cluster) 
