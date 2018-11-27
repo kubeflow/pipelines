@@ -136,6 +136,107 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
 </div>
 `;
 
+exports[`PipelineDetails collapses summary card when summary shown state is false 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Source",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": undefined,
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId=""
+          />
+          <SidePanel
+            isOpen={false}
+            onClose={[Function]}
+            title=""
+          >
+            <div
+              className="page"
+            >
+              <div>
+                Unable to retrieve node info
+              </div>
+            </div>
+          </SidePanel>
+          <div
+            className="footer"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              onClick={[Function]}
+            >
+              Show summary
+            </WithStyles(Button)>
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                style={
+                  Object {
+                    "color": "#80868b",
+                    "height": 16,
+                    "width": 16,
+                  }
+                }
+              />
+              <span
+                className="infoSpan"
+              >
+                Static pipeline graph
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`PipelineDetails opens side panel on clicked node, shows message when node is not found in graph 1`] = `
 <div
   className="page"
@@ -628,7 +729,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
 </div>
 `;
 
-exports[`PipelineDetails shows empty pipeline details with no graph graph 1`] = `
+exports[`PipelineDetails shows empty pipeline details with no graph 1`] = `
 <div
   className="page"
 >
@@ -660,6 +761,48 @@ exports[`PipelineDetails shows empty pipeline details with no graph graph 1`] = 
         >
           No graph to show
         </span>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`PipelineDetails shows pipeline source code when config tab is clicked 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={1}
+      tabs={
+        Array [
+          "Graph",
+          "Source",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="containerCss"
+      >
+        <UnControlled
+          editorDidMount={[Function]}
+          options={
+            Object {
+              "lineNumbers": true,
+              "lineWrapping": true,
+              "mode": "text/yaml",
+              "readOnly": true,
+              "theme": "default",
+            }
+          }
+          value=""
+        />
       </div>
     </div>
   </div>

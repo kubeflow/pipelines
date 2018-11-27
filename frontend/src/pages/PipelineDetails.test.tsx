@@ -24,7 +24,7 @@ import { PageProps } from './Page';
 import { QUERY_PARAMS } from '../lib/URLParser';
 import { RouteParams, RoutePage } from '../components/Router';
 import { graphlib } from 'dagre';
-import { shallow, mount } from 'enzyme';
+import { shallow, mount, ShallowWrapper, ReactWrapper } from 'enzyme';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -37,6 +37,7 @@ describe('PipelineDetails', () => {
   const getTemplateSpy = jest.spyOn(Apis.pipelineServiceApi, 'getTemplate');
   const createGraphSpy = jest.spyOn(StaticGraphParser, 'createGraph');
 
+  let tree: ShallowWrapper | ReactWrapper;
   let testPipeline: ApiPipeline = {};
 
   function generateProps(): PageProps {
@@ -94,18 +95,19 @@ describe('PipelineDetails', () => {
     createGraphSpy.mockClear();
   });
 
-  it('shows empty pipeline details with no graph graph', async () => {
+  afterEach(() => tree.unmount());
+
+  it('shows empty pipeline details with no graph', async () => {
     TestUtils.makeErrorResponseOnce(createGraphSpy, 'bad graph');
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows load error banner when failing to get pipeline', async () => {
     TestUtils.makeErrorResponseOnce(getPipelineSpy, 'woops');
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
@@ -114,12 +116,11 @@ describe('PipelineDetails', () => {
       message: 'Cannot retrieve pipeline details. Click Details for more information.',
       mode: 'error',
     }));
-    tree.unmount();
   });
 
   it('shows load error banner when failing to get pipeline template', async () => {
     TestUtils.makeErrorResponseOnce(getTemplateSpy, 'woops');
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getPipelineSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
@@ -128,12 +129,11 @@ describe('PipelineDetails', () => {
       message: 'Cannot retrieve pipeline template. Click Details for more information.',
       mode: 'error',
     }));
-    tree.unmount();
   });
 
   it('shows no graph error banner when failing to parse graph', async () => {
     TestUtils.makeErrorResponseOnce(createGraphSpy, 'bad graph');
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
@@ -142,51 +142,54 @@ describe('PipelineDetails', () => {
       message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
       mode: 'error',
     }));
-    tree.unmount();
   });
 
   it('shows empty pipeline details with empty graph', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
-  it('collapses summary card when clicking the Hide button', async () => {
-    const tree = mount(<PipelineDetails {...generateProps()} />);
+  it('sets summary shown state to false when clicking the Hide button', async () => {
+    tree = mount(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     tree.update();
     expect(tree.state('summaryShown')).toBe(true);
     tree.find('Paper Button').simulate('click');
     expect(tree.state('summaryShown')).toBe(false);
-    tree.unmount();
+  });
+
+  it('collapses summary card when summary shown state is false', async () => {
+    tree = shallow(<PipelineDetails {...generateProps()} />);
+    await getTemplateSpy;
+    await TestUtils.flushPromises();
+    tree.setState({ summaryShown: false });
+    expect(tree).toMatchSnapshot();
   });
 
   it('shows the summary card when clicking Show button', async () => {
-    const tree = mount(<PipelineDetails {...generateProps()} />);
+    tree = mount(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     tree.setState({ summaryShown: false });
     tree.find(`.${css.footer} Button`).simulate('click');
     expect(tree.state('summaryShown')).toBe(true);
-    tree.unmount();
   });
 
-  it('has a new experiment button, clicking it navigates to new experiment page', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+  it('has a new experiment button', async () => {
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     const newExperimentBtn = instance.getInitialToolbarState().actions.find(
       b => b.title === 'Start an experiment');
     expect(newExperimentBtn).toBeDefined();
-    tree.unmount();
   });
 
   it('clicking new experiment button navigates to new experiment page', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
@@ -196,11 +199,10 @@ describe('PipelineDetails', () => {
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testPipeline.id}`);
-    tree.unmount();
   });
 
   it('has a delete button', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
@@ -210,7 +212,7 @@ describe('PipelineDetails', () => {
   });
 
   it('shows delete confirmation dialog when delete buttin is clicked', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     const deleteBtn = (tree.instance() as PipelineDetails)
       .getInitialToolbarState().actions.find(b => b.title === 'Delete');
     await deleteBtn!.action();
@@ -218,11 +220,10 @@ describe('PipelineDetails', () => {
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       title: 'Delete this pipeline?',
     }));
-    tree.unmount();
   });
 
   it('does not call delete API for selected pipeline when delete dialog is canceled', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     const deleteBtn = (tree.instance() as PipelineDetails)
       .getInitialToolbarState().actions.find(b => b.title === 'Delete');
     await deleteBtn!.action();
@@ -230,11 +231,10 @@ describe('PipelineDetails', () => {
     const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
     await cancelBtn.onClick();
     expect(deletePipelineSpy).not.toHaveBeenCalled();
-    tree.unmount();
   });
 
   it('calls delete API when delete dialog is confirmed', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as PipelineDetails)
@@ -245,11 +245,10 @@ describe('PipelineDetails', () => {
     await confirmBtn.onClick();
     expect(deletePipelineSpy).toHaveBeenCalledTimes(1);
     expect(deletePipelineSpy).toHaveBeenLastCalledWith(testPipeline.id);
-    tree.unmount();
   });
 
   it('shows error dialog if deletion fails', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(deletePipelineSpy, 'woops');
     await getTemplateSpy;
     await TestUtils.flushPromises();
@@ -264,11 +263,10 @@ describe('PipelineDetails', () => {
       content: 'woops',
       title: 'Failed to delete pipeline',
     }));
-    tree.unmount();
   });
 
   it('shows success snackbar if deletion succeeds', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as PipelineDetails)
@@ -282,17 +280,15 @@ describe('PipelineDetails', () => {
       message: 'Successfully deleted pipeline: ' + testPipeline.name,
       open: true,
     }));
-    tree.unmount();
   });
 
   it('opens side panel on clicked node, shows message when node is not found in graph', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'some-node-id');
     expect(tree.state('selectedNodeId')).toBe('some-node-id');
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows clicked node info in the side panel if it is in the graph', async () => {
@@ -308,21 +304,29 @@ describe('PipelineDetails', () => {
     g.setNode('node1', { info, label: 'node1' });
     createGraphSpy.mockImplementation(() => g);
 
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
     expect(tree).toMatchSnapshot();
   });
 
+  it('shows pipeline source code when config tab is clicked', async () => {
+    tree = shallow(<PipelineDetails {...generateProps()} />);
+    await getTemplateSpy;
+    await TestUtils.flushPromises();
+    tree.find('MD2Tabs').simulate('switch', 1);
+    expect(tree.state('selectedTab')).toBe(1);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('closes side panel when close button is clicked', async () => {
-    const tree = shallow(<PipelineDetails {...generateProps()} />);
+    tree = shallow(<PipelineDetails {...generateProps()} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     tree.setState({ selectedNodeId: 'some-node-id' });
     tree.find('SidePanel').simulate('close');
     expect(tree.state('selectedNodeId')).toBe('');
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 });
