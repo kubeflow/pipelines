@@ -15,6 +15,7 @@
 import subprocess
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
 import kfp.components as comp
@@ -23,6 +24,15 @@ def add_two_numbers(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
     return a + b
 
+
+@contextmanager
+def components_local_output_dir_context(output_dir: str):
+    old_dir = comp._components._outputs_dir
+    try:
+        comp._components._outputs_dir = output_dir
+        yield output_dir
+    finally:
+        comp._components._outputs_dir = old_dir
 
 class PythonOpTestCase(unittest.TestCase):
     def helper_test_2_in_1_out_component_using_local_call(self, func, op):
@@ -35,15 +45,15 @@ class PythonOpTestCase(unittest.TestCase):
         expected_str = str(expected)
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
-            output_path = Path(temp_dir_name).joinpath('output1')
-
-            task = op(arg1, arg2, str(output_path))
+            with components_local_output_dir_context(temp_dir_name):
+                task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
 
             process = subprocess.run(full_command)
 
-            actual_str = output_path.read_text()
+            output_path = list(task.file_outputs.values())[0]
+            actual_str = Path(output_path).read_text()
 
         self.assertEqual(float(actual_str), float(expected_str))
 
@@ -56,17 +66,16 @@ class PythonOpTestCase(unittest.TestCase):
         expected2_str = str(expected_tuple[1])
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
-            output_path1 = Path(temp_dir_name).joinpath('output1')
-            output_path2 = Path(temp_dir_name).joinpath('output2')
-
-            task = op(arg1, arg2, str(output_path1), str(output_path2))
+            with components_local_output_dir_context(temp_dir_name):
+                task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
 
             process = subprocess.run(full_command)
 
-            actual1_str = output_path1.read_text()
-            actual2_str = output_path2.read_text()
+            (output_path1, output_path2) = list(task.file_outputs.values()) #Relying on the fact the file_outputs dict should be preserving the insertion order which should match the outputs order for python components. Otherwise a component spec is needed to generate the mapping.
+            actual1_str = Path(output_path1).read_text()
+            actual2_str = Path(output_path2).read_text()
 
         self.assertEqual(float(actual1_str), float(expected1_str))
         self.assertEqual(float(actual2_str), float(expected2_str))
