@@ -119,37 +119,23 @@ def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='dep
   description='Example pipeline that does classification with model analysis based on a public BigQuery dataset.'
 )
 def taxi_cab_classification(
-    output: dsl.PipelineParam,
-    project: dsl.PipelineParam,
+    output,
+    project,
+    column_names='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json',
+    key_columns='trip_start_timestamp',
+    train='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv',
+    evaluation='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv',
+    validation_mode='local',
+    preprocess_mode='local',
+    preprocess_module='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py',
+    target='tips',
+    learning_rate=0.1,
+    hidden_layer_size='1500',
+    steps=3000,
+    predict_mode='local',
+    analyze_mode='local',
+    analyze_slice_column='trip_start_hour'):
 
-    column_names: dsl.PipelineParam=dsl.PipelineParam(
-        name='column-names',
-        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json'),
-    key_columns: dsl.PipelineParam=dsl.PipelineParam(
-        name='key-columns',
-        value='trip_start_timestamp'),
-    train: dsl.PipelineParam=dsl.PipelineParam(
-        name='train',
-        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv'),
-    evaluation: dsl.PipelineParam=dsl.PipelineParam(
-        name='evaluation',
-        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv'),
-    validation_mode: dsl.PipelineParam=dsl.PipelineParam(
-        name='validation-mode', value='local'),
-    preprocess_mode: dsl.PipelineParam=dsl.PipelineParam(
-        name='preprocess-mode', value='local'),
-    preprocess_module: dsl.PipelineParam=dsl.PipelineParam(
-        name='preprocess-module',
-        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py'),
-    target: dsl.PipelineParam=dsl.PipelineParam(
-        name='target', value='tips'),
-    learning_rate: dsl.PipelineParam=dsl.PipelineParam(name='learning-rate', value=0.1),
-    hidden_layer_size: dsl.PipelineParam=dsl.PipelineParam(name='hidden-layer-size', value='1500'),
-    steps: dsl.PipelineParam=dsl.PipelineParam(name='steps', value=3000),
-    predict_mode: dsl.PipelineParam=dsl.PipelineParam(name='predict-mode', value='local'),
-    analyze_mode: dsl.PipelineParam=dsl.PipelineParam(name='analyze-mode', value='local'),
-    analyze_slice_column: dsl.PipelineParam=dsl.PipelineParam(
-        name='analyze-slice-column', value='trip_start_hour')):
   validation_output = '%s/{{workflow.name}}/validation' % output
   transform_output = '%s/{{workflow.name}}/transformed' % output
   training_output = '%s/{{workflow.name}}/train' % output
