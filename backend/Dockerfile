@@ -37,7 +37,7 @@ COPY ./samples .
 #One way to solve this problem is to check whether we have any python pipelines that cannot compile. Here the exit code is the number of such files:
 #RUN  bash -e -c 'exit $(find . -maxdepth 2 -name "*.py" ! -exec dsl-compile --py {} --output {}.tar.gz \; -print | wc -l)'
 #I think it's better to just use a shell loop though
-RUN  for pipeline in "$(find . -maxdepth 2 -name '*.py' -type f)"; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 
 FROM alpine
 
