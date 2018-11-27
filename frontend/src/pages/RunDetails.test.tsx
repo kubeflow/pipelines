@@ -357,7 +357,6 @@ describe('RunDetails', () => {
         nodes: {
           node1: {
             id: 'node1',
-            message: 'some test message',
             name: 'node1',
             phase: 'Succeeded',
           },
@@ -374,7 +373,150 @@ describe('RunDetails', () => {
     tree.find('Graph').simulate('click', 'node1');
     await parserSpy;
     await loaderSpy;
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
+    expect(parserSpy).toHaveBeenCalledTimes(1);
+    expect(parserSpy).toHaveBeenLastCalledWith({ id: 'node1', name: 'node1', phase: 'Succeeded' });
+    expect(loaderSpy).toHaveBeenCalledTimes(1);
+    expect(loaderSpy).toHaveBeenLastCalledWith({ bucket: 'somebucket', key: 'somekey', source: 'gcs' });
+    expect(tree.state('selectedNodeDetails')).toMatchObject({ id: 'node1' });
+    expect(tree).toMatchSnapshot();
+    tree.unmount();
+  });
+
+  it('switches to inputs/outputs tab in side pane', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: {
+        nodes: {
+          node1: {
+            id: 'node1',
+            inputs: {
+              parameters: [
+                { name: 'input1', value: 'val1' },
+              ],
+            },
+            name: 'node1',
+            outputs: {
+              parameters: [
+                { name: 'output1', value: 'val1' },
+                { name: 'output2', value: 'value2' },
+              ]
+            },
+            phase: 'Succeeded',
+          },
+        },
+      },
+    });
+    const tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('Graph').simulate('click', 'node1');
+    tree.find('MD2Tabs').at(1).simulate('switch', 1);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(1);
+    expect(tree).toMatchSnapshot();
+    tree.unmount();
+  });
+
+  it('switches to logs tab in side pane', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: {
+        nodes: {
+          node1: {
+            id: 'node1',
+            name: 'node1',
+            phase: 'Succeeded',
+          },
+        },
+      },
+    });
+    const tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('Graph').simulate('click', 'node1');
+    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(2);
+    expect(tree).toMatchSnapshot();
+    tree.unmount();
+  });
+
+  it('loads and shows logs in side pane', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: {
+        nodes: {
+          node1: {
+            id: 'node1',
+            name: 'node1',
+            phase: 'Succeeded',
+          },
+        },
+      },
+    });
+    const logsSpy = jest.spyOn(Apis, 'getPodLogs').mockImplementationOnce(() => 'test logs');
+    const tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('Graph').simulate('click', 'node1');
+    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    await logsSpy;
+    expect(logsSpy).toHaveBeenCalledTimes(1);
+    expect(logsSpy).toHaveBeenLastCalledWith('node1');
+    expect(tree).toMatchSnapshot();
+    tree.unmount();
+  });
+
+  it('shows error banner atop logs area if fetching logs failed', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: {
+        nodes: {
+          node1: {
+            id: 'node1',
+            name: 'node1',
+            phase: 'Succeeded',
+          },
+        },
+      },
+    });
+    const logsSpy = jest.spyOn(Apis, 'getPodLogs');
+    TestUtils.makeErrorResponseOnce(logsSpy, 'getting logs failed');
+    const tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('Graph').simulate('click', 'node1');
+    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    await logsSpy;
+    await TestUtils.flushPromises();
+    expect(tree.state()).toMatchObject({
+      logsBannerAdditionalInfo: 'getting logs failed',
+      logsBannerMessage: 'Error: failed to retrieve logs. Click Details for more information.',
+      logsBannerMode: 'error',
+    });
+    expect(tree).toMatchSnapshot();
+    tree.unmount();
+  });
+
+  it('does not load logs if clicked node status is skipped', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: {
+        nodes: {
+          node1: {
+            id: 'node1',
+            name: 'node1',
+            phase: 'Skipped',
+          },
+        },
+      },
+    });
+    const logsSpy = jest.spyOn(Apis, 'getPodLogs');
+    const tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('Graph').simulate('click', 'node1');
+    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    await logsSpy;
+    await TestUtils.flushPromises();
+    expect(logsSpy).not.toHaveBeenCalled();
+    expect(tree.state()).toMatchObject({
+      logsBannerAdditionalInfo: '',
+      logsBannerMessage: '',
+    });
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });

@@ -1,5 +1,201 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={2}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Logs",
+                  ]
+                }
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className="page"
+                >
+                  <LogViewer
+                    classes="page"
+                    logLines={
+                      Array [
+                        "",
+                      ]
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails loads and shows logs in side pane 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={2}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Logs",
+                  ]
+                }
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className="page"
+                >
+                  <LogViewer
+                    classes="page"
+                    logLines={
+                      Array [
+                        "test logs",
+                      ]
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`RunDetails opens side panel when graph node is clicked 1`] = `
 <div
   className="page"
@@ -345,10 +541,6 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
             onClose={[Function]}
             title="node1"
           >
-            <Banner
-              message="This step is in Succeeded state with this message: some test message"
-              mode="warning"
-            />
             <div
               className="page"
             >
@@ -387,6 +579,102 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
                     />
                     <Component />
                   </div>
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails shows error banner atop logs area if fetching logs failed 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={2}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Logs",
+                  ]
+                }
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className="page"
+                >
+                  <Banner
+                    additionalInfo="getting logs failed"
+                    message="Error: failed to retrieve logs. Click Details for more information."
+                    mode="error"
+                    refresh={[Function]}
+                  />
                 </div>
               </div>
             </div>
@@ -696,6 +984,224 @@ exports[`RunDetails switches to config tab 1`] = `
           fields={Array []}
           title="Run details"
         />
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={1}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Logs",
+                  ]
+                }
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className=""
+                >
+                  <Component
+                    fields={
+                      Array [
+                        Array [
+                          "input1",
+                          "val1",
+                        ],
+                      ]
+                    }
+                    title="Input parameters"
+                  />
+                  <Component
+                    fields={
+                      Array [
+                        Array [
+                          "output1",
+                          "val1",
+                        ],
+                        Array [
+                          "output2",
+                          "value2",
+                        ],
+                      ]
+                    }
+                    title="Output parameters"
+                  />
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails switches to logs tab in side pane 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={true}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={2}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Logs",
+                  ]
+                }
+              />
+              <WithStyles(CircularProgress)
+                className="absoluteCenter"
+                size={30}
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className="page"
+                >
+                  <LogViewer
+                    classes="page"
+                    logLines={
+                      Array [
+                        "",
+                      ]
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+        </div>
       </div>
     </div>
   </div>
