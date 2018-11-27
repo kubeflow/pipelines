@@ -1,0 +1,39 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RunDetails renders an empty run 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <span
+          style={
+            Object {
+              "margin": "40px auto",
+            }
+          }
+        >
+          No graph to show
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+`;
