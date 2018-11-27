@@ -138,7 +138,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                       <div className={commonCss.page}>
                         <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
                           selectedTab={sidepanelSelectedTab}
-                          onSwitch={this._sidePaneTabSwitched.bind(this)} />
+                          onSwitch={this._loadSidePaneTab.bind(this)} />
 
                         {this.state.sidepanelBusy &&
                           <CircularProgress size={30} className={commonCss.absoluteCenter} />}
@@ -261,7 +261,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
       </div>;
 
-      // TODO: run status next to page name
       this.props.updateToolbar({ breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
@@ -275,10 +274,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       logger.error('Error loading run:', runId);
     }
 
-    // These are called here to ensure that logs and artifacts in the side panel are refreshed when
+    // Make sure logs and artifacts in the side panel are refreshed when
     // the user hits "Refresh", either in the top toolbar or in an error banner.
-    this._loadSelectedNodeLogs();
-    this._loadSelectedNodeOutputs();
+    this._loadSidePaneTab(this.state.sidepanelSelectedTab);
   }
 
   private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): string[][] {
@@ -294,17 +292,18 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
   private _selectNode(id: string): void {
     this.setStateSafe({ selectedNodeDetails: { id } }, () =>
-      this._sidePaneTabSwitched(this.state.sidepanelSelectedTab));
+      this._loadSidePaneTab(this.state.sidepanelSelectedTab));
   }
 
-  private _sidePaneTabSwitched(tab: SidePaneTab): void {
+  private _loadSidePaneTab(tab: SidePaneTab): void {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
       const node = workflow.status.nodes[selectedNodeDetails.id];
-      if (node && node.message) {
-        selectedNodeDetails.phaseMessage =
-          `This step is in ${node.phase} state with this message: ` + node.message;
+      if (node) {
+        selectedNodeDetails.phaseMessage = (node && node.message) ?
+          `This step is in ${node.phase} state with this message: ` + node.message :
+          undefined;
       }
       this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab });
 

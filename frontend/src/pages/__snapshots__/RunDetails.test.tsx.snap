@@ -1,5 +1,71 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`RunDetails closes side panel when close button is clicked 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId=""
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={false}
+            onClose={[Function]}
+            title=""
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
 <div
   className="page"
@@ -95,6 +161,178 @@ exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
       </div>
     </div>
   </div>
+</div>
+`;
+
+exports[`RunDetails keeps side pane open and on same tab when logs change after refresh 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page"
+      >
+        <div
+          className="page"
+          style={
+            Object {
+              "overflow": "hidden",
+              "position": "relative",
+            }
+          }
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={2}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Logs",
+                  ]
+                }
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className="page"
+                >
+                  <LogViewer
+                    classes="page"
+                    logLines={
+                      Array [
+                        "new test logs",
+                      ]
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails keeps side pane open and on same tab when run status changes, shows new status 1`] = `
+<div
+  className="flex"
+>
+  <WithStyles(Tooltip)
+    title="Executed successfully"
+  >
+    <span
+      style={
+        Object {
+          "height": 18,
+        }
+      }
+    >
+      <pure(CheckCircleIcon)
+        style={
+          Object {
+            "color": "#34a853",
+            "height": 18,
+            "width": 18,
+          }
+        }
+      />
+    </span>
+  </WithStyles(Tooltip)>
+  <span
+    style={
+      Object {
+        "marginLeft": 10,
+      }
+    }
+  >
+    test run
+  </span>
+</div>
+`;
+
+exports[`RunDetails keeps side pane open and on same tab when run status changes, shows new status 2`] = `
+<div
+  className="flex"
+>
+  <WithStyles(Tooltip)
+    title="Resource failed to execute"
+  >
+    <span
+      style={
+        Object {
+          "height": 18,
+        }
+      }
+    >
+      <pure(ErrorIcon)
+        style={
+          Object {
+            "color": "#D50000",
+            "height": 18,
+            "width": 18,
+          }
+        }
+      />
+    </span>
+  </WithStyles(Tooltip)>
+  <span
+    style={
+      Object {
+        "marginLeft": 10,
+      }
+    }
+  >
+    test run
+  </span>
 </div>
 `;
 
