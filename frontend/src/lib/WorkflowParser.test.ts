@@ -505,6 +505,22 @@ describe('WorkflowParser', () => {
       });
     });
 
+    it('handles Minio bucket without key', () => {
+      expect(WorkflowParser.parseStoragePath('minio://testbucket/')).toEqual({
+        bucket: 'testbucket',
+        key: '',
+        source: StorageService.MINIO,
+      });
+    });
+
+    it('handles Minio bucket and key', () => {
+      expect(WorkflowParser.parseStoragePath('minio://testbucket/testkey')).toEqual({
+        bucket: 'testbucket',
+        key: 'testkey',
+        source: StorageService.MINIO,
+      });
+    });
+
     it('handles Minio bucket and multi-part key', () => {
       expect(WorkflowParser.parseStoragePath('minio://testbucket/test/key/path')).toEqual({
         bucket: 'testbucket',
