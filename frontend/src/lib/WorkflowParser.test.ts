@@ -504,6 +504,14 @@ describe('WorkflowParser', () => {
         source: StorageService.GCS,
       });
     });
+
+    it('handles Minio bucket and multi-part key', () => {
+      expect(WorkflowParser.parseStoragePath('minio://testbucket/test/key/path')).toEqual({
+        bucket: 'testbucket',
+        key: 'test/key/path',
+        source: StorageService.MINIO,
+      });
+    });
   });
 
   describe('getOutboundNodes', () => {
