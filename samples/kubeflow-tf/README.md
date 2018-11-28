@@ -14,7 +14,7 @@ Note: The trainer depends on Kubeflow API version v1alpha2.
 
 ## Compiling the pipeline template
 
-Follow the guide to [building a pipeline](https://github.com/kubeflow/pipelines/wiki/Build-a-Pipeline) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
+Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
 
 ```bash
 dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
