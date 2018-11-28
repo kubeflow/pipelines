@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { shallow } from 'enzyme';
-import { createBrowserHistory } from 'history';
+import { createBrowserHistory, createMemoryHistory } from 'history';
 import Toolbar from './Toolbar';
 import HelpIcon from '@material-ui/icons/Help';
 import InfoIcon from '@material-ui/icons/Info';
@@ -57,6 +57,10 @@ const breadcrumbs = [
 const history = createBrowserHistory({});
 
 describe('Toolbar', () => {
+  beforeAll(() => {
+    history.push('/pipelines');
+  });
+
   it('renders nothing when there are no breadcrumbs or actions', () => {
     const tree = shallow(<Toolbar breadcrumbs={[]} actions={[]} history={history} pageTitle='' />);
     expect(tree).toMatchSnapshot();
@@ -152,6 +156,14 @@ describe('Toolbar', () => {
   it('renders with two breadcrumbs and two actions', () => {
     const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} pageTitle=''
       history={history} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('disables the back button when there is no browser history', () => {
+    // This test uses createMemoryHistory because createBroweserHistory returns a singleton, and
+    // there is no way to clear its entries which this test requires.
+    const emptyHistory = createMemoryHistory();
+    const tree = shallow(<Toolbar breadcrumbs={breadcrumbs} actions={actions} history={emptyHistory} pageTitle='' />);
     expect(tree).toMatchSnapshot();
   });
 });

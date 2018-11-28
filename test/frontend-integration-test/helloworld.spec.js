@@ -105,7 +105,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('finds the new run in the list of runs, navigates to it', () => {
-    $('.tableRow').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible(3 * waitTimeout);
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
     // Navigate to details of the deployed run by clicking its anchor element

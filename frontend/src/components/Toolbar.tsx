@@ -51,7 +51,6 @@ const css = stylesheet({
     marginRight: spacing.units(-2),
   },
   backIcon: {
-    color: color.foreground,
     fontSize: backIconHeight,
     verticalAlign: 'bottom',
   },
@@ -69,6 +68,12 @@ const css = stylesheet({
   },
   chevron: {
     height: 12,
+  },
+  disabled: {
+    color: '#aaa',
+  },
+  enabled: {
+    color: color.foreground,
   },
   link: {
     $nest: {
@@ -136,11 +141,14 @@ class Toolbar extends React.Component<ToolbarProps> {
             {/* Back Arrow */}
             {breadcrumbs.length > 0 &&
               <Tooltip title={'Back'} enterDelay={300}>
-                <IconButton className={css.backLink}
-                  // Need to handle this for when browsing back doesn't make sense
-                  onClick={this.props.history!.goBack}>
-                  <ArrowBackIcon className={css.backIcon} />
-                </IconButton>
+                <div> {/* Div needed because we sometimes disable a button within a tooltip */}
+                  <IconButton className={css.backLink}
+                    disabled={this.props.history!.length < 2}
+                    onClick={this.props.history!.goBack}>
+                    <ArrowBackIcon className={
+                      classes(css.backIcon, this.props.history!.length < 2 ? css.disabled : css.enabled)} />
+                  </IconButton>
+                </div>
               </Tooltip>}
             {/* Resource Name */}
             <span className={classes(css.pageName, commonCss.ellipsis)} title={pageTitleTooltip}>

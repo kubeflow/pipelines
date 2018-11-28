@@ -1,5 +1,4 @@
-#!/bin/bash
-#
+#!/bin/bash -e
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -xe
 
-REGISTRY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+mkdir -p ./build
+rsync -arvp "../confusion_matrix/src"/ ./build/
+rsync -arvp "../roc/src"/ ./build/
 
-ks registry add pipeline "${REGISTRY}"
-ks pkg install pipeline/pipeline
-ks generate pipeline pipeline
+cp ../../license.sh ./build
+cp ../../third_party_licenses.csv ./build
+
+docker build -t ml-pipeline-local-base .
+rm -rf ./build

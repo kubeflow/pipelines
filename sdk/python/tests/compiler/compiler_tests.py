@@ -168,25 +168,6 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       # print(tmpdir)
 
-  def test_invalid_pipelines(self):
-    """Test invalid pipelines."""
-
-    @dsl.pipeline(
-      name='name',
-      description='description'
-    )
-    def invalid_param_defaults(message, outputpath='something'):
-      pass
-
-    with self.assertRaises(ValueError):
-      compiler.Compiler()._compile(invalid_param_defaults)
-
-    def missing_decoration(message: dsl.PipelineParam):
-      pass
-
-    with self.assertRaises(ValueError):
-      compiler.Compiler()._compile(missing_decoration)
-
   def test_package_compile(self):
     """Test compiling python packages."""
 
