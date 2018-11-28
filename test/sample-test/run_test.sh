@@ -18,7 +18,7 @@ set -xe
 
 usage()
 {
-    echo "usage: run_kubeflow_test.sh
+    echo "usage: run_test.sh
     [--results-gcs-dir              GCS directory for the test results]
     [--dataflow-tft-image           image path to the dataflow tft]
     [--dataflow-predict-image       image path to the dataflow predict]
@@ -263,7 +263,13 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
 
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
-  papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test -p BASE_IMAGE gcr.io/ml-pipeline-test/pusherbase:dev -p TARGET_IMAGE gcr.io/ml-pipeline-test/pusher:dev -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ Components.ipynb notebook-tfx.ipynb
+  #TODO: parameterize the base image and target image tag
+  papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
+   -p BASE_IMAGE gcr.io/ml-pipeline-test/pusherbase:dev -p TARGET_IMAGE gcr.io/ml-pipeline-test/pusher:dev \
+   -p DATAFLOW_TFDV_IMAGE ${DATAFLOW_TFDV_IMAGE} -p DATAFLOW_TFT_IMAGE ${DATAFLOW_TFT_IMAGE} -p DATAFLOW_TFMA_IMAGE ${DATAFLOW_TFMA_IMAGE} -p DATAFLOW_TF_PREDICT_IMAGE ${DATAFLOW_TF_PREDICT_IMAGE} \
+   -p KUBEFLOW_TF_TRAINER_IMAGE ${KUBEFLOW_DNNTRAINER_IMAGE} -p KUBEFLOW_DEPLOYER_IMAGE ${KUBEFLOW_DEPLOYER_IMAGE} \
+   -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
+   -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ Components.ipynb notebook-tfx.ipynb
   jupyter nbconvert --to python notebook-tfx.ipynb
   ipython notebook-tfx.py
   python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT
