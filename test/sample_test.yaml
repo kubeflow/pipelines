@@ -230,6 +230,8 @@ spec:
           parameters:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
           - name: dataflow-tft-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: dataflow-predict-image
@@ -270,6 +272,8 @@ spec:
           parameters:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
           - name: dataflow-tft-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: dataflow-predict-image
@@ -310,6 +314,8 @@ spec:
           parameters:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
           - name: dataflow-tft-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataflow-tft-image-suffix}}"
           - name: dataflow-predict-image
@@ -437,6 +443,7 @@ spec:
     inputs:
       parameters:
       - name: test-results-gcs-dir
+      - name: target-image-prefix
       - name: dataflow-tft-image
       - name: dataflow-predict-image
       - name: dataflow-tfma-image
@@ -458,6 +465,7 @@ spec:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}"
         "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
         "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
         "--dataflow-tfma-image","{{inputs.parameters.dataflow-tfma-image}}",

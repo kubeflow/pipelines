@@ -20,6 +20,7 @@ usage()
 {
     echo "usage: run_test.sh
     [--results-gcs-dir              GCS directory for the test results]
+    [--target-image-prefix          image prefix]
     [--dataflow-tft-image           image path to the dataflow tft]
     [--dataflow-predict-image       image path to the dataflow predict]
     [--dataflow-tfma-image          image path to the dataflow tfma]
@@ -43,6 +44,9 @@ while [ "$1" != "" ]; do
     case $1 in
              --results-gcs-dir )                shift
                                                 RESULTS_GCS_DIR=$1
+                                                ;;
+             --target-image-prefix )            shift
+                                                TARGET_IMAGE_PREFIX=$1
                                                 ;;
              --dataflow-tft-image )             shift
                                                 DATAFLOW_TFT_IMAGE=$1
@@ -265,7 +269,7 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   export LANG=C.UTF-8
   #TODO: parameterize the base image and target image tag
   papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
-   -p BASE_IMAGE gcr.io/ml-pipeline-test/pusherbase:dev -p TARGET_IMAGE gcr.io/ml-pipeline-test/pusher:dev \
+   -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE ${TARGET_IMAGE_PREFIX}pusher:dev \
    -p DATAFLOW_TFDV_IMAGE ${DATAFLOW_TFDV_IMAGE} -p DATAFLOW_TFT_IMAGE ${DATAFLOW_TFT_IMAGE} -p DATAFLOW_TFMA_IMAGE ${DATAFLOW_TFMA_IMAGE} -p DATAFLOW_TF_PREDICT_IMAGE ${DATAFLOW_TF_PREDICT_IMAGE} \
    -p KUBEFLOW_TF_TRAINER_IMAGE ${KUBEFLOW_DNNTRAINER_IMAGE} -p KUBEFLOW_DEPLOYER_IMAGE ${KUBEFLOW_DEPLOYER_IMAGE} \
    -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
