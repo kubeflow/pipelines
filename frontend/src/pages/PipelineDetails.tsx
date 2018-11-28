@@ -27,7 +27,7 @@ import MD2Tabs from '../atoms/MD2Tabs';
 import Paper from '@material-ui/core/Paper';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
-import { ApiPipeline } from '../apis/pipeline';
+import { ApiPipeline, ApiGetTemplateResponse } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -52,7 +52,7 @@ interface PipelineDetailsState {
 
 const summaryCardWidth = 500;
 
-const css = stylesheet({
+export const css = stylesheet({
   containerCss: {
     $nest: {
       '& .CodeMirror': {
@@ -126,7 +126,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
           ],
           onClose: () => this._deleteDialogClosed(false),
-          title: 'Delete this Pipeline?',
+          title: 'Delete this pipeline?',
         }),
         id: 'deleteBtn',
         title: 'Delete',
@@ -155,7 +155,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           <div className={commonCss.page}>
             <MD2Tabs
               selectedTab={selectedTab}
-              onSwitch={(tab: number) => this.setState({ selectedTab: tab })}
+              onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })}
               tabs={['Graph', 'Source']}
             />
             <div className={commonCss.page}>
@@ -167,7 +167,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                         <div className={commonCss.header}>
                           Summary
                         </div>
-                        <Button onClick={() => this.setState({ summaryShown: false })} color='secondary'>
+                        <Button onClick={() => this.setStateSafe({ summaryShown: false })} color='secondary'>
                           Hide
                         </Button>
                       </div>
@@ -179,10 +179,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                   )}
 
                   <Graph graph={this.state.graph} selectedNodeId={selectedNodeId}
-                    onClick={id => this.setState({ selectedNodeId: id })} />
+                    onClick={id => this.setStateSafe({ selectedNodeId: id })} />
 
                   <SidePanel isOpen={!!selectedNodeId}
-                    title={selectedNodeId} onClose={() => this.setState({ selectedNodeId: '' })}>
+                    title={selectedNodeId} onClose={() => this.setStateSafe({ selectedNodeId: '' })}>
                     <div className={commonCss.page}>
                       {!selectedNodeInfo && <div>Unable to retrieve node info</div>}
                       {!!selectedNodeInfo && <div className={padding(20, 'lr')}>
@@ -192,7 +192,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                   </SidePanel>
                   <div className={css.footer}>
                     {!summaryShown && (
-                      <Button onClick={() => this.setState({ summaryShown: !summaryShown })} color='secondary'>
+                      <Button onClick={() => this.setStateSafe({ summaryShown: !summaryShown })} color='secondary'>
                         Show summary
                       </Button>
                     )}
@@ -238,41 +238,47 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     this.clearBanner();
     const pipelineId = this.props.match.params[RouteParams.pipelineId];
 
+    let pipeline: ApiPipeline;
+    let templateResponse: ApiGetTemplateResponse;
+
     try {
-      const [pipeline, templateResponse] = await Promise.all([
-        Apis.pipelineServiceApi.getPipeline(pipelineId),
-        Apis.pipelineServiceApi.getTemplate(pipelineId)
-      ]);
-
-      const template: Workflow = JsYaml.safeLoad(templateResponse.template!);
-      let g: dagre.graphlib.Graph | undefined;
-      try {
-        g = StaticGraphParser.createGraph(template);
-      } catch (err) {
-        await this.showPageError('Error: failed to generate Pipeline graph.', err);
-      }
-
-      const breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
-      const pageTitle = pipeline.name!;
-
-      const toolbarActions = [...this.props.toolbarProps.actions];
-      toolbarActions[0].disabled = false;
-      this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
-
-      this.setState({
-        graph: g,
-        pipeline,
-        template,
-        templateYaml: templateResponse.template,
-      });
+      pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
+    } catch (err) {
+      await this.showPageError('Cannot retrieve pipeline details.', err);
+      logger.error('Cannot retrieve pipeline details.', err);
+      return;
     }
-    catch (err) {
-      await this.showPageError(
-        `Error: failed to retrieve pipeline or template for ID: ${pipelineId}.`,
-        err,
-      );
-      logger.error(`Error loading pipeline or template for ID: ${pipelineId}`, err);
+
+    try {
+      templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
+    } catch (err) {
+      await this.showPageError('Cannot retrieve pipeline template.', err);
+      logger.error('Cannot retrieve pipeline details.', err);
+      return;
     }
+
+    let template: Workflow | undefined;
+    let g: dagre.graphlib.Graph | undefined;
+    try {
+      template = JsYaml.safeLoad(templateResponse.template || '{}');
+      g = StaticGraphParser.createGraph(template!);
+    } catch (err) {
+      await this.showPageError('Error: failed to generate Pipeline graph.', err);
+    }
+
+    const breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
+    const pageTitle = pipeline.name!;
+
+    const toolbarActions = [...this.props.toolbarProps.actions];
+    toolbarActions[0].disabled = false;
+    this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
+
+    this.setStateSafe({
+      graph: g,
+      pipeline,
+      template,
+      templateYaml: templateResponse.template,
+    });
   }
 
   private _createNewExperiment(): void {
