@@ -26,7 +26,6 @@ import { PlotType } from '../components/viewers/Viewer';
 import { QUERY_PARAMS } from '../lib/URLParser';
 import { RouteParams, RoutePage } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { graphlib } from 'dagre';
 import { shallow } from 'enzyme';
 
 describe('RunDetails', () => {
