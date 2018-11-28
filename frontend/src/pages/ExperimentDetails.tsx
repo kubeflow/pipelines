@@ -109,7 +109,7 @@ interface ExperimentDetailsState {
 
 class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
-  protected _runlistRef = React.createRef<RunList>();
+  private _runlistRef = React.createRef<RunList>();
 
   private _runListToolbarActions: ToolbarActionConfig[] = [{
     action: () => this._startNewRun(false),
@@ -292,14 +292,13 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
       this.setStateSafe({ activeRecurringRunsCount, experiment });
       
-      // TODO: maybe move outside of try-catch
-      if (this._runlistRef.current) {
-        this._runlistRef.current.refresh(); 
-      }
-
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
+    }
+
+    if (this._runlistRef.current) {
+      this._runlistRef.current.refresh(); 
     }
   }
 

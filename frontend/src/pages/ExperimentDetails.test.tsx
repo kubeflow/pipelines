@@ -17,17 +17,20 @@
 import * as React from 'react';
 import ExperimentDetails from './ExperimentDetails';
 import TestUtils from '../TestUtils';
-import { shallow } from 'enzyme';
+import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { range } from 'lodash';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiResourceType } from '../apis/job';
-import { RoutePage } from '../components/Router';
+import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { QUERY_PARAMS } from '../lib/URLParser';
 
 describe('ExperimentDetails', () => {
+
+  let tree: ReactWrapper | ShallowWrapper;
+
   const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
 
@@ -99,11 +102,16 @@ describe('ExperimentDetails', () => {
     await mockNRuns(0);
   });
 
-  it('renders a page with no runs or recurring runs', async () => {
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
+  afterEach(() => {
     tree.unmount();
+  });
+
+  it('renders a page with no runs or recurring runs', async () => {
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(tree).toMatchSnapshot();
   });
 
   it('uses the experiment ID in props as the page title if the experiment has no name', async () => {
@@ -111,17 +119,16 @@ describe('ExperimentDetails', () => {
     experiment.name = '';
 
     const props = generateProps();
-    props.match = { params: { eid: 'test exp ID' } } as any;
+    props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
 
     getExperimentSpy.mockImplementationOnce(() => experiment);
 
-    const tree = shallow(<ExperimentDetails {...props} />);
+    tree = shallow(<ExperimentDetails {...props} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       pageTitle: 'test exp ID',
       pageTitleTooltip: 'test exp ID'
     }));
-    tree.unmount();
   });
 
   it('uses the experiment name as the page title', async () => {
@@ -130,25 +137,23 @@ describe('ExperimentDetails', () => {
 
     getExperimentSpy.mockImplementationOnce(() => experiment);
 
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       pageTitle: 'A Test Experiment',
       pageTitleTooltip: 'A Test Experiment'
     }));
-    tree.unmount();
   });
 
   it('uses an empty string if the experiment has no description', async () => {
     const experiment = newMockExperiment();
-    experiment.description = undefined;
+    delete experiment.description;
 
     getExperimentSpy.mockImplementationOnce(() => experiment);
 
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('removes all description text after second newline and replaces with an ellipsis', async () => {
@@ -157,14 +162,13 @@ describe('ExperimentDetails', () => {
 
     getExperimentSpy.mockImplementationOnce(() => experiment);
 
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('opens the expanded description modal when the expand button is clicked', async () => {
-    const tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
     await TestUtils.flushPromises();
 
     tree.update();
@@ -175,23 +179,21 @@ describe('ExperimentDetails', () => {
       content: MOCK_EXPERIMENT.description,
       title: 'Experiment description',
     });
-    tree.unmount();
   });
 
   it('calls getExperiment with the experiment ID in props', async () => {
     const props = generateProps();
     props.match = { params: { eid: 'test exp ID' } } as any;
-    const tree = shallow(<ExperimentDetails {...props} />);
+    tree = shallow(<ExperimentDetails {...props} />);
     await TestUtils.flushPromises();
     expect(getExperimentSpy).toHaveBeenCalledTimes(1);
     expect(getExperimentSpy).toHaveBeenCalledWith('test exp ID');
-    tree.unmount();
   });
 
   it('shows an error banner if fetching the experiment fails', async () => {
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'test error');
 
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -203,13 +205,12 @@ describe('ExperimentDetails', () => {
     expect(consoleErrorSpy.mock.calls[0][0]).toBe(
       'Error loading experiment: ' + MOCK_EXPERIMENT.id
     );
-    tree.unmount();
   });
 
   it('fetches this experiment\'s recurring runs', async () => {
     await mockNJobs(1);
 
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
     expect(listJobsSpy).toHaveBeenCalledTimes(1);
@@ -222,13 +223,12 @@ describe('ExperimentDetails', () => {
     );
     expect(tree.state('activeRecurringRunsCount')).toBe(1);
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows an error banner if fetching the experiment\'s recurring runs fails', async () => {
     TestUtils.makeErrorResponseOnce(listJobsSpy, 'test error');
 
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -240,7 +240,6 @@ describe('ExperimentDetails', () => {
     expect(consoleErrorSpy.mock.calls[0][0]).toBe(
       'Error fetching recurring runs for experiment: ' + MOCK_EXPERIMENT.id
     );
-    tree.unmount();
   });
 
   it('only counts enabled recurring runs as active', async () => {
@@ -252,16 +251,15 @@ describe('ExperimentDetails', () => {
     listJobsSpy.mockImplementationOnce(() => ({ jobs }));
     await listJobsSpy;
 
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
     expect(tree.state('activeRecurringRunsCount')).toBe(2);
-    tree.unmount();
   });
 
   it('opens the recurring run manager modal when \'manage\' is clicked', async () => {
     await mockNJobs(1);
-    const tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
     await TestUtils.flushPromises();
 
     tree.update();
@@ -269,12 +267,11 @@ describe('ExperimentDetails', () => {
     tree.find('#manageExperimentRecurringRunsBtn').at(0).simulate('click');
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBe(true);
-    tree.unmount();
   });
 
   it('closes the recurring run manager modal', async () => {
     await mockNJobs(1);
-    const tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
     await TestUtils.flushPromises();
 
     tree.update();
@@ -287,12 +284,11 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     expect(tree.state('recurringRunsManagerOpen')).toBe(false);
 
-    tree.unmount();
   });
 
   it('refreshes the number of active recurring runs when the recurring run manager is closed', async () => {
     await mockNJobs(1);
-    const tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps() as any} />);
     await TestUtils.flushPromises();
 
     tree.update();
@@ -314,13 +310,12 @@ describe('ExperimentDetails', () => {
     // Called a third time when the manager is closed to update the number of active recurring runs
     expect(listJobsSpy).toHaveBeenCalledTimes(3);
 
-    tree.unmount();
   });
 
   it('clears the error banner on refresh', async () => {
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'test error');
 
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
 
     // Verify that error banner is being shown
@@ -331,7 +326,6 @@ describe('ExperimentDetails', () => {
     // Error banner should be cleared
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
 
-    tree.unmount();
   });
 
   it('navigates to the compare runs page', async () => {
@@ -342,7 +336,7 @@ describe('ExperimentDetails', () => {
     listRunsSpy.mockImplementationOnce(() => ({ runs }));
     await listRunsSpy;
 
-    const tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -355,11 +349,10 @@ describe('ExperimentDetails', () => {
 
     expect(historyPushSpy).toHaveBeenCalledWith(
       RoutePage.COMPARE + `?${QUERY_PARAMS.runlist}=run-1-id,run-2-id`);
-    tree.unmount();
   });
 
   it('navigates to the new run page and passes this experiment\s ID as a query param', async () => {
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -369,11 +362,10 @@ describe('ExperimentDetails', () => {
 
     expect(historyPushSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`);
-    tree.unmount();
   });
 
   it('navigates to the new run page with query param indicating it will be a recurring run', async () => {
-    const tree = shallow(<ExperimentDetails {...generateProps()} />);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -385,7 +377,6 @@ describe('ExperimentDetails', () => {
       RoutePage.NEW_RUN
       + `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
       + `&${QUERY_PARAMS.isRecurring}=1`);
-    tree.unmount();
   });
 
   it('supports cloning a selected run', async () => {
@@ -393,7 +384,7 @@ describe('ExperimentDetails', () => {
     listRunsSpy.mockImplementationOnce(() => ({ runs }));
     await listRunsSpy;
 
-    const tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -406,13 +397,12 @@ describe('ExperimentDetails', () => {
 
     expect(historyPushSpy).toHaveBeenCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=run-1-id`);
-    tree.unmount();
   });
 
   it('enables the compare runs button only when between 2 and 10 runs are selected', async () => {
     await mockNRuns(12);
 
-    const tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -427,13 +417,12 @@ describe('ExperimentDetails', () => {
       }
       tree.find('.tableRow').at(i).simulate('click');
     }
-    tree.unmount();
   });
 
   it('enables the clone run button only when 1 run is selected', async () => {
     await mockNRuns(4);
 
-    const tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -448,6 +437,5 @@ describe('ExperimentDetails', () => {
       }
       tree.find('.tableRow').at(i).simulate('click');
     }
-    tree.unmount();
   });
 });
