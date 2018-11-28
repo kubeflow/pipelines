@@ -182,6 +182,13 @@ export default class WorkflowParser {
         key: pathParts.slice(1).join('/'),
         source: StorageService.GCS,
       };
+    } else if (strPath.startsWith('minio://')) {
+        const pathParts = strPath.substr('minio://'.length).split('/');
+        return {
+          bucket: pathParts[0],
+          key: pathParts.slice(1).join('/'),
+          source: StorageService.MINIO,
+        };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);
     }
