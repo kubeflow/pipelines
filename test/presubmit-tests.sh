@@ -31,7 +31,6 @@ PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 CLUSTER_TYPE=create-gke
-TIMEOUT_SECONDS=1800
 NAMESPACE=default
 
 while [ "$1" != "" ]; do
@@ -62,9 +61,6 @@ done
 
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 ARTIFACT_DIR=$WORKSPACE/_artifacts
-WORKFLOW_COMPLETE_KEYWORD="completed=true"
-WORKFLOW_FAILED_KEYWORD="phase=Failed"
-PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
 echo "presubmit test starts"
 
