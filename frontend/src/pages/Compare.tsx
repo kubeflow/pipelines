@@ -36,7 +36,7 @@ import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
-import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { logger } from '../lib/Utils';
 
 const css = stylesheet({
@@ -225,7 +225,7 @@ class Compare extends Page<{}, CompareState> {
 
     await Promise.all(outputPathsList.map(async (pathList, i) => {
       for (const path of pathList) {
-        const configs = await loadOutputArtifacts(path);
+        const configs = await OutputArtifactLoader.load(path);
         configs.map(config => {
           const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
           currentList.push({
