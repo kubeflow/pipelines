@@ -465,7 +465,7 @@ spec:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
-        "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}"
+        "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
         "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
         "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
         "--dataflow-tfma-image","{{inputs.parameters.dataflow-tfma-image}}",
