@@ -64,6 +64,7 @@ def main():
   utils.add_junit_test(test_cases, 'input generated yaml file', os.path.exists(args.input), 'yaml file is not generated')
   if not os.path.exists(args.input):
     utils.write_junit_xml(test_name, args.result, test_cases)
+    print('Error: job not found.')
     exit(1)
 
   ###### Create Experiment ######
@@ -87,9 +88,6 @@ def main():
   end_time = datetime.now()
   elapsed_time = (end_time - start_time).seconds
   utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
-  if not succ:
-    utils.write_junit_xml(test_name, args.result, test_cases)
-    exit(1)
 
   ###### Output Argo Log for Debugging ######
   workflow_json = client._get_workflow_json(run_id)
@@ -97,6 +95,10 @@ def main():
   argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
   print("=========Argo Workflow Log=========")
   print(argo_log)
+
+  if not succ:
+    utils.write_junit_xml(test_name, args.result, test_cases)
+    exit(1)
 
   ###### Delete Job ######
   #TODO: add deletion when the backend API offers the interface.

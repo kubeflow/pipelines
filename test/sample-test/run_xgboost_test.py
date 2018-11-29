@@ -61,6 +61,7 @@ def main():
   utils.add_junit_test(test_cases, 'input generated yaml file', os.path.exists(args.input), 'yaml file is not generated')
   if not os.path.exists(args.input):
     utils.write_junit_xml(test_name, args.result, test_cases)
+    print('Error: job not found.')
     exit(1)
 
   ###### Create Experiment ######
