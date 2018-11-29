@@ -18,16 +18,15 @@ metadata:
   generateName: integration-test-
 spec:
   entrypoint: integration-test
+  volumes:
+  - name: gcp-credentials
+    secret:
+      secretName: user-gcp-sa
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
     - name: target-image-prefix
     - name: test-results-gcs-dir
-    - name: bootstrapper-image
-    - name: api-image
-    - name: frontend-image
-    - name: scheduledworkflow-image
-    - name: persistenceagent-image
     - name: api-integration-test-image-suffix
       value: api_integration_test
     - name: frontend-integration-tests-image-suffix
@@ -44,11 +43,6 @@ spec:
       parameters:
       - name: target-image-prefix
       - name: test-results-gcs-dir
-      - name: bootstrapper-image
-      - name: api-image
-      - name: frontend-image
-      - name: scheduledworkflow-image
-      - name: persistenceagent-image
       - name: api-integration-test-image-suffix
       - name: frontend-integration-tests-image-suffix
       - name: basic-e2e-tests-image-suffix
@@ -82,20 +76,6 @@ spec:
             value: test/sample-test/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
-    - - name: deploy-ml-pipeline
-        template: deploy-ml-pipeline
-        arguments:
-          parameters:
-          - name: bootstrapper-image
-            value: "{{inputs.parameters.bootstrapper-image}}"
-          - name: api-image
-            value: "{{inputs.parameters.api-image}}"
-          - name: frontend-image
-            value: "{{inputs.parameters.frontend-image}}"
-          - name: scheduledworkflow-image
-            value: "{{inputs.parameters.scheduledworkflow-image}}"
-          - name: persistenceagent-image
-            value: "{{inputs.parameters.persistenceagent-image}}"
     - - name: run-api-integration-tests
         template: run-api-integration-tests
         arguments:
@@ -206,31 +186,17 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
       securityContext:
         privileged: true
       mirrorVolumeMounts: true
-
-  - name: deploy-ml-pipeline
-    inputs:
-      parameters:
-      - name: bootstrapper-image
-      - name: api-image
-      - name: frontend-image
-      - name: scheduledworkflow-image
-      - name: persistenceagent-image
-    container:
-      image: "{{inputs.parameters.bootstrapper-image}}"
-      args: [
-        "--api_image", "{{inputs.parameters.api-image}}",
-        "--ui_image", "{{inputs.parameters.frontend-image}}",
-        "--scheduled_workflow_image", "{{inputs.parameters.scheduledworkflow-image}}",
-        "--persistence_agent_image", "{{inputs.parameters.persistenceagent-image}}",
-        "--deploy_argo", "false", # Argo is already installed in the cluster. No need to install again.
-        "--report_usage", "false" # Skip reporting usage for test
-      ]
 
   - name: run-api-integration-tests
     inputs:
@@ -242,6 +208,12 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
 
   - name: run-frontend-integration-tests
     inputs:
@@ -253,6 +225,13 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
       ]
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
+
   - name: run-basic-e2e-tests
     inputs:
       parameters:
@@ -267,3 +246,9 @@ spec:
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials

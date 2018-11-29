@@ -23,6 +23,8 @@ import (
 
 	"testing"
 
+	"net/http"
+
 	"github.com/cenkalti/backoff"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
@@ -31,59 +33,29 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-)
-
-const (
-	// ML pipeline API server root URL
-	mlPipelineAPIServerBase = "/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1beta1/%s"
 )
 
 var namespace = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
 var initializeTimeout = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
 
-func getKubernetesClient() (*kubernetes.Clientset, error) {
-	// use the current context in kubeconfig
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get cluster config during K8s client initialization")
-	}
-	// create the clientset
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to create client set during K8s client initialization")
-	}
-
-	return clientSet, nil
-}
-
 func waitForReady(namespace string, initializeTimeout time.Duration) error {
-	clientSet, err := getKubernetesClient()
-	if err != nil {
-		return errors.Wrapf(err, "Failed to get K8s client set when waiting for ML pipeline to be ready")
-	}
-
 	var operation = func() error {
-		response := clientSet.RESTClient().Get().
-			AbsPath(fmt.Sprintf(mlPipelineAPIServerBase, namespace, "healthz")).Do()
-		if response.Error() == nil {
+		response, err := http.Get(fmt.Sprintf("http://ml-pipeline.%s.svc.cluster.local:8888/apis/v1beta1/healthz", namespace))
+		if err == nil {
 			return nil
 		}
-		var code int
-		response.StatusCode(&code)
 		// we wait only on 503 service unavailable. Stop retry otherwise.
-		if code != 503 {
-			return backoff.Permanent(errors.Wrapf(response.Error(), "Waiting for ml pipeline failed with non retriable error."))
+		if response.StatusCode != 503 {
+			return backoff.Permanent(errors.Wrapf(err, "Waiting for ml pipeline failed with non retriable error."))
 		}
-		return response.Error()
+		return err
 	}
 
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initializeTimeout
-	err = backoff.Retry(operation, b)
+	err := backoff.Retry(operation, b)
 	return errors.Wrapf(err, "Waiting for ml pipeline failed after all attempts.")
 }
 
