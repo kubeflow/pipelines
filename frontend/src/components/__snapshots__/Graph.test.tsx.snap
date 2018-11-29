@@ -94,11 +94,7 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
 </div>
 `;
 
-exports[`Graph handles an empty graph 1`] = `
-<div
-  className="root"
-/>
-`;
+exports[`Graph handles an empty graph 1`] = `""`;
 
 exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
 <div

@@ -18,16 +18,15 @@ metadata:
   generateName: sample-test-
 spec:
   entrypoint: sample-test
+  volumes:
+  - name: gcp-credentials
+    secret:
+      secretName: user-gcp-sa
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
     - name: target-image-prefix
     - name: test-results-gcs-dir
-    - name: bootstrapper-image
-    - name: api-image
-    - name: frontend-image
-    - name: scheduledworkflow-image
-    - name: persistenceagent-image
     - name: dataflow-tft-image-suffix
       value: dataflow-tft
     - name: dataflow-predict-image-suffix
@@ -66,11 +65,6 @@ spec:
       parameters:
       - name: target-image-prefix
       - name: test-results-gcs-dir
-      - name: bootstrapper-image
-      - name: api-image
-      - name: frontend-image
-      - name: scheduledworkflow-image
-      - name: persistenceagent-image
       - name: dataflow-tft-image-suffix
       - name: dataflow-predict-image-suffix
       - name: dataflow-tfma-image-suffix
@@ -210,20 +204,6 @@ spec:
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.local-roc-image-suffix}}"
           - name: build-script
             value: components/local/roc/build_image.sh
-    - - name: deploy-ml-pipeline
-        template: deploy-ml-pipeline
-        arguments:
-          parameters:
-          - name: bootstrapper-image
-            value: "{{inputs.parameters.bootstrapper-image}}"
-          - name: api-image
-            value: "{{inputs.parameters.api-image}}"
-          - name: frontend-image
-            value: "{{inputs.parameters.frontend-image}}"
-          - name: scheduledworkflow-image
-            value: "{{inputs.parameters.scheduledworkflow-image}}"
-          - name: persistenceagent-image
-            value: "{{inputs.parameters.persistenceagent-image}}"
     - - name: run-tf-training-tests
         template: run-sample-tests
         arguments:
@@ -375,6 +355,11 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
@@ -407,31 +392,17 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
       securityContext:
         privileged: true
       mirrorVolumeMounts: true
-
-  - name: deploy-ml-pipeline
-    inputs:
-      parameters:
-      - name: bootstrapper-image
-      - name: api-image
-      - name: frontend-image
-      - name: scheduledworkflow-image
-      - name: persistenceagent-image
-    container:
-      image: "{{inputs.parameters.bootstrapper-image}}"
-      args: [
-        "--api_image", "{{inputs.parameters.api-image}}",
-        "--ui_image", "{{inputs.parameters.frontend-image}}",
-        "--scheduled_workflow_image", "{{inputs.parameters.scheduledworkflow-image}}",
-        "--persistence_agent_image", "{{inputs.parameters.persistenceagent-image}}",
-        "--deploy_argo", "false", # Argo is already installed in the cluster. No need to install again.
-        "--report_usage", "false" # Skip reporting usage for test
-      ]
 
   - name: run-sample-tests
     inputs:
@@ -475,3 +446,10 @@ spec:
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
+

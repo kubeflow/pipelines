@@ -25,7 +25,7 @@ class CreateClusterOp(dsl.ContainerOp):
   def __init__(self, name, project, region, staging):
     super(CreateClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:0.1.0', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:0.1.3-rc.2', #TODO-release: update the release tag for the next release
       arguments=[
           '--project', project,
           '--region', region,
@@ -40,7 +40,7 @@ class DeleteClusterOp(dsl.ContainerOp):
   def __init__(self, name, project, region):
     super(DeleteClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:0.1.0', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:0.1.3-rc.2', #TODO-release: update the release tag for the next release
       arguments=[
           '--project', project,
           '--region', region,
@@ -54,7 +54,7 @@ class AnalyzeOp(dsl.ContainerOp):
   def __init__(self, name, project, region, cluster_name, schema, train_data, output):
     super(AnalyzeOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:0.1.0', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:0.1.3-rc.2', #TODO-release: update the release tag for the next release
       arguments=[
           '--project', project,
           '--region', region,
@@ -72,7 +72,7 @@ class TransformOp(dsl.ContainerOp):
                target, analysis, output):
     super(TransformOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:0.1.0', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:0.1.3-rc.2', #TODO-release: update the release tag for the next release
       arguments=[
           '--project', project,
           '--region', region,
@@ -97,7 +97,7 @@ class TrainerOp(dsl.ContainerOp):
 
     super(TrainerOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:0.1.0', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:0.1.3-rc.2', #TODO-release: update the release tag for the next release
       arguments=[
           '--project', project,
           '--region', region,
@@ -120,7 +120,7 @@ class PredictOp(dsl.ContainerOp):
   def __init__(self, name, project, region, cluster_name, data, model, target, analysis, output):
     super(PredictOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:0.1.0', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:0.1.3-rc.2', #TODO-release: update the release tag for the next release
       arguments=[
           '--project', project,
           '--region', region,
@@ -140,7 +140,7 @@ class ConfusionMatrixOp(dsl.ContainerOp):
   def __init__(self, name, predictions, output):
     super(ConfusionMatrixOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.1.0', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.1.3-rc.2', #TODO-release: update the release tag for the next release
       arguments=[
         '--output', output,
         '--predictions', predictions
@@ -152,7 +152,7 @@ class RocOp(dsl.ContainerOp):
   def __init__(self, name, predictions, trueclass, output):
     super(RocOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:0.1.0', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:0.1.3-rc.2', #TODO-release: update the release tag for the next release
       arguments=[
         '--output', output,
         '--predictions', predictions,
