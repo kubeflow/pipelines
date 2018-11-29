@@ -186,6 +186,11 @@ spec:
       env:
       - name: DOCKER_HOST
         value: 127.0.0.1
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
     sidecars:
     - name: dind
       image: docker:17.10-dind
