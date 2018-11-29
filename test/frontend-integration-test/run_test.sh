@@ -23,7 +23,6 @@ usage()
 {
     echo "usage: run_test.sh
     --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test
-    [--commit_sha     commit SHA to pull code from]
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
 }
@@ -32,9 +31,6 @@ while [ "$1" != "" ]; do
     case $1 in
              --results-gcs-dir )shift
                                 RESULTS_GCS_DIR=$1
-                                ;;
-             --commit_sha )     shift
-                                COMMIT_SHA=$1
                                 ;;
              --namespace )      shift
                                 NAMESPACE=$1
@@ -61,6 +57,10 @@ tools/google-cloud-sdk/install.sh --usage-reporting=false \
   --path-update=false --bash-completion=false \
   --disable-installation-options
 tools/google-cloud-sdk/bin/gcloud -q components install kubectl
+
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  tools/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
 
 npm install
 

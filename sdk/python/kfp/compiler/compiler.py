@@ -440,13 +440,6 @@ class Compiler(object):
       workflow['spec']['volumes'] = volumes
     return workflow
 
-  def _validate_args(self, argspec):
-    if argspec.defaults:
-      for value in argspec.defaults:
-        if not issubclass(type(value), dsl.PipelineParam):
-          raise ValueError(
-              'Default values of argument has to be type dsl.PipelineParam or its child.')
-
   def _validate_exit_handler(self, pipeline):
     """Makes sure there is only one global exit handler.
 
@@ -471,7 +464,6 @@ class Compiler(object):
     """Compile the given pipeline function into workflow."""
 
     argspec = inspect.getfullargspec(pipeline_func)
-    self._validate_args(argspec)
 
     registered_pipeline_functions = dsl.Pipeline.get_pipeline_functions()
     if pipeline_func not in registered_pipeline_functions:
@@ -494,7 +486,7 @@ class Compiler(object):
                                for arg_name in argspec.args]
     if argspec.defaults:
       for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-        arg.value = default.value
+        arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow

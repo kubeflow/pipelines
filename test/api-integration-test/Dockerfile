@@ -17,7 +17,6 @@ ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 RUN go get -u github.com/jstemmer/go-junit-report
 RUN go build github.com/jstemmer/go-junit-report
 
-COPY ./run_test.sh /run_test.sh
-RUN chmod +x /run_test.sh
+COPY . /go/src/github.com/kubeflow/pipelines
 
-ENTRYPOINT ["/run_test.sh"]
+ENTRYPOINT ["/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"]

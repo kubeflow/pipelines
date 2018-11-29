@@ -23,7 +23,7 @@ import { logger, formatDateString, errorToMessage } from '../lib/Utils';
 import { ApiPipeline } from '../apis/pipeline';
 import { DialogProps } from '../components/Router';
 
-interface PipelineSelectorProps extends RouteComponentProps {
+export interface PipelineSelectorProps extends RouteComponentProps {
   pipelineSelectionChanged: (selectedPipelineId: string) => void;
   updateDialog: (dialogProps: DialogProps) => void;
 }
@@ -36,7 +36,6 @@ interface PipelineSelectorState {
 
 class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSelectorState> {
   protected _isMounted = true;
-  private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
@@ -74,8 +73,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
         <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Choose a pipeline' />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
           updateSelection={this._pipelineSelectionChanged.bind(this)}
-          initialSortColumn={PipelineSortKeys.CREATED_AT} ref={this._tableRef}
-          reload={this._loadPipelines.bind(this)}
+          initialSortColumn={PipelineSortKeys.CREATED_AT} reload={this._loadPipelines.bind(this)}
           emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
       </React.Fragment>
     );
@@ -85,19 +83,13 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     this._isMounted = false;
   }
 
-  public async refresh(): Promise<void> {
-    if (this._tableRef.current) {
-      await this._tableRef.current.reload();
-    }
-  }
-
   protected setStateSafe(newState: Partial<PipelineSelectorState>, cb?: () => void): void {
     if (this._isMounted) {
       this.setState(newState as any, cb);
     }
   }
 
-  private _pipelineSelectionChanged(selectedIds: string[]): void {
+  protected _pipelineSelectionChanged(selectedIds: string[]): void {
     if (!Array.isArray(selectedIds) || selectedIds.length !== 1) {
       logger.error(`${selectedIds.length} pipelines were selected somehow`, selectedIds);
       return;
@@ -106,7 +98,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     this.setStateSafe({ selectedIds });
   }
 
-  private async _loadPipelines(request: ListRequest): Promise<string> {
+  protected async _loadPipelines(request: ListRequest): Promise<string> {
     let pipelines: ApiPipeline[] = [];
     let nextPageToken = '';
     try {

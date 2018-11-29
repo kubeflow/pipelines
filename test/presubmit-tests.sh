@@ -27,10 +27,12 @@ usage()
     [-h help]"
 }
 
+PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 CLUSTER_TYPE=create-gke
 TIMEOUT_SECONDS=1800
+NAMESPACE=default
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -58,7 +60,6 @@ while [ "$1" != "" ]; do
     shift
 done
 
-ZONE=us-west1-a
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
@@ -67,8 +68,21 @@ PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
 echo "presubmit test starts"
 
+repo_root=$(dirname "$0")/..
+cd "$repo_root"
+
 # activating the service account
 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+gcloud config set compute/zone us-central1-a
+
+#Uploading the source code to GCS:
+local_code_archive_file=$(mktemp)
+date_string=$(TZ=PST8PDT date +%Y-%m-%d_%H-%M-%S_%Z)
+code_archive_prefix="gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/source_code"
+remote_code_archive_uri="${code_archive_prefix}_${PULL_BASE_SHA}_${date_string}.tar.gz"
+
+tar -czf "$local_code_archive_file" .
+gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
 
 #Creating a new GKE cluster if needed
 if [ "$CLUSTER_TYPE" == "create-gke" ]; then
@@ -96,27 +110,13 @@ if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   gcloud container clusters get-credentials ${TEST_CLUSTER}
 fi
 
-kubectl config set-context $(kubectl config current-context) --namespace=default
-
-echo "Add necessary cluster role bindings"
-ACCOUNT=$(gcloud info --format='value(config.account)')
-kubectl create clusterrolebinding PROW_BINDING --clusterrole=cluster-admin --user=$ACCOUNT
-kubectl create clusterrolebinding DEFAULT_BINDING --clusterrole=cluster-admin --serviceaccount=default:default
-
-echo "install argo"
-ARGO_VERSION=v2.2.0
-mkdir -p ~/bin/
-export PATH=~/bin/:$PATH
-curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
-chmod +x ~/bin/argo
-
-kubectl create ns argo
-kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
-
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+source "${DIR}/install-argo.sh"
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
--p commit-sha="${PULL_PULL_SHA}" \
+ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
 -p bootstrapper-image="${GCR_IMAGE_BASE_DIR}/bootstrapper" \
@@ -128,38 +128,4 @@ ARGO_WORKFLOW=`argo submit $(dirname $0)/${WORKFLOW_FILE} \
 `
 echo argo workflow submitted successfully
 
-echo "check status of argo workflow $ARGO_WORKFLOW...."
-# probing the argo workflow status until it completed. Timeout after 30 minutes
-for i in $(seq 1 ${PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT})
-do
-  WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW --show-labels`
-  echo $WORKFLOW_STATUS | grep ${WORKFLOW_COMPLETE_KEYWORD} && s=0 && break || s=$? && printf "Workflow ${ARGO_WORKFLOW} is not finished.\n${WORKFLOW_STATUS}\nSleep for 20 seconds...\n" && sleep 20
-done
-
-# Check whether the argo workflow finished or not and exit if not.
-if [[ $s != 0 ]]; then
- echo "Prow job Failed: Argo workflow timeout.."
- argo logs -w ${ARGO_WORKFLOW}
- exit $s
-fi
-
-echo "Argo workflow finished."
-
-if [[ ! -z "$TEST_RESULT_FOLDER" ]]
-then
-  echo "Copy test result"
-  mkdir -p $ARTIFACT_DIR
-  gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
-fi
-
-if [[ $WORKFLOW_STATUS = *"${WORKFLOW_FAILED_KEYWORD}"* ]]; then
-  echo "Test workflow failed."
-  echo "=========Argo Workflow Logs========="
-  argo logs -w ${ARGO_WORKFLOW}
-  echo "===================================="
-  argo get ${ARGO_WORKFLOW}
-  exit 1
-else
-  argo get ${ARGO_WORKFLOW}
-  exit 0
-fi
+source "${DIR}/check-argo-status.sh"

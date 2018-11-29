@@ -20,7 +20,6 @@ usage()
 {
     echo "usage: run_test.sh
     --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test
-    [--commit_sha     commit SHA to pull code from]
     [-h help]"
 }
 
@@ -28,9 +27,6 @@ while [ "$1" != "" ]; do
     case $1 in
              --results-gcs-dir )shift
                                 RESULTS_GCS_DIR=$1
-                                ;;
-             --commit_sha )     shift
-                                COMMIT_SHA=$1
                                 ;;
              -h | --help )      usage
                                 exit
@@ -51,13 +47,7 @@ BASE_DIR=/go/src/github.com/${GITHUB_REPO}
 JUNIT_TEST_RESULT=junit_BackendUnitTestOutput.xml
 TEST_DIR=backend/src
 
-echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
-git clone https://github.com/${GITHUB_REPO} ${BASE_DIR}
-cd ${BASE_DIR}
-git config --local user.name 'K8S Bootstrap'
-git config --local user.email k8s_bootstrap@localhost
-git merge --no-ff ${COMMIT_SHA} -m "Merged PR ${COMMIT_SHA}"
-cd ${TEST_DIR}
+cd "${BASE_DIR}/${TEST_DIR}"
 
 # Run test and store the exit code.
 echo "Run unit test..."
