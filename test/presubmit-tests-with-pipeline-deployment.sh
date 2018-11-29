@@ -69,6 +69,15 @@ gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIAL
 gcloud config set compute/zone us-central1-a
 gcloud config set core/project ${PROJECT}
 
+#Uploading the source code to GCS:
+local_code_archive_file=$(mktemp)
+date_string=$(TZ=PST8PDT date +%Y-%m-%d_%H-%M-%S_%Z)
+code_archive_prefix="gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/source_code"
+remote_code_archive_uri="${code_archive_prefix}_${PULL_BASE_SHA}_${date_string}.tar.gz"
+
+tar -czf "$local_code_archive_file" .
+gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
+
 # Install ksonnet
 KS_VERSION="0.11.0"
 curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
@@ -131,7 +140,8 @@ source "${DIR}/install-argo.sh"
 
 echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
--p commit-sha="${PULL_PULL_SHA}" \
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
 -n ${NAMESPACE} \
