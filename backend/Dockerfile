@@ -14,33 +14,14 @@ COPY . .
 RUN apk add --update gcc musl-dev
 RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 
-FROM python:3.5 as compiler
+FROM python:3.5.0-slim as compiler
 
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q default-jdk wget 
-
-RUN pip3 install setuptools==40.5.0
-
-RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
-
-WORKDIR /go/src/github.com/kubeflow/pipelines
-COPY . .
-WORKDIR /go/src/github.com/kubeflow/pipelines/sdk/python
-RUN ./build.sh /kfp.tar.gz
-RUN pip3 install /kfp.tar.gz
-
+# This is hard coded to 0.0.26. Once kfp DSK release process is automated,
+# we can dynamically refer to the version from same commit SHA.
+RUN pip install https://storage.googleapis.com/ml-pipeline/release/0.0.26/kfp-0.0.26.tar.gz --upgrade
 WORKDIR /samples
 COPY ./samples .
-
-#We need to check that all samples have been compiled without error.
-#For find program, the -exec argument is a filter predicate just like -name. It only affects whether the file is "found", not the find's exit code.
-#One way to solve this problem is to check whether we have any python pipelines that cannot compile. Here the exit code is the number of such files:
-#RUN  bash -e -c 'exit $(find . -maxdepth 2 -name "*.py" ! -exec dsl-compile --py {} --output {}.tar.gz \; -print | wc -l)'
-#I think it's better to just use a shell loop though.
-#RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
-#The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  find . -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
-
+RUN  find . -maxdepth 2 -name "*.py" -exec dsl-compile --py {} --output {}.tar.gz \;
 
 FROM alpine
 

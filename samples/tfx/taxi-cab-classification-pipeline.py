@@ -20,7 +20,7 @@ import datetime
 def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--csv-data-for-inference', inference_data,
             '--csv-data-to-validate', validation_data,
@@ -39,7 +39,7 @@ def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'G
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--train', train_data,
             '--eval', evaluation_data,
@@ -56,7 +56,7 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
 def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target: str, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--transformed-data-dir', transformed_data_dir,
             '--schema', schema,
@@ -73,7 +73,7 @@ def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate
 def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--model', model,
             '--eval', evaluation_data,
@@ -90,7 +90,7 @@ def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'Gc
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--data', evaluation_data,
             '--schema', schema,
@@ -106,7 +106,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
 def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='deploy'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.1.0', #TODO-release: update the release tag for the next release
         arguments = [
             '--model-path', model,
             '--server-name', tf_server_name
@@ -119,23 +119,37 @@ def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='dep
   description='Example pipeline that does classification with model analysis based on a public BigQuery dataset.'
 )
 def taxi_cab_classification(
-    output,
-    project,
-    column_names='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json',
-    key_columns='trip_start_timestamp',
-    train='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv',
-    evaluation='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv',
-    validation_mode='local',
-    preprocess_mode='local',
-    preprocess_module='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py',
-    target='tips',
-    learning_rate=0.1,
-    hidden_layer_size='1500',
-    steps=3000,
-    predict_mode='local',
-    analyze_mode='local',
-    analyze_slice_column='trip_start_hour'):
+    output: dsl.PipelineParam,
+    project: dsl.PipelineParam,
 
+    column_names: dsl.PipelineParam=dsl.PipelineParam(
+        name='column-names',
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json'),
+    key_columns: dsl.PipelineParam=dsl.PipelineParam(
+        name='key-columns',
+        value='trip_start_timestamp'),
+    train: dsl.PipelineParam=dsl.PipelineParam(
+        name='train',
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv'),
+    evaluation: dsl.PipelineParam=dsl.PipelineParam(
+        name='evaluation',
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv'),
+    validation_mode: dsl.PipelineParam=dsl.PipelineParam(
+        name='validation-mode', value='local'),
+    preprocess_mode: dsl.PipelineParam=dsl.PipelineParam(
+        name='preprocess-mode', value='local'),
+    preprocess_module: dsl.PipelineParam=dsl.PipelineParam(
+        name='preprocess-module',
+        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py'),
+    target: dsl.PipelineParam=dsl.PipelineParam(
+        name='target', value='tips'),
+    learning_rate: dsl.PipelineParam=dsl.PipelineParam(name='learning-rate', value=0.1),
+    hidden_layer_size: dsl.PipelineParam=dsl.PipelineParam(name='hidden-layer-size', value='1500'),
+    steps: dsl.PipelineParam=dsl.PipelineParam(name='steps', value=3000),
+    predict_mode: dsl.PipelineParam=dsl.PipelineParam(name='predict-mode', value='local'),
+    analyze_mode: dsl.PipelineParam=dsl.PipelineParam(name='analyze-mode', value='local'),
+    analyze_slice_column: dsl.PipelineParam=dsl.PipelineParam(
+        name='analyze-slice-column', value='trip_start_hour')):
   validation_output = '%s/{{workflow.name}}/validation' % output
   transform_output = '%s/{{workflow.name}}/transformed' % output
   training_output = '%s/{{workflow.name}}/train' % output

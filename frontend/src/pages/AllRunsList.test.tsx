@@ -36,7 +36,6 @@ describe('AllRunsList', () => {
     updateToolbar: updateToolbarSpy,
   };
 
-  // TODO: why is this called mount if it is using shallow?
   function mountComponent(): ShallowWrapper {
     const tree = shallow(<AllRunsList {...props} />);
     // Necessary since the component calls updateToolbar with the toolbar props,

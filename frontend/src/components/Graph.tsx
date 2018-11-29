@@ -119,14 +119,11 @@ interface GraphProps {
 }
 
 export default class Graph extends React.Component<GraphProps> {
-  public render(): JSX.Element | null {
+  public render(): JSX.Element {
     const { graph } = this.props;
     const displayEdges: Edge[] = [];
     const displayEdgeStartPoints: number[][] = [];
 
-    if (!graph.nodes().length) {
-      return null;
-    }
     dagre.layout(graph);
 
     // Creates the lines that constitute the edges connecting the graph.

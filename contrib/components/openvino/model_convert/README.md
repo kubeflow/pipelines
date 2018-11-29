@@ -236,21 +236,16 @@ Kaldi-specific parameters:
 The output folder specify then should be uploaded the generated model file in IR format with .bin and .xml
 extensions.
 
-The component also creates 3 files including the paths to generated model:
-- `/tmp/output.txt` - GSC path to the folder including the generated model files.
-- `/tmp/bin_path.txt` -  GSC path to weights model file 
-- `/tmp/xml_path.txt` - GSC path to graph model file 
-They can be used as parameters to be passed to other jobs in ML pipelines.
+The component also saved the generated model files in location: `/tmp/model.bin` and `/tmp/model.xml`
+so this path could be used in the argo pipeline for storing the workflow artifacts.
 
 ## Examples
 
-Input path - gs://tensorflow_model_path/resnet/1/saved_model.pb<br />
-MO options - --saved_model_dir .<br />
-Output path - gs://tensorflow_model_path/resnet/1
+Input path - gs://tensorflow_model_path/resnet/1/saved_model.pb
 
-Input path - gs://tensorflow_model_path/resnet/1<br />
-MO options - --saved_model_dir 1<br />
-Output path - gs://tensorflow_model_path/resnet/dldt/1<br />
+MO options - --saved_model_dir .
+
+Output path - gs://tensorflow_model_path/resnet/1
 
 
 ## Building docker image
@@ -265,7 +260,7 @@ This component requires GCP authentication token in json format generated for th
 which has access to GCS location. In the example below it is in key.json in the current path.
 
 ```bash
-COMMAND="convert_model.py --mo_options  \"--saved_model_dir .\" --input_path gs://tensorflow_model_path/resnet/1/saved_model.pb --output_path gs://tensorflow_model_path/resnet/1"
+COMMAND="python3 ../convert_model.py --mo_options  \"--saved_model_dir .\" --input_path gs://tensorflow_model_path/resnet/1/saved_model.pb --output_path gs://tensorflow_model_path/resnet/1"
 docker run --rm -it -v $(pwd)/key.json:/etc/credentials/gcp-key.json \
 -e GOOGLE_APPLICATION_CREDENTIALS=/etc/credentials/gcp-key.json <image_name> $COMMAND
 

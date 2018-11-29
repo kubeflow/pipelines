@@ -14,7 +14,7 @@ Preprocessing uses Google Cloud DataProc. Therefore, you must enable the [DataPr
 
 ## Compile
 
-Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK and compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file. 
+Follow the guide to [building a pipeline](https://github.com/kubeflow/pipelines/wiki/Build-a-Pipeline) to install the Kubeflow Pipelines SDK and compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file. 
 
 ## Deploy
 
@@ -51,14 +51,8 @@ Distributed Predictions:
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/containers/predict)
 
 Confusion Matrix:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix)
- 
-
-ROC:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/roc/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/roc)
-
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/evaluation) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/containers/confusion_matrix)
 
 Delete Cluster:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/delete_cluster) 

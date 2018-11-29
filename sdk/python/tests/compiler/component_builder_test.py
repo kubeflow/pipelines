@@ -151,11 +151,13 @@ class TestDockerfileHelper(unittest.TestCase):
     golden_dockerfile_payload_one = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
+RUN pip3 install fire
 ADD main.py /ml/
 ENTRYPOINT ["python3", "/ml/main.py"]'''
     golden_dockerfile_payload_two = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
+RUN pip3 install fire
 ADD requirements.txt /ml/
 RUN pip3 install -r /ml/requirements.txt
 ADD main.py /ml/
@@ -319,14 +321,9 @@ def wrapper_sample_component_func(a,b):
   with open("/output.txt", "w") as f:
     f.write(str(output))
 
-import argparse
-parser = argparse.ArgumentParser(description="Parsing arguments")
-parser.add_argument("a", type=str)
-parser.add_argument("b", type=int)
-args = vars(parser.parse_args())
-
+import fire
 if __name__ == "__main__":
-  wrapper_sample_component_func(**args)
+  fire.Fire(wrapper_sample_component_func)
 '''
     self.assertEqual(golden, generated_codes)
 
@@ -343,14 +340,9 @@ def wrapper_sample_component_func_two(a,b):
   with open("/output.txt", "w") as f:
     f.write(str(output))
 
-import argparse
-parser = argparse.ArgumentParser(description="Parsing arguments")
-parser.add_argument("a", type=str)
-parser.add_argument("b", type=int)
-args = vars(parser.parse_args())
-
+import fire
 if __name__ == "__main__":
-  wrapper_sample_component_func_two(**args)
+  fire.Fire(wrapper_sample_component_func_two)
 '''
     self.assertEqual(golden, generated_codes)
 
@@ -364,11 +356,8 @@ def wrapper_sample_component_func_three():
   with open("/output.txt", "w") as f:
     f.write(str(output))
 
-import argparse
-parser = argparse.ArgumentParser(description="Parsing arguments")
-args = vars(parser.parse_args())
-
+import fire
 if __name__ == "__main__":
-  wrapper_sample_component_func_three(**args)
+  fire.Fire(wrapper_sample_component_func_three)
 '''
     self.assertEqual(golden, generated_codes)
