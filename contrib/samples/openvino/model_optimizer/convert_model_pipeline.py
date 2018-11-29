@@ -15,12 +15,12 @@ def download_optimize_and_upload(
     dsl.ContainerOp(
         name='mo',
         image='<image name>',
-        command=['python3', '../convert_model.py'],
+        command=['convert_model.py'],
         arguments=[
          '--input_path', input_path,
          '--output_path', output_path,
          '--mo_options', mo_options],
-        file_outputs={})
+        file_outputs={'output': '/tmp/output_path.txt'})
 
 
 if __name__ == '__main__':

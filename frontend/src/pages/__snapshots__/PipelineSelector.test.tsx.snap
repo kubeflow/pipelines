@@ -1,0 +1,50 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PipelineSelector calls API to load pipelines 1`] = `
+<Fragment>
+  <Toolbar
+    actions={Array []}
+    breadcrumbs={Array []}
+    pageTitle="Choose a pipeline"
+  />
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "flex": 1,
+          "label": "Pipeline name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 1.5,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Uploaded on",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No pipelines found. Upload a pipeline and then try again."
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "id": undefined,
+          "otherFields": Array [
+            "test pipeline name",
+            "test pipeline description",
+            "11/9/2018, 8:07:06 AM",
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    updateSelection={[Function]}
+    useRadioButtons={true}
+  />
+</Fragment>
+`;

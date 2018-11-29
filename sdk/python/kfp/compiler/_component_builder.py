@@ -157,7 +157,6 @@ class DockerfileHelper(object):
     with open(target_file, 'w') as f:
       f.write('FROM ' + base_image + '\n')
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
-      f.write('RUN pip3 install fire\n')
       if has_requirement_file:
         f.write('ADD ' + self._ARC_REQUIREMENT_FILE + ' /ml/\n')
         f.write('RUN pip3 install -r /ml/' + self._ARC_REQUIREMENT_FILE + '\n')
@@ -329,10 +328,15 @@ class ImageBuilder(object):
 
     # CLI codes
     codegen.begin()
-    codegen.writeline('import fire')
+    codegen.writeline('import argparse')
+    codegen.writeline('parser = argparse.ArgumentParser(description="Parsing arguments")')
+    for input_arg in input_args:
+      codegen.writeline('parser.add_argument("' + input_arg + '", type=' + inputs[input_arg].__name__ + ')')
+    codegen.writeline('args = vars(parser.parse_args())')
+    codegen.writeline('')
     codegen.writeline('if __name__ == "__main__":')
     codegen.indent()
-    codegen.writeline('fire.Fire(' + new_func_name + ')')
+    codegen.writeline(new_func_name + '(**args)')
 
     # Remove the decorator from the component source
     src_lines = component_src.split('\n')
