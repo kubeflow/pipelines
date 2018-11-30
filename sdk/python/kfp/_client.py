@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import six
 import time
 import logging
 import json
@@ -139,7 +138,7 @@ class Client(object):
 
     pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
     pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_run.ApiParameter(name=k, value=str(v)) for k,v in six.iteritems(params)]
+    api_params = [kfp_run.ApiParameter(name=k, value=str(v)) for k,v in params.items()]
     key = kfp_run.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_run.models.ApiResourceType.EXPERIMENT)
     reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
