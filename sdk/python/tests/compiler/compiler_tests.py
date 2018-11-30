@@ -23,6 +23,7 @@ import tarfile
 import tempfile
 import unittest
 import yaml
+import datetime
 
 class TestCompiler(unittest.TestCase):
 
@@ -140,6 +141,21 @@ class TestCompiler(unittest.TestCase):
       # Replace next line with commented line for gathering golden yaml.
       shutil.rmtree(tmpdir)
       # print(tmpdir)
+
+  def test_convert_k8s_obj_to_dic_accepts_dict(self):
+    now = datetime.datetime.now()
+    converted = compiler.Compiler()._convert_k8s_obj_to_dic({
+      "ENV": "test",
+      "number": 3,
+      "list": [1,2,3],
+      "time": now
+    })
+    self.assertEqual(converted, {
+      "ENV": "test",
+      "number": 3,
+      "list": [1,2,3],
+      "time": now.isoformat()
+    })
 
   def test_composing_workflow(self):
     """Test compiling a simple workflow, and a bigger one composed from the simple one."""
