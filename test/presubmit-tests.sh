@@ -17,9 +17,9 @@
 set -xe
 
 echo Started
-(
-  sleep 5m
+{
+  sleep 1m
   echo Finished sleeping
   exit 1
-) &
+} &
 echo Finished
