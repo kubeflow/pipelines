@@ -24,6 +24,13 @@
 #   go-tests = true
 #   unused-packages = true
 
+required = [
+  "k8s.io/code-generator/cmd/defaulter-gen",
+  "k8s.io/code-generator/cmd/deepcopy-gen",
+  "k8s.io/code-generator/cmd/client-gen",
+  "k8s.io/code-generator/cmd/lister-gen",
+  "k8s.io/code-generator/cmd/informer-gen",
+]
 
 [[constraint]]
   name = "github.com/argoproj/argo"
@@ -118,16 +125,16 @@
   name = "k8s.io/apimachinery"
 
 [[constraint]]
-  branch = "release-6.0"
-  name = "k8s.io/client-go"
-
-[[constraint]]
   name = "k8s.io/kubernetes"
   version = "1.11.1"
 
 [prune]
   go-tests = true
   unused-packages = true
+
+   [[prune.project]]
+    name = "k8s.io/code-generator"
+    unused-packages = false
 
 [[override]]
   branch = "release-1.11"
@@ -138,9 +145,15 @@
   name = "k8s.io/api"
 
 [[override]]
-  branch = "release-8.0"
   name = "k8s.io/client-go"
+  # revision for tag "kubernetes-1.11.1"
+  revision = "59698c7d9724b0f95f9dc9e7f7dfdcc3dfeceb82"
 
 [[override]]
   name = "github.com/spf13/pflag"
   version = "1.0.1"
+
+[[override]]
+  name = "k8s.io/code-generator"
+  # revision for tag "kubernetes-1.11.1"
+  revision = "6702109cc68eb6fe6350b83e14407c8d7309fd1a"
