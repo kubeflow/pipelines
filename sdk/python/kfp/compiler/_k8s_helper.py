@@ -51,7 +51,7 @@ class K8sHelper(object):
                                     service_account_name=yaml_spec['spec']['serviceAccountName'],
                                     volumes=[k8s_client.V1Volume(
                                         name=yaml_spec['spec']['volumes'][0]['name'],
-                                        secret=k8s_client.V1Secret(
+                                        secret=k8s_client.V1SecretVolumeSource(
                                            secret_name=yaml_spec['spec']['volumes'][0]['secret']['secretName'],
                                         )
                                     )])
