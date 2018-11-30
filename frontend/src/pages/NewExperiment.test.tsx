@@ -20,8 +20,7 @@ import TestUtils from '../TestUtils';
 import { shallow } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
-import { RoutePage } from '../components/Router';
-import { QUERY_PARAMS } from '../lib/URLParser';
+import { RoutePage, QUERY_PARAMS } from '../components/Router';
 
 describe('NewExperiment', () => {
   const createExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'createExperiment');

@@ -18,9 +18,9 @@ import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import RunList from './RunList';
 import { Page } from './Page';
-import { RoutePage } from '../components/Router';
+import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { URLParser } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 

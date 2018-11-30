@@ -23,8 +23,7 @@ import { Apis } from '../lib/Apis';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { PageProps } from './Page';
 import { PlotType } from '../components/viewers/Viewer';
-import { QUERY_PARAMS } from '../lib/URLParser';
-import { RouteParams, RoutePage } from '../components/Router';
+import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { shallow } from 'enzyme';
 

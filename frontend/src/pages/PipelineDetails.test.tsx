@@ -21,8 +21,7 @@ import TestUtils from '../TestUtils';
 import { ApiPipeline } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
-import { QUERY_PARAMS } from '../lib/URLParser';
-import { RouteParams, RoutePage } from '../components/Router';
+import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { graphlib } from 'dagre';
 import { shallow, mount, ShallowWrapper, ReactWrapper } from 'enzyme';
 

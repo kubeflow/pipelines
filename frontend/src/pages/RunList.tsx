@@ -21,11 +21,12 @@ import { ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric } 
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
-import { RoutePage, RouteParams } from '../components/Router';
+import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss, color } from '../Css';
 import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
 import { stylesheet } from 'typestyle';
+import { URLParser } from 'src/lib/URLParser';
 
 const css = stylesheet({
   metricContainer: {
@@ -49,8 +50,10 @@ interface ExperimentInfo {
 }
 
 interface PipelineInfo {
-  displayName: string;
-  id: string;
+  displayName?: string;
+  id?: string;
+  runId?: string;
+  showLink: boolean;
 }
 
 interface DisplayRun {
@@ -246,11 +249,13 @@ class RunList extends React.Component<RunListProps, RunListState> {
         if (pipelineId) {
           try {
             const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-            displayRun.pipeline = { displayName: pipeline.name || '', id: pipelineId };
+            displayRun.pipeline = { displayName: pipeline.name || '', id: pipelineId, showLink: false };
           } catch (err) {
             // This could be an API exception, or a JSON parse exception.
             displayRun.error = 'Failed to get associated pipeline: ' + await errorToMessage(err);
           }
+        } else if (!!RunUtils.getPipelineSpec(displayRun.metadata)) {
+          displayRun.pipeline = { showLink: true };
         }
         return displayRun;
       })
@@ -289,15 +294,19 @@ class RunList extends React.Component<RunListProps, RunListState> {
       to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, id)}>{value}</Link>;
   }
 
-  private _pipelineCustomRenderer(pipelineInfo?: PipelineInfo): JSX.Element {
+  private _pipelineCustomRenderer(pipelineInfo: PipelineInfo, id: string): JSX.Element {
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
-    if (!pipelineInfo || !pipelineInfo.id) {
+    if (!pipelineInfo || (!pipelineInfo.showLink && !pipelineInfo.id)) {
       return <div>-</div>;
     }
+    const search = new URLParser(this.props).build({ [QUERY_PARAMS.specFromRun]: id });
+    const url = pipelineInfo.showLink ?
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, 'none') + search :
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id || '');
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id)}>
-        {pipelineInfo.displayName}
+        to={url}>
+        {pipelineInfo.showLink ? 'View pipeline' : pipelineInfo.displayName}
       </Link>
     );
   }

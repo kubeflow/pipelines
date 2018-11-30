@@ -44,6 +44,17 @@ const css = stylesheet({
   },
 });
 
+export enum QUERY_PARAMS {
+  cloneFromRun = 'cloneFromRun',
+  experimentId = 'experimentId',
+  isRecurring = 'recurring',
+  firstRunInExperiment = 'firstRunInExperiment',
+  pipelineId = 'pipelineId',
+  specFromRun = 'specFromRun',
+  runlist = 'runlist',
+  view = 'view',
+}
+
 export enum RouteParams {
   experimentId = 'eid',
   pipelineId = 'pid',

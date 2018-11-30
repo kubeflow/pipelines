@@ -22,8 +22,7 @@ import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
 import { NodePhase } from './Status';
 import { PageProps } from './Page';
-import { QUERY_PARAMS } from '../lib/URLParser';
-import { RoutePage } from '../components/Router';
+import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { range } from 'lodash';
 import { shallow, ReactWrapper } from 'enzyme';
 

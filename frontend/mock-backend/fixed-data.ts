@@ -530,6 +530,47 @@ const runs: ApiRunDetail[] = [
       status: 'Succeeded',
     },
   },
+  {
+    pipeline_runtime: {
+      workflow_manifest: JSON.stringify(helloWorldRun),
+    },
+    run: {
+      created_at: new Date('2018-08-18T20:58:23.000Z'),
+      description: 'simple run with pipeline spec embedded in it.',
+      id: '7fc01715-4a93-4c00-8044-a8a72c14253b',
+      metrics: [
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          number_value: 0.5999,
+        },
+        {
+          format: RunMetricFormat.RAW,
+          name: 'log_loss',
+          number_value: -0.223,
+        }
+      ],
+      name: 'hello-world-with-pipeline',
+      namespace: 'namespace',
+      pipeline_spec: {
+        parameters: [
+          { name: 'paramName1', value: 'paramVal1' },
+          { name: 'paramName2', value: 'paramVal2' },
+        ],
+        pipeline_manifest: JSON.stringify(pipelines[0]),
+        workflow_manifest: xgboostTemplate,
+      },
+      resource_references: [{
+        key: {
+          id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+          type: ApiResourceType.EXPERIMENT,
+        },
+        relationship: ApiRelationship.OWNER,
+      }],
+      scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
+      status: 'Succeeded',
+    },
+  },
 ];
 
 runs.push(...generateNRuns());
