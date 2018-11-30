@@ -123,25 +123,9 @@ echo "Initialized ksonnet APP completed successfully"
 
 
 # Import pipeline registry
-# Note: Since the repository is not yet public, and ksonnet can't add a local registry due to
-# an known issue: https://github.com/ksonnet/ksonnet/issues/232, we are working around by creating
-# a symbolic links in ./vendor and manually modifying app.yaml
-# when the repo is public we can do following:
-# ks registry add pipeline github.com/kubeflow/pipelines/tree/master/pipeline
-# ks pkg install pipeline/pipeline
 BASEDIR=$(cd $(dirname "$0") && pwd)
-ln -s ${BASEDIR} ${APP_DIR}/vendor/pipeline
-
-# Modifying the app.yaml
-sed '/kind: ksonnet.io\/app/r '<(cat<<'EOF'
-libraries:
-  pipeline:
-    name: pipeline
-    registry: pipeline
-EOF
-)  ${APP_DIR}/app.yaml > ${APP_DIR}/tmp.yaml
-mv ${APP_DIR}/tmp.yaml ${APP_DIR}/app.yaml
-
+( cd ${APP_DIR} && ks registry add pipeline ${BASEDIR} )
+( cd ${APP_DIR} && ks pkg install pipeline/pipeline )
 
 kubectl get ns ${NAMESPACE} &>/dev/null
 if [ $? == 0 ]; then
