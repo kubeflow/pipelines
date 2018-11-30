@@ -111,6 +111,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const specFromRun = new URLParser(this.props).get(QUERY_PARAMS.specFromRun);
     return {
       actions: [{
         action: this._createNewExperiment.bind(this),
@@ -132,8 +133,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         title: 'Delete',
         tooltip: 'Delete this pipeline',
       }],
-      breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
-      pageTitle: this.props.match.params[RouteParams.pipelineId],
+      breadcrumbs: [!!specFromRun ?
+        { displayName: specFromRun, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, specFromRun) } :
+        { displayName: 'Pipelines', href: RoutePage.PIPELINES }
+      ],
+      pageTitle: !!specFromRun ? 'Pipeline details' : this.props.match.params[RouteParams.pipelineId],
     };
   }
 
