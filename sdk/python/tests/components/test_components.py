@@ -333,6 +333,61 @@ implementation:
 
         self.assertEqual(len(task1.arguments), 2)
 
+    def test_optional_inputs_reordering(self):
+        '''Tests optional input reordering.
+        In python signature, optional arguments must come after the required arguments.
+        '''
+        component_text = '''\
+inputs:
+- {name: in1}
+- {name: in2, optional: true}
+- {name: in3}
+implementation:
+  dockerContainer:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        import inspect
+        signature = inspect.signature(task_factory1)
+        actual_signature = list(signature.parameters.keys())
+        self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
+
+    def test_missing_optional_input_value_argument(self):
+        '''Missing optional inputs should resolve to nothing'''
+        component_text = '''\
+inputs:
+- {name: input 1, optional: true}
+implementation:
+  dockerContainer:
+    image: busybox
+    command:
+      - a
+      - {value: input 1}
+      - z
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertEqual(task1.command, ['a', 'z'])
+
+    def test_missing_optional_input_file_argument(self):
+        '''Missing optional inputs should resolve to nothing'''
+        component_text = '''\
+inputs:
+- {name: input 1, optional: true}
+implementation:
+  dockerContainer:
+    image: busybox
+    command:
+      - a
+      - {file: input 1}
+      - z
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertEqual(task1.command, ['a', 'z'])
+
     def test_command_concat(self):
         component_text = '''\
 inputs:
@@ -413,7 +468,7 @@ implementation:
     def test_command_if_is_present_then(self):
         component_text = '''\
 inputs:
-- {name: In, required: false}
+- {name: In, optional: true}
 implementation:
   container:
     image: busybox
@@ -428,14 +483,13 @@ implementation:
         task_then = task_factory1('data')
         self.assertEqual(task_then.arguments, ['--in', 'data']) 
         
-        #TODO: Fix optional arguments
-        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
-        #self.assertEqual(task_else.arguments, [])
+        task_else = task_factory1()
+        self.assertEqual(task_else.arguments, [])
 
     def test_command_if_is_present_then_else(self):
         component_text = '''\
 inputs:
-- {name: In, required: false}
+- {name: In, optional: true}
 implementation:
   container:
     image: busybox
@@ -450,9 +504,31 @@ implementation:
         task_then = task_factory1('data')
         self.assertEqual(task_then.arguments, ['--in', 'data']) 
         
-        #TODO: Fix optional arguments
-        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
-        #self.assertEqual(task_else.arguments, ['--no-in'])
+        task_else = task_factory1()
+        self.assertEqual(task_else.arguments, ['--no-in'])
+
+
+    def test_command_if_input_value_then(self):
+        component_text = '''\
+inputs:
+- {name: Do test, type: boolean, optional: true}
+- {name: Test data, optional: true}
+- {name: Test parameter 1, optional: true}
+implementation:
+  dockerContainer:
+    image: busybox
+    arguments:
+      - if:
+          cond: {value: Do test}
+          then: [--test-data, {value: Test data}, --test-param1, {value: Test parameter 1}]
+'''
+        task_factory1 = comp.load_component(text=component_text)
+
+        task_then = task_factory1(True, 'test_data.txt', 42)
+        self.assertEqual(task_then.arguments, ['--test-data', 'test_data.txt', '--test-param1', '42'])
+        
+        task_else = task_factory1()
+        self.assertEqual(task_else.arguments, [])
 
 
 if __name__ == '__main__':

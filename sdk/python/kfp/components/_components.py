@@ -188,6 +188,8 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     inputs_list = component_spec.inputs or [] #List[InputSpec]
     outputs_list = component_spec.outputs or [] #List[OutputSpec]
 
+    inputs_dict = {port.name: port for port in inputs_list}
+
     input_name_to_pythonic = {}
     output_name_to_pythonic = {}
     pythonic_name_to_original = {}
@@ -246,7 +248,16 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     assert isinstance(func_argument, str)
                     port_name = func_argument
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
-                    return str(input_value)
+                    if input_value is not None:
+                        return str(input_value)
+                    else:
+                        input_spec = inputs_dict[port_name]
+                        if input_spec.optional:
+                            #Even when we support default values there is no need to check for a default here.
+                            #In current execution flow (called by python task factory), the missing argument would be replaced with the default value by python itself.
+                            return None
+                        else:
+                            raise ValueError('No value provided for input {}'.format(port_name))
 
                 elif func_name == 'file':
                     assert isinstance(func_argument, str)
@@ -254,8 +265,17 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     input_filename = _generate_input_file_name(port_name)
                     input_key = input_name_to_kubernetes[port_name]
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
-                    file_inputs[input_key] = {'local_path': input_filename, 'data_source': input_value}
-                    return input_filename
+                    if input_value is not None:
+                        file_inputs[input_key] = {'local_path': input_filename, 'data_source': input_value}
+                        return input_filename
+                    else:
+                        input_spec = inputs_dict[port_name]
+                        if input_spec.optional:
+                            #Even when we support default values there is no need to check for a default here.
+                            #In current execution flow (called by python task factory), the missing argument would be replaced with the default value by python itself.
+                            return None
+                        else:
+                            raise ValueError('No value provided for input {}'.format(port_name))
 
                 elif func_name == 'output':
                     assert isinstance(func_argument, str)
@@ -340,11 +360,13 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     import inspect
     from . import _dynamic
-    
-    #Still allowing to set the output parameters, but make them optional and auto-generate if missing.
-    input_parameters  = [_dynamic.KwParameter(input_name_to_pythonic[port.name], annotation=(_try_get_object_by_name(port.type) if port.type else inspect.Parameter.empty)) for port in inputs_list]
+
+    #Reordering the inputs since in Python optional parameters must come after reuired parameters
+    reordered_input_list = [input for input in inputs_list if not input.optional] + [input for input in inputs_list if input.optional]
+    input_parameters  = [_dynamic.KwParameter(input_name_to_pythonic[port.name], annotation=(_try_get_object_by_name(port.type) if port.type else inspect.Parameter.empty), default=(None if port.optional else inspect.Parameter.empty)) for port in reordered_input_list]
     output_parameters = [_dynamic.KwParameter(output_name_to_pythonic[port.name], annotation=('OutputFile[{}]'.format(port.type) if port.type else inspect.Parameter.empty), default=None) for port in outputs_list]
 
+    #Still allowing to set the output parameters, but make them optional and auto-generate if missing.
     factory_function_parameters = input_parameters + output_parameters
     
     return _dynamic.create_function_from_parameters(
