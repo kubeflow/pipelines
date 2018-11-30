@@ -67,7 +67,7 @@ describe('Tensorboard', () => {
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
     jest.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
     const tree = shallow(<TensorboardViewer configs={[config]} />);
-    jest.spyOn(tree.instance(), 'setState').mockImplementation((state, cb) => cb());
+    jest.spyOn(tree.instance(), 'setState').mockImplementation((_, cb) => cb && cb());
     await getAppMock;
     tree.find('BusyButton').simulate('click');
     await startAppMock;
@@ -82,7 +82,7 @@ describe('Tensorboard', () => {
     jest.spyOn(Apis, 'getTensorboardApp').mockImplementationOnce(getAppMock);
     jest.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
     const tree = shallow(<TensorboardViewer configs={[config, config2]} />);
-    jest.spyOn(tree.instance(), 'setState').mockImplementation((state, cb) => cb());
+    jest.spyOn(tree.instance(), 'setState').mockImplementation((_, cb) => cb && cb());
     await getAppMock;
     expect(getAppMock).toHaveBeenCalledWith(`Series1:${config.url},Series2:${config2.url}`);
     tree.find('BusyButton').simulate('click');
