@@ -142,14 +142,20 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       # print(tmpdir)
 
-  def test_convert_k8s_obj_to_dic(self):
+  def test_convert_k8s_obj_to_dic_accepts_dict(self):
+    now = datetime.datetime.now()
     converted = compiler.Compiler()._convert_k8s_obj_to_dic({
       "ENV": "test",
       "number": 3,
       "list": [1,2,3],
-      "time": datetime.datetime.now()
+      "time": now
     })
-    assert isinstance(converted["time"], str)
+    self.assertEqual(converted, {
+      "ENV": "test",
+      "number": 3,
+      "list": [1,2,3],
+      "time": now.isoformat()
+    })
 
   def test_composing_workflow(self):
     """Test compiling a simple workflow, and a bigger one composed from the simple one."""
