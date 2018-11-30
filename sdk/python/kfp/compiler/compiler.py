@@ -508,7 +508,7 @@ class Compiler(object):
     Returns: The serialized form of data.
     """
 
-    from six import text_type, integer_types
+    from six import text_type, integer_types, iteritems
     PRIMITIVE_TYPES = (float, bool, bytes, text_type) + integer_types
     from datetime import date, datetime
     if obj is None:
@@ -532,7 +532,6 @@ class Compiler(object):
       # and attributes which value is not None.
       # Convert attribute name to json key in
       # model definition for request.
-      from six import iteritems
       obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
                   for attr, _ in iteritems(obj.swagger_types)
                   if getattr(obj, attr) is not None}
