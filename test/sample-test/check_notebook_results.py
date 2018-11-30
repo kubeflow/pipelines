@@ -68,9 +68,6 @@ def main():
     response = client.wait_for_run_completion(run_id, 1200)
     succ = (response.run.status.lower()=='succeeded')
     utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure')
-    if not succ:
-      utils.write_junit_xml(test_name, args.result, test_cases)
-      exit()
 
     ###### Output Argo Log for Debugging ######
     workflow_json = client._get_workflow_json(run_id)
@@ -78,6 +75,10 @@ def main():
     argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
     print("=========Argo Workflow Log=========")
     print(argo_log)
+
+    if not succ:
+      utils.write_junit_xml(test_name, args.result, test_cases)
+      exit()
 
   ###### Write out the test result in junit xml ######
   utils.write_junit_xml(test_name, args.result, test_cases)
