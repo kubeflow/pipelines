@@ -25,8 +25,10 @@ import Graph from '../components/Graph';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import MD2Tabs from '../atoms/MD2Tabs';
 import Paper from '@material-ui/core/Paper';
+import RunUtils from '../lib/RunUtils';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
+import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline, ApiGetTemplateResponse } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
@@ -38,7 +40,6 @@ import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding, fontsize, fonts } from '../Css';
 import { logger, errorToMessage, formatDateString } from '../lib/Utils';
-import RunUtils from 'src/lib/RunUtils';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -248,12 +249,40 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let pipeline: ApiPipeline | null = null;
     let templateYaml = '';
     let template: Workflow | undefined;
+    let breadcrumbs: Array<{ displayName: string, href: string }> = [];
+    const toolbarActions = [...this.props.toolbarProps.actions];
+    let pageTitle = '';
 
     // If fromRunId is specified, load the run and get the pipeline template from it
     if (fromRunId) {
       try {
-        const run = await Apis.runServiceApi.getRun(fromRunId);
-        templateYaml = RunUtils.getPipelineSpec(run.run) || '';
+        const runDetails = await Apis.runServiceApi.getRun(fromRunId);
+        templateYaml = RunUtils.getPipelineSpec(runDetails.run) || '';
+
+        const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
+        let experiment: ApiExperiment | undefined;
+        if (relatedExperimentId) {
+          experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
+        }
+
+        // Build the breadcrumbs, by adding experiment and run names
+        if (experiment) {
+          breadcrumbs.push(
+            { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+            {
+              displayName: experiment.name!,
+              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+            });
+        } else {
+          breadcrumbs.push(
+            { displayName: 'All runs', href: RoutePage.RUNS }
+          );
+        }
+        breadcrumbs.push({
+          displayName: runDetails.run!.name!,
+          href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId),
+        });
+        pageTitle = 'Pipeline details';
       } catch (err) {
         await this.showPageError('Cannot retrieve run details.', err);
         logger.error('Cannot retrieve run details.', err);
@@ -265,6 +294,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
+        pageTitle = pipeline.name!;
       } catch (err) {
         await this.showPageError('Cannot retrieve pipeline details.', err);
         logger.error('Cannot retrieve pipeline details.', err);
@@ -280,14 +310,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         return;
       }
 
-      const breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
-      const pageTitle = pipeline.name!;
-
-      const toolbarActions = [...this.props.toolbarProps.actions];
+      breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
       toolbarActions[0].disabled = false;
-      this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
-
     }
+
+    this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
 
     let g: dagre.graphlib.Graph | undefined;
     try {

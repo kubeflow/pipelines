@@ -22,11 +22,11 @@ import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { URLParser } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss, color } from '../Css';
 import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
 import { stylesheet } from 'typestyle';
-import { URLParser } from 'src/lib/URLParser';
 
 const css = stylesheet({
   metricContainer: {
