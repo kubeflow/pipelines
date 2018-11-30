@@ -343,7 +343,7 @@ inputs:
 - {name: in2, optional: true}
 - {name: in3}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -358,7 +358,7 @@ implementation:
 inputs:
 - {name: input 1, optional: true}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     command:
       - a
@@ -376,7 +376,7 @@ implementation:
 inputs:
 - {name: input 1, optional: true}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     command:
       - a
@@ -515,7 +515,7 @@ inputs:
 - {name: Test data, optional: true}
 - {name: Test parameter 1, optional: true}
 implementation:
-  dockerContainer:
+  container:
     image: busybox
     arguments:
       - if:
