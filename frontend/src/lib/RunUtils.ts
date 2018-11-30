@@ -30,7 +30,7 @@ function getPipelineId(run?: ApiRun | ApiJob): string | null {
 }
 
 function getPipelineSpec(run?: ApiRun | ApiJob): string | null {
-  return run && run.pipeline_spec && run.pipeline_spec.pipeline_manifest || null;
+  return run && run.pipeline_spec && run.pipeline_spec.workflow_manifest || null;
 }
 
 function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {

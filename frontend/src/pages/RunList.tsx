@@ -299,9 +299,9 @@ class RunList extends React.Component<RunListProps, RunListState> {
     if (!pipelineInfo || (!pipelineInfo.showLink && !pipelineInfo.id)) {
       return <div>-</div>;
     }
-    const search = new URLParser(this.props).build({ [QUERY_PARAMS.specFromRun]: id });
+    const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: id });
     const url = pipelineInfo.showLink ?
-      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, 'none') + search :
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search :
       RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id || '');
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}

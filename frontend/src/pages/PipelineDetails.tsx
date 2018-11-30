@@ -37,14 +37,15 @@ import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding, fontsize, fonts } from '../Css';
-import { logger, errorToMessage } from '../lib/Utils';
+import { logger, errorToMessage, formatDateString } from '../lib/Utils';
+import RunUtils from 'src/lib/RunUtils';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
-  selectedNodeInfo: JSX.Element | null;
   pipeline: ApiPipeline | null;
-  selectedTab: number;
   selectedNodeId: string;
+  selectedNodeInfo: JSX.Element | null;
+  selectedTab: number;
   summaryShown: boolean;
   template?: Workflow;
   templateYaml?: string;
@@ -111,9 +112,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
-    const specFromRun = new URLParser(this.props).get(QUERY_PARAMS.specFromRun);
+    const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
     return {
-      actions: [{
+      actions: !!fromRunId ? [] : [{
         action: this._createNewExperiment.bind(this),
         icon: AddIcon,
         id: 'startNewExperimentBtn',
@@ -133,11 +134,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         title: 'Delete',
         tooltip: 'Delete this pipeline',
       }],
-      breadcrumbs: [!!specFromRun ?
-        { displayName: specFromRun, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, specFromRun) } :
+      breadcrumbs: [!!fromRunId ?
+        { displayName: fromRunId, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId) } :
         { displayName: 'Pipelines', href: RoutePage.PIPELINES }
       ],
-      pageTitle: !!specFromRun ? 'Pipeline details' : this.props.match.params[RouteParams.pipelineId],
+      pageTitle: !!fromRunId ? 'Pipeline details' : this.props.match.params[RouteParams.pipelineId],
     };
   }
 
@@ -155,7 +156,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
 
-        {pipeline && (
+        {templateYaml && (
           <div className={commonCss.page}>
             <MD2Tabs
               selectedTab={selectedTab}
@@ -165,7 +166,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             <div className={commonCss.page}>
               {selectedTab === 0 && <div className={commonCss.page}>
                 {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                  {summaryShown && (
+                  {!!pipeline && summaryShown && (
                     <Paper className={css.summaryCard}>
                       <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
                         <div className={commonCss.header}>
@@ -176,7 +177,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                         </Button>
                       </div>
                       <div className={css.summaryKey}>Uploaded on</div>
-                      <div>{new Date(pipeline.created_at!).toLocaleString()}</div>
+                      <div>{formatDateString(pipeline.created_at)}</div>
                       <div className={css.summaryKey}>Description</div>
                       <div>{pipeline.description}</div>
                     </Paper>
@@ -188,7 +189,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                   <SidePanel isOpen={!!selectedNodeId}
                     title={selectedNodeId} onClose={() => this.setStateSafe({ selectedNodeId: '' })}>
                     <div className={commonCss.page}>
-                      {!selectedNodeInfo && <div>Unable to retrieve node info</div>}
+                      {!selectedNodeInfo && (
+                        <div className={commonCss.absoluteCenter}>Unable to retrieve node info</div>
+                      )}
                       {!!selectedNodeInfo && <div className={padding(20, 'lr')}>
                         <StaticNodeDetails nodeInfo={selectedNodeInfo} />
                       </div>}
@@ -240,48 +243,65 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public async load(): Promise<void> {
     this.clearBanner();
-    const pipelineId = this.props.match.params[RouteParams.pipelineId];
+    const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
 
-    let pipeline: ApiPipeline;
-    let templateResponse: ApiGetTemplateResponse;
-
-    try {
-      pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-    } catch (err) {
-      await this.showPageError('Cannot retrieve pipeline details.', err);
-      logger.error('Cannot retrieve pipeline details.', err);
-      return;
-    }
-
-    try {
-      templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
-    } catch (err) {
-      await this.showPageError('Cannot retrieve pipeline template.', err);
-      logger.error('Cannot retrieve pipeline details.', err);
-      return;
-    }
-
+    let pipeline: ApiPipeline | null = null;
+    let templateYaml = '';
     let template: Workflow | undefined;
+
+    // If fromRunId is specified, load the run and get the pipeline template from it
+    if (fromRunId) {
+      try {
+        const run = await Apis.runServiceApi.getRun(fromRunId);
+        templateYaml = RunUtils.getPipelineSpec(run.run) || '';
+      } catch (err) {
+        await this.showPageError('Cannot retrieve run details.', err);
+        logger.error('Cannot retrieve run details.', err);
+      }
+    } else {
+      // if fromRunId is not specified, then we have a full pipeline
+      const pipelineId = this.props.match.params[RouteParams.pipelineId];
+      let templateResponse: ApiGetTemplateResponse;
+
+      try {
+        pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
+      } catch (err) {
+        await this.showPageError('Cannot retrieve pipeline details.', err);
+        logger.error('Cannot retrieve pipeline details.', err);
+        return;
+      }
+
+      try {
+        templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
+        templateYaml = templateResponse.template || '{}';
+      } catch (err) {
+        await this.showPageError('Cannot retrieve pipeline template.', err);
+        logger.error('Cannot retrieve pipeline details.', err);
+        return;
+      }
+
+      const breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
+      const pageTitle = pipeline.name!;
+
+      const toolbarActions = [...this.props.toolbarProps.actions];
+      toolbarActions[0].disabled = false;
+      this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
+
+    }
+
     let g: dagre.graphlib.Graph | undefined;
     try {
-      template = JsYaml.safeLoad(templateResponse.template || '{}');
+      template = JsYaml.safeLoad(templateYaml);
       g = StaticGraphParser.createGraph(template!);
     } catch (err) {
       await this.showPageError('Error: failed to generate Pipeline graph.', err);
     }
 
-    const breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
-    const pageTitle = pipeline.name!;
-
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    toolbarActions[0].disabled = false;
-    this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });
-
     this.setStateSafe({
       graph: g,
       pipeline,
       template,
-      templateYaml: templateResponse.template,
+      templateYaml,
     });
   }
 
