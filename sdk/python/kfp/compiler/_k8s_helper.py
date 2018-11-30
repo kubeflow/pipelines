@@ -36,11 +36,25 @@ class K8sHelper(object):
     """ _create_k8s_job creates a kubernetes job based on the yaml spec """
     pod = k8s_client.V1Pod(metadata=k8s_client.V1ObjectMeta(generate_name=yaml_spec['metadata']['generateName']))
     container = k8s_client.V1Container(name = yaml_spec['spec']['containers'][0]['name'],
-                                       image= yaml_spec['spec']['containers'][0]['image'],
-                                       args = yaml_spec['spec']['containers'][0]['args'])
+                                       image = yaml_spec['spec']['containers'][0]['image'],
+                                       args = yaml_spec['spec']['containers'][0]['args'],
+                                       volume_mounts = [k8s_client.V1VolumeMount(
+                                           name=yaml_spec['spec']['containers'][0]['volumeMounts'][0]['name'],
+                                           mount_path=yaml_spec['spec']['containers'][0]['volumeMounts'][0]['mountPath'],
+                                       )],
+                                       env = [k8s_client.V1EnvVar(
+                                           name=yaml_spec['spec']['containers'][0]['env'][0]['name'],
+                                           value=yaml_spec['spec']['containers'][0]['env'][0]['value'],
+                                       )])
     pod.spec = k8s_client.V1PodSpec(restart_policy=yaml_spec['spec']['restartPolicy'],
                                     containers = [container],
-                                    service_account_name=yaml_spec['spec']['serviceAccountName'])
+                                    service_account_name=yaml_spec['spec']['serviceAccountName'],
+                                    volumes=[k8s_client.V1Volume(
+                                        name=yaml_spec['spec']['volumes'][0]['name'],
+                                        secret=k8s_client.V1SecretVolumeSource(
+                                           secret_name=yaml_spec['spec']['volumes'][0]['secret']['secretName'],
+                                        )
+                                    )])
     try:
       api_response = self._corev1.create_namespaced_pod(yaml_spec['metadata']['namespace'], pod)
       return api_response.metadata.name, True
