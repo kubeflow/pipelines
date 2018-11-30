@@ -34,7 +34,7 @@ class GCSHelper(object):
     gcs_bucket = pure_path.parts[1]
     gcs_blob = '/'.join(pure_path.parts[2:])
     client = storage.Client()
-    bucket = client.bucket(gcs_bucket)
+    bucket = client.get_bucket(gcs_bucket)
     blob = bucket.blob(gcs_blob)
     return blob
 
