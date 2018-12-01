@@ -29,5 +29,5 @@ echo "CODEGEN_PKG is $CODEGEN_PKG"
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
   github.com/kubeflow/pipelines/backend/src/crd/pkg/client \
   github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
-  scheduledworkflow:v1alpha1 \
+  "scheduledworkflow:v1alpha1 viewer:v1alpha1" \
   --go-header-file ${SCRIPT_ROOT}/custom-boilerplate.go.txt

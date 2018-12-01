@@ -17,6 +17,7 @@ package versioned
 
 import (
 	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
+	viewerv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/viewer/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -27,6 +28,9 @@ type Interface interface {
 	ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
 	Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface
+	ViewerV1alpha1() viewerv1alpha1.ViewerV1alpha1Interface
+	// Deprecated: please explicitly pick a version if possible.
+	Viewer() viewerv1alpha1.ViewerV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -34,6 +38,7 @@ type Interface interface {
 type Clientset struct {
 	*discovery.DiscoveryClient
 	scheduledworkflowV1alpha1 *scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Client
+	viewerV1alpha1            *viewerv1alpha1.ViewerV1alpha1Client
 }
 
 // ScheduledworkflowV1alpha1 retrieves the ScheduledworkflowV1alpha1Client
@@ -45,6 +50,17 @@ func (c *Clientset) ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.Schedu
 // Please explicitly pick a version.
 func (c *Clientset) Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
 	return c.scheduledworkflowV1alpha1
+}
+
+// ViewerV1alpha1 retrieves the ViewerV1alpha1Client
+func (c *Clientset) ViewerV1alpha1() viewerv1alpha1.ViewerV1alpha1Interface {
+	return c.viewerV1alpha1
+}
+
+// Deprecated: Viewer retrieves the default version of ViewerClient.
+// Please explicitly pick a version.
+func (c *Clientset) Viewer() viewerv1alpha1.ViewerV1alpha1Interface {
+	return c.viewerV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -67,6 +83,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.viewerV1alpha1, err = viewerv1alpha1.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -80,6 +100,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.scheduledworkflowV1alpha1 = scheduledworkflowv1alpha1.NewForConfigOrDie(c)
+	cs.viewerV1alpha1 = viewerv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -89,6 +110,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.scheduledworkflowV1alpha1 = scheduledworkflowv1alpha1.New(c)
+	cs.viewerV1alpha1 = viewerv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs
