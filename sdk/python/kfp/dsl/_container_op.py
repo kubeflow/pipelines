@@ -91,6 +91,7 @@ class ContainerOp(object):
   def after(self, op):
     """Specify explicit dependency on another op."""
     self.dependent_op_names.append(op.name)
+    return self
 
   def _validate_memory_string(self, memory_string):
     """Validate a given string is valid for memory request or limit."""
