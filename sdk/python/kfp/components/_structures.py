@@ -16,7 +16,7 @@ __all__ = [
     'InputOrOutputSpec',
     'InputSpec',
     'OutputSpec',
-    'DockerContainerSpec',
+    'ContainerSpec',
     'GraphInputReferenceSpec',
     'TaskOutputReferenceSpec',
     'DataValueOrReferenceSpec',
@@ -34,13 +34,13 @@ from typing import Union, List, Sequence, Mapping, Tuple
 
 
 class InputOrOutputSpec:
-    def __init__(self, name:str, type:str=None, description:str=None, required:bool=True, pattern:str=None):
+    def __init__(self, name:str, type:str=None, description:str=None, optional:bool=False, pattern:str=None):
         if not isinstance(name, str):
             raise ValueError('name must be a string')
         self.name = name
         self.type = type
         self.description = description
-        self.required = required
+        self.optional = optional
         self.pattern = pattern
 
     @classmethod
@@ -73,12 +73,12 @@ class InputOrOutputSpec:
         if 'description' in spec_dict:
             port_spec.description = str(spec_dict.pop('description'))
 
-        if 'required' in spec_dict:
-            port_spec.required = bool(spec_dict.pop('required'))
+        if 'optional' in spec_dict:
+            port_spec.optional = bool(spec_dict.pop('optional'))
         
         if 'pattern' in spec_dict:
             port_spec.pattern = str(spec_dict.pop('pattern'))
-        
+
         if spec_dict:
             raise ValueError('Found unrecognized properties: {}'.format(spec_dict))
         
@@ -91,9 +91,8 @@ class InputOrOutputSpec:
             struct['type'] = self.type
         if self.description:
             struct['description'] = self.description
-        if self.required != True: #Only outputting when not default
-            print(self.required)
-            struct['required'] = self.required
+        if self.optional:
+            struct['optional'] = self.optional
         if self.pattern:
             struct['pattern'] = self.pattern
         
@@ -111,7 +110,7 @@ class OutputSpec(InputOrOutputSpec):
     pass
 
 
-class DockerContainerSpec:
+class ContainerSpec:
     def __init__(self, image:str, command:List=None, arguments:List=None, file_outputs:Mapping[str,str]=None):
         if not isinstance(image, str):
             raise ValueError('image must be a string')
@@ -126,7 +125,7 @@ class DockerContainerSpec:
         
         image = spec_dict.pop('image')
         
-        container_spec = DockerContainerSpec(image)
+        container_spec = ContainerSpec(image)
         
         if 'command' in spec_dict:
             container_spec.command = list(spec_dict.pop('command'))
@@ -324,13 +323,13 @@ class GraphSpec:
 
 
 class ImplementationSpec:
-    def __init__(self, docker_container=None, graph=None):
-        if not docker_container and not graph:
+    def __init__(self, container=None, graph=None):
+        if not container and not graph:
             raise ValueError('Implementation is required')
-        if docker_container and graph:
+        if container and graph:
             raise ValueError('Only one implementation can be specified')
 
-        self.docker_container = docker_container
+        self.container = container
         self.graph = graph
     
     @staticmethod
@@ -339,8 +338,8 @@ class ImplementationSpec:
             raise ValueError('There must be exactly one implementation')
         
         for name, value in spec_dict.items():
-            if name == 'dockerContainer':
-                return ImplementationSpec(DockerContainerSpec.from_struct(value))
+            if name == 'container':
+                return ImplementationSpec(ContainerSpec.from_struct(value))
             elif name == 'graph':
                 return ImplementationSpec(GraphSpec.from_struct(value))
             else:
@@ -348,8 +347,8 @@ class ImplementationSpec:
 
     def to_struct(self):
         struct = {}
-        if self.docker_container:
-            struct['dockerContainer'] = self.docker_container.to_struct()
+        if self.container:
+            struct['container'] = self.container.to_struct()
         if self.graph:
             struct['graph'] = self.graph.to_struct()
         

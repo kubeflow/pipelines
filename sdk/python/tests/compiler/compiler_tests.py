@@ -23,19 +23,27 @@ import tarfile
 import tempfile
 import unittest
 import yaml
-
+import datetime
 
 class TestCompiler(unittest.TestCase):
 
   def test_operator_to_template(self):
     """Test converting operator to template"""
 
+    from kubernetes import client as k8s_client
+
     with dsl.Pipeline('somename') as p:
       msg1 = dsl.PipelineParam('msg1')
       msg2 = dsl.PipelineParam('msg2', value='value2')
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
-                           file_outputs={'merged': '/tmp/message.txt'})
+                           file_outputs={'merged': '/tmp/message.txt'}) \
+        .add_volume_mount(k8s_client.V1VolumeMount(
+          mount_path='/secret/gcp-credentials',
+          name='gcp-credentials')) \
+        .add_env_variable(k8s_client.V1EnvVar(
+          name='GOOGLE_APPLICATION_CREDENTIALS',
+          value='/secret/gcp-credentials/user-gcp-sa.json'))
     golden_output = {
       'container': {
         'image': 'image',
@@ -43,6 +51,18 @@ class TestCompiler(unittest.TestCase):
           'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
         ],
         'command': ['sh', '-c'],
+        'env': [
+          {
+            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+            'value': '/secret/gcp-credentials/user-gcp-sa.json'
+          }
+        ],
+        'volumeMounts':[
+          {
+            'mountPath': '/secret/gcp-credentials',
+            'name': 'gcp-credentials',
+          }
+        ]
       },
       'inputs': {'parameters':
         [
@@ -122,6 +142,21 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       # print(tmpdir)
 
+  def test_convert_k8s_obj_to_dic_accepts_dict(self):
+    now = datetime.datetime.now()
+    converted = compiler.Compiler()._convert_k8s_obj_to_dic({
+      "ENV": "test",
+      "number": 3,
+      "list": [1,2,3],
+      "time": now
+    })
+    self.assertEqual(converted, {
+      "ENV": "test",
+      "number": 3,
+      "list": [1,2,3],
+      "time": now.isoformat()
+    })
+
   def test_composing_workflow(self):
     """Test compiling a simple workflow, and a bigger one composed from the simple one."""
 
@@ -148,25 +183,6 @@ class TestCompiler(unittest.TestCase):
       # Replace next line with commented line for gathering golden yaml.
       shutil.rmtree(tmpdir)
       # print(tmpdir)
-
-  def test_invalid_pipelines(self):
-    """Test invalid pipelines."""
-
-    @dsl.pipeline(
-      name='name',
-      description='description'
-    )
-    def invalid_param_defaults(message, outputpath='something'):
-      pass
-
-    with self.assertRaises(ValueError):
-      compiler.Compiler()._compile(invalid_param_defaults)
-
-    def missing_decoration(message: dsl.PipelineParam):
-      pass
-
-    with self.assertRaises(ValueError):
-      compiler.Compiler()._compile(missing_decoration)
 
   def test_package_compile(self):
     """Test compiling python packages."""
@@ -209,7 +225,7 @@ class TestCompiler(unittest.TestCase):
       self.assertEqual(golden, compiled)
     finally:
       shutil.rmtree(tmpdir)
-    
+
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
     self._test_py_compile('basic')
@@ -226,3 +242,6 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile('default_value')
 
+  def test_py_volume(self):
+    """Test a pipeline with a volume and volume mount."""
+    self._test_py_compile('volume')

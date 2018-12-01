@@ -1,0 +1,622 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
+<Fragment>
+  <Toolbar
+    actions={Array []}
+    breadcrumbs={Array []}
+    pageTitle="Recurring runs"
+  />
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 2,
+          "label": "Run name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 2,
+          "label": "Created at",
+          "sortKey": "created_at",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "",
+        },
+      ]
+    }
+    disableSelection={true}
+    emptyMessage="No recurring runs found in this experiment."
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "id": "job1",
+          "otherFields": Array [
+            "test recurring run name",
+            "11/9/2018, 8:07:06 AM",
+            true,
+          ],
+        },
+        Object {
+          "error": undefined,
+          "id": "job2",
+          "otherFields": Array [
+            "test recurring run name2",
+            "11/9/2018, 8:07:06 AM",
+            false,
+          ],
+        },
+        Object {
+          "error": undefined,
+          "id": "job3",
+          "otherFields": Array [
+            "test recurring run name3",
+            "11/9/2018, 8:07:06 AM",
+            undefined,
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    updateSelection={[Function]}
+  />
+</Fragment>
+`;
+
+exports[`RecurringRunsManager reloads the list of runs after enable/disabling 1`] = `
+<Button
+  className="root"
+  classes={
+    Object {
+      "colorInherit": "MuiButton-colorInherit-104",
+      "contained": "MuiButton-contained-94",
+      "containedPrimary": "MuiButton-containedPrimary-95",
+      "containedSecondary": "MuiButton-containedSecondary-96",
+      "disabled": "MuiButton-disabled-103",
+      "extendedFab": "MuiButton-extendedFab-101",
+      "fab": "MuiButton-fab-100",
+      "flat": "MuiButton-flat-88",
+      "flatPrimary": "MuiButton-flatPrimary-89",
+      "flatSecondary": "MuiButton-flatSecondary-90",
+      "focusVisible": "MuiButton-focusVisible-102",
+      "fullWidth": "MuiButton-fullWidth-108",
+      "label": "MuiButton-label-84",
+      "mini": "MuiButton-mini-105",
+      "outlined": "MuiButton-outlined-91",
+      "outlinedPrimary": "MuiButton-outlinedPrimary-92",
+      "outlinedSecondary": "MuiButton-outlinedSecondary-93",
+      "raised": "MuiButton-raised-97",
+      "raisedPrimary": "MuiButton-raisedPrimary-98",
+      "raisedSecondary": "MuiButton-raisedSecondary-99",
+      "root": "MuiButton-root-83",
+      "sizeLarge": "MuiButton-sizeLarge-107",
+      "sizeSmall": "MuiButton-sizeSmall-106",
+      "text": "MuiButton-text-85",
+      "textPrimary": "MuiButton-textPrimary-86",
+      "textSecondary": "MuiButton-textSecondary-87",
+    }
+  }
+  color="primary"
+  component="button"
+  disableFocusRipple={false}
+  disabled={false}
+  fullWidth={false}
+  mini={false}
+  onClick={[Function]}
+  size="medium"
+  type="button"
+  variant="text"
+>
+  <WithStyles(ButtonBase)
+    className="MuiButton-root-83 MuiButton-text-85 MuiButton-textPrimary-86 MuiButton-flat-88 MuiButton-flatPrimary-89 root"
+    component="button"
+    disabled={false}
+    focusRipple={true}
+    focusVisibleClassName="MuiButton-focusVisible-102"
+    onClick={[Function]}
+    type="button"
+  >
+    <ButtonBase
+      centerRipple={false}
+      className="MuiButton-root-83 MuiButton-text-85 MuiButton-textPrimary-86 MuiButton-flat-88 MuiButton-flatPrimary-89 root"
+      classes={
+        Object {
+          "disabled": "MuiButtonBase-disabled-14",
+          "focusVisible": "MuiButtonBase-focusVisible-15",
+          "root": "MuiButtonBase-root-13",
+        }
+      }
+      component="button"
+      disableRipple={false}
+      disableTouchRipple={false}
+      disabled={false}
+      focusRipple={true}
+      focusVisibleClassName="MuiButton-focusVisible-102"
+      onClick={[Function]}
+      tabIndex="0"
+      type="button"
+    >
+      <button
+        className="MuiButtonBase-root-13 MuiButton-root-83 MuiButton-text-85 MuiButton-textPrimary-86 MuiButton-flat-88 MuiButton-flatPrimary-89 root"
+        disabled={false}
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onKeyDown={[Function]}
+        onKeyUp={[Function]}
+        onMouseDown={[Function]}
+        onMouseLeave={[Function]}
+        onMouseUp={[Function]}
+        onTouchEnd={[Function]}
+        onTouchMove={[Function]}
+        onTouchStart={[Function]}
+        tabIndex="0"
+        type="button"
+      >
+        <span
+          className="MuiButton-label-84"
+        >
+          <span>
+            Enabled
+          </span>
+        </span>
+        <WithStyles(TouchRipple)
+          center={false}
+          innerRef={[Function]}
+        >
+          <TouchRipple
+            center={false}
+            classes={
+              Object {
+                "child": "MuiTouchRipple-child-80",
+                "childLeaving": "MuiTouchRipple-childLeaving-81",
+                "childPulsate": "MuiTouchRipple-childPulsate-82",
+                "ripple": "MuiTouchRipple-ripple-77",
+                "ripplePulsate": "MuiTouchRipple-ripplePulsate-79",
+                "rippleVisible": "MuiTouchRipple-rippleVisible-78",
+                "root": "MuiTouchRipple-root-76",
+              }
+            }
+          >
+            <TransitionGroup
+              childFactory={[Function]}
+              className="MuiTouchRipple-root-76"
+              component="span"
+              enter={true}
+              exit={true}
+            >
+              <span
+                className="MuiTouchRipple-root-76"
+              />
+            </TransitionGroup>
+          </TouchRipple>
+        </WithStyles(TouchRipple)>
+      </button>
+    </ButtonBase>
+  </WithStyles(ButtonBase)>
+</Button>
+`;
+
+exports[`RecurringRunsManager renders a disable button if the run is enabled, clicking the button calls disable API 1`] = `
+<Button
+  className="root"
+  classes={
+    Object {
+      "colorInherit": "MuiButton-colorInherit-104",
+      "contained": "MuiButton-contained-94",
+      "containedPrimary": "MuiButton-containedPrimary-95",
+      "containedSecondary": "MuiButton-containedSecondary-96",
+      "disabled": "MuiButton-disabled-103",
+      "extendedFab": "MuiButton-extendedFab-101",
+      "fab": "MuiButton-fab-100",
+      "flat": "MuiButton-flat-88",
+      "flatPrimary": "MuiButton-flatPrimary-89",
+      "flatSecondary": "MuiButton-flatSecondary-90",
+      "focusVisible": "MuiButton-focusVisible-102",
+      "fullWidth": "MuiButton-fullWidth-108",
+      "label": "MuiButton-label-84",
+      "mini": "MuiButton-mini-105",
+      "outlined": "MuiButton-outlined-91",
+      "outlinedPrimary": "MuiButton-outlinedPrimary-92",
+      "outlinedSecondary": "MuiButton-outlinedSecondary-93",
+      "raised": "MuiButton-raised-97",
+      "raisedPrimary": "MuiButton-raisedPrimary-98",
+      "raisedSecondary": "MuiButton-raisedSecondary-99",
+      "root": "MuiButton-root-83",
+      "sizeLarge": "MuiButton-sizeLarge-107",
+      "sizeSmall": "MuiButton-sizeSmall-106",
+      "text": "MuiButton-text-85",
+      "textPrimary": "MuiButton-textPrimary-86",
+      "textSecondary": "MuiButton-textSecondary-87",
+    }
+  }
+  color="primary"
+  component="button"
+  disableFocusRipple={false}
+  disabled={false}
+  fullWidth={false}
+  mini={false}
+  onClick={[Function]}
+  size="medium"
+  type="button"
+  variant="text"
+>
+  <WithStyles(ButtonBase)
+    className="MuiButton-root-83 MuiButton-text-85 MuiButton-textPrimary-86 MuiButton-flat-88 MuiButton-flatPrimary-89 root"
+    component="button"
+    disabled={false}
+    focusRipple={true}
+    focusVisibleClassName="MuiButton-focusVisible-102"
+    onClick={[Function]}
+    type="button"
+  >
+    <ButtonBase
+      centerRipple={false}
+      className="MuiButton-root-83 MuiButton-text-85 MuiButton-textPrimary-86 MuiButton-flat-88 MuiButton-flatPrimary-89 root"
+      classes={
+        Object {
+          "disabled": "MuiButtonBase-disabled-14",
+          "focusVisible": "MuiButtonBase-focusVisible-15",
+          "root": "MuiButtonBase-root-13",
+        }
+      }
+      component="button"
+      disableRipple={false}
+      disableTouchRipple={false}
+      disabled={false}
+      focusRipple={true}
+      focusVisibleClassName="MuiButton-focusVisible-102"
+      onClick={[Function]}
+      tabIndex="0"
+      type="button"
+    >
+      <button
+        className="MuiButtonBase-root-13 MuiButton-root-83 MuiButton-text-85 MuiButton-textPrimary-86 MuiButton-flat-88 MuiButton-flatPrimary-89 root"
+        disabled={false}
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onKeyDown={[Function]}
+        onKeyUp={[Function]}
+        onMouseDown={[Function]}
+        onMouseLeave={[Function]}
+        onMouseUp={[Function]}
+        onTouchEnd={[Function]}
+        onTouchMove={[Function]}
+        onTouchStart={[Function]}
+        tabIndex="0"
+        type="button"
+      >
+        <span
+          className="MuiButton-label-84"
+        >
+          <span>
+            Enabled
+          </span>
+        </span>
+        <WithStyles(TouchRipple)
+          center={false}
+          innerRef={[Function]}
+        >
+          <TouchRipple
+            center={false}
+            classes={
+              Object {
+                "child": "MuiTouchRipple-child-80",
+                "childLeaving": "MuiTouchRipple-childLeaving-81",
+                "childPulsate": "MuiTouchRipple-childPulsate-82",
+                "ripple": "MuiTouchRipple-ripple-77",
+                "ripplePulsate": "MuiTouchRipple-ripplePulsate-79",
+                "rippleVisible": "MuiTouchRipple-rippleVisible-78",
+                "root": "MuiTouchRipple-root-76",
+              }
+            }
+          >
+            <TransitionGroup
+              childFactory={[Function]}
+              className="MuiTouchRipple-root-76"
+              component="span"
+              enter={true}
+              exit={true}
+            >
+              <span
+                className="MuiTouchRipple-root-76"
+              />
+            </TransitionGroup>
+          </TouchRipple>
+        </WithStyles(TouchRipple)>
+      </button>
+    </ButtonBase>
+  </WithStyles(ButtonBase)>
+</Button>
+`;
+
+exports[`RecurringRunsManager renders an enable button if the run is disabled, clicking the button calls enable API 1`] = `
+<Button
+  className="root"
+  classes={
+    Object {
+      "colorInherit": "MuiButton-colorInherit-104",
+      "contained": "MuiButton-contained-94",
+      "containedPrimary": "MuiButton-containedPrimary-95",
+      "containedSecondary": "MuiButton-containedSecondary-96",
+      "disabled": "MuiButton-disabled-103",
+      "extendedFab": "MuiButton-extendedFab-101",
+      "fab": "MuiButton-fab-100",
+      "flat": "MuiButton-flat-88",
+      "flatPrimary": "MuiButton-flatPrimary-89",
+      "flatSecondary": "MuiButton-flatSecondary-90",
+      "focusVisible": "MuiButton-focusVisible-102",
+      "fullWidth": "MuiButton-fullWidth-108",
+      "label": "MuiButton-label-84",
+      "mini": "MuiButton-mini-105",
+      "outlined": "MuiButton-outlined-91",
+      "outlinedPrimary": "MuiButton-outlinedPrimary-92",
+      "outlinedSecondary": "MuiButton-outlinedSecondary-93",
+      "raised": "MuiButton-raised-97",
+      "raisedPrimary": "MuiButton-raisedPrimary-98",
+      "raisedSecondary": "MuiButton-raisedSecondary-99",
+      "root": "MuiButton-root-83",
+      "sizeLarge": "MuiButton-sizeLarge-107",
+      "sizeSmall": "MuiButton-sizeSmall-106",
+      "text": "MuiButton-text-85",
+      "textPrimary": "MuiButton-textPrimary-86",
+      "textSecondary": "MuiButton-textSecondary-87",
+    }
+  }
+  color="secondary"
+  component="button"
+  disableFocusRipple={false}
+  disabled={false}
+  fullWidth={false}
+  mini={false}
+  onClick={[Function]}
+  size="medium"
+  type="button"
+  variant="text"
+>
+  <WithStyles(ButtonBase)
+    className="MuiButton-root-83 MuiButton-text-85 MuiButton-textSecondary-87 MuiButton-flat-88 MuiButton-flatSecondary-90 root"
+    component="button"
+    disabled={false}
+    focusRipple={true}
+    focusVisibleClassName="MuiButton-focusVisible-102"
+    onClick={[Function]}
+    type="button"
+  >
+    <ButtonBase
+      centerRipple={false}
+      className="MuiButton-root-83 MuiButton-text-85 MuiButton-textSecondary-87 MuiButton-flat-88 MuiButton-flatSecondary-90 root"
+      classes={
+        Object {
+          "disabled": "MuiButtonBase-disabled-14",
+          "focusVisible": "MuiButtonBase-focusVisible-15",
+          "root": "MuiButtonBase-root-13",
+        }
+      }
+      component="button"
+      disableRipple={false}
+      disableTouchRipple={false}
+      disabled={false}
+      focusRipple={true}
+      focusVisibleClassName="MuiButton-focusVisible-102"
+      onClick={[Function]}
+      tabIndex="0"
+      type="button"
+    >
+      <button
+        className="MuiButtonBase-root-13 MuiButton-root-83 MuiButton-text-85 MuiButton-textSecondary-87 MuiButton-flat-88 MuiButton-flatSecondary-90 root"
+        disabled={false}
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onKeyDown={[Function]}
+        onKeyUp={[Function]}
+        onMouseDown={[Function]}
+        onMouseLeave={[Function]}
+        onMouseUp={[Function]}
+        onTouchEnd={[Function]}
+        onTouchMove={[Function]}
+        onTouchStart={[Function]}
+        tabIndex="0"
+        type="button"
+      >
+        <span
+          className="MuiButton-label-84"
+        >
+          <span>
+            Disabled
+          </span>
+        </span>
+        <WithStyles(TouchRipple)
+          center={false}
+          innerRef={[Function]}
+        >
+          <TouchRipple
+            center={false}
+            classes={
+              Object {
+                "child": "MuiTouchRipple-child-80",
+                "childLeaving": "MuiTouchRipple-childLeaving-81",
+                "childPulsate": "MuiTouchRipple-childPulsate-82",
+                "ripple": "MuiTouchRipple-ripple-77",
+                "ripplePulsate": "MuiTouchRipple-ripplePulsate-79",
+                "rippleVisible": "MuiTouchRipple-rippleVisible-78",
+                "root": "MuiTouchRipple-root-76",
+              }
+            }
+          >
+            <TransitionGroup
+              childFactory={[Function]}
+              className="MuiTouchRipple-root-76"
+              component="span"
+              enter={true}
+              exit={true}
+            >
+              <span
+                className="MuiTouchRipple-root-76"
+              />
+            </TransitionGroup>
+          </TouchRipple>
+        </WithStyles(TouchRipple)>
+      </button>
+    </ButtonBase>
+  </WithStyles(ButtonBase)>
+</Button>
+`;
+
+exports[`RecurringRunsManager renders an enable button if the run's enabled field is undefined, clicking the button calls enable API 1`] = `
+<Button
+  className="root"
+  classes={
+    Object {
+      "colorInherit": "MuiButton-colorInherit-104",
+      "contained": "MuiButton-contained-94",
+      "containedPrimary": "MuiButton-containedPrimary-95",
+      "containedSecondary": "MuiButton-containedSecondary-96",
+      "disabled": "MuiButton-disabled-103",
+      "extendedFab": "MuiButton-extendedFab-101",
+      "fab": "MuiButton-fab-100",
+      "flat": "MuiButton-flat-88",
+      "flatPrimary": "MuiButton-flatPrimary-89",
+      "flatSecondary": "MuiButton-flatSecondary-90",
+      "focusVisible": "MuiButton-focusVisible-102",
+      "fullWidth": "MuiButton-fullWidth-108",
+      "label": "MuiButton-label-84",
+      "mini": "MuiButton-mini-105",
+      "outlined": "MuiButton-outlined-91",
+      "outlinedPrimary": "MuiButton-outlinedPrimary-92",
+      "outlinedSecondary": "MuiButton-outlinedSecondary-93",
+      "raised": "MuiButton-raised-97",
+      "raisedPrimary": "MuiButton-raisedPrimary-98",
+      "raisedSecondary": "MuiButton-raisedSecondary-99",
+      "root": "MuiButton-root-83",
+      "sizeLarge": "MuiButton-sizeLarge-107",
+      "sizeSmall": "MuiButton-sizeSmall-106",
+      "text": "MuiButton-text-85",
+      "textPrimary": "MuiButton-textPrimary-86",
+      "textSecondary": "MuiButton-textSecondary-87",
+    }
+  }
+  color="secondary"
+  component="button"
+  disableFocusRipple={false}
+  disabled={false}
+  fullWidth={false}
+  mini={false}
+  onClick={[Function]}
+  size="medium"
+  type="button"
+  variant="text"
+>
+  <WithStyles(ButtonBase)
+    className="MuiButton-root-83 MuiButton-text-85 MuiButton-textSecondary-87 MuiButton-flat-88 MuiButton-flatSecondary-90 root"
+    component="button"
+    disabled={false}
+    focusRipple={true}
+    focusVisibleClassName="MuiButton-focusVisible-102"
+    onClick={[Function]}
+    type="button"
+  >
+    <ButtonBase
+      centerRipple={false}
+      className="MuiButton-root-83 MuiButton-text-85 MuiButton-textSecondary-87 MuiButton-flat-88 MuiButton-flatSecondary-90 root"
+      classes={
+        Object {
+          "disabled": "MuiButtonBase-disabled-14",
+          "focusVisible": "MuiButtonBase-focusVisible-15",
+          "root": "MuiButtonBase-root-13",
+        }
+      }
+      component="button"
+      disableRipple={false}
+      disableTouchRipple={false}
+      disabled={false}
+      focusRipple={true}
+      focusVisibleClassName="MuiButton-focusVisible-102"
+      onClick={[Function]}
+      tabIndex="0"
+      type="button"
+    >
+      <button
+        className="MuiButtonBase-root-13 MuiButton-root-83 MuiButton-text-85 MuiButton-textSecondary-87 MuiButton-flat-88 MuiButton-flatSecondary-90 root"
+        disabled={false}
+        onBlur={[Function]}
+        onClick={[Function]}
+        onFocus={[Function]}
+        onKeyDown={[Function]}
+        onKeyUp={[Function]}
+        onMouseDown={[Function]}
+        onMouseLeave={[Function]}
+        onMouseUp={[Function]}
+        onTouchEnd={[Function]}
+        onTouchMove={[Function]}
+        onTouchStart={[Function]}
+        tabIndex="0"
+        type="button"
+      >
+        <span
+          className="MuiButton-label-84"
+        >
+          <span>
+            Disabled
+          </span>
+        </span>
+        <WithStyles(TouchRipple)
+          center={false}
+          innerRef={[Function]}
+        >
+          <TouchRipple
+            center={false}
+            classes={
+              Object {
+                "child": "MuiTouchRipple-child-80",
+                "childLeaving": "MuiTouchRipple-childLeaving-81",
+                "childPulsate": "MuiTouchRipple-childPulsate-82",
+                "ripple": "MuiTouchRipple-ripple-77",
+                "ripplePulsate": "MuiTouchRipple-ripplePulsate-79",
+                "rippleVisible": "MuiTouchRipple-rippleVisible-78",
+                "root": "MuiTouchRipple-root-76",
+              }
+            }
+          >
+            <TransitionGroup
+              childFactory={[Function]}
+              className="MuiTouchRipple-root-76"
+              component="span"
+              enter={true}
+              exit={true}
+            >
+              <span
+                className="MuiTouchRipple-root-76"
+              />
+            </TransitionGroup>
+          </TouchRipple>
+        </WithStyles(TouchRipple)>
+      </button>
+    </ButtonBase>
+  </WithStyles(ButtonBase)>
+</Button>
+`;
+
+exports[`RecurringRunsManager renders run name as link to its details page 1`] = `
+<Link
+  className="link"
+  replace={false}
+  to="/recurringrun/details/run-id"
+>
+  <a
+    className="link"
+    href="/recurringrun/details/run-id"
+    onClick={[Function]}
+  >
+    test-run
+  </a>
+</Link>
+`;

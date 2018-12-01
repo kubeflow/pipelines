@@ -23,7 +23,7 @@ import { logger, formatDateString, errorToMessage } from '../lib/Utils';
 import { ApiPipeline } from '../apis/pipeline';
 import { DialogProps } from '../components/Router';
 
-interface PipelineSelectorProps extends RouteComponentProps {
+export interface PipelineSelectorProps extends RouteComponentProps {
   pipelineSelectionChanged: (selectedPipelineId: string) => void;
   updateDialog: (dialogProps: DialogProps) => void;
 }
@@ -31,12 +31,11 @@ interface PipelineSelectorProps extends RouteComponentProps {
 interface PipelineSelectorState {
   pipelines: ApiPipeline[];
   selectedIds: string[];
-  sortBy: string;
   toolbarActions: ToolbarActionConfig[];
 }
 
 class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSelectorState> {
-  private _tableRef = React.createRef<CustomTable>();
+  protected _isMounted = true;
 
   constructor(props: any) {
     super(props);
@@ -44,13 +43,12 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     this.state = {
       pipelines: [],
       selectedIds: [],
-      sortBy: PipelineSortKeys.CREATED_AT,
       toolbarActions: [],
     };
   }
 
   public render(): JSX.Element {
-    const { pipelines, selectedIds, sortBy, toolbarActions } = this.state;
+    const { pipelines, selectedIds, toolbarActions } = this.state;
 
     const columns: Column[] = [
       { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
@@ -72,30 +70,35 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActions} breadcrumbs={[{ displayName: 'Choose a pipeline', href: '' }]} />
+        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Choose a pipeline' />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={ids => { this._pipelineSelectionChanged(ids); this.setState({ selectedIds: ids }); }}
-          initialSortColumn={sortBy} ref={this._tableRef}
-          reload={this._loadPipelines.bind(this)} emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
+          updateSelection={this._pipelineSelectionChanged.bind(this)}
+          initialSortColumn={PipelineSortKeys.CREATED_AT} reload={this._loadPipelines.bind(this)}
+          emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
       </React.Fragment>
     );
   }
 
-  public async refresh(): Promise<void> {
-    if (this._tableRef.current) {
-      await this._tableRef.current.reload();
+  public componentWillUnmount(): void {
+    this._isMounted = false;
+  }
+
+  protected setStateSafe(newState: Partial<PipelineSelectorState>, cb?: () => void): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
     }
   }
 
-  private _pipelineSelectionChanged(selectedIds: string[]): void {
+  protected _pipelineSelectionChanged(selectedIds: string[]): void {
     if (!Array.isArray(selectedIds) || selectedIds.length !== 1) {
       logger.error(`${selectedIds.length} pipelines were selected somehow`, selectedIds);
       return;
     }
     this.props.pipelineSelectionChanged(selectedIds[0]);
+    this.setStateSafe({ selectedIds });
   }
 
-  private async _loadPipelines(request: ListRequest): Promise<string> {
+  protected async _loadPipelines(request: ListRequest): Promise<string> {
     let pipelines: ApiPipeline[] = [];
     let nextPageToken = '';
     try {
@@ -113,7 +116,7 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
       logger.error('Could not get list of pipelines', errorMessage);
     }
 
-    this.setState({ pipelines, sortBy: request.sortBy! });
+    this.setStateSafe({ pipelines });
     return nextPageToken;
   }
 }

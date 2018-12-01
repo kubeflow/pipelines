@@ -14,7 +14,7 @@ Note: The trainer depends on Kubeflow API version v1alpha2.
 
 ## Compiling the pipeline template
 
-Follow the guide to [building a pipeline](https://github.com/kubeflow/pipelines/wiki/Build-a-Pipeline) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
+Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
 
 ```bash
 dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
@@ -31,17 +31,17 @@ The pipeline requires one argument:
 ## Components source
 
 Preprocessing:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft), 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tft)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft)
 
 Training:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher), 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/container/launcher)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher)
 
 Prediction:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict), 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict)
 
 Confusion Matrix:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/evaluation), 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/containers/confusion_matrix)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix)

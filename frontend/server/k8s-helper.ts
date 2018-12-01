@@ -42,13 +42,11 @@ export async function newTensorboardPod(logdir: string): Promise<void> {
     return;
   }
 
-  const podName = 'tensorboard-' + Utils.generateRandomString(15);
-
   // TODO: take the configuration below to a separate file
   const pod = {
     kind: 'Pod',
     metadata: {
-      name: podName,
+      generateName: 'tensorboard-',
     },
     spec: {
       containers: [{
@@ -62,10 +60,21 @@ export async function newTensorboardPod(logdir: string): Promise<void> {
         ports: [{
           containerPort: 6006,
         }],
+        env: [{
+          name: 'GOOGLE_APPLICATION_CREDENTIALS',
+          value: '/secret/gcp-credentials/user-gcp-sa.json'
+        }],
+        volumeMounts: [{
+          mountPath: '/secret/gcp-credentials',
+          name: 'gcp-credentials',
+        }],
       }],
-      selector: {
-        app: podName,
-      },
+      volumes:[{
+        name: 'gcp-credentials',
+        secret:{
+          secretName: 'user-gcp-sa',
+        },
+      }],
     },
   };
 

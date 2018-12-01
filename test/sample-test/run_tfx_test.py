@@ -41,6 +41,10 @@ def parse_arguments():
                       type=str,
                       required=True,
                       help='The path of the test output')
+  parser.add_argument('--namespace',
+                      type=str,
+                      default='kubeflow',
+                      help="namespace of the deployed pipeline system. Default: kubeflow")
   args = parser.parse_args()
   return args
 
@@ -50,13 +54,14 @@ def main():
   test_name = 'TFX Sample Test'
 
   ###### Initialization ######
-  client = Client()
+  client = Client(namespace=args.namespace)
 
   ###### Check Input File ######
   utils.add_junit_test(test_cases, 'input generated yaml file', os.path.exists(args.input), 'yaml file is not generated')
   if not os.path.exists(args.input):
     utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
+    print('Error: job not found.')
+    exit(1)
 
   ###### Create Experiment ######
   experiment_name = 'TFX sample experiment'
@@ -77,7 +82,6 @@ def main():
   run_id = response.id
   utils.add_junit_test(test_cases, 'create pipeline run', True)
 
-
   ###### Monitor Job ######
   start_time = datetime.now()
   response = client.wait_for_run_completion(run_id, 1200)
@@ -85,17 +89,17 @@ def main():
   end_time = datetime.now()
   elapsed_time = (end_time - start_time).seconds
   utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
-  if not succ:
-    utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
 
   ###### Output Argo Log for Debugging ######
   workflow_json = client._get_workflow_json(run_id)
   workflow_id = workflow_json['metadata']['name']
-  #TODO: remove the namespace dependency or make is configurable.
-  argo_log, _ = utils.run_bash_command('argo logs -n kubeflow -w {}'.format(workflow_id))
+  argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
   print("=========Argo Workflow Log=========")
   print(argo_log)
+
+  if not succ:
+    utils.write_junit_xml(test_name, args.result, test_cases)
+    exit(1)
 
   ###### Validate the results ######
   #TODO: enable after launch

@@ -116,14 +116,15 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     icon: AddIcon,
     id: 'startNewRunBtn',
     outlined: true,
-    title: 'Start new run',
+    primary: true,
+    title: 'Create run',
     tooltip: 'Start a new run within this experiment',
   }, {
     action: () => this._startNewRun(true),
     icon: AddIcon,
     id: 'startNewRecurringRunBtn',
     outlined: true,
-    title: 'Start recurring run',
+    title: 'Create recurring run',
     tooltip: 'Start a new recurring run in this experiment',
   }, {
     action: this._compareRuns.bind(this),
@@ -150,7 +151,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
         actions: this._runListToolbarActions,
-        breadcrumbs: [{ displayName: 'Runs', href: '' }],
+        breadcrumbs: [],
+        pageTitle: 'Runs',
         topLevelToolbar: false,
       },
       // TODO: remove
@@ -167,16 +169,15 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         title: 'Refresh',
         tooltip: 'Refresh',
       }],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: this.props.match.params[RouteParams.experimentId], href: '' }
-      ],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      // TODO: determine what to show if no props.
+      pageTitle: this.props ? this.props.match.params[RouteParams.experimentId] : '',
     };
   }
 
   public render(): JSX.Element {
     const { activeRecurringRunsCount, experiment } = this.state;
-    const description = experiment ? experiment.description || '' : '';
+    const description = experiment ? (experiment.description || '') : '';
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -194,7 +195,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                   <div className={classes(css.cardContent, !!activeRecurringRunsCount && css.recurringRunsActive)}>
                     {activeRecurringRunsCount + ' active'}
                   </div>
-                  <Button className={css.cardBtn} disableRipple={true}
+                  <Button className={css.cardBtn} id='manageExperimentRecurringRunsBtn' disableRipple={true}
                     onClick={() => this.setState({ recurringRunsManagerOpen: true })}>
                     Manage
                     </Button>
@@ -203,7 +204,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               <Paper id='experimentDescriptionCard' className={classes(css.card, css.runStatsCard)} elevation={0}>
                 <div className={css.cardTitle}>
                   <span>Experiment description</span>
-                  <Button onClick={() => this.props.updateDialog({ title: 'Experiment description', content: description })}
+                  <Button id='expandExperimentDescriptionBtn' onClick={() => this.props.updateDialog({ title: 'Experiment description', content: description })}
                     className={classes(css.popOutIcon, 'popOutButton')}>
                     <Tooltip title='Read more'>
                       <PopOutIcon style={{ fontSize: 18 }} />
@@ -231,7 +232,9 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                   experimentId={this.props.match.params[RouteParams.experimentId]} />
               </DialogContent>
               <DialogActions>
-                <Button onClick={this._recurringRunsManagerClosed.bind(this)} color='secondary'>
+                <Button id='closeExperimentRecurringRunManagerBtn'
+                    onClick={this._recurringRunsManagerClosed.bind(this)}
+                    color='secondary'>
                   Close
                 </Button>
               </DialogActions>
@@ -257,34 +260,45 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
     try {
       const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+      const pageTitle = experiment.name || this.props.match.params[RouteParams.experimentId];
 
       this.props.updateToolbar({
         actions: this.props.toolbarProps.actions,
-        breadcrumbs: [
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experiment && experiment.name ? experiment.name : this.props.match.params[RouteParams.experimentId],
-            href: ''
-          }],
+        breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+        pageTitle,
+        pageTitleTooltip: pageTitle,
       });
 
-      // TODO: get ALL jobs in the experiment
-      const recurringRuns = await Apis.jobServiceApi.listJobs(
-        undefined,
-        100,
-        '',
-        ApiResourceType.EXPERIMENT.toString(),
-        experimentId,
-      );
-      const activeRecurringRunsCount =
-        (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
-      this.setState(
-        { activeRecurringRunsCount, experiment },
-        () => this._runlistRef.current && this._runlistRef.current.refresh()
-      );
+      let activeRecurringRunsCount = -1;
+
+      // Fetch this experiment's jobs
+      try {
+        // TODO: get ALL jobs in the experiment
+        const recurringRuns = await Apis.jobServiceApi.listJobs(
+          undefined,
+          100,
+          '',
+          ApiResourceType.EXPERIMENT.toString(),
+          experimentId,
+        );
+        activeRecurringRunsCount =
+          (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
+
+      } catch (err) {
+        await this.showPageError(
+          `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`, err);
+        logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
+      }
+
+      this.setStateSafe({ activeRecurringRunsCount, experiment });
+      
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
+    }
+
+    if (this._runlistRef.current) {
+      this._runlistRef.current.refresh(); 
     }
   }
 
@@ -326,6 +340,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       runListToolbarProps: {
         actions: toolbarActions,
         breadcrumbs: this.state.runListToolbarProps.breadcrumbs,
+        pageTitle: this.state.runListToolbarProps.pageTitle,
         topLevelToolbar: this.state.runListToolbarProps.topLevelToolbar,
       },
       selectedRunIds

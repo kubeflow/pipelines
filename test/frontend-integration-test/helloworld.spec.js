@@ -95,7 +95,7 @@ describe('deploy helloworld sample run', () => {
     browser.keys(outputParameterValue);
 
     // Deploy
-    $('#createBtn').click();
+    $('#createNewRunBtn').click();
   });
 
   it('redirects back to experiment page', () => {
@@ -105,7 +105,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('finds the new run in the list of runs, navigates to it', () => {
-    $('.tableRow').waitForVisible(waitTimeout);
+    $('.tableRow').waitForVisible(3 * waitTimeout);
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
     // Navigate to details of the deployed run by clicking its anchor element
@@ -169,14 +169,15 @@ describe('deploy helloworld sample run', () => {
     assert(logs.indexOf(outputParameterValue + ' from node: ') > -1,
       'logs do not look right: ' + logs);
   });
-
-  it('deletes the uploaded pipeline', () => {
-    $('#pipelinesBtn').click();
-
-    browser.waitForVisible('.tableRow', waitTimeout);
-    $('.tableRow').click();
-    $('#deleteBtn').click();
-    $('.dialogButton').click();
-    $('.dialog').waitForVisible(waitTimeout, true);
-  });
+  //TODO: enable this after we change the pipeline to a unique name such that deleting this
+  // pipeline will not jeopardize the concurrent basic e2e tests.
+  // it('deletes the uploaded pipeline', () => {
+  //   $('#pipelinesBtn').click();
+  //
+  //   browser.waitForVisible('.tableRow', waitTimeout);
+  //   $('.tableRow').click();
+  //   $('#deleteBtn').click();
+  //   $('.dialogButton').click();
+  //   $('.dialog').waitForVisible(waitTimeout, true);
+  // });
 });

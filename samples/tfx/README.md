@@ -29,7 +29,7 @@ Therefore, you must enable the DataFlow API for the given GCP project if you wan
 
 ## Compiling the pipeline template
 
-Follow the guide to [building a pipeline](https://github.com/kubeflow/pipelines/wiki/Build-a-Pipeline) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
+Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
 
 ```bash
 dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
@@ -47,17 +47,17 @@ The pipeline requires two arguments:
 ## Components source
 
 Preprocessing:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tft)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft)
 
 Training:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/container/launcher)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher)
 
 Analysis:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/tfma)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma)
 
 Prediction:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/containers/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict)

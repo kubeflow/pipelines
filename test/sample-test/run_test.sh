@@ -20,7 +20,6 @@ usage()
 {
     echo "usage: run_kubeflow_test.sh
     [--results-gcs-dir              GCS directory for the test results]
-    [--commit_sha                   commit SHA to pull code from]
     [--dataflow-tft-image           image path to the dataflow tft]
     [--dataflow-predict-image       image path to the dataflow predict]
     [--dataflow-tfma-image          image path to the dataflow tfma]
@@ -35,6 +34,7 @@ usage()
     [--kubeflow-deployer-image      image path to the kubeflow deployer]
     [--local-confusionmatrix-image  image path to the confusion matrix]
     [--local-roc-image              image path to the roc]
+    [--namespace                    namespace for the deployed pipeline system]
     [--test-name                    test name: tf-training, xgboost]
     [-h help]"
 }
@@ -43,9 +43,6 @@ while [ "$1" != "" ]; do
     case $1 in
              --results-gcs-dir )                shift
                                                 RESULTS_GCS_DIR=$1
-                                                ;;
-             --commit_sha )                     shift
-                                                COMMIT_SHA=$1
                                                 ;;
              --dataflow-tft-image )             shift
                                                 DATAFLOW_TFT_IMAGE=$1
@@ -89,6 +86,9 @@ while [ "$1" != "" ]; do
              --local-roc-image )                shift
                                                 LOCAL_ROC_IMAGE=$1
                                                 ;;
+             --namespace )                      shift
+                                                NAMESPACE=$1
+                                                ;;
              --test-name )                      shift
                                                 TEST_NAME=$1
                                                 ;;
@@ -106,15 +106,15 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/python/src/github.com/${GITHUB_REPO}
+TEST_DIR=${BASE_DIR}/test/sample-test
 
-echo "Clone ML pipeline code in COMMIT SHA ${COMMIT_SHA}..."
-git clone https://github.com/${GITHUB_REPO} ${BASE_DIR}
 cd ${BASE_DIR}
-git config --local user.name 'K8S Bootstrap'
-git config --local user.email k8s_bootstrap@localhost
-git merge --no-ff ${COMMIT_SHA} -m "Merged PR ${COMMIT_SHA}"
 
 # Install argo
 echo "install argo"
@@ -127,7 +127,7 @@ chmod +x ~/bin/argo
 echo "Run the sample tests..."
 
 # Generate Python package
-cd ./sdk/python
+cd ${BASE_DIR}/sdk/python
 ./build.sh /tmp/kfp.tar.gz
 
 # Install python client, including DSL compiler.
@@ -141,20 +141,16 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
   #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. 
   # Compile samples
   cd ${BASE_DIR}/samples/kubeflow-tf
-  DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DNNTRAINER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED=$(echo ${LOCAL_CONFUSIONMATRIX_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFT_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_PREDICT_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+/${LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED}/g" kubeflow-training-classification.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" kubeflow-training-classification.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" kubeflow-training-classification.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" kubeflow-training-classification.py
 
   dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
 
-  cd /
-  python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.tar.gz --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT
+  cd "${TEST_DIR}"
+  python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.tar.gz --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
@@ -164,23 +160,17 @@ elif [ "$TEST_NAME" == "tfx" ]; then
   
   # Compile samples
   cd ${BASE_DIR}/samples/tfx
-  DATAFLOW_TFT_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAFLOW_PREDICT_IMAGE_FOR_SED=$(echo ${DATAFLOW_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAFLOW_TFDV_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFDV_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAFLOW_TFMA_IMAGE_FOR_SED=$(echo ${DATAFLOW_TFMA_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DNNTRAINER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  KUBEFLOW_DEPLOYER_IMAGE_FOR_SED=$(echo ${KUBEFLOW_DEPLOYER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFT_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_PREDICT_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFDV_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+/${DATAFLOW_TFMA_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DNNTRAINER_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+/${KUBEFLOW_DEPLOYER_IMAGE_FOR_SED}/g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.py
 
   dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
-  cd /
-  python3 run_tfx_test.py --input ${BASE_DIR}/samples/tfx/taxi-cab-classification-pipeline.tar.gz --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT
+  cd "${TEST_DIR}"
+  python3 run_tfx_test.py --input ${BASE_DIR}/samples/tfx/taxi-cab-classification-pipeline.tar.gz --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT --namespace ${NAMESPACE}
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_TFX_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFX_TEST_RESULT}
 elif [ "$TEST_NAME" == "sequential" ]; then
@@ -191,8 +181,8 @@ elif [ "$TEST_NAME" == "sequential" ]; then
   cd ${BASE_DIR}/samples/basic
   dsl-compile --py sequential.py --output sequential.tar.gz
 
-  cd /
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/sequential.tar.gz --result $SAMPLE_SEQUENTIAL_TEST_RESULT --output $SAMPLE_SEQUENTIAL_TEST_OUTPUT  --testname sequential
+  cd "${TEST_DIR}"
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/sequential.tar.gz --result $SAMPLE_SEQUENTIAL_TEST_RESULT --output $SAMPLE_SEQUENTIAL_TEST_OUTPUT  --testname sequential --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_SEQUENTIAL_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_SEQUENTIAL_TEST_RESULT}
@@ -204,8 +194,8 @@ elif [ "$TEST_NAME" == "condition" ]; then
   cd ${BASE_DIR}/samples/basic
   dsl-compile --py condition.py --output condition.tar.gz
 
-  cd /
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/condition.tar.gz --result $SAMPLE_CONDITION_TEST_RESULT --output $SAMPLE_CONDITION_TEST_OUTPUT --testname condition
+  cd "${TEST_DIR}"
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/condition.tar.gz --result $SAMPLE_CONDITION_TEST_RESULT --output $SAMPLE_CONDITION_TEST_OUTPUT --testname condition --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_CONDITION_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_CONDITION_TEST_RESULT}
@@ -217,8 +207,8 @@ elif [ "$TEST_NAME" == "exithandler" ]; then
   cd ${BASE_DIR}/samples/basic
   dsl-compile --py exit_handler.py --output exit_handler.tar.gz
 
-  cd /
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/exit_handler.tar.gz --result $SAMPLE_EXIT_HANDLER_TEST_RESULT --output $SAMPLE_EXIT_HANDLER_TEST_OUTPUT --testname exithandler
+  cd "${TEST_DIR}"
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/exit_handler.tar.gz --result $SAMPLE_EXIT_HANDLER_TEST_RESULT --output $SAMPLE_EXIT_HANDLER_TEST_OUTPUT --testname exithandler --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_EXIT_HANDLER_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_EXIT_HANDLER_TEST_RESULT}
@@ -230,8 +220,8 @@ elif [ "$TEST_NAME" == "immediatevalue" ]; then
   cd ${BASE_DIR}/samples/basic
   dsl-compile --py immediate_value.py --output immediate_value.tar.gz
 
-  cd /
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/immediate_value.tar.gz --result $SAMPLE_IMMEDIATE_VALUE_TEST_RESULT --output $SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT --testname immediatevalue
+  cd "${TEST_DIR}"
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/immediate_value.tar.gz --result $SAMPLE_IMMEDIATE_VALUE_TEST_RESULT --output $SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT --testname immediatevalue --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_IMMEDIATE_VALUE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_IMMEDIATE_VALUE_TEST_RESULT}
@@ -243,8 +233,8 @@ elif [ "$TEST_NAME" == "paralleljoin" ]; then
   cd ${BASE_DIR}/samples/basic
   dsl-compile --py parallel_join.py --output parallel_join.tar.gz
 
-  cd /
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/parallel_join.tar.gz --result $SAMPLE_PARALLEL_JOIN_TEST_RESULT --output $SAMPLE_PARALLEL_JOIN_TEST_OUTPUT --testname paralleljoin
+  cd "${TEST_DIR}"
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/parallel_join.tar.gz --result $SAMPLE_PARALLEL_JOIN_TEST_RESULT --output $SAMPLE_PARALLEL_JOIN_TEST_OUTPUT --testname paralleljoin --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_PARALLEL_JOIN_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_PARALLEL_JOIN_TEST_RESULT}
@@ -254,29 +244,20 @@ elif [ "$TEST_NAME" == "xgboost" ]; then
 
   # Compile samples
   cd ${BASE_DIR}/samples/xgboost-spark
-  DATAPROC_CREATE_CLUSTER_IMAGE_FOR_SED=$(echo ${DATAPROC_CREATE_CLUSTER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_DELETE_CLUSTER_IMAGE_FOR_SED=$(echo ${DATAPROC_DELETE_CLUSTER_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_ANALYZE_IMAGE_FOR_SED=$(echo ${DATAPROC_ANALYZE_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_TRANSFORM_IMAGE_FOR_SED=$(echo ${DATAPROC_TRANSFORM_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_TRAIN_IMAGE_FOR_SED=$(echo ${DATAPROC_TRAIN_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  DATAPROC_PREDICT_IMAGE_FOR_SED=$(echo ${DATAPROC_PREDICT_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  LOCAL_ROC_IMAGE_FOR_SED=$(echo ${LOCAL_ROC_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
-  LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED=$(echo ${LOCAL_CONFUSIONMATRIX_IMAGE}|sed -e "s/\//\\\\\//g"|sed -e "s/\./\\\\\./g")
 
-
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_CREATE_CLUSTER_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_DELETE_CLUSTER_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_ANALYZE_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_TRANSFORM_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_TRAIN_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+/${DATAPROC_PREDICT_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+/${LOCAL_ROC_IMAGE_FOR_SED}/g" xgboost-training-cm.py
-  sed -i -e "s/gcr.io\/ml-pipeline\/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+/${LOCAL_CONFUSIONMATRIX_IMAGE_FOR_SED}/g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.py
 
   dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.tar.gz
 
-  cd /
-  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/xgboost-spark/xgboost-training-cm.tar.gz --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT
+  cd "${TEST_DIR}"
+  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/xgboost-spark/xgboost-training-cm.tar.gz --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_XGBOOST_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_XGBOOST_TEST_RESULT}

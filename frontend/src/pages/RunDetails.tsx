@@ -16,58 +16,31 @@
 
 import * as React from 'react';
 import Banner, { Mode } from '../components/Banner';
-import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import CloseIcon from '@material-ui/icons/Close';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
 import PlotCard from '../components/PlotCard';
-import Resizable from 're-resizable';
 import RunUtils from '../lib/RunUtils';
-import Slide from '@material-ui/core/Slide';
+import SidePanel from '../components/SidePanel';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun } from '../apis/run';
 import { Apis } from '../lib/Apis';
-import { NodePhase } from './Status';
+import { NodePhase, statusToIcon } from './Status';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { commonCss, color, padding } from '../Css';
+import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
-import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
-import { stylesheet, classes } from 'typestyle';
-
-const css = stylesheet({
-  closeButton: {
-    color: color.inactive,
-    margin: 15,
-    minHeight: 0,
-    minWidth: 0,
-    padding: 0,
-  },
-  nodeName: {
-    flexGrow: 1,
-    textAlign: 'center',
-  },
-  sidepane: {
-    backgroundColor: color.background,
-    borderLeft: 'solid 1px #ddd',
-    bottom: 0,
-    display: 'flex',
-    flexFlow: 'column',
-    position: 'absolute !important' as any,
-    right: 0,
-    top: 0,
-  },
-});
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
+import { classes } from 'typestyle';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -129,130 +102,103 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         title: 'Refresh',
         tooltip: 'Refresh',
       }],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: this.props.runId!, href: '' },
-      ],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: this.props.runId!,
     };
   }
 
   public render(): JSX.Element {
     const { graph, runMetadata, selectedTab, selectedNodeDetails, sidepanelSelectedTab,
       workflow } = this.state;
+    const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
 
-        {workflow && (
+        {!!workflow && (
           <div className={commonCss.page}>
             <MD2Tabs selectedTab={selectedTab} tabs={['Graph', 'Config']}
-              onSwitch={(tab: number) => this.setState({ selectedTab: tab })} />
+              onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
 
               {selectedTab === 0 && <div className={commonCss.page}>
                 {graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                  <Graph graph={graph} selectedNodeId={selectedNodeDetails ? selectedNodeDetails.id : ''}
+                  <Graph graph={graph} selectedNodeId={selectedNodeId}
                     onClick={(id) => this._selectNode(id)} />
-                  <Slide in={!!selectedNodeDetails} direction='left'>
-                    <Resizable className={css.sidepane} defaultSize={{ width: '70%' }} maxWidth='90%'
-                      minWidth={100} enable={{
-                        bottom: false,
-                        bottomLeft: false,
-                        bottomRight: false,
-                        left: true,
-                        right: false,
-                        top: false,
-                        topLeft: false,
-                        topRight: false,
-                      }}>
-                      {!!selectedNodeDetails && <div className={commonCss.page}>
-                        <div className={commonCss.flex}>
-                          <Button className={css.closeButton}
-                            onClick={() => this.setState({ selectedNodeDetails: null })}>
-                            <CloseIcon />
-                          </Button>
-                          <div className={css.nodeName}>{selectedNodeDetails.id}</div>
-                        </div>
-                        {this.state.selectedNodeDetails && this.state.selectedNodeDetails.phaseMessage && (
-                          <Banner mode='warning'
-                            message={this.state.selectedNodeDetails.phaseMessage} />
-                        )}
+
+                  <SidePanel isBusy={this.state.sidepanelBusy} isOpen={!!selectedNodeDetails}
+                    onClose={() => this.setStateSafe({ selectedNodeDetails: null })} title={selectedNodeId}>
+                    {!!selectedNodeDetails && (<React.Fragment>
+                      {!!selectedNodeDetails.phaseMessage && (
+                        <Banner mode='warning'
+                          message={selectedNodeDetails.phaseMessage} />
+                      )}
+                      <div className={commonCss.page}>
+                        <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
+                          selectedTab={sidepanelSelectedTab}
+                          onSwitch={this._loadSidePaneTab.bind(this)} />
+
+                        {this.state.sidepanelBusy &&
+                          <CircularProgress size={30} className={commonCss.absoluteCenter} />}
+
                         <div className={commonCss.page}>
-                          <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
-                            selectedTab={sidepanelSelectedTab}
-                            onSwitch={this._sidePaneTabSwitched.bind(this)} />
+                          {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
+                            <div className={commonCss.page}>
+                              {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
+                                const title = componentMap[config.type].prototype.getDisplayName();
+                                return (
+                                  <div key={i} className={padding(20, 'lrt')}>
+                                    <PlotCard configs={[config]} title={title} maxDimension={500} />
+                                    <Hr />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
 
-                          {this.state.sidepanelBusy &&
-                            <CircularProgress size={30} className={commonCss.absoluteCenter} />}
+                          {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
+                            <div className={padding(20)}>
+                              <DetailsTable title='Input parameters'
+                                fields={WorkflowParser.getNodeInputOutputParams(
+                                  workflow, selectedNodeId)[0]} />
 
-                          <div className={commonCss.page}>
-                            {sidepanelSelectedTab === SidePaneTab.ARTIFACTS &&
-                              <div className={commonCss.page}>
-                                {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
-                                  const title = componentMap[config.type].prototype.getDisplayName();
-                                  return (
-                                    <div key={i} className={padding(20, 'lrt')}>
-                                      <PlotCard configs={[config]} title={title} maxDimension={500} />
-                                      <Hr />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            }
+                              <DetailsTable title='Output parameters'
+                                fields={WorkflowParser.getNodeInputOutputParams(
+                                  workflow, selectedNodeId)[1]} />
+                            </div>
+                          )}
 
-                            {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT &&
-                              <div className={padding(20)}>
-                                <div className={commonCss.header}>Input parameters</div>
-                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeDetails.id)[0]} />
-
-                                <div className={commonCss.header}>Output parameters</div>
-                                <DetailsTable fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeDetails.id)[1]} />
-                              </div>
-                            }
-
-                            {sidepanelSelectedTab === SidePaneTab.LOGS &&
-                              <div className={commonCss.page}>
-                                {this.state.logsBannerMessage && (
-                                  <Banner
-                                    message={this.state.logsBannerMessage}
-                                    mode={this.state.logsBannerMode}
-                                    additionalInfo={this.state.logsBannerAdditionalInfo}
-                                    refresh={this._loadSelectedNodeLogs.bind(this)} />
-                                )}
-                                {!this.state.logsBannerMessage && this.state.selectedNodeDetails && (
-                                  <LogViewer logLines={(this.state.selectedNodeDetails.logs || '').split('\n')}
-                                    classes={commonCss.page} />
-                                )}
-                              </div>
-                            }
-                          </div>
+                          {sidepanelSelectedTab === SidePaneTab.LOGS && (
+                            <div className={commonCss.page}>
+                              {this.state.logsBannerMessage && (
+                                <Banner
+                                  message={this.state.logsBannerMessage}
+                                  mode={this.state.logsBannerMode}
+                                  additionalInfo={this.state.logsBannerAdditionalInfo}
+                                  refresh={this._loadSelectedNodeLogs.bind(this)} />
+                              )}
+                              {!this.state.logsBannerMessage && this.state.selectedNodeDetails && (
+                                <LogViewer logLines={(this.state.selectedNodeDetails.logs || '').split('\n')}
+                                  classes={commonCss.page} />
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>}
-                    </Resizable>
-                  </Slide>
+                      </div>
+                    </React.Fragment>)}
+                  </SidePanel>
                 </div>}
                 {!graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>}
 
               {selectedTab === 1 && <div className={padding()}>
-                <div className={commonCss.header}>Run details</div>
-                {/* TODO: show description */}
-                <DetailsTable fields={[
-                  ['Status', workflow.status.phase],
-                  ['Description', runMetadata ? runMetadata!.description! : ''],
-                  ['Created at', formatDateString(workflow.metadata.creationTimestamp)],
-                  ['Started at', formatDateString(workflow.status.startedAt)],
-                  ['Finished at', formatDateString(workflow.status.finishedAt)],
-                  ['Duration', getRunTime(workflow)],
-                ]} />
+                <DetailsTable title='Run details' fields={this._getDetailsFields(workflow, runMetadata)} />
 
                 {workflowParameters && !!workflowParameters.length && (<div>
-                  <div className={commonCss.header}>Run parameters</div>
-                  <DetailsTable fields={workflowParameters.map(p => [p.name, p.value || ''])} />
+                  <DetailsTable title='Run parameters'
+                    fields={workflowParameters.map(p => [p.name, p.value || ''])} />
                 </div>)}
               </div>}
             </div>
@@ -282,7 +228,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
       }
       const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
-      const runMetadata = runDetail.run;
+      const runMetadata = runDetail.run!;
 
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
@@ -310,15 +256,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
           { displayName: 'All runs', href: RoutePage.RUNS }
         );
       }
-      breadcrumbs.push({
-        displayName: runMetadata ? runMetadata.name! : this.props.runId!,
-        href: '',
-      });
+      const pageTitle = <div className={commonCss.flex}>
+        {statusToIcon(runMetadata.status as NodePhase)}
+        <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
+      </div>;
 
-      // TODO: run status next to page name
-      this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs });
+      this.props.updateToolbar({ breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
-      this.setState({
+      this.setStateSafe({
         experiment,
         graph,
         runMetadata,
@@ -329,27 +274,38 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       logger.error('Error loading run:', runId);
     }
 
-    // These are called here to ensure that logs and artifacts in the side panel are refreshed when
+    // Make sure logs and artifacts in the side panel are refreshed when
     // the user hits "Refresh", either in the top toolbar or in an error banner.
-    this._loadSelectedNodeLogs();
-    this._loadSelectedNodeOutputs();
+    this._loadSidePaneTab(this.state.sidepanelSelectedTab);
+  }
+
+  private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): string[][] {
+    return !workflow.status ? [] : [
+      ['Status', workflow.status.phase],
+      ['Description', runMetadata ? runMetadata!.description! : ''],
+      ['Created at', workflow.metadata ? formatDateString(workflow.metadata.creationTimestamp) : '-'],
+      ['Started at', formatDateString(workflow.status.startedAt)],
+      ['Finished at', formatDateString(workflow.status.finishedAt)],
+      ['Duration', getRunTime(workflow)],
+    ];
   }
 
   private _selectNode(id: string): void {
-    this.setState({ selectedNodeDetails: { id } }, () =>
-      this._sidePaneTabSwitched(this.state.sidepanelSelectedTab));
+    this.setStateSafe({ selectedNodeDetails: { id } }, () =>
+      this._loadSidePaneTab(this.state.sidepanelSelectedTab));
   }
 
-  private _sidePaneTabSwitched(tab: SidePaneTab): void {
+  private _loadSidePaneTab(tab: SidePaneTab): void {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
       const node = workflow.status.nodes[selectedNodeDetails.id];
-      if (node && node.message) {
-        selectedNodeDetails.phaseMessage =
-          `This step is in ${node.phase} state with this message: ` + node.message;
+      if (node) {
+        selectedNodeDetails.phaseMessage = (node && node.message) ?
+          `This step is in ${node.phase} state with this message: ` + node.message :
+          undefined;
       }
-      this.setState({ selectedNodeDetails, sidepanelSelectedTab: tab });
+      this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab });
 
       switch (tab) {
         case SidePaneTab.ARTIFACTS:
@@ -360,7 +316,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
             this._loadSelectedNodeLogs();
           } else {
             // Clear logs
-            this.setState({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
+            this.setStateSafe({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
           }
       }
     }
@@ -371,22 +327,23 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     if (!selectedNodeDetails) {
       return;
     }
-    this.setState({ sidepanelBusy: true });
-    const workflow = this.state.workflow;
-    if (workflow && workflow.status && workflow.status.nodes) {
-      // Load runtime outputs from the selected Node
-      const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
+    this.setStateSafe({ sidepanelBusy: true }, async () => {
+      const workflow = this.state.workflow;
+      if (workflow && workflow.status && workflow.status.nodes) {
+        // Load runtime outputs from the selected Node
+        const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
 
-      // Load the viewer configurations from the output paths
-      let viewerConfigs: ViewerConfig[] = [];
-      for (const path of outputPaths) {
-        viewerConfigs = viewerConfigs.concat(await loadOutputArtifacts(path));
+        // Load the viewer configurations from the output paths
+        let viewerConfigs: ViewerConfig[] = [];
+        for (const path of outputPaths) {
+          viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
+        }
+
+        selectedNodeDetails.viewerConfigs = viewerConfigs;
+        this.setStateSafe({ selectedNodeDetails });
       }
-
-      selectedNodeDetails.viewerConfigs = viewerConfigs;
-      this.setState({ selectedNodeDetails });
-    }
-    this.setState({ sidepanelBusy: false });
+      this.setStateSafe({ sidepanelBusy: false });
+    });
   }
 
   private async _loadSelectedNodeLogs(): Promise<void> {
@@ -394,14 +351,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     if (!selectedNodeDetails) {
       return;
     }
-    this.setState({ sidepanelBusy: true });
+    this.setStateSafe({ sidepanelBusy: true });
     try {
       const logs = await Apis.getPodLogs(selectedNodeDetails.id);
       selectedNodeDetails.logs = logs;
-      this.setState({ selectedNodeDetails, logsBannerAdditionalInfo: '', logsBannerMessage: '' });
+      this.setStateSafe({ selectedNodeDetails, logsBannerAdditionalInfo: '', logsBannerMessage: '' });
     } catch (err) {
       const errorMessage = await errorToMessage(err);
-      this.setState({
+      this.setStateSafe({
         logsBannerAdditionalInfo: errorMessage,
         logsBannerMessage: 'Error: failed to retrieve logs.'
           + (errorMessage ? ' Click Details for more information.' : ''),
@@ -409,7 +366,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       });
       logger.error('Error loading logs for node:', selectedNodeDetails.id);
     } finally {
-      this.setState({ sidepanelBusy: false });
+      this.setStateSafe({ sidepanelBusy: false });
     }
   }
 

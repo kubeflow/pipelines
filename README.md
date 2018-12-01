@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.com/kubeflow/pipelines.svg?branch=master)](https://travis-ci.com/kubeflow/pipelines)
-[![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg)](https://coveralls.io/github/kubeflow/pipelines?branch=yebrahim%2Fcoveralls)
+[![Build Status](https://travis-ci.org/kubeflow/pipelines.svg?branch=master)](https://travis-ci.org/kubeflow/pipelines)
+[![Coverage Status](https://coveralls.io/repos/github/kubeflow/pipelines/badge.svg?branch=master)](https://coveralls.io/github/kubeflow/pipelines?branch=master)
 
 ## Overview of the Kubeflow pipelines service
 
@@ -15,7 +15,12 @@ The Kubeflow pipelines service has the following goals:
 
 ## Documentation
 
-Get started with your first pipeline and read further information in the [documentation](https://github.com/kubeflow/pipelines/wiki).
+Get started with your first pipeline and read further information in the [Kubeflow Pipelines documentation](https://www.kubeflow.org/docs/guides/pipelines/pipelines-overview/).
+
+## Blog posts
+
+* [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
+* [How to create and deploy a Kubeflow Machine Learning Pipeline](https://towardsdatascience.com/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f) (By Lak Lakshmanan)
 
 ## Acknowledgments
 

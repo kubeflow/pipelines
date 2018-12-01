@@ -26,9 +26,10 @@ import ExperimentDetails from '../pages/ExperimentDetails';
 import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
+import Page404 from '../pages/404';
 import PipelineDetails from '../pages/PipelineDetails';
 import PipelineList from '../pages/PipelineList';
-import RecurringRunConfig from '../pages/RecurringRunDetails';
+import RecurringRunDetails from '../pages/RecurringRunDetails';
 import RunDetails from '../pages/RunDetails';
 import SideNav from './SideNav';
 import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
@@ -98,7 +99,7 @@ class Router extends React.Component<{}, RouteComponentState> {
       updateBanner: this._updateBanner.bind(this),
       updateDialog: this._updateDialog.bind(this),
       updateSnackbar: this._updateSnackbar.bind(this),
-      updateToolbar: this._setToolbarActions.bind(this),
+      updateToolbar: this._updateToolbar.bind(this),
     };
 
     const routes: Array<{ path: string, Component: React.ComponentClass, view?: any }> = [
@@ -109,7 +110,7 @@ class Router extends React.Component<{}, RouteComponentState> {
       { path: RoutePage.PIPELINES, Component: PipelineList },
       { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
       { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
-      { path: RoutePage.RECURRING_RUN, Component: RecurringRunConfig },
+      { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
       { path: RoutePage.RUN_DETAILS, Component: RunDetails },
       { path: RoutePage.COMPARE, Component: Compare },
     ];
@@ -137,6 +138,9 @@ class Router extends React.Component<{}, RouteComponentState> {
                     <Component {...props} {...childProps} {...otherProps} />
                   )} />;
                 })}
+
+                {/* 404 */}
+                {<Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
               </Switch>
 
               <Snackbar
@@ -191,7 +195,8 @@ class Router extends React.Component<{}, RouteComponentState> {
     }
   }
 
-  private _setToolbarActions(toolbarProps: ToolbarProps): void {
+  private _updateToolbar(newToolbarProps: Partial<ToolbarProps>): void {
+    const toolbarProps = Object.assign(this.state.toolbarProps, newToolbarProps);
     this.setState({ toolbarProps });
   }
 
