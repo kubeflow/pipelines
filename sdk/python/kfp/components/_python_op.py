@@ -232,7 +232,7 @@ for idx, filename in enumerate(_output_files):
             container=ContainerSpec(
                 image=base_image,
                 command=['python3', '-c', full_source],
-                arguments=arguments,
+                args=arguments,
             )
         )
     )
