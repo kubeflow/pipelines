@@ -15,7 +15,7 @@ The Kubeflow pipelines service has the following goals:
 
 ## Documentation
 
-Get started with your first pipeline and read further information in the [documentation](https://github.com/kubeflow/pipelines/wiki).
+Get started with your first pipeline and read further information in the [Kubeflow Pipelines documentation](https://www.kubeflow.org/docs/guides/pipelines/pipelines-overview/).
 
 ## Blog posts
 

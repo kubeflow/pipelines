@@ -106,6 +106,10 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/python/src/github.com/${GITHUB_REPO}
 TEST_DIR=${BASE_DIR}/test/sample-test

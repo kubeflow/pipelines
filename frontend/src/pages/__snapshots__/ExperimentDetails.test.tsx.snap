@@ -1,0 +1,1336 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <div
+      className="cardRow"
+    >
+      <WithStyles(Paper)
+        className="card recurringRunsCard cardActive"
+        elevation={0}
+        id="recurringRunsCard"
+      >
+        <div>
+          <div
+            className="cardTitle"
+          >
+            Recurring run configs
+          </div>
+          <div
+            className="cardContent recurringRunsActive"
+          >
+            1 active
+          </div>
+          <WithStyles(Button)
+            className="cardBtn"
+            disableRipple={true}
+            id="manageExperimentRecurringRunsBtn"
+            onClick={[Function]}
+          >
+            Manage
+          </WithStyles(Button)>
+        </div>
+      </WithStyles(Paper)>
+      <WithStyles(Paper)
+        className="card runStatsCard"
+        elevation={0}
+        id="experimentDescriptionCard"
+      >
+        <div
+          className="cardTitle"
+        >
+          <span>
+            Experiment description
+          </span>
+          <WithStyles(Button)
+            className="popOutIcon popOutButton"
+            id="expandExperimentDescriptionBtn"
+            onClick={[Function]}
+          >
+            <WithStyles(Tooltip)
+              title="Read more"
+            >
+              <pure(LaunchIcon)
+                style={
+                  Object {
+                    "fontSize": 18,
+                  }
+                }
+              />
+            </WithStyles(Tooltip)>
+          </WithStyles(Button)>
+        </div>
+        <div
+          key="0"
+          style={
+            Object {
+              "overflow": "hidden",
+              "textOverflow": "ellipsis",
+              "whiteSpace": "nowrap",
+            }
+          }
+        >
+          mock experiment description
+        </div>
+      </WithStyles(Paper)>
+    </div>
+    <Toolbar
+      actions={
+        Array [
+          Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "startNewRunBtn",
+            "outlined": true,
+            "primary": true,
+            "title": "Create run",
+            "tooltip": "Start a new run within this experiment",
+          },
+          Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "startNewRecurringRunBtn",
+            "outlined": true,
+            "title": "Create recurring run",
+            "tooltip": "Start a new recurring run in this experiment",
+          },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "title": "Clone",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+        ]
+      }
+      breadcrumbs={Array []}
+      pageTitle="Runs"
+      topLevelToolbar={false}
+    />
+    <RunList
+      experimentIdMask="some-mock-experiment-id"
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location=""
+      match={
+        Object {
+          "params": Object {
+            "eid": "some-mock-experiment-id",
+          },
+        }
+      }
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      selectedIds={Array []}
+      toolbarProps={
+        Object {
+          "actions": Array [
+            Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh",
+            },
+          ],
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "",
+        }
+      }
+      updateBanner={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {},
+            ],
+          ],
+        }
+      }
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {
+                "actions": Array [
+                  Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh",
+                  },
+                ],
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "some-mock-experiment-id",
+              },
+            ],
+            Array [
+              Object {
+                "actions": Array [
+                  Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh",
+                  },
+                ],
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "some mock experiment name",
+                "pageTitleTooltip": "some mock experiment name",
+              },
+            ],
+          ],
+        }
+      }
+    />
+    <WithStyles(Dialog)
+      classes={
+        Object {
+          "paper": "recurringRunsDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <RecurringRunsManager
+          experimentId="some-mock-experiment-id"
+          history={
+            Object {
+              "push": [MockFunction],
+            }
+          }
+          location=""
+          match={
+            Object {
+              "params": Object {
+                "eid": "some-mock-experiment-id",
+              },
+            }
+          }
+          toolbarProps={
+            Object {
+              "actions": Array [
+                Object {
+                  "action": [Function],
+                  "id": "refreshBtn",
+                  "title": "Refresh",
+                  "tooltip": "Refresh",
+                },
+              ],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [
+                      Object {
+                        "action": [Function],
+                        "id": "refreshBtn",
+                        "title": "Refresh",
+                        "tooltip": "Refresh",
+                      },
+                    ],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "some-mock-experiment-id",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [
+                      Object {
+                        "action": [Function],
+                        "id": "refreshBtn",
+                        "title": "Refresh",
+                        "tooltip": "Refresh",
+                      },
+                    ],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "some mock experiment name",
+                    "pageTitleTooltip": "some mock experiment name",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="closeExperimentRecurringRunManagerBtn"
+          onClick={[Function]}
+        >
+          Close
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+  </div>
+</div>
+`;
+
+exports[`ExperimentDetails removes all description text after second newline and replaces with an ellipsis 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <div
+      className="cardRow"
+    >
+      <WithStyles(Paper)
+        className="card recurringRunsCard"
+        elevation={0}
+        id="recurringRunsCard"
+      >
+        <div>
+          <div
+            className="cardTitle"
+          >
+            Recurring run configs
+          </div>
+          <div
+            className="cardContent"
+          >
+            0 active
+          </div>
+          <WithStyles(Button)
+            className="cardBtn"
+            disableRipple={true}
+            id="manageExperimentRecurringRunsBtn"
+            onClick={[Function]}
+          >
+            Manage
+          </WithStyles(Button)>
+        </div>
+      </WithStyles(Paper)>
+      <WithStyles(Paper)
+        className="card runStatsCard"
+        elevation={0}
+        id="experimentDescriptionCard"
+      >
+        <div
+          className="cardTitle"
+        >
+          <span>
+            Experiment description
+          </span>
+          <WithStyles(Button)
+            className="popOutIcon popOutButton"
+            id="expandExperimentDescriptionBtn"
+            onClick={[Function]}
+          >
+            <WithStyles(Tooltip)
+              title="Read more"
+            >
+              <pure(LaunchIcon)
+                style={
+                  Object {
+                    "fontSize": 18,
+                  }
+                }
+              />
+            </WithStyles(Tooltip)>
+          </WithStyles(Button)>
+        </div>
+        <div
+          key="0"
+          style={
+            Object {
+              "overflow": "hidden",
+              "textOverflow": "ellipsis",
+              "whiteSpace": "nowrap",
+            }
+          }
+        >
+          Line 1
+        </div>
+        <div
+          key="1"
+          style={
+            Object {
+              "overflow": "hidden",
+              "textOverflow": "ellipsis",
+              "whiteSpace": "nowrap",
+            }
+          }
+        >
+          Line 2
+        </div>
+        ...
+      </WithStyles(Paper)>
+    </div>
+    <Toolbar
+      actions={
+        Array [
+          Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "startNewRunBtn",
+            "outlined": true,
+            "primary": true,
+            "title": "Create run",
+            "tooltip": "Start a new run within this experiment",
+          },
+          Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "startNewRecurringRunBtn",
+            "outlined": true,
+            "title": "Create recurring run",
+            "tooltip": "Start a new recurring run in this experiment",
+          },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "title": "Clone",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+        ]
+      }
+      breadcrumbs={Array []}
+      pageTitle="Runs"
+      topLevelToolbar={false}
+    />
+    <RunList
+      experimentIdMask="some-mock-experiment-id"
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location=""
+      match={
+        Object {
+          "params": Object {
+            "eid": "some-mock-experiment-id",
+          },
+        }
+      }
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      selectedIds={Array []}
+      toolbarProps={
+        Object {
+          "actions": Array [
+            Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh",
+            },
+          ],
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "",
+        }
+      }
+      updateBanner={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {},
+            ],
+          ],
+        }
+      }
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {
+                "actions": Array [
+                  Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh",
+                  },
+                ],
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "some-mock-experiment-id",
+              },
+            ],
+            Array [
+              Object {
+                "actions": Array [
+                  Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh",
+                  },
+                ],
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "some mock experiment name",
+                "pageTitleTooltip": "some mock experiment name",
+              },
+            ],
+          ],
+        }
+      }
+    />
+    <WithStyles(Dialog)
+      classes={
+        Object {
+          "paper": "recurringRunsDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <RecurringRunsManager
+          experimentId="some-mock-experiment-id"
+          history={
+            Object {
+              "push": [MockFunction],
+            }
+          }
+          location=""
+          match={
+            Object {
+              "params": Object {
+                "eid": "some-mock-experiment-id",
+              },
+            }
+          }
+          toolbarProps={
+            Object {
+              "actions": Array [
+                Object {
+                  "action": [Function],
+                  "id": "refreshBtn",
+                  "title": "Refresh",
+                  "tooltip": "Refresh",
+                },
+              ],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [
+                      Object {
+                        "action": [Function],
+                        "id": "refreshBtn",
+                        "title": "Refresh",
+                        "tooltip": "Refresh",
+                      },
+                    ],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "some-mock-experiment-id",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [
+                      Object {
+                        "action": [Function],
+                        "id": "refreshBtn",
+                        "title": "Refresh",
+                        "tooltip": "Refresh",
+                      },
+                    ],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "some mock experiment name",
+                    "pageTitleTooltip": "some mock experiment name",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="closeExperimentRecurringRunManagerBtn"
+          onClick={[Function]}
+        >
+          Close
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+  </div>
+</div>
+`;
+
+exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <div
+      className="cardRow"
+    >
+      <WithStyles(Paper)
+        className="card recurringRunsCard"
+        elevation={0}
+        id="recurringRunsCard"
+      >
+        <div>
+          <div
+            className="cardTitle"
+          >
+            Recurring run configs
+          </div>
+          <div
+            className="cardContent"
+          >
+            0 active
+          </div>
+          <WithStyles(Button)
+            className="cardBtn"
+            disableRipple={true}
+            id="manageExperimentRecurringRunsBtn"
+            onClick={[Function]}
+          >
+            Manage
+          </WithStyles(Button)>
+        </div>
+      </WithStyles(Paper)>
+      <WithStyles(Paper)
+        className="card runStatsCard"
+        elevation={0}
+        id="experimentDescriptionCard"
+      >
+        <div
+          className="cardTitle"
+        >
+          <span>
+            Experiment description
+          </span>
+          <WithStyles(Button)
+            className="popOutIcon popOutButton"
+            id="expandExperimentDescriptionBtn"
+            onClick={[Function]}
+          >
+            <WithStyles(Tooltip)
+              title="Read more"
+            >
+              <pure(LaunchIcon)
+                style={
+                  Object {
+                    "fontSize": 18,
+                  }
+                }
+              />
+            </WithStyles(Tooltip)>
+          </WithStyles(Button)>
+        </div>
+        <div
+          key="0"
+          style={
+            Object {
+              "overflow": "hidden",
+              "textOverflow": "ellipsis",
+              "whiteSpace": "nowrap",
+            }
+          }
+        >
+          mock experiment description
+        </div>
+      </WithStyles(Paper)>
+    </div>
+    <Toolbar
+      actions={
+        Array [
+          Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "startNewRunBtn",
+            "outlined": true,
+            "primary": true,
+            "title": "Create run",
+            "tooltip": "Start a new run within this experiment",
+          },
+          Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "startNewRecurringRunBtn",
+            "outlined": true,
+            "title": "Create recurring run",
+            "tooltip": "Start a new recurring run in this experiment",
+          },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "title": "Clone",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+        ]
+      }
+      breadcrumbs={Array []}
+      pageTitle="Runs"
+      topLevelToolbar={false}
+    />
+    <RunList
+      experimentIdMask="some-mock-experiment-id"
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location=""
+      match={
+        Object {
+          "params": Object {
+            "eid": "some-mock-experiment-id",
+          },
+        }
+      }
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      selectedIds={Array []}
+      toolbarProps={
+        Object {
+          "actions": Array [
+            Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh",
+            },
+          ],
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "",
+        }
+      }
+      updateBanner={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {},
+            ],
+          ],
+        }
+      }
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {
+                "actions": Array [
+                  Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh",
+                  },
+                ],
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "some-mock-experiment-id",
+              },
+            ],
+            Array [
+              Object {
+                "actions": Array [
+                  Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh",
+                  },
+                ],
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "some mock experiment name",
+                "pageTitleTooltip": "some mock experiment name",
+              },
+            ],
+          ],
+        }
+      }
+    />
+    <WithStyles(Dialog)
+      classes={
+        Object {
+          "paper": "recurringRunsDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <RecurringRunsManager
+          experimentId="some-mock-experiment-id"
+          history={
+            Object {
+              "push": [MockFunction],
+            }
+          }
+          location=""
+          match={
+            Object {
+              "params": Object {
+                "eid": "some-mock-experiment-id",
+              },
+            }
+          }
+          toolbarProps={
+            Object {
+              "actions": Array [
+                Object {
+                  "action": [Function],
+                  "id": "refreshBtn",
+                  "title": "Refresh",
+                  "tooltip": "Refresh",
+                },
+              ],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [
+                      Object {
+                        "action": [Function],
+                        "id": "refreshBtn",
+                        "title": "Refresh",
+                        "tooltip": "Refresh",
+                      },
+                    ],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "some-mock-experiment-id",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [
+                      Object {
+                        "action": [Function],
+                        "id": "refreshBtn",
+                        "title": "Refresh",
+                        "tooltip": "Refresh",
+                      },
+                    ],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "some mock experiment name",
+                    "pageTitleTooltip": "some mock experiment name",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="closeExperimentRecurringRunManagerBtn"
+          onClick={[Function]}
+        >
+          Close
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+  </div>
+</div>
+`;
+
+exports[`ExperimentDetails uses an empty string if the experiment has no description 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <div
+      className="cardRow"
+    >
+      <WithStyles(Paper)
+        className="card recurringRunsCard"
+        elevation={0}
+        id="recurringRunsCard"
+      >
+        <div>
+          <div
+            className="cardTitle"
+          >
+            Recurring run configs
+          </div>
+          <div
+            className="cardContent"
+          >
+            0 active
+          </div>
+          <WithStyles(Button)
+            className="cardBtn"
+            disableRipple={true}
+            id="manageExperimentRecurringRunsBtn"
+            onClick={[Function]}
+          >
+            Manage
+          </WithStyles(Button)>
+        </div>
+      </WithStyles(Paper)>
+      <WithStyles(Paper)
+        className="card runStatsCard"
+        elevation={0}
+        id="experimentDescriptionCard"
+      >
+        <div
+          className="cardTitle"
+        >
+          <span>
+            Experiment description
+          </span>
+          <WithStyles(Button)
+            className="popOutIcon popOutButton"
+            id="expandExperimentDescriptionBtn"
+            onClick={[Function]}
+          >
+            <WithStyles(Tooltip)
+              title="Read more"
+            >
+              <pure(LaunchIcon)
+                style={
+                  Object {
+                    "fontSize": 18,
+                  }
+                }
+              />
+            </WithStyles(Tooltip)>
+          </WithStyles(Button)>
+        </div>
+        <div
+          key="0"
+          style={
+            Object {
+              "overflow": "hidden",
+              "textOverflow": "ellipsis",
+              "whiteSpace": "nowrap",
+            }
+          }
+        />
+      </WithStyles(Paper)>
+    </div>
+    <Toolbar
+      actions={
+        Array [
+          Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "startNewRunBtn",
+            "outlined": true,
+            "primary": true,
+            "title": "Create run",
+            "tooltip": "Start a new run within this experiment",
+          },
+          Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "startNewRecurringRunBtn",
+            "outlined": true,
+            "title": "Create recurring run",
+            "tooltip": "Start a new recurring run in this experiment",
+          },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "title": "Clone",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+        ]
+      }
+      breadcrumbs={Array []}
+      pageTitle="Runs"
+      topLevelToolbar={false}
+    />
+    <RunList
+      experimentIdMask="some-mock-experiment-id"
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location=""
+      match={
+        Object {
+          "params": Object {
+            "eid": "some-mock-experiment-id",
+          },
+        }
+      }
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      selectedIds={Array []}
+      toolbarProps={
+        Object {
+          "actions": Array [
+            Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh",
+            },
+          ],
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "",
+        }
+      }
+      updateBanner={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {},
+            ],
+          ],
+        }
+      }
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={
+        [MockFunction] {
+          "calls": Array [
+            Array [
+              Object {
+                "actions": Array [
+                  Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh",
+                  },
+                ],
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "some-mock-experiment-id",
+              },
+            ],
+            Array [
+              Object {
+                "actions": Array [
+                  Object {
+                    "action": [Function],
+                    "id": "refreshBtn",
+                    "title": "Refresh",
+                    "tooltip": "Refresh",
+                  },
+                ],
+                "breadcrumbs": Array [
+                  Object {
+                    "displayName": "Experiments",
+                    "href": "/experiments",
+                  },
+                ],
+                "pageTitle": "some mock experiment name",
+                "pageTitleTooltip": "some mock experiment name",
+              },
+            ],
+          ],
+        }
+      }
+    />
+    <WithStyles(Dialog)
+      classes={
+        Object {
+          "paper": "recurringRunsDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <RecurringRunsManager
+          experimentId="some-mock-experiment-id"
+          history={
+            Object {
+              "push": [MockFunction],
+            }
+          }
+          location=""
+          match={
+            Object {
+              "params": Object {
+                "eid": "some-mock-experiment-id",
+              },
+            }
+          }
+          toolbarProps={
+            Object {
+              "actions": Array [
+                Object {
+                  "action": [Function],
+                  "id": "refreshBtn",
+                  "title": "Refresh",
+                  "tooltip": "Refresh",
+                },
+              ],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [
+                      Object {
+                        "action": [Function],
+                        "id": "refreshBtn",
+                        "title": "Refresh",
+                        "tooltip": "Refresh",
+                      },
+                    ],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "some-mock-experiment-id",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [
+                      Object {
+                        "action": [Function],
+                        "id": "refreshBtn",
+                        "title": "Refresh",
+                        "tooltip": "Refresh",
+                      },
+                    ],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "some mock experiment name",
+                    "pageTitleTooltip": "some mock experiment name",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="closeExperimentRecurringRunManagerBtn"
+          onClick={[Function]}
+        >
+          Close
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+  </div>
+</div>
+`;
