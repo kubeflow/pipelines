@@ -58,6 +58,10 @@ tools/google-cloud-sdk/install.sh --usage-reporting=false \
   --disable-installation-options
 tools/google-cloud-sdk/bin/gcloud -q components install kubectl
 
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  tools/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 npm install
 
 # Port forward the UI so tests can work against localhost

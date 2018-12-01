@@ -24,7 +24,7 @@ import sys
 from google.cloud import storage
 from pathlib import PurePath, Path
 from .. import dsl
-from ..components._components import _create_task_factory_from_component_dict
+from ..components._components import _create_task_factory_from_component_spec
 from ._k8s_helper import K8sHelper
 
 class GCSHelper(object):
@@ -418,42 +418,43 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   The returned value is in fact a function, which should generates a container_op instance. """
 
   from ..components._python_op import _python_function_name_to_component_name
+  from ..components import InputSpec, OutputSpec, ImplementationSpec, ContainerSpec, ComponentSpec
+
 
   #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
   #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
   component_name = getattr(component_func, '_component_human_name', None) or _python_function_name_to_component_name(component_func.__name__)
   component_description = getattr(component_func, '_component_description', None) or (component_func.__doc__.strip() if component_func.__doc__ else None)
 
+  #TODO: Humanize the input/output names
   input_names = inspect.getfullargspec(component_func)[0]
 
-  component_artifact = {}
-  component_artifact['name'] = component_name
-  component_artifact['description'] = component_description
-  component_artifact['outputs'] = [{'name': 'output'}]
-  component_artifact['inputs'] = []
-  component_artifact['implementation'] = {
-    'container': {
-      'image': target_image,
-      'arguments': [],
-      'fileOutputs': {
-        'output': '/output.txt'
-      }
-    }
-  }
-  for input in input_names:
-    component_artifact['inputs'].append({
-      'name': input,
-      'type': 'str'
-    })
-    component_artifact['implementation']['container']['arguments'].append({'value': input})
+  output_name = 'output'
+  output_file = '/output.txt' #TODO: change the output path to /outputs/output/file here and in code generator
+  component_spec = ComponentSpec(
+      name=component_name,
+      description=component_description,
+      inputs=[InputSpec(name=input_name, type='str') for input_name in input_names], #TODO: Chnage type to actual type
+      outputs=[OutputSpec(name=output_name)],
+      implementation=ImplementationSpec(
+          container=ContainerSpec(
+              image=target_image,
+              #command=['python3', program_file], #TODO: Include the command line
+              arguments=[{'value': input_name} for input_name in input_names],
+              file_outputs={ #TODO: Use proper output arguments (e.g. "{output: output_name}" ) instead of this workaround. Our 1st-party components should not be using the file_outputs workaround.
+                output_name: output_file,
+              }
+          )
+      )
+  )
   
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
   if target_component_file:
     from ..components._yaml_utils import dump_yaml
-    component_text = dump_yaml(component_artifact)
+    component_text = dump_yaml(component_spec.to_struct())
     Path(target_component_file).write_text(component_text)
 
-  return _create_task_factory_from_component_dict(component_artifact)
+  return _create_task_factory_from_component_spec(component_spec)
 
 def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None):
   """ build_component automatically builds a container image for the component_func

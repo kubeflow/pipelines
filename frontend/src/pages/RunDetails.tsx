@@ -39,7 +39,7 @@ import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
-import { loadOutputArtifacts } from '../lib/OutputArtifactLoader';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { classes } from 'typestyle';
 
 enum SidePaneTab {
@@ -117,10 +117,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
 
-        {workflow && (
+        {!!workflow && (
           <div className={commonCss.page}>
             <MD2Tabs selectedTab={selectedTab} tabs={['Graph', 'Config']}
-              onSwitch={(tab: number) => this.setState({ selectedTab: tab })} />
+              onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
 
               {selectedTab === 0 && <div className={commonCss.page}>
@@ -129,7 +129,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                     onClick={(id) => this._selectNode(id)} />
 
                   <SidePanel isBusy={this.state.sidepanelBusy} isOpen={!!selectedNodeDetails}
-                    onClose={() => this.setState({ selectedNodeDetails: null })} title={selectedNodeId}>
+                    onClose={() => this.setStateSafe({ selectedNodeDetails: null })} title={selectedNodeId}>
                     {!!selectedNodeDetails && (<React.Fragment>
                       {!!selectedNodeDetails.phaseMessage && (
                         <Banner mode='warning'
@@ -138,7 +138,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                       <div className={commonCss.page}>
                         <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
                           selectedTab={sidepanelSelectedTab}
-                          onSwitch={this._sidePaneTabSwitched.bind(this)} />
+                          onSwitch={this._loadSidePaneTab.bind(this)} />
 
                         {this.state.sidepanelBusy &&
                           <CircularProgress size={30} className={commonCss.absoluteCenter} />}
@@ -194,14 +194,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               </div>}
 
               {selectedTab === 1 && <div className={padding()}>
-                <DetailsTable title='Run details' fields={[
-                  ['Status', workflow.status.phase],
-                  ['Description', runMetadata ? runMetadata!.description! : ''],
-                  ['Created at', formatDateString(workflow.metadata.creationTimestamp)],
-                  ['Started at', formatDateString(workflow.status.startedAt)],
-                  ['Finished at', formatDateString(workflow.status.finishedAt)],
-                  ['Duration', getRunTime(workflow)],
-                ]} />
+                <DetailsTable title='Run details' fields={this._getDetailsFields(workflow, runMetadata)} />
 
                 {workflowParameters && !!workflowParameters.length && (<div>
                   <DetailsTable title='Run parameters'
@@ -268,10 +261,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
       </div>;
 
-      // TODO: run status next to page name
       this.props.updateToolbar({ breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
-      this.setState({
+      this.setStateSafe({
         experiment,
         graph,
         runMetadata,
@@ -282,27 +274,38 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       logger.error('Error loading run:', runId);
     }
 
-    // These are called here to ensure that logs and artifacts in the side panel are refreshed when
+    // Make sure logs and artifacts in the side panel are refreshed when
     // the user hits "Refresh", either in the top toolbar or in an error banner.
-    this._loadSelectedNodeLogs();
-    this._loadSelectedNodeOutputs();
+    this._loadSidePaneTab(this.state.sidepanelSelectedTab);
+  }
+
+  private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): string[][] {
+    return !workflow.status ? [] : [
+      ['Status', workflow.status.phase],
+      ['Description', runMetadata ? runMetadata!.description! : ''],
+      ['Created at', workflow.metadata ? formatDateString(workflow.metadata.creationTimestamp) : '-'],
+      ['Started at', formatDateString(workflow.status.startedAt)],
+      ['Finished at', formatDateString(workflow.status.finishedAt)],
+      ['Duration', getRunTime(workflow)],
+    ];
   }
 
   private _selectNode(id: string): void {
-    this.setState({ selectedNodeDetails: { id } }, () =>
-      this._sidePaneTabSwitched(this.state.sidepanelSelectedTab));
+    this.setStateSafe({ selectedNodeDetails: { id } }, () =>
+      this._loadSidePaneTab(this.state.sidepanelSelectedTab));
   }
 
-  private _sidePaneTabSwitched(tab: SidePaneTab): void {
+  private _loadSidePaneTab(tab: SidePaneTab): void {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
       const node = workflow.status.nodes[selectedNodeDetails.id];
-      if (node && node.message) {
-        selectedNodeDetails.phaseMessage =
-          `This step is in ${node.phase} state with this message: ` + node.message;
+      if (node) {
+        selectedNodeDetails.phaseMessage = (node && node.message) ?
+          `This step is in ${node.phase} state with this message: ` + node.message :
+          undefined;
       }
-      this.setState({ selectedNodeDetails, sidepanelSelectedTab: tab });
+      this.setStateSafe({ selectedNodeDetails, sidepanelSelectedTab: tab });
 
       switch (tab) {
         case SidePaneTab.ARTIFACTS:
@@ -313,7 +316,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
             this._loadSelectedNodeLogs();
           } else {
             // Clear logs
-            this.setState({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
+            this.setStateSafe({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
           }
       }
     }
@@ -324,22 +327,23 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     if (!selectedNodeDetails) {
       return;
     }
-    this.setState({ sidepanelBusy: true });
-    const workflow = this.state.workflow;
-    if (workflow && workflow.status && workflow.status.nodes) {
-      // Load runtime outputs from the selected Node
-      const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
+    this.setStateSafe({ sidepanelBusy: true }, async () => {
+      const workflow = this.state.workflow;
+      if (workflow && workflow.status && workflow.status.nodes) {
+        // Load runtime outputs from the selected Node
+        const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
 
-      // Load the viewer configurations from the output paths
-      let viewerConfigs: ViewerConfig[] = [];
-      for (const path of outputPaths) {
-        viewerConfigs = viewerConfigs.concat(await loadOutputArtifacts(path));
+        // Load the viewer configurations from the output paths
+        let viewerConfigs: ViewerConfig[] = [];
+        for (const path of outputPaths) {
+          viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
+        }
+
+        selectedNodeDetails.viewerConfigs = viewerConfigs;
+        this.setStateSafe({ selectedNodeDetails });
       }
-
-      selectedNodeDetails.viewerConfigs = viewerConfigs;
-      this.setState({ selectedNodeDetails });
-    }
-    this.setState({ sidepanelBusy: false });
+      this.setStateSafe({ sidepanelBusy: false });
+    });
   }
 
   private async _loadSelectedNodeLogs(): Promise<void> {
@@ -347,14 +351,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     if (!selectedNodeDetails) {
       return;
     }
-    this.setState({ sidepanelBusy: true });
+    this.setStateSafe({ sidepanelBusy: true });
     try {
       const logs = await Apis.getPodLogs(selectedNodeDetails.id);
       selectedNodeDetails.logs = logs;
-      this.setState({ selectedNodeDetails, logsBannerAdditionalInfo: '', logsBannerMessage: '' });
+      this.setStateSafe({ selectedNodeDetails, logsBannerAdditionalInfo: '', logsBannerMessage: '' });
     } catch (err) {
       const errorMessage = await errorToMessage(err);
-      this.setState({
+      this.setStateSafe({
         logsBannerAdditionalInfo: errorMessage,
         logsBannerMessage: 'Error: failed to retrieve logs.'
           + (errorMessage ? ' Click Details for more information.' : ''),
@@ -362,7 +366,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       });
       logger.error('Error loading logs for node:', selectedNodeDetails.id);
     } finally {
-      this.setState({ sidepanelBusy: false });
+      this.setStateSafe({ sidepanelBusy: false });
     }
   }
 

@@ -1,7 +1,9 @@
+#!/usr/bin/python3
+
 import argparse
 import subprocess
 import re
-from shutil import copyfile
+import os
 
 
 def is_insecure_path(path):
@@ -33,7 +35,6 @@ def main():
       '--output_path', type=str, help='GCS path of output folder')
     args = parser.parse_args()
 
-    bin_path = "../tools/google-cloud-sdk/bin/"
     # Validate parameters
 
     if is_insecure_path(args.input_path):
@@ -48,24 +49,28 @@ def main():
         print("Invalid model optimizer options")
         exit(1)
 
-    # Initialize gsutil creds
-    command = bin_path + "gcloud auth activate-service-account " \
+    # Initialize gsutil creds if needed
+    if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
+        command = "gcloud auth activate-service-account " \
                          "--key-file=${GOOGLE_APPLICATION_CREDENTIALS}"
-    print("auth command", command)
-    return_code = subprocess.call(command, shell=True)
-    print("return code", return_code)
+        print("auth command", command)
+        return_code = subprocess.call(command, shell=True)
+        print("return code", return_code)
 
-    # Downloading input model
-    command = bin_path + "gsutil cp -r " + args.input_path + " ."
+    # Downloading input model or GCS folder with a model to current folder
+    command = "gsutil cp -r " + args.input_path + " ."
     print("gsutil download command", command)
     return_code = subprocess.call(command, shell=True)
     print("return code", return_code)
+    if return_code:
+        exit(1)
 
     # Executing model optimization
-    command = "python3 ../mo.py " + args.mo_options
-    print("mo command", command)
+    command = "mo.py " + args.mo_options
+    print("Starting model optimization:", command)
     output = subprocess.run(command, shell=True, stdout=subprocess.PIPE,
                             universal_newlines=True)
+    print("Model optimization output",output.stdout)
     XML = ""
     BIN = ""
     for line in output.stdout.splitlines():
@@ -77,19 +82,25 @@ def main():
         print("Error, model optimization failed")
         exit(1)
 
-    # copy generated model file to use them as workflow artifacts
-    copyfile(BIN, "/tmp/model.bin")
-    copyfile(XML, "/tmp/model.xml")
-
-    command = bin_path + "gsutil cp " + XML + " " + args.output_path
+    command = "gsutil cp " + XML + " " + os.path.join(args.output_path, os.path.split(XML)[1])
     print("gsutil upload command", command)
     return_code = subprocess.call(command, shell=True)
     print("return code", return_code)
-    command = bin_path + "gsutil cp " + BIN + " " + args.output_path
+    command = "gsutil cp " + BIN + " " + os.path.join(args.output_path, os.path.split(BIN)[1])
     print("gsutil upload command", command)
     return_code = subprocess.call(command, shell=True)
     print("return code", return_code)
+    if return_code:
+        exit(1)
 
+    with open('/tmp/output_path.txt', 'w') as f:
+        f.write(args.output_path)
+    with open('/tmp/bin_path.txt', 'w') as f:
+        f.write(os.path.join(args.output_path, os.path.split(BIN)[1]))
+    with open('/tmp/xml_path.txt', 'w') as f:
+        f.write(os.path.join(args.output_path, os.path.split(XML)[1]))
+
+    print("Model successfully generated and uploaded to ", args.output_path)
 
 if __name__ == "__main__":
     main()
