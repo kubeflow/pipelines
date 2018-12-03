@@ -64,9 +64,14 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -115,7 +120,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -210,7 +215,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -287,9 +292,14 @@ exports[`CustomTable renders a collapsed row 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -390,7 +400,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -457,9 +467,14 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -556,7 +571,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -611,9 +626,14 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -655,7 +675,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -750,7 +770,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -823,9 +843,14 @@ exports[`CustomTable renders an expanded row 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className="expandedContainer"
+      className="expandableContainer expandedContainer"
       key="0"
     >
       <div
@@ -920,7 +945,7 @@ exports[`CustomTable renders an expanded row 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -997,9 +1022,14 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className="expandedContainer"
+      className="expandableContainer expandedContainer"
       key="0"
     >
       <div
@@ -1107,7 +1137,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1180,6 +1210,11 @@ exports[`CustomTable renders columns with specified widths 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   />
   <div
     className="footer"
@@ -1234,7 +1269,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1263,6 +1298,11 @@ exports[`CustomTable renders empty message on no rows 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
       className="emptyMessage"
@@ -1323,7 +1363,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1396,9 +1436,14 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -1566,9 +1611,14 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -1610,7 +1660,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -1779,6 +1829,11 @@ exports[`CustomTable renders some columns with descending sort order on first co
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   />
   <div
     className="footer"
@@ -1833,7 +1888,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1906,6 +1961,11 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   />
   <div
     className="footer"
@@ -1960,7 +2020,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -2033,9 +2093,14 @@ exports[`CustomTable renders some rows 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -2077,7 +2142,7 @@ exports[`CustomTable renders some rows 1`] = `
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -2172,7 +2237,7 @@ exports[`CustomTable renders some rows 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -2245,9 +2310,14 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -2291,7 +2361,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -2388,7 +2458,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -2417,6 +2487,11 @@ exports[`CustomTable renders without rows or columns 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   />
   <div
     className="footer"
@@ -2471,7 +2546,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -2534,9 +2609,14 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -2570,7 +2650,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -2657,7 +2737,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />

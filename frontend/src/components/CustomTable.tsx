@@ -19,6 +19,7 @@ import ArrowRight from '@material-ui/icons/ArrowRight';
 import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import IconButton from '@material-ui/core/IconButton';
 import MenuItem from '@material-ui/core/MenuItem';
 import Radio from '@material-ui/core/Radio';
@@ -91,6 +92,9 @@ export const css = stylesheet({
   },
   expandButtonExpanded: {
     transform: 'rotate(90deg)',
+  },
+  expandableContainer: {
+    transition: 'margin 0.2s',
   },
   expandedContainer: {
     borderRadius: 10,
@@ -167,6 +171,7 @@ interface CustomTableProps {
 
 interface CustomTableState {
   currentPage: number;
+  isBusy: boolean;
   maxPageIndex: number;
   sortOrder: 'asc' | 'desc';
   pageSize: number;
@@ -182,6 +187,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
     this.state = {
       currentPage: 0,
+      isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
       sortBy: props.initialSortColumn ||
@@ -283,9 +289,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         </div>
 
         {/* Body */}
-        <div className={commonCss.scrollContainer}>
+        <div className={commonCss.scrollContainer} style={{ minHeight: 60 }}>
+          {/* Busy experience */}
+          {this.state.isBusy && (<React.Fragment>
+            <div className={commonCss.busyOverlay} />
+            <CircularProgress size={25} className={commonCss.absoluteCenter} style={{ zIndex: 2 }} />
+          </React.Fragment>)}
+
           {/* Empty experience */}
-          {this.props.rows.length === 0 && !!this.props.emptyMessage && (
+          {this.props.rows.length === 0 && !!this.props.emptyMessage && !this.state.isBusy && (
             <div className={css.emptyMessage}>{this.props.emptyMessage}</div>
           )}
           {this.props.rows.map((row, i) => {
@@ -293,7 +305,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               logger.error('Rows must have the same number of cells defined in columns');
               return null;
             }
-            return (<div className={classes(row.expandState === ExpandState.EXPANDED && css.expandedContainer)} key={i}>
+            return (<div className={classes(css.expandableContainer,
+              row.expandState === ExpandState.EXPANDED && css.expandedContainer)} key={i}>
               <div role='checkbox' tabIndex={-1} className={
                 classes(
                   'tableRow',
@@ -364,7 +377,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     );
   }
 
-  public reload(loadRequest?: ListRequest): Promise<string> {
+  public async reload(loadRequest?: ListRequest): Promise<string> {
     // Override the current state with incoming request
     const request: ListRequest = Object.assign({
       orderAscending: this.state.sortOrder === 'asc',
@@ -373,17 +386,24 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       sortBy: this.state.sortBy,
     }, loadRequest);
 
-    this.setStateSafe({
-      pageSize: request.pageSize!,
-      sortBy: request.sortBy!,
-      sortOrder: request.orderAscending ? 'asc' : 'desc',
-    });
+    let result = '';
+    try {
+      this.setStateSafe({
+        isBusy: true,
+        pageSize: request.pageSize!,
+        sortBy: request.sortBy!,
+        sortOrder: request.orderAscending ? 'asc' : 'desc',
+      });
 
-    if (request.sortBy && !request.orderAscending) {
-      request.sortBy += ' desc';
+      if (request.sortBy && !request.orderAscending) {
+        request.sortBy += ' desc';
+      }
+
+      result = await this.props.reload(request);
+    } finally {
+      this.setStateSafe({ isBusy: false });
     }
-
-    return this.props.reload(request);
+    return result;
   }
 
   private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void): void {
