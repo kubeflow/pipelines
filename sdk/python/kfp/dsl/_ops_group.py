@@ -87,7 +87,6 @@ class Condition(OpsGroup):
     op1 = ContainerOp(...)
     op2 = ContainerOp(...)
   ```
-  Note: Only equal operator "==" is supported.
   """
 
   def __init__(self, condition):
