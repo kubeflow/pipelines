@@ -179,7 +179,101 @@ class RunList extends React.Component<RunListProps, RunListState> {
     }
   }
 
-  private async _loadRuns(request: ListRequest): Promise<string> {
+  public _nameCustomRenderer(value: string, id: string): JSX.Element {
+    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
+      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, id)}>{value}</Link>;
+  }
+
+  public _pipelineCustomRenderer(pipelineInfo: PipelineInfo, id: string): JSX.Element {
+    // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
+    if (!pipelineInfo || (!pipelineInfo.showLink && !pipelineInfo.id)) {
+      return <div>-</div>;
+    }
+    const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: id });
+    const url = pipelineInfo.showLink ?
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search :
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id || '');
+    return (
+      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
+        to={url}>
+        {pipelineInfo.showLink ? 'View pipeline' : pipelineInfo.displayName}
+      </Link>
+    );
+  }
+
+  public _experimentCustomRenderer(experimentInfo?: ExperimentInfo): JSX.Element {
+    // If the getExperiment call failed or a run has no experiment, we display a placeholder.
+    if (!experimentInfo || !experimentInfo.id) {
+      return <div>-</div>;
+    }
+    return (
+      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
+        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentInfo.id)}>
+        {experimentInfo.displayName}
+      </Link>
+    );
+  }
+
+  public _statusCustomRenderer(status: NodePhase): JSX.Element {
+    return statusToIcon(status);
+  }
+
+  public _metricBufferCustomRenderer(): JSX.Element {
+    return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
+  }
+
+  public _metricCustomRenderer(displayMetric: DisplayMetric): JSX.Element {
+    if (!displayMetric || !displayMetric.metric ||
+      displayMetric.metric.number_value === undefined ||
+      (displayMetric.metric.format !== RunMetricFormat.PERCENTAGE && !displayMetric.metadata)) {
+      return <div />;
+    }
+
+    const leftSpace = 6;
+    let displayString = '';
+    let width = '';
+
+    if (displayMetric.metric.format === RunMetricFormat.PERCENTAGE) {
+      displayString = (displayMetric.metric.number_value * 100).toFixed(3) + '%';
+      width = `calc(${displayString})`;
+    } else {
+      displayString = displayMetric.metric.number_value.toFixed(3);
+
+      if (displayMetric.metadata.maxValue === 0 && displayMetric.metadata.minValue === 0) {
+        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
+      }
+
+      if (displayMetric.metric.number_value - displayMetric.metadata.minValue < 0) {
+        logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
+          + ` (${displayMetric.metric.number_value}) was lower than the supposed minimum of`
+          + ` (${displayMetric.metadata.minValue})`);
+        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
+      }
+
+      if (displayMetric.metadata.maxValue - displayMetric.metric.number_value < 0) {
+        logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
+          + ` (${displayMetric.metric.number_value}) was greater than the supposed maximum of`
+          + ` (${displayMetric.metadata.maxValue})`);
+        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
+      }
+
+      const barWidth =
+        (displayMetric.metric.number_value - displayMetric.metadata.minValue)
+        / (displayMetric.metadata.maxValue - displayMetric.metadata.minValue)
+        * 100;
+
+      width = `calc(${barWidth}%)`;
+    }
+    return (
+      <div className={css.metricContainer}>
+        <div className={css.metricFill} style={{ width }}>
+          {displayString}
+        </div>
+      </div>
+    );
+  }
+
+  protected async _loadRuns(request: ListRequest): Promise<string> {
     let displayRuns: DisplayRun[] = [];
     let nextPageToken = '';
 
@@ -286,100 +380,6 @@ class RunList extends React.Component<RunListProps, RunListState> {
         }
         return displayRun;
       })
-    );
-  }
-
-  private _nameCustomRenderer(value: string, id: string): JSX.Element {
-    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, id)}>{value}</Link>;
-  }
-
-  private _pipelineCustomRenderer(pipelineInfo: PipelineInfo, id: string): JSX.Element {
-    // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
-    if (!pipelineInfo || (!pipelineInfo.showLink && !pipelineInfo.id)) {
-      return <div>-</div>;
-    }
-    const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: id });
-    const url = pipelineInfo.showLink ?
-      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search :
-      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id || '');
-    return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={url}>
-        {pipelineInfo.showLink ? 'View pipeline' : pipelineInfo.displayName}
-      </Link>
-    );
-  }
-
-  private _experimentCustomRenderer(experimentInfo?: ExperimentInfo): JSX.Element {
-    // If the getExperiment call failed or a run has no experiment, we display a placeholder.
-    if (!experimentInfo || !experimentInfo.id) {
-      return <div>-</div>;
-    }
-    return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentInfo.id)}>
-        {experimentInfo.displayName}
-      </Link>
-    );
-  }
-
-  private _statusCustomRenderer(status: NodePhase): JSX.Element {
-    return statusToIcon(status);
-  }
-
-  private _metricBufferCustomRenderer(): JSX.Element {
-    return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
-  }
-
-  private _metricCustomRenderer(displayMetric: DisplayMetric): JSX.Element {
-    if (!displayMetric || !displayMetric.metric ||
-      displayMetric.metric.number_value === undefined ||
-      (displayMetric.metric.format !== RunMetricFormat.PERCENTAGE && !displayMetric.metadata)) {
-      return <div />;
-    }
-
-    const leftSpace = 6;
-    let displayString = '';
-    let width = '';
-
-    if (displayMetric.metric.format === RunMetricFormat.PERCENTAGE) {
-      displayString = (displayMetric.metric.number_value * 100).toFixed(3) + '%';
-      width = `calc(${displayString})`;
-    } else {
-      displayString = displayMetric.metric.number_value.toFixed(3);
-
-      if (displayMetric.metadata.maxValue === 0 && displayMetric.metadata.minValue === 0) {
-        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
-      }
-
-      if (displayMetric.metric.number_value - displayMetric.metadata.minValue < 0) {
-        logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
-          + ` (${displayMetric.metric.number_value}) was lower than the supposed minimum of`
-          + ` (${displayMetric.metadata.minValue})`);
-        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
-      }
-
-      if (displayMetric.metadata.maxValue - displayMetric.metric.number_value < 0) {
-        logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
-          + ` (${displayMetric.metric.number_value}) was greater than the supposed maximum of`
-          + ` (${displayMetric.metadata.maxValue})`);
-        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
-      }
-
-      const barWidth =
-        (displayMetric.metric.number_value - displayMetric.metadata.minValue)
-        / (displayMetric.metadata.maxValue - displayMetric.metadata.minValue)
-        * 100;
-
-      width = `calc(${barWidth}%)`;
-    }
-    return (
-      <div className={css.metricContainer}>
-        <div className={css.metricFill} style={{ width }}>
-          {displayString}
-        </div>
-      </div>
     );
   }
 }
