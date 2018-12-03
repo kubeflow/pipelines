@@ -5392,6 +5392,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
         </div>
         <div
           className="scrollContainer"
+          style={
+            Object {
+              "minHeight": 60,
+            }
+          }
         >
           <div
             className="emptyMessage"
@@ -6465,7 +6470,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
             </IconButton>
           </WithStyles(IconButton)>
           <WithStyles(IconButton)
-            disabled={false}
+            disabled={true}
             onClick={[Function]}
           >
             <IconButton
@@ -6480,19 +6485,19 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 }
               }
               color="default"
-              disabled={false}
+              disabled={true}
               onClick={[Function]}
             >
               <WithStyles(ButtonBase)
                 centerRipple={true}
-                className="MuiIconButton-root-11"
-                disabled={false}
+                className="MuiIconButton-root-11 MuiIconButton-disabled-15"
+                disabled={true}
                 focusRipple={true}
                 onClick={[Function]}
               >
                 <ButtonBase
                   centerRipple={true}
-                  className="MuiIconButton-root-11"
+                  className="MuiIconButton-root-11 MuiIconButton-disabled-15"
                   classes={
                     Object {
                       "disabled": "MuiButtonBase-disabled-18",
@@ -6503,15 +6508,15 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                   component="button"
                   disableRipple={false}
                   disableTouchRipple={false}
-                  disabled={false}
+                  disabled={true}
                   focusRipple={true}
                   onClick={[Function]}
                   tabIndex="0"
                   type="button"
                 >
                   <button
-                    className="MuiButtonBase-root-17 MuiIconButton-root-11"
-                    disabled={false}
+                    className="MuiButtonBase-root-17 MuiButtonBase-disabled-18 MuiIconButton-root-11 MuiIconButton-disabled-15"
+                    disabled={true}
                     onBlur={[Function]}
                     onClick={[Function]}
                     onFocus={[Function]}
@@ -6523,7 +6528,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     onTouchEnd={[Function]}
                     onTouchMove={[Function]}
                     onTouchStart={[Function]}
-                    tabIndex="0"
+                    tabIndex="-1"
                     type="button"
                   >
                     <span
@@ -6571,37 +6576,6 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         </ChevronRightIcon>
                       </pure(ChevronRightIcon)>
                     </span>
-                    <WithStyles(TouchRipple)
-                      center={true}
-                      innerRef={[Function]}
-                    >
-                      <TouchRipple
-                        center={true}
-                        classes={
-                          Object {
-                            "child": "MuiTouchRipple-child-33",
-                            "childLeaving": "MuiTouchRipple-childLeaving-34",
-                            "childPulsate": "MuiTouchRipple-childPulsate-35",
-                            "ripple": "MuiTouchRipple-ripple-30",
-                            "ripplePulsate": "MuiTouchRipple-ripplePulsate-32",
-                            "rippleVisible": "MuiTouchRipple-rippleVisible-31",
-                            "root": "MuiTouchRipple-root-29",
-                          }
-                        }
-                      >
-                        <TransitionGroup
-                          childFactory={[Function]}
-                          className="MuiTouchRipple-root-29"
-                          component="span"
-                          enter={true}
-                          exit={true}
-                        >
-                          <span
-                            className="MuiTouchRipple-root-29"
-                          />
-                        </TransitionGroup>
-                      </TouchRipple>
-                    </WithStyles(TouchRipple)>
                   </button>
                 </ButtonBase>
               </WithStyles(ButtonBase)>

@@ -176,6 +176,15 @@ export const commonCss = stylesheet({
     position: 'absolute',
     top: 'calc(50% - 15px)',
   },
+  busyOverlay: {
+    backgroundColor: '#ffffffaa',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1,
+  },
   buttonAction: {
     $nest: {
       '&:disabled': {
@@ -254,6 +263,7 @@ export const commonCss = stylesheet({
     backgroundRepeat: 'no-repeat',
     backgroundSize: '100% 40px, 100% 40px, 100% 2px, 100% 2px',
     overflow: 'auto',
+    position: 'relative',
   },
   textField: {
     display: 'flex',
