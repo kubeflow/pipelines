@@ -23,7 +23,6 @@ import (
 	versioned "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/internalinterfaces"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow"
-	viewer "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/viewer"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -171,13 +170,8 @@ type SharedInformerFactory interface {
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Scheduledworkflow() scheduledworkflow.Interface
-	Viewer() viewer.Interface
 }
 
 func (f *sharedInformerFactory) Scheduledworkflow() scheduledworkflow.Interface {
 	return scheduledworkflow.New(f, f.namespace, f.tweakListOptions)
-}
-
-func (f *sharedInformerFactory) Viewer() viewer.Interface {
-	return viewer.New(f, f.namespace, f.tweakListOptions)
 }
