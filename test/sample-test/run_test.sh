@@ -265,11 +265,17 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   SAMPLE_NOTEBOOK_TFX_TEST_RESULT=junit_SampleNotebookTFXOutput.xml
   SAMPLE_NOTEBOOK_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
+  DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
+  DEV_DEPLOYER_MODEL=${DEPLOYER_MODEL}-dev
+  PROD_DEPLOYER_MODEL=${DEPLOYER_MODEL}-prod
+  MODEL_VERSION=beta
+
   cd ${BASE_DIR}/samples/notebooks
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
    -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE ${TARGET_IMAGE_PREFIX}pusher:dev \
+   -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEV_DEPLOYER_MODEL ${DEV_DEPLOYER_MODEL}.${MODEL_VERSION} -p PROD_DEPLOYER_MODEL ${PROD_DEPLOYER_MODEL}.${MODEL_VERSION} \
    -p DATAFLOW_TFDV_IMAGE ${DATAFLOW_TFDV_IMAGE} -p DATAFLOW_TFT_IMAGE ${DATAFLOW_TFT_IMAGE} -p DATAFLOW_TFMA_IMAGE ${DATAFLOW_TFMA_IMAGE} -p DATAFLOW_TF_PREDICT_IMAGE ${DATAFLOW_PREDICT_IMAGE} \
    -p KUBEFLOW_TF_TRAINER_IMAGE ${KUBEFLOW_DNNTRAINER_IMAGE} -p KUBEFLOW_DEPLOYER_IMAGE ${KUBEFLOW_DEPLOYER_IMAGE} \
    -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
@@ -284,8 +290,8 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   gsutil cp $SAMPLE_NOTEBOOK_TFX_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TFX_TEST_RESULT
 
   #Clean CMLE models
-  python3 clean_cmle_models.py --project ml-pipeline-test --model taxidev --version beta
-  python3 clean_cmle_models.py --project ml-pipeline-test --model mytaxi --version beta
+  python3 clean_cmle_models.py --project ml-pipeline-test --model ${DEV_DEPLOYER_MODEL} --version ${MODEL_VERSION}
+  python3 clean_cmle_models.py --project ml-pipeline-test --model ${PROD_DEPLOYER_MODEL} --version ${MODEL_VERSION}
 elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT=junit_SampleNotebookLightweightOutput.xml
   SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -293,7 +299,7 @@ elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   cd ${BASE_DIR}/samples/notebooks
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
-  papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
+  papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
   jupyter nbconvert --to python notebook-lightweight.ipynb
   ipython notebook-lightweight.py
   cd "${TEST_DIR}"
