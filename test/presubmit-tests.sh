@@ -84,6 +84,14 @@ remote_code_archive_uri="${code_archive_prefix}_${PULL_BASE_SHA}_${date_string}.
 tar -czf "$local_code_archive_file" .
 gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
 
+#The file can be inaccessible right after upload.
+#ServiceException: 401 Anonymous caller does not have storage.objects.get access to ml-pipeline-test
+#See https://github.com/kubeflow/pipelines/issues/403
+#Let's try to wait for it. This might not be enough to fix the issue though.
+until gsutil ls "$remote_code_archive_uri"; do
+  sleep 5s
+done
+
 #Creating a new GKE cluster if needed
 if [ "$CLUSTER_TYPE" == "create-gke" ]; then
   echo "create test cluster"
