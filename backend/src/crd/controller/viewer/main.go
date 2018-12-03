@@ -49,9 +49,6 @@ func main() {
 		log.Fatalf("Failed to build valid config from supplied flags: %v", err)
 	}
 
-	// _ = kubernetes.NewForConfigOrDie(cfg)
-	// vcli := kubeflowClientSet.NewForConfigOrDie(cfg).ViewerV1alpha1()
-
 	cli, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
 		log.Fatalf("Failed to build Kubernetes runtime client: %v", err)
@@ -59,6 +56,9 @@ func main() {
 
 	viewerV1alpha1.AddToScheme(scheme.Scheme)
 	reconciler := reconciler.New(cli, scheme.Scheme)
+
+	// Create a controller that is in charge of Viewer types, and also responds to
+	// changes to any deployment and services that is owned by any Viewer instance.
 	mgr, err := builder.SimpleController().
 		ForType(&viewerV1alpha1.Viewer{}).
 		Owns(&appsv1.Deployment{}).

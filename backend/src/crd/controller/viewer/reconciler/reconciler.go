@@ -1,4 +1,24 @@
-// Package reconciler ...
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package reconciler describes a Reconciler for working with Viewer CRDs. The
+// reconciler takes care of the main logic for ensuring every Viewer CRD
+// corresponds to a unique deployment and backing service. The service is
+// annotated such that it is compatible with Ambassador managed routing.
+// Currently, only supports Tensorboard viewers. Adding a new viewer CRD for
+// tensorboard with the name 'abc123' will result in the tensorboard instance
+// serving under the path '/tensorboard/abc123'.
 package reconciler
 
 import (
@@ -22,7 +42,7 @@ import (
 
 const viewerTargetPort = 6006
 
-// Reconciler is ...
+// Reconciler implements reconcile.Reconciler for the Viewer CRD.
 type Reconciler struct {
 	client.Client
 	scheme *runtime.Scheme

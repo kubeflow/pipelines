@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package viewer contains types that define the Viewer CRD for Kubeflow
+// Pipelines.
 package viewer
 
 const (
