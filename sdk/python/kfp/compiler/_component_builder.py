@@ -24,7 +24,6 @@ from collections import OrderedDict
 from pathlib import PurePath, Path
 from .. import dsl
 from ..components._components import _create_task_factory_from_component_spec
-from ._k8s_helper import K8sHelper
 
 class GCSHelper(object):
   """ GCSHelper manages the connection with the GCS storage """
@@ -353,6 +352,7 @@ class ImageBuilder(object):
                                              target_image=self._target_image)
     # Run kaniko job
     logging.info('Start a kaniko job for build.')
+    from ._k8s_helper import K8sHelper
     k8s_helper = K8sHelper()
     k8s_helper.run_job(kaniko_spec, timeout)
     logging.info('Kaniko job complete.')
