@@ -102,7 +102,9 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             <div
               className="page"
             >
-              <div>
+              <div
+                className="absoluteCenter"
+              >
                 Unable to retrieve node info
               </div>
             </div>
@@ -197,7 +199,9 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
             <div
               className="page"
             >
-              <div>
+              <div
+                className="absoluteCenter"
+              >
                 Unable to retrieve node info
               </div>
             </div>
@@ -339,7 +343,9 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             <div
               className="page"
             >
-              <div>
+              <div
+                className="absoluteCenter"
+              >
                 Unable to retrieve node info
               </div>
             </div>
@@ -695,7 +701,9 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             <div
               className="page"
             >
-              <div>
+              <div
+                className="absoluteCenter"
+              >
                 Unable to retrieve node info
               </div>
             </div>

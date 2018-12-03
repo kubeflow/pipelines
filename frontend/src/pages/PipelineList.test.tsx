@@ -196,7 +196,7 @@ describe('PipelineList', () => {
     const link = tree.find('a[children="test pipeline name0"]');
     expect(link).toHaveLength(1);
     expect(link.prop('href')).toBe(RoutePage.PIPELINE_DETAILS.replace(
-      ':' + RouteParams.pipelineId, 'test-pipeline-id0'
+      ':' + RouteParams.pipelineId + '?', 'test-pipeline-id0'
     ));
     tree.unmount();
   });

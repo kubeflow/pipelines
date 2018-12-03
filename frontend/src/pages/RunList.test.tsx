@@ -35,7 +35,7 @@ describe('RunList', () => {
   function generateProps(): RunListProps {
     return {
       history: {} as any,
-      location: '' as any,
+      location: { search: '' } as any,
       match: '' as any,
       onError: onErrorSpy,
     };
@@ -252,7 +252,7 @@ describe('RunList', () => {
   });
 
   it('renders pipeline name as link to its details page', () => {
-    const tree = TestUtils.mountWithRouter((RunList.prototype as any)
+    const tree = TestUtils.mountWithRouter((new RunList(generateProps()) as any)
       ._pipelineCustomRenderer({ displayName: 'test pipeline', id: 'pipeline-id' }));
     expect(tree).toMatchSnapshot();
   });

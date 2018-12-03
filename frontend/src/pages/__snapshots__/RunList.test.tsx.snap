@@ -560,7 +560,11 @@ exports[`RunList loads one run 1`] = `
 exports[`RunList reloads the run when refresh is called 1`] = `
 <RunList
   history={Object {}}
-  location=""
+  location={
+    Object {
+      "search": "",
+    }
+  }
   match=""
   onError={[MockFunction]}
 >
@@ -6718,7 +6722,7 @@ exports[`RunList renders pipeline name as link to its details page 1`] = `
   className="link"
   onClick={[Function]}
   replace={false}
-  to="/pipelines/details/pipeline-id"
+  to="/pipelines/details/pipeline-id?"
 >
   <a
     className="link"
@@ -7260,6 +7264,7 @@ exports[`RunList shows pipeline name 1`] = `
             Object {
               "displayName": "test pipeline",
               "id": "test-pipeline-id",
+              "showLink": false,
             },
             "-",
           ],

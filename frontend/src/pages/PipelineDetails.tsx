@@ -157,7 +157,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
 
-        {templateYaml && (
+        {!!pipeline && (
           <div className={commonCss.page}>
             <MD2Tabs
               selectedTab={selectedTab}
@@ -167,7 +167,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             <div className={commonCss.page}>
               {selectedTab === 0 && <div className={commonCss.page}>
                 {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                  {!!pipeline && summaryShown && (
+                  {summaryShown && (
                     <Paper className={css.summaryCard}>
                       <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
                         <div className={commonCss.header}>
@@ -303,7 +303,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
       try {
         templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
-        templateYaml = templateResponse.template || '{}';
+        templateYaml = templateResponse.template || '';
       } catch (err) {
         await this.showPageError('Cannot retrieve pipeline template.', err);
         logger.error('Cannot retrieve pipeline details.', err);
