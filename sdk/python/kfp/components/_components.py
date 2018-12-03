@@ -340,7 +340,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             return expanded_list
 
         expanded_command = expand_argument_list(container_spec.command)
-        expanded_args = expand_argument_list(container_spec.arguments)
+        expanded_args = expand_argument_list(container_spec.args)
 
         #Working around Python's variable scoping. Do not write to variable from global scope as that makes the variable local.
 

@@ -435,7 +435,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
           container=ContainerSpec(
               image=target_image,
               #command=['python3', program_file], #TODO: Include the command line
-              arguments=[{'value': input_name} for input_name in input_names],
+              args=[{'value': input_name} for input_name in input_names],
               file_outputs={ #TODO: Use proper output arguments (e.g. "{output: output_name}" ) instead of this workaround. Our 1st-party components should not be using the file_outputs workaround.
                 output_name: output_file,
               }
