@@ -62,9 +62,9 @@ interface NewRunState {
   pipelineName: string;
   pipelineSelectorOpen: boolean;
   runName: string;
-  selectPipelineFromClonedRun: boolean;
   trigger?: ApiTrigger;
   unconfirmedDialogPipelineId: string;
+  usePipelineFromClonedRun: boolean;
 }
 
 const css = stylesheet({
@@ -87,8 +87,8 @@ class NewRun extends Page<{}, NewRunState> {
       pipelineName: '',
       pipelineSelectorOpen: false,
       runName: '',
-      selectPipelineFromClonedRun: false,
       unconfirmedDialogPipelineId: '',
+      usePipelineFromClonedRun: false,
     };
   }
 
@@ -112,7 +112,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipelineName,
       pipelineSelectorOpen,
       runName,
-      selectPipelineFromClonedRun,
+      usePipelineFromClonedRun,
       unconfirmedDialogPipelineId,
     } = this.state;
 
@@ -124,14 +124,14 @@ class NewRun extends Page<{}, NewRunState> {
 
           {!!clonedRunPipeline && (<React.Fragment>
             <FormControlLabel label='Use pipeline from cloned run' control={<Radio color='primary' />}
-              onChange={() => this.setStateSafe({ selectPipelineFromClonedRun: true })}
-              checked={selectPipelineFromClonedRun} />
+              onChange={() => this.setStateSafe({ pipeline: clonedRunPipeline, usePipelineFromClonedRun: true })}
+              checked={usePipelineFromClonedRun} />
             <FormControlLabel label='Select a pipeline from list' control={<Radio color='primary' />}
-              onChange={() => this.setStateSafe({ selectPipelineFromClonedRun: false })}
-              checked={!selectPipelineFromClonedRun} />
+              onChange={() => this.setStateSafe({ pipeline: undefined, usePipelineFromClonedRun: false })}
+              checked={!usePipelineFromClonedRun} />
           </React.Fragment>)}
 
-          {!selectPipelineFromClonedRun && (
+          {!usePipelineFromClonedRun && (
             <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
               InputProps={{
                 endAdornment: (
@@ -344,7 +344,7 @@ class NewRun extends Page<{}, NewRunState> {
     let pipeline: ApiPipeline;
     let workflow: Workflow;
     let clonedRunPipeline: ApiPipeline;
-    let selectPipelineFromClonedRun = false;
+    let usePipelineFromClonedRun = false;
 
     const referencePipelineId = RunUtils.getPipelineId(originalRun.run);
     const embeddedPipelineSpec = RunUtils.getPipelineSpec(originalRun.run);
@@ -362,7 +362,7 @@ class NewRun extends Page<{}, NewRunState> {
         await this.showPageError('Error: failed to read the clone run\'s pipeline definition.', err);
       }
       clonedRunPipeline = pipeline!;
-      selectPipelineFromClonedRun = true;
+      usePipelineFromClonedRun = true;
     } else {
       await this.showPageError('Could not find the cloned run\'s pipeline definition.');
       return;
@@ -389,7 +389,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipeline: pipeline!,
       pipelineName: (pipeline! && pipeline!.name) || '',
       runName: this._getCloneName(originalRun.run.name!),
-      selectPipelineFromClonedRun,
+      usePipelineFromClonedRun,
     });
 
     this._validate();
@@ -407,7 +407,7 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   private _create(): void {
-    const { pipeline } = this.state;
+    const { clonedRunPipeline, pipeline, usePipelineFromClonedRun } = this.state;
     // TODO: This cannot currently be reached because _validate() is called everywhere and blocks
     // the button from being clicked without first having a pipeline.
     if (!pipeline) {
@@ -427,24 +427,22 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     const isRecurringRun = this.state.isRecurringRun;
-    let newRun: ApiRun | ApiJob;
+    let newRun: ApiRun | ApiJob = {
+      description: this.state.description,
+      name: this.state.runName,
+      pipeline_spec: {
+        parameters: pipeline.parameters,
+        pipeline_id: usePipelineFromClonedRun ? undefined : pipeline.id,
+        workflow_manifest: usePipelineFromClonedRun ? JsYaml.safeDump(clonedRunPipeline) : '',
+      },
+      resource_references: references,
+    };
     if (isRecurringRun) {
-      newRun = {
-        description: this.state.description,
+      newRun = Object.assign(newRun, {
         enabled: true,
         max_concurrency: this.state.maxConcurrentRuns || '1',
-        name: this.state.runName,
-        pipeline_spec: { parameters: pipeline.parameters, pipeline_id: pipeline.id },
-        resource_references: references,
         trigger: this.state.trigger,
-      };
-    } else {
-      newRun = {
-        description: this.state.description,
-        name: this.state.runName,
-        pipeline_spec: { parameters: pipeline.parameters, pipeline_id: pipeline.id },
-        resource_references: references,
-      };
+      });
     }
 
     this.setState({ isBeingCreated: true }, async () => {
