@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import CustomTable, { Column, Row, css, ExpandState } from './CustomTable';
+import TestUtils from '../TestUtils';
 import { shallow } from 'enzyme';
 
 const props = {
@@ -63,34 +64,39 @@ describe('CustomTable', () => {
     console.error = consoleErrorBackup;
   });
 
-  it('renders without rows or columns', () => {
+  it('renders without rows or columns', async () => {
     const tree = shallow(<CustomTable {...props} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders empty message on no rows', () => {
+  it('renders empty message on no rows', async () => {
     const tree = shallow(<CustomTable {...props} emptyMessage='test empty message' />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders some columns with equal widths without rows', () => {
+  it('renders some columns with equal widths without rows', async () => {
     const tree = shallow(<CustomTable {...props} columns={[{ label: 'col1' }, { label: 'col2' }]} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders without the checkboxes if disableSelection is true', () => {
+  it('renders without the checkboxes if disableSelection is true', async () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns}
       disableSelection={true} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders some columns with descending sort order on first column', () => {
+  it('renders some columns with descending sort order on first column', async () => {
     const tree = shallow(<CustomTable {...props} initialSortOrder='desc'
       columns={[{ label: 'col1', sortKey: 'col1sortkey' }, { label: 'col2' }]} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders columns with specified widths', () => {
+  it('renders columns with specified widths', async () => {
     const testcolumns = [{
       flex: 3,
       label: 'col1',
@@ -99,6 +105,7 @@ describe('CustomTable', () => {
       label: 'col2',
     }];
     const tree = shallow(<CustomTable {...props} columns={testcolumns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
@@ -182,21 +189,24 @@ describe('CustomTable', () => {
       'Rows must have the same number of cells defined in columns');
   });
 
-  it('renders some rows', () => {
+  it('renders some rows', async () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders some rows using a custom renderer', () => {
+  it('renders some rows using a custom renderer', async () => {
     columns[0].customRenderer = () => (<span>this is custom output</span>) as any;
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     columns[0].customRenderer = undefined;
   });
 
-  it('displays warning icon with tooltip if row has error', () => {
+  it('displays warning icon with tooltip if row has error', async () => {
     rows[0].error = 'dummy error';
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     rows[0].error = undefined;
   });
@@ -276,7 +286,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('');
     const spy = () => reloadResult;
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
-    await reloadResult;
+    await TestUtils.flushPromises();
     expect(tree.state()).toHaveProperty('maxPageIndex', 0);
     expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
     expect(tree.find('WithStyles(IconButton)').at(1).prop('disabled')).toBeTruthy();
@@ -296,7 +306,7 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = jest.fn(() => reloadResult);
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
-    await reloadResult;
+    await TestUtils.flushPromises();
 
     tree.find('WithStyles(IconButton)').at(1).simulate('click');
     expect(spy).toHaveBeenLastCalledWith({ pageToken: 'some token', pageSize: 10, orderAscending: false, sortBy: '' });
@@ -306,10 +316,10 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = jest.fn(() => reloadResult);
     const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
-    await reloadResult;
+    await TestUtils.flushPromises();
 
     tree.find('WithStyles(IconButton)').at(1).simulate('click');
-    await reloadResult;
+    await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith({ pageToken: 'some token', pageSize: 10, sortBy: '', orderAscending: false });
     expect(tree.state()).toHaveProperty('currentPage', 1);
     tree.setProps({ rows: [rows[1]] });
@@ -327,11 +337,12 @@ describe('CustomTable', () => {
     await reloadResult;
 
     tree.find('WithStyles(IconButton)').at(0).simulate('click');
-    await reloadResult;
+    await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith({ pageToken: '', orderAscending: false, sortBy: '', pageSize: 10 });
 
     tree.setProps({ rows });
     expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
@@ -341,7 +352,7 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
 
     tree.find('.' + css.rowsPerPage).simulate('change', { target: { value: 1234 } });
-    await reloadResult;
+    await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith({ pageSize: 1234, pageToken: '', orderAscending: false, sortBy: '' });
     expect(tree.state()).toHaveProperty('tokenList', ['', 'some token']);
   });
@@ -357,34 +368,38 @@ describe('CustomTable', () => {
     expect(tree.state()).toHaveProperty('tokenList', ['']);
   });
 
-  it('renders a collapsed row', () => {
+  it('renders a collapsed row', async () => {
     const row = { ...rows[0] };
     row.expandState = ExpandState.COLLAPSED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
       getExpandComponent={() => null} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders a collapsed row when selection is disabled', () => {
+  it('renders a collapsed row when selection is disabled', async () => {
     const row = { ...rows[0] };
     row.expandState = ExpandState.COLLAPSED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
       getExpandComponent={() => null} disableSelection={true} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders an expanded row', () => {
+  it('renders an expanded row', async () => {
     const row = { ...rows[0] };
     row.expandState = ExpandState.EXPANDED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders an expanded row with expanded component below it', () => {
+  it('renders an expanded row with expanded component below it', async () => {
     const row = { ...rows[0] };
     row.expandState = ExpandState.EXPANDED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
       getExpandComponent={() => <span>Hello World</span>} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
@@ -400,8 +415,9 @@ describe('CustomTable', () => {
     expect(stopPropagationSpy).toHaveBeenCalledWith();
   });
 
-  it('renders a table with sorting disabled', () => {
+  it('renders a table with sorting disabled', async () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} disableSorting={true} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 });
