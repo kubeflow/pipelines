@@ -73,7 +73,7 @@ implementation:
         task1 = task_factory1()
         assert task1.image == component_dict['implementation']['container']['image']
 
-    @unittest.expectedFailure
+    @unittest.expectedFailure #TODO: Check this in the ComponentSpec class, not during materialization.
     def test_fail_on_duplicate_input_names(self):
         component_text = '''\
 inputs:
@@ -85,6 +85,7 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
+    @unittest.skip #TODO: Fix in the ComponentSpec class
     @unittest.expectedFailure
     def test_fail_on_duplicate_output_names(self):
         component_text = '''\
@@ -300,22 +301,6 @@ implementation:
         task1 = task_factory1('some-data')
 
         self.assertEqual(task1.arguments, ['--data', 'some-data'])
-
-    def test_output_resolving(self):
-        component_text = '''\
-outputs:
-- {name: Data}
-implementation:
-  container:
-    image: busybox
-    args:
-      - --output-data
-      - output: Data
-'''
-        task_factory1 = comp.load_component(text=component_text)
-        task1 = task_factory1(data='/outputs/some-data')
-
-        self.assertEqual(task1.arguments, ['--output-data', '/outputs/some-data'])
 
     def test_automatic_output_resolving(self):
         component_text = '''\
