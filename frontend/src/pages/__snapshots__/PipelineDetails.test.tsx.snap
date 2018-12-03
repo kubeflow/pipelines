@@ -809,7 +809,7 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
               "theme": "default",
             }
           }
-          value=""
+          value="test template"
         />
       </div>
     </div>

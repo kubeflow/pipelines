@@ -98,7 +98,7 @@ describe('PipelineDetails', () => {
     getExperimentSpy.mockImplementation(() =>
       Promise.resolve({ id: 'test-experiment-id', name: 'test experiment' } as ApiExperiment));
     getExperimentSpy.mockClear();
-    getTemplateSpy.mockImplementation(() => Promise.resolve('{}'));
+    getTemplateSpy.mockImplementation(() => Promise.resolve({ template: 'test template' }));
     getTemplateSpy.mockClear();
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
     createGraphSpy.mockClear();

@@ -157,79 +157,77 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
 
-        {!!pipeline && (
+        <div className={commonCss.page}>
+          <MD2Tabs
+            selectedTab={selectedTab}
+            onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })}
+            tabs={['Graph', 'Source']}
+          />
           <div className={commonCss.page}>
-            <MD2Tabs
-              selectedTab={selectedTab}
-              onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })}
-              tabs={['Graph', 'Source']}
-            />
-            <div className={commonCss.page}>
-              {selectedTab === 0 && <div className={commonCss.page}>
-                {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-                  {summaryShown && (
-                    <Paper className={css.summaryCard}>
-                      <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
-                        <div className={commonCss.header}>
-                          Summary
+            {selectedTab === 0 && <div className={commonCss.page}>
+              {this.state.graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+                {!!pipeline && summaryShown && (
+                  <Paper className={css.summaryCard}>
+                    <div style={{ alignItems: 'baseline', display: 'flex', justifyContent: 'space-between' }}>
+                      <div className={commonCss.header}>
+                        Summary
                         </div>
-                        <Button onClick={() => this.setStateSafe({ summaryShown: false })} color='secondary'>
-                          Hide
+                      <Button onClick={() => this.setStateSafe({ summaryShown: false })} color='secondary'>
+                        Hide
                         </Button>
-                      </div>
-                      <div className={css.summaryKey}>Uploaded on</div>
-                      <div>{formatDateString(pipeline.created_at)}</div>
-                      <div className={css.summaryKey}>Description</div>
-                      <div>{pipeline.description}</div>
-                    </Paper>
-                  )}
-
-                  <Graph graph={this.state.graph} selectedNodeId={selectedNodeId}
-                    onClick={id => this.setStateSafe({ selectedNodeId: id })} />
-
-                  <SidePanel isOpen={!!selectedNodeId}
-                    title={selectedNodeId} onClose={() => this.setStateSafe({ selectedNodeId: '' })}>
-                    <div className={commonCss.page}>
-                      {!selectedNodeInfo && (
-                        <div className={commonCss.absoluteCenter}>Unable to retrieve node info</div>
-                      )}
-                      {!!selectedNodeInfo && <div className={padding(20, 'lr')}>
-                        <StaticNodeDetails nodeInfo={selectedNodeInfo} />
-                      </div>}
                     </div>
-                  </SidePanel>
-                  <div className={css.footer}>
-                    {!summaryShown && (
-                      <Button onClick={() => this.setStateSafe({ summaryShown: !summaryShown })} color='secondary'>
-                        Show summary
-                      </Button>
+                    <div className={css.summaryKey}>Uploaded on</div>
+                    <div>{formatDateString(pipeline.created_at)}</div>
+                    <div className={css.summaryKey}>Description</div>
+                    <div>{pipeline.description}</div>
+                  </Paper>
+                )}
+
+                <Graph graph={this.state.graph} selectedNodeId={selectedNodeId}
+                  onClick={id => this.setStateSafe({ selectedNodeId: id })} />
+
+                <SidePanel isOpen={!!selectedNodeId}
+                  title={selectedNodeId} onClose={() => this.setStateSafe({ selectedNodeId: '' })}>
+                  <div className={commonCss.page}>
+                    {!selectedNodeInfo && (
+                      <div className={commonCss.absoluteCenter}>Unable to retrieve node info</div>
                     )}
-                    <div className={classes(commonCss.flex, summaryShown && css.footerInfoOffset)}>
-                      <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
-                      <span className={css.infoSpan}>Static pipeline graph</span>
-                    </div>
+                    {!!selectedNodeInfo && <div className={padding(20, 'lr')}>
+                      <StaticNodeDetails nodeInfo={selectedNodeInfo} />
+                    </div>}
                   </div>
-                </div>}
-                {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
-              </div>}
-              {selectedTab === 1 &&
-                <div className={css.containerCss}>
-                  <CodeMirror
-                    value={templateYaml || ''}
-                    editorDidMount={(editor) => editor.refresh()}
-                    options={{
-                      lineNumbers: true,
-                      lineWrapping: true,
-                      mode: 'text/yaml',
-                      readOnly: true,
-                      theme: 'default',
-                    }}
-                  />
+                </SidePanel>
+                <div className={css.footer}>
+                  {!summaryShown && (
+                    <Button onClick={() => this.setStateSafe({ summaryShown: !summaryShown })} color='secondary'>
+                      Show summary
+                      </Button>
+                  )}
+                  <div className={classes(commonCss.flex, summaryShown && css.footerInfoOffset)}>
+                    <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
+                    <span className={css.infoSpan}>Static pipeline graph</span>
+                  </div>
                 </div>
-              }
-            </div>
+              </div>}
+              {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
+            </div>}
+            {selectedTab === 1 && !!templateYaml &&
+              <div className={css.containerCss}>
+                <CodeMirror
+                  value={templateYaml || ''}
+                  editorDidMount={(editor) => editor.refresh()}
+                  options={{
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    mode: 'text/yaml',
+                    readOnly: true,
+                    theme: 'default',
+                  }}
+                />
+              </div>
+            }
           </div>
-        )}
+        </div>
       </div>
     );
   }
