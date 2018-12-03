@@ -111,12 +111,12 @@ class OutputSpec(InputOrOutputSpec):
 
 
 class ContainerSpec:
-    def __init__(self, image:str, command:List=None, arguments:List=None, file_outputs:Mapping[str,str]=None):
+    def __init__(self, image:str, command:List=None, args:List=None, file_outputs:Mapping[str,str]=None):
         if not isinstance(image, str):
             raise ValueError('image must be a string')
         self.image = image
         self.command = command
-        self.arguments = arguments
+        self.args = args
         self.file_outputs = file_outputs
     
     @staticmethod
@@ -129,8 +129,8 @@ class ContainerSpec:
         
         if 'command' in spec_dict:
             container_spec.command = list(spec_dict.pop('command'))
-        if 'arguments' in spec_dict:
-            container_spec.arguments = list(spec_dict.pop('arguments'))
+        if 'args' in spec_dict:
+            container_spec.args = list(spec_dict.pop('args'))
         if 'fileOutputs' in spec_dict:
             container_spec.file_outputs = dict(spec_dict.pop('fileOutputs'))
 
@@ -145,8 +145,8 @@ class ContainerSpec:
             struct['image'] = self.image
         if self.command:
             struct['command'] = self.command
-        if self.arguments:
-            struct['arguments'] = self.arguments
+        if self.args:
+            struct['args'] = self.args
         if self.file_outputs:
             struct['fileOutputs'] = self.file_outputs
         

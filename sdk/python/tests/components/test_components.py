@@ -184,8 +184,8 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
-        - [value, Wrong]
+    args:
+      - {value: Wrong}
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
@@ -231,7 +231,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       # Nulls:
       - null #A null
       - #Also a null
@@ -292,7 +292,7 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - --data
       - value: Data
 '''
@@ -308,7 +308,7 @@ outputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - --output-data
       - output: Data
 '''
@@ -324,7 +324,7 @@ outputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - --output-data
       - {output: Data}
 '''
@@ -396,7 +396,7 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - concat: [{value: In1}, {value: In2}]
 '''
         task_factory1 = comp.load_component(text=component_text)
@@ -409,7 +409,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: true
           then: --true-arg
@@ -424,7 +424,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: false
           then: --true-arg
@@ -439,7 +439,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: 'true'
           then: --true-arg
@@ -454,7 +454,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: 'false'
           then: --true-arg
@@ -472,7 +472,7 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: {isPresent: In}
           then: [--in, {value: In}]
@@ -493,7 +493,7 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: {isPresent: In}
           then: [--in, {value: In}]
@@ -517,7 +517,7 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: {value: Do test}
           then: [--test-data, {value: Test data}, --test-param1, {value: Test parameter 1}]
