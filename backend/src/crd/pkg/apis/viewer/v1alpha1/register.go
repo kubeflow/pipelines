@@ -35,8 +35,12 @@ func Resource(resource string) schema.GroupResource {
 }
 
 var (
+	// SchemeBuilder is a runtime scheme builder for adding viewer types to the
+	// scheme.
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	// AddToScheme is a method for adding viewer type schemes to any passed in
+	// runtime scheme.
+	AddToScheme = SchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to Scheme.

@@ -28,8 +28,9 @@ type Viewer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// Spec contains specifications that pertain to how the viewer is launched and
+	// managed by its controller.
 	Spec ViewerSpec `json:"spec"`
-	// Status ViewerStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -39,27 +40,38 @@ type ViewerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
+	// Items is a list of viewers.
 	Items []Viewer `json:"items"`
 }
 
+// ViewerType is the underlying type of the view. Currently, only Tensorboard is
+// explicitly supported by the Viewer CRD.
 type ViewerType string
 
 const (
+	// ViewerTypeTensorboard is the ViewerType constant used to indicate that the
+	// underlying type is Tensorboard. An instance named `instance123` will serve
+	// under /tensorboard/instance123.
 	ViewerTypeTensorboard ViewerType = "tensorboard"
 )
 
-// TensorboardSpec is...
+// TensorboardSpec contains fields specific to launching a tensorboard instance.
 type TensorboardSpec struct {
-	// LogDir is ...
+	// LogDir is the location of the log directory to be read by tensorboard, i.e.,
+	// ---log_dir.
 	LogDir string `json:"logDir"`
 }
 
 // ViewerSpec is the spec for a Viewer resource.
 type ViewerSpec struct {
-	// Type is...
+	// Type is the type of the viewer.
 	Type ViewerType `json:"type"`
-	// TensorboardSpec is...
+	// TensorboardSpec is only checked if the Type is ViewerTypeTensorboard.
 	TensorboardSpec TensorboardSpec `json:"tensorboardSpec,omitempty"`
-	// PodTemplateSpec is the
-	PodTemplateSpec v1.PodTemplateSpec `json:"podSpec"`
+	// PodTemplateSpec is the template spec used to launch the viewer.
+	// Note that the container field will be augmented by the CRD controller with
+	// a container set up to run the specific viewer type such that the routing of
+	// assets being served by the viewer instance is compatible with the service
+	// and Ambassador config that the controller sets up on behalf of the viewer.
+	PodTemplateSpec v1.PodTemplateSpec `json:"podTemplateSpec"`
 }
