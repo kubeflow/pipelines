@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
+import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import PipelineSelector from './PipelineSelector';
+import Radio from '@material-ui/core/Radio';
 import RunUtils from '../lib/RunUtils';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
@@ -42,6 +45,7 @@ import { commonCss, padding } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewRunState {
+  clonedRunPipeline?: ApiPipeline;
   description: string;
   errorMessage: string;
   experiment?: ApiExperiment;
@@ -58,6 +62,7 @@ interface NewRunState {
   pipelineName: string;
   pipelineSelectorOpen: boolean;
   runName: string;
+  selectPipelineFromClonedRun: boolean;
   trigger?: ApiTrigger;
   unconfirmedDialogPipelineId: string;
 }
@@ -82,6 +87,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipelineName: '',
       pipelineSelectorOpen: false,
       runName: '',
+      selectPipelineFromClonedRun: false,
       unconfirmedDialogPipelineId: '',
     };
   }
@@ -96,6 +102,7 @@ class NewRun extends Page<{}, NewRunState> {
 
   public render(): JSX.Element {
     const {
+      clonedRunPipeline,
       description,
       errorMessage,
       experimentName,
@@ -105,6 +112,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipelineName,
       pipelineSelectorOpen,
       runName,
+      selectPipelineFromClonedRun,
       unconfirmedDialogPipelineId,
     } = this.state;
 
@@ -114,19 +122,30 @@ class NewRun extends Page<{}, NewRunState> {
 
           <div className={commonCss.header}>Run details</div>
 
-          <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position='end'>
-                  <Button color='secondary' id='choosePipelineBtn'
-                    onClick={() => this.setState({ pipelineSelectorOpen: true })}
-                    style={{ padding: '3px 5px', margin: 0 }}>
-                    Choose
+          {!!clonedRunPipeline && (<React.Fragment>
+            <FormControlLabel label='Use pipeline from cloned run' control={<Radio color='primary' />}
+              onChange={() => this.setStateSafe({ selectPipelineFromClonedRun: true })}
+              checked={selectPipelineFromClonedRun} />
+            <FormControlLabel label='Select a pipeline from list' control={<Radio color='primary' />}
+              onChange={() => this.setStateSafe({ selectPipelineFromClonedRun: false })}
+              checked={!selectPipelineFromClonedRun} />
+          </React.Fragment>)}
+
+          {!selectPipelineFromClonedRun && (
+            <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position='end'>
+                    <Button color='secondary' id='choosePipelineBtn'
+                      onClick={() => this.setState({ pipelineSelectorOpen: true })}
+                      style={{ padding: '3px 5px', margin: 0 }}>
+                      Choose
                 </Button>
-                </InputAdornment>
-              ),
-              readOnly: true,
-            }} />
+                  </InputAdornment>
+                ),
+                readOnly: true,
+              }} />
+          )}
 
           <Dialog open={pipelineSelectorOpen}
             classes={{ paper: css.pipelineSelectorDialog }}
@@ -317,26 +336,38 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
-    const associatedPipelineId = RunUtils.getPipelineId(originalRun.run);
-    // TODO: Support runs without associated pipeline IDs (e.g. those created via notebooks)
-    if (!originalRun.run || !associatedPipelineId) {
-      logger.error('Original run did not have an associated pipeline ID');
+    if (!originalRun.run) {
+      logger.error('Could not get cloned run details');
       return;
     }
 
     let pipeline: ApiPipeline;
     let workflow: Workflow;
+    let clonedRunPipeline: ApiPipeline;
+    let selectPipelineFromClonedRun = false;
 
-    try {
-      pipeline = await Apis.pipelineServiceApi.getPipeline(associatedPipelineId);
-    } catch (err) {
-      await this.showPageError(
-        'Error: failed to find a pipeline corresponding to that of the original run:'
-        + ` ${originalRun.run.id}.`, err);
+    const referencePipelineId = RunUtils.getPipelineId(originalRun.run);
+    const embeddedPipelineSpec = RunUtils.getPipelineSpec(originalRun.run);
+    if (referencePipelineId) {
+      try {
+        pipeline = await Apis.pipelineServiceApi.getPipeline(referencePipelineId);
+      } catch (err) {
+        await this.showPageError('Could not get clone run\'s pipeline details', err);
+        return;
+      }
+    } else if (embeddedPipelineSpec) {
+      try {
+        pipeline = JsYaml.safeLoad(embeddedPipelineSpec);
+      } catch (err) {
+        await this.showPageError('Error: failed to read the clone run\'s pipeline definition.', err);
+      }
+      clonedRunPipeline = pipeline!;
+      selectPipelineFromClonedRun = true;
+    } else {
+      await this.showPageError('Could not find the cloned run\'s pipeline definition.');
       return;
     }
 
-    // TODO: Determine what is actually required from the pipeline if we have this manifest
     if (originalRun.pipeline_runtime!.workflow_manifest === undefined) {
       await this.showPageError(`Error: run ${originalRun.run.id} had no workflow manifest`);
       logger.error(originalRun.pipeline_runtime!.workflow_manifest);
@@ -351,12 +382,14 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     // Set pipeline parameter values from run's workflow
-    pipeline.parameters = WorkflowParser.getParameters(workflow);
+    pipeline!.parameters = WorkflowParser.getParameters(workflow);
 
     this.setState({
-      pipeline,
-      pipelineName: (pipeline && pipeline.name) || '',
-      runName: this._getCloneName(originalRun.run.name!)
+      clonedRunPipeline: clonedRunPipeline!,
+      pipeline: pipeline!,
+      pipelineName: (pipeline! && pipeline!.name) || '',
+      runName: this._getCloneName(originalRun.run.name!),
+      selectPipelineFromClonedRun,
     });
 
     this._validate();
@@ -446,7 +479,6 @@ class NewRun extends Page<{}, NewRunState> {
       return;
     }
     pipeline.parameters[index].value = value;
-    // TODO: is this doing anything?
     this.setState({ pipeline });
   }
 
