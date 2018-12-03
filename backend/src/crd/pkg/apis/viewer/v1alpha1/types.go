@@ -45,23 +45,21 @@ type ViewerList struct {
 type ViewerType string
 
 const (
-	TensorboardViewer ViewerType = "TensorboardViewer"
+	ViewerTypeTensorboard ViewerType = "tensorboard"
 )
 
 // TensorboardSpec is...
 type TensorboardSpec struct {
 	// LogDir is ...
-	LogDir string
+	LogDir string `json:"logDir"`
 }
 
 // ViewerSpec is the spec for a Viewer resource.
 type ViewerSpec struct {
-	// Name is the unique name for this viewer instance.
-	Name string `json:"name"`
 	// Type is...
 	Type ViewerType `json:"type"`
-	//TensorboardSpec is...
+	// TensorboardSpec is...
 	TensorboardSpec TensorboardSpec `json:"tensorboardSpec,omitempty"`
-	// PodSpec is the
-	PodSpec v1.PodTemplateSpec `json:"podSpec"`
+	// PodTemplateSpec is the
+	PodTemplateSpec v1.PodTemplateSpec `json:"podSpec"`
 }
