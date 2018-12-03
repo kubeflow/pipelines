@@ -277,7 +277,15 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   jupyter nbconvert --to python notebook-tfx.ipynb
   pip3 install tensorflow==1.8.0
   ipython notebook-tfx.py
-  python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT
+  cd "${TEST_DIR}"
+  python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT --namespace ${NAMESPACE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp $SAMPLE_NOTEBOOK_TFX_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TFX_TEST_RESULT
+
+  #Clean CMLE models
+  python3 clean_cmle_models.py --project ml-pipeline-test --model taxidev --version beta
+  python3 clean_cmle_models.py --project ml-pipeline-test --model mytaxi --version beta
 elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT=junit_SampleNotebookLightweightOutput.xml
   SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -288,5 +296,9 @@ elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
   jupyter nbconvert --to python notebook-lightweight.ipynb
   ipython notebook-lightweight.py
-  python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT
+  cd "${TEST_DIR}"
+  python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT
 fi

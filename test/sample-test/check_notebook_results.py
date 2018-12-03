@@ -14,6 +14,7 @@
 
 import argparse
 from kfp import Client
+import utils
 
 ###### Input/Output Instruction ######
 # input: experiment name, testname, and, namespace
@@ -78,7 +79,7 @@ def main():
 
     if not succ:
       utils.write_junit_xml(test_name, args.result, test_cases)
-      exit()
+      exit(1)
 
   ###### Write out the test result in junit xml ######
   utils.write_junit_xml(test_name, args.result, test_cases)
