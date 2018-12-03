@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -41,8 +42,26 @@ type ViewerList struct {
 	Items []Viewer `json:"items"`
 }
 
+type ViewerType string
+
+const (
+	TensorboardViewer ViewerType = "TensorboardViewer"
+)
+
+// TensorboardSpec is...
+type TensorboardSpec struct {
+	// LogDir is ...
+	LogDir string
+}
+
 // ViewerSpec is the spec for a Viewer resource.
 type ViewerSpec struct {
-	// Name is a placeholder for a spec value.
+	// Name is the unique name for this viewer instance.
 	Name string `json:"name"`
+	// Type is...
+	Type ViewerType `json:"type"`
+	//TensorboardSpec is...
+	TensorboardSpec TensorboardSpec `json:"tensorboardSpec,omitempty"`
+	// PodSpec is the
+	PodSpec v1.PodTemplateSpec `json:"podSpec"`
 }
