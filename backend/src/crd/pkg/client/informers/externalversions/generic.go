@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
-	viewerv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -53,10 +52,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=scheduledworkflow.kubeflow.org, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("scheduledworkflows"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Scheduledworkflow().V1alpha1().ScheduledWorkflows().Informer()}, nil
-
-		// Group=viewer.kubeflow.org, Version=v1alpha1
-	case viewerv1alpha1.SchemeGroupVersion.WithResource("viewers"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Viewer().V1alpha1().Viewers().Informer()}, nil
 
 	}
 

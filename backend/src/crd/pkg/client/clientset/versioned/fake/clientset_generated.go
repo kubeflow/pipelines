@@ -19,8 +19,6 @@ import (
 	clientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	scheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	fakescheduledworkflowv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1/fake"
-	viewerv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/viewer/v1alpha1"
-	fakeviewerv1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/viewer/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -78,14 +76,4 @@ func (c *Clientset) ScheduledworkflowV1alpha1() scheduledworkflowv1alpha1.Schedu
 // Scheduledworkflow retrieves the ScheduledworkflowV1alpha1Client
 func (c *Clientset) Scheduledworkflow() scheduledworkflowv1alpha1.ScheduledworkflowV1alpha1Interface {
 	return &fakescheduledworkflowv1alpha1.FakeScheduledworkflowV1alpha1{Fake: &c.Fake}
-}
-
-// ViewerV1alpha1 retrieves the ViewerV1alpha1Client
-func (c *Clientset) ViewerV1alpha1() viewerv1alpha1.ViewerV1alpha1Interface {
-	return &fakeviewerv1alpha1.FakeViewerV1alpha1{Fake: &c.Fake}
-}
-
-// Viewer retrieves the ViewerV1alpha1Client
-func (c *Clientset) Viewer() viewerv1alpha1.ViewerV1alpha1Interface {
-	return &fakeviewerv1alpha1.FakeViewerV1alpha1{Fake: &c.Fake}
 }
