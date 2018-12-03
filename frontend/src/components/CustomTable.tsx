@@ -386,19 +386,19 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       sortBy: this.state.sortBy,
     }, loadRequest);
 
-    this.setStateSafe({
-      pageSize: request.pageSize!,
-      sortBy: request.sortBy!,
-      sortOrder: request.orderAscending ? 'asc' : 'desc',
-    });
-
-    if (request.sortBy && !request.orderAscending) {
-      request.sortBy += ' desc';
-    }
-
     let result = '';
-    this.setStateSafe({ isBusy: true });
     try {
+      this.setStateSafe({
+        isBusy: true,
+        pageSize: request.pageSize!,
+        sortBy: request.sortBy!,
+        sortOrder: request.orderAscending ? 'asc' : 'desc',
+      });
+
+      if (request.sortBy && !request.orderAscending) {
+        request.sortBy += ' desc';
+      }
+
       result = await this.props.reload(request);
     } finally {
       this.setStateSafe({ isBusy: false });
