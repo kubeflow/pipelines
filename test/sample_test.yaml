@@ -23,11 +23,16 @@ spec:
     - name: image-build-context-gcs-uri
     - name: target-image-prefix
     - name: test-results-gcs-dir
-    - name: bootstrapper-image
-    - name: api-image
-    - name: frontend-image
-    - name: scheduledworkflow-image
-    - name: persistenceagent-image
+    - name: bootstrapper-image-suffix
+      value: bootstrapper
+    - name: api-image-suffix
+      value: api
+    - name: frontend-image-suffix
+      value: frontend
+    - name: scheduledworkflow-image-suffix
+      value: scheduledworkflow
+    - name: persistenceagent-image-suffix
+      value: persistenceagent
     - name: dataflow-tft-image-suffix
       value: dataflow-tft
     - name: dataflow-predict-image-suffix
@@ -66,11 +71,11 @@ spec:
       parameters:
       - name: target-image-prefix
       - name: test-results-gcs-dir
-      - name: bootstrapper-image
-      - name: api-image
-      - name: frontend-image
-      - name: scheduledworkflow-image
-      - name: persistenceagent-image
+      - name: bootstrapper-image-suffix
+      - name: api-image-suffix
+      - name: frontend-image-suffix
+      - name: scheduledworkflow-image-suffix
+      - name: persistenceagent-image-suffix
       - name: dataflow-tft-image-suffix
       - name: dataflow-predict-image-suffix
       - name: dataflow-tfma-image-suffix
@@ -88,7 +93,55 @@ spec:
       - name: sample-tests-image-suffix
       - name: namespace
     steps:
-    - - name: build-sample-tests-image
+    - - name: build-bootstrapper-image
+        template: build-image-by-dockerfile
+        arguments:
+          parameters:
+          - name: docker-path
+            value: pipeline
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.bootstrapper-image-suffix}}"
+      - name: build-api-server-image
+        template: build-image-by-dockerfile
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-image-suffix}}"
+          - name: docker-file
+            value: backend/Dockerfile
+      - name: build-frontend-image
+        template: build-image-by-dockerfile
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: docker-file
+            value: frontend/Dockerfile
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.frontend-image-suffix}}"
+      - name: build-scheduledworkflow-image
+        template: build-image-by-dockerfile
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.scheduledworkflow-image-suffix}}"
+          - name: docker-file
+            value: backend/Dockerfile.scheduledworkflow
+      - name: build-persistenceagent-image
+        template: build-image-by-dockerfile
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.persistenceagent-image-suffix}}"
+          - name: docker-file
+            value: backend/Dockerfile.persistenceagent
+      - name: build-sample-tests-image
         template: build-image-by-dockerfile
         arguments:
           parameters:
@@ -215,15 +268,15 @@ spec:
         arguments:
           parameters:
           - name: bootstrapper-image
-            value: "{{inputs.parameters.bootstrapper-image}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.bootstrapper-image-suffix}}"
           - name: api-image
-            value: "{{inputs.parameters.api-image}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-image-suffix}}"
           - name: frontend-image
-            value: "{{inputs.parameters.frontend-image}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.frontend-image-suffix}}"
           - name: scheduledworkflow-image
-            value: "{{inputs.parameters.scheduledworkflow-image}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.scheduledworkflow-image-suffix}}"
           - name: persistenceagent-image
-            value: "{{inputs.parameters.persistenceagent-image}}"
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.persistenceagent-image-suffix}}"
     - - name: run-tf-training-tests
         template: run-sample-tests
         arguments:

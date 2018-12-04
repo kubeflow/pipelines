@@ -60,6 +60,10 @@ while [ "$1" != "" ]; do
     shift
 done
 
+if [ "$WORKFLOW_FILE" == "build_image.yaml" ]; then
+  exit 0
+fi
+
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
@@ -127,11 +131,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
--p bootstrapper-image="${GCR_IMAGE_BASE_DIR}/bootstrapper" \
--p api-image="${GCR_IMAGE_BASE_DIR}/api" \
--p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
--p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
--p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
 -o name
 `
 echo argo workflow submitted successfully
