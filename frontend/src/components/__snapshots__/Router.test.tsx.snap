@@ -56,7 +56,7 @@ exports[`Router initial render 1`] = `
           <Route
             exact={true}
             key="5"
-            path="/pipelines/details/:pid"
+            path="/pipelines/details/:pid?"
             render={[Function]}
           />
           <Route
