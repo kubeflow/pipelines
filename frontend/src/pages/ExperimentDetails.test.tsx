@@ -23,9 +23,8 @@ import { PageProps } from './Page';
 import { range } from 'lodash';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiResourceType } from '../apis/job';
-import { RoutePage, RouteParams } from '../components/Router';
+import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { QUERY_PARAMS } from '../lib/URLParser';
 
 describe('ExperimentDetails', () => {
 

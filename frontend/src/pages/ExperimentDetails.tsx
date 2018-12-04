@@ -30,8 +30,8 @@ import { ApiExperiment } from '../apis/experiment';
 import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
-import { RoutePage, RouteParams } from '../components/Router';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { URLParser } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -233,8 +233,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               </DialogContent>
               <DialogActions>
                 <Button id='closeExperimentRecurringRunManagerBtn'
-                    onClick={this._recurringRunsManagerClosed.bind(this)}
-                    color='secondary'>
+                  onClick={this._recurringRunsManagerClosed.bind(this)}
+                  color='secondary'>
                   Close
                 </Button>
               </DialogActions>
@@ -291,14 +291,14 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       }
 
       this.setStateSafe({ activeRecurringRunsCount, experiment });
-      
+
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
     }
 
     if (this._runlistRef.current) {
-      this._runlistRef.current.refresh(); 
+      this._runlistRef.current.refresh();
     }
   }
 

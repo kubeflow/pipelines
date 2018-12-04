@@ -26,7 +26,11 @@ export interface MetricMetadata {
 }
 
 function getPipelineId(run?: ApiRun | ApiJob): string | null {
-  return run && run.pipeline_spec && run.pipeline_spec.pipeline_id || null;
+  return (run && run.pipeline_spec && run.pipeline_spec.pipeline_id) || null;
+}
+
+function getPipelineSpec(run?: ApiRun | ApiJob): string | null {
+  return (run && run.pipeline_spec && run.pipeline_spec.workflow_manifest) || null;
 }
 
 function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
@@ -83,4 +87,5 @@ export default {
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
   getPipelineId,
+  getPipelineSpec,
 };

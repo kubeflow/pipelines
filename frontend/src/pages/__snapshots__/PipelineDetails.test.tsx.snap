@@ -70,7 +70,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
               Description
             </div>
             <div>
-              test job description
+              test pipeline description
             </div>
           </WithStyles(Paper)>
           <Graph
@@ -102,7 +102,9 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
             <div
               className="page"
             >
-              <div>
+              <div
+                className="absoluteCenter"
+              >
                 Unable to retrieve node info
               </div>
             </div>
@@ -197,7 +199,9 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
             <div
               className="page"
             >
-              <div>
+              <div
+                className="absoluteCenter"
+              >
                 Unable to retrieve node info
               </div>
             </div>
@@ -307,7 +311,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
               Description
             </div>
             <div>
-              test job description
+              test pipeline description
             </div>
           </WithStyles(Paper)>
           <Graph
@@ -339,7 +343,9 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
             <div
               className="page"
             >
-              <div>
+              <div
+                className="absoluteCenter"
+              >
                 Unable to retrieve node info
               </div>
             </div>
@@ -443,7 +449,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
               Description
             </div>
             <div>
-              test job description
+              test pipeline description
             </div>
           </WithStyles(Paper)>
           <Graph
@@ -663,7 +669,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
               Description
             </div>
             <div>
-              test job description
+              test pipeline description
             </div>
           </WithStyles(Paper)>
           <Graph
@@ -695,7 +701,9 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
             <div
               className="page"
             >
-              <div>
+              <div
+                className="absoluteCenter"
+              >
                 Unable to retrieve node info
               </div>
             </div>
@@ -801,7 +809,7 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
               "theme": "default",
             }
           }
-          value=""
+          value="test template"
         />
       </div>
     </div>
