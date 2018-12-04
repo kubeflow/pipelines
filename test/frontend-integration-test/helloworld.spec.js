@@ -165,9 +165,10 @@ describe('deploy helloworld sample run', () => {
   it('shows logs from node', () => {
     $('button=Logs').click();
     $('#logViewer').waitForVisible();
-    const logs = $('#logViewer').getText();
-    assert(logs.indexOf(outputParameterValue + ' from node: ') > -1,
-      'logs do not look right: ' + logs);
+    browser.waitUntil(() => {
+      const logs = $('#logViewer').getText();
+      return logs.indexOf(outputParameterValue + ' from node: ') > -1;
+    }, waitTimeout);
   });
   //TODO: enable this after we change the pipeline to a unique name such that deleting this
   // pipeline will not jeopardize the concurrent basic e2e tests.
