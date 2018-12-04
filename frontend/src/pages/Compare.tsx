@@ -46,7 +46,7 @@ const css = stylesheet({
   },
 });
 
-interface TaggedViewerConfig {
+export interface TaggedViewerConfig {
   config: ViewerConfig;
   runId: string;
   runName: string;
@@ -139,35 +139,36 @@ class Compare extends Page<{}, CompareState> {
 
       <Separator orientation='vertical' />
 
-      {Array.from(viewersMap.keys()).map((viewerType, i) => <div key={i}>
-        <CollapseButton compareComponent={this}
-          sectionName={componentMap[viewerType].prototype.getDisplayName()} />
-        {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] &&
-          <React.Fragment>
-            <div className={classes(commonCss.flex, css.outputsRow)}>
-              {/* If the component allows aggregation, add one more card for
-              its aggregated view. Only do this if there is more than one
-              output, filtering out any unselected runs. */}
-              {(componentMap[viewerType].prototype.isAggregatable() && (
-                runsPerViewerType(viewerType).length > 1) && (
-                  <PlotCard configs={
-                    runsPerViewerType(viewerType).map(t => t.config)} maxDimension={400}
-                    title='Aggregated view' />
-                )
-              )}
+      {Array.from(viewersMap.keys()).map((viewerType, i) =>
+        <div key={i}>
+          <CollapseButton compareComponent={this}
+            sectionName={componentMap[viewerType].prototype.getDisplayName()} />
+          {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] && (
+            <React.Fragment>
+              <div className={classes(commonCss.flex, css.outputsRow)}>
+                {/* If the component allows aggregation, add one more card for
+                its aggregated view. Only do this if there is more than one
+                output, filtering out any unselected runs. */}
+                {(componentMap[viewerType].prototype.isAggregatable() && (
+                  runsPerViewerType(viewerType).length > 1) && (
+                    <PlotCard configs={
+                      runsPerViewerType(viewerType).map(t => t.config)} maxDimension={400}
+                      title='Aggregated view' />
+                  )
+                )}
 
-              {runsPerViewerType(viewerType).map((taggedConfig, c) => (
-                <PlotCard key={c} configs={[taggedConfig.config]} title={taggedConfig.runName}
-                  maxDimension={400} />
-              ))}
-              <Separator />
+                {runsPerViewerType(viewerType).map((taggedConfig, c) => (
+                  <PlotCard key={c} configs={[taggedConfig.config]} title={taggedConfig.runName}
+                    maxDimension={400} />
+                ))}
+                <Separator />
 
-            </div>
-            <Hr />
-          </React.Fragment>
-        }
-        <Separator orientation='vertical' />
-      </div>
+              </div>
+              <Hr />
+            </React.Fragment>
+          )}
+          <Separator orientation='vertical' />
+        </div>
       )}
     </div>);
   }
@@ -189,6 +190,7 @@ class Compare extends Page<{}, CompareState> {
     const workflowObjects: Workflow[] = [];
     const failingRuns: string[] = [];
     let lastError: Error | null = null;
+
     await Promise.all(runIds.map(async id => {
       try {
         const run = await Apis.runServiceApi.getRun(id);
@@ -201,20 +203,11 @@ class Compare extends Page<{}, CompareState> {
     }));
 
     if (lastError) {
-      await this.showPageError(
-        `Error: failed loading ${failingRuns.length} runs.`,
-        lastError,
-      );
+      await this.showPageError(`Error: failed loading ${failingRuns.length} runs.`, lastError);
       logger.error(
         `Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`);
       return;
     }
-
-    this.setState({
-      runs,
-      selectedIds: runs.map(r => r.run!.id!),
-      workflowObjects,
-    }, () => this._loadParameters());
 
     const outputPathsList = workflowObjects.map(
       workflow => WorkflowParser.loadAllOutputPaths(workflow));
@@ -238,8 +231,17 @@ class Compare extends Page<{}, CompareState> {
       }
     }));
 
-    // For each output artifact type, list all artifact instances in all runs
-    this.setState({ viewersMap });
+
+    this.setStateSafe({
+      runs,
+      selectedIds: runs.map(r => r.run!.id!),
+      viewersMap,
+      workflowObjects,
+    }, () => this._loadParameters());
+  }
+
+  protected _selectionChanged(selectedIds: string[]): void {
+    this.setState({ selectedIds }, () => this._loadParameters());
   }
 
   private _collapseAllSections(): void {
@@ -248,13 +250,7 @@ class Compare extends Page<{}, CompareState> {
       const sectionName = componentMap[t].prototype.getDisplayName();
       collapseSections[sectionName] = true;
     });
-    this.setState({
-      collapseSections,
-    });
-  }
-
-  private _selectionChanged(selectedIds: string[]): void {
-    this.setState({ selectedIds }, () => this._loadParameters());
+    this.setState({ collapseSections });
   }
 
   private _loadParameters(): void {
@@ -264,8 +260,7 @@ class Compare extends Page<{}, CompareState> {
     const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1);
     const filteredWorkflows = workflowObjects.filter((_, i) => selectedIndices.indexOf(i) > -1);
 
-    const paramsCompareProps = CompareUtils.getParamsCompareProps(
-      filteredRuns, filteredWorkflows);
+    const paramsCompareProps = CompareUtils.getParamsCompareProps(filteredRuns, filteredWorkflows);
 
     this.setState({ paramsCompareProps });
   }
