@@ -389,6 +389,18 @@ exports[`RunList displays error in run row if pipeline could not be fetched 1`] 
 </div>
 `;
 
+exports[`RunList handles no pipeline id given 1`] = `
+<div>
+  -
+</div>
+`;
+
+exports[`RunList handles no pipeline name 1`] = `
+<div>
+  -
+</div>
+`;
+
 exports[`RunList loads multiple runs 1`] = `
 <div>
   <CustomTable
@@ -560,7 +572,11 @@ exports[`RunList loads one run 1`] = `
 exports[`RunList reloads the run when refresh is called 1`] = `
 <RunList
   history={Object {}}
-  location=""
+  location={
+    Object {
+      "search": "",
+    }
+  }
   match=""
   onError={[MockFunction]}
 >
@@ -6664,12 +6680,6 @@ exports[`RunList renders no experiment name 1`] = `
 </div>
 `;
 
-exports[`RunList renders no pipeline name 1`] = `
-<div>
-  -
-</div>
-`;
-
 exports[`RunList renders percentage metric 1`] = `
 <div
   className="metricContainer"
@@ -6692,7 +6702,7 @@ exports[`RunList renders pipeline name as link to its details page 1`] = `
   className="link"
   onClick={[Function]}
   replace={false}
-  to="/pipelines/details/pipeline-id"
+  to="/pipelines/details/pipeline-id?"
 >
   <a
     className="link"
@@ -7118,6 +7128,23 @@ exports[`RunList renders the empty experience 1`] = `
 </div>
 `;
 
+exports[`RunList shows "View pipeline" button if pipeline is embedded in run 1`] = `
+<Link
+  className="link"
+  onClick={[Function]}
+  replace={false}
+  to="/pipelines/details/?fromRun=test-run-id"
+>
+  <a
+    className="link"
+    href="/pipelines/details/?fromRun=test-run-id"
+    onClick={[Function]}
+  >
+    View pipeline
+  </a>
+</Link>
+`;
+
 exports[`RunList shows experiment name 1`] = `
 <div>
   <CustomTable
@@ -7234,6 +7261,7 @@ exports[`RunList shows pipeline name 1`] = `
             Object {
               "displayName": "test pipeline",
               "id": "test-pipeline-id",
+              "showLink": false,
             },
             "-",
           ],

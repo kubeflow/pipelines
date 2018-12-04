@@ -20,10 +20,9 @@ import TestUtils from '../TestUtils';
 import { shallow } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
-import { RoutePage, RouteParams } from '../components/Router';
+import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline } from '../apis/pipeline';
-import { QUERY_PARAMS } from '../lib/URLParser';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
 
 class TestNewRun extends NewRun {
