@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as fs from 'fs';
 import helloWorldRun from './hello-world-runtime';
 import helloWorldWithStepsRun from './hello-world-with-steps-runtime';
 import coinflipRun from './mock-coinflip-runtime';
@@ -22,15 +21,6 @@ import { ApiExperiment } from '../src/apis/experiment';
 import { ApiJob } from '../src/apis/job';
 import { ApiPipeline } from '../src/apis/pipeline';
 import { ApiRunDetail, ApiResourceType, ApiRelationship, RunMetricFormat } from '../src/apis/run';
-
-const xgboostTemplate =
-  JSON.stringify({ template: fs.readFileSync('./mock-backend/mock-template.yaml', 'utf-8') });
-
-const conditionalTemplate =
-  JSON.stringify({
-    template: fs.readFileSync('./mock-backend/mock-conditional-template.yaml',
-      'utf-8')
-  });
 
 function padStartTwoZeroes(str: string): string {
   let padded = str || '';
@@ -146,7 +136,6 @@ const jobs: ApiJob[] = [
         }
       ],
       pipeline_id: pipelines[0].id,
-      workflow_manifest: conditionalTemplate,
     },
     resource_references: [{
       key: {
@@ -188,7 +177,6 @@ const jobs: ApiJob[] = [
         }
       ],
       pipeline_id: pipelines[1].id,
-      workflow_manifest: conditionalTemplate,
     },
     resource_references: [{
       key: {
@@ -233,7 +221,6 @@ const jobs: ApiJob[] = [
         }
       ],
       pipeline_id: pipelines[2].id,
-      workflow_manifest: xgboostTemplate,
     },
     resource_references: [{
       key: {
@@ -303,8 +290,6 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName2', value: 'paramVal2' },
         ],
         pipeline_id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
-        pipeline_manifest: 'TBD',
-        workflow_manifest: conditionalTemplate,
       },
       resource_references: [{
         key: {
@@ -354,8 +339,6 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName2', value: 'paramVal2' },
         ],
         pipeline_id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
-        pipeline_manifest: 'TBD',
-        workflow_manifest: conditionalTemplate,
       },
       resource_references: [{
         key: {
@@ -389,8 +372,6 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName2', value: 'paramVal2' },
         ],
         pipeline_id: '8fbe41b2-a01f-11e8-98d0-529269fb1459',
-        pipeline_manifest: 'TBD',
-        workflow_manifest: conditionalTemplate,
       },
       resource_references: [{
         key: {
@@ -424,8 +405,6 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName2', value: 'paramVal2' },
         ],
         pipeline_id: '8fbe42f2-a01f-11e8-98d0-529269fb1459',
-        pipeline_manifest: 'TBD',
-        workflow_manifest: conditionalTemplate,
       },
       scheduled_at: new Date('2018-06-17T22:58:23.000Z'),
       status: 'Failed',
@@ -466,8 +445,6 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName2', value: 'paramVal2' },
         ],
         pipeline_id: '8fbe3f78-a01f-11e8-98d0-529269fb1459',
-        pipeline_manifest: 'TBD',
-        workflow_manifest: xgboostTemplate,
       },
       resource_references: [{
         key: {
@@ -516,8 +493,60 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName2', value: 'paramVal2' },
         ],
         pipeline_id: '8fbe3f78-a01f-11e8-98d0-529269fb1459',
-        pipeline_manifest: 'TBD',
-        workflow_manifest: xgboostTemplate,
+      },
+      resource_references: [{
+        key: {
+          id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+          type: ApiResourceType.EXPERIMENT,
+        },
+        relationship: ApiRelationship.OWNER,
+      }],
+      scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
+      status: 'Succeeded',
+    },
+  },
+  {
+    pipeline_runtime: {
+      workflow_manifest: JSON.stringify(helloWorldRun),
+    },
+    run: {
+      created_at: new Date('2018-08-18T20:58:23.000Z'),
+      description: 'simple run with pipeline spec embedded in it.',
+      id: '7fc01715-4a93-4c00-8044-a8a72c14253b',
+      metrics: [
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          number_value: 0.5999,
+        },
+        {
+          format: RunMetricFormat.RAW,
+          name: 'log_loss',
+          number_value: -0.223,
+        }
+      ],
+      name: 'hello-world-with-pipeline',
+      namespace: 'namespace',
+      pipeline_spec: {
+        parameters: [
+          { name: 'paramName1', value: 'paramVal1' },
+          { name: 'paramName2', value: 'paramVal2' },
+        ],
+        workflow_manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world-
+spec:
+  entrypoint: whalesay
+  serviceAccountName: pipeline-runner
+  templates:
+  - name: whalesay
+    container:
+      image: docker/whalesay:latest
+      command: [cowsay]
+      args: ["hello world"]
+`,
       },
       resource_references: [{
         key: {
@@ -592,8 +621,6 @@ function generateNRuns(): ApiRunDetail[] {
             { name: 'paramName2', value: 'paramVal2' },
           ],
           pipeline_id: 'Some-pipeline-id-' + i,
-          pipeline_manifest: 'TBD',
-          workflow_manifest: conditionalTemplate,
         },
         resource_references: [{
           key: {
@@ -640,7 +667,6 @@ function generateNJobs(): ApiJob[] {
           }
         ],
         pipeline_id: pipelines[i % pipelines.length].id,
-        workflow_manifest: xgboostTemplate,
       },
       resource_references: [{
         key: {
