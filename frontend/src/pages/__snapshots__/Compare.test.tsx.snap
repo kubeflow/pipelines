@@ -8081,7 +8081,7 @@ exports[`Compare displays parameters from multiple runs 1`] = `
 </div>
 `;
 
-exports[`Compare displays runs parameters if the run has any 1`] = `
+exports[`Compare displays run's parameters if the run has any 1`] = `
 <div
   className="page"
 >
@@ -11259,7 +11259,7 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
 </div>
 `;
 
-exports[`Compare expands all sections after they were collapsed 1`] = `
+exports[`Compare expands all sections if they were collapsed 1`] = `
 <div
   className="page"
 >
