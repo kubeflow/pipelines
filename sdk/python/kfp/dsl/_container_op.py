@@ -88,6 +88,21 @@ class ContainerOp(object):
     if len(self.outputs) == 1:
       self.output = list(self.outputs.values())[0]
 
+  def apply(self, mod_func):
+    """Applies a modifier function to self. The function should return the passed object.
+    This is needed to chain "extention methods" to this class.
+
+    Example:
+      from kfp.gcp import use_gcp_secret
+      task = (
+        train_op(...)
+          .set_memory_request('1GB')
+          .apply(use_gcp_secret('user-gcp-sa'))
+          .set_memory_limit('2GB')
+      )
+    """
+    return mod_func(self)
+
   def after(self, op):
     """Specify explicit dependency on another op."""
     self.dependent_op_names.append(op.name)
