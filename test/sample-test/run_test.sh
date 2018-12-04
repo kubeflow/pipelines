@@ -265,9 +265,11 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   SAMPLE_NOTEBOOK_TFX_TEST_RESULT=junit_SampleNotebookTFXOutput.xml
   SAMPLE_NOTEBOOK_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
+  # CMLE model name format: A name should start with a letter and contain only letters, numbers and underscores.
   DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
-  DEV_DEPLOYER_MODEL=${DEPLOYER_MODEL}-dev
-  PROD_DEPLOYER_MODEL=${DEPLOYER_MODEL}-prod
+  DEPLOYER_MODEL=A`echo ${DEPLOYER_MODEL//-/_}`
+  DEV_DEPLOYER_MODEL=${DEPLOYER_MODEL}_dev
+  PROD_DEPLOYER_MODEL=${DEPLOYER_MODEL}_prod
   MODEL_VERSION=beta
 
   cd ${BASE_DIR}/samples/notebooks
