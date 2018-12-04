@@ -114,33 +114,40 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public getInitialToolbarState(): ToolbarProps {
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    return {
-      actions: !!fromRunId ? [] : [{
-        action: this._createNewExperiment.bind(this),
-        icon: AddIcon,
-        id: 'startNewExperimentBtn',
-        primary: true,
-        title: 'Start an experiment',
-        tooltip: 'Create a new experiment beginning with this pipeline',
-      }, {
-        action: () => this.props.updateDialog({
-          buttons: [
-            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-          ],
-          onClose: () => this._deleteDialogClosed(false),
-          title: 'Delete this pipeline?',
-        }),
-        id: 'deleteBtn',
-        title: 'Delete',
-        tooltip: 'Delete this pipeline',
-      }],
-      breadcrumbs: [!!fromRunId ?
-        { displayName: fromRunId, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId) } :
-        { displayName: 'Pipelines', href: RoutePage.PIPELINES }
-      ],
-      pageTitle: !!fromRunId ? 'Pipeline details' : this.props.match.params[RouteParams.pipelineId],
-    };
+    if (fromRunId) {
+      return {
+        actions: [],
+        breadcrumbs: [
+          { displayName: fromRunId, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId) }
+        ],
+        pageTitle: 'Pipeline details',
+      };
+    } else {
+      return {
+        actions: [{
+          action: this._createNewExperiment.bind(this),
+          icon: AddIcon,
+          id: 'startNewExperimentBtn',
+          primary: true,
+          title: 'Start an experiment',
+          tooltip: 'Create a new experiment beginning with this pipeline',
+        }, {
+          action: () => this.props.updateDialog({
+            buttons: [
+              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+            ],
+            onClose: () => this._deleteDialogClosed(false),
+            title: 'Delete this pipeline?',
+          }),
+          id: 'deleteBtn',
+          title: 'Delete',
+          tooltip: 'Delete this pipeline',
+        }],
+        breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
+        pageTitle: this.props.match.params[RouteParams.pipelineId],
+      };
+    }
   }
 
   public render(): JSX.Element {
@@ -203,7 +210,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       Show summary
                       </Button>
                   )}
-                  <div className={classes(commonCss.flex, summaryShown && css.footerInfoOffset)}>
+                  <div className={classes(commonCss.flex, summaryShown && !!pipeline && css.footerInfoOffset)}>
                     <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
                     <span className={css.infoSpan}>Static pipeline graph</span>
                   </div>
