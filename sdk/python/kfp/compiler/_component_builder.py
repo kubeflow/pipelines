@@ -413,7 +413,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   The returned value is in fact a function, which should generates a container_op instance. """
 
   from ..components._python_op import _python_function_name_to_component_name
-  from ..components import InputSpec, OutputSpec, ImplementationSpec, ContainerSpec, ComponentSpec
+  from ..components._structures import InputSpec, OutputSpec, ImplementationSpec, ContainerSpec, ComponentSpec
 
 
   #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
