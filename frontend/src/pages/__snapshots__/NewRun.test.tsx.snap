@@ -210,6 +210,404 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
 </div>
 `;
 
+exports[`NewRun cloning from a run shows pipeline selector when switching from embedded pipeline to select pipeline 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Run details
+    </div>
+    <WithStyles(FormControlLabel)
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Use pipeline from cloned run"
+      onChange={[Function]}
+    />
+    <WithStyles(FormControlLabel)
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Select a pipeline from list"
+      onChange={[Function]}
+    />
+    <Component
+      InputProps={
+        Object {
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="choosePipelineBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Pipeline"
+      required={true}
+      value=""
+    />
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "pipelineSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "pipelineSelectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <PipelineSelector
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?cloneFromRun=some-mock-run-id",
+            }
+          }
+          match=""
+          pipelineSelectionChanged={[Function]}
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelPipelineSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="usePipelineBtn"
+          onClick={[Function]}
+        >
+          Use this pipeline
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+    <Component
+      autoFocus={true}
+      label="Run name"
+      onChange={[Function]}
+      required={true}
+      value="Clone of some mock run name"
+    />
+    <Component
+      label="Description (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+    />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <div>
+      Parameters will appear after you select a pipeline
+    </div>
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={false}
+        id="createNewRunBtn"
+        onClick={[Function]}
+        title="Create"
+      />
+      <WithStyles(Button)
+        id="exitNewRunPageBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        style={
+          Object {
+            "color": "red",
+          }
+        }
+      />
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NewRun cloning from a run shows switching controls when run has embedded pipeline, selects that pipeline by default, and hides pipeline selector 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Run details
+    </div>
+    <WithStyles(FormControlLabel)
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Use pipeline from cloned run"
+      onChange={[Function]}
+    />
+    <WithStyles(FormControlLabel)
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Select a pipeline from list"
+      onChange={[Function]}
+    />
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "pipelineSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "pipelineSelectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <PipelineSelector
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?cloneFromRun=some-mock-run-id",
+            }
+          }
+          match=""
+          pipelineSelectionChanged={[Function]}
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelPipelineSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="usePipelineBtn"
+          onClick={[Function]}
+        >
+          Use this pipeline
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+    <Component
+      autoFocus={true}
+      label="Run name"
+      onChange={[Function]}
+      required={true}
+      value="Clone of some mock run name"
+    />
+    <Component
+      label="Description (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+    />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <div>
+      This pipeline has no parameters
+    </div>
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={false}
+        id="createNewRunBtn"
+        onClick={[Function]}
+        title="Create"
+      />
+      <WithStyles(Button)
+        id="exitNewRunPageBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        style={
+          Object {
+            "color": "red",
+          }
+        }
+      />
+    </div>
+  </div>
+</div>
+`;
+
 exports[`NewRun creating a new recurring run includes additional trigger input fields if run will be recurring 1`] = `
 <div
   className="page"
@@ -408,6 +806,208 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
       >
         A pipeline must be selected
       </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NewRun creating a new run copies pipeline from run in the create API call when cloning a run with embedded pipeline 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Run details
+    </div>
+    <WithStyles(FormControlLabel)
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Use pipeline from cloned run"
+      onChange={[Function]}
+    />
+    <WithStyles(FormControlLabel)
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Select a pipeline from list"
+      onChange={[Function]}
+    />
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "pipelineSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "pipelineSelectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <PipelineSelector
+          history={
+            Object {
+              "push": [MockFunction] {
+                "calls": Array [
+                  Array [
+                    "/runs",
+                  ],
+                ],
+              },
+              "replace": [MockFunction],
+            }
+          }
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?cloneFromRun=some-mock-run-id",
+            }
+          }
+          match=""
+          pipelineSelectionChanged={[Function]}
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "message": "Successfully created new Run: Clone of some mock run name",
+                    "open": true,
+                  },
+                ],
+              ],
+            }
+          }
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelPipelineSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="usePipelineBtn"
+          onClick={[Function]}
+        >
+          Use this pipeline
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+    <Component
+      autoFocus={true}
+      label="Run name"
+      onChange={[Function]}
+      required={true}
+      value="Clone of some mock run name"
+    />
+    <Component
+      label="Description (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+    />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <div>
+      This pipeline has no parameters
+    </div>
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={true}
+        className="buttonAction"
+        disabled={false}
+        id="createNewRunBtn"
+        onClick={[Function]}
+        title="Create"
+      />
+      <WithStyles(Button)
+        id="exitNewRunPageBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        style={
+          Object {
+            "color": "red",
+          }
+        }
+      />
     </div>
   </div>
 </div>

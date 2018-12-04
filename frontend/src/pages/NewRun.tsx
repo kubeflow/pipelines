@@ -352,7 +352,9 @@ class NewRun extends Page<{}, NewRunState> {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(referencePipelineId);
       } catch (err) {
-        await this.showPageError('Could not get clone run\'s pipeline details', err);
+        await this.showPageError(
+          'Error: failed to find a pipeline corresponding to that of the original run:'
+          + ` ${originalRun.run.id}.`, err);
         return;
       }
     } else if (embeddedPipelineSpec) {
@@ -360,6 +362,7 @@ class NewRun extends Page<{}, NewRunState> {
         pipeline = JsYaml.safeLoad(embeddedPipelineSpec);
       } catch (err) {
         await this.showPageError('Error: failed to read the clone run\'s pipeline definition.', err);
+        return;
       }
       clonedRunPipeline = pipeline!;
       usePipelineFromClonedRun = true;
@@ -433,7 +436,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipeline_spec: {
         parameters: pipeline.parameters,
         pipeline_id: usePipelineFromClonedRun ? undefined : pipeline.id,
-        workflow_manifest: usePipelineFromClonedRun ? JsYaml.safeDump(clonedRunPipeline) : '',
+        workflow_manifest: usePipelineFromClonedRun ? JsYaml.safeDump(clonedRunPipeline) : undefined,
       },
       resource_references: references,
     };

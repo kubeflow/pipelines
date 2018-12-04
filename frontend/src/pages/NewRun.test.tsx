@@ -574,8 +574,115 @@ describe('NewRun', () => {
       const tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
-      // tslint:disable-next-line:no-console
-      expect(consoleErrorSpy).toHaveBeenLastCalledWith('Original run did not have an associated pipeline ID');
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+        message: 'Could not find the cloned run\'s pipeline definition.',
+        mode: 'error',
+      }));
+      tree.unmount();
+    });
+
+    it('does not call getPipeline if original run has pipeline spec instead of id', async () => {
+      const runDetail = newMockRunDetail();
+      delete runDetail.run!.pipeline_spec!.pipeline_id;
+      runDetail.run!.pipeline_spec!.workflow_manifest = 'test workflow yaml';
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+
+      getRunSpy.mockImplementation(() => runDetail);
+
+      const tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
+      expect(getPipelineSpy).not.toHaveBeenCalled();
+      tree.unmount();
+    });
+
+    it('shows a page error if parsing embedded pipeline yaml fails', async () => {
+      const runDetail = newMockRunDetail();
+      delete runDetail.run!.pipeline_spec!.pipeline_id;
+      runDetail.run!.pipeline_spec!.workflow_manifest = '!definitely not yaml';
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+
+      getRunSpy.mockImplementation(() => runDetail);
+
+      const tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+        message: 'Error: failed to read the clone run\'s pipeline definition. Click Details for more information.',
+        mode: 'error',
+      }));
+      tree.unmount();
+    });
+
+    it('loads and selects embedded pipeline from run', async () => {
+      const runDetail = newMockRunDetail();
+      delete runDetail.run!.pipeline_spec!.pipeline_id;
+      runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+
+      getRunSpy.mockImplementation(() => runDetail);
+
+      const tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
+      expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+      expect(tree.state('clonedRunPipeline')).toEqual({ parameters: [] });
+      expect(tree.state('usePipelineFromClonedRun')).toBe(true);
+      tree.unmount();
+    });
+
+    it('shows switching controls when run has embedded pipeline, selects that pipeline by default,' +
+      ' and hides pipeline selector', async () => {
+        const runDetail = newMockRunDetail();
+        delete runDetail.run!.pipeline_spec!.pipeline_id;
+        runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+        const props = generateProps();
+        props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+
+        getRunSpy.mockImplementation(() => runDetail);
+
+        const tree = shallow(<TestNewRun {...props} />);
+        await TestUtils.flushPromises();
+        expect(tree).toMatchSnapshot();
+        tree.unmount();
+      });
+
+    it('shows pipeline selector when switching from embedded pipeline to select pipeline', async () => {
+      const runDetail = newMockRunDetail();
+      delete runDetail.run!.pipeline_spec!.pipeline_id;
+      runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+
+      getRunSpy.mockImplementation(() => runDetail);
+
+      const tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+      tree.find('WithStyles(FormControlLabel)').at(1).simulate('change');
+      expect(tree).toMatchSnapshot();
+      tree.unmount();
+    });
+
+    it('resets selected pipeline from embedded when switching to select from pipeline list, and back', async () => {
+      const runDetail = newMockRunDetail();
+      delete runDetail.run!.pipeline_spec!.pipeline_id;
+      runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+
+      getRunSpy.mockImplementation(() => runDetail);
+
+      const tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+      expect(tree.state('pipeline')).toEqual({ parameters: [] });
+      tree.find('WithStyles(FormControlLabel)').at(1).simulate('change');
+      expect(tree.state('pipeline')).toBeUndefined();
+
+      tree.find('WithStyles(FormControlLabel)').at(0).simulate('change');
+      expect(tree.state('pipeline')).toEqual({ parameters: [] });
       tree.unmount();
     });
 
@@ -760,6 +867,34 @@ describe('NewRun', () => {
             { name: 'param-2', value: 'prefilled value' },
           ],
           pipeline_id: pipeline.id,
+        },
+      }));
+      expect(tree).toMatchSnapshot();
+      tree.unmount();
+    });
+
+    it('copies pipeline from run in the create API call when cloning a run with embedded pipeline', async () => {
+      const runDetail = newMockRunDetail();
+      delete runDetail.run!.pipeline_spec!.pipeline_id;
+      runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+      const props = generateProps();
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+
+      getRunSpy.mockImplementation(() => runDetail);
+
+      const tree = shallow(<TestNewRun {...props} />);
+      await TestUtils.flushPromises();
+
+      tree.find('#createNewRunBtn').simulate('click');
+      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      await TestUtils.flushPromises();
+
+      expect(createRunSpy).toHaveBeenCalledTimes(1);
+      expect(createRunSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+        pipeline_spec: {
+          parameters: [],
+          pipeline_id: undefined,
+          workflow_manifest: 'parameters: []\n', // JsYaml.dump adds a new line after each property
         },
       }));
       expect(tree).toMatchSnapshot();
