@@ -31,7 +31,16 @@ RUN pip3 install /kfp.tar.gz
 
 WORKDIR /samples
 COPY ./samples .
-RUN  find . -maxdepth 2 -name "*.py" -exec dsl-compile --py {} --output {}.tar.gz \;
+
+#We need to check that all samples have been compiled without error.
+#For find program, the -exec argument is a filter predicate just like -name. It only affects whether the file is "found", not the find's exit code.
+#One way to solve this problem is to check whether we have any python pipelines that cannot compile. Here the exit code is the number of such files:
+#RUN  bash -e -c 'exit $(find . -maxdepth 2 -name "*.py" ! -exec dsl-compile --py {} --output {}.tar.gz \; -print | wc -l)'
+#I think it's better to just use a shell loop though.
+#RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+#The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
+RUN  find . -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+
 
 FROM alpine
 

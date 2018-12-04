@@ -34,13 +34,13 @@ from typing import Union, List, Sequence, Mapping, Tuple
 
 
 class InputOrOutputSpec:
-    def __init__(self, name:str, type:str=None, description:str=None, required:bool=True, pattern:str=None):
+    def __init__(self, name:str, type:str=None, description:str=None, optional:bool=False, pattern:str=None):
         if not isinstance(name, str):
             raise ValueError('name must be a string')
         self.name = name
         self.type = type
         self.description = description
-        self.required = required
+        self.optional = optional
         self.pattern = pattern
 
     @classmethod
@@ -73,12 +73,12 @@ class InputOrOutputSpec:
         if 'description' in spec_dict:
             port_spec.description = str(spec_dict.pop('description'))
 
-        if 'required' in spec_dict:
-            port_spec.required = bool(spec_dict.pop('required'))
+        if 'optional' in spec_dict:
+            port_spec.optional = bool(spec_dict.pop('optional'))
         
         if 'pattern' in spec_dict:
             port_spec.pattern = str(spec_dict.pop('pattern'))
-        
+
         if spec_dict:
             raise ValueError('Found unrecognized properties: {}'.format(spec_dict))
         
@@ -91,9 +91,8 @@ class InputOrOutputSpec:
             struct['type'] = self.type
         if self.description:
             struct['description'] = self.description
-        if self.required != True: #Only outputting when not default
-            print(self.required)
-            struct['required'] = self.required
+        if self.optional:
+            struct['optional'] = self.optional
         if self.pattern:
             struct['pattern'] = self.pattern
         
@@ -112,12 +111,12 @@ class OutputSpec(InputOrOutputSpec):
 
 
 class ContainerSpec:
-    def __init__(self, image:str, command:List=None, arguments:List=None, file_outputs:Mapping[str,str]=None):
+    def __init__(self, image:str, command:List=None, args:List=None, file_outputs:Mapping[str,str]=None):
         if not isinstance(image, str):
             raise ValueError('image must be a string')
         self.image = image
         self.command = command
-        self.arguments = arguments
+        self.args = args
         self.file_outputs = file_outputs
     
     @staticmethod
@@ -130,8 +129,8 @@ class ContainerSpec:
         
         if 'command' in spec_dict:
             container_spec.command = list(spec_dict.pop('command'))
-        if 'arguments' in spec_dict:
-            container_spec.arguments = list(spec_dict.pop('arguments'))
+        if 'args' in spec_dict:
+            container_spec.args = list(spec_dict.pop('args'))
         if 'fileOutputs' in spec_dict:
             container_spec.file_outputs = dict(spec_dict.pop('fileOutputs'))
 
@@ -146,8 +145,8 @@ class ContainerSpec:
             struct['image'] = self.image
         if self.command:
             struct['command'] = self.command
-        if self.arguments:
-            struct['arguments'] = self.arguments
+        if self.args:
+            struct['args'] = self.args
         if self.file_outputs:
             struct['fileOutputs'] = self.file_outputs
         

@@ -340,10 +340,9 @@ class Compiler(object):
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
-        condition_operation = '=='
         operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
         operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
-        task['when'] = '{} {} {}'.format(operand1_value, condition_operation, operand2_value)
+        task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
 
       # Generate dependencies section for this task.
       if dependencies.get(sub_group.name, None):
@@ -508,7 +507,7 @@ class Compiler(object):
     Returns: The serialized form of data.
     """
 
-    from six import text_type, integer_types
+    from six import text_type, integer_types, iteritems
     PRIMITIVE_TYPES = (float, bool, bytes, text_type) + integer_types
     from datetime import date, datetime
     if obj is None:
@@ -532,7 +531,6 @@ class Compiler(object):
       # and attributes which value is not None.
       # Convert attribute name to json key in
       # model definition for request.
-      from six import iteritems
       obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
                   for attr, _ in iteritems(obj.swagger_types)
                   if getattr(obj, attr) is not None}

@@ -73,7 +73,7 @@ implementation:
         task1 = task_factory1()
         assert task1.image == component_dict['implementation']['container']['image']
 
-    @unittest.expectedFailure
+    @unittest.expectedFailure #TODO: Check this in the ComponentSpec class, not during materialization.
     def test_fail_on_duplicate_input_names(self):
         component_text = '''\
 inputs:
@@ -85,6 +85,7 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
+    @unittest.skip #TODO: Fix in the ComponentSpec class
     @unittest.expectedFailure
     def test_fail_on_duplicate_output_names(self):
         component_text = '''\
@@ -184,8 +185,8 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
-        - [value, Wrong]
+    args:
+      - {value: Wrong}
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
@@ -231,7 +232,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       # Nulls:
       - null #A null
       - #Also a null
@@ -292,7 +293,7 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - --data
       - value: Data
 '''
@@ -301,22 +302,6 @@ implementation:
 
         self.assertEqual(task1.arguments, ['--data', 'some-data'])
 
-    def test_output_resolving(self):
-        component_text = '''\
-outputs:
-- {name: Data}
-implementation:
-  container:
-    image: busybox
-    arguments:
-      - --output-data
-      - output: Data
-'''
-        task_factory1 = comp.load_component(text=component_text)
-        task1 = task_factory1(data='/outputs/some-data')
-
-        self.assertEqual(task1.arguments, ['--output-data', '/outputs/some-data'])
-
     def test_automatic_output_resolving(self):
         component_text = '''\
 outputs:
@@ -324,7 +309,7 @@ outputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - --output-data
       - {output: Data}
 '''
@@ -332,6 +317,61 @@ implementation:
         task1 = task_factory1()
 
         self.assertEqual(len(task1.arguments), 2)
+
+    def test_optional_inputs_reordering(self):
+        '''Tests optional input reordering.
+        In python signature, optional arguments must come after the required arguments.
+        '''
+        component_text = '''\
+inputs:
+- {name: in1}
+- {name: in2, optional: true}
+- {name: in3}
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        import inspect
+        signature = inspect.signature(task_factory1)
+        actual_signature = list(signature.parameters.keys())
+        self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
+
+    def test_missing_optional_input_value_argument(self):
+        '''Missing optional inputs should resolve to nothing'''
+        component_text = '''\
+inputs:
+- {name: input 1, optional: true}
+implementation:
+  container:
+    image: busybox
+    command:
+      - a
+      - {value: input 1}
+      - z
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertEqual(task1.command, ['a', 'z'])
+
+    def test_missing_optional_input_file_argument(self):
+        '''Missing optional inputs should resolve to nothing'''
+        component_text = '''\
+inputs:
+- {name: input 1, optional: true}
+implementation:
+  container:
+    image: busybox
+    command:
+      - a
+      - {file: input 1}
+      - z
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1()
+
+        self.assertEqual(task1.command, ['a', 'z'])
 
     def test_command_concat(self):
         component_text = '''\
@@ -341,7 +381,7 @@ inputs:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - concat: [{value: In1}, {value: In2}]
 '''
         task_factory1 = comp.load_component(text=component_text)
@@ -354,7 +394,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: true
           then: --true-arg
@@ -369,7 +409,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: false
           then: --true-arg
@@ -384,7 +424,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: 'true'
           then: --true-arg
@@ -399,7 +439,7 @@ implementation:
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: 'false'
           then: --true-arg
@@ -413,11 +453,11 @@ implementation:
     def test_command_if_is_present_then(self):
         component_text = '''\
 inputs:
-- {name: In, required: false}
+- {name: In, optional: true}
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: {isPresent: In}
           then: [--in, {value: In}]
@@ -428,18 +468,17 @@ implementation:
         task_then = task_factory1('data')
         self.assertEqual(task_then.arguments, ['--in', 'data']) 
         
-        #TODO: Fix optional arguments
-        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
-        #self.assertEqual(task_else.arguments, [])
+        task_else = task_factory1()
+        self.assertEqual(task_else.arguments, [])
 
     def test_command_if_is_present_then_else(self):
         component_text = '''\
 inputs:
-- {name: In, required: false}
+- {name: In, optional: true}
 implementation:
   container:
     image: busybox
-    arguments:
+    args:
       - if:
           cond: {isPresent: In}
           then: [--in, {value: In}]
@@ -450,9 +489,31 @@ implementation:
         task_then = task_factory1('data')
         self.assertEqual(task_then.arguments, ['--in', 'data']) 
         
-        #TODO: Fix optional arguments
-        #task_else = task_factory1() #Error: TypeError: Component() missing 1 required positional argument: 'in'
-        #self.assertEqual(task_else.arguments, ['--no-in'])
+        task_else = task_factory1()
+        self.assertEqual(task_else.arguments, ['--no-in'])
+
+
+    def test_command_if_input_value_then(self):
+        component_text = '''\
+inputs:
+- {name: Do test, type: boolean, optional: true}
+- {name: Test data, optional: true}
+- {name: Test parameter 1, optional: true}
+implementation:
+  container:
+    image: busybox
+    args:
+      - if:
+          cond: {value: Do test}
+          then: [--test-data, {value: Test data}, --test-param1, {value: Test parameter 1}]
+'''
+        task_factory1 = comp.load_component(text=component_text)
+
+        task_then = task_factory1(True, 'test_data.txt', 42)
+        self.assertEqual(task_then.arguments, ['--test-data', 'test_data.txt', '--test-param1', '42'])
+        
+        task_else = task_factory1()
+        self.assertEqual(task_else.arguments, [])
 
 
 if __name__ == '__main__':

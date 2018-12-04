@@ -29,7 +29,7 @@ implementation:
 
       import fire
       fire.Fire(add_wrapper)
-    arguments:
+    args:
     - {value: a}
     - {value: b}
     - {output: Output}

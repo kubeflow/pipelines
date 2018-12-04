@@ -89,6 +89,7 @@ describe('RunList', () => {
     const props = generateProps();
     const tree = TestUtils.mountWithRouter(<RunList {...props} />);
     await (tree.instance() as RunList).refresh();
+    tree.update();
     expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(2);
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith('', 10, RunSortKeys.CREATED_AT + ' desc', undefined, undefined);
     expect(props.onError).not.toHaveBeenCalled();

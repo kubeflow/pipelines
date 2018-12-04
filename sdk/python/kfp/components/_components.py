@@ -20,6 +20,7 @@ __all__ = [
 ]
 
 import sys
+from collections import OrderedDict
 from ._yaml_utils import load_yaml, dump_yaml
 from ._structures import ComponentSpec
 
@@ -188,9 +189,10 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     inputs_list = component_spec.inputs or [] #List[InputSpec]
     outputs_list = component_spec.outputs or [] #List[OutputSpec]
 
+    inputs_dict = {port.name: port for port in inputs_list}
+
     input_name_to_pythonic = {}
-    output_name_to_pythonic = {}
-    pythonic_name_to_original = {}
+    pythonic_name_to_input_name = {}
 
     input_name_to_kubernetes = {}
     output_name_to_kubernetes = {}
@@ -199,9 +201,9 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     for io_port in inputs_list:
         pythonic_name = _sanitize_python_function_name(io_port.name)
-        pythonic_name = _make_name_unique_by_adding_index(pythonic_name, pythonic_name_to_original, '_')
+        pythonic_name = _make_name_unique_by_adding_index(pythonic_name, pythonic_name_to_input_name, '_')
         input_name_to_pythonic[io_port.name] = pythonic_name
-        pythonic_name_to_original[pythonic_name] = io_port.name
+        pythonic_name_to_input_name[pythonic_name] = io_port.name
 
         kubernetes_name = _sanitize_kubernetes_resource_name(io_port.name)
         kubernetes_name = _make_name_unique_by_adding_index(kubernetes_name, kubernetes_name_to_input_name, '-')
@@ -209,11 +211,6 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         kubernetes_name_to_input_name[kubernetes_name] = io_port.name
 
     for io_port in outputs_list:
-        pythonic_name = _sanitize_python_function_name(io_port.name)
-        pythonic_name = _make_name_unique_by_adding_index(pythonic_name, pythonic_name_to_original, '_')
-        output_name_to_pythonic[io_port.name] = pythonic_name
-        pythonic_name_to_original[pythonic_name] = io_port.name
-
         kubernetes_name = _sanitize_kubernetes_resource_name(io_port.name)
         kubernetes_name = _make_name_unique_by_adding_index(kubernetes_name, kubernetes_name_to_output_name, '-')
         output_name_to_kubernetes[io_port.name] = kubernetes_name
@@ -223,9 +220,11 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     container_image = container_spec.image
 
     file_inputs={}
-    file_outputs_from_def={}
+    file_outputs_from_def = OrderedDict()
     if container_spec.file_outputs != None:
-        file_outputs_from_def = {output_name_to_kubernetes[param]: path for param, path in container_spec.file_outputs.items()}
+        for param, path in container_spec.file_outputs.items():
+            output_key = output_name_to_kubernetes[param]
+            file_outputs_from_def[output_key] = path
 
     def create_container_op_with_expanded_arguments(pythonic_input_argument_values):
         file_outputs = file_outputs_from_def.copy()
@@ -246,7 +245,16 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     assert isinstance(func_argument, str)
                     port_name = func_argument
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
-                    return str(input_value)
+                    if input_value is not None:
+                        return str(input_value)
+                    else:
+                        input_spec = inputs_dict[port_name]
+                        if input_spec.optional:
+                            #Even when we support default values there is no need to check for a default here.
+                            #In current execution flow (called by python task factory), the missing argument would be replaced with the default value by python itself.
+                            return None
+                        else:
+                            raise ValueError('No value provided for input {}'.format(port_name))
 
                 elif func_name == 'file':
                     assert isinstance(func_argument, str)
@@ -254,18 +262,22 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     input_filename = _generate_input_file_name(port_name)
                     input_key = input_name_to_kubernetes[port_name]
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
-                    file_inputs[input_key] = {'local_path': input_filename, 'data_source': input_value}
-                    return input_filename
+                    if input_value is not None:
+                        file_inputs[input_key] = {'local_path': input_filename, 'data_source': input_value}
+                        return input_filename
+                    else:
+                        input_spec = inputs_dict[port_name]
+                        if input_spec.optional:
+                            #Even when we support default values there is no need to check for a default here.
+                            #In current execution flow (called by python task factory), the missing argument would be replaced with the default value by python itself.
+                            return None
+                        else:
+                            raise ValueError('No value provided for input {}'.format(port_name))
 
                 elif func_name == 'output':
                     assert isinstance(func_argument, str)
                     port_name = func_argument
-                    pythonic_port_name = output_name_to_pythonic[port_name]
-                    if pythonic_port_name in pythonic_input_argument_values and pythonic_input_argument_values[pythonic_port_name] is not None:
-                        output_filename = str(pythonic_input_argument_values[pythonic_port_name])
-                    else:
-                        output_filename = _generate_output_file_name(port_name)
-                    #We need to pass the file mapping to file_outputs
+                    output_filename = _generate_output_file_name(port_name)
                     output_key = output_name_to_kubernetes[port_name]
                     if output_key in file_outputs:
                         if file_outputs[output_key] != output_filename:
@@ -320,7 +332,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             return expanded_list
 
         expanded_command = expand_argument_list(container_spec.command)
-        expanded_args = expand_argument_list(container_spec.arguments)
+        expanded_args = expand_argument_list(container_spec.args)
 
         #Working around Python's variable scoping. Do not write to variable from global scope as that makes the variable local.
 
@@ -340,12 +352,11 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     import inspect
     from . import _dynamic
-    
-    #Still allowing to set the output parameters, but make them optional and auto-generate if missing.
-    input_parameters  = [_dynamic.KwParameter(input_name_to_pythonic[port.name], annotation=(_try_get_object_by_name(port.type) if port.type else inspect.Parameter.empty)) for port in inputs_list]
-    output_parameters = [_dynamic.KwParameter(output_name_to_pythonic[port.name], annotation=('OutputFile[{}]'.format(port.type) if port.type else inspect.Parameter.empty), default=None) for port in outputs_list]
 
-    factory_function_parameters = input_parameters + output_parameters
+    #Reordering the inputs since in Python optional parameters must come after reuired parameters
+    reordered_input_list = [input for input in inputs_list if not input.optional] + [input for input in inputs_list if input.optional]
+    input_parameters  = [_dynamic.KwParameter(input_name_to_pythonic[port.name], annotation=(_try_get_object_by_name(port.type) if port.type else inspect.Parameter.empty), default=(None if port.optional else inspect.Parameter.empty)) for port in reordered_input_list]
+    factory_function_parameters = input_parameters #Outputs are no longer part of the task factory function signature. The paths are always generated by the system.
     
     return _dynamic.create_function_from_parameters(
         create_container_op_with_expanded_arguments,        

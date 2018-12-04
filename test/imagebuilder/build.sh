@@ -59,6 +59,10 @@ BASE_DIR=/image_builder
 mkdir $BASE_DIR
 cd $BASE_DIR
 
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 echo "Downloading Docker build context from $CONTEXT_GCS_URI..."
 downloaded_code_archive_file=$(mktemp)
 gsutil cp "$CONTEXT_GCS_URI" "$downloaded_code_archive_file"
