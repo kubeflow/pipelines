@@ -52,7 +52,7 @@ export interface TaggedViewerConfig {
   runName: string;
 }
 
-interface CompareState {
+export interface CompareState {
   collapseSections: { [key: string]: boolean };
   fullscreenViewerConfig: PlotCardProps | null;
   paramsCompareProps: CompareTableProps;
@@ -116,7 +116,8 @@ class Compare extends Page<{}, CompareState> {
     return (<div className={classes(commonCss.page, padding(20, 'lrt'))}>
 
       {/* Overview section */}
-      <CollapseButton compareComponent={this} sectionName={overviewSectionName} />
+      <CollapseButton sectionName={overviewSectionName} collapseSections={collapseSections}
+        compareSetState={this.setStateSafe.bind(this)}/>
       {!collapseSections[overviewSectionName] && (
         <div className={commonCss.noShrink}>
           <RunList onError={this.showPageError.bind(this)} {...this.props}
@@ -128,7 +129,8 @@ class Compare extends Page<{}, CompareState> {
       <Separator orientation='vertical' />
 
       {/* Parameters section */}
-      <CollapseButton compareComponent={this} sectionName={paramsSectionName} />
+      <CollapseButton sectionName={paramsSectionName} collapseSections={collapseSections}
+        compareSetState={this.setStateSafe.bind(this)}/>
       {!collapseSections[paramsSectionName] && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
@@ -141,7 +143,8 @@ class Compare extends Page<{}, CompareState> {
 
       {Array.from(viewersMap.keys()).map((viewerType, i) =>
         <div key={i}>
-          <CollapseButton compareComponent={this}
+          <CollapseButton collapseSections={collapseSections}
+            compareSetState={this.setStateSafe.bind(this)}
             sectionName={componentMap[viewerType].prototype.getDisplayName()} />
           {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] && (
             <React.Fragment>
