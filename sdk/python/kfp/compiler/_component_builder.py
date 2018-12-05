@@ -300,9 +300,7 @@ class ImageBuilder(object):
     func_signature = 'def ' + new_func_name + '('
     for input_arg in input_args:
       func_signature += input_arg + ','
-    if len(input_args) > 0:
-      func_signature = func_signature[:-1]
-    func_signature += '):'
+    func_signature += '_output_file):'
     codegen.writeline(func_signature)
 
     # Call user function
@@ -315,9 +313,9 @@ class ImageBuilder(object):
     codegen.writeline(call_component_func)
 
     # Serialize output
-    codegen.writeline('with open("/output.txt", "w") as f:')
-    codegen.indent()
-    codegen.writeline('f.write(str(output))')
+    codegen.writeline('from pathlib import Path')
+    codegen.writeline('Path(_output_file).parent.mkdir(parents=True, exist_ok=True)')
+    codegen.writeline('Path(_output_file).write_text(str(output))')
     wrapper_code = codegen.end()
 
     # CLI codes
@@ -326,6 +324,7 @@ class ImageBuilder(object):
     codegen.writeline('parser = argparse.ArgumentParser(description="Parsing arguments")')
     for input_arg in input_args:
       codegen.writeline('parser.add_argument("' + input_arg + '", type=' + inputs[input_arg].__name__ + ')')
+    codegen.writeline('parser.add_argument("_output_file", type=str)')
     codegen.writeline('args = vars(parser.parse_args())')
     codegen.writeline('')
     codegen.writeline('if __name__ == "__main__":')
@@ -425,7 +424,6 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   input_names = inspect.getfullargspec(component_func)[0]
 
   output_name = 'output'
-  output_file = '/output.txt' #TODO: change the output path to /outputs/output/file here and in code generator
   component_spec = ComponentSpec(
       name=component_name,
       description=component_description,
@@ -435,10 +433,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
           container=ContainerSpec(
               image=target_image,
               #command=['python3', program_file], #TODO: Include the command line
-              args=[{'value': input_name} for input_name in input_names],
-              file_outputs={ #TODO: Use proper output arguments (e.g. "{output: output_name}" ) instead of this workaround. Our 1st-party components should not be using the file_outputs workaround.
-                output_name: output_file,
-              }
+              args=[{'value': input_name} for input_name in input_names] + [{'output': output_name}],
           )
       )
   )

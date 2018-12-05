@@ -314,15 +314,17 @@ def sample_component_func(a: str, b: int) -> float:
     result = float(b + 5)
   return result
 
-def wrapper_sample_component_func(a,b):
+def wrapper_sample_component_func(a,b,_output_file):
   output = sample_component_func(str(a),int(b))
-  with open("/output.txt", "w") as f:
-    f.write(str(output))
+  from pathlib import Path
+  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(_output_file).write_text(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
 parser.add_argument("a", type=str)
 parser.add_argument("b", type=int)
+parser.add_argument("_output_file", type=str)
 args = vars(parser.parse_args())
 
 if __name__ == "__main__":
@@ -338,15 +340,17 @@ def sample_component_func_two(a: str, b: int) -> float:
     result = float(b + 5)
   return result
 
-def wrapper_sample_component_func_two(a,b):
+def wrapper_sample_component_func_two(a,b,_output_file):
   output = sample_component_func_two(str(a),int(b))
-  with open("/output.txt", "w") as f:
-    f.write(str(output))
+  from pathlib import Path
+  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(_output_file).write_text(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
 parser.add_argument("a", type=str)
 parser.add_argument("b", type=int)
+parser.add_argument("_output_file", type=str)
 args = vars(parser.parse_args())
 
 if __name__ == "__main__":
@@ -359,13 +363,15 @@ if __name__ == "__main__":
 def sample_component_func_three() -> float:
   return 1.0
 
-def wrapper_sample_component_func_three():
+def wrapper_sample_component_func_three(_output_file):
   output = sample_component_func_three()
-  with open("/output.txt", "w") as f:
-    f.write(str(output))
+  from pathlib import Path
+  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(_output_file).write_text(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
+parser.add_argument("_output_file", type=str)
 args = vars(parser.parse_args())
 
 if __name__ == "__main__":
