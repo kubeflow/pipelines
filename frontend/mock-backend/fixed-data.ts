@@ -532,21 +532,7 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName1', value: 'paramVal1' },
           { name: 'paramName2', value: 'paramVal2' },
         ],
-        workflow_manifest: `
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: hello-world-
-spec:
-  entrypoint: whalesay
-  serviceAccountName: pipeline-runner
-  templates:
-  - name: whalesay
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["hello world"]
-`,
+        workflow_manifest: JSON.stringify(helloWorldRun),
       },
       resource_references: [{
         key: {

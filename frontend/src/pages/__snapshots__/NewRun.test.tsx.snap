@@ -232,6 +232,12 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       label="Use pipeline from cloned run"
       onChange={[Function]}
     />
+    <Link
+      replace={false}
+      to="/pipelines/details/?fromRun=some-mock-run-id"
+    >
+      [View pipeline]
+    </Link>
     <WithStyles(FormControlLabel)
       checked={true}
       control={
@@ -445,6 +451,12 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       label="Use pipeline from cloned run"
       onChange={[Function]}
     />
+    <Link
+      replace={false}
+      to="/pipelines/details/?fromRun=some-mock-run-id"
+    >
+      [View pipeline]
+    </Link>
     <WithStyles(FormControlLabel)
       checked={false}
       control={
@@ -833,6 +845,12 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
       label="Use pipeline from cloned run"
       onChange={[Function]}
     />
+    <Link
+      replace={false}
+      to="/pipelines/details/?fromRun=some-mock-run-id"
+    >
+      [View pipeline]
+    </Link>
     <WithStyles(FormControlLabel)
       checked={false}
       control={
