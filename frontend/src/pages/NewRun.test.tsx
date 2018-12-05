@@ -619,7 +619,7 @@ describe('NewRun', () => {
     it('loads and selects embedded pipeline from run', async () => {
       const runDetail = newMockRunDetail();
       delete runDetail.run!.pipeline_spec!.pipeline_id;
-      runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+      runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
 
@@ -638,7 +638,7 @@ describe('NewRun', () => {
       ' and hides pipeline selector', async () => {
         const runDetail = newMockRunDetail();
         delete runDetail.run!.pipeline_spec!.pipeline_id;
-        runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+        runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
         const props = generateProps();
         props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
 
@@ -653,7 +653,7 @@ describe('NewRun', () => {
     it('shows pipeline selector when switching from embedded pipeline to select pipeline', async () => {
       const runDetail = newMockRunDetail();
       delete runDetail.run!.pipeline_spec!.pipeline_id;
-      runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+      runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
 
@@ -669,7 +669,7 @@ describe('NewRun', () => {
     it('resets selected pipeline from embedded when switching to select from pipeline list, and back', async () => {
       const runDetail = newMockRunDetail();
       delete runDetail.run!.pipeline_spec!.pipeline_id;
-      runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+      runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
 
@@ -876,7 +876,7 @@ describe('NewRun', () => {
     it('copies pipeline from run in the create API call when cloning a run with embedded pipeline', async () => {
       const runDetail = newMockRunDetail();
       delete runDetail.run!.pipeline_spec!.pipeline_id;
-      runDetail.run!.pipeline_spec!.workflow_manifest = 'parameters: []';
+      runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
 
@@ -894,7 +894,7 @@ describe('NewRun', () => {
         pipeline_spec: {
           parameters: [],
           pipeline_id: undefined,
-          workflow_manifest: 'parameters: []\n', // JsYaml.dump adds a new line after each property
+          workflow_manifest: '{"parameters":[]}',
         },
       }));
       expect(tree).toMatchSnapshot();
