@@ -134,6 +134,7 @@ def copy_resources_to_gcs(file_paths, gcs_path):
   dest_files = []
   for file_name in file_paths:
     dest_file = os.path.join(gcs_path, tmpdir, os.path.basename(file_name))
+    subprocess.call(['gcloud', 'auth', 'activate-service-account', '--key-file', os.environ['GOOGLE_APPLICATION_CREDENTIALS']])
     subprocess.call(['gsutil', 'cp', file_name, dest_file])
     dest_files.append(dest_file)
 
