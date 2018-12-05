@@ -69,9 +69,9 @@ export async function newTensorboardPod(logdir: string): Promise<void> {
           name: 'gcp-credentials',
         }],
       }],
-      volumes:[{
+      volumes: [{
         name: 'gcp-credentials',
-        secret:{
+        secret: {
           secretName: 'user-gcp-sa',
         },
       }],
@@ -122,7 +122,7 @@ export function getPodLogs(podName: string): Promise<string> {
     throw new Error('Cannot access kubernetes API');
   }
   return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any)
-    .then((response: any) => response.body, (error: any) => {
+    .then((response: any) => response.body.toString(), (error: any) => {
       throw new Error(JSON.stringify(error.body));
     });
 }
