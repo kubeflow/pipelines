@@ -212,6 +212,12 @@ class Compare extends Page<{}, CompareState> {
       return;
     }
 
+    this.setStateSafe({
+      runs,	
+      selectedIds: runs.map(r => r.run!.id!),	
+      workflowObjects,	
+    }, () => this._loadParameters());
+
     const outputPathsList = workflowObjects.map(
       workflow => WorkflowParser.loadAllOutputPaths(workflow));
 
@@ -234,13 +240,8 @@ class Compare extends Page<{}, CompareState> {
       }
     }));
 
-
-    this.setStateSafe({
-      runs,
-      selectedIds: runs.map(r => r.run!.id!),
-      viewersMap,
-      workflowObjects,
-    }, () => this._loadParameters());
+    // For each output artifact type, list all artifact instances in all runs	
+    this.setStateSafe({ viewersMap });
   }
 
   protected _selectionChanged(selectedIds: string[]): void {

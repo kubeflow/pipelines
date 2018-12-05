@@ -84,7 +84,7 @@ describe('Compare', () => {
    * After calling this function, the global 'tree' will be a Compare instance with a table viewer
    * and a tensorboard viewer.
    */
-  async function setUpViewers(): Promise<void> {
+  async function setUpViewersAndShallowMount(): Promise<void> {
 
     // Simulate returning a tensorboard and table viewer
     outputArtifactLoaderSpy.mockImplementation(() => [
@@ -106,12 +106,14 @@ describe('Compare', () => {
         }
       }
     };
-    const run = newMockRun('run-with-workflow');
-    run.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
-    runs.push(run);
+    const run1 = newMockRun('run-with-workflow-1');
+    run1.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
+    const run2 = newMockRun('run-with-workflow-2');
+    run2.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
+    runs.push(run1, run2);
 
     const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.runlist}=run-with-workflow`;
+    props.location.search = `?${QUERY_PARAMS.runlist}=run-with-workflow-1,run-with-workflow-2`;
 
     tree = shallow(<TestCompare {...props} />);
     await TestUtils.flushPromises();
@@ -151,15 +153,8 @@ describe('Compare', () => {
     tree = shallow(<Compare {...props} />);
     await TestUtils.flushPromises();
 
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('renders a page with no runs', async () => {
-    const props = generateProps();
-    // Ensure there are no run IDs in the query
-    props.location.search = '';
-    tree = shallow(<Compare {...props} />);
-    await TestUtils.flushPromises();
+    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
 
     expect(tree).toMatchSnapshot();
   });
@@ -181,6 +176,7 @@ describe('Compare', () => {
     props.location.search = `?${QUERY_PARAMS.runlist}=run-1,run-2,run-3`;
 
     tree = shallow(<Compare {...props} />);
+    await TestUtils.flushPromises();
 
     expect(getRunSpy).toHaveBeenCalledTimes(3);
     expect(getRunSpy).toHaveBeenCalledWith('run-1');
@@ -355,7 +351,7 @@ describe('Compare', () => {
   });
 
   it('collapses all sections', async () => {
-    await setUpViewers();
+    await setUpViewersAndShallowMount();
     const instance = tree.instance() as Compare;
     const collapseBtn =
       instance.getInitialToolbarState().actions.find(b => b.title === 'Collapse all');
@@ -375,7 +371,7 @@ describe('Compare', () => {
   });
 
   it('expands all sections if they were collapsed', async () => {
-    await setUpViewers();
+    await setUpViewersAndShallowMount();
     const instance = tree.instance() as Compare;
     const collapseBtn =
       instance.getInitialToolbarState().actions.find(b => b.title === 'Collapse all');
@@ -447,7 +443,7 @@ describe('Compare', () => {
   });
 
   it('does not show viewers for deselected runs', async () => {
-    await setUpViewers();
+    await setUpViewersAndShallowMount();
 
     // We call _selectionChanged() rather than using setState because _selectionChanged has a
     // callback which is needed to properly update the run parameters section
