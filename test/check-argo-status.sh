@@ -14,6 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#Terminate the script after a timeout
+{
+  sleep "$WORKFLOW_TIMEOUT"
+  argo terminate $ARGO_WORKFLOW
+  echo "Workflow did not finish in $WORKFLOW_TIMEOUT"
+  exit 1
+} &
+#Kill the timeout wait thread
+#TODO: Remove after https://github.com/kubernetes/test-infra/issues/10288 is fixed
+trap 'kill $(jobs -p)' EXIT
 
 #Wait for the workflow to appear
 while [ "$(kubectl get workflow/$ARGO_WORKFLOW --namespace "$NAMESPACE" -o=jsonpath='{.status.phase}')" == "" ]; do
