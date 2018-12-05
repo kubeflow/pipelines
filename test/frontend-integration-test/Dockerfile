@@ -3,6 +3,6 @@ FROM gcr.io/ml-pipeline-test/selenium-standalone-chrome-gcloud-nodejs:v20181204-
 
 WORKDIR /src
 
-COPY . . 
+COPY --chown=seluser . .
 
 ENTRYPOINT [ "./run_test.sh" ]
