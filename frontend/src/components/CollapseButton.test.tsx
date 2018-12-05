@@ -30,20 +30,23 @@ describe('CollapseButton', () => {
 
   it('initial render', () => {
     const tree = shallow(
-      <CollapseButton compareComponent={compareComponent} sectionName='testSection' />);
+      <CollapseButton collapseSections={compareComponent.state.collapseSections}
+        compareSetState={compareComponent.setState} sectionName='testSection' />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders the button collapsed if in collapsedSections', () => {
     compareComponent.state.collapseSections.testSection = true;
     const tree = shallow(
-      <CollapseButton compareComponent={compareComponent} sectionName='testSection' />);
+      <CollapseButton collapseSections={compareComponent.state.collapseSections}
+        compareSetState={compareComponent.setState} sectionName='testSection' />);
     expect(tree).toMatchSnapshot();
   });
 
   it('collapses given section when clicked', () => {
     const tree = shallow(
-      <CollapseButton compareComponent={compareComponent} sectionName='testSection' />);
+      <CollapseButton collapseSections={compareComponent.state.collapseSections}
+        compareSetState={compareComponent.setState} sectionName='testSection' />);
     tree.find('WithStyles(Button)').simulate('click');
     expect(compareComponent.setState).toHaveBeenCalledWith(
       { collapseSections: { testSection: true } });
@@ -52,7 +55,8 @@ describe('CollapseButton', () => {
   it('expands given section when clicked if it is collapsed', () => {
     compareComponent.state.collapseSections.testSection = true;
     const tree = shallow(
-      <CollapseButton compareComponent={compareComponent} sectionName='testSection' />);
+      <CollapseButton collapseSections={compareComponent.state.collapseSections}
+        compareSetState={compareComponent.setState} sectionName='testSection' />);
     tree.find('WithStyles(Button)').simulate('click');
     expect(compareComponent.setState).toHaveBeenCalledWith(
       { collapseSections: { testSection: false } });

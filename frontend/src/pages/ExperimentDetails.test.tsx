@@ -56,8 +56,7 @@ describe('ExperimentDetails', () => {
     return {
       history: { push: historyPushSpy } as any,
       location: '' as any,
-      // 'eid' here corresponds to RouteParams.experimentId 
-      match: { params: { eid: MOCK_EXPERIMENT.id } } as any,
+      match: { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any,
       toolbarProps: ExperimentDetails.prototype.getInitialToolbarState(),
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
@@ -182,7 +181,7 @@ describe('ExperimentDetails', () => {
 
   it('calls getExperiment with the experiment ID in props', async () => {
     const props = generateProps();
-    props.match = { params: { eid: 'test exp ID' } } as any;
+    props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
     tree = shallow(<ExperimentDetails {...props} />);
     await TestUtils.flushPromises();
     expect(getExperimentSpy).toHaveBeenCalledTimes(1);
