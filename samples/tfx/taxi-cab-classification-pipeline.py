@@ -15,6 +15,7 @@
 
 
 import kfp.dsl as dsl
+import kfp.gcp as gcp
 import datetime
 
 def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
@@ -34,7 +35,7 @@ def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'G
             'output': '/output.txt',
             'schema': '/output_schema.json',
         }
-    )
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return dsl.ContainerOp(
@@ -50,7 +51,7 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
             '--output', transform_output,
         ],
         file_outputs = {'transformed': '/output.txt'}
-    )
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 
 def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target: str, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
@@ -68,7 +69,7 @@ def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate
             '--job-dir', training_output,
         ],
         file_outputs = {'train': '/output.txt'}
-    )
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
     return dsl.ContainerOp(
@@ -84,7 +85,7 @@ def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'Gc
             '--output', analysis_output,
         ],
         file_outputs = {'analysis': '/output.txt'}
-    )
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
@@ -101,7 +102,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
             '--output', prediction_output,
         ],
         file_outputs = {'prediction': '/output.txt'}
-    )
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='deploy'):
     return dsl.ContainerOp(

@@ -105,11 +105,20 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('finds the new run in the list of runs, navigates to it', () => {
-    $('.tableRow').waitForVisible(3 * waitTimeout);
+    let attempts = 30;
+
+    // Wait for a reasonable amount of time until the run starts
+    while (attempts && !$('.tableRow a').isExisting()) {
+      browser.pause(1000);
+      $('#refreshBtn').click();
+      --attempts;
+    }
+
+    assert(attempts, 'waited for 30 seconds but run did not start.');
+
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
     // Navigate to details of the deployed run by clicking its anchor element
-    $('.tableRow a').waitForVisible(waitTimeout);
     browser.execute('document.querySelector(".tableRow a").click()');
   });
 
@@ -165,9 +174,10 @@ describe('deploy helloworld sample run', () => {
   it('shows logs from node', () => {
     $('button=Logs').click();
     $('#logViewer').waitForVisible();
-    const logs = $('#logViewer').getText();
-    assert(logs.indexOf(outputParameterValue + ' from node: ') > -1,
-      'logs do not look right: ' + logs);
+    browser.waitUntil(() => {
+      const logs = $('#logViewer').getText();
+      return logs.indexOf(outputParameterValue + ' from node: ') > -1;
+    }, waitTimeout);
   });
   //TODO: enable this after we change the pipeline to a unique name such that deleting this
   // pipeline will not jeopardize the concurrent basic e2e tests.
