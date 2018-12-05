@@ -105,11 +105,20 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('finds the new run in the list of runs, navigates to it', () => {
-    $('.tableRow').waitForVisible(3 * waitTimeout);
+    let attempts = 30;
+
+    // Wait for a reasonable amount of time until the run starts
+    while (attempts && !$('.tableRow a').isExisting()) {
+      browser.pause(1000);
+      $('#refreshBtn').click();
+      --attempts;
+    }
+
+    assert(attempts, 'waited for 30 seconds but run did not start.');
+
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
     // Navigate to details of the deployed run by clicking its anchor element
-    $('.tableRow a').waitForVisible(waitTimeout);
     browser.execute('document.querySelector(".tableRow a").click()');
   });
 
