@@ -26,16 +26,6 @@ while (($#)); do
        MODEL_PATH="$1"
        shift
        ;;
-     "--project")
-       shift
-       PROJECT="$1"
-       shift
-       ;;
-     "--zone")
-       shift
-       ZONE="$1"
-       shift
-       ;;
      "--cluster-name")
        shift
        CLUSTER_NAME="$1"
@@ -65,16 +55,8 @@ fi
 
 echo "Deploying the model '${MODEL_PATH}'"
 
-if [ -z "${PROJECT}" ]; then
-  PROJECT=$(wget -q -O- --header="Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/project-id)
-fi
- 
 if [ -z "${CLUSTER_NAME}" ]; then
   CLUSTER_NAME=$(wget -q -O- --header="Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/cluster-name)
-fi
- 
-if [ -z "${ZONE}" ]; then
-  ZONE=$(wget -q -O- --header="Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | cut -d '/' -f 4)
 fi
 
 # Ensure the server name is not more than 63 characters.
@@ -82,10 +64,13 @@ SERVER_NAME="${SERVER_NAME:0:63}"
 # Trim any trailing hyphens from the server name.
 while [[ "${SERVER_NAME:(-1)}" == "-" ]]; do SERVER_NAME="${SERVER_NAME::-1}"; done
 
-echo "Deploying ${SERVER_NAME} to the cluster ${CLUSTER_NAME} in the project ${PROJECT} and the zone ${ZONE}..."
+echo "Deploying ${SERVER_NAME} to the cluster ${CLUSTER_NAME}"
 
-# Connect kubectl to the cluster
-gcloud --project "${PROJECT}" container clusters get-credentials "${CLUSTER_NAME}" --zone "${ZONE}"
+# Connect kubectl to the local cluster
+kubectl config set-cluster "${CLUSTER_NAME}" --server=https://kubernetes.default --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+kubectl config set-credentials pipeline --token "$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+kubectl config set-context kubeflow --cluster "${CLUSTER_NAME}" --user pipeline
+kubectl config use-context kubeflow
 
 # Configure and deploy the TF serving app
 cd /src/github.com/kubeflow/kubeflow
