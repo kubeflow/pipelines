@@ -26,8 +26,8 @@ import { ApiPipeline } from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
 
 class TestNewRun extends NewRun {
-  public _pipelineSelectionChanged(selectedId: string): void {
-    return super._pipelineSelectionChanged(selectedId);
+  public _pipelineSelectionChanged(selectedPipeline: ApiPipeline): void {
+    return super._pipelineSelectionChanged(selectedPipeline);
   }
 
   public async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
@@ -366,7 +366,7 @@ describe('NewRun', () => {
 
       // Simulate selecting pipeline
       const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectionChanged(newPipeline.id);
+      instance._pipelineSelectionChanged(newPipeline);
 
       // Confirm pipeline selector
       tree.find('#usePipelineBtn').at(0).simulate('click');
@@ -398,7 +398,7 @@ describe('NewRun', () => {
 
       // Simulate selecting pipeline
       const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectionChanged(newPipeline.id);
+      instance._pipelineSelectionChanged(newPipeline);
 
       // Cancel pipeline selector
       tree.find('#cancelPipelineSelectionBtn').at(0).simulate('click');
@@ -414,29 +414,6 @@ describe('NewRun', () => {
     // TODO: Add test for when dialog is dismissed. Due to the particulars of how the Dialog element
     // works, this will not be possible until it's wrapped in some manner, like UploadPipelineDialog
     // in PipelineList
-
-    it('shows an error dialog if fetching the selected pipeline fails', async () => {
-      const tree = shallow(<TestNewRun {...generateProps() as any} />);
-      await TestUtils.flushPromises();
-
-      TestUtils.makeErrorResponseOnce(getPipelineSpy, 'test getPipeline error');
-
-      const instance = tree.instance() as TestNewRun;
-      const pipelineId = 'some-pipeline-id';
-      instance._pipelineSelectionChanged(pipelineId);
-      // Confirm pipeline selector
-      await instance._pipelineSelectorClosed(true);
-      await TestUtils.flushPromises();
-
-      expect(updateDialogSpy).toHaveBeenCalledTimes(1);
-      expect(updateDialogSpy.mock.calls[0][0]).toMatchObject({
-        content: 'test getPipeline error',
-        title: `Failed to retrieve pipeline with ID: ${pipelineId}`,
-      });
-      expect(tree.state('pipelineSelectorOpen')).toBe(false);
-      tree.unmount();
-    });
-  });
 
   describe('cloning from a run', () => {
     it('fetches the original run if an ID is present in the query params', async () => {
@@ -917,7 +894,7 @@ describe('NewRun', () => {
       ];
       getPipelineSpy.mockImplementationOnce(() => pipelineWithParams);
       const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectionChanged(pipelineWithParams.id!);
+      instance._pipelineSelectionChanged(pipelineWithParams!);
       instance._pipelineSelectorClosed(true);
       await TestUtils.flushPromises();
       expect(tree).toMatchSnapshot();
@@ -927,7 +904,7 @@ describe('NewRun', () => {
       noParamsPipeline.id = 'no-params-pipeline';
       noParamsPipeline.parameters = [];
       getPipelineSpy.mockImplementationOnce(() => noParamsPipeline);
-      instance._pipelineSelectionChanged(noParamsPipeline.id!);
+      instance._pipelineSelectionChanged(noParamsPipeline!);
       instance._pipelineSelectorClosed(true);
       await TestUtils.flushPromises();
       expect(tree).toMatchSnapshot();

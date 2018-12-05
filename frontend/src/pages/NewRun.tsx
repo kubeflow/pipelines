@@ -23,9 +23,9 @@ import DialogContent from '@material-ui/core/DialogContent';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
-import PipelineSelector from './PipelineSelector';
 import Radio from '@material-ui/core/Radio';
 import RunUtils from '../lib/RunUtils';
+import SelectorList from './SelectorList';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
 import WorkflowParser from '../lib/WorkflowParser';
@@ -33,16 +33,17 @@ import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline } from '../apis/pipeline';
 import { ApiRun, ApiResourceReference, ApiRelationship, ApiResourceType, ApiRunDetail } from '../apis/run';
 import { ApiTrigger, ApiJob } from '../apis/job';
-import { Apis } from '../lib/Apis';
+import { Apis, PipelineSortKeys, ExperimentSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { Row } from '../components/CustomTable';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding } from '../Css';
-import { logger, errorToMessage } from '../lib/Utils';
+import { commonCss, padding, color } from '../Css';
+import { logger, errorToMessage, formatDateString } from '../lib/Utils';
 
 interface NewRunState {
   clonedRunPipeline?: ApiPipeline;
@@ -50,6 +51,7 @@ interface NewRunState {
   errorMessage: string;
   experiment?: ApiExperiment;
   experimentName?: string;
+  experimentSelectorOpen: boolean;
   isBeingCreated: boolean;
   isFirstRunInExperiment: boolean;
   isRecurringRun: boolean;
@@ -63,17 +65,33 @@ interface NewRunState {
   pipelineSelectorOpen: boolean;
   runName: string;
   trigger?: ApiTrigger;
-  unconfirmedDialogPipelineId: string;
+  unconfirmedSelectedExperiment?: ApiExperiment;
+  unconfirmedSelectedPipeline?: ApiPipeline;
   usePipelineFromClonedRun: boolean;
 }
 
 const css = stylesheet({
-  pipelineSelectorDialog: {
+  nonEditableInput: {
+    color: color.secondaryText,
+  },
+  selectorDialog: {
     minWidth: 680,
   },
 });
 
 class NewRun extends Page<{}, NewRunState> {
+
+  private pipelineSelectorColumns = [
+    { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
+    { label: 'Description', flex: 1.5 },
+    { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
+  ];
+
+  private experimentSelectorColumns = [
+    { label: 'Experiment name', flex: 1, sortKey: ExperimentSortKeys.NAME },
+    { label: 'Description', flex: 1.5 },
+    { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
+  ];
 
   constructor(props: any) {
     super(props);
@@ -81,13 +99,13 @@ class NewRun extends Page<{}, NewRunState> {
     this.state = {
       description: '',
       errorMessage: '',
+      experimentSelectorOpen: false,
       isBeingCreated: false,
       isFirstRunInExperiment: false,
       isRecurringRun: false,
       pipelineName: '',
       pipelineSelectorOpen: false,
       runName: '',
-      unconfirmedDialogPipelineId: '',
       usePipelineFromClonedRun: false,
     };
   }
@@ -106,14 +124,16 @@ class NewRun extends Page<{}, NewRunState> {
       description,
       errorMessage,
       experimentName,
+      experimentSelectorOpen,
       isRecurringRun,
       isFirstRunInExperiment,
       pipeline,
       pipelineName,
       pipelineSelectorOpen,
       runName,
+      unconfirmedSelectedExperiment,
+      unconfirmedSelectedPipeline,
       usePipelineFromClonedRun,
-      unconfirmedDialogPipelineId,
     } = this.state;
 
     const originalRunId = new URLParser(this.props).get(QUERY_PARAMS.cloneFromRun);
@@ -136,10 +156,10 @@ class NewRun extends Page<{}, NewRunState> {
               onChange={() => this.setStateSafe({ pipeline: undefined, usePipelineFromClonedRun: false })}
               checked={!usePipelineFromClonedRun} />
           </React.Fragment>)}
-
           {!usePipelineFromClonedRun && (
             <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
               InputProps={{
+                classes: { disabled: css.nonEditableInput },
                 endAdornment: (
                   <InputAdornment position='end'>
                     <Button color='secondary' id='choosePipelineBtn'
@@ -154,19 +174,51 @@ class NewRun extends Page<{}, NewRunState> {
           )}
 
           <Dialog open={pipelineSelectorOpen}
-            classes={{ paper: css.pipelineSelectorDialog }}
+            classes={{ paper: css.selectorDialog }}
             onClose={() => this._pipelineSelectorClosed(false)}
             PaperProps={{ id: 'pipelineSelectorDialog' }}>
             <DialogContent>
-              <PipelineSelector {...this.props} pipelineSelectionChanged={this._pipelineSelectionChanged.bind(this)} />
+              <SelectorList {...this.props}
+                title='Choose a pipeline'
+                listApi={Apis.pipelineServiceApi.listPipelines.bind(Apis)}
+                columns={this.pipelineSelectorColumns}
+                emptyMessage='No pipelines found. Upload a pipeline and then try again.'
+                initialSortColumn={PipelineSortKeys.CREATED_AT}
+                resourceToRow={this.resourceToRow}
+                selectionChanged={this._pipelineSelectionChanged.bind(this)} />
             </DialogContent>
             <DialogActions>
               <Button id='cancelPipelineSelectionBtn' onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>
                 Cancel
               </Button>
               <Button id='usePipelineBtn' onClick={() => this._pipelineSelectorClosed(true)}
-                color='secondary' disabled={!unconfirmedDialogPipelineId}>
+                color='secondary' disabled={!unconfirmedSelectedPipeline}>
                 Use this pipeline
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog open={experimentSelectorOpen}
+            classes={{ paper: css.selectorDialog }}
+            onClose={() => this._experimentSelectorClosed(false)}
+            PaperProps={{ id: 'experimentSelectorDialog' }}>
+            <DialogContent>
+            <SelectorList {...this.props}
+                title='Choose an experiment'
+                listApi={Apis.experimentServiceApi.listExperiment.bind(Apis)}
+                columns={this.experimentSelectorColumns}
+                emptyMessage='No experiments found. Create an experiment and then try again.'
+                initialSortColumn={ExperimentSortKeys.CREATED_AT}
+                resourceToRow={this.resourceToRow}
+                selectionChanged={this._experimentSelectionChanged.bind(this)} />
+            </DialogContent>
+            <DialogActions>
+              <Button id='cancelExperimentSelectionBtn' onClick={() => this._experimentSelectorClosed(false)} color='secondary'>
+                Cancel
+              </Button>
+              <Button id='useExperimentBtn' onClick={() => this._experimentSelectorClosed(true)}
+                color='secondary' disabled={!unconfirmedSelectedExperiment}>
+                Use this experiment
               </Button>
             </DialogActions>
           </Dialog>
@@ -179,8 +231,20 @@ class NewRun extends Page<{}, NewRunState> {
           {experimentName && (
             <div>
               <div>This run will be associated with the following experiment</div>
-              <Input label='Experiment' onChange={this.handleChange('experimentName')}
-                disabled={true} value={experimentName} />
+              <Input value={experimentName} required={true} label='Experiment' disabled={true}
+                InputProps={{
+                  classes: { disabled: css.nonEditableInput },
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <Button color='secondary' id='chooseExperimentBtn'
+                        onClick={() => this.setState({ experimentSelectorOpen: true })}
+                        style={{ padding: '3px 5px', margin: 0 }}>
+                        Choose
+                    </Button>
+                    </InputAdornment>
+                  ),
+                  readOnly: true,
+                }} />
             </div>
           )}
 
@@ -309,28 +373,35 @@ class NewRun extends Page<{}, NewRunState> {
     this.setState({ [name]: value, } as any, () => { this._validate(); });
   }
 
-  /* This function is passed as a callback to the PipelineSelector dialog. */
-  protected _pipelineSelectionChanged(selectedId: string): void {
-    this.setState({ unconfirmedDialogPipelineId: selectedId });
+  /* This function is passed as a callback to the experiment selector dialog. */
+  protected _experimentSelectionChanged(selectedExperiment: ApiExperiment): void {
+    this.setState({ unconfirmedSelectedExperiment: selectedExperiment });
+  }
+
+  /* This function is passed as a callback to the pipeline selector dialog. */
+  protected _pipelineSelectionChanged(selectedPipeline: ApiPipeline): void {
+    this.setState({ unconfirmedSelectedPipeline: selectedPipeline });
+  }
+
+  protected async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
+    let { experiment } = this.state;
+    if (confirmed && this.state.unconfirmedSelectedExperiment) {
+      experiment = this.state.unconfirmedSelectedExperiment;
+    }
+
+    this.setState({
+      experiment,
+      experimentName: (experiment && experiment.name) || '',
+      experimentSelectorOpen: false
+    });
   }
 
   protected async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
     let { pipeline } = this.state;
-    if (confirmed && this.state.unconfirmedDialogPipelineId) {
-      const pipelineId = this.state.unconfirmedDialogPipelineId;
-      try {
-        pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-      } catch (err) {
-        this.setState({ pipelineSelectorOpen: false }, async () => {
-          const errorMessage = await errorToMessage(err);
-          await this.showErrorDialog(
-            `Failed to retrieve pipeline with ID: ${pipelineId}`,
-            errorMessage);
-          logger.error(`Error: failed to retrieve pipeline with ID: ${pipelineId}`, err);
-        });
-        return;
-      }
+    if (confirmed && this.state.unconfirmedSelectedPipeline) {
+      pipeline = this.state.unconfirmedSelectedPipeline;
     }
+
     this.setState({
       pipeline,
       pipelineName: (pipeline && pipeline.name) || '',
@@ -340,6 +411,20 @@ class NewRun extends Page<{}, NewRunState> {
     // Now that we may have a pipeline, update the validation.
     this._validate();
   }
+
+  /* This function is passed as a callback to the selector dialogs to facilitate rendering */
+  private resourceToRow = (r: ApiExperiment | ApiPipeline) => {
+    return {
+      // error does not exist (yet) on ApiExperiment
+      error: (r as any).error,
+      id: r.id!,
+      otherFields: [
+        r.name,
+        r.description,
+        formatDateString(r.created_at),
+      ],
+    } as Row;
+  };
 
   private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
     if (!originalRun.run) {
