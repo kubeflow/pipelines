@@ -34,6 +34,7 @@ import { ApiPipeline } from '../apis/pipeline';
 import { ApiRun, ApiResourceReference, ApiRelationship, ApiResourceType, ApiRunDetail } from '../apis/run';
 import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
+import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
@@ -115,6 +116,11 @@ class NewRun extends Page<{}, NewRunState> {
       unconfirmedDialogPipelineId,
     } = this.state;
 
+    const originalRunId = new URLParser(this.props).get(QUERY_PARAMS.cloneFromRun);
+    const pipelineDetailsUrl = originalRunId ?
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') +
+      new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: originalRunId }) : '';
+
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div className={commonCss.scrollContainer}>
@@ -125,6 +131,7 @@ class NewRun extends Page<{}, NewRunState> {
             <FormControlLabel label='Use pipeline from cloned run' control={<Radio color='primary' />}
               onChange={() => this.setStateSafe({ pipeline: clonedRunPipeline, usePipelineFromClonedRun: true })}
               checked={usePipelineFromClonedRun} />
+            {!!originalRunId && <Link to={pipelineDetailsUrl}>[View pipeline]</Link>}
             <FormControlLabel label='Select a pipeline from list' control={<Radio color='primary' />}
               onChange={() => this.setStateSafe({ pipeline: undefined, usePipelineFromClonedRun: false })}
               checked={!usePipelineFromClonedRun} />
