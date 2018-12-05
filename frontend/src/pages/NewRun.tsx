@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
@@ -359,7 +358,7 @@ class NewRun extends Page<{}, NewRunState> {
       }
     } else if (embeddedPipelineSpec) {
       try {
-        pipeline = JsYaml.safeLoad(embeddedPipelineSpec);
+        pipeline = JSON.parse(embeddedPipelineSpec);
       } catch (err) {
         await this.showPageError('Error: failed to read the clone run\'s pipeline definition.', err);
         return;
@@ -436,7 +435,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipeline_spec: {
         parameters: pipeline.parameters,
         pipeline_id: usePipelineFromClonedRun ? undefined : pipeline.id,
-        workflow_manifest: usePipelineFromClonedRun ? JsYaml.safeDump(clonedRunPipeline) : undefined,
+        workflow_manifest: usePipelineFromClonedRun ? JSON.stringify(clonedRunPipeline) : undefined,
       },
       resource_references: references,
     };
