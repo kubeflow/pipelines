@@ -178,7 +178,7 @@ def xgb_train_pipeline(
     workers=dsl.PipelineParam('workers', value=2),
     true_label=dsl.PipelineParam('true-label', value='ACTION'),
 ):
-  delete_cluster_op = DeleteClusterOp('delete-cluster', project, region)
+  delete_cluster_op = DeleteClusterOp('delete-cluster', project, region).apply(gcp.use_gcp_secret('user-gcp-sa'))
   with dsl.ExitHandler(exit_op=delete_cluster_op):
     create_cluster_op = CreateClusterOp('create-cluster', project, region, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
