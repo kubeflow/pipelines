@@ -21,6 +21,7 @@ import tarfile
 import yaml
 from datetime import datetime
 
+from .compiler import compiler
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -138,7 +139,8 @@ class Client(object):
 
     pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
     pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_run.ApiParameter(name=k, value=str(v)) for k,v in params.items()]
+    api_params = [kfp_run.ApiParameter(name=compiler.Compiler()._sanitize_name(k), value=str(v))
+                  for k,v in params.items()]
     key = kfp_run.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_run.models.ApiResourceType.EXPERIMENT)
     reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
