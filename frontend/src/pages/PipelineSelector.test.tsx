@@ -15,19 +15,19 @@
  */
 
 import * as React from 'react';
-import PipelineSelector, { PipelineSelectorProps } from './PipelineSelector';
+import SelectorList, { SelectorListProps } from './PipelineSelector';
 import TestUtils from '../TestUtils';
 import { ApiPipeline } from '../apis/pipeline';
 import { ListRequest, Apis } from '../lib/Apis';
 import { shallow } from 'enzyme';
 
 describe('PipelineSelector', () => {
-  class TestPipelineSelector extends PipelineSelector {
-    public async _loadPipelines(request: ListRequest): Promise<string> {
-      return super._loadPipelines(request);
+  class TestSelectorList extends SelectorList {
+    public async _load(request: ListRequest): Promise<string> {
+      return super._load(request);
     }
-    public _pipelineSelectionChanged(selectedIds: string[]): void {
-      return super._pipelineSelectionChanged(selectedIds);
+    public _selectionChanged(selectedIds: string[]): void {
+      return super._selectionChanged(selectedIds);
     }
   }
 
@@ -40,14 +40,16 @@ describe('PipelineSelector', () => {
     name: 'test pipeline name',
   }];
 
-  function generateProps(): PipelineSelectorProps {
+  function generateProps(): SelectorListProps {
     return {
       history: {} as any,
       location: '' as any,
       match: {} as any,
-      pipelineSelectionChanged: pipelineSelectionChangedCbSpy,
+      selectionChanged: pipelineSelectionChangedCbSpy,
+      // resourceType: 'pipeline',
       updateDialog: updateDialogSpy,
-    };
+      // TODO(rjbauer): remove 'as any'
+    } as any;
   }
 
   beforeEach(() => {
@@ -58,8 +60,8 @@ describe('PipelineSelector', () => {
   });
 
   it('calls API to load pipelines', async () => {
-    const tree = shallow(<TestPipelineSelector {...generateProps()} />);
-    await (tree.instance() as TestPipelineSelector)._loadPipelines({});
+    const tree = shallow(<TestSelectorList {...generateProps()} />);
+    await (tree.instance() as TestSelectorList)._load({});
     expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     expect(listPipelinesSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
     expect(tree.state('pipelines')).toEqual(PIPELINES);
@@ -70,8 +72,8 @@ describe('PipelineSelector', () => {
   it('shows error dialog if listing fails', async () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'woops!');
     jest.spyOn(console, 'error').mockImplementation();
-    const tree = shallow(<TestPipelineSelector {...generateProps()} />);
-    await (tree.instance() as TestPipelineSelector)._loadPipelines({});
+    const tree = shallow(<TestSelectorList {...generateProps()} />);
+    await (tree.instance() as TestSelectorList)._load({});
     expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       content: 'List pipelines request failed with:\nwoops!',
@@ -82,21 +84,21 @@ describe('PipelineSelector', () => {
   });
 
   it('calls selection callback when a pipeline is selected', async () => {
-    const tree = shallow(<TestPipelineSelector {...generateProps()} />);
-    await (tree.instance() as TestPipelineSelector)._loadPipelines({});
+    const tree = shallow(<TestSelectorList {...generateProps()} />);
+    await (tree.instance() as TestSelectorList)._load({});
     expect(tree.state('selectedIds')).toEqual([]);
-    (tree.instance() as TestPipelineSelector)._pipelineSelectionChanged(['pipeline-id']);
+    (tree.instance() as TestSelectorList)._selectionChanged(['pipeline-id']);
     expect(pipelineSelectionChangedCbSpy).toHaveBeenLastCalledWith('pipeline-id');
     expect(tree.state('selectedIds')).toEqual(['pipeline-id']);
     tree.unmount();
   });
 
   it('logs error if more than one pipeline is selected', async () => {
-    const tree = shallow(<TestPipelineSelector {...generateProps()} />);
+    const tree = shallow(<TestSelectorList {...generateProps()} />);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    await (tree.instance() as TestPipelineSelector)._loadPipelines({});
+    await (tree.instance() as TestSelectorList)._load({});
     expect(tree.state('selectedIds')).toEqual([]);
-    (tree.instance() as TestPipelineSelector)._pipelineSelectionChanged(['pipeline-id', 'pipeline2-id']);
+    (tree.instance() as TestSelectorList)._selectionChanged(['pipeline-id', 'pipeline2-id']);
     expect(pipelineSelectionChangedCbSpy).not.toHaveBeenCalled();
     expect(tree.state('selectedIds')).toEqual([]);
     expect(consoleSpy).toHaveBeenCalled();

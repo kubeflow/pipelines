@@ -25,7 +25,7 @@ import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import RunUtils from '../lib/RunUtils';
-import SelectorList from './SelectorList';
+import SelectorList from './PipelineSelector';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
 import WorkflowParser from '../lib/WorkflowParser';

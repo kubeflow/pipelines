@@ -17,64 +17,56 @@
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
-import { Apis, ListRequest, PipelineSortKeys } from '../lib/Apis';
+import { ListRequest } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
-import { logger, formatDateString, errorToMessage } from '../lib/Utils';
-import { ApiPipeline } from '../apis/pipeline';
+import { logger, errorToMessage } from '../lib/Utils';
+import { ApiListExperimentsResponse, ApiExperiment, ExperimentServiceApi } from '../apis/experiment';
 import { DialogProps } from '../components/Router';
+import { ApiListPipelinesResponse, ApiPipeline, PipelineServiceApi } from 'src/apis/pipeline';
 
-export interface PipelineSelectorProps extends RouteComponentProps {
-  pipelineSelectionChanged: (selectedPipelineId: string) => void;
+export interface SelectorListProps extends RouteComponentProps {
+  listApi: ExperimentServiceApi['listExperiment'] | PipelineServiceApi['listPipelines'];
+  columns: Column[];
+  emptyMessage: string;
+  initialSortColumn: any;
+  resourceToRow: (resource: ApiExperiment | ApiPipeline) => Row;
+  selectionChanged: (resource: ApiExperiment | ApiPipeline) => void;
+  title: string;
   updateDialog: (dialogProps: DialogProps) => void;
 }
 
-interface PipelineSelectorState {
-  pipelines: ApiPipeline[];
+interface SelectorListState {
+  resources: Array<ApiExperiment | ApiPipeline>;
   selectedIds: string[];
   toolbarActions: ToolbarActionConfig[];
 }
 
-class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSelectorState> {
+class SelectorList extends React.Component<SelectorListProps, SelectorListState> {
   protected _isMounted = true;
 
   constructor(props: any) {
     super(props);
 
     this.state = {
-      pipelines: [],
+      resources: [],
       selectedIds: [],
       toolbarActions: [],
     };
   }
 
   public render(): JSX.Element {
-    const { pipelines, selectedIds, toolbarActions } = this.state;
+    const { resources, selectedIds, toolbarActions } = this.state;
+    const { columns, resourceToRow, title, emptyMessage, initialSortColumn } = this.props;
 
-    const columns: Column[] = [
-      { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
-      { label: 'Description', flex: 1.5 },
-      { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
-    ];
-
-    const rows: Row[] = pipelines.map((p) => {
-      return {
-        error: p.error,
-        id: p.id!,
-        otherFields: [
-          p.name,
-          p.description,
-          formatDateString(p.created_at),
-        ],
-      };
-    });
+    const rows = resources.map((r) => resourceToRow(r));
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Choose a pipeline' />
+        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle={title} />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={this._pipelineSelectionChanged.bind(this)}
-          initialSortColumn={PipelineSortKeys.CREATED_AT} reload={this._loadPipelines.bind(this)}
-          emptyMessage={'No pipelines found. Upload a pipeline and then try again.'} />
+          updateSelection={this._selectionChanged.bind(this)}
+          initialSortColumn={initialSortColumn} reload={this._load.bind(this)}
+          emptyMessage={emptyMessage} />
       </React.Fragment>
     );
   }
@@ -83,42 +75,53 @@ class PipelineSelector extends React.Component<PipelineSelectorProps, PipelineSe
     this._isMounted = false;
   }
 
-  protected setStateSafe(newState: Partial<PipelineSelectorState>, cb?: () => void): void {
+  protected setStateSafe(newState: Partial<SelectorListState>, cb?: () => void): void {
     if (this._isMounted) {
       this.setState(newState as any, cb);
     }
   }
 
-  protected _pipelineSelectionChanged(selectedIds: string[]): void {
+  protected _selectionChanged(selectedIds: string[]): void {
     if (!Array.isArray(selectedIds) || selectedIds.length !== 1) {
-      logger.error(`${selectedIds.length} pipelines were selected somehow`, selectedIds);
+      logger.error(`${selectedIds.length} resources were selected somehow`, selectedIds);
       return;
     }
-    this.props.pipelineSelectionChanged(selectedIds[0]);
+    const selected = this.state.resources.find(r => r.id === selectedIds[0]);
+    if (selected) {
+      this.props.selectionChanged(selected);
+    } else {
+      logger.error(`Somehow now resource was found with ID: ${selectedIds[0]}`);
+    }
     this.setStateSafe({ selectedIds });
   }
 
-  protected async _loadPipelines(request: ListRequest): Promise<string> {
-    let pipelines: ApiPipeline[] = [];
-    let nextPageToken = '';
-    try {
-      const response = await Apis.pipelineServiceApi.listPipelines(
-        request.pageToken, request.pageSize, request.sortBy);
-      pipelines = response.pipelines || [];
-      nextPageToken = response.next_page_token || '';
-    } catch (err) {
-      const errorMessage = await errorToMessage(err);
-      this.props.updateDialog({
-        buttons: [{ text: 'Dismiss' }],
-        content: 'List pipelines request failed with:\n' + errorMessage,
-        title: 'Error retrieving pipelines',
-      });
-      logger.error('Could not get list of pipelines', errorMessage);
-    }
+  protected async _load(request: ListRequest): Promise<string> {
+      let resources: Array<ApiExperiment | ApiPipeline> = [];
+      let nextPageToken = '';
+      try {
+        const response =
+          await this.props.listApi(request.pageToken, request.pageSize, request.sortBy);
 
-    this.setStateSafe({ pipelines });
-    return nextPageToken;
+        if ((response as ApiListExperimentsResponse).experiments) {
+          resources = (response as ApiListExperimentsResponse).experiments || [];
+        } else if ((response as ApiListPipelinesResponse).pipelines) {
+          resources = (response as ApiListPipelinesResponse).pipelines || [];
+        }
+        /* resources = response.pipelines || response.experiments || []; */
+        nextPageToken = response.next_page_token || '';
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        this.props.updateDialog({
+          buttons: [{ text: 'Dismiss' }],
+          content: 'List request failed with:\n' + errorMessage,
+          title: 'Error retrieving resources',
+        });
+        logger.error('Could not get requested list of resources', errorMessage);
+      }
+
+      this.setStateSafe({ resources });
+      return nextPageToken;
   }
 }
 
-export default PipelineSelector;
+export default SelectorList;
