@@ -25,7 +25,7 @@ import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import RunUtils from '../lib/RunUtils';
-import ResourceSelector from './ResourceSelector';
+import ResourceSelector, { BaseResource } from './ResourceSelector';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
 import WorkflowParser from '../lib/WorkflowParser';
@@ -181,7 +181,10 @@ class NewRun extends Page<{}, NewRunState> {
             <DialogContent>
               <ResourceSelector {...this.props}
                 title='Choose a pipeline'
-                listApi={Apis.pipelineServiceApi.listPipelines.bind(Apis)}
+                listApi={async (...args) => {
+                  const response = await Apis.pipelineServiceApi.listPipelines(...args);
+                  return { resources: response.pipelines || [], nextPageToken: response.next_page_token || '' };
+                }}
                 columns={this.pipelineSelectorColumns}
                 emptyMessage='No pipelines found. Upload a pipeline and then try again.'
                 initialSortColumn={PipelineSortKeys.CREATED_AT}
@@ -206,7 +209,10 @@ class NewRun extends Page<{}, NewRunState> {
             <DialogContent>
             <ResourceSelector {...this.props}
                 title='Choose an experiment'
-                listApi={Apis.experimentServiceApi.listExperiment.bind(Apis)}
+                listApi={async (...args) => {
+                  const response = await Apis.experimentServiceApi.listExperiment(...args);
+                  return { resources: response.experiments || [], nextPageToken: response.next_page_token || '' };
+                }}
                 columns={this.experimentSelectorColumns}
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
@@ -412,9 +418,8 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   /* This function is passed as a callback to the selector dialogs to facilitate rendering */
-  protected _resourceToRow = (r: ApiExperiment | ApiPipeline) => {
+  protected _resourceToRow = (r: BaseResource) => {
     return {
-      // error does not exist (yet) on ApiExperiment
       error: (r as any).error,
       id: r.id!,
       otherFields: [

@@ -15,12 +15,10 @@
  */
 
 import * as React from 'react';
-import ResourceSelector, { ResourceSelectorProps } from './ResourceSelector';
+import ResourceSelector, { ResourceSelectorProps, BaseResource } from './ResourceSelector';
 import TestUtils from '../TestUtils';
-import { ApiPipeline } from '../apis/pipeline';
-import { ListRequest, Apis, PipelineSortKeys, ExperimentSortKeys } from '../lib/Apis';
+import { ListRequest } from '../lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
-import { ApiExperiment } from '../apis/experiment';
 import { formatDateString } from '../lib/Utils';
 import { Row } from '../components/CustomTable';
 
@@ -38,53 +36,32 @@ describe('ResourceSelector', () => {
 
   const updateDialogSpy = jest.fn();
   const selectionChangedCbSpy = jest.fn();
-  const listExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
-  const EXPERIMENTS: ApiExperiment[] = [
+  const listResourceSpy = jest.fn();
+  const RESOURCES: BaseResource[] = [
     {
       created_at: new Date(2018, 1, 2, 3, 4, 5),
-      description: 'test experiment-1 description',
-      id: 'some-experiment-1-id',
-      name: 'test experiment-1 name',
+      description: 'test-1 description',
+      id: 'some-id-1',
+      name: 'test-1 name',
     }, {
       created_at: new Date(2018, 10, 9, 8, 7, 6),
-      description: 'test experiment-2 description',
-      id: 'some-experiment-2-id',
-      name: 'test experiment-2 name',
-    }
-  ];
-  const listPipelinesSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
-  const PIPELINES: ApiPipeline[] = [
-    {
-      created_at: new Date(2018, 1, 2, 3, 4, 5),
-      description: 'test pipeline-1 description',
-      id: 'some-pipeline-id-1',
-      name: 'test pipeline-1 name',
-    }, {
-      created_at: new Date(2018, 10, 9, 8, 7, 6),
-      description: 'test pipeline-2 description',
-      id: 'some-pipeline-2-id',
-      name: 'test pipeline-2 name',
+      description: 'test-2 description',
+      id: 'some-2-id',
+      name: 'test-2 name',
     }
   ];
 
-  const pipelineSelectorColumns = [
-    { label: 'Pipeline name', flex: 1, sortKey: PipelineSortKeys.NAME },
+  const selectorColumns = [
+    { label: 'Resource name', flex: 1, sortKey: 'name' },
     { label: 'Description', flex: 1.5 },
-    { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
+    { label: 'Uploaded on', flex: 1, sortKey: 'created_at' },
   ];
 
-  const experimentSelectorColumns = [
-    { label: 'Experiment name', flex: 1, sortKey: ExperimentSortKeys.NAME },
-    { label: 'Description', flex: 1.5 },
-    { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
-  ];
-
-  const testEmptyMessage = 'Test - Sorry, no pipelines.';
+  const testEmptyMessage = 'Test - Sorry, no resources.';
   const testTitle = 'A test selector';
 
-  const resourceToRow = (r: ApiExperiment | ApiPipeline) => {
+  const resourceToRow = (r: BaseResource) => {
     return {
-      // error does not exist (yet) on ApiExperiment
       error: (r as any).error,
       id: r.id!,
       otherFields: [
@@ -97,11 +74,11 @@ describe('ResourceSelector', () => {
 
   function generateProps(): ResourceSelectorProps {
     return {
-      columns: pipelineSelectorColumns,
+      columns: selectorColumns,
       emptyMessage: testEmptyMessage,
       history: {} as any,
-      initialSortColumn: PipelineSortKeys.CREATED_AT,
-      listApi: listPipelinesSpy as any,
+      initialSortColumn: 'created_at',
+      listApi: listResourceSpy as any,
       location: '' as any,
       match: {} as any,
       resourceToRow,
@@ -112,10 +89,9 @@ describe('ResourceSelector', () => {
   }
 
   beforeEach(() => {
-    listExperimentSpy.mockReset();
-    listExperimentSpy.mockImplementation(() => ({ experiments: EXPERIMENTS }));
-    listPipelinesSpy.mockReset();
-    listPipelinesSpy.mockImplementation(() => ({ pipelines: PIPELINES }));
+    listResourceSpy.mockReset();
+    listResourceSpy.mockImplementation(
+      () => ({ resources: RESOURCES, nextPageToken: 'test-next-page-token' }));
     updateDialogSpy.mockReset();
     selectionChangedCbSpy.mockReset();
   });
@@ -124,26 +100,26 @@ describe('ResourceSelector', () => {
     tree.unmount();
   });
 
-  it('displays pipeline selector UI when configured for pipelines', async () => {
+  it('displays resource selector', async () => {
     const props = generateProps();
-    props.columns = pipelineSelectorColumns;
-    props.listApi = listPipelinesSpy as any;
-    props.initialSortColumn = PipelineSortKeys.CREATED_AT;
+    props.columns = selectorColumns;
+    props.listApi = listResourceSpy as any;
+    props.initialSortColumn = 'created_at';
 
     tree = shallow(<TestResourceSelector {...props} />);
     await (tree.instance() as TestResourceSelector)._load({});
 
-    expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
-    expect(tree.state('resources')).toEqual(PIPELINES);
+    expect(listResourceSpy).toHaveBeenCalledTimes(1);
+    expect(listResourceSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
+    expect(tree.state('resources')).toEqual(RESOURCES);
     expect(tree).toMatchSnapshot();
   });
 
   it('calls the provided helper function for converting a resource into a table row', async () => {
     const props = generateProps();
-    props.columns = pipelineSelectorColumns;
-    props.initialSortColumn = PipelineSortKeys.CREATED_AT;
-    const pipelines: ApiPipeline[] = [
+    props.columns = selectorColumns;
+    props.initialSortColumn = 'created_at';
+    const resources: BaseResource[] = [
       {
         created_at: new Date(2018, 1, 2, 3, 4, 5),
         description: 'a description',
@@ -151,10 +127,10 @@ describe('ResourceSelector', () => {
         name: 'a name',
       }
     ];
-    listPipelinesSpy.mockImplementationOnce(() => ({ pipelines }));
-    props.listApi = listPipelinesSpy as any;
+    listResourceSpy.mockImplementationOnce(() => ({ resources, nextPageToken: '' }));
+    props.listApi = listResourceSpy as any;
 
-    props.resourceToRow = (r: ApiPipeline) => {
+    props.resourceToRow = (r: BaseResource) => {
       return {
         id: r.id! + ' - test',
         otherFields: [
@@ -178,29 +154,14 @@ describe('ResourceSelector', () => {
     }]);
   });
 
-  it('displays experiment selector UI when configured for experiments', async () => {
-    const props = generateProps();
-    props.columns = experimentSelectorColumns;
-    props.listApi = listExperimentSpy as any;
-    props.initialSortColumn = ExperimentSortKeys.CREATED_AT;
-
-    tree = shallow(<TestResourceSelector {...props} />);
-    await (tree.instance() as TestResourceSelector)._load({});
-
-    expect(listExperimentSpy).toHaveBeenCalledTimes(1);
-    expect(listExperimentSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
-    expect(tree.state('resources')).toEqual(EXPERIMENTS);
-    expect(tree).toMatchSnapshot();
-  });
-
   it('shows error dialog if listing fails', async () => {
-    TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'woops!');
+    TestUtils.makeErrorResponseOnce(listResourceSpy, 'woops!');
     jest.spyOn(console, 'error').mockImplementation();
 
     tree = shallow(<TestResourceSelector {...generateProps()} />);
     await (tree.instance() as TestResourceSelector)._load({});
 
-    expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
+    expect(listResourceSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       content: 'List request failed with:\nwoops!',
       title: 'Error retrieving resources',
@@ -213,9 +174,9 @@ describe('ResourceSelector', () => {
     await (tree.instance() as TestResourceSelector)._load({});
 
     expect(tree.state('selectedIds')).toEqual([]);
-    (tree.instance() as TestResourceSelector)._selectionChanged([PIPELINES[1].id!]);
-    expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(PIPELINES[1]);
-    expect(tree.state('selectedIds')).toEqual([PIPELINES[1].id]);
+    (tree.instance() as TestResourceSelector)._selectionChanged([RESOURCES[1].id!]);
+    expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(RESOURCES[1]);
+    expect(tree.state('selectedIds')).toEqual([RESOURCES[1].id]);
   });
 
   it('logs error if more than one resource is selected', async () => {
@@ -225,12 +186,12 @@ describe('ResourceSelector', () => {
 
     expect(tree.state('selectedIds')).toEqual([]);
 
-    (tree.instance() as TestResourceSelector)._selectionChanged([PIPELINES[0].id!, PIPELINES[1].id!]);
+    (tree.instance() as TestResourceSelector)._selectionChanged([RESOURCES[0].id!, RESOURCES[1].id!]);
 
     expect(selectionChangedCbSpy).not.toHaveBeenCalled();
     expect(tree.state('selectedIds')).toEqual([]);
     expect(consoleSpy).toHaveBeenLastCalledWith(
-      '2 resources were selected somehow', [PIPELINES[0].id, PIPELINES[1].id]);
+      '2 resources were selected somehow', [RESOURCES[0].id, RESOURCES[1].id]);
   });
 
   it('logs error if selected resource ID is not found in list', async () => {
@@ -246,19 +207,5 @@ describe('ResourceSelector', () => {
     expect(tree.state('selectedIds')).toEqual([]);
     expect(consoleSpy).toHaveBeenLastCalledWith(
       'Somehow no resource was found with ID: id-not-in-list');
-  });
-
-  it('logs error if list response contains neither experiments nor pipelines', async () => {
-    listPipelinesSpy.mockImplementationOnce(() => ({}));
-
-    tree = shallow(<TestResourceSelector {...generateProps()} />);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    await (tree.instance() as TestResourceSelector)._load({});
-
-    expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
-    expect(consoleSpy).toHaveBeenLastCalledWith(
-      'Somehow response contained neither experiments nor pipelines'
-    );
-    expect(tree.state('resources')).toEqual([]);
   });
 });

@@ -20,23 +20,34 @@ import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
 import { ListRequest } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
 import { logger, errorToMessage } from '../lib/Utils';
-import { ApiListExperimentsResponse, ApiExperiment, ExperimentServiceApi } from '../apis/experiment';
 import { DialogProps } from '../components/Router';
-import { ApiListPipelinesResponse, ApiPipeline, PipelineServiceApi } from 'src/apis/pipeline';
+
+interface BaseResponse {
+  resources: BaseResource[];
+  nextPageToken: string;
+}
+
+export interface BaseResource {
+  id?: string;
+  created_at?: Date;
+  description?: string;
+  name?: string;
+  error?: string;
+}
 
 export interface ResourceSelectorProps extends RouteComponentProps {
-  listApi: ExperimentServiceApi['listExperiment'] | PipelineServiceApi['listPipelines'];
+  listApi: (...args: any[]) => Promise<BaseResponse>;
   columns: Column[];
   emptyMessage: string;
   initialSortColumn: any;
-  resourceToRow: (resource: ApiExperiment | ApiPipeline) => Row;
-  selectionChanged: (resource: ApiExperiment | ApiPipeline) => void;
+  resourceToRow: (resource: BaseResource) => Row;
+  selectionChanged: (resource: BaseResource) => void;
   title: string;
   updateDialog: (dialogProps: DialogProps) => void;
 }
 
 interface ResourceSelectorState {
-  resources: Array<ApiExperiment | ApiPipeline>;
+  resources: BaseResource[];
   rows: Row[];
   selectedIds: string[];
   toolbarActions: ToolbarActionConfig[];
@@ -97,33 +108,29 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   }
 
   protected async _load(request: ListRequest): Promise<string> {
-      let resources: Array<ApiExperiment | ApiPipeline> = [];
-      let nextPageToken = '';
-      try {
-        const response =
-          await this.props.listApi(request.pageToken, request.pageSize, request.sortBy);
+    let nextPageToken = '';
+    try {
+      const response =
+        await this.props.listApi(request.pageToken, request.pageSize, request.sortBy);
 
-        if ((response as ApiListExperimentsResponse).experiments) {
-          resources = (response as ApiListExperimentsResponse).experiments || [];
-        } else if ((response as ApiListPipelinesResponse).pipelines) {
-          resources = (response as ApiListPipelinesResponse).pipelines || [];
-        } else {
-          logger.error('Somehow response contained neither experiments nor pipelines');
-        }
-        nextPageToken = response.next_page_token || '';
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
-          content: 'List request failed with:\n' + errorMessage,
-          title: 'Error retrieving resources',
-        });
-        logger.error('Could not get requested list of resources', errorMessage);
-      }
+      this.setStateSafe({
+        resources: response.resources,
+        rows: response.resources.map((r) => this.props.resourceToRow(r))
+      });
 
-      this.setStateSafe({ resources, rows: resources.map((r) => this.props.resourceToRow(r)) });
-      return nextPageToken;
+      nextPageToken = response.nextPageToken;
+    } catch (err) {
+      const errorMessage = await errorToMessage(err);
+      this.props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        content: 'List request failed with:\n' + errorMessage,
+        title: 'Error retrieving resources',
+      });
+      logger.error('Could not get requested list of resources', errorMessage);
+    }
+    return nextPageToken;
   }
 }
 
 export default ResourceSelector;
+
