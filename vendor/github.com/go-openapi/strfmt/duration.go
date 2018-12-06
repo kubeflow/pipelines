@@ -23,8 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
-
+	"github.com/globalsign/mgo/bson"
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 )
@@ -122,7 +121,7 @@ func ParseDuration(cand string) (time.Duration, error) {
 	if ok {
 		return dur, nil
 	}
-	return 0, fmt.Errorf("Unable to parse %s as duration", cand)
+	return 0, fmt.Errorf("unable to parse %s as duration", cand)
 }
 
 // Scan reads a Duration value from database driver type.
