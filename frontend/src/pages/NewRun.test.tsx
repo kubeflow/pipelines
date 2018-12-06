@@ -27,16 +27,8 @@ import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '..
 import { Row } from '../components/CustomTable';
 
 class TestNewRun extends NewRun {
-  public _experimentSelectionChanged(selectedExperiment: ApiExperiment): void {
-    return super._experimentSelectionChanged(selectedExperiment);
-  }
-
   public async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
     return await super._experimentSelectorClosed(confirmed);
-  }
-
-  public _pipelineSelectionChanged(selectedPipeline: ApiPipeline): void {
-    return super._pipelineSelectionChanged(selectedPipeline);
   }
 
   public async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
@@ -362,8 +354,7 @@ describe('NewRun', () => {
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
 
       // Simulate selecting pipeline
-      const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectionChanged(newPipeline);
+      tree.setState({ unconfirmedSelectedPipeline: newPipeline });
 
       // Confirm pipeline selector
       tree.find('#usePipelineBtn').at(0).simulate('click');
@@ -393,8 +384,7 @@ describe('NewRun', () => {
       expect(tree.state('pipelineSelectorOpen')).toBe(true);
 
       // Simulate selecting pipeline
-      const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectionChanged(newPipeline);
+      tree.setState({ unconfirmedSelectedPipeline: newPipeline });
 
       // Cancel pipeline selector
       tree.find('#cancelPipelineSelectionBtn').at(0).simulate('click');
@@ -406,7 +396,7 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
     });
 
-    it('converts an ApiPipelines into a Row for displaying in the selector table', () => {
+    it('converts an ApiPipeline into a Row for displaying in the selector table', () => {
       tree = shallow(<TestNewRun {...generateProps()} />);
       const instance = tree.instance() as TestNewRun;
 
@@ -466,8 +456,7 @@ describe('NewRun', () => {
       expect(tree.state('experimentSelectorOpen')).toBe(true);
 
       // Simulate selecting experiment
-      const instance = tree.instance() as TestNewRun;
-      instance._experimentSelectionChanged(newExperiment);
+      tree.setState({ unconfirmedSelectedExperiment: newExperiment });
 
       // Confirm experiment selector
       tree.find('#useExperimentBtn').at(0).simulate('click');
@@ -497,8 +486,7 @@ describe('NewRun', () => {
       expect(tree.state('experimentSelectorOpen')).toBe(true);
 
       // Simulate selecting experiment
-      const instance = tree.instance() as TestNewRun;
-      instance._experimentSelectionChanged(newExperiment);
+      tree.setState({ unconfirmedSelectedExperiment: newExperiment });
 
       // Cancel experiment selector
       tree.find('#cancelExperimentSelectionBtn').at(0).simulate('click');
@@ -989,8 +977,8 @@ describe('NewRun', () => {
         { name: 'param-2', value: 'prefilled value 2' },
       ];
       getPipelineSpy.mockImplementationOnce(() => pipelineWithParams);
+      tree.setState({ unconfirmedSelectedPipeline: pipelineWithParams });
       const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectionChanged(pipelineWithParams!);
       instance._pipelineSelectorClosed(true);
       await TestUtils.flushPromises();
       expect(tree).toMatchSnapshot();
@@ -1000,7 +988,7 @@ describe('NewRun', () => {
       noParamsPipeline.id = 'no-params-pipeline';
       noParamsPipeline.parameters = [];
       getPipelineSpy.mockImplementationOnce(() => noParamsPipeline);
-      instance._pipelineSelectionChanged(noParamsPipeline!);
+      tree.setState({ unconfirmedSelectedPipeline: noParamsPipeline });
       instance._pipelineSelectorClosed(true);
       await TestUtils.flushPromises();
       expect(tree).toMatchSnapshot();

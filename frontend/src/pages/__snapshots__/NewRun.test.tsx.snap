@@ -316,42 +316,37 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value="some mock experiment name"
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -725,42 +720,37 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value=""
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value=""
+    />
     <div
       className="header"
     >
@@ -1101,42 +1091,37 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value=""
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value=""
+    />
     <div
       className="header"
     >
@@ -1482,42 +1467,37 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value=""
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value=""
+    />
     <div
       className="header"
     >
@@ -1902,42 +1882,37 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value=""
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value=""
+    />
     <div
       className="header"
     >
@@ -2317,42 +2292,37 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value=""
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value=""
+    />
     <div
       className="header"
     >
@@ -2742,42 +2712,37 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value="some mock experiment name"
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -3133,42 +3098,37 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value="some mock experiment name"
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -3560,42 +3520,37 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value="some mock experiment name"
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -3943,42 +3898,37 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value=""
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value=""
+    />
     <div
       className="header"
     >
@@ -4334,42 +4284,37 @@ exports[`NewRun renders the new run page 1`] = `
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value="some mock experiment name"
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -4725,42 +4670,37 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       onChange={[Function]}
       value=""
     />
-    <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        InputProps={
-          Object {
-            "classes": Object {
-              "disabled": "nonEditableInput",
-            },
-            "endAdornment": <WithStyles(InputAdornment)
-              position="end"
-            >
-              <WithStyles(Button)
-                color="secondary"
-                id="chooseExperimentBtn"
-                onClick={[Function]}
-                style={
-                  Object {
-                    "margin": 0,
-                    "padding": "3px 5px",
-                  }
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
                 }
-              >
-                Choose
-              </WithStyles(Button)>
-            </WithStyles(InputAdornment)>,
-            "readOnly": true,
-          }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
         }
-        disabled={true}
-        label="Experiment"
-        required={true}
-        value="some mock experiment name"
-      />
-    </div>
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >

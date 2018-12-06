@@ -164,7 +164,7 @@ class NewRun extends Page<{}, NewRunState> {
                 endAdornment: (
                   <InputAdornment position='end'>
                     <Button color='secondary' id='choosePipelineBtn'
-                      onClick={() => this.setState({ pipelineSelectorOpen: true })}
+                      onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}>
                       Choose
                     </Button>
@@ -189,7 +189,8 @@ class NewRun extends Page<{}, NewRunState> {
                 emptyMessage='No pipelines found. Upload a pipeline and then try again.'
                 initialSortColumn={PipelineSortKeys.CREATED_AT}
                 resourceToRow={this._resourceToRow}
-                selectionChanged={this._pipelineSelectionChanged.bind(this)} />
+                selectionChanged={(selectedPipeline: ApiPipeline) =>
+                  this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })}/>
             </DialogContent>
             <DialogActions>
               <Button id='cancelPipelineSelectionBtn' onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>
@@ -217,7 +218,8 @@ class NewRun extends Page<{}, NewRunState> {
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
                 resourceToRow={this._resourceToRow}
-                selectionChanged={this._experimentSelectionChanged.bind(this)} />
+                selectionChanged={(selectedExperiment: ApiExperiment) =>
+                  this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment })}/>
             </DialogContent>
             <DialogActions>
               <Button id='cancelExperimentSelectionBtn' onClick={() => this._experimentSelectorClosed(false)} color='secondary'>
@@ -235,29 +237,26 @@ class NewRun extends Page<{}, NewRunState> {
           <Input label='Description (optional)' multiline={true}
             onChange={this.handleChange('description')} value={description} />
 
-          <div>
-            <div>This run will be associated with the following experiment</div>
-            <Input value={experimentName} required={true} label='Experiment' disabled={true}
-              InputProps={{
-                classes: { disabled: css.nonEditableInput },
-                endAdornment: (
-                  <InputAdornment position='end'>
-                    <Button color='secondary' id='chooseExperimentBtn'
-                      onClick={() => this.setState({ experimentSelectorOpen: true })}
-                      style={{ padding: '3px 5px', margin: 0 }}>
-                      Choose
-                    </Button>
-                  </InputAdornment>
-                ),
-                readOnly: true,
-              }} />
-          </div>
+          <Input value={experimentName} required={true} label='Experiment' disabled={true}
+            InputProps={{
+              classes: { disabled: css.nonEditableInput },
+              endAdornment: (
+                <InputAdornment position='end'>
+                  <Button color='secondary' id='chooseExperimentBtn'
+                    onClick={() => this.setStateSafe({ experimentSelectorOpen: true })}
+                    style={{ padding: '3px 5px', margin: 0 }}>
+                    Choose
+                  </Button>
+                </InputAdornment>
+              ),
+              readOnly: true,
+            }} />
 
           {isRecurringRun && (
             <React.Fragment>
               <div className={commonCss.header}>Run trigger</div>
 
-              <Trigger onChange={(trigger, maxConcurrentRuns) => this.setState({
+              <Trigger onChange={(trigger, maxConcurrentRuns) => this.setStateSafe({
                 maxConcurrentRuns,
                 trigger,
               }, this._validate.bind(this))} />
@@ -331,7 +330,7 @@ class NewRun extends Page<{}, NewRunState> {
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
-          this.setState({ pipeline, pipelineName: (pipeline && pipeline.name) || '' });
+          this.setStateSafe({ pipeline, pipelineName: (pipeline && pipeline.name) || '' });
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
@@ -363,7 +362,7 @@ class NewRun extends Page<{}, NewRunState> {
     const pageTitle = isRecurringRun ? 'Start a recurring run' : 'Start a new run';
     this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
-    this.setState({
+    this.setStateSafe({
       experiment,
       experimentName,
       isFirstRunInExperiment: urlParser.get(QUERY_PARAMS.firstRunInExperiment) === '1',
@@ -375,17 +374,7 @@ class NewRun extends Page<{}, NewRunState> {
 
   public handleChange = (name: string) => (event: any) => {
     const value = (event.target as TextFieldProps).value;
-    this.setState({ [name]: value, } as any, () => { this._validate(); });
-  }
-
-  /* This function is passed as a callback to the experiment selector dialog. */
-  protected _experimentSelectionChanged(selectedExperiment: ApiExperiment): void {
-    this.setState({ unconfirmedSelectedExperiment: selectedExperiment });
-  }
-
-  /* This function is passed as a callback to the pipeline selector dialog. */
-  protected _pipelineSelectionChanged(selectedPipeline: ApiPipeline): void {
-    this.setState({ unconfirmedSelectedPipeline: selectedPipeline });
+    this.setStateSafe({ [name]: value, } as any, () => { this._validate(); });
   }
 
   protected async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
@@ -394,7 +383,7 @@ class NewRun extends Page<{}, NewRunState> {
       experiment = this.state.unconfirmedSelectedExperiment;
     }
 
-    this.setState({
+    this.setStateSafe({
       experiment,
       experimentName: (experiment && experiment.name) || '',
       experimentSelectorOpen: false
@@ -407,7 +396,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipeline = this.state.unconfirmedSelectedPipeline;
     }
 
-    this.setState({
+    this.setStateSafe({
       pipeline,
       pipelineName: (pipeline && pipeline.name) || '',
       pipelineSelectorOpen: false
@@ -482,7 +471,7 @@ class NewRun extends Page<{}, NewRunState> {
     // Set pipeline parameter values from run's workflow
     pipeline!.parameters = WorkflowParser.getParameters(workflow);
 
-    this.setState({
+    this.setStateSafe({
       clonedRunPipeline: clonedRunPipeline!,
       pipeline: pipeline!,
       pipelineName: (pipeline! && pipeline!.name) || '',
@@ -543,7 +532,7 @@ class NewRun extends Page<{}, NewRunState> {
       });
     }
 
-    this.setState({ isBeingCreated: true }, async () => {
+    this.setStateSafe({ isBeingCreated: true }, async () => {
       try {
         await isRecurringRun
           ? Apis.jobServiceApi.createJob(newRun)
@@ -552,7 +541,7 @@ class NewRun extends Page<{}, NewRunState> {
         const errorMessage = await errorToMessage(err);
         this.showErrorDialog('Run creation failed', errorMessage);
         logger.error('Error creating Run:', err);
-        this.setState({ isBeingCreated: false });
+        this.setStateSafe({ isBeingCreated: false });
         return;
       }
       if (this.state.experiment) {
@@ -575,7 +564,7 @@ class NewRun extends Page<{}, NewRunState> {
       return;
     }
     pipeline.parameters[index].value = value;
-    this.setState({ pipeline });
+    this.setStateSafe({ pipeline });
   }
 
   private _getCloneName(oldName: string): string {
@@ -617,9 +606,9 @@ class NewRun extends Page<{}, NewRunState> {
         }
       }
 
-      this.setState({ errorMessage: '' });
+      this.setStateSafe({ errorMessage: '' });
     } catch (err) {
-      this.setState({ errorMessage: err.message });
+      this.setStateSafe({ errorMessage: err.message });
     }
   }
 }
