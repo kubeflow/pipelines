@@ -28,6 +28,7 @@ import {
   pickersToDate, buildTrigger
 } from '../lib/TriggerUtils';
 import { ApiTrigger } from '../apis/job';
+import { stylesheet } from 'typestyle';
 
 interface TriggerProps {
   onChange?: (trigger?: ApiTrigger, maxConcurrentRuns?: string) => void;
@@ -48,6 +49,12 @@ interface TriggerState {
   startTime: string;
   type: TriggerType;
 }
+
+const css = stylesheet({
+  noMargin: {
+    margin: 0
+  },
+});
 
 export default class Trigger extends React.Component<TriggerProps, TriggerState> {
   constructor(props: any) {
@@ -108,10 +115,12 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             label='Has start date' />
           <Input label='Start date' type='date' onChange={this.handleChange('startDate')}
             value={startDate} width={160}
+            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
             style={{ visibility: hasStartDate ? 'visible' : 'hidden' }} />
           <Separator />
           <Input label='Start time' type='time' onChange={this.handleChange('startTime')}
             value={startTime} width={120}
+            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
             style={{ visibility: hasStartDate ? 'visible' : 'hidden' }} />
         </div>
 
@@ -121,10 +130,12 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               onClick={this.handleChange('hasEndDate')} />}
             label='Has end date' />
           <Input label='End date' type='date' onChange={this.handleChange('endDate')}
-            value={endDate} width={160} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }} />
+            value={endDate} width={160} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}} />
           <Separator />
           <Input label='End time' type='time' onChange={this.handleChange('endTime')}
-            value={endTime} width={120} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }} />
+            value={endTime} width={120} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}} />
         </div>
 
         <span className={commonCss.flex}>

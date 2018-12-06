@@ -43,6 +43,14 @@ exports[`Trigger enables a single day on click 1`] = `
         label="Has start date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -56,6 +64,14 @@ exports[`Trigger enables a single day on click 1`] = `
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start time"
         onChange={[Function]}
         style={
@@ -82,6 +98,14 @@ exports[`Trigger enables a single day on click 1`] = `
         label="Has end date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -95,6 +119,14 @@ exports[`Trigger enables a single day on click 1`] = `
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={
@@ -314,6 +346,14 @@ exports[`Trigger renders all week days enabled 1`] = `
         label="Has start date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -327,6 +367,14 @@ exports[`Trigger renders all week days enabled 1`] = `
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start time"
         onChange={[Function]}
         style={
@@ -353,6 +401,14 @@ exports[`Trigger renders all week days enabled 1`] = `
         label="Has end date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -366,6 +422,14 @@ exports[`Trigger renders all week days enabled 1`] = `
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={
@@ -585,6 +649,14 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         label="Has start date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -598,6 +670,14 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start time"
         onChange={[Function]}
         style={
@@ -624,6 +704,14 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         label="Has end date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -637,6 +725,14 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={
@@ -755,6 +851,14 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         label="Has start date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -768,6 +872,14 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start time"
         onChange={[Function]}
         style={
@@ -794,6 +906,14 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         label="Has end date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -807,6 +927,14 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={
@@ -947,6 +1075,14 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         label="Has start date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -960,6 +1096,14 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="Start time"
         onChange={[Function]}
         style={
@@ -986,6 +1130,14 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         label="Has end date"
       />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -999,6 +1151,14 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       />
       <Component />
       <Component
+        InputLabelProps={
+          Object {
+            "classes": Object {
+              "outlined": "noMargin",
+            },
+            "shrink": true,
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={

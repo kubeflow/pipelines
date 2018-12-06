@@ -50,7 +50,7 @@ interface NewRunState {
   description: string;
   errorMessage: string;
   experiment?: ApiExperiment;
-  experimentName?: string;
+  experimentName: string;
   experimentSelectorOpen: boolean;
   isBeingCreated: boolean;
   isFirstRunInExperiment: boolean;
@@ -99,6 +99,7 @@ class NewRun extends Page<{}, NewRunState> {
     this.state = {
       description: '',
       errorMessage: '',
+      experimentName: '',
       experimentSelectorOpen: false,
       isBeingCreated: false,
       isFirstRunInExperiment: false,
@@ -166,7 +167,7 @@ class NewRun extends Page<{}, NewRunState> {
                       onClick={() => this.setState({ pipelineSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}>
                       Choose
-                </Button>
+                    </Button>
                   </InputAdornment>
                 ),
                 readOnly: true,
@@ -184,7 +185,7 @@ class NewRun extends Page<{}, NewRunState> {
                 columns={this.pipelineSelectorColumns}
                 emptyMessage='No pipelines found. Upload a pipeline and then try again.'
                 initialSortColumn={PipelineSortKeys.CREATED_AT}
-                resourceToRow={this.resourceToRow}
+                resourceToRow={this._resourceToRow}
                 selectionChanged={this._pipelineSelectionChanged.bind(this)} />
             </DialogContent>
             <DialogActions>
@@ -209,7 +210,7 @@ class NewRun extends Page<{}, NewRunState> {
                 columns={this.experimentSelectorColumns}
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
-                resourceToRow={this.resourceToRow}
+                resourceToRow={this._resourceToRow}
                 selectionChanged={this._experimentSelectionChanged.bind(this)} />
             </DialogContent>
             <DialogActions>
@@ -228,25 +229,23 @@ class NewRun extends Page<{}, NewRunState> {
           <Input label='Description (optional)' multiline={true}
             onChange={this.handleChange('description')} value={description} />
 
-          {experimentName && (
-            <div>
-              <div>This run will be associated with the following experiment</div>
-              <Input value={experimentName} required={true} label='Experiment' disabled={true}
-                InputProps={{
-                  classes: { disabled: css.nonEditableInput },
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <Button color='secondary' id='chooseExperimentBtn'
-                        onClick={() => this.setState({ experimentSelectorOpen: true })}
-                        style={{ padding: '3px 5px', margin: 0 }}>
-                        Choose
+          <div>
+            <div>This run will be associated with the following experiment</div>
+            <Input value={experimentName} required={true} label='Experiment' disabled={true}
+              InputProps={{
+                classes: { disabled: css.nonEditableInput },
+                endAdornment: (
+                  <InputAdornment position='end'>
+                    <Button color='secondary' id='chooseExperimentBtn'
+                      onClick={() => this.setState({ experimentSelectorOpen: true })}
+                      style={{ padding: '3px 5px', margin: 0 }}>
+                      Choose
                     </Button>
-                    </InputAdornment>
-                  ),
-                  readOnly: true,
-                }} />
-            </div>
-          )}
+                  </InputAdornment>
+                ),
+                readOnly: true,
+              }} />
+          </div>
 
           {isRecurringRun && (
             <React.Fragment>
@@ -337,12 +336,12 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     let experiment: ApiExperiment | undefined;
-    let experimentName: string | undefined;
+    let experimentName = '';
     const breadcrumbs = [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }];
     if (experimentId) {
       try {
         experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-        experimentName = experiment.name;
+        experimentName = experiment.name || '';
         breadcrumbs.push({
           displayName: experimentName!,
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentId),
@@ -413,7 +412,7 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   /* This function is passed as a callback to the selector dialogs to facilitate rendering */
-  private resourceToRow = (r: ApiExperiment | ApiPipeline) => {
+  protected _resourceToRow = (r: ApiExperiment | ApiPipeline) => {
     return {
       // error does not exist (yet) on ApiExperiment
       error: (r as any).error,

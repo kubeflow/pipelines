@@ -1,11 +1,69 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`PipelineSelector calls API to load pipelines 1`] = `
+exports[`PipelineSelector displays experiment selector UI when configured for experiments 1`] = `
 <Fragment>
   <Toolbar
     actions={Array []}
     breadcrumbs={Array []}
-    pageTitle="Choose a pipeline"
+    pageTitle="A test selector"
+  />
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "flex": 1,
+          "label": "Experiment name",
+          "sortKey": "name",
+        },
+        Object {
+          "flex": 1.5,
+          "label": "Description",
+        },
+        Object {
+          "flex": 1,
+          "label": "Created at",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="Test - Sorry, no pipelines."
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "id": "some-experiment-1-id",
+          "otherFields": Array [
+            "test experiment-1 name",
+            "test experiment-1 description",
+            "2/2/2018, 3:04:05 AM",
+          ],
+        },
+        Object {
+          "error": undefined,
+          "id": "some-experiment-2-id",
+          "otherFields": Array [
+            "test experiment-2 name",
+            "test experiment-2 description",
+            "11/9/2018, 8:07:06 AM",
+          ],
+        },
+      ]
+    }
+    selectedIds={Array []}
+    updateSelection={[Function]}
+    useRadioButtons={true}
+  />
+</Fragment>
+`;
+
+exports[`PipelineSelector displays pipeline selector UI when configured for pipelines 1`] = `
+<Fragment>
+  <Toolbar
+    actions={Array []}
+    breadcrumbs={Array []}
+    pageTitle="A test selector"
   />
   <CustomTable
     columns={
@@ -26,17 +84,26 @@ exports[`PipelineSelector calls API to load pipelines 1`] = `
         },
       ]
     }
-    emptyMessage="No pipelines found. Upload a pipeline and then try again."
+    emptyMessage="Test - Sorry, no pipelines."
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
       Array [
         Object {
           "error": undefined,
-          "id": undefined,
+          "id": "some-pipeline-id-1",
           "otherFields": Array [
-            "test pipeline name",
-            "test pipeline description",
+            "test pipeline-1 name",
+            "test pipeline-1 description",
+            "2/2/2018, 3:04:05 AM",
+          ],
+        },
+        Object {
+          "error": undefined,
+          "id": "some-pipeline-2-id",
+          "otherFields": Array [
+            "test pipeline-2 name",
+            "test pipeline-2 description",
             "11/9/2018, 8:07:06 AM",
           ],
         },

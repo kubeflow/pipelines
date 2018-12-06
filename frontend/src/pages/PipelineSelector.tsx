@@ -37,6 +37,7 @@ export interface SelectorListProps extends RouteComponentProps {
 
 interface SelectorListState {
   resources: Array<ApiExperiment | ApiPipeline>;
+  rows: Row[];
   selectedIds: string[];
   toolbarActions: ToolbarActionConfig[];
 }
@@ -49,16 +50,15 @@ class SelectorList extends React.Component<SelectorListProps, SelectorListState>
 
     this.state = {
       resources: [],
+      rows: [],
       selectedIds: [],
       toolbarActions: [],
     };
   }
 
   public render(): JSX.Element {
-    const { resources, selectedIds, toolbarActions } = this.state;
-    const { columns, resourceToRow, title, emptyMessage, initialSortColumn } = this.props;
-
-    const rows = resources.map((r) => resourceToRow(r));
+    const { rows, selectedIds, toolbarActions } = this.state;
+    const { columns, title, emptyMessage, initialSortColumn } = this.props;
 
     return (
       <React.Fragment>
@@ -90,7 +90,8 @@ class SelectorList extends React.Component<SelectorListProps, SelectorListState>
     if (selected) {
       this.props.selectionChanged(selected);
     } else {
-      logger.error(`Somehow now resource was found with ID: ${selectedIds[0]}`);
+      logger.error(`Somehow no resource was found with ID: ${selectedIds[0]}`);
+      return;
     }
     this.setStateSafe({ selectedIds });
   }
@@ -106,8 +107,9 @@ class SelectorList extends React.Component<SelectorListProps, SelectorListState>
           resources = (response as ApiListExperimentsResponse).experiments || [];
         } else if ((response as ApiListPipelinesResponse).pipelines) {
           resources = (response as ApiListPipelinesResponse).pipelines || [];
+        } else {
+          logger.error('Somehow response contained neither experiments nor pipelines');
         }
-        /* resources = response.pipelines || response.experiments || []; */
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const errorMessage = await errorToMessage(err);
@@ -119,7 +121,7 @@ class SelectorList extends React.Component<SelectorListProps, SelectorListState>
         logger.error('Could not get requested list of resources', errorMessage);
       }
 
-      this.setStateSafe({ resources });
+      this.setStateSafe({ resources, rows: resources.map((r) => this.props.resourceToRow(r)) });
       return nextPageToken;
   }
 }

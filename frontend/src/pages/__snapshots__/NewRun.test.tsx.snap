@@ -391,7 +391,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
 </div>
 `;
 
-exports[`NewRun choosing a pipeline cloning from a run shows pipeline selector when switching from embedded pipeline to select pipeline 1`] = `
+exports[`NewRun cloning from a run shows pipeline selector when switching from embedded pipeline to select pipeline 1`] = `
 <div
   className="page"
 >
@@ -725,6 +725,42 @@ exports[`NewRun choosing a pipeline cloning from a run shows pipeline selector w
       onChange={[Function]}
       value=""
     />
+    <div>
+      <div>
+        This run will be associated with the following experiment
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "disabled": "nonEditableInput",
+            },
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                id="chooseExperimentBtn"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        disabled={true}
+        label="Experiment"
+        required={true}
+        value=""
+      />
+    </div>
     <div
       className="header"
     >
@@ -762,7 +798,7 @@ exports[`NewRun choosing a pipeline cloning from a run shows pipeline selector w
 </div>
 `;
 
-exports[`NewRun choosing a pipeline cloning from a run shows switching controls when run has embedded pipeline, selects that pipeline by default, and hides pipeline selector 1`] = `
+exports[`NewRun cloning from a run shows switching controls when run has embedded pipeline, selects that pipeline by default, and hides pipeline selector 1`] = `
 <div
   className="page"
 >
@@ -1065,6 +1101,42 @@ exports[`NewRun choosing a pipeline cloning from a run shows switching controls 
       onChange={[Function]}
       value=""
     />
+    <div>
+      <div>
+        This run will be associated with the following experiment
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "disabled": "nonEditableInput",
+            },
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                id="chooseExperimentBtn"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        disabled={true}
+        label="Experiment"
+        required={true}
+        value=""
+      />
+    </div>
     <div
       className="header"
     >
@@ -1102,7 +1174,7 @@ exports[`NewRun choosing a pipeline cloning from a run shows switching controls 
 </div>
 `;
 
-exports[`NewRun choosing a pipeline creating a new recurring run includes additional trigger input fields if run will be recurring 1`] = `
+exports[`NewRun creating a new recurring run includes additional trigger input fields if run will be recurring 1`] = `
 <div
   className="page"
 >
@@ -1410,6 +1482,42 @@ exports[`NewRun choosing a pipeline creating a new recurring run includes additi
       onChange={[Function]}
       value=""
     />
+    <div>
+      <div>
+        This run will be associated with the following experiment
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "disabled": "nonEditableInput",
+            },
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                id="chooseExperimentBtn"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        disabled={true}
+        label="Experiment"
+        required={true}
+        value=""
+      />
+    </div>
     <div
       className="header"
     >
@@ -1457,7 +1565,7 @@ exports[`NewRun choosing a pipeline creating a new recurring run includes additi
 </div>
 `;
 
-exports[`NewRun choosing a pipeline creating a new run copies pipeline from run in the create API call when cloning a run with embedded pipeline 1`] = `
+exports[`NewRun creating a new run copies pipeline from run in the create API call when cloning a run with embedded pipeline 1`] = `
 <div
   className="page"
 >
@@ -1794,6 +1902,42 @@ exports[`NewRun choosing a pipeline creating a new run copies pipeline from run 
       onChange={[Function]}
       value=""
     />
+    <div>
+      <div>
+        This run will be associated with the following experiment
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "disabled": "nonEditableInput",
+            },
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                id="chooseExperimentBtn"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        disabled={true}
+        label="Experiment"
+        required={true}
+        value=""
+      />
+    </div>
     <div
       className="header"
     >
@@ -1831,7 +1975,7 @@ exports[`NewRun choosing a pipeline creating a new run copies pipeline from run 
 </div>
 `;
 
-exports[`NewRun choosing a pipeline creating a new run updates the pipeline in state when a user fills in its params 1`] = `
+exports[`NewRun creating a new run updates the pipeline in state when a user fills in its params 1`] = `
 <div
   className="page"
 >
@@ -2173,6 +2317,42 @@ exports[`NewRun choosing a pipeline creating a new run updates the pipeline in s
       onChange={[Function]}
       value=""
     />
+    <div>
+      <div>
+        This run will be associated with the following experiment
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "disabled": "nonEditableInput",
+            },
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                id="chooseExperimentBtn"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        disabled={true}
+        label="Experiment"
+        required={true}
+        value=""
+      />
+    </div>
     <div
       className="header"
     >
@@ -2246,7 +2426,7 @@ exports[`NewRun choosing a pipeline creating a new run updates the pipeline in s
 </div>
 `;
 
-exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 1`] = `
+exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 1`] = `
 <div
   className="page"
 >
@@ -2637,7 +2817,7 @@ exports[`NewRun choosing a pipeline creating a new run updates the pipeline para
 </div>
 `;
 
-exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 2`] = `
+exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 2`] = `
 <div
   className="page"
 >
@@ -3064,7 +3244,7 @@ exports[`NewRun choosing a pipeline creating a new run updates the pipeline para
 </div>
 `;
 
-exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 3`] = `
+exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 3`] = `
 <div
   className="page"
 >
@@ -3763,6 +3943,42 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       onChange={[Function]}
       value=""
     />
+    <div>
+      <div>
+        This run will be associated with the following experiment
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "disabled": "nonEditableInput",
+            },
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                id="chooseExperimentBtn"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        disabled={true}
+        label="Experiment"
+        required={true}
+        value=""
+      />
+    </div>
     <div
       className="header"
     >
