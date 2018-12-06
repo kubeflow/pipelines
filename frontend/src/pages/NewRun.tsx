@@ -25,7 +25,7 @@ import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import RunUtils from '../lib/RunUtils';
-import SelectorList from './PipelineSelector';
+import ResourceSelector from './ResourceSelector';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
 import WorkflowParser from '../lib/WorkflowParser';
@@ -179,7 +179,7 @@ class NewRun extends Page<{}, NewRunState> {
             onClose={() => this._pipelineSelectorClosed(false)}
             PaperProps={{ id: 'pipelineSelectorDialog' }}>
             <DialogContent>
-              <SelectorList {...this.props}
+              <ResourceSelector {...this.props}
                 title='Choose a pipeline'
                 listApi={Apis.pipelineServiceApi.listPipelines.bind(Apis)}
                 columns={this.pipelineSelectorColumns}
@@ -204,7 +204,7 @@ class NewRun extends Page<{}, NewRunState> {
             onClose={() => this._experimentSelectorClosed(false)}
             PaperProps={{ id: 'experimentSelectorDialog' }}>
             <DialogContent>
-            <SelectorList {...this.props}
+            <ResourceSelector {...this.props}
                 title='Choose an experiment'
                 listApi={Apis.experimentServiceApi.listExperiment.bind(Apis)}
                 columns={this.experimentSelectorColumns}

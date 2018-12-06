@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import SelectorList, { SelectorListProps } from './PipelineSelector';
+import ResourceSelector, { ResourceSelectorProps } from './ResourceSelector';
 import TestUtils from '../TestUtils';
 import { ApiPipeline } from '../apis/pipeline';
 import { ListRequest, Apis, PipelineSortKeys, ExperimentSortKeys } from '../lib/Apis';
@@ -24,7 +24,7 @@ import { ApiExperiment } from '../apis/experiment';
 import { formatDateString } from '../lib/Utils';
 import { Row } from '../components/CustomTable';
 
-class TestSelectorList extends SelectorList {
+class TestResourceSelector extends ResourceSelector {
   public async _load(request: ListRequest): Promise<string> {
     return super._load(request);
   }
@@ -33,7 +33,7 @@ class TestSelectorList extends SelectorList {
   }
 }
 
-describe('PipelineSelector', () => {
+describe('ResourceSelector', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
   const updateDialogSpy = jest.fn();
@@ -95,7 +95,7 @@ describe('PipelineSelector', () => {
     } as Row;
   };
 
-  function generateProps(): SelectorListProps {
+  function generateProps(): ResourceSelectorProps {
     return {
       columns: pipelineSelectorColumns,
       emptyMessage: testEmptyMessage,
@@ -130,8 +130,8 @@ describe('PipelineSelector', () => {
     props.listApi = listPipelinesSpy as any;
     props.initialSortColumn = PipelineSortKeys.CREATED_AT;
 
-    tree = shallow(<TestSelectorList {...props} />);
-    await (tree.instance() as TestSelectorList)._load({});
+    tree = shallow(<TestResourceSelector {...props} />);
+    await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     expect(listPipelinesSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
@@ -165,8 +165,8 @@ describe('PipelineSelector', () => {
       } as Row;
     };
 
-    tree = shallow(<TestSelectorList {...props} />);
-    await (tree.instance() as TestSelectorList)._load({});
+    tree = shallow(<TestResourceSelector {...props} />);
+    await (tree.instance() as TestResourceSelector)._load({});
 
     expect(tree.state('rows')).toEqual([{
       id: 'an-id - test',
@@ -184,8 +184,8 @@ describe('PipelineSelector', () => {
     props.listApi = listExperimentSpy as any;
     props.initialSortColumn = ExperimentSortKeys.CREATED_AT;
 
-    tree = shallow(<TestSelectorList {...props} />);
-    await (tree.instance() as TestSelectorList)._load({});
+    tree = shallow(<TestResourceSelector {...props} />);
+    await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listExperimentSpy).toHaveBeenCalledTimes(1);
     expect(listExperimentSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
@@ -197,8 +197,8 @@ describe('PipelineSelector', () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'woops!');
     jest.spyOn(console, 'error').mockImplementation();
 
-    tree = shallow(<TestSelectorList {...generateProps()} />);
-    await (tree.instance() as TestSelectorList)._load({});
+    tree = shallow(<TestResourceSelector {...generateProps()} />);
+    await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -209,23 +209,23 @@ describe('PipelineSelector', () => {
   });
 
   it('calls selection callback when a resource is selected', async () => {
-    tree = shallow(<TestSelectorList {...generateProps()} />);
-    await (tree.instance() as TestSelectorList)._load({});
+    tree = shallow(<TestResourceSelector {...generateProps()} />);
+    await (tree.instance() as TestResourceSelector)._load({});
 
     expect(tree.state('selectedIds')).toEqual([]);
-    (tree.instance() as TestSelectorList)._selectionChanged([PIPELINES[1].id!]);
+    (tree.instance() as TestResourceSelector)._selectionChanged([PIPELINES[1].id!]);
     expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(PIPELINES[1]);
     expect(tree.state('selectedIds')).toEqual([PIPELINES[1].id]);
   });
 
   it('logs error if more than one resource is selected', async () => {
-    tree = shallow(<TestSelectorList {...generateProps()} />);
+    tree = shallow(<TestResourceSelector {...generateProps()} />);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    await (tree.instance() as TestSelectorList)._load({});
+    await (tree.instance() as TestResourceSelector)._load({});
 
     expect(tree.state('selectedIds')).toEqual([]);
 
-    (tree.instance() as TestSelectorList)._selectionChanged([PIPELINES[0].id!, PIPELINES[1].id!]);
+    (tree.instance() as TestResourceSelector)._selectionChanged([PIPELINES[0].id!, PIPELINES[1].id!]);
 
     expect(selectionChangedCbSpy).not.toHaveBeenCalled();
     expect(tree.state('selectedIds')).toEqual([]);
@@ -234,13 +234,13 @@ describe('PipelineSelector', () => {
   });
 
   it('logs error if selected resource ID is not found in list', async () => {
-    tree = shallow(<TestSelectorList {...generateProps()} />);
+    tree = shallow(<TestResourceSelector {...generateProps()} />);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    await (tree.instance() as TestSelectorList)._load({});
+    await (tree.instance() as TestResourceSelector)._load({});
 
     expect(tree.state('selectedIds')).toEqual([]);
 
-    (tree.instance() as TestSelectorList)._selectionChanged(['id-not-in-list']);
+    (tree.instance() as TestResourceSelector)._selectionChanged(['id-not-in-list']);
 
     expect(selectionChangedCbSpy).not.toHaveBeenCalled();
     expect(tree.state('selectedIds')).toEqual([]);
@@ -251,9 +251,9 @@ describe('PipelineSelector', () => {
   it('logs error if list response contains neither experiments nor pipelines', async () => {
     listPipelinesSpy.mockImplementationOnce(() => ({}));
 
-    tree = shallow(<TestSelectorList {...generateProps()} />);
+    tree = shallow(<TestResourceSelector {...generateProps()} />);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    await (tree.instance() as TestSelectorList)._load({});
+    await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listPipelinesSpy).toHaveBeenCalledTimes(1);
     expect(consoleSpy).toHaveBeenLastCalledWith(

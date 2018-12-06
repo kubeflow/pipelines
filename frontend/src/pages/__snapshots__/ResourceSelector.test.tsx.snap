@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`PipelineSelector displays experiment selector UI when configured for experiments 1`] = `
+exports[`ResourceSelector displays experiment selector UI when configured for experiments 1`] = `
 <Fragment>
   <Toolbar
     actions={Array []}
@@ -58,7 +58,7 @@ exports[`PipelineSelector displays experiment selector UI when configured for ex
 </Fragment>
 `;
 
-exports[`PipelineSelector displays pipeline selector UI when configured for pipelines 1`] = `
+exports[`ResourceSelector displays pipeline selector UI when configured for pipelines 1`] = `
 <Fragment>
   <Toolbar
     actions={Array []}

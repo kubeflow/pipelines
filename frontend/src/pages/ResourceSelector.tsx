@@ -24,7 +24,7 @@ import { ApiListExperimentsResponse, ApiExperiment, ExperimentServiceApi } from 
 import { DialogProps } from '../components/Router';
 import { ApiListPipelinesResponse, ApiPipeline, PipelineServiceApi } from 'src/apis/pipeline';
 
-export interface SelectorListProps extends RouteComponentProps {
+export interface ResourceSelectorProps extends RouteComponentProps {
   listApi: ExperimentServiceApi['listExperiment'] | PipelineServiceApi['listPipelines'];
   columns: Column[];
   emptyMessage: string;
@@ -35,14 +35,14 @@ export interface SelectorListProps extends RouteComponentProps {
   updateDialog: (dialogProps: DialogProps) => void;
 }
 
-interface SelectorListState {
+interface ResourceSelectorState {
   resources: Array<ApiExperiment | ApiPipeline>;
   rows: Row[];
   selectedIds: string[];
   toolbarActions: ToolbarActionConfig[];
 }
 
-class SelectorList extends React.Component<SelectorListProps, SelectorListState> {
+class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSelectorState> {
   protected _isMounted = true;
 
   constructor(props: any) {
@@ -75,7 +75,7 @@ class SelectorList extends React.Component<SelectorListProps, SelectorListState>
     this._isMounted = false;
   }
 
-  protected setStateSafe(newState: Partial<SelectorListState>, cb?: () => void): void {
+  protected setStateSafe(newState: Partial<ResourceSelectorState>, cb?: () => void): void {
     if (this._isMounted) {
       this.setState(newState as any, cb);
     }
@@ -126,4 +126,4 @@ class SelectorList extends React.Component<SelectorListProps, SelectorListState>
   }
 }
 
-export default SelectorList;
+export default ResourceSelector;
