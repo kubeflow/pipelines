@@ -61,8 +61,13 @@ interface RunDetailsProps {
   runId?: string;
 }
 
+interface AnnotatedConfig {
+  config: ViewerConfig;
+  stepName: string;
+}
+
 interface RunDetailsState {
-  artifactConfigs: ViewerConfig[];
+  artifactConfigs: AnnotatedConfig[];
   experiment?: ApiExperiment;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
@@ -199,8 +204,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
               {selectedTab === 1 && (
                 <div className={padding()}>
-                  {artifactConfigs.map((config, i) => <div key={i}>
-                    <PlotCard key={i} configs={[config]} title={''} maxDimension={400} />
+                  {artifactConfigs.map((annotatedConfig, i) => <div key={i}>
+                    <PlotCard key={i} configs={[annotatedConfig.config]}
+                      title={annotatedConfig.stepName} maxDimension={400} />
                     <Hr />
                     <Separator orientation='vertical' />
                   </div>
@@ -305,10 +311,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       return;
     }
 
-    const outputPathsList = WorkflowParser.loadAllOutputPaths(workflow);
+    const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
     const configLists = await Promise.all(outputPathsList.map(
-      path => OutputArtifactLoader.load(path)));
+      ([stepName, path]) => OutputArtifactLoader.load(path)
+        .then(configs => configs.map(config => ({ config, stepName })))));
     const artifactConfigs = flatten(configLists);
 
     this.setStateSafe({ artifactConfigs });
