@@ -59,6 +59,7 @@ class ContainerOp(object):
     self.volumes = []
     self.volume_mounts = []
     self.env_variables = []
+    self.pod_annotations = {}
 
     matches = []
     if arguments:
@@ -127,16 +128,16 @@ class ContainerOp(object):
       raise ValueError('Invalid cpu string. Should be float or integer, or integer followed '
                        'by "m".')
 
-  def _validate_gpu_string(self, gpu_string):
-    "Validate a given string is valid for gpu limit."
+  def _validate_positive_number(self, str_value, param_name):
+    "Validate a given string is in positive integer format."
 
     try:
-      gpu_value = int(gpu_string)
+      int_value = int(str_value)
     except ValueError:
-      raise ValueError('Invalid gpu string. Should be integer.')
+      raise ValueError('Invalid {}. Should be integer.'.format(param_name))
 
-    if gpu_value <= 0:
-      raise ValueError('gpu must be positive integer.')
+    if int_value <= 0:
+      raise ValueError('{} must be positive integer.'.format(param_name))
 
   def add_resource_limit(self, resource_name, value):
     """Add the resource limit of the container.
@@ -212,7 +213,7 @@ class ContainerOp(object):
         are: 'nvidia' (default), and 'amd'. 
     """
 
-    self._validate_gpu_string(gpu)
+    self._validate_positive_number(gpu, 'gpu')
     if vendor != 'nvidia' and vendor != 'amd':
       raise ValueError('vendor can only be nvidia or amd.')
 
@@ -267,6 +268,39 @@ class ContainerOp(object):
 
     self.node_selector[label_name] = value
     return self
+
+  def add_pod_annotation(self, name: str, value: str):
+    """Adds a pod's metadata annotation.
+
+    Args:
+      name: The name of the annotation.
+      value: The value of the annotation.
+    """
+
+    self.pod_annotations[name] = value
+    return self
+
+
+  def set_tpu(self, tpu_cores: str, tpu_resource: str, tf_version: str):
+    """Sets TPU spec in the container op.
+
+    Args:
+      tpu_cores: Required. The number of cores of TPU resource. 
+        For example, the value can be '8', '32', '128', etc.
+        Check more details at: https://cloud.google.com/tpu/docs/kubernetes-engine-setup#pod-spec.
+      tpu_resource: Required. The resource name of the TPU resource. 
+        For example, the value can be 'v2', 'preemptible-v1', 'v3' or 'preemptible-v3'.
+        Check more details at: https://cloud.google.com/tpu/docs/kubernetes-engine-setup#pod-spec.
+      tf_version: Required. The TensorFlow version that the TPU nodes use.
+        For example, the value can be '1.12', '1.11', '1.9' or '1.8'.
+        Check more details at: https://cloud.google.com/tpu/docs/supported-versions.
+    """
+
+    self._validate_positive_number(tpu_cores, 'tpu_cores')
+    self.add_pod_annotation('tf-version.cloud-tpus.google.com', tf_version)
+    self.add_resource_limit('cloud-tpus.google.com/{}'.format(tpu_resource), tpu_cores)
+    return self
+
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})

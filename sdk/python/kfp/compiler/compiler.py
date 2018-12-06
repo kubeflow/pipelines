@@ -143,6 +143,10 @@ class Compiler(object):
       template['container']['env'] = list(map(self._convert_k8s_obj_to_dic, op.env_variables))
     if op.volume_mounts:
       template['container']['volumeMounts'] = list(map(self._convert_k8s_obj_to_dic, op.volume_mounts))
+
+    if op.pod_annotations:
+      template['metadata'] = {'annotations': op.pod_annotations}
+    
     return template
 
   def _get_groups_for_ops(self, root_group):
