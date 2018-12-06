@@ -280,12 +280,15 @@ describe('PipelineDetails', () => {
     expect(newExperimentBtn).toBeDefined();
   });
 
-  it('does not have any toolbar buttons if it has an embedded pipeline', async () => {
+  it('only has \'create run\' toolbar button if viewing an embedded pipeline', async () => {
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    expect(instance.getInitialToolbarState().actions).toEqual([]);
+    expect(instance.getInitialToolbarState().actions).toHaveLength(1);
+    const createRunBtn =
+      instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
+    expect(createRunBtn).toBeDefined();
   });
 
   it('clicking new experiment button navigates to new experiment page', async () => {

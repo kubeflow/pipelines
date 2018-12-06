@@ -657,8 +657,8 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenCalledTimes(1);
-      expect(tree.state('clonedRunPipeline')).toEqual({ parameters: [] });
-      expect(tree.state('usePipelineFromClonedRun')).toBe(true);
+      expect(tree.state('pipelineFromRun')).toEqual({ parameters: [] });
+      expect(tree.state('usePipelineFromRun')).toBe(true);
     });
 
     it('shows switching controls when run has embedded pipeline, selects that pipeline by default,' +

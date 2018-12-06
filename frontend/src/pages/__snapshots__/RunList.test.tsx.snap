@@ -7140,7 +7140,7 @@ exports[`RunList shows "View pipeline" button if pipeline is embedded in run 1`]
     href="/pipelines/details/?fromRun=test-run-id"
     onClick={[Function]}
   >
-    View pipeline
+    [View pipeline]
   </a>
 </Link>
 `;
