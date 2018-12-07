@@ -47,7 +47,7 @@ export default class TestUtils {
    * Adds a one-time mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponseOnce(spy: jest.SpyInstance, message: string): void {
+  public static makeErrorResponseOnce(spy: jest.MockInstance<{}>, message: string): void {
     spy.mockImplementationOnce(() => {
       throw {
         text: () => Promise.resolve(message),
