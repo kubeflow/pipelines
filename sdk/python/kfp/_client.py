@@ -158,16 +158,20 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 
-  def list_runs(self, page_token='', page_size=10, sort_by=''):
+  def list_runs(self, page_token='', page_size=10, sort_by='', resource_reference_key_type=None, resource_reference_key_id=None):
     """List runs.
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      resource_reference_key: resource filtering key
     Returns:
       A response object including a list of experiments and next page token.
     """
-    response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+    if resource_reference_key_type is not None and resource_reference_key_id is not None:
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
+    else:
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
   def get_run(self, run_id):

@@ -80,7 +80,6 @@ def main():
   run_id = response.id
   utils.add_junit_test(test_cases, 'create pipeline run', True)
 
-
   ###### Monitor Job ######
   start_time = datetime.now()
   response = client.wait_for_run_completion(run_id, 1200)
