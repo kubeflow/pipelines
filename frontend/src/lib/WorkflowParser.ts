@@ -163,10 +163,17 @@ export default class WorkflowParser {
   // Returns a list of output paths for the entire workflow, by searching all nodes in
   // the workflow, and parsing outputs for each.
   public static loadAllOutputPaths(workflow: Workflow): StoragePath[] {
-    let outputPaths: StoragePath[] = [];
+    return this.loadAllOutputPathsWithStepNames(workflow).map(entry => entry.path);
+  }
+
+  // Returns a list of object mapping a step name to output path for the entire workflow,
+  // by searching all nodes in the workflow, and parsing outputs for each.
+  public static loadAllOutputPathsWithStepNames(workflow: Workflow): Array<{ stepName: string, path: StoragePath }> {
+    const outputPaths: Array<{ stepName: string, path: StoragePath }> = [];
     if (workflow && workflow.status && workflow.status.nodes) {
       Object.keys(workflow.status.nodes).forEach(n =>
-        outputPaths = outputPaths.concat(this.loadNodeOutputPaths(workflow.status.nodes[n])));
+        this.loadNodeOutputPaths(workflow.status.nodes[n]).map(path =>
+          outputPaths.push({ stepName: workflow.status.nodes[n].displayName, path })));
     }
 
     return outputPaths;
@@ -183,12 +190,12 @@ export default class WorkflowParser {
         source: StorageService.GCS,
       };
     } else if (strPath.startsWith('minio://')) {
-        const pathParts = strPath.substr('minio://'.length).split('/');
-        return {
-          bucket: pathParts[0],
-          key: pathParts.slice(1).join('/'),
-          source: StorageService.MINIO,
-        };
+      const pathParts = strPath.substr('minio://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.MINIO,
+      };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);
     }
