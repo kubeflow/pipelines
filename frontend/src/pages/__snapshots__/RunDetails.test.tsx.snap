@@ -1513,7 +1513,7 @@ exports[`RunDetails switches to logs tab in side pane 1`] = `
 </div>
 `;
 
-exports[`RunDetails switches to run output tab 1`] = `
+exports[`RunDetails switches to run output tab, shows empty message 1`] = `
 <div
   className="page"
 >
@@ -1536,7 +1536,13 @@ exports[`RunDetails switches to run output tab 1`] = `
     >
       <div
         className=""
-      />
+      >
+        <span
+          className="absoluteCenter"
+        >
+          Not output artifacts found for this run.
+        </span>
+      </div>
     </div>
   </div>
 </div>

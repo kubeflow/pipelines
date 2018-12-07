@@ -204,6 +204,12 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
               {selectedTab === 1 && (
                 <div className={padding()}>
+                  {!allArtifactConfigs.length && (
+                    <span className={commonCss.absoluteCenter}>
+                      Not output artifacts found for this run.
+                    </span>
+                  )}
+
                   {allArtifactConfigs.map((annotatedConfig, i) => <div key={i}>
                     <PlotCard key={i} configs={[annotatedConfig.config]}
                       title={annotatedConfig.stepName} maxDimension={400} />

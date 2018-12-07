@@ -210,7 +210,7 @@ describe('RunDetails', () => {
     }));
   });
 
-  it('switches to run output tab', async () => {
+  it('switches to run output tab, shows empty message', async () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
