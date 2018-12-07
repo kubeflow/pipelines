@@ -387,6 +387,7 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
     tree.find('MD2Tabs').at(1).simulate('switch', 1);
+    await TestUtils.flushPromises();
     expect(tree.state('sidepanelSelectedTab')).toEqual(1);
     expect(tree).toMatchSnapshot();
     tree.unmount();
@@ -478,9 +479,11 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
+    await TestUtils.flushPromises();
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     tree.find('SidePanel').simulate('close');
     expect(tree.state('selectedNodeDetails')).toBeNull();
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });
