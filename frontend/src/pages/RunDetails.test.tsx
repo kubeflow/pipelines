@@ -36,8 +36,8 @@ describe('RunDetails', () => {
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
-  const pathsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
-  const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
+  const pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
+  const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
   const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
 
   let testRun: ApiRunDetail = {};
@@ -60,10 +60,6 @@ describe('RunDetails', () => {
   }
 
   beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
-  afterAll(() => {
-    jest.resetAllMocks();
-    tree.unmount();
-  });
 
   beforeEach(() => {
     testRun = {
@@ -82,23 +78,18 @@ describe('RunDetails', () => {
         status: 'Succeeded',
       },
     };
-    historyPushSpy.mockClear();
-    updateBannerSpy.mockClear();
-    updateDialogSpy.mockClear();
-    updateSnackbarSpy.mockClear();
-    updateToolbarSpy.mockClear();
-    getRunSpy.mockReset();
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
-    getExperimentSpy.mockClear();
     getExperimentSpy.mockImplementation(() => Promise.resolve('{}'));
-    getPodLogsSpy.mockClear();
     getPodLogsSpy.mockImplementation(() => 'test logs');
-    pathsParser.mockClear();
     pathsParser.mockImplementation(() => []);
-    pathsWithStepsParser.mockClear();
     pathsWithStepsParser.mockImplementation(() => []);
-    loaderSpy.mockClear();
     loaderSpy.mockImplementation(() => Promise.resolve([]));
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+    tree.unmount();
   });
 
   it('shows success run status in page title', async () => {
@@ -221,12 +212,11 @@ describe('RunDetails', () => {
   });
 
   it('loads the run\'s outputs in the output tab', async () => {
-    jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames').mockImplementation(() =>
-      [['step1', { source: 'gcs', bucket: 'somebucket', key: 'somekey' }]]);
-    jest.spyOn(WorkflowParser, 'loadNodeOutputPaths').mockImplementation(() =>
-      [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
-    jest.spyOn(OutputArtifactLoader, 'load').mockImplementation(() =>
-      Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
+    pathsWithStepsParser.mockImplementation(() => [
+      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } }
+    ]);
+    pathsParser.mockImplementation(() => [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
+    loaderSpy.mockImplementation(() => Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
@@ -234,8 +224,6 @@ describe('RunDetails', () => {
     expect(tree.state('selectedTab')).toBe(1);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-
-    jest.resetAllMocks();
   });
 
   it('switches to config tab', async () => {
@@ -360,19 +348,21 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    pathsParser.mockImplementation(() => [['step1', { source: 'gcs', bucket: 'somebucket', key: 'somekey' }]]);
-    pathsWithStepsParser.mockImplementation(() => [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
+    pathsWithStepsParser.mockImplementation(() => [
+      { stepName: 'step1', path: { source: 'gcs', bucket: 'somebucket', key: 'somekey' } }
+    ]);
+    pathsParser.mockImplementation(() => [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
     loaderSpy.mockImplementation(() => Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(pathsParser).toHaveBeenCalledTimes(1); // Loading output list
     tree.find('Graph').simulate('click', 'node1');
     await pathsParser;
     await pathsWithStepsParser;
     await loaderSpy;
-    expect(pathsWithStepsParser).toHaveBeenCalledTimes(1);
-    expect(pathsWithStepsParser).toHaveBeenLastCalledWith({ id: 'node1' });
+    expect(pathsWithStepsParser).toHaveBeenCalledTimes(1); // Loading output list
+    expect(pathsParser).toHaveBeenCalledTimes(1);
+    expect(pathsParser).toHaveBeenLastCalledWith({ id: 'node1' });
     expect(loaderSpy).toHaveBeenCalledTimes(2);
     expect(loaderSpy).toHaveBeenLastCalledWith({ bucket: 'somebucket', key: 'somekey', source: 'gcs' });
     expect(tree.state('selectedNodeDetails')).toMatchObject({ id: 'node1' });

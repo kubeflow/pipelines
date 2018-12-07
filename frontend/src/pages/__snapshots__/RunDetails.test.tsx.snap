@@ -1540,7 +1540,7 @@ exports[`RunDetails switches to run output tab, shows empty message 1`] = `
         <span
           className="absoluteCenter"
         >
-          Not output artifacts found for this run.
+          No output artifacts found for this run.
         </span>
       </div>
     </div>

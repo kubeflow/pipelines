@@ -206,7 +206,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                 <div className={padding()}>
                   {!allArtifactConfigs.length && (
                     <span className={commonCss.absoluteCenter}>
-                      Not output artifacts found for this run.
+                      No output artifacts found for this run.
                     </span>
                   )}
 
@@ -321,7 +321,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
     const configLists = await Promise.all(outputPathsList.map(
-      ([stepName, path]) => OutputArtifactLoader.load(path)
+      ({ stepName, path }) => OutputArtifactLoader.load(path)
         .then(configs => configs.map(config => ({ config, stepName })))));
     const allArtifactConfigs = flatten(configLists);
 

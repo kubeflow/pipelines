@@ -163,17 +163,17 @@ export default class WorkflowParser {
   // Returns a list of output paths for the entire workflow, by searching all nodes in
   // the workflow, and parsing outputs for each.
   public static loadAllOutputPaths(workflow: Workflow): StoragePath[] {
-    return this.loadAllOutputPathsWithStepNames(workflow).map(entry => entry[1]);
+    return this.loadAllOutputPathsWithStepNames(workflow).map(entry => entry.path);
   }
 
   // Returns a list of object mapping a step name to output path for the entire workflow,
   // by searching all nodes in the workflow, and parsing outputs for each.
-  public static loadAllOutputPathsWithStepNames(workflow: Workflow): Array<[string, StoragePath]> {
-    const outputPaths: Array<[string, StoragePath]> = [];
+  public static loadAllOutputPathsWithStepNames(workflow: Workflow): Array<{ stepName: string, path: StoragePath }> {
+    const outputPaths: Array<{ stepName: string, path: StoragePath }> = [];
     if (workflow && workflow.status && workflow.status.nodes) {
       Object.keys(workflow.status.nodes).forEach(n =>
         this.loadNodeOutputPaths(workflow.status.nodes[n]).map(path =>
-          outputPaths.push([workflow.status.nodes[n].displayName, path])));
+          outputPaths.push({ stepName: workflow.status.nodes[n].displayName, path })));
     }
 
     return outputPaths;
