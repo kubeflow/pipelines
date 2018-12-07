@@ -56,3 +56,25 @@ def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-
         )
     
     return _use_gcp_secret
+
+def use_tpu(tpu_cores: int, tpu_resource: str, tf_version: str):
+    """An operator that configures GCP TPU spec in a container op.
+
+    Args:
+      tpu_cores: Required. The number of cores of TPU resource. 
+        For example, the value can be '8', '32', '128', etc.
+        Check more details at: https://cloud.google.com/tpu/docs/kubernetes-engine-setup#pod-spec.
+      tpu_resource: Required. The resource name of the TPU resource. 
+        For example, the value can be 'v2', 'preemptible-v1', 'v3' or 'preemptible-v3'.
+        Check more details at: https://cloud.google.com/tpu/docs/kubernetes-engine-setup#pod-spec.
+      tf_version: Required. The TensorFlow version that the TPU nodes use.
+        For example, the value can be '1.12', '1.11', '1.9' or '1.8'.
+        Check more details at: https://cloud.google.com/tpu/docs/supported-versions.
+    """
+
+    def _set_tpu_spec(task):
+        task.add_pod_annotation('tf-version.cloud-tpus.google.com', tf_version)
+        task.add_resource_limit('cloud-tpus.google.com/{}'.format(tpu_resource), str(tpu_cores))
+        return task
+
+    return _set_tpu_spec

@@ -14,6 +14,7 @@
 
 
 import kfp.dsl as dsl
+import kfp.gcp as gcp
 
 
 class GetFrequentWordOp(dsl.ContainerOp):
@@ -87,3 +88,4 @@ def save_most_frequent_word(message: str, outputpath: str):
     saver.set_cpu_limit('0.5')
     saver.set_gpu_limit('2')
     saver.add_node_selector_constraint('cloud.google.com/gke-accelerator', 'nvidia-tesla-k80')
+    saver.apply(gcp.use_tpu(tpu_cores = 8, tpu_resource = 'v2', tf_version = '1.12'))
