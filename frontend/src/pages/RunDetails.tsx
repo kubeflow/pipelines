@@ -24,6 +24,7 @@ import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
 import PlotCard from '../components/PlotCard';
 import RunUtils from '../lib/RunUtils';
+import Separator from '../atoms/Separator';
 import SidePanel from '../components/SidePanel';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
@@ -40,6 +41,7 @@ import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
+import { flatten } from 'lodash';
 import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
 
 enum SidePaneTab {
@@ -59,7 +61,13 @@ interface RunDetailsProps {
   runId?: string;
 }
 
+interface AnnotatedConfig {
+  config: ViewerConfig;
+  stepName: string;
+}
+
 interface RunDetailsState {
+  allArtifactConfigs: AnnotatedConfig[];
   experiment?: ApiExperiment;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
@@ -79,6 +87,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     super(props);
 
     this.state = {
+      allArtifactConfigs: [],
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
       logsBannerMode: 'error',
@@ -108,8 +117,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { graph, runMetadata, selectedTab, selectedNodeDetails, sidepanelSelectedTab,
-      workflow } = this.state;
+    const { allArtifactConfigs, graph, runMetadata, selectedTab, selectedNodeDetails,
+      sidepanelSelectedTab, workflow } = this.state;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
@@ -119,7 +128,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
         {!!workflow && (
           <div className={commonCss.page}>
-            <MD2Tabs selectedTab={selectedTab} tabs={['Graph', 'Config']}
+            <MD2Tabs selectedTab={selectedTab} tabs={['Graph', 'Run output', 'Config']}
               onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
 
@@ -193,14 +202,34 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                 {!graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
               </div>}
 
-              {selectedTab === 1 && <div className={padding()}>
-                <DetailsTable title='Run details' fields={this._getDetailsFields(workflow, runMetadata)} />
+              {selectedTab === 1 && (
+                <div className={padding()}>
+                  {!allArtifactConfigs.length && (
+                    <span className={commonCss.absoluteCenter}>
+                      No output artifacts found for this run.
+                    </span>
+                  )}
 
-                {workflowParameters && !!workflowParameters.length && (<div>
-                  <DetailsTable title='Run parameters'
-                    fields={workflowParameters.map(p => [p.name, p.value || ''])} />
-                </div>)}
-              </div>}
+                  {allArtifactConfigs.map((annotatedConfig, i) => <div key={i}>
+                    <PlotCard key={i} configs={[annotatedConfig.config]}
+                      title={annotatedConfig.stepName} maxDimension={400} />
+                    <Hr />
+                    <Separator orientation='vertical' />
+                  </div>
+                  )}
+                </div>
+              )}
+
+              {selectedTab === 2 && (
+                <div className={padding()}>
+                  <DetailsTable title='Run details' fields={this._getDetailsFields(workflow, runMetadata)} />
+
+                  {workflowParameters && !!workflowParameters.length && (<div>
+                    <DetailsTable title='Run parameters'
+                      fields={workflowParameters.map(p => [p.name, p.value || ''])} />
+                  </div>)}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -276,7 +305,27 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     // Make sure logs and artifacts in the side panel are refreshed when
     // the user hits "Refresh", either in the top toolbar or in an error banner.
-    this._loadSidePaneTab(this.state.sidepanelSelectedTab);
+    await this._loadSidePaneTab(this.state.sidepanelSelectedTab);
+
+    // Load all run's outputs
+    await this._loadAllOutputs();
+  }
+
+  private async _loadAllOutputs(): Promise<void> {
+    const workflow = this.state.workflow;
+
+    if (!workflow) {
+      return;
+    }
+
+    const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
+
+    const configLists = await Promise.all(outputPathsList.map(
+      ({ stepName, path }) => OutputArtifactLoader.load(path)
+        .then(configs => configs.map(config => ({ config, stepName })))));
+    const allArtifactConfigs = flatten(configLists);
+
+    this.setStateSafe({ allArtifactConfigs });
   }
 
   private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): string[][] {
@@ -290,12 +339,12 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     ];
   }
 
-  private _selectNode(id: string): void {
-    this.setStateSafe({ selectedNodeDetails: { id } }, () =>
-      this._loadSidePaneTab(this.state.sidepanelSelectedTab));
+  private async _selectNode(id: string): Promise<void> {
+    this.setStateSafe({ selectedNodeDetails: { id } }, async () =>
+      await this._loadSidePaneTab(this.state.sidepanelSelectedTab));
   }
 
-  private _loadSidePaneTab(tab: SidePaneTab): void {
+  private async _loadSidePaneTab(tab: SidePaneTab): Promise<void> {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
@@ -309,11 +358,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
       switch (tab) {
         case SidePaneTab.ARTIFACTS:
-          this._loadSelectedNodeOutputs();
+          await this._loadSelectedNodeOutputs();
           break;
         case SidePaneTab.LOGS:
           if (node.phase !== NodePhase.SKIPPED) {
-            this._loadSelectedNodeLogs();
+            await this._loadSelectedNodeLogs();
           } else {
             // Clear logs
             this.setStateSafe({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
@@ -327,23 +376,22 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     if (!selectedNodeDetails) {
       return;
     }
-    this.setStateSafe({ sidepanelBusy: true }, async () => {
-      const workflow = this.state.workflow;
-      if (workflow && workflow.status && workflow.status.nodes) {
-        // Load runtime outputs from the selected Node
-        const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
+    this.setStateSafe({ sidepanelBusy: true });
+    const workflow = this.state.workflow;
+    if (workflow && workflow.status && workflow.status.nodes) {
+      // Load runtime outputs from the selected Node
+      const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
 
-        // Load the viewer configurations from the output paths
-        let viewerConfigs: ViewerConfig[] = [];
-        for (const path of outputPaths) {
-          viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
-        }
-
-        selectedNodeDetails.viewerConfigs = viewerConfigs;
-        this.setStateSafe({ selectedNodeDetails });
+      // Load the viewer configurations from the output paths
+      let viewerConfigs: ViewerConfig[] = [];
+      for (const path of outputPaths) {
+        viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
-      this.setStateSafe({ sidepanelBusy: false });
-    });
+
+      selectedNodeDetails.viewerConfigs = viewerConfigs;
+      this.setStateSafe({ selectedNodeDetails });
+    }
+    this.setStateSafe({ sidepanelBusy: false });
   }
 
   private async _loadSelectedNodeLogs(): Promise<void> {
