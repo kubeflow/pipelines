@@ -25,7 +25,7 @@ import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import RunUtils from '../lib/RunUtils';
-import ResourceSelector, { BaseResource } from './ResourceSelector';
+import ResourceSelector from './ResourceSelector';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
 import WorkflowParser from '../lib/WorkflowParser';
@@ -37,13 +37,12 @@ import { Apis, PipelineSortKeys, ExperimentSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { Row } from '../components/CustomTable';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color } from '../Css';
-import { logger, errorToMessage, formatDateString } from '../lib/Utils';
+import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewRunState {
   clonedRunPipeline?: ApiPipeline;
@@ -188,9 +187,8 @@ class NewRun extends Page<{}, NewRunState> {
                 columns={this.pipelineSelectorColumns}
                 emptyMessage='No pipelines found. Upload a pipeline and then try again.'
                 initialSortColumn={PipelineSortKeys.CREATED_AT}
-                resourceToRow={this._resourceToRow}
                 selectionChanged={(selectedPipeline: ApiPipeline) =>
-                  this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })}/>
+                  this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })} />
             </DialogContent>
             <DialogActions>
               <Button id='cancelPipelineSelectionBtn' onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>
@@ -208,7 +206,7 @@ class NewRun extends Page<{}, NewRunState> {
             onClose={() => this._experimentSelectorClosed(false)}
             PaperProps={{ id: 'experimentSelectorDialog' }}>
             <DialogContent>
-            <ResourceSelector {...this.props}
+              <ResourceSelector {...this.props}
                 title='Choose an experiment'
                 listApi={async (...args) => {
                   const response = await Apis.experimentServiceApi.listExperiment(...args);
@@ -217,9 +215,8 @@ class NewRun extends Page<{}, NewRunState> {
                 columns={this.experimentSelectorColumns}
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
-                resourceToRow={this._resourceToRow}
                 selectionChanged={(selectedExperiment: ApiExperiment) =>
-                  this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment })}/>
+                  this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment })} />
             </DialogContent>
             <DialogActions>
               <Button id='cancelExperimentSelectionBtn' onClick={() => this._experimentSelectorClosed(false)} color='secondary'>
@@ -237,6 +234,7 @@ class NewRun extends Page<{}, NewRunState> {
           <Input label='Description (optional)' multiline={true}
             onChange={this.handleChange('description')} value={description} />
 
+          <div>This run will be associated with the following experiment</div>
           <Input value={experimentName} required={true} label='Experiment' disabled={true}
             InputProps={{
               classes: { disabled: css.nonEditableInput },
@@ -405,19 +403,6 @@ class NewRun extends Page<{}, NewRunState> {
     // Now that we may have a pipeline, update the validation.
     this._validate();
   }
-
-  /* This function is passed as a callback to the selector dialogs to facilitate rendering */
-  protected _resourceToRow = (r: BaseResource) => {
-    return {
-      error: (r as any).error,
-      id: r.id!,
-      otherFields: [
-        r.name,
-        r.description,
-        formatDateString(r.created_at),
-      ],
-    } as Row;
-  };
 
   private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
     if (!originalRun.run) {

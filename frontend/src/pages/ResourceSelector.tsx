@@ -19,7 +19,7 @@ import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
 import { ListRequest } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
-import { logger, errorToMessage } from '../lib/Utils';
+import { logger, errorToMessage, formatDateString } from '../lib/Utils';
 import { DialogProps } from '../components/Router';
 
 interface BaseResponse {
@@ -40,7 +40,6 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   columns: Column[];
   emptyMessage: string;
   initialSortColumn: any;
-  resourceToRow: (resource: BaseResource) => Row;
   selectionChanged: (resource: BaseResource) => void;
   title: string;
   updateDialog: (dialogProps: DialogProps) => void;
@@ -115,7 +114,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
       this.setStateSafe({
         resources: response.resources,
-        rows: response.resources.map((r) => this.props.resourceToRow(r))
+        rows: this._resourcesToRow(response.resources)
       });
 
       nextPageToken = response.nextPageToken;
@@ -129,6 +128,18 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       logger.error('Could not get requested list of resources', errorMessage);
     }
     return nextPageToken;
+  }
+
+  protected _resourcesToRow(resources: BaseResource[]): Row[] {
+    return resources.map((r) => ({
+      error: (r as any).error,
+      id: r.id!,
+      otherFields: [
+        r.name,
+        r.description,
+        formatDateString(r.created_at),
+      ],
+    } as Row));
   }
 }
 

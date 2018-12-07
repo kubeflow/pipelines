@@ -24,7 +24,6 @@ import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline } from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
-import { Row } from '../components/CustomTable';
 
 class TestNewRun extends NewRun {
   public async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
@@ -33,10 +32,6 @@ class TestNewRun extends NewRun {
 
   public async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
     return await super._pipelineSelectorClosed(confirmed);
-  }
-
-  public callResourceToRow(r: ApiExperiment | ApiPipeline): Row {
-    return this._resourceToRow(r);
   }
 }
 
@@ -396,28 +391,6 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
     });
 
-    it('converts an ApiPipeline into a Row for displaying in the selector table', () => {
-      tree = shallow(<TestNewRun {...generateProps()} />);
-      const instance = tree.instance() as TestNewRun;
-
-      const pipeline = {
-        created_at: new Date(2018, 1, 2, 3, 4, 5),
-        description: 'a pipeline description',
-        id: 'a-pipeline-id',
-        name: 'a pipeline name',
-      };
-      expect(instance.callResourceToRow(pipeline)).toEqual({
-        error: undefined,
-        id: 'a-pipeline-id',
-        otherFields: [
-          'a pipeline name',
-          'a pipeline description',
-          '2/2/2018, 3:04:05 AM',
-        ],
-      });
-    });
-  });
-
   describe('choosing an experiment', () => {
     it('opens up the experiment selector modal when users clicks \'Choose\'', async () => {
       tree = TestUtils.mountWithRouter(<TestNewRun {...generateProps() as any} />);
@@ -496,27 +469,6 @@ describe('NewRun', () => {
       expect(tree.state('experimentName')).toEqual(oldExperiment.name);
       expect(tree.state('experimentSelectorOpen')).toBe(false);
       await TestUtils.flushPromises();
-    });
-
-    it('converts an ApiExperiment into a Row for displaying in the selector table', () => {
-      tree = shallow(<TestNewRun {...generateProps()} />);
-      const instance = tree.instance() as TestNewRun;
-
-      const experiment = {
-        created_at: new Date(2018, 1, 2, 3, 4, 5),
-        description: 'a experiment description',
-        id: 'a-experiment-id',
-        name: 'a experiment name',
-      };
-      expect(instance.callResourceToRow(experiment)).toEqual({
-        error: undefined,
-        id: 'a-experiment-id',
-        otherFields: [
-          'a experiment name',
-          'a experiment description',
-          '2/2/2018, 3:04:05 AM',
-        ],
-      });
     });
   });
 

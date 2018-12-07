@@ -19,15 +19,19 @@ import ResourceSelector, { ResourceSelectorProps, BaseResource } from './Resourc
 import TestUtils from '../TestUtils';
 import { ListRequest } from '../lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
-import { formatDateString } from '../lib/Utils';
 import { Row } from '../components/CustomTable';
 
 class TestResourceSelector extends ResourceSelector {
   public async _load(request: ListRequest): Promise<string> {
     return super._load(request);
   }
+
   public _selectionChanged(selectedIds: string[]): void {
     return super._selectionChanged(selectedIds);
+  }
+
+  public _resourcesToRow(resources: BaseResource[]): Row[] {
+    return super._resourcesToRow(resources);
   }
 }
 
@@ -60,18 +64,6 @@ describe('ResourceSelector', () => {
   const testEmptyMessage = 'Test - Sorry, no resources.';
   const testTitle = 'A test selector';
 
-  const resourceToRow = (r: BaseResource) => {
-    return {
-      error: (r as any).error,
-      id: r.id!,
-      otherFields: [
-        r.name,
-        r.description,
-        formatDateString(r.created_at),
-      ],
-    } as Row;
-  };
-
   function generateProps(): ResourceSelectorProps {
     return {
       columns: selectorColumns,
@@ -81,7 +73,6 @@ describe('ResourceSelector', () => {
       listApi: listResourceSpy as any,
       location: '' as any,
       match: {} as any,
-      resourceToRow,
       selectionChanged: selectionChangedCbSpy,
       title: testTitle,
       updateDialog: updateDialogSpy,
@@ -101,12 +92,7 @@ describe('ResourceSelector', () => {
   });
 
   it('displays resource selector', async () => {
-    const props = generateProps();
-    props.columns = selectorColumns;
-    props.listApi = listResourceSpy as any;
-    props.initialSortColumn = 'created_at';
-
-    tree = shallow(<TestResourceSelector {...props} />);
+    tree = shallow(<TestResourceSelector {...generateProps()} />);
     await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listResourceSpy).toHaveBeenCalledTimes(1);
@@ -115,10 +101,8 @@ describe('ResourceSelector', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('calls the provided helper function for converting a resource into a table row', async () => {
+  it('converts resources into a table rows', async () => {
     const props = generateProps();
-    props.columns = selectorColumns;
-    props.initialSortColumn = 'created_at';
     const resources: BaseResource[] = [
       {
         created_at: new Date(2018, 1, 2, 3, 4, 5),
@@ -130,25 +114,14 @@ describe('ResourceSelector', () => {
     listResourceSpy.mockImplementationOnce(() => ({ resources, nextPageToken: '' }));
     props.listApi = listResourceSpy as any;
 
-    props.resourceToRow = (r: BaseResource) => {
-      return {
-        id: r.id! + ' - test',
-        otherFields: [
-          r.name + ' - test',
-          r.description + ' - test',
-          formatDateString(r.created_at),
-        ],
-      } as Row;
-    };
-
     tree = shallow(<TestResourceSelector {...props} />);
     await (tree.instance() as TestResourceSelector)._load({});
 
     expect(tree.state('rows')).toEqual([{
-      id: 'an-id - test',
+      id: 'an-id',
       otherFields: [
-        'a name - test',
-        'a description - test',
+        'a name',
+        'a description',
         '2/2/2018, 3:04:05 AM',
       ],
     }]);

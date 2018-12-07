@@ -93,7 +93,6 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -223,7 +222,6 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -316,6 +314,9 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -386,7 +387,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
 </div>
 `;
 
-exports[`NewRun cloning from a run shows pipeline selector when switching from embedded pipeline to select pipeline 1`] = `
+exports[`NewRun choosing a pipeline cloning from a run shows pipeline selector when switching from embedded pipeline to select pipeline 1`] = `
 <div
   className="page"
 >
@@ -505,7 +506,6 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -631,7 +631,6 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -720,6 +719,9 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -788,7 +790,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
 </div>
 `;
 
-exports[`NewRun cloning from a run shows switching controls when run has embedded pipeline, selects that pipeline by default, and hides pipeline selector 1`] = `
+exports[`NewRun choosing a pipeline cloning from a run shows switching controls when run has embedded pipeline, selects that pipeline by default, and hides pipeline selector 1`] = `
 <div
   className="page"
 >
@@ -876,7 +878,6 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -1002,7 +1003,6 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -1091,6 +1091,9 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -1159,7 +1162,7 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
 </div>
 `;
 
-exports[`NewRun creating a new recurring run includes additional trigger input fields if run will be recurring 1`] = `
+exports[`NewRun choosing a pipeline creating a new recurring run includes additional trigger input fields if run will be recurring 1`] = `
 <div
   className="page"
 >
@@ -1252,7 +1255,6 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -1378,7 +1380,6 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -1467,6 +1468,9 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -1545,7 +1549,7 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
 </div>
 `;
 
-exports[`NewRun creating a new run copies pipeline from run in the create API call when cloning a run with embedded pipeline 1`] = `
+exports[`NewRun choosing a pipeline creating a new run copies pipeline from run in the create API call when cloning a run with embedded pipeline 1`] = `
 <div
   className="page"
 >
@@ -1639,7 +1643,6 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -1782,7 +1785,6 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -1882,6 +1884,9 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -1950,7 +1955,7 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
 </div>
 `;
 
-exports[`NewRun creating a new run updates the pipeline in state when a user fills in its params 1`] = `
+exports[`NewRun choosing a pipeline creating a new run updates the pipeline in state when a user fills in its params 1`] = `
 <div
   className="page"
 >
@@ -2049,7 +2054,6 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -2192,7 +2196,6 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -2292,6 +2295,9 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -2396,7 +2402,7 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
 </div>
 `;
 
-exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 1`] = `
+exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 1`] = `
 <div
   className="page"
 >
@@ -2489,7 +2495,6 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -2619,7 +2624,6 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -2712,6 +2716,9 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -2782,7 +2789,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
 </div>
 `;
 
-exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 2`] = `
+exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 2`] = `
 <div
   className="page"
 >
@@ -2875,7 +2882,6 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -3005,7 +3011,6 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -3098,6 +3103,9 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -3204,7 +3212,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
 </div>
 `;
 
-exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 3`] = `
+exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 3`] = `
 <div
   className="page"
 >
@@ -3297,7 +3305,6 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -3427,7 +3434,6 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -3520,6 +3526,9 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -3683,7 +3692,6 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -3809,7 +3817,6 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -3898,6 +3905,9 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -4061,7 +4071,6 @@ exports[`NewRun renders the new run page 1`] = `
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -4191,7 +4200,6 @@ exports[`NewRun renders the new run page 1`] = `
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -4284,6 +4292,9 @@ exports[`NewRun renders the new run page 1`] = `
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
@@ -4447,7 +4458,6 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose a pipeline"
           toolbarProps={
@@ -4577,7 +4587,6 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             }
           }
           match=""
-          resourceToRow={[Function]}
           selectionChanged={[Function]}
           title="Choose an experiment"
           toolbarProps={
@@ -4670,6 +4679,9 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       onChange={[Function]}
       value=""
     />
+    <div>
+      This run will be associated with the following experiment
+    </div>
     <Component
       InputProps={
         Object {
