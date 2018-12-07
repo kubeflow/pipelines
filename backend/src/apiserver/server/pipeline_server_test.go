@@ -26,7 +26,10 @@ func TestCreatePipeline_YAML(t *testing.T) {
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
 	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
-		Url: &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"}, Name: "argument-parameters"})
+		Pipeline: &api.Pipeline{
+			Url:&api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+			Name:"argument-parameters",
+		}})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
@@ -50,7 +53,10 @@ func TestCreatePipeline_Tarball(t *testing.T) {
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
 	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
-		Url: &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"}, Name: "argument-parameters"})
+		Pipeline: &api.Pipeline{
+			Url:&api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
+			Name:"argument-parameters",
+		}})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
@@ -74,7 +80,10 @@ func TestCreatePipeline_InvalidYAML(t *testing.T) {
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
 	_, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
-		Url: &api.Url{PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"}, Name: "argument-parameters"})
+		Pipeline: &api.Pipeline{
+			Url:&api.Url{PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
+			Name:"argument-parameters",
+		}})
 
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
@@ -91,8 +100,10 @@ func TestCreatePipeline_InvalidURL(t *testing.T) {
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
 	_, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
-		Url: &api.Url{PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"}, Name: "argument-parameters"})
-
+		Pipeline: &api.Pipeline{
+			Url:&api.Url{PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
+			Name:"argument-parameters",
+		}})
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 

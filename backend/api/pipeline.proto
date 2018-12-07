@@ -60,7 +60,7 @@ service PipelineService {
   rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       post: "/apis/v1beta1/pipelines"
-      body: "url"
+      body: "pipeline"
     };
   }
 
@@ -97,8 +97,7 @@ message Url{
 // and optionally a pipeline name. If name is not provided, file name is used as
 // pipeline name by default. Maximum size of 32MB is supported.
 message CreatePipelineRequest{
-  Url url = 1;
-  string name = 2;
+  Pipeline pipeline = 1;
 }
 
 message GetPipelineRequest {
@@ -136,6 +135,7 @@ message Pipeline{
   string name = 3;
   string description = 4;
   repeated Parameter parameters = 5;
+  Url url = 7;
 
   // In case any error happens retrieving a pipeline field, only pipeline ID
   // and the error message is returned. Client has the flexibility of choosing

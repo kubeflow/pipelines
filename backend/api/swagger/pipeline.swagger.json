@@ -80,7 +80,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiUrl"
+              "$ref": "#/definitions/apiPipeline"
             }
           }
         ],
@@ -233,6 +233,9 @@
           "items": {
             "$ref": "#/definitions/apiParameter"
           }
+        },
+        "url": {
+          "$ref": "#/definitions/apiUrl"
         },
         "error": {
           "type": "string",
