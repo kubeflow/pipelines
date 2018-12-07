@@ -211,8 +211,8 @@ describe('RunDetails', () => {
     const tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 1);
-    expect(tree.state('selectedTab')).toBe(1);
+    tree.find('MD2Tabs').simulate('switch', 2);
+    expect(tree.state('selectedTab')).toBe(2);
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });
@@ -242,8 +242,8 @@ describe('RunDetails', () => {
     const tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 1);
-    expect(tree.state('selectedTab')).toBe(1);
+    tree.find('MD2Tabs').simulate('switch', 2);
+    expect(tree.state('selectedTab')).toBe(2);
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });
@@ -263,8 +263,8 @@ describe('RunDetails', () => {
     const tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 1);
-    expect(tree.state('selectedTab')).toBe(1);
+    tree.find('MD2Tabs').simulate('switch', 2);
+    expect(tree.state('selectedTab')).toBe(2);
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });
@@ -280,8 +280,8 @@ describe('RunDetails', () => {
     const tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    tree.find('MD2Tabs').simulate('switch', 1);
-    expect(tree.state('selectedTab')).toBe(1);
+    tree.find('MD2Tabs').simulate('switch', 2);
+    expect(tree.state('selectedTab')).toBe(2);
     expect(tree).toMatchSnapshot();
     tree.unmount();
   });
@@ -336,19 +336,23 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    const parserSpy = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths').mockImplementationOnce(() =>
+    const pathsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames').mockImplementation(() =>
+      [['step1', { source: 'gcs', bucket: 'somebucket', key: 'somekey' }]]);
+    const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths').mockImplementation(() =>
       [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
-    const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load').mockImplementationOnce(() =>
-      [{ type: PlotType.TENSORBOARD, url: 'some url' }]);
+    const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load').mockImplementation(() =>
+      Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
     const tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
+    expect(pathsParser).toHaveBeenCalledTimes(1); // Loading output list
     tree.find('Graph').simulate('click', 'node1');
-    await parserSpy;
+    await pathsParser;
+    await pathsWithStepsParser;
     await loaderSpy;
-    expect(parserSpy).toHaveBeenCalledTimes(1);
-    expect(parserSpy).toHaveBeenLastCalledWith({ id: 'node1' });
-    expect(loaderSpy).toHaveBeenCalledTimes(1);
+    expect(pathsWithStepsParser).toHaveBeenCalledTimes(1);
+    expect(pathsWithStepsParser).toHaveBeenLastCalledWith({ id: 'node1' });
+    expect(loaderSpy).toHaveBeenCalledTimes(2);
     expect(loaderSpy).toHaveBeenLastCalledWith({ bucket: 'somebucket', key: 'somekey', source: 'gcs' });
     expect(tree.state('selectedNodeDetails')).toMatchObject({ id: 'node1' });
     expect(tree).toMatchSnapshot();

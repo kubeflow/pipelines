@@ -13,6 +13,7 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -79,6 +80,7 @@ exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -177,6 +179,7 @@ exports[`RunDetails keeps side pane open and on same tab when logs change after 
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -349,6 +352,7 @@ exports[`RunDetails loads and shows logs in side pane 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -447,6 +451,7 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -536,6 +541,7 @@ exports[`RunDetails renders an empty run 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -574,6 +580,7 @@ exports[`RunDetails shows a one-node graph 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -640,6 +647,7 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -733,6 +741,7 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -841,6 +850,7 @@ exports[`RunDetails shows error banner atop logs area if fetching logs failed 1`
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -970,10 +980,11 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
   >
     <MD2Tabs
       onSwitch={[Function]}
-      selectedTab={1}
+      selectedTab={2}
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -1030,10 +1041,11 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
   >
     <MD2Tabs
       onSwitch={[Function]}
-      selectedTab={1}
+      selectedTab={2}
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -1090,10 +1102,11 @@ exports[`RunDetails shows run config fields 1`] = `
   >
     <MD2Tabs
       onSwitch={[Function]}
-      selectedTab={1}
+      selectedTab={2}
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -1204,10 +1217,11 @@ exports[`RunDetails switches to config tab 1`] = `
   >
     <MD2Tabs
       onSwitch={[Function]}
-      selectedTab={1}
+      selectedTab={2}
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -1241,6 +1255,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }
@@ -1357,6 +1372,7 @@ exports[`RunDetails switches to logs tab in side pane 1`] = `
       tabs={
         Array [
           "Graph",
+          "Run output",
           "Config",
         ]
       }

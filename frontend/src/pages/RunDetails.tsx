@@ -67,7 +67,7 @@ interface AnnotatedConfig {
 }
 
 interface RunDetailsState {
-  artifactConfigs: AnnotatedConfig[];
+  allArtifactConfigs: AnnotatedConfig[];
   experiment?: ApiExperiment;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
@@ -87,7 +87,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     super(props);
 
     this.state = {
-      artifactConfigs: [],
+      allArtifactConfigs: [],
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
       logsBannerMode: 'error',
@@ -117,7 +117,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { artifactConfigs, graph, runMetadata, selectedTab, selectedNodeDetails,
+    const { allArtifactConfigs, graph, runMetadata, selectedTab, selectedNodeDetails,
       sidepanelSelectedTab, workflow } = this.state;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
@@ -204,7 +204,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
               {selectedTab === 1 && (
                 <div className={padding()}>
-                  {artifactConfigs.map((annotatedConfig, i) => <div key={i}>
+                  {allArtifactConfigs.map((annotatedConfig, i) => <div key={i}>
                     <PlotCard key={i} configs={[annotatedConfig.config]}
                       title={annotatedConfig.stepName} maxDimension={400} />
                     <Hr />
@@ -299,12 +299,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     // Make sure logs and artifacts in the side panel are refreshed when
     // the user hits "Refresh", either in the top toolbar or in an error banner.
-    this._loadSidePaneTab(this.state.sidepanelSelectedTab);
+    await this._loadSidePaneTab(this.state.sidepanelSelectedTab);
 
-    this._loadOutputs();
+    // Load all run's outputs
+    await this._loadAllOutputs();
   }
 
-  private async _loadOutputs(): Promise<void> {
+  private async _loadAllOutputs(): Promise<void> {
     const workflow = this.state.workflow;
 
     if (!workflow) {
@@ -316,9 +317,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     const configLists = await Promise.all(outputPathsList.map(
       ([stepName, path]) => OutputArtifactLoader.load(path)
         .then(configs => configs.map(config => ({ config, stepName })))));
-    const artifactConfigs = flatten(configLists);
+    const allArtifactConfigs = flatten(configLists);
 
-    this.setStateSafe({ artifactConfigs });
+    this.setStateSafe({ allArtifactConfigs });
   }
 
   private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): string[][] {
@@ -332,12 +333,12 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     ];
   }
 
-  private _selectNode(id: string): void {
-    this.setStateSafe({ selectedNodeDetails: { id } }, () =>
-      this._loadSidePaneTab(this.state.sidepanelSelectedTab));
+  private async _selectNode(id: string): Promise<void> {
+    this.setStateSafe({ selectedNodeDetails: { id } }, async () =>
+      await this._loadSidePaneTab(this.state.sidepanelSelectedTab));
   }
 
-  private _loadSidePaneTab(tab: SidePaneTab): void {
+  private async _loadSidePaneTab(tab: SidePaneTab): Promise<void> {
     const workflow = this.state.workflow;
     const selectedNodeDetails = this.state.selectedNodeDetails;
     if (workflow && workflow.status && workflow.status.nodes && selectedNodeDetails) {
@@ -351,11 +352,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
       switch (tab) {
         case SidePaneTab.ARTIFACTS:
-          this._loadSelectedNodeOutputs();
+          await this._loadSelectedNodeOutputs();
           break;
         case SidePaneTab.LOGS:
           if (node.phase !== NodePhase.SKIPPED) {
-            this._loadSelectedNodeLogs();
+            await this._loadSelectedNodeLogs();
           } else {
             // Clear logs
             this.setStateSafe({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
@@ -369,23 +370,22 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     if (!selectedNodeDetails) {
       return;
     }
-    this.setStateSafe({ sidepanelBusy: true }, async () => {
-      const workflow = this.state.workflow;
-      if (workflow && workflow.status && workflow.status.nodes) {
-        // Load runtime outputs from the selected Node
-        const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
+    this.setStateSafe({ sidepanelBusy: true });
+    const workflow = this.state.workflow;
+    if (workflow && workflow.status && workflow.status.nodes) {
+      // Load runtime outputs from the selected Node
+      const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
 
-        // Load the viewer configurations from the output paths
-        let viewerConfigs: ViewerConfig[] = [];
-        for (const path of outputPaths) {
-          viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
-        }
-
-        selectedNodeDetails.viewerConfigs = viewerConfigs;
-        this.setStateSafe({ selectedNodeDetails });
+      // Load the viewer configurations from the output paths
+      let viewerConfigs: ViewerConfig[] = [];
+      for (const path of outputPaths) {
+        viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
-      this.setStateSafe({ sidepanelBusy: false });
-    });
+
+      selectedNodeDetails.viewerConfigs = viewerConfigs;
+      this.setStateSafe({ selectedNodeDetails });
+    }
+    this.setStateSafe({ sidepanelBusy: false });
   }
 
   private async _loadSelectedNodeLogs(): Promise<void> {
