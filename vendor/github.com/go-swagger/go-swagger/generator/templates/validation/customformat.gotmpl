@@ -1,0 +1,11 @@
+{{ if ne .SwaggerFormat "byte" -}}
+  {{- if .IsAliased }}
+  if err := validate.FormatOf({{ if .Path }}{{ .Path }}{{ else }}""{{ end }}, {{ printf "%q" .Location }}, {{ printf "%q" .SwaggerFormat }}, {{ .AliasedType }}({{.ValueExpression }}).String(), formats); err != nil {
+  {{- else }}
+  if err := validate.FormatOf({{ if .Path }}{{ .Path }}{{ else }}""{{ end }}, {{ printf "%q" .Location }}, {{ printf "%q" .SwaggerFormat }}, {{.ValueExpression }}.String(), formats); err != nil {
+  {{- end }}
+  return err
+  }
+{{- else }}
+  // Format "byte" (base64 string) is already validated when unmarshalled
+{{- end }}
