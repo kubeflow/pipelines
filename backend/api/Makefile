@@ -12,33 +12,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-all:
+
+# Building requires protobuf version 3.6.0 or above. Unzip this directory to a
+# suitable location and modify the values of the following two variables before
+# running make.
+protocompiler = ${HOME}/protobuf-3.6.1/bin/protoc
+protoinclude = ${HOME}/protobuf-3.6.1/include
+
+TMPDIR := $(shell mktemp -d)
+
+default: all
+
+dependencies:
+	@echo "Using temporary directory: $(TMPDIR)"
+	GOBIN=$(TMPDIR) go install ../../vendor/github.com/go-swagger/go-swagger/cmd/swagger
+	GOBIN=$(TMPDIR) go install ../../vendor/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	GOBIN=$(TMPDIR) go install ../../vendor/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+	GOBIN=$(TMPDIR) go install ../../vendor/github.com/golang/protobuf/protoc-gen-go
+
+all: dependencies
 
 	# Delete currently generated code.
-	rm -r ./go_http_client/*
-	rm -r ./go_client/*
+	rm -r -f go_http_client/*
+	rm -r -f go_client/*
 
 	# Compile the *.proto files into *.pb.go (grpc client).
-	protoc -I/usr/local/include -I. \
-		-I${GOPATH}/src \
-		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/ \
+	$(protocompiler) -I$(protoinclude) -I/usr/local/include -I. \
+		-I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+		-I../../vendor/github.com/grpc-ecosystem/grpc-gateway/ \
+		--plugin=protoc-gen-go=${TMPDIR}/protoc-gen-go \
 		--go_out=plugins=grpc:go_client \
 		*.proto
 
 	# Compile the *.proto files into *.pb.gw.go (grpc client).
-	protoc -I/usr/local/include -I. \
-		-I${GOPATH}/src \
-		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/ \
+	$(protocompiler) -I$(protoinclude) -I/usr/local/include -I. \
+		-I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+		-I../../vendor/github.com/grpc-ecosystem/grpc-gateway/ \
+		--plugin=protoc-gen-grpc-gateway=${TMPDIR}/protoc-gen-grpc-gateway \
 		--grpc-gateway_out=logtostderr=true:go_client \
 		*.proto
 
   # Compile the *.proto files into *.swagger.json (swagger specification).
-	protoc -I/usr/local/include -I. \
-		-I${GOPATH}/src \
-		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-		-I${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/ \
+	$(protocompiler) -I$(protoinclude) -I/usr/local/include -I. \
+		-I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+		-I../../vendor/github.com/grpc-ecosystem/grpc-gateway/ \
+		--plugin=protoc-gen-swagger=${TMPDIR}/protoc-gen-swagger \
 		--swagger_out=logtostderr=true:swagger \
 		*.proto
 
@@ -47,35 +65,35 @@ all:
 	# https://github.com/go-swagger/go-swagger
 	# swagger v0.17.0 was last used.
 
-	swagger generate client \
+	$(TMPDIR)/swagger generate client \
 		-f swagger/job.swagger.json \
 		-A job \
 		--principal models.Principal \
 		-c job_client \
 		-m job_model \
 		-t go_http_client
-	swagger generate client \
+	$(TMPDIR)/swagger generate client \
 		-f swagger/run.swagger.json \
 		-A run \
 		--principal models.Principal \
 		-c run_client \
 		-m run_model \
 		-t go_http_client
-	swagger generate client \
+	$(TMPDIR)/swagger generate client \
 		-f swagger/experiment.swagger.json \
 		-A experiment \
 		--principal models.Principal \
 		-c experiment_client \
 		-m experiment_model \
 		-t go_http_client
-	swagger generate client \
+	$(TMPDIR)/swagger generate client \
 		-f swagger/pipeline.upload.swagger.json \
 		-A pipeline_upload \
 		--principal models.Principal \
 		-c pipeline_upload_client \
 		-m pipeline_upload_model \
 		-t go_http_client
-	swagger generate client \
+	$(TMPDIR)/swagger generate client \
 		-f swagger/pipeline.swagger.json \
 		-A pipeline \
 		--principal models.Principal \
@@ -97,3 +115,6 @@ all:
 	# Instructions to install the 'autogen' command are located here:
 	# https://github.com/mbrukman/autogen
 	find ./ -name "*.go" -exec autogen.sh -i --no-tlc -c "Google LLC" -l apache {} \;
+
+	@echo "Cleaning $(TMPDIR)"
+	rm -r -f $(TMPDIR)
