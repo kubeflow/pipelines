@@ -25,7 +25,7 @@ import { PageProps } from './Page';
 import { PlotType } from '../components/viewers/Viewer';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
-import { shallow } from 'enzyme';
+import { shallow, ShallowWrapper } from 'enzyme';
 
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -41,6 +41,7 @@ describe('RunDetails', () => {
   const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
 
   let testRun: ApiRunDetail = {};
+  let tree: ShallowWrapper;
 
   function generateProps(): PageProps {
     const pageProps: PageProps = {
@@ -59,7 +60,10 @@ describe('RunDetails', () => {
   }
 
   beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
-  afterAll(() => jest.resetAllMocks());
+  afterAll(() => {
+    jest.resetAllMocks();
+    tree.unmount();
+  });
 
   beforeEach(() => {
     testRun = {
@@ -98,26 +102,24 @@ describe('RunDetails', () => {
   });
 
   it('shows success run status in page title', async () => {
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     const lastCall = updateToolbarSpy.mock.calls[2][0];
     expect(lastCall.pageTitle).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows failure run status in page title', async () => {
     testRun.run!.status = 'Failed';
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     const lastCall = updateToolbarSpy.mock.calls[2][0];
     expect(lastCall.pageTitle).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('has a refresh button, clicking it calls get run API again', async () => {
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as RunDetails;
@@ -127,11 +129,10 @@ describe('RunDetails', () => {
     expect(getRunSpy).toHaveBeenCalledTimes(1);
     await refreshBtn!.action();
     expect(getRunSpy).toHaveBeenCalledTimes(2);
-    tree.unmount();
   });
 
   it('has a clone button, clicking it navigates to new run page', async () => {
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as RunDetails;
@@ -142,28 +143,25 @@ describe('RunDetails', () => {
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testRun.run!.id}`);
-    tree.unmount();
   });
 
   it('renders an empty run', async () => {
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('calls the get run API once to load it', async () => {
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(getRunSpy).toHaveBeenCalledTimes(1);
     expect(getRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
-    tree.unmount();
   });
 
   it('shows an error banner if get run API fails', async () => {
     TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
@@ -172,13 +170,12 @@ describe('RunDetails', () => {
       message: 'Error: failed to retrieve run: ' + testRun.run!.id + '. Click Details for more information.',
       mode: 'error',
     }));
-    tree.unmount();
   });
 
   it('shows an error banner if get experiment API fails', async () => {
     testRun.run!.resource_references = [{ key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } }];
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
@@ -187,24 +184,22 @@ describe('RunDetails', () => {
       message: 'Error: failed to retrieve run: ' + testRun.run!.id + '. Click Details for more information.',
       mode: 'error',
     }));
-    tree.unmount();
   });
 
   it('calls the get experiment API once to load it if the run has its reference', async () => {
     testRun.run!.resource_references = [{ key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } }];
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(getRunSpy).toHaveBeenCalledTimes(1);
     expect(getRunSpy).toHaveBeenLastCalledWith(testRun.run!.id);
     expect(getExperimentSpy).toHaveBeenCalledTimes(1);
     expect(getExperimentSpy).toHaveBeenLastCalledWith('experiment1');
-    tree.unmount();
   });
 
   it('shows workflow errors as page error', async () => {
     jest.spyOn(WorkflowParser, 'getWorkflowError').mockImplementationOnce(() => 'some error message');
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear on init, once for error
@@ -213,18 +208,16 @@ describe('RunDetails', () => {
       message: 'Error: found errors when executing run: ' + testRun.run!.id + '. Click Details for more information.',
       mode: 'error',
     }));
-    tree.unmount();
   });
 
   it('switches to run output tab', async () => {
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('MD2Tabs').simulate('switch', 1);
     expect(tree.state('selectedTab')).toBe(1);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('loads the run\'s outputs in the output tab', async () => {
@@ -234,7 +227,7 @@ describe('RunDetails', () => {
       [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
     jest.spyOn(OutputArtifactLoader, 'load').mockImplementation(() =>
       Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('MD2Tabs').simulate('switch', 1);
@@ -243,17 +236,15 @@ describe('RunDetails', () => {
     expect(tree).toMatchSnapshot();
 
     jest.resetAllMocks();
-    tree.unmount();
   });
 
   it('switches to config tab', async () => {
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('MD2Tabs').simulate('switch', 2);
     expect(tree.state('selectedTab')).toBe(2);
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows run config fields', async () => {
@@ -278,13 +269,12 @@ describe('RunDetails', () => {
         startedAt: new Date(2018, 6, 5, 4, 3, 2).toISOString(),
       },
     } as Workflow);
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('MD2Tabs').simulate('switch', 2);
     expect(tree.state('selectedTab')).toBe(2);
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows run config fields - handles no description', async () => {
@@ -299,13 +289,12 @@ describe('RunDetails', () => {
         startedAt: new Date(2018, 6, 5, 4, 3, 2).toISOString(),
       },
     } as Workflow);
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('MD2Tabs').simulate('switch', 2);
     expect(tree.state('selectedTab')).toBe(2);
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows run config fields - handles no metadata', async () => {
@@ -316,37 +305,34 @@ describe('RunDetails', () => {
         startedAt: new Date(2018, 6, 5, 4, 3, 2).toISOString(),
       },
     } as Workflow);
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('MD2Tabs').simulate('switch', 2);
     expect(tree.state('selectedTab')).toBe(2);
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows a one-node graph', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('opens side panel when graph node is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows clicked node message in side panel', async () => {
@@ -361,14 +347,13 @@ describe('RunDetails', () => {
         },
       },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage',
       'This step is in ' + testRun.run!.status + ' state with this message: some test message');
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows clicked node output in side pane', async () => {
@@ -378,7 +363,7 @@ describe('RunDetails', () => {
     pathsParser.mockImplementation(() => [['step1', { source: 'gcs', bucket: 'somebucket', key: 'somekey' }]]);
     pathsWithStepsParser.mockImplementation(() => [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
     loaderSpy.mockImplementation(() => Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     expect(pathsParser).toHaveBeenCalledTimes(1); // Loading output list
@@ -392,7 +377,6 @@ describe('RunDetails', () => {
     expect(loaderSpy).toHaveBeenLastCalledWith({ bucket: 'somebucket', key: 'somekey', source: 'gcs' });
     expect(tree.state('selectedNodeDetails')).toMatchObject({ id: 'node1' });
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('switches to inputs/outputs tab in side pane', async () => {
@@ -418,7 +402,7 @@ describe('RunDetails', () => {
         },
       },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -426,28 +410,26 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
     expect(tree.state('sidepanelSelectedTab')).toEqual(1);
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('switches to logs tab in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
     tree.find('MD2Tabs').at(1).simulate('switch', 2);
     expect(tree.state('sidepanelSelectedTab')).toEqual(2);
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('loads and shows logs in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -456,7 +438,6 @@ describe('RunDetails', () => {
     expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
     expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1');
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows error banner atop logs area if fetching logs failed', async () => {
@@ -464,7 +445,7 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
     TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -477,7 +458,6 @@ describe('RunDetails', () => {
       logsBannerMode: 'error',
     });
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('does not load logs if clicked node status is skipped', async () => {
@@ -491,7 +471,7 @@ describe('RunDetails', () => {
         },
       },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -504,14 +484,13 @@ describe('RunDetails', () => {
       logsBannerMessage: '',
     });
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('closes side panel when close button is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -521,14 +500,13 @@ describe('RunDetails', () => {
     expect(tree.state('selectedNodeDetails')).toBeNull();
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('keeps side pane open and on same tab when refresh is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -554,7 +532,7 @@ describe('RunDetails', () => {
         },
       },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -575,7 +553,7 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1' } } },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -600,7 +578,7 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1' } } },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -621,7 +599,7 @@ describe('RunDetails', () => {
       status: { nodes: { node1: { id: 'node1' } } },
     });
     TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -649,7 +627,7 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', phase: 'Succeeded', message: '' } } },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
@@ -671,7 +649,7 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', phase: 'Succeeded', message: 'some node message' } } },
     });
-    const tree = shallow(<RunDetails {...generateProps()} />);
+    tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
