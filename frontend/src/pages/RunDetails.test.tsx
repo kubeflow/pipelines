@@ -36,6 +36,9 @@ describe('RunDetails', () => {
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
+  const pathsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
+  const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
+  const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
 
   let testRun: ApiRunDetail = {};
 
@@ -86,6 +89,12 @@ describe('RunDetails', () => {
     getExperimentSpy.mockImplementation(() => Promise.resolve('{}'));
     getPodLogsSpy.mockClear();
     getPodLogsSpy.mockImplementation(() => 'test logs');
+    pathsParser.mockClear();
+    pathsParser.mockImplementation(() => []);
+    pathsWithStepsParser.mockClear();
+    pathsWithStepsParser.mockImplementation(() => []);
+    loaderSpy.mockClear();
+    loaderSpy.mockImplementation(() => Promise.resolve([]));
   });
 
   it('shows success run status in page title', async () => {
@@ -204,6 +213,36 @@ describe('RunDetails', () => {
       message: 'Error: found errors when executing run: ' + testRun.run!.id + '. Click Details for more information.',
       mode: 'error',
     }));
+    tree.unmount();
+  });
+
+  it('switches to run output tab', async () => {
+    const tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('MD2Tabs').simulate('switch', 1);
+    expect(tree.state('selectedTab')).toBe(1);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+    tree.unmount();
+  });
+
+  it('loads the run\'s outputs in the output tab', async () => {
+    jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames').mockImplementation(() =>
+      [['step1', { source: 'gcs', bucket: 'somebucket', key: 'somekey' }]]);
+    jest.spyOn(WorkflowParser, 'loadNodeOutputPaths').mockImplementation(() =>
+      [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
+    jest.spyOn(OutputArtifactLoader, 'load').mockImplementation(() =>
+      Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
+    const tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('MD2Tabs').simulate('switch', 1);
+    expect(tree.state('selectedTab')).toBe(1);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+
+    jest.resetAllMocks();
     tree.unmount();
   });
 
@@ -336,12 +375,9 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
-    const pathsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames').mockImplementation(() =>
-      [['step1', { source: 'gcs', bucket: 'somebucket', key: 'somekey' }]]);
-    const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths').mockImplementation(() =>
-      [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
-    const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load').mockImplementation(() =>
-      Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
+    pathsParser.mockImplementation(() => [['step1', { source: 'gcs', bucket: 'somebucket', key: 'somekey' }]]);
+    pathsWithStepsParser.mockImplementation(() => [{ source: 'gcs', bucket: 'somebucket', key: 'somekey' }]);
+    loaderSpy.mockImplementation(() => Promise.resolve([{ type: PlotType.TENSORBOARD, url: 'some url' }]));
     const tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();

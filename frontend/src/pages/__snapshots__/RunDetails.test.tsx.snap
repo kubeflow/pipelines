@@ -438,6 +438,57 @@ exports[`RunDetails loads and shows logs in side pane 1`] = `
 </div>
 `;
 
+exports[`RunDetails loads the run's outputs in the output tab 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={1}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className=""
+      >
+        <div
+          key="0"
+        >
+          <PlotCard
+            configs={
+              Array [
+                Object {
+                  "type": "tensorboard",
+                  "url": "some url",
+                },
+              ]
+            }
+            key="0"
+            maxDimension={400}
+            title="step1"
+          />
+          <Component />
+          <Component
+            orientation="vertical"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`RunDetails opens side panel when graph node is clicked 1`] = `
 <div
   className="page"
@@ -1457,6 +1508,35 @@ exports[`RunDetails switches to logs tab in side pane 1`] = `
           </SidePanel>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails switches to run output tab 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={1}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className=""
+      />
     </div>
   </div>
 </div>
