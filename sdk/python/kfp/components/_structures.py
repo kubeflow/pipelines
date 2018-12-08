@@ -68,7 +68,7 @@ class InputOrOutputSpec:
         
         if 'type' in spec_dict:
             port_spec.type = spec_dict.pop('type')
-            check_instance_type(port_spec.type, [str, list]) #TODO: Check format further
+            check_instance_type(port_spec.type, [str, list, dict]) #TODO: Check format further
         
         if 'description' in spec_dict:
             port_spec.description = str(spec_dict.pop('description'))
