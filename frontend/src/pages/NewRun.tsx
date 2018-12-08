@@ -45,7 +45,6 @@ import { commonCss, padding, color } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewRunState {
-  pipelineFromRun?: ApiPipeline;
   description: string;
   errorMessage: string;
   experiment?: ApiExperiment;
@@ -56,6 +55,11 @@ interface NewRunState {
   isRecurringRun: boolean;
   maxConcurrentRuns?: string;
   pipeline?: ApiPipeline;
+  // This represents a pipeline from a run that is being cloned, or if a user is creating a run from
+  // a pipeline was not uploaded to the system (as in the case of runs created from notebooks).
+  // By storing this here instead of in the 'pipeline' field, we won't lose it if the user selects a
+  // different pipeline.
+  pipelineFromRun?: ApiPipeline;
   // TODO: this is only here to properly display the name in the text field.
   // There is definitely a way to do this that doesn't necessitate this being in state.
   // Note: this cannot be undefined/optional or the label animation for the input field will not
@@ -343,9 +347,12 @@ class NewRun extends Page<{}, NewRunState> {
             });
           } catch (err) {
             await this.showPageError(
-              `Error: failed to parse the embedded pipeline's spec from run: ${embeddedPipelineRunId}`, err);
+              `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`, err);
             logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedPipelineRunId}`, err);
           }
+        } else {
+          await this.showPageError(
+            `Error: somehow the run provided in the query params: ${embeddedPipelineRunId} had no embedded pipeline.`);
         }
       } catch (err) {
         await this.showPageError(
