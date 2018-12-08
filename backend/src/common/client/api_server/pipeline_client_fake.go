@@ -58,11 +58,11 @@ func NewPipelineClientFake() *PipelineClientFake {
 
 func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineParams) (
 	*pipelinemodel.APIPipeline, error) {
-	switch params.Body.PipelineURL {
+	switch params.Body.URL.PipelineURL {
 	case PipelineInvalidURL:
 		return nil, fmt.Errorf(ClientErrorString)
 	default:
-		return getDefaultPipeline(path.Base(params.Body.PipelineURL)), nil
+		return getDefaultPipeline(path.Base(params.Body.URL.PipelineURL)), nil
 	}
 }
 
