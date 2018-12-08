@@ -37,18 +37,19 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 		return nil, err
 	}
 
-	resp, err := s.httpClient.Get(request.Url.PipelineUrl)
+	pipelineUrl := request.Pipeline.Url.PipelineUrl
+	resp, err := s.httpClient.Get(pipelineUrl)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, util.NewInternalServerError(err, "Failed to download the pipeline from %v "+
-			"Please double check the URL is valid and can be accessed by the pipeline system.", request.Url.PipelineUrl)
+			"Please double check the URL is valid and can be accessed by the pipeline system.", pipelineUrl)
 	}
-	pipelineFileName := path.Base(request.Url.PipelineUrl)
+	pipelineFileName := path.Base(pipelineUrl)
 	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, MaxFileLength)
 	if err != nil {
 		return nil, util.Wrap(err, "The URL is valid but pipeline system failed to read the file.")
 	}
 
-	pipelineName, err := GetPipelineName(request.Name, pipelineFileName)
+	pipelineName, err := GetPipelineName(request.Pipeline.Name, pipelineFileName)
 	if err != nil {
 		return nil, util.Wrap(err, "Invalid pipeline name.")
 	}
@@ -103,12 +104,13 @@ func (s *PipelineServer) GetTemplate(ctx context.Context, request *api.GetTempla
 }
 
 func ValidateCreatePipelineRequest(request *api.CreatePipelineRequest) error {
-	if request.Url == nil || request.Url.PipelineUrl == "" {
+	if request.Pipeline.Url == nil || request.Pipeline.Url.PipelineUrl == "" {
 		return util.NewInvalidInputError("Pipeline URL is empty. Please specify a valid URL.")
 	}
 
-	if _, err := url.ParseRequestURI(request.Url.PipelineUrl); err != nil {
-		return util.NewInvalidInputError("Invalid Pipeline URL %v. Please specify a valid URL", request.Url.PipelineUrl)
+	if _, err := url.ParseRequestURI(request.Pipeline.Url.PipelineUrl); err != nil {
+		return util.NewInvalidInputError(
+			"Invalid Pipeline URL %v. Please specify a valid URL", request.Pipeline.Url.PipelineUrl)
 	}
 	return nil
 }
