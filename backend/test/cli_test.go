@@ -112,7 +112,7 @@ func (c *CLIIntegrationTest) TestPipelineCreateGetDeleteSuccess() {
 	rootCmd, factory := GetRealRootCommand()
 
 	// Create pipeline
-	args := []string{"pipeline", "create", "--url",
+	args := []string{"pipeline", "create", "--name", "foo", "--url",
 		"https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
