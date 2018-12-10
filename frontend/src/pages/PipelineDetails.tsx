@@ -368,7 +368,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     if (fromRunId) {
       searchString = new URLParser(this.props).build(Object.assign(
-        { [QUERY_PARAMS.pipelineFromRun]: fromRunId }
+        { [QUERY_PARAMS.fromRunId]: fromRunId }
       ));
     } else {
       searchString = new URLParser(this.props).build(Object.assign(

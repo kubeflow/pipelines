@@ -318,7 +318,7 @@ class NewRun extends Page<{}, NewRunState> {
     // Get clone run id from querystring if any
     const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
     // If we are not cloning, we may have an embedded pipeline from a run from a Notebook
-    const embeddedPipelineRunId = urlParser.get(QUERY_PARAMS.pipelineFromRun);
+    const embeddedPipelineRunId = urlParser.get(QUERY_PARAMS.fromRunId);
     if (originalRunId) {
       try {
         const originalRun = await Apis.runServiceApi.getRun(originalRunId);

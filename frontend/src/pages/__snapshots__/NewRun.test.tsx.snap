@@ -78,7 +78,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?pipelineFromRun=some-mock-run-id",
+              "search": "?fromRun=some-mock-run-id",
             }
           }
           match=""
@@ -203,7 +203,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?pipelineFromRun=some-mock-run-id",
+              "search": "?fromRun=some-mock-run-id",
             }
           }
           match=""

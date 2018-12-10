@@ -46,7 +46,6 @@ const css = stylesheet({
 
 export enum QUERY_PARAMS {
   cloneFromRun = 'cloneFromRun',
-  pipelineFromRun = 'pipelineFromRun',
   experimentId = 'experimentId',
   isRecurring = 'recurring',
   firstRunInExperiment = 'firstRunInExperiment',

@@ -355,7 +355,7 @@ describe('PipelineDetails', () => {
     newRunBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
-      RoutePage.NEW_RUN + `?${QUERY_PARAMS.pipelineFromRun}=${testRun.run!.id}`);
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.fromRunId}=${testRun.run!.id}`);
   });
 
   it('has \'create run\' toolbar button if not viewing an embedded pipeline', async () => {

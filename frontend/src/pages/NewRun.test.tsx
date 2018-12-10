@@ -775,7 +775,7 @@ describe('NewRun', () => {
 
     it('indicates that a pipeline is preselected and provides a means of selecting a different pipeline', async () => {
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.pipelineFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.fromRunId}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
       getRunSpy.mockImplementationOnce(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
 
@@ -789,7 +789,7 @@ describe('NewRun', () => {
 
     it('retrieves the run with the embedded pipeline', async () => {
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.pipelineFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.fromRunId}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
       getRunSpy.mockImplementationOnce(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
 
@@ -803,7 +803,7 @@ describe('NewRun', () => {
       const runDetail = newMockRunWithEmbeddedPipeline();
       runDetail.run!.pipeline_spec!.workflow_manifest = JSON.stringify(MOCK_PIPELINE);
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.pipelineFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.fromRunId}=${runDetail.run!.id}`;
 
       getRunSpy.mockImplementationOnce(() => runDetail);
 
@@ -819,7 +819,7 @@ describe('NewRun', () => {
       const runDetail = newMockRunWithEmbeddedPipeline();
       runDetail.run!.pipeline_spec!.workflow_manifest = 'not JSON';
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.pipelineFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.fromRunId}=${runDetail.run!.id}`;
 
       getRunSpy.mockImplementationOnce(() => runDetail);
 
@@ -838,7 +838,7 @@ describe('NewRun', () => {
       // Remove workflow_manifest entirely
       delete runDetail.run!.pipeline_spec!.workflow_manifest;
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.pipelineFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.fromRunId}=${runDetail.run!.id}`;
 
       getRunSpy.mockImplementationOnce(() => runDetail);
 
@@ -853,7 +853,7 @@ describe('NewRun', () => {
 
     it('displays a page error if it fails to retrieve the run containing the embedded pipeline', async () => {
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.pipelineFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.fromRunId}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
       TestUtils.makeErrorResponseOnce(getRunSpy, 'test - error!');
 
