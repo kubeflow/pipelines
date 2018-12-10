@@ -112,9 +112,8 @@ class Client(object):
     """
     if experiment_id is None and experiment_name is None:
       raise ValueError('Either experiment_id or experiment_name is required')
-    if experiment_id:
+    if experiment_id is not None:
       return self._experiment_api.get_experiment(id=experiment_id)
-    experiment_id = None
     list_experiments_response = self.list_experiments(page_size=100)
     next_page_token = list_experiments_response.next_page_token
     for experiment in list_experiments_response.experiments:
@@ -130,7 +129,7 @@ class Client(object):
           break
     if experiment_id is None:
       raise ValueError('No experiment is found with name %s.'.format(experiment_name))
-    return experiment_id
+    return self._experiment_api.get_experiment(id=experiment_id)
 
   def _extract_pipeline_yaml(self, tar_file):
     with tarfile.open(tar_file, "r:gz") as tar:
