@@ -99,24 +99,21 @@ class Client(object):
         page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
-  def get_experiment(self, experiment_id):
+  def get_experiment(self, experiment_id=None, experiment_name=None):
     """Get details of an experiment
+    Either experiment_id or experiment_name is required
     Args:
-      id of the experiment.
+      experiment_id: id of the experiment. (Optional)
+      experiment_name: name of the experiment. (Optional)
     Returns:
       A response object including details of a experiment.
     Throws:
-      Exception if experiment is not found.        
+      Exception if experiment is not found or None of the arguments is provided
     """
-    return self._experiment_api.get_experiment(id=experiment_id)
-
-  def get_experiment_id(self, experiment_name):
-    """Get experiment id
-    Args:
-      experiment_name: name of the experiment
-    Returns:
-      experiment id
-    """
+    if experiment_id is None and experiment_name is None:
+      raise ValueError('Either experiment_id or experiment_name is required')
+    if experiment_id:
+      return self._experiment_api.get_experiment(id=experiment_id)
     experiment_id = None
     list_experiments_response = self.list_experiments(page_size=100)
     next_page_token = list_experiments_response.next_page_token
@@ -124,7 +121,6 @@ class Client(object):
       if experiment.name == experiment_name:
         experiment_id = experiment.id
         break
-    #TODO: fill the next_page_token condition
     while experiment_id is None and next_page_token:
       list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token)
       next_page_token = list_experiments_response.next_page_token
