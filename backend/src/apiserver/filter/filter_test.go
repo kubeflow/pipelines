@@ -177,6 +177,33 @@ func TestAddToSelect(t *testing.T) {
 			"SELECT mycolumn WHERE status = ? AND total >= ?",
 			[]interface{}{"Running", int64(100)},
 		},
+		{
+			`predicates { key: "status" op: NOT_EQUALS string_value: "Running" }
+		   predicates { key: "total" op: GREATER_THAN  long_value: 100 }`,
+			"SELECT mycolumn WHERE status <> ? AND total > ?",
+			[]interface{}{"Running", int64(100)},
+		},
+		{
+			`predicates { key: "date" op: LESS_THAN timestamp_value { seconds: 10 } }
+		   predicates { key: "total" op: LESS_THAN_EQUALS  int_value: 100 }`,
+			"SELECT mycolumn WHERE date < ? AND total <= ?",
+			[]interface{}{time.Unix(10, 0).UTC(), int32(100)},
+		},
+		{
+			`predicates { key: "total" op: IN int_values {values: 1 values: 2 values: 3} }`,
+			"SELECT mycolumn WHERE total IN (?,?,?)",
+			[]interface{}{int32(1), int32(2), int32(3)},
+		},
+		{
+			`predicates { key: "runs" op: IN  long_values {values: 100 values: 200}}`,
+			"SELECT mycolumn WHERE runs IN (?,?)",
+			[]interface{}{int64(100), int64(200)},
+		},
+		{
+			`predicates { key: "label" op: IN  string_values {values: "l1" values: "l2"}}`,
+			"SELECT mycolumn WHERE label IN (?,?)",
+			[]interface{}{"l1", "l2"},
+		},
 	}
 
 	for _, test := range tests {

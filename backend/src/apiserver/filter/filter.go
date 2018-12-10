@@ -68,6 +68,9 @@ func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
 	}
 
 	// In
+	if len(f.in) > 0 {
+		sb = sb.Where(squirrel.Eq(f.in))
+	}
 
 	return sb
 }
@@ -172,26 +175,3 @@ func addPredicateValue(m map[string]interface{}, p *api.Predicate) error {
 
 	return nil
 }
-
-// // AddFilter does blahg
-// func AddFilter(filter *api.Filter) sq.SelectBuilder {
-// 	eq := make(sq.Eq)
-
-// 	for _, p := range filter.Predicate {
-// 		switch p.Op {
-// 		case api.Predicate_EQUALS:
-// 			fmt.Println("EQUALS")
-// 		}
-
-// 		// switch p.GetValue().(type) {
-// 		// case *api.Predicate_LongValue:
-// 		// case *api.Predicate_IntValue:
-// 		// 	fmt.Printf("hello")
-
-// 		// }
-
-// 	}
-
-// 	fmt.Println("BUILDING")
-// 	return selectBuilder.Where(sq.Eq(eq))
-// }
