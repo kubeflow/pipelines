@@ -114,13 +114,8 @@ class Client(object):
       raise ValueError('Either experiment_id or experiment_name is required')
     if experiment_id is not None:
       return self._experiment_api.get_experiment(id=experiment_id)
-    list_experiments_response = self.list_experiments(page_size=100)
-    next_page_token = list_experiments_response.next_page_token
-    for experiment in list_experiments_response.experiments:
-      if experiment.name == experiment_name:
-        experiment_id = experiment.id
-        break
-    while experiment_id is None and next_page_token:
+    next_page_token = ''
+    while experiment_id is None and next_page_token is not None:
       list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token)
       next_page_token = list_experiments_response.next_page_token
       for experiment in list_experiments_response.experiments:
