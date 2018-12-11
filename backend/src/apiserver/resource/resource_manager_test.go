@@ -1125,17 +1125,6 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       parameters:
       - name: analysis-analysis
         valueFrom:
@@ -1171,17 +1160,6 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       parameters:
       - name: prediction-predict
         valueFrom:
@@ -1217,17 +1195,6 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       parameters:
       - name: preprocess-transformed
         valueFrom:
@@ -1379,17 +1346,6 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       parameters:
       - name: training-train
         valueFrom:

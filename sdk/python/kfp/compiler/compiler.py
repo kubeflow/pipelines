@@ -53,21 +53,6 @@ class Compiler(object):
     return {
       'name': name,
       'path': '/' + name + '.json',
-      's3': {
-        # TODO: parameterize namespace for minio service
-        'endpoint': 'minio-service.kubeflow:9000',
-        'bucket': 'mlpipeline',
-        'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
-        'insecure': True,
-        'accessKeySecret': {
-          'name': 'mlpipeline-minio-artifact',
-          'key': 'accesskey',
-        },
-        'secretKeySecret': {
-          'name': 'mlpipeline-minio-artifact',
-          'key': 'secretkey'
-        }
-      },
     }
 
   def _op_to_template(self, op):
