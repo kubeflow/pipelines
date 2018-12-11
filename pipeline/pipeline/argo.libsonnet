@@ -223,7 +223,7 @@
             s3:
               bucket: mlpipeline
               keyFormat: "runs/{{workflow.uid}}/{{pod.name}}"
-              endpoint: minio-service.kubeflow:9000
+              endpoint: minio-service.%s:9000
               insecure: true
               accessKeySecret:
                 name: mlpipeline-minio-artifact
@@ -231,7 +231,7 @@
               secretKeySecret:
                 name: mlpipeline-minio-artifact
                 key: secretkey"
-        |||
+        ||| % namespace,
       },
       kind: "ConfigMap",
       metadata: {
