@@ -184,27 +184,39 @@
       apiVersion: "batch/v1",
       kind: "Job",
       metadata: {
-        labels: {
-          app: "ml-pipeline",
-        },
         name: "ml-pipelines-load-samples",
         namespace: namespace,
       },
       spec: {
-        containers: [
-          {
-            name: "ml-pipelines-load-samples",
-            image: image,
-            imagePullPolicy: "Always",
-            command: ["apiserver"],
-            args: [
-              "--config", "/config",
-              "--sampleconfig", "/config/sample_config.json"
-            ]
+        template: {
+          spec: {
             restartPolicy: "Never",
+            containers: [
+              {
+                name: "ml-pipelines-load-samples",
+                image: image,
+                imagePullPolicy: "Always",
+                command: ["apiserver"],
+                args: [
+                  "--config=/config",
+                  "--sampleconfig=/config/sample_config.json"
+                ],
+                env: [
+                  {
+                    name: "POD_NAMESPACE",
+                    valueFrom: {
+                      fieldRef: {
+                        fieldPath: "metadata.namespace",
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            serviceAccountName: "ml-pipeline",
           },
-        ],
-        serviceAccountName: "ml-pipeline",
+        },
+        backoffLimit: 0
       },
     }, // loadSampleJob
 
