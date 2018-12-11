@@ -121,7 +121,7 @@ class Client(object):
       for experiment in list_experiments_response.experiments:
         if experiment.name == experiment_name:
           return self._experiment_api.get_experiment(id=experiment.id)
-    raise ValueError('No experiment is found with name %s.'.format(experiment_name))
+    raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
   def _extract_pipeline_yaml(self, tar_file):
     with tarfile.open(tar_file, "r:gz") as tar:

@@ -52,7 +52,7 @@ def main():
   client = Client(namespace=args.namespace)
 
   ###### Get experiments ######
-  experiment_id = client.get_experiment(experiment_name=args.namespace).id
+  experiment_id = client.get_experiment(experiment_name=args.experiment).id
 
   ###### Get runs ######
   list_runs_response = client.list_runs(page_size=1000, experiment_id=experiment_id)
