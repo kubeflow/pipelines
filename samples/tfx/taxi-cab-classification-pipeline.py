@@ -124,7 +124,6 @@ def roc_op(predictions: 'GcsUri', output: 'GcsUri', step_name='roc'):
         '--output', '%s/{{workflow.name}}/roc' % output,
         '--predictions', predictions,
         '--target_lambda', """lambda x: 1 if (x['target'] > x['fare'] * 0.2) else 0""",
-        '--trueclass', 'true',
      ])
 
 

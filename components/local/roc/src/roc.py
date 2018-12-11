@@ -36,7 +36,7 @@ def main(argv=None):
   parser.add_argument('--target_lambda', type=str,
                       help='a lambda function as a string to determine positive or negative.' +
                            'For example, "lambda x: x[\'a\'] and x[\'b\']". If missing, ' +
-                           'trueclass must be set.')
+                           'trueclass must be set and input must have a "target" column.')
   parser.add_argument('--output', type=str, help='GCS path of the output directory.')
   args = parser.parse_args()
 

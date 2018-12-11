@@ -55,6 +55,7 @@ def main(argv=None):
 
   # Convert "True" to "True_" and "False" to "False_" for frontend to work.
   # TODO: Investigate frontend handling of boolean values.
+  # https://github.com/kubeflow/pipelines/issues/446
   convert_fn = lambda x: str(x) + '_' if str(x).lower() in ['true', 'false'] else x
   df['target'] = df['target'].apply(convert_fn)
   df['predicted'] = df['predicted'].apply(convert_fn)
