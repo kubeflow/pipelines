@@ -5,6 +5,7 @@
     $.parts(namespace).role,
     $.parts(namespace).service,
     $.parts(namespace).deploy(apiImage),
+    $.parts(namespace).loadSampleJob(apiImage),
     $.parts(namespace).pipelineRunnerServiceAccount,
     $.parts(namespace).pipelineRunnerRole,
     $.parts(namespace).pipelineRunnerRoleBinding,
@@ -179,7 +180,7 @@
       },
     },  // deploy
 
-    job(image): {
+    loadSampleJob(image): {
       apiVersion: "batch/v1",
       kind: "Job",
       metadata: {
@@ -196,13 +197,16 @@
             image: image,
             imagePullPolicy: "Always",
             command: ["apiserver"],
-            args: ["--config", "/config", "--sampleconfig", "/config/sample_config.json"]
+            args: [
+              "--config", "/config",
+              "--sampleconfig", "/config/sample_config.json"
+            ]
             restartPolicy: "Never",
           },
         ],
         serviceAccountName: "ml-pipeline",
       },
-    }, // job
+    }, // loadSampleJob
 
     pipelineRunnerServiceAccount: {
       apiVersion: "v1",
