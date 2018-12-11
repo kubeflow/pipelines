@@ -140,12 +140,16 @@ spec:
       image: google/cloud-sdk
       resources:
         limits:
+          cloud-tpus.google.com/v2: "8"
           cpu: "0.5"
           nvidia.com/gpu: "2"
     inputs:
       parameters:
       - name: get-frequent-word
       - name: outputpath
+    metadata:
+      annotations:
+        tf-version.cloud-tpus.google.com: "1.12"
     name: save
     nodeSelector:
       cloud.google.com/gke-accelerator: nvidia-tesla-k80 

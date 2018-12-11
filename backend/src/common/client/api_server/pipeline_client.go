@@ -62,7 +62,7 @@ func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create pipeline. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to create pipeline from URL '%v'", parameters.Body.PipelineURL))
+			fmt.Sprintf("Failed to create pipeline from URL '%v'", parameters.Body.URL.PipelineURL))
 	}
 
 	return response.Payload, nil

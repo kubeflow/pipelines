@@ -15,6 +15,9 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -48,20 +51,41 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -69,7 +93,8 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -147,6 +172,135 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?experimentId=some-mock-experiment-id&firstRunInExperiment=1",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "some mock experiment name",
+                        "href": "/experiments/details/some-mock-experiment-id",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -161,16 +315,39 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       value=""
     />
     <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        disabled={true}
-        label="Experiment"
-        onChange={[Function]}
-        value="some mock experiment name"
-      />
+      This run will be associated with the following experiment
     </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -210,7 +387,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
 </div>
 `;
 
-exports[`NewRun cloning from a run shows pipeline selector when switching from embedded pipeline to select pipeline 1`] = `
+exports[`NewRun choosing a pipeline cloning from a run shows pipeline selector when switching from embedded pipeline to select pipeline 1`] = `
 <div
   className="page"
 >
@@ -251,6 +428,9 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -284,20 +464,41 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -305,7 +506,8 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -379,6 +581,131 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?cloneFromRun=some-mock-run-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -390,6 +717,40 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
+      value=""
+    />
+    <div>
+      This run will be associated with the following experiment
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
       value=""
     />
     <div
@@ -429,7 +790,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
 </div>
 `;
 
-exports[`NewRun cloning from a run shows switching controls when run has embedded pipeline, selects that pipeline by default, and hides pipeline selector 1`] = `
+exports[`NewRun choosing a pipeline cloning from a run shows switching controls when run has embedded pipeline, selects that pipeline by default, and hides pipeline selector 1`] = `
 <div
   className="page"
 >
@@ -475,20 +836,41 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -496,7 +878,8 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -570,6 +953,131 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?cloneFromRun=some-mock-run-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -581,6 +1089,40 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
+      value=""
+    />
+    <div>
+      This run will be associated with the following experiment
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
       value=""
     />
     <div
@@ -620,7 +1162,7 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
 </div>
 `;
 
-exports[`NewRun creating a new recurring run includes additional trigger input fields if run will be recurring 1`] = `
+exports[`NewRun choosing a pipeline creating a new recurring run includes additional trigger input fields if run will be recurring 1`] = `
 <div
   className="page"
 >
@@ -635,6 +1177,9 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -668,20 +1213,41 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -689,7 +1255,8 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -763,6 +1330,131 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?recurring=1",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a recurring run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -774,6 +1466,40 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
+      value=""
+    />
+    <div>
+      This run will be associated with the following experiment
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
       value=""
     />
     <div
@@ -823,7 +1549,7 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
 </div>
 `;
 
-exports[`NewRun creating a new run copies pipeline from run in the create API call when cloning a run with embedded pipeline 1`] = `
+exports[`NewRun choosing a pipeline creating a new run copies pipeline from run in the create API call when cloning a run with embedded pipeline 1`] = `
 <div
   className="page"
 >
@@ -869,14 +1595,33 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction] {
@@ -889,6 +1634,8 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -896,7 +1643,8 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -981,6 +1729,148 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction] {
+                "calls": Array [
+                  Array [
+                    "/runs",
+                  ],
+                ],
+              },
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?cloneFromRun=some-mock-run-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "message": "Successfully created new Run: Clone of some mock run name",
+                    "open": true,
+                  },
+                ],
+              ],
+            }
+          }
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -992,6 +1882,40 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
+      value=""
+    />
+    <div>
+      This run will be associated with the following experiment
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
       value=""
     />
     <div
@@ -1031,7 +1955,7 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
 </div>
 `;
 
-exports[`NewRun creating a new run updates the pipeline in state when a user fills in its params 1`] = `
+exports[`NewRun choosing a pipeline creating a new run updates the pipeline in state when a user fills in its params 1`] = `
 <div
   className="page"
 >
@@ -1046,6 +1970,9 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -1079,14 +2006,33 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction] {
@@ -1099,6 +2045,8 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -1106,7 +2054,8 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -1191,6 +2140,148 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction] {
+                "calls": Array [
+                  Array [
+                    "/runs",
+                  ],
+                ],
+              },
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?pipelineId=some-mock-pipeline-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "message": "Successfully created new Run: test run name",
+                    "open": true,
+                  },
+                ],
+              ],
+            }
+          }
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -1202,6 +2293,40 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
+      value=""
+    />
+    <div>
+      This run will be associated with the following experiment
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
       value=""
     />
     <div
@@ -1277,7 +2402,7 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
 </div>
 `;
 
-exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 1`] = `
+exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 1`] = `
 <div
   className="page"
 >
@@ -1292,6 +2417,9 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -1325,20 +2453,41 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -1346,7 +2495,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -1424,6 +2574,135 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?experimentId=some-mock-experiment-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "some mock experiment name",
+                        "href": "/experiments/details/some-mock-experiment-id",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -1438,16 +2717,39 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       value=""
     />
     <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        disabled={true}
-        label="Experiment"
-        onChange={[Function]}
-        value="some mock experiment name"
-      />
+      This run will be associated with the following experiment
     </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -1487,7 +2789,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
 </div>
 `;
 
-exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 2`] = `
+exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 2`] = `
 <div
   className="page"
 >
@@ -1502,6 +2804,9 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -1535,20 +2840,41 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -1556,7 +2882,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -1634,6 +2961,135 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?experimentId=some-mock-experiment-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "some mock experiment name",
+                        "href": "/experiments/details/some-mock-experiment-id",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -1648,16 +3104,39 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       value=""
     />
     <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        disabled={true}
-        label="Experiment"
-        onChange={[Function]}
-        value="some mock experiment name"
-      />
+      This run will be associated with the following experiment
     </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -1733,7 +3212,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
 </div>
 `;
 
-exports[`NewRun creating a new run updates the pipeline params as user selects different pipelines 3`] = `
+exports[`NewRun choosing a pipeline creating a new run updates the pipeline params as user selects different pipelines 3`] = `
 <div
   className="page"
 >
@@ -1748,6 +3227,9 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -1781,20 +3263,41 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -1802,7 +3305,8 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -1880,6 +3384,135 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?experimentId=some-mock-experiment-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "some mock experiment name",
+                        "href": "/experiments/details/some-mock-experiment-id",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -1894,16 +3527,39 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       value=""
     />
     <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        disabled={true}
-        label="Experiment"
-        onChange={[Function]}
-        value="some mock experiment name"
-      />
+      This run will be associated with the following experiment
     </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -1958,6 +3614,9 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -1991,20 +3650,41 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -2012,7 +3692,8 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -2086,6 +3767,131 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?pipelineId=some-mock-pipeline-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -2097,6 +3903,40 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
+      value=""
+    />
+    <div>
+      This run will be associated with the following experiment
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
       value=""
     />
     <div
@@ -2153,6 +3993,9 @@ exports[`NewRun renders the new run page 1`] = `
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -2186,20 +4029,41 @@ exports[`NewRun renders the new run page 1`] = `
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -2207,7 +4071,8 @@ exports[`NewRun renders the new run page 1`] = `
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -2285,6 +4150,135 @@ exports[`NewRun renders the new run page 1`] = `
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?experimentId=some-mock-experiment-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "some mock experiment name",
+                        "href": "/experiments/details/some-mock-experiment-id",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -2299,16 +4293,39 @@ exports[`NewRun renders the new run page 1`] = `
       value=""
     />
     <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        disabled={true}
-        label="Experiment"
-        onChange={[Function]}
-        value="some mock experiment name"
-      />
+      This run will be associated with the following experiment
     </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >
@@ -2363,6 +4380,9 @@ exports[`NewRun updates the run's state with the associated experiment if one is
     <Component
       InputProps={
         Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
           >
@@ -2396,20 +4416,41 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       }
       classes={
         Object {
-          "paper": "pipelineSelectorDialog",
+          "paper": "selectorDialog",
         }
       }
       onClose={[Function]}
       open={false}
     >
       <WithStyles(DialogContent)>
-        <PipelineSelector
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
           history={
             Object {
               "push": [MockFunction],
               "replace": [MockFunction],
             }
           }
+          initialSortColumn="created_at"
+          listApi={[Function]}
           location={
             Object {
               "pathname": "/runs/new",
@@ -2417,7 +4458,8 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             }
           }
           match=""
-          pipelineSelectionChanged={[Function]}
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
           toolbarProps={
             Object {
               "actions": Array [],
@@ -2495,6 +4537,135 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         </WithStyles(Button)>
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?experimentId=some-mock-experiment-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "some mock experiment name",
+                        "href": "/experiments/details/some-mock-experiment-id",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
     <Component
       autoFocus={true}
       label="Run name"
@@ -2509,16 +4680,39 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       value=""
     />
     <div>
-      <div>
-        This run will be associated with the following experiment
-      </div>
-      <Component
-        disabled={true}
-        label="Experiment"
-        onChange={[Function]}
-        value="some mock experiment name"
-      />
+      This run will be associated with the following experiment
     </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+    />
     <div
       className="header"
     >

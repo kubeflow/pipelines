@@ -59,6 +59,8 @@ class ContainerOp(object):
     self.volumes = []
     self.volume_mounts = []
     self.env_variables = []
+    self.pod_annotations = {}
+    self.pod_labels = {}
 
     matches = []
     if arguments:
@@ -127,16 +129,16 @@ class ContainerOp(object):
       raise ValueError('Invalid cpu string. Should be float or integer, or integer followed '
                        'by "m".')
 
-  def _validate_gpu_string(self, gpu_string):
-    "Validate a given string is valid for gpu limit."
+  def _validate_positive_number(self, str_value, param_name):
+    "Validate a given string is in positive integer format."
 
     try:
-      gpu_value = int(gpu_string)
+      int_value = int(str_value)
     except ValueError:
-      raise ValueError('Invalid gpu string. Should be integer.')
+      raise ValueError('Invalid {}. Should be integer.'.format(param_name))
 
-    if gpu_value <= 0:
-      raise ValueError('gpu must be positive integer.')
+    if int_value <= 0:
+      raise ValueError('{} must be positive integer.'.format(param_name))
 
   def add_resource_limit(self, resource_name, value):
     """Add the resource limit of the container.
@@ -212,7 +214,7 @@ class ContainerOp(object):
         are: 'nvidia' (default), and 'amd'. 
     """
 
-    self._validate_gpu_string(gpu)
+    self._validate_positive_number(gpu, 'gpu')
     if vendor != 'nvidia' and vendor != 'amd':
       raise ValueError('vendor can only be nvidia or amd.')
 
@@ -266,6 +268,28 @@ class ContainerOp(object):
     """
 
     self.node_selector[label_name] = value
+    return self
+
+  def add_pod_annotation(self, name: str, value: str):
+    """Adds a pod's metadata annotation.
+
+    Args:
+      name: The name of the annotation.
+      value: The value of the annotation.
+    """
+
+    self.pod_annotations[name] = value
+    return self
+
+  def add_pod_label(self, name: str, value: str):
+    """Adds a pod's metadata label.
+
+    Args:
+      name: The name of the label.
+      value: The value of the label.
+    """
+
+    self.pod_labels[name] = value
     return self
 
   def __repr__(self):
