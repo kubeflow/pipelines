@@ -179,6 +179,31 @@
       },
     },  // deploy
 
+    job(image): {
+      apiVersion: "batch/v1",
+      kind: "Job",
+      metadata: {
+        labels: {
+          app: "ml-pipeline",
+        },
+        name: "ml-pipelines-load-samples",
+        namespace: namespace,
+      },
+      spec: {
+        containers: [
+          {
+            name: "ml-pipelines-load-samples",
+            image: image,
+            imagePullPolicy: "Always",
+            command: ["apiserver"],
+            args: ["--config", "/config", "--sampleconfig", "/config/sample_config.json"]
+            restartPolicy: "Never",
+          },
+        ],
+        serviceAccountName: "ml-pipeline",
+      },
+    }, // job
+
     pipelineRunnerServiceAccount: {
       apiVersion: "v1",
       kind: "ServiceAccount",
