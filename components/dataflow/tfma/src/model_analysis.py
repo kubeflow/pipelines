@@ -217,7 +217,7 @@ def generate_static_html_output(output_dir, slicing_columns):
       'source': static_html_path,
     }]
   }
-  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
+  with file_io.FileIO('/tmp/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
 

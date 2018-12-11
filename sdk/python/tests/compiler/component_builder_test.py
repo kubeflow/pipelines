@@ -292,7 +292,7 @@ class TestImageBuild(unittest.TestCase):
     # check
     builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
     generated_yaml = builder._generate_kaniko_spec(namespace='default', arc_dockerfile_name='dockerfile',
-                                                   gcs_path='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/mlpipeline/kaniko_image:latest')
+                                                   gcs_path='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/tmp/mlpipeline/kaniko_image:latest')
     with open(os.path.join(test_data_dir, 'kaniko.basic.yaml'), 'r') as f:
       golden = yaml.load(f)
 

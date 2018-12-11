@@ -52,7 +52,7 @@ class Compiler(object):
   def _build_conventional_artifact(self, name):
     return {
       'name': name,
-      'path': '/' + name + '.json',
+      'path': '/tmp/' + name + '.json',
       's3': {
         # TODO: parameterize namespace for minio service
         'endpoint': 'minio-service.kubeflow:9000',

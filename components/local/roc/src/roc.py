@@ -67,7 +67,7 @@ def main(argv=None):
       'source': roc_file
     }]
   }
-  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
+  with file_io.FileIO('/tmp/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
   metrics = {
@@ -76,7 +76,7 @@ def main(argv=None):
       'numberValue':  roc_auc,
     }]
   }
-  with file_io.FileIO('/mlpipeline-metrics.json', 'w') as f:
+  with file_io.FileIO('/tmp/mlpipeline-metrics.json', 'w') as f:
     json.dump(metrics, f)
 
 if __name__== "__main__":

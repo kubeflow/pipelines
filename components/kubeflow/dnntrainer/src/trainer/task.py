@@ -341,7 +341,7 @@ def main():
       'source': args.job_dir,
     }]
   }
-  with open('/mlpipeline-ui-metadata.json', 'w') as f:
+  with open('/tmp/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
   with open('/output.txt', 'w') as f:
