@@ -215,17 +215,23 @@
 
     config: {
       apiVersion: "v1",
-      // The commented out section creates a default artifact repository
-      // This section is not deleted because we might need it in the future.
-      // And it takes time to get this string right.
-      //data: {
-      //  config: "executorImage: argoproj/argoexec:v2.2.0\nartifactRepository:\n s3:
-      //  \n  bucket: mlpipeline\n  endpoint: minio-service.kubeflow:9000\n  insecure: true
-      //  \n  accessKeySecret:\n   name: mlpipeline-minio-artifact\n   key: accesskey\n  secretKeySecret:
-      //  \n   name: mlpipeline-minio-artifact\n   key: secretkey"
-      //},
+      // Configuring the executor version and the default artifact repository
       data: {
-        config: "executorImage: argoproj/argoexec:v2.2.0",
+        config: |||
+          executorImage: argoproj/argoexec:v2.2.0
+          artifactRepository:
+            s3:
+              bucket: mlpipeline
+              keyFormat: "runs/{{workflow.uid}}/{{pod.name}}"
+              endpoint: minio-service.kubeflow:9000
+              insecure: true
+              accessKeySecret:
+                name: mlpipeline-minio-artifact
+                key: accesskey
+              secretKeySecret:
+                name: mlpipeline-minio-artifact
+                key: secretkey"
+        |||
       },
       kind: "ConfigMap",
       metadata: {
