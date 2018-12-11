@@ -21,7 +21,7 @@ import datetime
 def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:dev', #TODO-release: update the release tag for the next release
         arguments = [
             '--csv-data-for-inference', inference_data,
             '--csv-data-to-validate', validation_data,
@@ -29,11 +29,11 @@ def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'G
             '--key-columns', key_columns,
             '--project', project,
             '--mode', mode,
-            '--output', validation_output,
+            '--output', '%s/{{workflow.name}}/validation' % validation_output,
         ],
         file_outputs = {
-            'output': '/output.txt',
-            'schema': '/output_schema.json',
+            'schema': '/schema.txt',
+            'validation': '/output_validation_result.txt',
         }
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
@@ -48,7 +48,7 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
             '--project', project,
             '--mode', preprocess_mode,
             '--preprocessing-module', preprocess_module,
-            '--output', transform_output,
+            '--output', '%s/{{workflow.name}}/transformed' % transform_output,
         ],
         file_outputs = {'transformed': '/output.txt'}
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))
@@ -66,7 +66,7 @@ def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate
             '--steps', steps,
             '--target', target,
             '--preprocessing-module', preprocess_module,
-            '--job-dir', training_output,
+            '--job-dir', '%s/{{workflow.name}}/train' % training_output,
         ],
         file_outputs = {'train': '/output.txt'}
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))
@@ -82,7 +82,7 @@ def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'Gc
             '--project', project,
             '--mode', analyze_mode,
             '--slice-columns', analyze_slice_column,
-            '--output', analysis_output,
+            '--output', '%s/{{workflow.name}}/analysis' % analysis_output,
         ],
         file_outputs = {'analysis': '/output.txt'}
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))
@@ -99,10 +99,33 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
             '--model',  model,
             '--mode', predict_mode,
             '--project', project,
-            '--output', prediction_output,
+            '--output', '%s/{{workflow.name}}/predict' % prediction_output,
         ],
         file_outputs = {'prediction': '/output.txt'}
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+
+def confusion_matrix_op(predictions: 'GcsUri', output: 'GcsUri', step_name='confusion_matrix'):
+  return dsl.ContainerOp(
+      name=step_name,
+      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:dev', #TODO-release: update the release tag for the next release
+      arguments=[
+        '--output', '%s/{{workflow.name}}/confusionmatrix' % output,
+        '--predictions', predictions,
+        '--target_lambda', """lambda x: (x['target'] > x['fare'] * 0.2)""",
+     ])
+
+
+def roc_op(predictions: 'GcsUri', output: 'GcsUri', step_name='roc'):
+  return dsl.ContainerOp(
+      name=step_name,
+      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:dev', #TODO-release: update the release tag for the next release
+      arguments=[
+        '--output', '%s/{{workflow.name}}/roc' % output,
+        '--predictions', predictions,
+        '--target_lambda', """lambda x: 1 if (x['target'] > x['fare'] * 0.2) else 0""",
+     ])
+
 
 def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='deploy'):
     return dsl.ContainerOp(
@@ -126,31 +149,25 @@ def taxi_cab_classification(
     key_columns='trip_start_timestamp',
     train='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv',
     evaluation='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv',
-    validation_mode='local',
-    preprocess_mode='local',
+    mode='local',
     preprocess_module='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py',
-    target='tips',
     learning_rate=0.1,
     hidden_layer_size='1500',
     steps=3000,
-    predict_mode='local',
-    analyze_mode='local',
     analyze_slice_column='trip_start_hour'):
 
-  validation_output = '%s/{{workflow.name}}/validation' % output
-  transform_output = '%s/{{workflow.name}}/transformed' % output
-  training_output = '%s/{{workflow.name}}/train' % output
-  analysis_output = '%s/{{workflow.name}}/analysis' % output
-  prediction_output = '%s/{{workflow.name}}/predict' % output
   tf_server_name = 'taxi-cab-classification-model-{{workflow.name}}'
-
-  validation = dataflow_tf_data_validation_op(train, evaluation, column_names, key_columns, project, validation_mode, validation_output)
-  schema = '%s/schema.json' % validation.outputs['output']
-
-  preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, preprocess_module, transform_output)
-  training = tf_train_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, preprocess_module, training_output)
-  analysis = dataflow_tf_model_analyze_op(training.output, evaluation, schema, project, analyze_mode, analyze_slice_column, analysis_output)
-  prediction = dataflow_tf_predict_op(evaluation, schema, target, training.output, predict_mode, project, prediction_output)
+  validation = dataflow_tf_data_validation_op(train, evaluation, column_names, key_columns, project, mode, output)
+  preprocess = dataflow_tf_transform_op(train, evaluation, validation.outputs['schema'],
+      project, mode, preprocess_module, output)
+  training = tf_train_op(preprocess.output, validation.outputs['schema'], learning_rate,
+      hidden_layer_size, steps, 'tips', preprocess_module, output)
+  analysis = dataflow_tf_model_analyze_op(training.output, evaluation,
+      validation.outputs['schema'], project, mode, analyze_slice_column, output)
+  prediction = dataflow_tf_predict_op(evaluation, validation.outputs['schema'], 'tips',
+      training.output, mode, project, output)
+  cm = confusion_matrix_op(prediction.output, output)
+  roc = roc_op(prediction.output, output)
   deploy = kubeflow_deploy_op(training.output, tf_server_name)
 
 if __name__ == '__main__':
