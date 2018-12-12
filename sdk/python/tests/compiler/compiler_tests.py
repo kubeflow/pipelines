@@ -77,7 +77,7 @@ class TestCompiler(unittest.TestCase):
           }],
         'artifacts': [{
           'name': 'mlpipeline-ui-metadata',
-          'path': '/tmp/mlpipeline-ui-metadata.json',
+          'path': '/mlpipeline-ui-metadata.json',
           's3': {
             'accessKeySecret': {
               'key': 'accesskey',
@@ -94,7 +94,7 @@ class TestCompiler(unittest.TestCase):
           }
         },{
           'name': 'mlpipeline-metrics',
-          'path': '/tmp/mlpipeline-metrics.json',
+          'path': '/mlpipeline-metrics.json',
           's3': {
             'accessKeySecret': {
               'key': 'accesskey',

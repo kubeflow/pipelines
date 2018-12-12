@@ -32,12 +32,12 @@ spec:
             'source': 'gs://ml-pipeline-dataset/tensorboard-train',
           }]
         }
-        with open('/tmp/mlpipeline-ui-metadata.json', 'w') as f:
+        with open('/mlpipeline-ui-metadata.json', 'w') as f:
           json.dump(metadata, f)
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
-        path: /tmp/mlpipeline-ui-metadata.json
+        path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
             key: accesskey

@@ -77,7 +77,7 @@ def main(argv=None):
       'source': prediction_results
     }]
   }
-  with open('/tmp/mlpipeline-ui-metadata.json', 'w') as f:
+  with open('/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
   logging.info('Job completed.')
 

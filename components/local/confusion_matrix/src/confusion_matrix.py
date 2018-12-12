@@ -72,7 +72,7 @@ def main(argv=None):
       'labels': vocab,
     }]
   }
-  with file_io.FileIO('/tmp/mlpipeline-ui-metadata.json', 'w') as f:
+  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
   accuracy = accuracy_score(df['target'], df['predicted'])
@@ -83,7 +83,7 @@ def main(argv=None):
       'format': "PERCENTAGE",
     }]
   }
-  with file_io.FileIO('/tmp/mlpipeline-metrics.json', 'w') as f:
+  with file_io.FileIO('/mlpipeline-metrics.json', 'w') as f:
     json.dump(metrics, f)
 
 if __name__== "__main__":
