@@ -22,7 +22,7 @@ type ExperimentApiTest struct {
 
 // Check the namespace have ML job installed and ready
 func (s *ExperimentApiTest) SetupTest() {
-	if runAsUnitTest {
+	if *runAsUnitTest {
 		s.T().SkipNow()
 		return
 	}

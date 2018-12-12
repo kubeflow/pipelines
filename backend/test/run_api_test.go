@@ -28,7 +28,7 @@ type RunApiTestSuite struct {
 
 // Check the namespace have ML pipeline installed and ready
 func (s *RunApiTestSuite) SetupTest() {
-	if runAsUnitTest {
+	if *runAsUnitTest {
 		s.T().SkipNow()
 		return
 	}

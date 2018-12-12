@@ -39,6 +39,7 @@ import (
 
 var namespace = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
 var initializeTimeout = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
+var runAsUnitTest = flag.Bool("unitTestsOnly", true, "Whether to skip integration tests that call the service")
 
 func waitForReady(namespace string, initializeTimeout time.Duration) error {
 	var operation = func() error {

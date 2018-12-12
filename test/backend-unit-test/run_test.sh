@@ -51,7 +51,7 @@ cd "${BASE_DIR}/${TEST_DIR}"
 
 # Run test and store the exit code.
 echo "Run unit test..."
-TEST_RESULT=`go test -v ./... 2>&1`
+TEST_RESULT=`go test -v ./... -args -unitTestsOnly=false 2>&1`
 TEST_EXIT_CODE=$?
 
 # Log the test result
