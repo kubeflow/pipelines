@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -48,11 +49,11 @@ func TestListExperiments_Pagination(t *testing.T) {
 		Description:    "My name is experiment2",
 	}
 	experimentsExpected := []model.Experiment{expectedExperiment1, expectedExperiment4}
-	experiments, nextPageToken, err := experimentStore.ListExperiments(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetExperimentTablePrimaryKeyColumn(),
-		SortByFieldName: "Name",
-		IsDesc:          false,
+	experiments, nextPageToken, err := experimentStore.ListExperiments(&list.Options{
+		PageSize:           2,
+		Token.KeyFieldName: &model.Experiment{}.PrimaryKeyName(),
+		SortByFieldName:    "Name",
+		IsDesc:             false,
 	})
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)

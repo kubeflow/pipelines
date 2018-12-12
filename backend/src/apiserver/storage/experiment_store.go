@@ -7,12 +7,13 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type ExperimentStoreInterface interface {
-	ListExperiments(*common.PaginationContext) ([]model.Experiment, string, error)
+	ListExperiments(opts *list.Options) ([]*model.Experiment, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
@@ -25,34 +26,55 @@ type ExperimentStore struct {
 	resourceReferenceStore *ResourceReferenceStore
 }
 
-func (s *ExperimentStore) ListExperiments(context *common.PaginationContext) ([]model.Experiment, string, error) {
-	models, pageToken, err := listModel(context, s.queryExperimentTable)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List experiments failed.")
+func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, string, error) {
+	errorF := func(err error) ([]*model.Experiment, string, error) {
+		return nil, "", util.NewInternalServerError(err, "Failed to list experiments")
 	}
-	return s.toExperiments(models), pageToken, err
+
+	sql, args, err := opts.BuildListSQLQuery("experiments")
+	if err != nil {
+		return errorF(err)
+	}
+
+	rows, err := s.db.Query(sql, args...)
+	defer rows.Close()
+	if err != nil {
+		return errorF(err)
+	}
+
+	exps, err := s.scanRows(rows)
+	if err != nil {
+		return errorF(err)
+	}
+
+	if len(exps) <= opts.PageSize {
+		return exps, "", nil
+	}
+
+	npt, err := list.NextPageToken(opts, exps[opts.PageSize]).Marshal()
+	return exps[:opts.PageSize], npt, err
 }
 
-func (s *ExperimentStore) queryExperimentTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
-	sqlBuilder := sq.Select("*").From("experiments")
-	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to list experiments: %v",
-			err.Error())
-	}
-	rows, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
-			err.Error())
-	}
-	defer rows.Close()
-	experiments, err := s.scanRows(rows)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
-			err.Error())
-	}
-	return s.toListableModels(experiments), nil
-}
+// func (s *ExperimentStore) queryExperimentTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
+// 	sqlBuilder := sq.Select("*").From("experiments")
+// 	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
+// 	if err != nil {
+// 		return nil, util.NewInternalServerError(err, "Failed to create query to list experiments: %v",
+// 			err.Error())
+// 	}
+// 	rows, err := s.db.Query(sql, args...)
+// 	if err != nil {
+// 		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
+// 			err.Error())
+// 	}
+// 	defer rows.Close()
+// 	experiments, err := s.scanRows(rows)
+// 	if err != nil {
+// 		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
+// 			err.Error())
+// 	}
+// 	return s.toListableModels(experiments), nil
+// }
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
 	sql, args, err := sq.
@@ -77,11 +99,11 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 	if len(experiments) == 0 {
 		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(uuid))
 	}
-	return &experiments[0], nil
+	return experiments[0], nil
 }
 
-func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]model.Experiment, error) {
-	var experiments []model.Experiment
+func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
+	var experiments []*model.Experiment
 	for rows.Next() {
 		var uuid, name, description string
 		var createdAtInSec int64
@@ -89,7 +111,7 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]model.Experiment, error) {
 		if err != nil {
 			return experiments, nil
 		}
-		experiments = append(experiments, model.Experiment{
+		experiments = append(experiments, &model.Experiment{
 			UUID:           uuid,
 			Name:           name,
 			Description:    description,
