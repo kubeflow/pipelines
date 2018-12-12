@@ -1,0 +1,35 @@
+name: Train FC DNN using TF
+description: |
+  Trains fully-connected neural network using Tensorflow
+  Input and output data is in GCS
+inputs:
+  - {name: Transformed data dir,  type: {GcsUri: Directory},      description: 'GCS path containing tf-transformed training and eval data.'}
+  - {name: Schema,                type: {GcsUri: [text, json]},   description: 'GCS json schema file path.'}
+  - {name: Learning rate,         type: Float,                    description: 'Learning rate for training.'} #default=0.1
+#  - {name: Optimizer,             type: {Enum: [Adam, SGD, Adagrad]}, description: 'Optimizer for training. If not provided, tf.estimator default will be used.'} #default='Adagrad'
+  - {name: Hidden layer size,     type: String,                   description: 'Comma-separated hidden layer sizes. For example "200,100,50".'} #default='100'
+  - {name: Steps,                 type: Integer,                  description: 'Maximum number of training steps to perform. If unspecified, will honor epochs.'}
+#  - {name: Epochs,                type: Integer,                  description: 'Maximum number of training data epochs on which to train. If both "steps" and "epochs" are specified, the training job will run for "steps" or "epochs", whichever occurs first.'}
+  - {name: Target,                type: String,                   description: 'Name of the column for prediction target.'}
+  - {name: Preprocessing module,  type: {GcsUri: [text, python]}, description: 'GCS path to a python file defining "preprocess" and "get_feature_columns" functions. Can be empty.'}
+  - {name: Training output dir,   type: {GcsUri: Directory},      description: 'GCS or local directory.'}
+outputs:
+  - {name: Training output dir,   type: {GcsUri: Directory},      description: 'GCS or local directory.'}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:85c6413a2e13da4b8f198aeac1abc2f3a74fe789
+    command: [python, -m, trainer.task] #python2.7
+    args: [
+      --transformed-data-dir, {inputValue: Transformed data dir},
+      --schema, {inputValue: Schema},
+      --learning-rate, {inputValue: Learning rate},
+#      --optimizer, {inputValue: Optimizer},
+      --hidden-layer-size, {inputValue: Hidden layer size},
+      --steps, {inputValue: Steps},
+#      --epochs, {inputValue: Epochs},
+      --target, {inputValue: Target},
+      --preprocessing-module, {inputValue: Preprocessing module},
+      --job-dir, {inputValue: Training output dir},
+    ]
+    fileOutputs:
+      Training output dir: /output.txt
