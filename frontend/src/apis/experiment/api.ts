@@ -176,6 +176,14 @@ export interface ProtobufAny {
     value?: string;
 }
 
+/**
+ * service Foo {       rpc Bar(google.protobuf.Empty) returns (google.protobuf.Empty);     }  The JSON representation for `Empty` is empty JSON object `{}`.
+ * @export
+ * @interface ProtobufEmpty
+ */
+export interface ProtobufEmpty {
+}
+
 
 /**
  * ExperimentServiceApi - fetch parameter creator
@@ -216,6 +224,42 @@ export const ExperimentServiceApiFetchParamCreator = function (configuration?: C
             localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
             const needsSerialization = (<any>"ApiExperiment" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
             localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteExperiment(id: string, options: any = {}): FetchArgs {
+            // verify required parameter 'id' is not null or undefined
+            if (id === null || id === undefined) {
+                throw new RequiredError('id','Required parameter id was null or undefined when calling deleteExperiment.');
+            }
+            const localVarPath = `/apis/v1beta1/experiments/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'DELETE' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication Bearer required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["authorization"] = localVarApiKeyValue;
+            }
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
             return {
                 url: url.format(localVarUrlObj),
@@ -336,6 +380,24 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
+        deleteExperiment(id: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ProtobufEmpty> {
+            const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(configuration).deleteExperiment(id, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
         getExperiment(id: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiExperiment> {
             const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(configuration).getExperiment(id, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
@@ -392,6 +454,15 @@ export const ExperimentServiceApiFactory = function (configuration?: Configurati
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
+        deleteExperiment(id: string, options?: any) {
+            return ExperimentServiceApiFp(configuration).deleteExperiment(id, options)(fetch, basePath);
+        },
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
         getExperiment(id: string, options?: any) {
             return ExperimentServiceApiFp(configuration).getExperiment(id, options)(fetch, basePath);
         },
@@ -425,6 +496,17 @@ export class ExperimentServiceApi extends BaseAPI {
      */
     public createExperiment(body: ApiExperiment, options?: any) {
         return ExperimentServiceApiFp(this.configuration).createExperiment(body, options)(this.fetch, this.basePath);
+    }
+
+    /**
+     * 
+     * @param {} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ExperimentServiceApi
+     */
+    public deleteExperiment(id: string, options?: any) {
+        return ExperimentServiceApiFp(this.configuration).deleteExperiment(id, options)(this.fetch, this.basePath);
     }
 
     /**
