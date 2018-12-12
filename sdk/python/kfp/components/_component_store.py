@@ -3,7 +3,7 @@ __all__ = [
 ]
 
 from pathlib import Path
-from urllib.parse import urlparse, urljoin
+import requests
 import warnings
 from . import _components as comp
 
@@ -16,19 +16,16 @@ class ComponentStore:
         self._digests_subpath = 'versions/sha256'
         self._tags_subpath = 'versions/tags'
 
-
     def load_component_from_url(self, url):
         return comp.load_component_from_url(url)
-
 
     def load_component_from_file(self, path):
         return comp.load_component_from_file(path)
 
-
     def load_component(self, name, digest=None, tag=None):
         '''
         Loads component local file or URL and creates a task factory function
-                  
+
         Search locations:
         <local-search-path>/<name>/component.yaml
         <url-search-prefix>/<name>/component.yaml
@@ -40,7 +37,7 @@ class ComponentStore:
         If the tag is specified, then the search locations are:
         <local-search-path>/<name>/versions/tags/<digest>
         <url-search-prefix>/<name>/versions/tags/<digest>
-        
+
         Args:
             name:   Component name used to search and load the component artifact containing the component definition.
                     Component name usually has the following form: group/subgroup/component
@@ -54,11 +51,11 @@ class ComponentStore:
         #This function should be called load_task_factory since it returns a factory function.
         #The real load_component function should produce an object with component properties (e.g. name, description, inputs/outputs).
         #TODO: Change this function to return component spec object but it should be callable to construct tasks.
-        if name is None:
-            raise TypeError()
+        if not name:
+            raise TypeError("name is required")
         if name.startswith('/') or name.endswith('/'):
             raise ValueError('Component name should not start or end with slash: "{}"'.format(name))
-        
+
         tried_locations = []
 
         if digest is not None and tag is not None:
@@ -74,21 +71,21 @@ class ComponentStore:
 
         #Trying local search paths
         for local_search_path in self.local_search_paths:
-            try:
-                component_path = Path(local_search_path, path_suffix)
-                tried_locations.append(str(component_path))
-                if component_path.is_file():
-                    return comp.load_component_from_file(str(component_path))
-            except:
-                pass
+            component_path = Path(local_search_path, path_suffix)
+            tried_locations.append(str(component_path))
+            if component_path.is_file():
+                return comp.load_component_from_file(str(component_path))
 
         #Trying URL prefixes
         for url_search_prefix in self.url_search_prefixes:
+            url = url_search_prefix + path_suffix
+            tried_locations.append(url)
             try:
-                url = url_search_prefix + path_suffix
-                tried_locations.append(str(url))
-                return comp.load_component_from_url(url)
+                response = requests.get(url) #Does not throw exceptions on bad status, but throws on dead domains and malformed URLs. Should we log those cases?
+                response.raise_for_status()
             except:
-                pass
+                continue
+            if response.content:
+                return comp._create_task_factory_from_component_text(response.content, url)
 
         raise RuntimeError('Component {} was not found. Tried the following locations:\n{}'.format(name, '\n'.join(tried_locations)))
