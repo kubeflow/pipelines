@@ -14,3 +14,26 @@ func (r Experiment) GetValueOfPrimaryKey() string {
 func GetExperimentTablePrimaryKeyColumn() string {
 	return "UUID"
 }
+
+func (e *Experiment) PrimaryKeyValue() string {
+	return e.UUID
+}
+
+func (e *Experiment) PrimaryKeyColumnName() string {
+	return "UUID"
+}
+
+func (e *Experiment) DefaultSortField() string {
+	return "CreatedAtInSec"
+}
+
+var experimentAPIToModelFieldMap = map[string]string{
+	"id":          "UUID",
+	"name":        "Name",
+	"created_at":  "CreatedAtInSec",
+	"description": "Description",
+}
+
+func (e *Experiment) APIToModelFieldMap() map[string]string {
+	return experimentAPIToModelFieldMap
+}

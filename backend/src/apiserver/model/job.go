@@ -75,3 +75,26 @@ func (j Job) GetValueOfPrimaryKey() string {
 func GetJobTablePrimaryKeyColumn() string {
 	return "UUID"
 }
+
+func (j *Job) PrimaryKeyValue() string {
+	return j.UUID
+}
+
+func (j *Job) PrimaryKeyColumnName() string {
+	return "UUID"
+}
+
+func (j *Job) DefaultSortField() string {
+	return "CreatedAtInSec"
+}
+
+var jobAPIToModelFieldMap = map[string]string{
+	"id":         "UUID",
+	"name":       "DisplayName",
+	"created_at": "CreatedAtInSec",
+	"package_id": "PipelineId",
+}
+
+func (k *Job) APIToModelFieldMap() map[string]string {
+	return jobAPIToModelFieldMap
+}

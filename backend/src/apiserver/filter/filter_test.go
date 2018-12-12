@@ -2,7 +2,6 @@ package filter
 
 import (
 	"testing"
-	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/proto"
@@ -42,11 +41,11 @@ func TestValidNewFilters(t *testing.T) {
 		},
 		{
 			`predicates { key: "total" op: LESS_THAN timestamp_value { seconds: 10 }}`,
-			&Filter{lt: map[string]interface{}{"total": time.Unix(10, 0).UTC()}},
+			&Filter{lt: map[string]interface{}{"total": int64(10)}},
 		},
 		{
 			`predicates { key: "total" op: LESS_THAN_EQUALS timestamp_value { seconds: 10 }}`,
-			&Filter{lte: map[string]interface{}{"total": time.Unix(10, 0).UTC()}},
+			&Filter{lte: map[string]interface{}{"total": int64(10)}},
 		},
 		{
 			`predicates {
@@ -187,7 +186,7 @@ func TestAddToSelect(t *testing.T) {
 			`predicates { key: "date" op: LESS_THAN timestamp_value { seconds: 10 } }
 		   predicates { key: "total" op: LESS_THAN_EQUALS  int_value: 100 }`,
 			"SELECT mycolumn WHERE date < ? AND total <= ?",
-			[]interface{}{time.Unix(10, 0).UTC(), int32(100)},
+			[]interface{}{int64(10), int32(100)},
 		},
 		{
 			`predicates { key: "total" op: IN int_values {values: 1 values: 2 values: 3} }`,

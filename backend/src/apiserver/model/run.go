@@ -55,3 +55,75 @@ func (r Run) GetValueOfPrimaryKey() string {
 func GetRunTablePrimaryKeyColumn() string {
 	return "UUID"
 }
+
+func (r *Run) PrimaryKeyValue() string {
+	return r.UUID
+}
+
+func (r *Run) PrimaryKeyColumnName() string {
+	return "UUID"
+}
+
+func (r *Run) DefaultSortField() string {
+	return "CreatedAtInSec"
+}
+
+var runAPIToModelFieldMap = map[string]string{
+	"id":           "UUID",
+	"name":         "DisplayName",
+	"created_at":   "CreatedAtInSec",
+	"description":  "Description",
+	"scheduled_at": "ScheduledAtInSec",
+}
+
+func (r *Run) APIToModelFieldMap() map[string]string {
+	return runAPIToModelFieldMap
+}
+
+// func (r *Run) Filter(filterProto *api.Filter) (*filter.Filter, error) {
+// 	for _, pred := range filterProto.Predicates {
+// 		k, ok := runModelAPIFieldMapping[pred.Key]
+// 		if !ok {
+// 			return nil, fmt.Errorf("no support for filtering Runs on unrecognized field %q", pred.Key)
+// 		}
+// 		pred.Key = k
+// 	}
+
+// 	return filter.New(filterProto)
+// }
+
+// var experimentModelToApiFieldMapping = map[string]string{
+// 	"id":          "UUID",
+// 	"name":        "Name",
+// 	"created_at":  "CreatedAtInSec",
+// 	"description": "Description",
+// }
+
+// var pipelineModelToApiFieldMapping = map[string]string{
+// 	"id":          "UUID",
+// 	"name":        "Name",
+// 	"created_at":  "CreatedAtInSec",
+// 	"description": "Description",
+// }
+
+// var jobModelToApiFieldMapping = map[string]string{
+// 	"id":         "UUID",
+// 	"name":       "DisplayName",
+// 	"created_at": "CreatedAtInSec",
+// 	"package_id": "PipelineId",
+// }
+
+// var runModelToApiFieldMapping = map[string]string{
+// 	"id":           "UUID",
+// 	"name":         "DisplayName",
+// 	"created_at":   "CreatedAtInSec",
+// 	"description":  "Description",
+// 	"scheduled_at": "ScheduledAtInSec",
+// }
+
+// const (
+// 	experimentModelDefaultSortField = "CreatedAtInSec"
+// 	pipelineModelDefaultSortField   = "CreatedAtInSec"
+// 	jobModelDefaultSortField        = "CreatedAtInSec"
+// 	runModelDefaultSortField        = "CreatedAtInSec"
+// )

@@ -143,7 +143,7 @@ func addPredicateValue(m map[string]interface{}, p *api.Predicate) error {
 		if err != nil {
 			return fmt.Errorf("invalid timestamp: %v", err)
 		}
-		m[p.Key] = ts
+		m[p.Key] = ts.Unix()
 
 	case *api.Predicate_IntValues:
 		var v []int32

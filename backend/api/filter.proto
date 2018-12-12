@@ -45,6 +45,9 @@ message Predicate {
     int32 int_value = 3;
     int64 long_value = 4;
     string string_value = 5;
+
+    // Timestamp values will be converted to Unix time (seconds since the epoch)
+    // prior to being used in a filtering operation.
     google.protobuf.Timestamp timestamp_value = 6;
 
     // Array values below are only meant to be used by the IN operator.
