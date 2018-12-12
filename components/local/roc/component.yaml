@@ -1,0 +1,21 @@
+name: ROC curve
+description: Calculates Receiver Operating Characteristic curve. See https://en.wikipedia.org/wiki/Receiver_operating_characteristic
+inputs:
+  - {name: Predictions dir, type: {GcsUri: Directory},  description: 'GCS path of prediction file pattern.'}  #TODO: Replace dir data + schema files
+  - {name: True class,      type: String,               description: 'The name of the class as true value.'}
+  - {name: Output dir,      type: {GcsUri: Directory},  description: 'GCS path of the output directory.'}     #TODO: Replace dir with single file
+outputs:
+  - {name: UI metadata,     type: UI metadata}
+  - {name: Metrics,         type: Metrics}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:85c6413a2e13da4b8f198aeac1abc2f3a74fe789
+    command: [python, /ml/confusion_matrix.py] #python2.7
+    args: [
+      --predictions, {inputValue: Predictions},
+      --trueclass,   {inputValue: True class},
+      --output,      {inputValue: Output dir},
+    ]
+    fileOutputs:
+      UI metadata:  /mlpipeline-ui-metadata.json
+      Metrics:      /mlpipeline-metrics.json
