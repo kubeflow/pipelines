@@ -23,16 +23,21 @@ from datetime import datetime
 
 from .compiler import compiler
 
+
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
 
-  def __init__(self, namespace='kubeflow'):
+  def __init__(self, host='ml-pipeline.kubeflow.svc.cluster.local:8888'):
     """Create a new instance of kfp client.
 
     Args:
-      namespace: the namespace where pipelines are deployed. Default is kubeflow
-        TODO: check if it works outside of the cluster.
+      host: the host name to use to talk to Kubeflow Pipelines. Default value
+          "ml-pipeline.kubeflow.svc.cluster.local:8888" is the in-cluster DNS name
+          of the pipeline service. It only works if the current environment is a pod
+          in the same cluster (such as a Jupyter instance spawned by Kubeflow's
+          JupyterHub). If you have a different connection to cluster, such as a kubectl
+          proxy connection, then set it to something like "127.0.0.1:8080/pipeline".
     """
 
     try:
@@ -45,7 +50,6 @@ class Client(object):
     except ImportError:
       raise Exception('This module requires installation of kfp_run')
 
-    host='ml-pipeline.' + namespace + '.svc.cluster.local:8888'
     config = kfp_run.configuration.Configuration()
     config.host = host
     api_client = kfp_run.api_client.ApiClient(config)
