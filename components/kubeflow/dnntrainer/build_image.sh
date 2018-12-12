@@ -47,7 +47,7 @@ rsync -arvp ./src/ ./build/
 cp ../../license.sh ./build
 cp ../../third_party_licenses.csv ./build
 
-docker build -t ${LOCAL_IMAGE_NAME} .
+docker build -t ${LOCAL_IMAGE_NAME} -f ./Dockerfile.gpu .
 if [ -z "${IMAGE_NAME}" ]; then
   docker tag ${LOCAL_IMAGE_NAME} gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
   docker push gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
