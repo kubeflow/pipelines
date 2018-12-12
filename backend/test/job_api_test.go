@@ -34,6 +34,11 @@ type JobApiTestSuite struct {
 
 // Check the namespace have ML pipeline installed and ready
 func (s *JobApiTestSuite) SetupTest() {
+	if runAsUnitTest {
+		s.T().SkipNow()
+		return
+	}
+
 	err := waitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())

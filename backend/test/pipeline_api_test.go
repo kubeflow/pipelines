@@ -32,6 +32,11 @@ type PipelineApiTest struct {
 
 // Check the namespace have ML job installed and ready
 func (s *PipelineApiTest) SetupTest() {
+	if runAsUnitTest {
+		s.T().SkipNow()
+		return
+	}
+
 	err := waitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
@@ -65,7 +70,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body:  &pipeline_model.APIPipeline{URL:&pipeline_model.APIURL{
+		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	assert.Nil(t, err)
 	assert.Equal(t, "sequential.yaml", sequentialPipeline.Name)
@@ -79,7 +84,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body:  &pipeline_model.APIPipeline{URL:&pipeline_model.APIURL{
+		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.tar.gz"}}})
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments.tar.gz", argumentUrlPipeline.Name)
