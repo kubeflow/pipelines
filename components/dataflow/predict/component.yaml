@@ -1,0 +1,30 @@
+name: Predict using TF on Dataflow
+description: |
+  Runs TensorFlow prediction on Google Cloud Dataflow
+  Input and output data is in GCS
+inputs:
+  - {name: Data file pattern,   type: {GcsUriPattern: [text, CSV]},      description: 'GCS or local path of test file patterns.'}
+  - {name: Schema,              type: {GcsUri: [text, json]},     description: 'GCS json schema file path.'}
+  - {name: Target,              type: String,                     description: 'Name of the column for prediction target.'}
+  - {name: Model,               type: {GcsUri: [Directory, Exported TensorFlow models]}, description: 'GCS or local path of model trained with tft preprocessed data.'}   # Models trained with estimator are exported to base/export/export/123456781 directory.  # Our trainer export only one model. #TODO: Output single model from trainer
+#  - {name: Batch size,          type: Integer,   default: 32,     description: 'Batch size used in prediction.'}
+  - {name: Run mode,            type: {Enum: [local, cloud]},     description: 'Whether to run the job locally or in Cloud Dataflow.'}
+  - {name: GCP project,         type: GCP project,                description: 'The GCP project to run the dataflow job.'}
+  - {name: Predictions dir,     type: {GcsUri: Directory},        description: 'GCS or local directory.'} #Will contain prediction_results-* and schema.json files; TODO: Split outputs and replace dir with single file
+outputs:
+  - {name: Predictions dir,     type: {GcsUri: Directory},        description: 'GCS or local directory.'} #Will contain prediction_results-* and schema.json files; TODO: Split outputs and replace dir with single file
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:85c6413a2e13da4b8f198aeac1abc2f3a74fe789
+    command: [python, /ml/predict.py] #python2.7
+    args: [
+      --data, {inputValue: Data file pattern},
+      --schema, {inputValue: Schema},
+      --target, {inputValue: Target},
+      --model,  {inputValue: Model},
+      --mode, {inputValue: Run mode},
+      --project, {inputValue: GCP project},
+      --output, {inputValue: Predictions dir},
+    ]
+    fileOutputs:
+      Predictions dir: /output.txt
