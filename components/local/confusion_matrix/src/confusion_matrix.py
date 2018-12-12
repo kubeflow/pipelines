@@ -34,6 +34,10 @@ def main(argv=None):
   parser = argparse.ArgumentParser(description='ML Trainer')
   parser.add_argument('--predictions', type=str, help='GCS path of prediction file pattern.')
   parser.add_argument('--output', type=str, help='GCS path of the output directory.')
+  parser.add_argument('--target_lambda', type=str,
+                      help='a lambda function as a string to compute target.' +
+                           'For example, "lambda x: x[\'a\'] + x[\'b\']"' +
+                           'If not set, the input must include a "target" column.')
   args = parser.parse_args()
 
   schema_file = os.path.join(os.path.dirname(args.predictions), 'schema.json')
@@ -46,6 +50,16 @@ def main(argv=None):
       dfs.append(pd.read_csv(f, names=names))
     
   df = pd.concat(dfs)
+  if args.target_lambda:
+    df['target'] = df.apply(eval(args.target_lambda), axis=1)
+
+  # Convert "True" to "True_" and "False" to "False_" for frontend to work.
+  # TODO: Investigate frontend handling of boolean values.
+  # https://github.com/kubeflow/pipelines/issues/446
+  convert_fn = lambda x: str(x) + '_' if str(x).lower() in ['true', 'false'] else x
+  df['target'] = df['target'].apply(convert_fn)
+  df['predicted'] = df['predicted'].apply(convert_fn)
+
   vocab = list(df['target'].unique())
   cm = confusion_matrix(df['target'], df['predicted'], labels=vocab)
   data = []

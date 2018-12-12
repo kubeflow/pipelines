@@ -149,9 +149,12 @@ def run_validator(output_dir, column_names, key_columns, csv_data_file,
         schema, column_names, key_columns)
     with open('/output_schema.json', 'w+') as f:
         json.dump(schema_json, f)
-    with file_io.FileIO(os.path.join(output_dir, 'schema.json'), 'w+') as f:
+    schema_json_file = os.path.join(output_dir, 'schema.json')
+    with file_io.FileIO(schema_json_file, 'w+') as f:
         logging.getLogger().info('Writing JSON schema to {}'.format(f.name))
         json.dump(schema_json, f)
+    with open('/schema.txt', 'w+') as f:
+        f.write(schema_json_file)
 
     if not csv_data_file_to_validate:
         return
@@ -192,8 +195,6 @@ def main():
                   args.csv_data_for_inference,
                   args.csv_data_to_validate,
                   args.project, args.mode)
-    with open('/output.txt', 'w+') as f:
-        f.write(args.output)
 
 
 if __name__ == "__main__":
