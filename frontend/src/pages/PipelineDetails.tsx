@@ -33,7 +33,7 @@ import { ApiPipeline, ApiGetTemplateResponse } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
+import { ToolbarProps, ToolbarActionConfig } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -49,7 +49,7 @@ interface PipelineDetailsState {
   selectedTab: number;
   summaryShown: boolean;
   template?: Workflow;
-  templateYaml?: string;
+  templateString?: string;
 }
 
 const summaryCardWidth = 500;
@@ -114,36 +114,48 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public getInitialToolbarState(): ToolbarProps {
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
+    const actions: ToolbarActionConfig[] = [{
+      action: () => this._createNewRun(),
+      icon: AddIcon,
+      id: 'createNewRunBtn',
+      outlined: true,
+      primary: true,
+      title: 'Create run',
+      tooltip: 'Create a new run within this pipeline',
+    }];
+
     if (fromRunId) {
       return {
-        actions: [],
+        actions,
         breadcrumbs: [
           { displayName: fromRunId, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId) }
         ],
         pageTitle: 'Pipeline details',
       };
     } else {
+      // Add buttons for creating experiment and deleting pipeline
+      actions.push({
+        action: this._createNewExperiment.bind(this),
+        icon: AddIcon,
+        id: 'startNewExperimentBtn',
+        outlined: true,
+        title: 'Start an experiment',
+        tooltip: 'Create a new experiment beginning with this pipeline',
+      }, {
+        action: () => this.props.updateDialog({
+          buttons: [
+            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
+            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
+          ],
+          onClose: () => this._deleteDialogClosed(false),
+          title: 'Delete this pipeline?',
+        }),
+        id: 'deleteBtn',
+        title: 'Delete',
+        tooltip: 'Delete this pipeline',
+      });
       return {
-        actions: [{
-          action: this._createNewExperiment.bind(this),
-          icon: AddIcon,
-          id: 'startNewExperimentBtn',
-          primary: true,
-          title: 'Start an experiment',
-          tooltip: 'Create a new experiment beginning with this pipeline',
-        }, {
-          action: () => this.props.updateDialog({
-            buttons: [
-              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-            ],
-            onClose: () => this._deleteDialogClosed(false),
-            title: 'Delete this pipeline?',
-          }),
-          id: 'deleteBtn',
-          title: 'Delete',
-          tooltip: 'Delete this pipeline',
-        }],
+        actions,
         breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
         pageTitle: this.props.match.params[RouteParams.pipelineId],
       };
@@ -151,7 +163,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { pipeline, selectedNodeId, selectedTab, summaryShown, templateYaml } = this.state;
+    const { pipeline, selectedNodeId, selectedTab, summaryShown, templateString } = this.state;
 
     let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
     if (this.state.graph && this.state.graph.node(selectedNodeId)) {
@@ -218,10 +230,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               </div>}
               {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
             </div>}
-            {selectedTab === 1 && !!templateYaml &&
+            {selectedTab === 1 && !!templateString &&
               <div className={css.containerCss}>
                 <CodeMirror
-                  value={templateYaml || ''}
+                  value={templateString || ''}
                   editorDidMount={(editor) => editor.refresh()}
                   options={{
                     lineNumbers: true,
@@ -252,7 +264,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
 
     let pipeline: ApiPipeline | null = null;
-    let templateYaml = '';
+    let templateString = '';
     let template: Workflow | undefined;
     let breadcrumbs: Array<{ displayName: string, href: string }> = [];
     const toolbarActions = [...this.props.toolbarProps.actions];
@@ -262,7 +274,24 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     if (fromRunId) {
       try {
         const runDetails = await Apis.runServiceApi.getRun(fromRunId);
-        templateYaml = RunUtils.getPipelineSpec(runDetails.run) || '';
+
+        // Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
+        try {
+          const pipelineSpec = JSON.parse(RunUtils.getPipelineSpec(runDetails.run) || '{}');
+          try {
+            templateString = JsYaml.safeDump(pipelineSpec);
+          } catch (err) {
+            await this.showPageError(
+              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+            logger.error(
+              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`, err);
+          }
+        } catch (err) {
+          await this.showPageError(
+            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+          logger.error(
+            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`, err);
+        }
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
         let experiment: ApiExperiment | undefined;
@@ -308,7 +337,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
       try {
         templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
-        templateYaml = templateResponse.template || '';
+        templateString = templateResponse.template || '';
       } catch (err) {
         await this.showPageError('Cannot retrieve pipeline template.', err);
         logger.error('Cannot retrieve pipeline details.', err);
@@ -323,7 +352,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     let g: dagre.graphlib.Graph | undefined;
     try {
-      template = JsYaml.safeLoad(templateYaml);
+      template = JsYaml.safeLoad(templateString);
       g = StaticGraphParser.createGraph(template!);
     } catch (err) {
       await this.showPageError('Error: failed to generate Pipeline graph.', err);
@@ -333,8 +362,25 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       graph: g,
       pipeline,
       template,
-      templateYaml,
+      templateString,
     });
+  }
+
+  private _createNewRun(): void {
+    let searchString = '';
+    const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
+
+    if (fromRunId) {
+      searchString = new URLParser(this.props).build(Object.assign(
+        { [QUERY_PARAMS.fromRunId]: fromRunId }
+      ));
+    } else {
+      searchString = new URLParser(this.props).build(Object.assign(
+        { [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || '' }
+      ));
+    }
+
+    this.props.history.push(RoutePage.NEW_RUN + searchString);
   }
 
   private _createNewExperiment(): void {
