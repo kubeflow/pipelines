@@ -32,7 +32,7 @@ type CLIIntegrationTest struct {
 
 // Check the cluster namespace has Kubeflow pipelines installed and ready.
 func (c *CLIIntegrationTest) SetupTest() {
-	if *runAsUnitTest {
+	if !*runIntegrationTests {
 		c.T().SkipNow()
 		return
 	}

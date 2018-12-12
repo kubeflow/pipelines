@@ -34,7 +34,7 @@ type JobApiTestSuite struct {
 
 // Check the namespace have ML pipeline installed and ready
 func (s *JobApiTestSuite) SetupTest() {
-	if *runAsUnitTest {
+	if !*runIntegrationTests {
 		s.T().SkipNow()
 		return
 	}

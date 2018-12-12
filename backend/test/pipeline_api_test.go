@@ -32,7 +32,7 @@ type PipelineApiTest struct {
 
 // Check the namespace have ML job installed and ready
 func (s *PipelineApiTest) SetupTest() {
-	if *runAsUnitTest {
+	if !*runIntegrationTests {
 		s.T().SkipNow()
 		return
 	}
