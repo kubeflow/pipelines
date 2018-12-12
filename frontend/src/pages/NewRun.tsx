@@ -56,7 +56,7 @@ interface NewRunState {
   maxConcurrentRuns?: string;
   pipeline?: ApiPipeline;
   // This represents a pipeline from a run that is being cloned, or if a user is creating a run from
-  // a pipeline was not uploaded to the system (as in the case of runs created from notebooks).
+  // a pipeline that was not uploaded to the system (as in the case of runs created from notebooks).
   // By storing this here instead of in the 'pipeline' field, we won't lose it if the user selects a
   // different pipeline.
   pipelineFromRun?: ApiPipeline;
@@ -332,33 +332,7 @@ class NewRun extends Page<{}, NewRunState> {
         logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
       }
     } else if(embeddedPipelineRunId) {
-      try {
-        const runWithEmbeddedPipeline = await Apis.runServiceApi.getRun(embeddedPipelineRunId);
-        const embeddedPipelineSpec = RunUtils.getPipelineSpec(runWithEmbeddedPipeline.run);
-        if (embeddedPipelineSpec) {
-          try {
-            const pipeline = JSON.parse(embeddedPipelineSpec);
-            this.setState({
-              pipeline,
-              pipelineFromRun: pipeline,
-              pipelineName: (pipeline && pipeline.name) || '',
-              usePipelineFromRun: true,
-              usePipelineFromRunLabel: 'Use pipeline from previous step',
-            });
-          } catch (err) {
-            await this.showPageError(
-              `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`, err);
-            logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedPipelineRunId}`, err);
-          }
-        } else {
-          await this.showPageError(
-            `Error: somehow the run provided in the query params: ${embeddedPipelineRunId} had no embedded pipeline.`);
-        }
-      } catch (err) {
-        await this.showPageError(
-          `Error: failed to retrieve the specified run: ${embeddedPipelineRunId}.`, err);
-        logger.error(`Failed to retrieve the specified run: ${embeddedPipelineRunId}`, err);
-      }
+      this._prepareFormFromEmbeddedPipeline(embeddedPipelineRunId);
     } else {
       // Get pipeline id from querystring if any
       const possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
@@ -438,6 +412,44 @@ class NewRun extends Page<{}, NewRunState> {
     });
 
     // Now that we may have a pipeline, update the validation.
+    this._validate();
+  }
+
+  private async _prepareFormFromEmbeddedPipeline(embeddedPipelineRunId: string): Promise<void> {
+    let embeddedPipelineSpec: string | null;
+
+    try {
+      const runWithEmbeddedPipeline = await Apis.runServiceApi.getRun(embeddedPipelineRunId);
+      embeddedPipelineSpec = RunUtils.getPipelineSpec(runWithEmbeddedPipeline.run);
+    } catch (err) {
+      await this.showPageError(
+        `Error: failed to retrieve the specified run: ${embeddedPipelineRunId}.`, err);
+      logger.error(`Failed to retrieve the specified run: ${embeddedPipelineRunId}`, err);
+      return;
+    }
+
+    if (!embeddedPipelineSpec) {
+      await this.showPageError(
+        `Error: somehow the run provided in the query params: ${embeddedPipelineRunId} had no embedded pipeline.`);
+      return;
+    }
+
+    try {
+      const pipeline = JSON.parse(embeddedPipelineSpec);
+      this.setStateSafe({
+        pipeline,
+        pipelineFromRun: pipeline,
+        pipelineName: (pipeline && pipeline.name) || '',
+        usePipelineFromRun: true,
+        usePipelineFromRunLabel: 'Use pipeline from previous step',
+      });
+    } catch (err) {
+      await this.showPageError(
+        `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`, err);
+      logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedPipelineRunId}`, err);
+      return;
+    }
+
     this._validate();
   }
 

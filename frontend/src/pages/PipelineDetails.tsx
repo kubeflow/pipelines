@@ -281,12 +281,16 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           try {
             templateString = JsYaml.safeDump(pipelineSpec);
           } catch (err) {
-            await this.showPageError('Failed to convert pipeline spec to YAML.', err);
-            logger.error('Failed to convert pipeline spec YAML.', err);
+            await this.showPageError(
+              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+            logger.error(
+              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`, err);
           }
         } catch (err) {
-          await this.showPageError('Failed to parse pipeline spec JSON.', err);
-          logger.error('Failed to parse pipeline spec JSON.', err);
+          await this.showPageError(
+            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+          logger.error(
+            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`, err);
         }
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);

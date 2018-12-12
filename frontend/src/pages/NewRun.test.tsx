@@ -52,10 +52,10 @@ describe('NewRun', () => {
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
 
-  const MOCK_EXPERIMENT = newMockExperiment();
-  const MOCK_PIPELINE = newMockPipeline();
-  const MOCK_RUN_DETAIL = newMockRunDetail();
-  const MOCK_RUN_WITH_EMBEDDED_PIPELINE = newMockRunWithEmbeddedPipeline();
+  let MOCK_EXPERIMENT = newMockExperiment();
+  let MOCK_PIPELINE = newMockPipeline();
+  let MOCK_RUN_DETAIL = newMockRunDetail();
+  let MOCK_RUN_WITH_EMBEDDED_PIPELINE = newMockRunWithEmbeddedPipeline();
 
   function newMockExperiment(): ApiExperiment {
     return {
@@ -119,6 +119,11 @@ describe('NewRun', () => {
     getExperimentSpy.mockImplementation(() => MOCK_EXPERIMENT);
     getPipelineSpy.mockImplementation(() => MOCK_PIPELINE);
     getRunSpy.mockImplementation(() => MOCK_RUN_DETAIL);
+
+    MOCK_EXPERIMENT = newMockExperiment();
+    MOCK_PIPELINE = newMockPipeline();
+    MOCK_RUN_DETAIL = newMockRunDetail();
+    MOCK_RUN_WITH_EMBEDDED_PIPELINE = newMockRunWithEmbeddedPipeline();
   });
 
   afterEach(() => {
@@ -772,14 +777,16 @@ describe('NewRun', () => {
   });
 
   describe('arriving from pipeline details page', () => {
+    let mockEmbeddedPipelineProps: PageProps;
+    beforeEach(() => {
+      mockEmbeddedPipelineProps = generateProps();
+      mockEmbeddedPipelineProps.location.search =
+        `?${QUERY_PARAMS.fromRunId}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
+      getRunSpy.mockImplementationOnce(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
+    });
 
     it('indicates that a pipeline is preselected and provides a means of selecting a different pipeline', async () => {
-      const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.fromRunId}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
-
-      getRunSpy.mockImplementationOnce(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
-
-      tree = shallow(<TestNewRun {...props as any} />);
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
       await TestUtils.flushPromises();
 
       expect(tree.state('usePipelineFromRun')).toBe(true);
@@ -788,26 +795,16 @@ describe('NewRun', () => {
     });
 
     it('retrieves the run with the embedded pipeline', async () => {
-      const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.fromRunId}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
-
-      getRunSpy.mockImplementationOnce(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
-
-      tree = shallow(<TestNewRun {...props as any} />);
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
       await TestUtils.flushPromises();
 
       expect(getRunSpy).toHaveBeenLastCalledWith(MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id);
     });
 
     it('parses the embedded pipeline and stores it in state', async () => {
-      const runDetail = newMockRunWithEmbeddedPipeline();
-      runDetail.run!.pipeline_spec!.workflow_manifest = JSON.stringify(MOCK_PIPELINE);
-      const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.fromRunId}=${runDetail.run!.id}`;
+      MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest = JSON.stringify(MOCK_PIPELINE);
 
-      getRunSpy.mockImplementationOnce(() => runDetail);
-
-      tree = shallow(<TestNewRun {...props as any} />);
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
       await TestUtils.flushPromises();
 
       expect(tree.state('pipeline')).toEqual(MOCK_PIPELINE);
@@ -816,14 +813,9 @@ describe('NewRun', () => {
     });
 
     it('displays a page error if it fails to parse the embedded pipeline', async () => {
-      const runDetail = newMockRunWithEmbeddedPipeline();
-      runDetail.run!.pipeline_spec!.workflow_manifest = 'not JSON';
-      const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.fromRunId}=${runDetail.run!.id}`;
+      MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest = 'not JSON';
 
-      getRunSpy.mockImplementationOnce(() => runDetail);
-
-      tree = shallow(<TestNewRun {...props as any} />);
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -833,31 +825,24 @@ describe('NewRun', () => {
       }));
     });
 
-    it('displays a page error if ', async () => {
-      const runDetail = newMockRunWithEmbeddedPipeline();
+    it('displays a page error if referenced run has no embedded pipeline', async () => {
       // Remove workflow_manifest entirely
-      delete runDetail.run!.pipeline_spec!.workflow_manifest;
-      const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.fromRunId}=${runDetail.run!.id}`;
+      delete MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest;
 
-      getRunSpy.mockImplementationOnce(() => runDetail);
-
-      tree = shallow(<TestNewRun {...props as any} />);
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-        message: `Error: somehow the run provided in the query params: ${runDetail.run!.id} had no embedded pipeline.`,
+        message: `Error: somehow the run provided in the query params: ${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id} had no embedded pipeline.`,
         mode: 'error',
       }));
     });
 
     it('displays a page error if it fails to retrieve the run containing the embedded pipeline', async () => {
-      const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.fromRunId}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
-
+      getRunSpy.mockReset();
       TestUtils.makeErrorResponseOnce(getRunSpy, 'test - error!');
 
-      tree = shallow(<TestNewRun {...props as any} />);
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({

@@ -189,7 +189,7 @@ describe('PipelineDetails', () => {
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       additionalInfo: 'Unexpected token o in JSON at position 1',
-      message: 'Failed to parse pipeline spec JSON. Click Details for more information.',
+      message: `Failed to parse pipeline spec from run with ID: ${testRun.run!.id}. Click Details for more information.`,
       mode: 'error',
     }));
   });
