@@ -101,9 +101,9 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
-func (r *ResourceManager) ListPipelines(context *common.PaginationContext) (
-	pipelines []model.Pipeline, nextPageToken string, err error) {
-	return r.pipelineStore.ListPipelines(context)
+func (r *ResourceManager) ListPipelines(opts *list.Options) (
+	pipelines []*model.Pipeline, nextPageToken string, err error) {
+	return r.pipelineStore.ListPipelines(opts)
 }
 
 func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error) {

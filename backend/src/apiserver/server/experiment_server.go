@@ -44,7 +44,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 	if request.PageToken != "" {
 		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
 	} else {
-		opts, err = list.NewOptions(&model.Experiment{}, int(request.PageSize), request.SortBy, nil)
+		opts, err = list.NewOptions(&model.Experiment{}, int(request.PageSize), request.SortBy, request.Filter)
 	}
 
 	if err != nil {

@@ -28,7 +28,7 @@ type ExperimentStore struct {
 
 func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, string, error) {
 	errorF := func(err error) ([]*model.Experiment, string, error) {
-		return nil, "", util.NewInternalServerError(err, "Failed to list experiments")
+		return nil, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 
 	sql, args, err := opts.AddToSelect(sq.Select("*").From("experiments")).ToSql()
@@ -161,22 +161,6 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 		return util.NewInternalServerError(err, "Failed to delete experiment %v and its resource references from table", id)
 	}
 	return nil
-}
-
-func (s *ExperimentStore) toListableModels(experiments []model.Experiment) []model.ListableDataModel {
-	models := make([]model.ListableDataModel, len(experiments))
-	for i := range models {
-		models[i] = experiments[i]
-	}
-	return models
-}
-
-func (s *ExperimentStore) toExperiments(models []model.ListableDataModel) []model.Experiment {
-	experiments := make([]model.Experiment, len(models))
-	for i := range models {
-		experiments[i] = models[i].(model.Experiment)
-	}
-	return experiments
 }
 
 // factory function for experiment store

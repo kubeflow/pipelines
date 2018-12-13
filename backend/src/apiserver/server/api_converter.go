@@ -66,10 +66,10 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 	}
 }
 
-func ToApiPipelines(pipelines []model.Pipeline) []*api.Pipeline {
+func ToApiPipelines(pipelines []*model.Pipeline) []*api.Pipeline {
 	apiPipelines := make([]*api.Pipeline, 0)
 	for _, pipeline := range pipelines {
-		apiPipelines = append(apiPipelines, ToApiPipeline(&pipeline))
+		apiPipelines = append(apiPipelines, ToApiPipeline(pipeline))
 	}
 	return apiPipelines
 }
