@@ -25,7 +25,7 @@ import argparse
 import json
 import os
 import pandas as pd
-from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_curve, roc_auc_score
 from tensorflow.python.lib.io import file_io
 
 
@@ -58,6 +58,7 @@ def main(argv=None):
   else:
     df['target'] = df['target'].apply(lambda x: 1 if x == args.trueclass else 0)
   fpr, tpr, thresholds = roc_curve(df['target'], df[args.trueclass])
+  roc_auc = roc_auc_score(df['target'], df[args.trueclass])
   df_roc = pd.DataFrame({'fpr': fpr, 'tpr': tpr, 'thresholds': thresholds})
   roc_file = os.path.join(args.output, 'roc.csv')
   with file_io.FileIO(roc_file, 'w') as f:
@@ -79,6 +80,14 @@ def main(argv=None):
   with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
     json.dump(metadata, f)
 
+  metrics = {
+    'metrics': [{
+      'name': 'roc-auc-score',
+      'numberValue':  roc_auc,
+    }]
+  }
+  with file_io.FileIO('/mlpipeline-metrics.json', 'w') as f:
+    json.dump(metrics, f)
 
 if __name__== "__main__":
   main()
