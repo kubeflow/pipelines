@@ -79,14 +79,6 @@ func TestValidNewFilters(t *testing.T) {
 			t.Errorf("New(%+v) = %+v, %v\nWant %+v, nil", *filterProto, got, err, test.want)
 		}
 	}
-
-	// sb := sq.Select("name", "id", "hello")
-	// sb = sb.From("MYTABLE")
-	// sb = AddFilter(f, sb)
-
-	// r, args, err := sb.ToSql()
-	// fmt.Printf("Got: %v\n%v\n%v\n", r, args, err)
-
 }
 
 func TestInvalidFilters(t *testing.T) {

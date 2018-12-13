@@ -41,6 +41,17 @@ func New(filterProto *api.Filter) (*Filter, error) {
 	return f, nil
 }
 
+func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string) (*Filter, error) {
+	for _, pred := range filterProto.Predicates {
+		k, ok := keyMap[pred.Key]
+		if !ok {
+			return nil, fmt.Errorf("no support for filtering on unrecognized field %q", pred.Key)
+		}
+		pred.Key = k
+	}
+	return New(filterProto)
+}
+
 // AddToSelect blah blah
 func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
 	if len(f.eq) > 0 {

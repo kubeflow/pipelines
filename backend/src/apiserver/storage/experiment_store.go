@@ -37,10 +37,10 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 	}
 
 	rows, err := s.db.Query(sql, args...)
-	defer rows.Close()
 	if err != nil {
 		return errorF(err)
 	}
+	defer rows.Close()
 
 	exps, err := s.scanRows(rows)
 	if err != nil {
@@ -51,30 +51,9 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 		return exps, "", nil
 	}
 
-	npt, err := list.NextPageToken(opts, exps[opts.PageSize]).Marshal()
+	npt, err := opts.NextPageToken(exps[opts.PageSize])
 	return exps[:opts.PageSize], npt, err
 }
-
-// func (s *ExperimentStore) queryExperimentTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
-// 	sqlBuilder := sq.Select("*").From("experiments")
-// 	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
-// 	if err != nil {
-// 		return nil, util.NewInternalServerError(err, "Failed to create query to list experiments: %v",
-// 			err.Error())
-// 	}
-// 	rows, err := s.db.Query(sql, args...)
-// 	if err != nil {
-// 		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
-// 			err.Error())
-// 	}
-// 	defer rows.Close()
-// 	experiments, err := s.scanRows(rows)
-// 	if err != nil {
-// 		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
-// 			err.Error())
-// 	}
-// 	return s.toListableModels(experiments), nil
-// }
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
 	sql, args, err := sq.
