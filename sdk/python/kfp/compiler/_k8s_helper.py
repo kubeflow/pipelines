@@ -27,7 +27,7 @@ class K8sHelper(object):
       raise Exception('K8sHelper __init__ failure')
 
   def _configure_k8s(self):
-    config.load_incluster_config()
+    config.load_kube_config()
     self._api_client = k8s_client.ApiClient()
     self._corev1 = k8s_client.CoreV1Api(self._api_client)
     return True
