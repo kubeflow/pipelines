@@ -34,10 +34,10 @@ func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	}
 }
 
-func ToApiExperiments(experiments []model.Experiment) []*api.Experiment {
+func ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
 	apiExperiments := make([]*api.Experiment, 0)
 	for _, experiment := range experiments {
-		apiExperiments = append(apiExperiments, ToApiExperiment(&experiment))
+		apiExperiments = append(apiExperiments, ToApiExperiment(experiment))
 	}
 	return apiExperiments
 }

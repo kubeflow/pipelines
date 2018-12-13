@@ -129,8 +129,6 @@ message ListRunsRequest{
 message ListRunsResponse {
   repeated Run runs = 1;
   string next_page_token = 2;
-
-  Filter filter = 3;
 }
 
 message DeleteRunRequest {

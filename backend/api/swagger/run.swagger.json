@@ -350,9 +350,6 @@
         },
         "next_page_token": {
           "type": "string"
-        },
-        "filter": {
-          "$ref": "#/definitions/apiFilter"
         }
       }
     },
@@ -438,7 +435,8 @@
         },
         "timestamp_value": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "Timestamp values will be converted to Unix time (seconds since the epoch)\nprior to being used in a filtering operation."
         },
         "int_values": {
           "$ref": "#/definitions/apiIntValues",

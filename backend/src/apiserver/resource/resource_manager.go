@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -87,9 +88,9 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 	return r.experimentStore.GetExperiment(experimentId)
 }
 
-func (r *ResourceManager) ListExperiments(context *common.PaginationContext) (
-	experiments []model.Experiment, nextPageToken string, err error) {
-	return r.experimentStore.ListExperiments(context)
+func (r *ResourceManager) ListExperiments(opts *list.Options) (
+	experiments []*model.Experiment, nextPageToken string, err error) {
+	return r.experimentStore.ListExperiments(opts)
 }
 
 func (r *ResourceManager) DeleteExperiment(experimentID string) error {
