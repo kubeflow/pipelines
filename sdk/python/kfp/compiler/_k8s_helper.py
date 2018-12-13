@@ -27,7 +27,14 @@ class K8sHelper(object):
       raise Exception('K8sHelper __init__ failure')
 
   def _configure_k8s(self):
-    config.load_incluster_config()
+    try:
+      config.load_kube_config()
+      logging.info('Found local kubernetes config. Initialized with kube_config.')
+    except:
+      logging.info('Cannot Find local kubernetes config. Trying in-cluster config.')
+      config.load_incluster_config()
+      logging.info('Initialized with in-cluster config.')
+    
     self._api_client = k8s_client.ApiClient()
     self._corev1 = k8s_client.CoreV1Api(self._api_client)
     return True
