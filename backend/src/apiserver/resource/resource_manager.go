@@ -226,8 +226,8 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
 
-func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, paginationContext *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
-	return r.runStore.ListRuns(filterContext, paginationContext)
+func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, opts *list.Options) (runs []*model.Run, nextPageToken string, err error) {
+	return r.runStore.ListRuns(filterContext, opts)
 }
 
 func (r *ResourceManager) DeleteRun(runID string) error {

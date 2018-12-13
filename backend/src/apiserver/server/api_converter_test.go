@@ -156,7 +156,7 @@ func TestToApiRuns(t *testing.T) {
 		},
 		Metrics: []*model.RunMetric{metric2},
 	}
-	apiRuns := ToApiRuns([]model.Run{modelRun1, modelRun2})
+	apiRuns := ToApiRuns([]*model.Run{&modelRun1, &modelRun2})
 	expectedApiRun := []*api.Run{
 		{
 			Id:          "run1",
