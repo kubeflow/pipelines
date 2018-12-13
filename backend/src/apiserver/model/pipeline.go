@@ -44,14 +44,12 @@ func GetPipelineTablePrimaryKeyColumn() string {
 	return "UUID"
 }
 
-func (p *Pipeline) PrimaryKeyValue() string {
-	return p.UUID
-}
-
+// PrimaryKeyColumnName returns the primary key for model Pipeline.
 func (p *Pipeline) PrimaryKeyColumnName() string {
 	return "UUID"
 }
 
+// DefaultSortField returns the default sorting field for model Pipeline.
 func (p *Pipeline) DefaultSortField() string {
 	return "CreatedAtInSec"
 }
@@ -63,6 +61,8 @@ var pipelineAPIToModelFieldMap = map[string]string{
 	"description": "Description",
 }
 
+// APIToModelFieldMap returns a map from API names to field names for model
+// Pipeline.
 func (p *Pipeline) APIToModelFieldMap() map[string]string {
 	return pipelineAPIToModelFieldMap
 }

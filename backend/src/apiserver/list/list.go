@@ -1,3 +1,20 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package list contains types and methods for performing ListXXX operations. In
+// particular, the package exports the Options struct, which can be used for
+// applying listing, filtering and pagination logic.
 package list
 
 import (
@@ -13,25 +30,26 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-// Token represents a token for obtaining the next page in a
-// ListXXX request. Assuming the list request is sorted by
-// name, a typical token should be
-//
-//     {SortByFieldValue:"foo", KeyFieldValue:"2"}
-// The corresponding list query would be select * from table where (name, id)
-// >=(foobar,2) order by name, id limit page_size
+// token represents a WHERE clause when making a ListXXX query. It can either
+// represent a query for an initial set of results, in which page
+// SortByFieldValue and KeyFieldValue are nil. If the latter fields are not nil,
+// then token represents a query for a subsequent set of results (i.e., the next
+// page of results), with the two values pointing to the first record in the
+// next set of results.
 type token struct {
-	// SortByFieldName
+	// SortByFieldName is the field name to use when sorting.
 	SortByFieldName string
-	// The value of the sorted field of the next row to be returned.
+	// SortByFieldValue is the value of the sorted field of the next row to be
+	// returned.
 	SortByFieldValue interface{}
-	// The value
+	// KeyFieldName is the name of the primary key for the model being queried.
 	KeyFieldName string
-	// The value of the key field of the next row to be returned.
+	// KeyFieldValue is the value of the sorted field of the next row to be
+	// returned.
 	KeyFieldValue interface{}
-	// IsDesc
+	// IsDesc is true if the sorting order should be descending.
 	IsDesc bool
-	// Filter ...
+	// Filter represents the filtering that should be applied in the query.
 	Filter *filter.Filter
 }
 
@@ -59,25 +77,37 @@ func (t *token) marshal() (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
+// Options represents options used when making a ListXXX query. In particular,
+// it contains information on how to sort and filter results. It also
+// encapsulates all the logic required for making the query for an initial set
+// of results as well as subsequent pages of results.
 type Options struct {
 	PageSize int
 	*token
 }
 
-func NewOptionsFromToken(serializedToken string, pageSize int) (*Options, error) {
+// NewOptionsFromToken creates a new Options struct from the passed in token
+// which represents the next page of results. An empty nextPageToken will result
+// in an error.
+func NewOptionsFromToken(nextPageToken string, pageSize int) (*Options, error) {
+	if nextPageToken == "" {
+		return nil, fmt.Errorf("cannot create list.Options from empty page token")
+	}
 	pageSize, err := validatePageSize(pageSize)
 	if err != nil {
 		return nil, err
 	}
 
 	t := &token{}
-	if err := t.unmarshal(serializedToken); err != nil {
+	if err := t.unmarshal(nextPageToken); err != nil {
 		return nil, err
 	}
 	return &Options{PageSize: pageSize, token: t}, nil
 }
 
-// NewOptions
+// NewOptions creates a new Options struct for the given listable. It uses
+// sorting and filtering criteria parsed from sortBy and filterProto
+// respectively.
 func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api.Filter) (*Options, error) {
 	pageSize, err := validatePageSize(pageSize)
 	if err != nil {
@@ -120,9 +150,10 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 	return &Options{PageSize: pageSize, token: token}, nil
 }
 
-func (o *Options) BuildListSQLQuery(table string) (string, []interface{}, error) {
-	sqlBuilder := sq.Select("*").From(table)
-
+// AddToSelect adds WHERE clauses with the sorting and filtering criteria in the
+// Options o to the supplied SelectBuilder, and returns the new SelectBuilder
+// containing these.
+func (o *Options) AddToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
@@ -151,22 +182,25 @@ func (o *Options) BuildListSQLQuery(table string) (string, []interface{}, error)
 		sqlBuilder = o.Filter.AddToSelect(sqlBuilder)
 	}
 
-	return sqlBuilder.ToSql()
+	return sqlBuilder
 }
 
-// Listable ...
+// Listable is an interface that should be implemented by any resource/model
+// that wants to support listing queries.
 type Listable interface {
+	// PrimaryKeyColumnName returns the primary key for model.
 	PrimaryKeyColumnName() string
+	// DefaultSortField returns the default field name to be used when sorting list
+	// query results.
 	DefaultSortField() string
+	// APIToModelFieldMap returns a map from field names in the API representation
+	// of the model to its corresponding field name in the model itself.
 	APIToModelFieldMap() map[string]string
 }
 
-const (
-	defaultPageSize = 20
-	maxPageSize     = 200
-)
-
-// NextPageToken ...
+// NextPageToken returns a string that can be used to fetch the subsequent set
+// of results using the same listing options in o, starting with listable as the
+// first record.
 func (o *Options) NextPageToken(listable Listable) (string, error) {
 	t, err := o.nextPageToken(listable)
 	if err != nil {
@@ -197,6 +231,11 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		IsDesc:           o.IsDesc,
 	}, nil
 }
+
+const (
+	defaultPageSize = 20
+	maxPageSize     = 200
+)
 
 func validatePageSize(pageSize int) (int, error) {
 	if pageSize < 0 {

@@ -31,7 +31,7 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 		return nil, "", util.NewInternalServerError(err, "Failed to list experiments")
 	}
 
-	sql, args, err := opts.BuildListSQLQuery("experiments")
+	sql, args, err := opts.AddToSelect(sq.Select("*").From("experiments")).ToSql()
 	if err != nil {
 		return errorF(err)
 	}

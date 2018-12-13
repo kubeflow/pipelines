@@ -15,14 +15,12 @@ func GetExperimentTablePrimaryKeyColumn() string {
 	return "UUID"
 }
 
-func (e *Experiment) PrimaryKeyValue() string {
-	return e.UUID
-}
-
+// PrimaryKeyColumnName returns the primary key for model Experiment.
 func (e *Experiment) PrimaryKeyColumnName() string {
 	return "UUID"
 }
 
+// DefaultSortField returns the default sorting field for model Experiment.
 func (e *Experiment) DefaultSortField() string {
 	return "CreatedAtInSec"
 }
@@ -34,6 +32,8 @@ var experimentAPIToModelFieldMap = map[string]string{
 	"description": "Description",
 }
 
+// APIToModelFieldMap returns a map from API names to field names for model
+// Experiment.
 func (e *Experiment) APIToModelFieldMap() map[string]string {
 	return experimentAPIToModelFieldMap
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
@@ -156,12 +157,14 @@ func TestNewOptions_FromValidSerializedToken(t *testing.T) {
 }
 
 func TestNewOptionsFromToken_FromInValidSerializedToken(t *testing.T) {
-	s := "random nonsense"
-	got, err := NewOptionsFromToken(s, 123)
+	tests := []struct{ in string }{{"random nonsense"}, {""}}
 
-	if err == nil {
-		t.Errorf("NewOptionsFromToken(%q, 123) =\nGot: %+v, <nil>\nWant: _, error",
-			s, got)
+	for _, test := range tests {
+		got, err := NewOptionsFromToken(test.in, 123)
+		if err == nil {
+			t.Errorf("NewOptionsFromToken(%q, 123) =\nGot: %+v, <nil>\nWant: _, error",
+				test.in, got)
+		}
 	}
 }
 
@@ -361,7 +364,7 @@ func TestNewOptions_InvalidFilter(t *testing.T) {
 	}
 }
 
-func TestBuildSQLQuery(t *testing.T) {
+func TestAddToSelect(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			&api.Predicate{
@@ -467,7 +470,8 @@ func TestBuildSQLQuery(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		gotSQL, gotArgs, err := test.in.BuildListSQLQuery("MyTable")
+		sql := sq.Select("*").From("MyTable")
+		gotSQL, gotArgs, err := test.in.AddToSelect(sql).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",

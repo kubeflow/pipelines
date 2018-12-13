@@ -1,3 +1,19 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package filter contains types and methods for parsing and applying filters to
+// resources being queried by a ListXXX request.
 package filter
 
 import (
@@ -9,6 +25,8 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
 
+// Filter represents a filter that can be applied when querying an arbitrary API
+// resource.
 type Filter struct {
 	filterProto *api.Filter
 
@@ -22,7 +40,7 @@ type Filter struct {
 	in map[string]interface{}
 }
 
-// New creates ...
+// New creates a new Filter from parsing the API filter protocol buffer.
 func New(filterProto *api.Filter) (*Filter, error) {
 	f := &Filter{
 		filterProto: filterProto,
@@ -41,6 +59,11 @@ func New(filterProto *api.Filter) (*Filter, error) {
 	return f, nil
 }
 
+// NewWithKeyMap is like New, but takes an additional map for mapping key names
+// in the protocol buffer to an appropriate name for use when querying the
+// model. For example, if the API name of a field is "foo" and the equivalent
+// model name is "ModelFoo", then filterProto with predicates against key "foo"
+// will be parsed as if the key value was "ModelFoo".
 func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string) (*Filter, error) {
 	for _, pred := range filterProto.Predicates {
 		k, ok := keyMap[pred.Key]
@@ -52,7 +75,8 @@ func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string) (*Filter, 
 	return New(filterProto)
 }
 
-// AddToSelect blah blah
+// AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
+// SelectBuilder object and returns it for use in SQL queries.
 func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
 	if len(f.eq) > 0 {
 		sb = sb.Where(squirrel.Eq(f.eq))
