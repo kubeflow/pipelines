@@ -176,10 +176,10 @@ func ToApiJob(job *model.Job) *api.Job {
 	}
 }
 
-func ToApiJobs(jobs []model.Job) []*api.Job {
+func ToApiJobs(jobs []*model.Job) []*api.Job {
 	apiJobs := make([]*api.Job, 0)
 	for _, job := range jobs {
-		apiJobs = append(apiJobs, ToApiJob(&job))
+		apiJobs = append(apiJobs, ToApiJob(job))
 	}
 	return apiJobs
 }

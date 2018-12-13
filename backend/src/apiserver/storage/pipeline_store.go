@@ -56,17 +56,17 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, st
 	}
 	defer rows.Close()
 
-	exps, err := s.scanRows(rows)
+	pipelines, err := s.scanRows(rows)
 	if err != nil {
 		return errorF(err)
 	}
 
-	if len(exps) <= opts.PageSize {
-		return exps, "", nil
+	if len(pipelines) <= opts.PageSize {
+		return pipelines, "", nil
 	}
 
-	npt, err := opts.NextPageToken(exps[opts.PageSize])
-	return exps[:opts.PageSize], npt, err
+	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
+	return pipelines[:opts.PageSize], npt, err
 }
 
 func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
