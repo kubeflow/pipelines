@@ -20,16 +20,12 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
-	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
@@ -493,36 +489,8 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 	return &RunStore{db: db, resourceReferenceStore: NewResourceReferenceStore(db), time: time}
 }
 
-// TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
-func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
-	patchObj := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"activeDeadlineSeconds": 0,
-		},
-	}
-	var err error
-	patch, err := json.Marshal(patchObj)
-	if err != nil {
-		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object.")
-	}
-
-	var operation = func() error {
-		_, err = wfClient.Patch(name, types.MergePatchType, patch)
-		//if err != nil && !apierr.IsConflict(err) //we can stop immediately
-		return err
-	}
-	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
-	err = backoff.Retry(operation, backoffPolicy)
-	return err
-}
-
 func (s *RunStore) TerminateRun(runId string) error {
-	run, err := s.GetRun(runId)
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to get run info: %s", err.Error())
-	}
-
-	_, err = s.db.Exec(`
+	_, err := s.db.Exec(`
 		UPDATE run_details
 		SET Conditions = ?,
 		WHERE UUID = ? AND Conditions = ?`,
@@ -531,12 +499,5 @@ func (s *RunStore) TerminateRun(runId string) error {
 		return util.NewInternalServerError(err, "Failed to start terminating the run: %s", err.Error())
 	}
 
-	workflowInterface, err := client.CreateWorkflowClient("default")
-	if err != nil {
-		return err
-	}
-
-	err = TerminateWorkflow(workflowInterface, run.Name)
-
-	return err
+	return nil
 }
