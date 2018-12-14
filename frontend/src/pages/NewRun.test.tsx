@@ -52,9 +52,10 @@ describe('NewRun', () => {
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
 
-  const MOCK_EXPERIMENT = newMockExperiment();
-  const MOCK_PIPELINE = newMockPipeline();
-  const MOCK_RUN_DETAIL = newMockRunDetail();
+  let MOCK_EXPERIMENT = newMockExperiment();
+  let MOCK_PIPELINE = newMockPipeline();
+  let MOCK_RUN_DETAIL = newMockRunDetail();
+  let MOCK_RUN_WITH_EMBEDDED_PIPELINE = newMockRunWithEmbeddedPipeline();
 
   function newMockExperiment(): ApiExperiment {
     return {
@@ -86,6 +87,13 @@ describe('NewRun', () => {
     };
   }
 
+  function newMockRunWithEmbeddedPipeline(): ApiRunDetail {
+    const runDetail = newMockRunDetail();
+    delete runDetail.run!.pipeline_spec!.pipeline_id;
+    runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
+    return runDetail;
+  }
+
   function generateProps(): PageProps {
     return {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
@@ -104,28 +112,22 @@ describe('NewRun', () => {
   }
 
   beforeEach(() => {
-    // Reset mocks
-    consoleErrorSpy.mockReset();
-    createJobSpy.mockReset();
-    createRunSpy.mockReset();
-    getExperimentSpy.mockReset();
-    getPipelineSpy.mockReset();
-    getRunSpy.mockReset();
-    historyPushSpy.mockReset();
-    historyReplaceSpy.mockReset();
-    updateBannerSpy.mockReset();
-    updateDialogSpy.mockReset();
-    updateSnackbarSpy.mockReset();
-    updateToolbarSpy.mockReset();
+    jest.clearAllMocks();
 
     consoleErrorSpy.mockImplementation(() => null);
     createRunSpy.mockImplementation(() => ({ id: 'new-run-id' }));
     getExperimentSpy.mockImplementation(() => MOCK_EXPERIMENT);
     getPipelineSpy.mockImplementation(() => MOCK_PIPELINE);
     getRunSpy.mockImplementation(() => MOCK_RUN_DETAIL);
+
+    MOCK_EXPERIMENT = newMockExperiment();
+    MOCK_PIPELINE = newMockPipeline();
+    MOCK_RUN_DETAIL = newMockRunDetail();
+    MOCK_RUN_WITH_EMBEDDED_PIPELINE = newMockRunWithEmbeddedPipeline();
   });
 
   afterEach(() => {
+    jest.resetAllMocks();
     tree.unmount();
   });
 
@@ -390,6 +392,7 @@ describe('NewRun', () => {
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
       await TestUtils.flushPromises();
     });
+  });
 
   describe('choosing an experiment', () => {
     it('opens up the experiment selector modal when users clicks \'Choose\'', async () => {
@@ -645,31 +648,25 @@ describe('NewRun', () => {
     });
 
     it('loads and selects embedded pipeline from run', async () => {
-      const runDetail = newMockRunDetail();
-      delete runDetail.run!.pipeline_spec!.pipeline_id;
-      runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
-      getRunSpy.mockImplementation(() => runDetail);
+      getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
 
       tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenCalledTimes(1);
-      expect(tree.state('clonedRunPipeline')).toEqual({ parameters: [] });
-      expect(tree.state('usePipelineFromClonedRun')).toBe(true);
+      expect(tree.state('pipelineFromRun')).toEqual({ parameters: [] });
+      expect(tree.state('usePipelineFromRun')).toBe(true);
     });
 
     it('shows switching controls when run has embedded pipeline, selects that pipeline by default,' +
       ' and hides pipeline selector', async () => {
-        const runDetail = newMockRunDetail();
-        delete runDetail.run!.pipeline_spec!.pipeline_id;
-        runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
         const props = generateProps();
-        props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+        props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
-        getRunSpy.mockImplementation(() => runDetail);
+        getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
 
         tree = shallow(<TestNewRun {...props} />);
         await TestUtils.flushPromises();
@@ -677,13 +674,10 @@ describe('NewRun', () => {
       });
 
     it('shows pipeline selector when switching from embedded pipeline to select pipeline', async () => {
-      const runDetail = newMockRunDetail();
-      delete runDetail.run!.pipeline_spec!.pipeline_id;
-      runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
-      getRunSpy.mockImplementation(() => runDetail);
+      getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
 
       tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
@@ -692,13 +686,10 @@ describe('NewRun', () => {
     });
 
     it('resets selected pipeline from embedded when switching to select from pipeline list, and back', async () => {
-      const runDetail = newMockRunDetail();
-      delete runDetail.run!.pipeline_spec!.pipeline_id;
-      runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
-      getRunSpy.mockImplementation(() => runDetail);
+      getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
 
       tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
@@ -783,7 +774,83 @@ describe('NewRun', () => {
         mode: 'error',
       }));
     });
+  });
 
+  describe('arriving from pipeline details page', () => {
+    let mockEmbeddedPipelineProps: PageProps;
+    beforeEach(() => {
+      mockEmbeddedPipelineProps = generateProps();
+      mockEmbeddedPipelineProps.location.search =
+        `?${QUERY_PARAMS.fromRunId}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
+      getRunSpy.mockImplementationOnce(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
+    });
+
+    it('indicates that a pipeline is preselected and provides a means of selecting a different pipeline', async () => {
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
+      await TestUtils.flushPromises();
+
+      expect(tree.state('usePipelineFromRun')).toBe(true);
+      expect(tree.state('usePipelineFromRunLabel')).toBe('Use pipeline from previous step');
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('retrieves the run with the embedded pipeline', async () => {
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
+      await TestUtils.flushPromises();
+
+      expect(getRunSpy).toHaveBeenLastCalledWith(MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id);
+    });
+
+    it('parses the embedded pipeline and stores it in state', async () => {
+      MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest = JSON.stringify(MOCK_PIPELINE);
+
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
+      await TestUtils.flushPromises();
+
+      expect(tree.state('pipeline')).toEqual(MOCK_PIPELINE);
+      expect(tree.state('pipelineFromRun')).toEqual(MOCK_PIPELINE);
+      expect(tree.state('pipelineName')).toEqual(MOCK_PIPELINE.name);
+    });
+
+    it('displays a page error if it fails to parse the embedded pipeline', async () => {
+      MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest = 'not JSON';
+
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
+      await TestUtils.flushPromises();
+
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+        additionalInfo: 'Unexpected token o in JSON at position 1',
+        message: 'Error: failed to parse the embedded pipeline\'s spec: not JSON. Click Details for more information.',
+        mode: 'error',
+      }));
+    });
+
+    it('displays a page error if referenced run has no embedded pipeline', async () => {
+      // Remove workflow_manifest entirely
+      delete MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest;
+
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
+      await TestUtils.flushPromises();
+
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+        message: `Error: somehow the run provided in the query params: ${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id} had no embedded pipeline.`,
+        mode: 'error',
+      }));
+    });
+
+    it('displays a page error if it fails to retrieve the run containing the embedded pipeline', async () => {
+      getRunSpy.mockReset();
+      TestUtils.makeErrorResponseOnce(getRunSpy, 'test - error!');
+
+      tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
+      await TestUtils.flushPromises();
+
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+        additionalInfo: 'test - error!',
+        message: `Error: failed to retrieve the specified run: ${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}. Click Details for more information.`,
+        mode: 'error',
+      }));
+    });
   });
 
   describe('creating a new run', () => {
@@ -888,13 +955,10 @@ describe('NewRun', () => {
     });
 
     it('copies pipeline from run in the create API call when cloning a run with embedded pipeline', async () => {
-      const runDetail = newMockRunDetail();
-      delete runDetail.run!.pipeline_spec!.pipeline_id;
-      runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
       const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
+      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
-      getRunSpy.mockImplementation(() => runDetail);
+      getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
 
       tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
@@ -1077,7 +1141,6 @@ describe('NewRun', () => {
         open: true,
       });
     });
-
   });
 
   describe('creating a new recurring run', () => {

@@ -55,3 +55,26 @@ func (r Run) GetValueOfPrimaryKey() string {
 func GetRunTablePrimaryKeyColumn() string {
 	return "UUID"
 }
+
+// PrimaryKeyColumnName returns the primary key for model Run.
+func (r *Run) PrimaryKeyColumnName() string {
+	return "UUID"
+}
+
+// DefaultSortField returns the default sorting field for model Run.
+func (r *Run) DefaultSortField() string {
+	return "CreatedAtInSec"
+}
+
+var runAPIToModelFieldMap = map[string]string{
+	"id":           "UUID",
+	"name":         "DisplayName",
+	"created_at":   "CreatedAtInSec",
+	"description":  "Description",
+	"scheduled_at": "ScheduledAtInSec",
+}
+
+// APIToModelFieldMap returns a map from API names to field names for model Run.
+func (r *Run) APIToModelFieldMap() map[string]string {
+	return runAPIToModelFieldMap
+}

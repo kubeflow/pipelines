@@ -45,7 +45,6 @@ import { commonCss, padding, color } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewRunState {
-  clonedRunPipeline?: ApiPipeline;
   description: string;
   errorMessage: string;
   experiment?: ApiExperiment;
@@ -56,6 +55,11 @@ interface NewRunState {
   isRecurringRun: boolean;
   maxConcurrentRuns?: string;
   pipeline?: ApiPipeline;
+  // This represents a pipeline from a run that is being cloned, or if a user is creating a run from
+  // a pipeline that was not uploaded to the system (as in the case of runs created from notebooks).
+  // By storing this here instead of in the 'pipeline' field, we won't lose it if the user selects a
+  // different pipeline.
+  pipelineFromRun?: ApiPipeline;
   // TODO: this is only here to properly display the name in the text field.
   // There is definitely a way to do this that doesn't necessitate this being in state.
   // Note: this cannot be undefined/optional or the label animation for the input field will not
@@ -66,7 +70,8 @@ interface NewRunState {
   trigger?: ApiTrigger;
   unconfirmedSelectedExperiment?: ApiExperiment;
   unconfirmedSelectedPipeline?: ApiPipeline;
-  usePipelineFromClonedRun: boolean;
+  usePipelineFromRun: boolean;
+  usePipelineFromRunLabel: string;
 }
 
 const css = stylesheet({
@@ -106,7 +111,8 @@ class NewRun extends Page<{}, NewRunState> {
       pipelineName: '',
       pipelineSelectorOpen: false,
       runName: '',
-      usePipelineFromClonedRun: false,
+      usePipelineFromRun: false,
+      usePipelineFromRunLabel: 'Use pipeline from cloned run',
     };
   }
 
@@ -120,7 +126,7 @@ class NewRun extends Page<{}, NewRunState> {
 
   public render(): JSX.Element {
     const {
-      clonedRunPipeline,
+      pipelineFromRun,
       description,
       errorMessage,
       experimentName,
@@ -133,7 +139,8 @@ class NewRun extends Page<{}, NewRunState> {
       runName,
       unconfirmedSelectedExperiment,
       unconfirmedSelectedPipeline,
-      usePipelineFromClonedRun,
+      usePipelineFromRun,
+      usePipelineFromRunLabel,
     } = this.state;
 
     const originalRunId = new URLParser(this.props).get(QUERY_PARAMS.cloneFromRun);
@@ -147,16 +154,16 @@ class NewRun extends Page<{}, NewRunState> {
 
           <div className={commonCss.header}>Run details</div>
 
-          {!!clonedRunPipeline && (<React.Fragment>
-            <FormControlLabel label='Use pipeline from cloned run' control={<Radio color='primary' />}
-              onChange={() => this.setStateSafe({ pipeline: clonedRunPipeline, usePipelineFromClonedRun: true })}
-              checked={usePipelineFromClonedRun} />
+          {!!pipelineFromRun && (<React.Fragment>
+            <FormControlLabel label={usePipelineFromRunLabel} control={<Radio color='primary' />}
+              onChange={() => this.setStateSafe({ pipeline: pipelineFromRun, usePipelineFromRun: true })}
+              checked={usePipelineFromRun} />
             {!!originalRunId && <Link to={pipelineDetailsUrl}>[View pipeline]</Link>}
             <FormControlLabel label='Select a pipeline from list' control={<Radio color='primary' />}
-              onChange={() => this.setStateSafe({ pipeline: undefined, usePipelineFromClonedRun: false })}
-              checked={!usePipelineFromClonedRun} />
+              onChange={() => this.setStateSafe({ pipeline: undefined, usePipelineFromRun: false })}
+              checked={!usePipelineFromRun} />
           </React.Fragment>)}
-          {!usePipelineFromClonedRun && (
+          {!usePipelineFromRun && (
             <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
               InputProps={{
                 classes: { disabled: css.nonEditableInput },
@@ -310,6 +317,8 @@ class NewRun extends Page<{}, NewRunState> {
 
     // Get clone run id from querystring if any
     const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
+    // If we are not cloning, we may have an embedded pipeline from a run from a Notebook
+    const embeddedPipelineRunId = urlParser.get(QUERY_PARAMS.fromRunId);
     if (originalRunId) {
       try {
         const originalRun = await Apis.runServiceApi.getRun(originalRunId);
@@ -322,6 +331,8 @@ class NewRun extends Page<{}, NewRunState> {
         await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
         logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
       }
+    } else if(embeddedPipelineRunId) {
+      this._prepareFormFromEmbeddedPipeline(embeddedPipelineRunId);
     } else {
       // Get pipeline id from querystring if any
       const possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
@@ -404,6 +415,44 @@ class NewRun extends Page<{}, NewRunState> {
     this._validate();
   }
 
+  private async _prepareFormFromEmbeddedPipeline(embeddedPipelineRunId: string): Promise<void> {
+    let embeddedPipelineSpec: string | null;
+
+    try {
+      const runWithEmbeddedPipeline = await Apis.runServiceApi.getRun(embeddedPipelineRunId);
+      embeddedPipelineSpec = RunUtils.getPipelineSpec(runWithEmbeddedPipeline.run);
+    } catch (err) {
+      await this.showPageError(
+        `Error: failed to retrieve the specified run: ${embeddedPipelineRunId}.`, err);
+      logger.error(`Failed to retrieve the specified run: ${embeddedPipelineRunId}`, err);
+      return;
+    }
+
+    if (!embeddedPipelineSpec) {
+      await this.showPageError(
+        `Error: somehow the run provided in the query params: ${embeddedPipelineRunId} had no embedded pipeline.`);
+      return;
+    }
+
+    try {
+      const pipeline = JSON.parse(embeddedPipelineSpec);
+      this.setStateSafe({
+        pipeline,
+        pipelineFromRun: pipeline,
+        pipelineName: (pipeline && pipeline.name) || '',
+        usePipelineFromRun: true,
+        usePipelineFromRunLabel: 'Use pipeline from previous step',
+      });
+    } catch (err) {
+      await this.showPageError(
+        `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`, err);
+      logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedPipelineRunId}`, err);
+      return;
+    }
+
+    this._validate();
+  }
+
   private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
     if (!originalRun.run) {
       logger.error('Could not get cloned run details');
@@ -412,10 +461,14 @@ class NewRun extends Page<{}, NewRunState> {
 
     let pipeline: ApiPipeline;
     let workflow: Workflow;
-    let clonedRunPipeline: ApiPipeline;
-    let usePipelineFromClonedRun = false;
+    let pipelineFromRun: ApiPipeline;
+    let usePipelineFromRun = false;
+    let usePipelineFromRunLabel = '';
 
+    // This corresponds to a run using a pipeline that has been uploaded
     const referencePipelineId = RunUtils.getPipelineId(originalRun.run);
+    // This corresponds to a run where the pipeline has not been uploaded, such as runs started from
+    // the CLI or notebooks
     const embeddedPipelineSpec = RunUtils.getPipelineSpec(originalRun.run);
     if (referencePipelineId) {
       try {
@@ -429,12 +482,13 @@ class NewRun extends Page<{}, NewRunState> {
     } else if (embeddedPipelineSpec) {
       try {
         pipeline = JSON.parse(embeddedPipelineSpec);
+        pipelineFromRun = pipeline;
       } catch (err) {
         await this.showPageError('Error: failed to read the clone run\'s pipeline definition.', err);
         return;
       }
-      clonedRunPipeline = pipeline!;
-      usePipelineFromClonedRun = true;
+      usePipelineFromRun = true;
+      usePipelineFromRunLabel = 'Use pipeline from cloned run';
     } else {
       await this.showPageError('Could not find the cloned run\'s pipeline definition.');
       return;
@@ -454,14 +508,15 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     // Set pipeline parameter values from run's workflow
-    pipeline!.parameters = WorkflowParser.getParameters(workflow);
+    pipeline.parameters = WorkflowParser.getParameters(workflow);
 
     this.setStateSafe({
-      clonedRunPipeline: clonedRunPipeline!,
-      pipeline: pipeline!,
-      pipelineName: (pipeline! && pipeline!.name) || '',
+      pipeline,
+      pipelineFromRun: pipelineFromRun!,
+      pipelineName: (pipeline && pipeline.name) || '',
       runName: this._getCloneName(originalRun.run.name!),
-      usePipelineFromClonedRun,
+      usePipelineFromRun,
+      usePipelineFromRunLabel,
     });
 
     this._validate();
@@ -479,7 +534,7 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   private _create(): void {
-    const { clonedRunPipeline, pipeline, usePipelineFromClonedRun } = this.state;
+    const { pipelineFromRun, pipeline, usePipelineFromRun } = this.state;
     // TODO: This cannot currently be reached because _validate() is called everywhere and blocks
     // the button from being clicked without first having a pipeline.
     if (!pipeline) {
@@ -504,8 +559,8 @@ class NewRun extends Page<{}, NewRunState> {
       name: this.state.runName,
       pipeline_spec: {
         parameters: pipeline.parameters,
-        pipeline_id: usePipelineFromClonedRun ? undefined : pipeline.id,
-        workflow_manifest: usePipelineFromClonedRun ? JSON.stringify(clonedRunPipeline) : undefined,
+        pipeline_id: usePipelineFromRun ? undefined : pipeline.id,
+        workflow_manifest: usePipelineFromRun ? JSON.stringify(pipelineFromRun) : undefined,
       },
       resource_references: references,
     };

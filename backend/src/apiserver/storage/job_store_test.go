@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
@@ -103,7 +104,7 @@ func TestListJobs_Pagination(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	jobsExpected := []model.Job{
+	jobsExpected := []*model.Job{
 		{
 			UUID:        "1",
 			DisplayName: "pp 1",
@@ -131,18 +132,15 @@ func TestListJobs_Pagination(t *testing.T) {
 				},
 			},
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs(
-		&common.FilterContext{},
-		&common.PaginationContext{
-			PageSize:        1,
-			KeyFieldName:    "Name",
-			SortByFieldName: "Name",
-			IsDesc:          false,
-		})
+
+	opts, err := list.NewOptions(&model.Job{}, 1, "name", nil)
+	assert.Nil(t, err)
+	jobs, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, jobsExpected, jobs)
-	jobsExpected2 := []model.Job{
+	jobsExpected2 := []*model.Job{
 		{
 			UUID:        "2",
 			DisplayName: "pp 2",
@@ -170,18 +168,10 @@ func TestListJobs_Pagination(t *testing.T) {
 				},
 			},
 		}}
-	jobs, newToken, err := jobStore.ListJobs(
-		&common.FilterContext{},
-		&common.PaginationContext{
-			Token: &common.Token{
-				SortByFieldValue: "pp2",
-				// The value of the key field of the next row to be returned.
-				KeyFieldValue: "2"},
-			PageSize:        2,
-			KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          false,
-		})
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	assert.Nil(t, err)
+	jobs, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, jobsExpected2, jobs)
@@ -191,7 +181,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	jobsExpected := []model.Job{
+	jobsExpected := []*model.Job{
 		{
 			UUID:        "2",
 			DisplayName: "pp 2",
@@ -219,18 +209,14 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 				},
 			},
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs(
-		&common.FilterContext{},
-		&common.PaginationContext{
-			PageSize:        1,
-			KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          true,
-		})
+	opts, err := list.NewOptions(&model.Job{}, 1, "name desc", nil)
+	assert.Nil(t, err)
+	jobs, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, jobsExpected, jobs)
-	jobsExpected2 := []model.Job{
+
+	jobsExpected2 := []*model.Job{
 		{
 			UUID:        "1",
 			DisplayName: "pp 1",
@@ -258,18 +244,10 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 				},
 			},
 		}}
-	jobs, newToken, err := jobStore.ListJobs(
-		&common.FilterContext{},
-		&common.PaginationContext{
-			Token: &common.Token{
-				SortByFieldValue: "pp1",
-				// The value of the key field of the next row to be returned.
-				KeyFieldValue: "1"},
-			PageSize:        2,
-			KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          true,
-		})
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	assert.Nil(t, err)
+	jobs, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, jobsExpected2, jobs)
@@ -279,7 +257,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	jobsExpected := []model.Job{
+	jobsExpected := []*model.Job{
 		{
 			UUID:        "1",
 			DisplayName: "pp 1",
@@ -334,14 +312,10 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 				},
 			},
 		}}
-	jobs, nextPageToken, err := jobStore.ListJobs(
-		&common.FilterContext{},
-		&common.PaginationContext{
-			PageSize:        2,
-			KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          false,
-		})
+
+	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
+	assert.Nil(t, err)
+	jobs, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, jobsExpected, jobs)
@@ -351,7 +325,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	jobsExpected := []model.Job{
+	jobsExpected := []*model.Job{
 		{
 			UUID:        "1",
 			DisplayName: "pp 1",
@@ -379,14 +353,11 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 				},
 			},
 		}}
+
+	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
+	assert.Nil(t, err)
 	jobs, nextPageToken, err := jobStore.ListJobs(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}},
-		&common.PaginationContext{
-			PageSize:        2,
-			KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          false,
-		})
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, jobsExpected, jobs)
@@ -397,14 +368,10 @@ func TestListJobsError(t *testing.T) {
 	defer db.Close()
 
 	db.Close()
-	_, _, err := jobStore.ListJobs(
-		&common.FilterContext{},
-		&common.PaginationContext{
-			PageSize:        2,
-			KeyFieldName:    model.GetJobTablePrimaryKeyColumn(),
-			SortByFieldName: model.GetJobTablePrimaryKeyColumn(),
-			IsDesc:          false,
-		})
+	opts, err := list.NewOptions(&model.Job{}, 2, "", nil)
+	assert.Nil(t, err)
+	_, _, err = jobStore.ListJobs(
+		&common.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to list job to return error")
 }

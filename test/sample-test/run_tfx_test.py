@@ -54,7 +54,8 @@ def main():
   test_name = 'TFX Sample Test'
 
   ###### Initialization ######
-  client = Client(namespace=args.namespace)
+  host = 'ml-pipeline.%s.svc.cluster.local:8888' % args.namespace
+  client = Client(host=host)
 
   ###### Check Input File ######
   utils.add_junit_test(test_cases, 'input generated yaml file', os.path.exists(args.input), 'yaml file is not generated')
