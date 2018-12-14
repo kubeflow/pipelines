@@ -35,8 +35,7 @@ def main(argv=None):
   args = parser.parse_args()
 
   code_path = os.path.dirname(os.path.realpath(__file__))
-  dirname = os.path.basename(__file__).split('.')[0]
-  init_file_source = os.path.join(code_path, dirname, 'initialization_actions.sh')
+  init_file_source = os.path.join(code_path, 'initialization_actions.sh')
   dest_files = _utils.copy_resources_to_gcs([init_file_source], args.staging)
 
   try:
