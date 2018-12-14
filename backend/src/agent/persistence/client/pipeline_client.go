@@ -26,6 +26,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	addressTemp = "%s.%s.svc.cluster.local:%s"
+)
+
 type PipelineClientInterface interface {
 	ReportWorkflow(workflow *util.Workflow) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
@@ -51,7 +55,6 @@ func NewPipelineClient(
 		mlPipelineServiceName string,
 		mlPipelineServiceHttpPort string,
 		mlPipelineServiceGRPCPort string) (*PipelineClient, error) {
-	addressTemp := "%s.%s.svc.cluster.local:%s"
 	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, namespace, mlPipelineServiceHttpPort)
 	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, namespace, mlPipelineServiceGRPCPort)
 	err := util.WaitForAPIAvailable(initializeTimeout, basePath, httpAddress)
