@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-while getopts ":hp:t:i:m:" opt; do
+while getopts ":hp:t:i:b:l:" opt; do
   case "${opt}" in
     h) echo "-p: project name"
         echo "-t: tag name"
         echo "-i: image name. If provided, project name and tag name are not necessary"
-        echo "-m: mode. Optional. The value can be 'cpu' or 'gpu'. Defaults to 'cpu'."
+        echo "-b: tensorflow base image tag. Optional. The value can be tags listed under \
+        https://hub.docker.com/r/tensorflow/tensorflow/tags. Defaults to '1.6.0'."
+        echo "-l: local image name. Optional. Defaults to 'ml-pipeline-kubeflow-tf-trainer'"
         exit
       ;;
     p) PROJECT_ID=${OPTARG}
@@ -27,20 +29,20 @@ while getopts ":hp:t:i:m:" opt; do
       ;;
     i) IMAGE_NAME=${OPTARG}
       ;;
-    m) MODE=${OPTARG}
-      if [ "${MODE}" != "cpu" ] && [ "${MODE}" != "gpu" ]; then
-        echo "mode value can only be 'cpu' or 'gpu'."
-        exit
-      fi
+    b) TF_BASE_TAG=${OPTARG}
       ;;
-    \? ) echo "Usage: cmd [-p] project [-t] tag [-i] image [-m] mode"
+    l) LOCAL_IMAGE_NAME=${OPTARG}
+      ;;
+    \? ) echo "Usage: cmd [-p] project [-t] tag [-i] image [-b] base image tag [l] local image"
       exit
       ;;
   esac
 done
 
 set -x
-LOCAL_IMAGE_NAME=ml-pipeline-kubeflow-tf-trainer
+if [ -z "${LOCAL_IMAGE_NAME}" ]; then
+  LOCAL_IMAGE_NAME=ml-pipeline-kubeflow-tf-trainer
+fi
 
 if [ -z "${PROJECT_ID}" ]; then
   PROJECT_ID=$(gcloud config config-helper --format "value(configuration.properties.core.project)")
@@ -50,10 +52,8 @@ if [ -z "${TAG_NAME}" ]; then
   TAG_NAME=$(date +v%Y%m%d)-$(git describe --tags --always --dirty)-$(git diff | shasum -a256 | cut -c -6)
 fi
 
-TF_VERSION=1.6.0
-if [ "${MODE}" = "gpu" ]; then
-  TF_VERSION="${TF_VERSION}-gpu"
-  LOCAL_IMAGE_NAME="${LOCAL_IMAGE_NAME}-gpu"
+if [ -z "${TF_BASE_TAG}" ]; then
+  TF_BASE_TAG=1.6.0
 fi
 
 mkdir -p ./build
@@ -61,7 +61,7 @@ rsync -arvp ./src/ ./build/
 cp ../../license.sh ./build
 cp ../../third_party_licenses.csv ./build
 
-docker build --build-arg TF_VERSION=${TF_VERSION} -t ${LOCAL_IMAGE_NAME} .
+docker build --build-arg TF_TAG=${TF_BASE_TAG} -t ${LOCAL_IMAGE_NAME} .
 if [ -z "${IMAGE_NAME}" ]; then
   docker tag ${LOCAL_IMAGE_NAME} gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}
   docker push gcr.io/${PROJECT_ID}/${LOCAL_IMAGE_NAME}:${TAG_NAME}

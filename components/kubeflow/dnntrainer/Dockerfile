@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG TF_VERSION
-FROM tensorflow/tensorflow:$TF_VERSION
+ARG TF_TAG
+FROM tensorflow/tensorflow:$TF_TAG
 
 RUN apt-get update -y
 
