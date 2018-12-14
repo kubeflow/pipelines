@@ -90,6 +90,6 @@ func (c *RunClientFake) Terminate(params *runparams.TerminateRunParams) error {
 	case RunForDefaultTest:
 		return nil
 	default:
-		return fmt.Errorf(InvalidFakeRequest)
+		return fmt.Errorf(InvalidFakeRequest, params.RunID)
 	}
 }
