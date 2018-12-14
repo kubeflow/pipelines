@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -71,13 +72,19 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
-	paginationContext, err := ValidatePagination(
-		request.PageToken, int(request.PageSize), model.GetPipelineTablePrimaryKeyColumn(),
-		request.SortBy, pipelineModelFieldsBySortableAPIFields)
-	if err != nil {
-		return nil, util.Wrap(err, "List pipelines failed.")
+	var opts *list.Options
+	var err error
+	if request.PageToken != "" {
+		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
+	} else {
+		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, request.Filter)
 	}
-	pipelines, nextPageToken, err := s.resourceManager.ListPipelines(paginationContext)
+
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
+	pipelines, nextPageToken, err := s.resourceManager.ListPipelines(opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List pipelines failed.")
 	}

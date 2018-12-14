@@ -115,11 +115,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Equal(t, "moonshot", experiments[0].Name)
 	assert.Empty(t, nextPageToken)
 
-	/* ---------- List experiments sort by unsupported description field. Should fail. ---------- */
+	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
 	_, _, err = s.experimentClient.List(&params.ListExperimentParams{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
+		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to list experiments")
 
 	/* ---------- List experiments sorted by names descend order ---------- */
 	experiments, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{

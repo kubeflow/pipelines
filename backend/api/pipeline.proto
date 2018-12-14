@@ -21,6 +21,7 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "parameter.proto";
 import "protoc-gen-swagger/options/annotations.proto";
+import "filter.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
@@ -110,6 +111,8 @@ message ListPipelinesRequest {
   // Can be format of "field_name", "field_name asc" or "field_name des"
   // Ascending by default.
   string sort_by = 3;
+
+  Filter filter = 4;
 }
 
 message ListPipelinesResponse {
