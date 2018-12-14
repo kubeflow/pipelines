@@ -40,6 +40,8 @@ var (
 	mlPipelineAPIServerName     string
 	mlPipelineAPIServerPort     string
 	mlPipelineAPIServerBasePath string
+	mlPipelineServiceHttpPort   string
+	mlPipelineServiceGRPCPort   string
 )
 
 const (
@@ -50,7 +52,8 @@ const (
 	timeoutFlagName                     = "timeout"
 	mlPipelineAPIServerBasePathFlagName = "mlPipelineAPIServerBasePath"
 	mlPipelineAPIServerNameFlagName     = "mlPipelineAPIServerName"
-	mlPipelineAPIServerPortFlagName     = "mlPipelineAPIServerPort"
+	mlPipelineAPIServerHttpPortFlagName = "mlPipelineServiceHttpPort"
+	mlPipelineAPIServerGRPCPortFlagName = "mlPipelineServiceGRPCPort"
 )
 
 func main() {
@@ -83,9 +86,8 @@ func main() {
 		timeout,
 		mlPipelineAPIServerBasePath,
 		mlPipelineAPIServerName,
-		mlPipelineAPIServerPort,
-		masterURL,
-		kubeconfig)
+		mlPipelineServiceHttpPort,
+		mlPipelineServiceGRPCPort)
 	if err != nil {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
@@ -111,8 +113,8 @@ func init() {
 	flag.DurationVar(&initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
 	flag.DurationVar(&timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
-	flag.StringVar(&mlPipelineAPIServerPort, mlPipelineAPIServerPortFlagName, "8887", "Port of the ML pipeline API server.")
+	flag.StringVar(&mlPipelineServiceHttpPort, mlPipelineAPIServerHttpPortFlagName, "8888", "Http Port of the ML pipeline API server.")
+	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
-		"/api/v1/namespaces/%s/services/ml-pipeline:8888/proxy/apis/v1beta1/%s",
-		"The base path for the ML pipeline API server.")
+		"/apis/v1beta1", "The base path for the ML pipeline API server.")
 }
