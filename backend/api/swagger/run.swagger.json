@@ -581,6 +581,11 @@
             "$ref": "#/definitions/apiRunMetric"
           },
           "description": "Output. The metrics of the run. The metrics are reported by ReportMetrics\nAPI."
+        },
+        "isArchived": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Whether the run has been archived by the user."
         }
       }
     },
