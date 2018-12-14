@@ -65,7 +65,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body:  &pipeline_model.APIPipeline{URL:&pipeline_model.APIURL{
+		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	assert.Nil(t, err)
 	assert.Equal(t, "sequential.yaml", sequentialPipeline.Name)
@@ -79,7 +79,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body:  &pipeline_model.APIPipeline{URL:&pipeline_model.APIURL{
+		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.tar.gz"}}})
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments.tar.gz", argumentUrlPipeline.Name)
@@ -131,9 +131,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
 	_, _, err = s.pipelineClient.List(&params.ListPipelinesParams{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
+		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to list pipelines")
 
 	/* ---------- List pipelines sorted by names descend order ---------- */
 	listFirstPagePipelines, nextPageToken, err = s.pipelineClient.List(

@@ -5,7 +5,8 @@ import (
 
 	"fmt"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -35,54 +36,46 @@ func TestListExperiments_Pagination(t *testing.T) {
 	experimentStore.CreateExperiment(createExperiment("experiment4"))
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDFour, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment2"))
-	expectedExperiment1 := model.Experiment{
+	expectedExperiment1 := &model.Experiment{
 		UUID:           fakeID,
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
 	}
-	expectedExperiment4 := model.Experiment{
+	expectedExperiment4 := &model.Experiment{
 		UUID:           fakeIDFour,
 		CreatedAtInSec: 4,
 		Name:           "experiment2",
 		Description:    "My name is experiment2",
 	}
-	experimentsExpected := []model.Experiment{expectedExperiment1, expectedExperiment4}
-	experiments, nextPageToken, err := experimentStore.ListExperiments(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetExperimentTablePrimaryKeyColumn(),
-		SortByFieldName: "Name",
-		IsDesc:          false,
-	})
+	experimentsExpected := []*model.Experiment{expectedExperiment1, expectedExperiment4}
+	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
+	assert.Nil(t, err)
+
+	experiments, nextPageToken, err := experimentStore.ListExperiments(opts)
+
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, experimentsExpected, experiments)
 
-	expectedExperiment2 := model.Experiment{
+	expectedExperiment2 := &model.Experiment{
 		UUID:           fakeIDTwo,
 		CreatedAtInSec: 2,
 		Name:           "experiment3",
 		Description:    "My name is experiment3",
 	}
-	expectedExperiment3 := model.Experiment{
+	expectedExperiment3 := &model.Experiment{
 		UUID:           fakeIDThree,
 		CreatedAtInSec: 3,
 		Name:           "experiment4",
 		Description:    "My name is experiment4",
 	}
-	experimentsExpected2 := []model.Experiment{expectedExperiment2, expectedExperiment3}
+	experimentsExpected2 := []*model.Experiment{expectedExperiment2, expectedExperiment3}
 
-	experiments, nextPageToken, err = experimentStore.ListExperiments(
-		&common.PaginationContext{
-			Token: &common.Token{
-				SortByFieldValue: "experiment3",
-				// The value of the key field of the next row to be returned.
-				KeyFieldValue: fakeIDTwo},
-			PageSize:        2,
-			KeyFieldName:    model.GetExperimentTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          false,
-		})
+	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	assert.Nil(t, err)
+
+	experiments, nextPageToken, err = experimentStore.ListExperiments(opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, experimentsExpected2, experiments)
@@ -100,53 +93,46 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDFour, nil)
 	experimentStore.CreateExperiment(createExperiment("experiment2"))
 
-	expectedExperiment2 := model.Experiment{
+	expectedExperiment2 := &model.Experiment{
 		UUID:           fakeIDTwo,
 		CreatedAtInSec: 2,
 		Name:           "experiment3",
 		Description:    "My name is experiment3",
 	}
-	expectedExperiment3 := model.Experiment{
+	expectedExperiment3 := &model.Experiment{
 		UUID:           fakeIDThree,
 		CreatedAtInSec: 3,
 		Name:           "experiment4",
 		Description:    "My name is experiment4",
 	}
-	experimentsExpected := []model.Experiment{expectedExperiment3, expectedExperiment2}
-	experiments, nextPageToken, err := experimentStore.ListExperiments(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetExperimentTablePrimaryKeyColumn(),
-		SortByFieldName: "Name",
-		IsDesc:          true,
-	})
+	experimentsExpected := []*model.Experiment{expectedExperiment3, expectedExperiment2}
+
+	opts, err := list.NewOptions(&model.Experiment{}, 2, "name desc", nil)
+	assert.Nil(t, err)
+	experiments, nextPageToken, err := experimentStore.ListExperiments(opts)
+
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, experimentsExpected, experiments)
 
-	expectedExperiment1 := model.Experiment{
+	expectedExperiment1 := &model.Experiment{
 		UUID:           fakeID,
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
 	}
-	expectedExperiment4 := model.Experiment{
+	expectedExperiment4 := &model.Experiment{
 		UUID:           fakeIDFour,
 		CreatedAtInSec: 4,
 		Name:           "experiment2",
 		Description:    "My name is experiment2",
 	}
-	experimentsExpected2 := []model.Experiment{expectedExperiment4, expectedExperiment1}
-	experiments, nextPageToken, err = experimentStore.ListExperiments(
-		&common.PaginationContext{
-			Token: &common.Token{
-				SortByFieldValue: "experiment2",
-				// The value of the key field of the next row to be returned.
-				KeyFieldValue: fakeIDFour},
-			PageSize:        2,
-			KeyFieldName:    model.GetExperimentTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          true,
-		})
+	experimentsExpected2 := []*model.Experiment{expectedExperiment4, expectedExperiment1}
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	assert.Nil(t, err)
+
+	experiments, nextPageToken, err = experimentStore.ListExperiments(opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, experimentsExpected2, experiments)
@@ -157,20 +143,18 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
-	expectedExperiment1 := model.Experiment{
+	expectedExperiment1 := &model.Experiment{
 		UUID:           fakeID,
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
 	}
-	experimentsExpected := []model.Experiment{expectedExperiment1}
+	experimentsExpected := []*model.Experiment{expectedExperiment1}
 
-	experiments, nextPageToken, err := experimentStore.ListExperiments(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetExperimentTablePrimaryKeyColumn(),
-		SortByFieldName: model.GetExperimentTablePrimaryKeyColumn(),
-		IsDesc:          false,
-	})
+	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
+	assert.Nil(t, err)
+
+	experiments, nextPageToken, err := experimentStore.ListExperiments(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, experimentsExpected, experiments)
@@ -181,11 +165,10 @@ func TestListExperimentsError(t *testing.T) {
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
 	db.Close()
-	_, _, err := experimentStore.ListExperiments(&common.PaginationContext{
-		PageSize:     2,
-		KeyFieldName: model.GetExperimentTablePrimaryKeyColumn(),
-		IsDesc:       true,
-	})
+
+	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
+	assert.Nil(t, err)
+	_, _, err = experimentStore.ListExperiments(opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -310,4 +293,74 @@ func TestDeleteExperiment_InternalError(t *testing.T) {
 	err = experimentStore.DeleteExperiment(fakeID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected delete experiment to return internal error")
+}
+
+func TestListExperiments_Filtering(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil))
+	experimentStore.CreateExperiment(createExperiment("experiment1"))
+	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDTwo, nil)
+	experimentStore.CreateExperiment(createExperiment("experiment2"))
+	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDThree, nil)
+	experimentStore.CreateExperiment(createExperiment("experiment3"))
+	experimentStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeIDFour, nil)
+	experimentStore.CreateExperiment(createExperiment("experiment4"))
+
+	filterProto := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key: "name",
+				Op:  api.Predicate_IN,
+				Value: &api.Predicate_StringValues{
+					StringValues: &api.StringValues{
+						Values: []string{"experiment2", "experiment4", "experiment3"},
+					},
+				},
+			},
+		},
+	}
+
+	opts, err := list.NewOptions(&model.Experiment{}, 2, "id", filterProto)
+	assert.Nil(t, err)
+	experiments, nextPageToken, err := experimentStore.ListExperiments(opts)
+
+	expected := []*model.Experiment{
+		&model.Experiment{
+			UUID:           fakeIDTwo,
+			CreatedAtInSec: 2,
+			Name:           "experiment2",
+			Description:    "My name is experiment2",
+		},
+		&model.Experiment{
+			UUID:           fakeIDThree,
+			CreatedAtInSec: 3,
+			Name:           "experiment3",
+			Description:    "My name is experiment3",
+		},
+	}
+
+	assert.Nil(t, err)
+	assert.NotEqual(t, "", nextPageToken)
+	assert.Equal(t, expected, experiments)
+
+	// Next page should give experiment4.
+	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	assert.Nil(t, err)
+
+	experiments, nextPageToken, err = experimentStore.ListExperiments(opts)
+
+	expected = []*model.Experiment{
+		&model.Experiment{
+			UUID:           fakeIDFour,
+			CreatedAtInSec: 4,
+			Name:           "experiment4",
+			Description:    "My name is experiment4",
+		},
+	}
+
+	assert.Nil(t, err)
+	// No more pages.
+	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, expected, experiments)
 }
