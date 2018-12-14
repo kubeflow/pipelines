@@ -179,3 +179,7 @@ required = [
   name = "google.golang.org/genproto"
   revision = "bd91e49a0898e27abb88c339b432fa53d7497ac0"
 
+
+[[constraint]]
+  name = "github.com/google/go-cmp"
+  version = "0.2.0"

@@ -169,6 +169,12 @@ export interface ApiPipeline {
      */
     parameters?: Array<ApiParameter>;
     /**
+     * 
+     * @type {ApiUrl}
+     * @memberof ApiPipeline
+     */
+    url?: ApiUrl;
+    /**
      * In case any error happens retrieving a pipeline field, only pipeline ID and the error message is returned. Client has the flexibility of choosing how to handle error. This is especially useful during listing call.
      * @type {string}
      * @memberof ApiPipeline
@@ -253,11 +259,11 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
     return {
         /**
          * 
-         * @param {ApiUrl} body 
+         * @param {ApiPipeline} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createPipeline(body: ApiUrl, options: any = {}): FetchArgs {
+        createPipeline(body: ApiPipeline, options: any = {}): FetchArgs {
             // verify required parameter 'body' is not null or undefined
             if (body === null || body === undefined) {
                 throw new RequiredError('body','Required parameter body was null or undefined when calling createPipeline.');
@@ -282,7 +288,7 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
             // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
             delete localVarUrlObj.search;
             localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
-            const needsSerialization = (<any>"ApiUrl" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
+            const needsSerialization = (<any>"ApiPipeline" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
             localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
 
             return {
@@ -454,11 +460,11 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     return {
         /**
          * 
-         * @param {ApiUrl} body 
+         * @param {ApiPipeline} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createPipeline(body: ApiUrl, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiPipeline> {
+        createPipeline(body: ApiPipeline, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiPipeline> {
             const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).createPipeline(body, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
@@ -555,11 +561,11 @@ export const PipelineServiceApiFactory = function (configuration?: Configuration
     return {
         /**
          * 
-         * @param {ApiUrl} body 
+         * @param {ApiPipeline} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createPipeline(body: ApiUrl, options?: any) {
+        createPipeline(body: ApiPipeline, options?: any) {
             return PipelineServiceApiFp(configuration).createPipeline(body, options)(fetch, basePath);
         },
         /**
@@ -617,7 +623,7 @@ export class PipelineServiceApi extends BaseAPI {
      * @throws {RequiredError}
      * @memberof PipelineServiceApi
      */
-    public createPipeline(body: ApiUrl, options?: any) {
+    public createPipeline(body: ApiPipeline, options?: any) {
         return PipelineServiceApiFp(this.configuration).createPipeline(body, options)(this.fetch, this.basePath);
     }
 

@@ -196,7 +196,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
         to={url}>
-        {pipelineInfo.showLink ? 'View pipeline' : pipelineInfo.displayName}
+        {pipelineInfo.showLink ? '[View pipeline]' : pipelineInfo.displayName}
       </Link>
     );
   }

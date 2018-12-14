@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -38,13 +39,19 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 
 func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.ListExperimentsRequest) (
 	*api.ListExperimentsResponse, error) {
-	paginationContext, err := ValidatePagination(
-		request.PageToken, int(request.PageSize), model.GetExperimentTablePrimaryKeyColumn(),
-		request.SortBy, experimentModelFieldsBySortableAPIFields)
-	if err != nil {
-		return nil, util.Wrap(err, "List experiments failed.")
+	var opts *list.Options
+	var err error
+	if request.PageToken != "" {
+		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
+	} else {
+		opts, err = list.NewOptions(&model.Experiment{}, int(request.PageSize), request.SortBy, request.Filter)
 	}
-	experiments, nextPageToken, err := s.resourceManager.ListExperiments(paginationContext)
+
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
+	experiments, nextPageToken, err := s.resourceManager.ListExperiments(opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List experiments failed.")
 	}

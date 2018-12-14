@@ -21,6 +21,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -29,7 +30,7 @@ import (
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 
-	ListRuns(filterContext *common.FilterContext, pagination *common.PaginationContext) ([]model.Run, string, error)
+	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, string, error)
 
 	// Create a run entry in the database
 	CreateRun(run *model.RunDetail) (*model.RunDetail, error)
@@ -54,44 +55,46 @@ type RunStore struct {
 }
 
 func (s *RunStore) ListRuns(
-	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.Run, string, error) {
-	queryRunTable := func(request *common.PaginationContext) ([]model.ListableDataModel, error) {
-		return s.queryRunTable(filterContext, request)
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, string, error) {
+	errorF := func(err error) ([]*model.Run, string, error) {
+		return nil, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
-	models, pageToken, err := listModel(paginationContext, queryRunTable)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List runs failed.")
-	}
-	return s.toRunMetadatas(models), pageToken, err
-}
 
-func (s *RunStore) queryRunTable(
-	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.ListableDataModel, error) {
 	sqlBuilder := s.selectRunDetails()
-
 	// Add filter condition
 	sqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create query to list run.")
+		return errorF(err)
 	}
 
-	// Add pagination condition
-	sql, args, err := toPaginationQuery(sqlBuilder, paginationContext).Limit(uint64(paginationContext.PageSize)).ToSql()
+	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to list runs: %v",
-			err.Error())
-	}
-	r, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
-	}
-	defer r.Close()
-	runs, err := s.scanRows(r)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
+		return errorF(err)
 	}
 
-	return s.toListableModels(runs), nil
+	rows, err := s.db.Query(sql, args...)
+	if err != nil {
+		return errorF(err)
+	}
+	defer rows.Close()
+
+	runDetails, err := s.scanRows(rows)
+	if err != nil {
+		return errorF(err)
+	}
+
+	var runs []*model.Run
+	for _, rd := range runDetails {
+		r := rd.Run
+		runs = append(runs, &r)
+	}
+
+	if len(runs) <= opts.PageSize {
+		return runs, "", nil
+	}
+
+	npt, err := opts.NextPageToken(runs[opts.PageSize])
+	return runs[:opts.PageSize], npt, err
 }
 
 func (s *RunStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
@@ -138,7 +141,7 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 		// This can only happen when workflow reporting is failed.
 		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
 	}
-	return &runs[0], nil
+	return runs[0], nil
 }
 
 func (s *RunStore) selectRunDetails() sq.SelectBuilder {
@@ -159,8 +162,8 @@ func (s *RunStore) selectRunDetails() sq.SelectBuilder {
 		GroupBy("subq.UUID")
 }
 
-func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
-	var runs []model.RunDetail
+func (s *RunStore) scanRows(rows *sql.Rows) ([]*model.RunDetail, error) {
+	var runs []*model.RunDetail
 	for rows.Next() {
 		var uuid, displayName, name, namespace, description, pipelineId, pipelineSpecManifest, workflowSpecManifest,
 			parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
@@ -187,7 +190,7 @@ func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
 			// throw internal exception if failed to parse the resource reference.
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference.")
 		}
-		runs = append(runs, model.RunDetail{Run: model.Run{
+		runs = append(runs, &model.RunDetail{Run: model.Run{
 			UUID:               uuid,
 			DisplayName:        displayName,
 			Name:               name,

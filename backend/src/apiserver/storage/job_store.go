@@ -20,12 +20,13 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type JobStoreInterface interface {
-	ListJobs(filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.Job, string, error)
+	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, string, error)
 	GetJob(id string) (*model.Job, error)
 	CreateJob(*model.Job) (*model.Job, error)
 	DeleteJob(id string) error
@@ -40,45 +41,40 @@ type JobStore struct {
 }
 
 func (s *JobStore) ListJobs(
-	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.Job, string, error) {
-	queryJobTable := func(request *common.PaginationContext) ([]model.ListableDataModel, error) {
-		return s.queryJobTable(filterContext, request)
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, string, error) {
+	errorF := func(err error) ([]*model.Job, string, error) {
+		return nil, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
-	models, pageToken, err := listModel(paginationContext, queryJobTable)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List jobs failed.")
-	}
-	return s.toJobMetadatas(models), pageToken, err
-}
 
-func (s *JobStore) queryJobTable(
-	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.ListableDataModel, error) {
 	sqlBuilder := s.selectJob()
-
 	// Add filter condition
 	sqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create query to list job.")
+		return errorF(err)
 	}
 
-	// Add pagination condition
-	sql, args, err := toPaginationQuery(sqlBuilder, paginationContext).Limit(uint64(paginationContext.PageSize)).ToSql()
+	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to list jobs: %v",
-			err.Error())
+		return errorF(err)
 	}
+
 	rows, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v",
-			err.Error())
+		return errorF(err)
 	}
 	defer rows.Close()
+
 	jobs, err := s.scanRows(rows)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list jobs: %v",
-			err.Error())
+		return errorF(err)
 	}
-	return s.toListableModels(jobs), nil
+
+	if len(jobs) <= opts.PageSize {
+		return jobs, "", nil
+	}
+
+	npt, err := opts.NextPageToken(jobs[opts.PageSize])
+	return jobs[:opts.PageSize], npt, err
 }
 
 func (s *JobStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
@@ -120,7 +116,7 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	if len(jobs) == 0 {
 		return nil, util.NewResourceNotFoundError("Job", fmt.Sprint(id))
 	}
-	return &jobs[0], nil
+	return jobs[0], nil
 }
 
 func (s *JobStore) selectJob() sq.SelectBuilder {
@@ -133,8 +129,8 @@ func (s *JobStore) selectJob() sq.SelectBuilder {
 		Where(sq.Eq{"r.ResourceType": common.Job}).GroupBy("jobs.UUID")
 }
 
-func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
-	var jobs []model.Job
+func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
+	var jobs []*model.Job
 	for r.Next() {
 		var uuid, displayName, name, namespace, pipelineId, conditions,
 			description, parameters, pipelineSpecManifest, workflowSpecManifest string
@@ -153,7 +149,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]model.Job, error) {
 			return nil, err
 		}
 		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
-		jobs = append(jobs, model.Job{
+		jobs = append(jobs, &model.Job{
 			UUID:               uuid,
 			DisplayName:        displayName,
 			Name:               name,
@@ -342,22 +338,6 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 	}
 
 	return nil
-}
-
-func (s *JobStore) toListableModels(jobs []model.Job) []model.ListableDataModel {
-	models := make([]model.ListableDataModel, len(jobs))
-	for i := range models {
-		models[i] = jobs[i]
-	}
-	return models
-}
-
-func (s *JobStore) toJobMetadatas(models []model.ListableDataModel) []model.Job {
-	jobs := make([]model.Job, len(models))
-	for i := range models {
-		jobs[i] = models[i].(model.Job)
-	}
-	return jobs
 }
 
 // factory function for job store

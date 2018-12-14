@@ -34,10 +34,10 @@ func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	}
 }
 
-func ToApiExperiments(experiments []model.Experiment) []*api.Experiment {
+func ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
 	apiExperiments := make([]*api.Experiment, 0)
 	for _, experiment := range experiments {
-		apiExperiments = append(apiExperiments, ToApiExperiment(&experiment))
+		apiExperiments = append(apiExperiments, ToApiExperiment(experiment))
 	}
 	return apiExperiments
 }
@@ -66,10 +66,10 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 	}
 }
 
-func ToApiPipelines(pipelines []model.Pipeline) []*api.Pipeline {
+func ToApiPipelines(pipelines []*model.Pipeline) []*api.Pipeline {
 	apiPipelines := make([]*api.Pipeline, 0)
 	for _, pipeline := range pipelines {
-		apiPipelines = append(apiPipelines, ToApiPipeline(&pipeline))
+		apiPipelines = append(apiPipelines, ToApiPipeline(pipeline))
 	}
 	return apiPipelines
 }
@@ -130,10 +130,10 @@ func toApiRun(run *model.Run) *api.Run {
 	}
 }
 
-func ToApiRuns(runs []model.Run) []*api.Run {
+func ToApiRuns(runs []*model.Run) []*api.Run {
 	apiRuns := make([]*api.Run, 0)
 	for _, run := range runs {
-		apiRuns = append(apiRuns, toApiRun(&run))
+		apiRuns = append(apiRuns, toApiRun(run))
 	}
 	return apiRuns
 }
@@ -176,10 +176,10 @@ func ToApiJob(job *model.Job) *api.Job {
 	}
 }
 
-func ToApiJobs(jobs []model.Job) []*api.Job {
+func ToApiJobs(jobs []*model.Job) []*api.Job {
 	apiJobs := make([]*api.Job, 0)
 	for _, job := range jobs {
-		apiJobs = append(apiJobs, ToApiJob(&job))
+		apiJobs = append(apiJobs, ToApiJob(job))
 	}
 	return apiJobs
 }
