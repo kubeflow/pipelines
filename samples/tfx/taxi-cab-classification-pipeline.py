@@ -157,15 +157,21 @@ def taxi_cab_classification(
     analyze_slice_column='trip_start_hour'):
 
   tf_server_name = 'taxi-cab-classification-model-{{workflow.name}}'
-  validation = dataflow_tf_data_validation_op(train, evaluation, column_names, key_columns, project, mode, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
+  validation = dataflow_tf_data_validation_op(train, evaluation, column_names, 
+      key_columns, project, mode, output
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
   preprocess = dataflow_tf_transform_op(train, evaluation, validation.outputs['schema'],
-      project, mode, preprocess_module, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
+      project, mode, preprocess_module, output
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
   training = tf_train_op(preprocess.output, validation.outputs['schema'], learning_rate,
-      hidden_layer_size, steps, 'tips', preprocess_module, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
+      hidden_layer_size, steps, 'tips', preprocess_module, output
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
   analysis = dataflow_tf_model_analyze_op(training.output, evaluation,
-      validation.outputs['schema'], project, mode, analyze_slice_column, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
+      validation.outputs['schema'], project, mode, analyze_slice_column, output
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
   prediction = dataflow_tf_predict_op(evaluation, validation.outputs['schema'], 'tips',
-      training.output, mode, project, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
+      training.output, mode, project, output
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
   cm = confusion_matrix_op(prediction.output, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
   roc = roc_op(prediction.output, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
   deploy = kubeflow_deploy_op(training.output, tf_server_name).apply(gcp.use_gcp_secret('user-gcp-sa'))
