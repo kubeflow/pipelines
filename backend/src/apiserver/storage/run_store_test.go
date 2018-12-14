@@ -19,6 +19,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -103,7 +104,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	expectedFirstPageRuns := []model.Run{
+	expectedFirstPageRuns := []*model.Run{
 		{
 			UUID:             "1",
 			Name:             "run1",
@@ -119,7 +120,7 @@ func TestListRuns_Pagination(t *testing.T) {
 				},
 			},
 		}}
-	expectedSecondPageRuns := []model.Run{
+	expectedSecondPageRuns := []*model.Run{
 		{
 			UUID:             "2",
 			Name:             "run2",
@@ -135,30 +136,20 @@ func TestListRuns_Pagination(t *testing.T) {
 				},
 			},
 		}}
+
+	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
+	assert.Nil(t, err)
+
 	runs, nextPageToken, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}},
-		&common.PaginationContext{
-			PageSize:        1,
-			KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-			IsDesc:          false,
-		})
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
+	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	assert.Nil(t, err)
 	runs, nextPageToken, err = runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}},
-		&common.PaginationContext{
-			Token: &common.Token{
-				SortByFieldValue: "2",
-				// The value of the key field of the next row to be returned.
-				KeyFieldValue: "2"},
-			PageSize:        1,
-			KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-			IsDesc:          false,
-		})
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -168,7 +159,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	expectedFirstPageRuns := []model.Run{
+	expectedFirstPageRuns := []*model.Run{
 		{
 			UUID:             "2",
 			Name:             "run2",
@@ -184,7 +175,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				},
 			},
 		}}
-	expectedSecondPageRuns := []model.Run{
+	expectedSecondPageRuns := []*model.Run{
 		{
 			UUID:             "1",
 			Name:             "run1",
@@ -200,30 +191,20 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				},
 			},
 		}}
+
+	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
+	assert.Nil(t, err)
 	runs, nextPageToken, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}},
-		&common.PaginationContext{
-			PageSize:        1,
-			KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-			IsDesc:          true,
-		})
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+
 	assert.Nil(t, err)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
+	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
+	assert.Nil(t, err)
 	runs, nextPageToken, err = runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}},
-		&common.PaginationContext{
-			Token: &common.Token{
-				SortByFieldValue: "1",
-				// The value of the key field of the next row to be returned.
-				KeyFieldValue: "1"},
-			PageSize:        1,
-			KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-			IsDesc:          true,
-		})
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -233,7 +214,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	expectedRuns := []model.Run{
+	expectedRuns := []*model.Run{
 		{
 			UUID:             "1",
 			Name:             "run1",
@@ -264,14 +245,11 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				},
 			},
 		}}
+
+	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
+	assert.Nil(t, err)
 	runs, nextPageToken, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}},
-		&common.PaginationContext{
-			PageSize:        10,
-			KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-			IsDesc:          false,
-		})
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
@@ -282,14 +260,9 @@ func TestListRunsError(t *testing.T) {
 	defer db.Close()
 
 	db.Close()
-	_, _, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}},
-		&common.PaginationContext{
-			PageSize:        1,
-			KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-			SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-			IsDesc:          false,
-		})
+	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
+	_, _, err = runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }
@@ -581,7 +554,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 	runStore.ReportMetric(metric2)
 	runStore.ReportMetric(metric3)
 
-	expectedRuns := []model.Run{
+	expectedRuns := []*model.Run{
 		{
 			UUID:             "1",
 			Name:             "run1",
@@ -615,12 +588,10 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			Metrics: []*model.RunMetric{metric3},
 		},
 	}
-	runs, _, err := runStore.ListRuns(&common.FilterContext{}, &common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetRunTablePrimaryKeyColumn(),
-		SortByFieldName: model.GetRunTablePrimaryKeyColumn(),
-		IsDesc:          false,
-	})
+
+	opts, err := list.NewOptions(&model.Run{}, 2, "", nil)
+	assert.Nil(t, err)
+	runs, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 }
