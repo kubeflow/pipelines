@@ -121,7 +121,7 @@ func NewRunTerminateCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "Run was terminated successfully.")
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), "Run was terminated successfully.")
 			return nil
 		},
 	}
