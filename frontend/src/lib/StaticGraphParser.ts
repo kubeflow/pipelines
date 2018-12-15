@@ -102,8 +102,10 @@ function buildDag(
         buildDag(graph, task.template, templates);
       } else {
 
-        // Parent here will be the task that pointed to this DAG template
-        if (parent) {
+        // Parent here will be the task that pointed to this DAG template.
+        // We do not set an edge if the task has dependencies because in that case it makes sense
+        // for incoming edges to only be drawn from its dependencies, not the DAG node itself
+        if (parent && !task.dependencies) {
           graph.setEdge(parent, nodeId);
         }
 
