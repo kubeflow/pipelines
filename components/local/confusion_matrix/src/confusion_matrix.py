@@ -53,13 +53,6 @@ def main(argv=None):
   if args.target_lambda:
     df['target'] = df.apply(eval(args.target_lambda), axis=1)
 
-  # Convert "True" to "True_" and "False" to "False_" for frontend to work.
-  # TODO: Investigate frontend handling of boolean values.
-  # https://github.com/kubeflow/pipelines/issues/446
-  convert_fn = lambda x: str(x) + '_' if str(x).lower() in ['true', 'false'] else x
-  df['target'] = df['target'].apply(convert_fn)
-  df['predicted'] = df['predicted'].apply(convert_fn)
-
   vocab = list(df['target'].unique())
   cm = confusion_matrix(df['target'], df['predicted'], labels=vocab)
   data = []
@@ -83,7 +76,8 @@ def main(argv=None):
         {'name': 'count', 'type': 'NUMBER'},
       ],
       'source': cm_file,
-      'labels': vocab,
+      # Convert vocab to string because for bealean values we want "True|False" to match csv data.
+      'labels': list(map(str, vocab)),
     }]
   }
   with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:

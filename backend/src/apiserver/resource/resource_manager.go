@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -87,9 +88,9 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 	return r.experimentStore.GetExperiment(experimentId)
 }
 
-func (r *ResourceManager) ListExperiments(context *common.PaginationContext) (
-	experiments []model.Experiment, nextPageToken string, err error) {
-	return r.experimentStore.ListExperiments(context)
+func (r *ResourceManager) ListExperiments(opts *list.Options) (
+	experiments []*model.Experiment, nextPageToken string, err error) {
+	return r.experimentStore.ListExperiments(opts)
 }
 
 func (r *ResourceManager) DeleteExperiment(experimentID string) error {
@@ -100,9 +101,9 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
-func (r *ResourceManager) ListPipelines(context *common.PaginationContext) (
-	pipelines []model.Pipeline, nextPageToken string, err error) {
-	return r.pipelineStore.ListPipelines(context)
+func (r *ResourceManager) ListPipelines(opts *list.Options) (
+	pipelines []*model.Pipeline, nextPageToken string, err error) {
+	return r.pipelineStore.ListPipelines(opts)
 }
 
 func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error) {
@@ -225,8 +226,8 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
 
-func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, paginationContext *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
-	return r.runStore.ListRuns(filterContext, paginationContext)
+func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, opts *list.Options) (runs []*model.Run, nextPageToken string, err error) {
+	return r.runStore.ListRuns(filterContext, opts)
 }
 
 func (r *ResourceManager) DeleteRun(runID string) error {
@@ -247,8 +248,8 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	return nil
 }
 
-func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, context *common.PaginationContext) (jobs []model.Job, nextPageToken string, err error) {
-	return r.jobStore.ListJobs(filterContext, context)
+func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, opts *list.Options) (jobs []*model.Job, nextPageToken string, err error) {
+	return r.jobStore.ListJobs(filterContext, opts)
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {

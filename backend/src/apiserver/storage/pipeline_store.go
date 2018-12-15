@@ -19,13 +19,13 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines(context *common.PaginationContext) ([]model.Pipeline, string, error)
+	ListPipelines(opts *list.Options) ([]*model.Pipeline, string, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
 	GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error)
 	DeletePipeline(pipelineId string) error
@@ -39,43 +39,46 @@ type PipelineStore struct {
 	uuid util.UUIDGeneratorInterface
 }
 
-func (s *PipelineStore) ListPipelines(context *common.PaginationContext) ([]model.Pipeline, string, error) {
-	models, pageToken, err := listModel(context, s.queryPipelineTable)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List pipeline failed.")
+func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, string, error) {
+	errorF := func(err error) ([]*model.Pipeline, string, error) {
+		return nil, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
 	}
-	return s.toPipelines(models), pageToken, err
-}
 
-func (s *PipelineStore) queryPipelineTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
 	sqlBuilder := sq.Select("*").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
-	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
+	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to list pipelines: %v",
-			err.Error())
+		return errorF(err)
 	}
-	r, err := s.db.Query(sql, args...)
+
+	rows, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list pipelines: %v", err.Error())
+		return errorF(err)
 	}
-	defer r.Close()
-	pipelines, err := s.scanRows(r)
+	defer rows.Close()
+
+	pipelines, err := s.scanRows(rows)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list pipelines: %v", err.Error())
+		return errorF(err)
 	}
-	return s.toListablePipelines(pipelines), nil
+
+	if len(pipelines) <= opts.PageSize {
+		return pipelines, "", nil
+	}
+
+	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
+	return pipelines[:opts.PageSize], npt, err
 }
 
-func (s *PipelineStore) scanRows(rows *sql.Rows) ([]model.Pipeline, error) {
-	var pipelines []model.Pipeline
+func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
+	var pipelines []*model.Pipeline
 	for rows.Next() {
 		var uuid, name, parameters, description string
 		var createdAtInSec int64
 		var status model.PipelineStatus
 		if err := rows.Scan(&uuid, &createdAtInSec, &name, &description, &parameters, &status); err != nil {
-			return pipelines, err
+			return nil, err
 		}
-		pipelines = append(pipelines, model.Pipeline{
+		pipelines = append(pipelines, &model.Pipeline{
 			UUID:           uuid,
 			CreatedAtInSec: createdAtInSec,
 			Name:           name,
@@ -113,7 +116,7 @@ func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineSt
 	if len(pipelines) == 0 {
 		return nil, util.NewResourceNotFoundError("Pipeline", fmt.Sprint(id))
 	}
-	return &pipelines[0], nil
+	return pipelines[0], nil
 }
 
 func (s *PipelineStore) DeletePipeline(id string) error {
@@ -179,22 +182,6 @@ func (s *PipelineStore) UpdatePipelineStatus(id string, status model.PipelineSta
 		return util.NewInternalServerError(err, "Failed to update the pipeline metadata: %s", err.Error())
 	}
 	return nil
-}
-
-func (s *PipelineStore) toListablePipelines(pipelines []model.Pipeline) []model.ListableDataModel {
-	models := make([]model.ListableDataModel, len(pipelines))
-	for i := range models {
-		models[i] = pipelines[i]
-	}
-	return models
-}
-
-func (s *PipelineStore) toPipelines(models []model.ListableDataModel) []model.Pipeline {
-	pipelines := make([]model.Pipeline, len(models))
-	for i := range models {
-		pipelines[i] = models[i].(model.Pipeline)
-	}
-	return pipelines
 }
 
 // factory function for pipeline store

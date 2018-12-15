@@ -7,12 +7,13 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type ExperimentStoreInterface interface {
-	ListExperiments(*common.PaginationContext) ([]model.Experiment, string, error)
+	ListExperiments(opts *list.Options) ([]*model.Experiment, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
@@ -25,33 +26,33 @@ type ExperimentStore struct {
 	resourceReferenceStore *ResourceReferenceStore
 }
 
-func (s *ExperimentStore) ListExperiments(context *common.PaginationContext) ([]model.Experiment, string, error) {
-	models, pageToken, err := listModel(context, s.queryExperimentTable)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List experiments failed.")
+func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, string, error) {
+	errorF := func(err error) ([]*model.Experiment, string, error) {
+		return nil, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
-	return s.toExperiments(models), pageToken, err
-}
 
-func (s *ExperimentStore) queryExperimentTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
-	sqlBuilder := sq.Select("*").From("experiments")
-	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
+	sql, args, err := opts.AddToSelect(sq.Select("*").From("experiments")).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to list experiments: %v",
-			err.Error())
+		return errorF(err)
 	}
+
 	rows, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
-			err.Error())
+		return errorF(err)
 	}
 	defer rows.Close()
-	experiments, err := s.scanRows(rows)
+
+	exps, err := s.scanRows(rows)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
-			err.Error())
+		return errorF(err)
 	}
-	return s.toListableModels(experiments), nil
+
+	if len(exps) <= opts.PageSize {
+		return exps, "", nil
+	}
+
+	npt, err := opts.NextPageToken(exps[opts.PageSize])
+	return exps[:opts.PageSize], npt, err
 }
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
@@ -77,11 +78,11 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 	if len(experiments) == 0 {
 		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(uuid))
 	}
-	return &experiments[0], nil
+	return experiments[0], nil
 }
 
-func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]model.Experiment, error) {
-	var experiments []model.Experiment
+func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
+	var experiments []*model.Experiment
 	for rows.Next() {
 		var uuid, name, description string
 		var createdAtInSec int64
@@ -89,7 +90,7 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]model.Experiment, error) {
 		if err != nil {
 			return experiments, nil
 		}
-		experiments = append(experiments, model.Experiment{
+		experiments = append(experiments, &model.Experiment{
 			UUID:           uuid,
 			Name:           name,
 			Description:    description,
@@ -160,22 +161,6 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 		return util.NewInternalServerError(err, "Failed to delete experiment %v and its resource references from table", id)
 	}
 	return nil
-}
-
-func (s *ExperimentStore) toListableModels(experiments []model.Experiment) []model.ListableDataModel {
-	models := make([]model.ListableDataModel, len(experiments))
-	for i := range models {
-		models[i] = experiments[i]
-	}
-	return models
-}
-
-func (s *ExperimentStore) toExperiments(models []model.ListableDataModel) []model.Experiment {
-	experiments := make([]model.Experiment, len(models))
-	for i := range models {
-		experiments[i] = models[i].(model.Experiment)
-	}
-	return experiments
 }
 
 // factory function for experiment store

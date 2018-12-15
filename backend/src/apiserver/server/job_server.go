@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -50,17 +51,23 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {
-	paginationContext, err := ValidatePagination(
-		request.PageToken, int(request.PageSize), model.GetJobTablePrimaryKeyColumn(),
-		request.SortBy, jobModelFieldsBySortableAPIFields)
-	if err != nil {
-		return nil, util.Wrap(err, "Validating pagination failed.")
+	var opts *list.Options
+	var err error
+	if request.PageToken != "" {
+		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
+	} else {
+		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, request.Filter)
 	}
+
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
 	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
-	jobs, nextPageToken, err := s.resourceManager.ListJobs(filterContext, paginationContext)
+	jobs, nextPageToken, err := s.resourceManager.ListJobs(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs.")
 	}
