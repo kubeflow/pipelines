@@ -143,6 +143,14 @@ message Run {
   // or auto generated if run is created by scheduled job. Not unique.
   string name = 2;
 
+  enum StorageState {
+    UNSPECIFIED = 0;
+    AVAILABLE = 1;
+    ARCHIVED = 2;
+  }
+
+  StorageState storageState = 10;
+
   // Optional input field. Describing the purpose of the run
   string description = 3;
 
@@ -174,9 +182,6 @@ message Run {
   // Output. The metrics of the run. The metrics are reported by ReportMetrics
   // API.
   repeated RunMetric metrics = 9;
-
-  // Whether the run has been archived by the user.
-  bool isArchived = 10;
 }
 
 message PipelineRuntime {

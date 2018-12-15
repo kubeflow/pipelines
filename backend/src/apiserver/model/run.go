@@ -14,19 +14,25 @@
 
 package model
 
+// StorageState  - UNSPECIFIED: Default value if not present.
+//  - AVAILABLE: Resource is returned in regular list APIs.
+//  - ARCHIVED: Resource has been archived by user.
+// swagger:model StorageState
+type StorageState string
+
 type Run struct {
 	UUID               string `gorm:"column:UUID; not null; primary_key"`
 	DisplayName        string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
-	Name               string `gorm:"column:Name; not null; unique_index:idx_name_archived"` /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
+	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
 	Namespace          string `gorm:"column:Namespace; not null;"`
 	Description        string `gorm:"column:Description; not null"`
-	IsArchived				 bool 	`gorm:"column:IsArchived; not null; unique_index:idx_name_archived"`
 	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null"`
 	ScheduledAtInSec   int64  `gorm:"column:ScheduledAtInSec;"`
 	Conditions         string `gorm:"column:Conditions; not null"`
 	Metrics            []*RunMetric
 	ResourceReferences []*ResourceReference
 	PipelineSpec
+	StorageState
 }
 
 type PipelineRuntime struct {
