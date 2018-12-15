@@ -40,7 +40,7 @@ def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'G
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--train', train_data,
             '--eval', evaluation_data,
@@ -57,7 +57,7 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
 def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target: str, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--transformed-data-dir', transformed_data_dir,
             '--schema', schema,
@@ -74,7 +74,7 @@ def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate
 def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--model', model,
             '--eval', evaluation_data,
@@ -91,7 +91,7 @@ def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'Gc
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--data', evaluation_data,
             '--schema', schema,
@@ -130,7 +130,7 @@ def roc_op(predictions: 'GcsUri', output: 'GcsUri', step_name='roc'):
 def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='deploy'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--model-path', model,
             '--server-name', tf_server_name
