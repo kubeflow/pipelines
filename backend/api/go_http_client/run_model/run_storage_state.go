@@ -34,14 +34,14 @@ type RunStorageState string
 
 const (
 
-	// RunStorageStateUNSPECIFIED captures enum value "UNSPECIFIED"
-	RunStorageStateUNSPECIFIED RunStorageState = "UNSPECIFIED"
+	// RunStorageStateSTORAGESTATEUNSPECIFIED captures enum value "STORAGESTATE_UNSPECIFIED"
+	RunStorageStateSTORAGESTATEUNSPECIFIED RunStorageState = "STORAGESTATE_UNSPECIFIED"
 
-	// RunStorageStateAVAILABLE captures enum value "AVAILABLE"
-	RunStorageStateAVAILABLE RunStorageState = "AVAILABLE"
+	// RunStorageStateSTORAGESTATEAVAILABLE captures enum value "STORAGESTATE_AVAILABLE"
+	RunStorageStateSTORAGESTATEAVAILABLE RunStorageState = "STORAGESTATE_AVAILABLE"
 
-	// RunStorageStateARCHIVED captures enum value "ARCHIVED"
-	RunStorageStateARCHIVED RunStorageState = "ARCHIVED"
+	// RunStorageStateSTORAGESTATEARCHIVED captures enum value "STORAGESTATE_ARCHIVED"
+	RunStorageStateSTORAGESTATEARCHIVED RunStorageState = "STORAGESTATE_ARCHIVED"
 )
 
 // for schema
@@ -49,7 +49,7 @@ var runStorageStateEnum []interface{}
 
 func init() {
 	var res []RunStorageState
-	if err := json.Unmarshal([]byte(`["UNSPECIFIED","AVAILABLE","ARCHIVED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["STORAGESTATE_UNSPECIFIED","STORAGESTATE_AVAILABLE","STORAGESTATE_ARCHIVED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

@@ -79,6 +79,12 @@ service RunService {
     };
   }
 
+  rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}"
+    };
+  }
+
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/runs/{id}"
@@ -131,6 +137,10 @@ message ListRunsResponse {
   string next_page_token = 2;
 }
 
+message ArchiveRunRequest {
+  string id = 1;
+}
+
 message DeleteRunRequest {
   string id = 1;
 }
@@ -144,9 +154,9 @@ message Run {
   string name = 2;
 
   enum StorageState {
-    UNSPECIFIED = 0;
-    AVAILABLE = 1;
-    ARCHIVED = 2;
+    STORAGESTATE_UNSPECIFIED = 0;
+    STORAGESTATE_AVAILABLE = 1;
+    STORAGESTATE_ARCHIVED = 2;
   }
 
   StorageState storageState = 10;
