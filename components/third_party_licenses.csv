@@ -169,3 +169,5 @@ tensorflow-tensorboard,https://raw.githubusercontent.com/tensorflow/tensorboard/
 tensorflow-data-validation,https://raw.githubusercontent.com/tensorflow/data-validation/master/LICENSE,Apache 2.0
 tensorflow-metadata,https://raw.githubusercontent.com/tensorflow/metadata/master/LICENSE,Apache 2.0
 defusedxml,https://raw.githubusercontent.com/tiran/defusedxml/master/LICENSE,PSF
+google-api-core,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+google-resumable-media,https://raw.githubusercontent.com/googleapis/google-resumable-media-python/master/LICENSE,Apache 2.0
