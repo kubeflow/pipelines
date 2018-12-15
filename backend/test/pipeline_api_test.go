@@ -65,10 +65,10 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
+		Body: &pipeline_model.APIPipeline{Name:"sequential", URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	assert.Nil(t, err)
-	assert.Equal(t, "sequential.yaml", sequentialPipeline.Name)
+	assert.Equal(t, "sequential", sequentialPipeline.Name)
 
 	/* ---------- Upload pipelines tarball ---------- */
 	time.Sleep(1 * time.Second)
@@ -108,7 +108,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
-	assert.Equal(t, "sequential.yaml", listSecondPagePipelines[0].Name)
+	assert.Equal(t, "sequential", listSecondPagePipelines[0].Name)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
@@ -118,7 +118,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
 	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
-	assert.Equal(t, "sequential.yaml", listFirstPagePipelines[1].Name)
+	assert.Equal(t, "sequential", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, nextPageToken, err = s.pipelineClient.List(
@@ -140,7 +140,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
 	assert.Equal(t, "zip-arguments-parameters", listFirstPagePipelines[0].Name)
-	assert.Equal(t, "sequential.yaml", listFirstPagePipelines[1].Name)
+	assert.Equal(t, "sequential", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, nextPageToken, err = s.pipelineClient.List(&params.ListPipelinesParams{
