@@ -179,6 +179,9 @@ required = [
   name = "google.golang.org/genproto"
   revision = "bd91e49a0898e27abb88c339b432fa53d7497ac0"
 
+[[constraint]]
+  name = "sigs.k8s.io/controller-runtime"
+  revision = "5558165425ef09b6e5c3f61d3457fbeca0d6d579"
 
 [[constraint]]
   name = "github.com/google/go-cmp"

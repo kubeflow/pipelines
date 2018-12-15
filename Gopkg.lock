@@ -71,6 +71,14 @@
   version = "v9"
 
 [[projects]]
+  branch = "master"
+  digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
+  name = "github.com/beorn7/perks"
+  packages = ["quantile"]
+  pruneopts = "UT"
+  revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
+
+[[projects]]
   digest = "1:2209584c0f7c9b68c23374e659357ab546e1b70eec2761f03280f69a8fd23d77"
   name = "github.com/cenkalti/backoff"
   packages = ["."]
@@ -152,9 +160,6 @@
   version = "v1.38.1"
 
 [[projects]]
-<<<<<<< HEAD
-  digest = "1:c49164b7b1e34324258ae61deef2cba7912005ba9cb7a9ee4930fe6bdfec7b5d"
-=======
   branch = "master"
   digest = "1:edd2fa4578eb086265db78a9201d15e76b298dfd0d5c379da83e9c61712cf6df"
   name = "github.com/go-logr/logr"
@@ -172,7 +177,6 @@
 
 [[projects]]
   digest = "1:761ef52ff27e92ff785cfaa62b9928963c880fa0560e88fcbfe4387e4f34f8d0"
->>>>>>> Use controller-runtime to scaffold out a controller main
   name = "github.com/go-openapi/analysis"
   packages = [
     ".",
@@ -608,6 +612,14 @@
   version = "v1.9.0"
 
 [[projects]]
+  digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
+  name = "github.com/matttproud/golang_protobuf_extensions"
+  packages = ["pbutil"]
+  pruneopts = "UT"
+  revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:95c73c666919be2843b955eafc83f58c136312b74f79c703152f4c4a95fd64dc"
   name = "github.com/minio/minio-go"
   packages = [
@@ -701,6 +713,51 @@
   pruneopts = "UT"
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:93a746f1060a8acbcf69344862b2ceced80f854170e1caae089b2834c5fbf7f4"
+  name = "github.com/prometheus/client_golang"
+  packages = [
+    "prometheus",
+    "prometheus/internal",
+    "prometheus/promhttp",
+  ]
+  pruneopts = "UT"
+  revision = "505eaef017263e299324067d40ca2c48f6a2cf50"
+  version = "v0.9.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:2d5cd61daa5565187e1d96bae64dbbc6080dacf741448e9629c64fd93203b0d4"
+  name = "github.com/prometheus/client_model"
+  packages = ["go"]
+  pruneopts = "UT"
+  revision = "5c3871d89910bfb32f5fcab2aa4b9ec68e65a99f"
+
+[[projects]]
+  branch = "master"
+  digest = "1:db712fde5d12d6cdbdf14b777f0c230f4ff5ab0be8e35b239fc319953ed577a4"
+  name = "github.com/prometheus/common"
+  packages = [
+    "expfmt",
+    "internal/bitbucket.org/ww/goautoneg",
+    "model",
+  ]
+  pruneopts = "UT"
+  revision = "4724e9255275ce38f7179b2478abeae4e28c904f"
+
+[[projects]]
+  branch = "master"
+  digest = "1:d39e7c7677b161c2dd4c635a2ac196460608c7d8ba5337cc8cae5825a2681f8f"
+  name = "github.com/prometheus/procfs"
+  packages = [
+    ".",
+    "internal/util",
+    "nfs",
+    "xfs",
+  ]
+  pruneopts = "UT"
+  revision = "1dc9a6cbc91aacc3e8b2d63db4d2e957a5394ac4"
 
 [[projects]]
   digest = "1:ed615c5430ecabbb0fb7629a182da65ecee6523900ac1ac932520860878ffcad"
@@ -1265,7 +1322,7 @@
   version = "v1.11.1"
 
 [[projects]]
-  digest = "1:9d2d000294a4c96dfd2f4a7ab9e26ebe82c1f014b5dbe5328c7581393d05096a"
+  digest = "1:0de37ecb6c2c0a6bbe93703da7ee27f643446abda8dd2830184a34a594378b80"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/cache",
@@ -1273,14 +1330,17 @@
     "pkg/client",
     "pkg/client/apiutil",
     "pkg/client/config",
+    "pkg/client/fake",
     "pkg/controller",
     "pkg/controller/controllerutil",
     "pkg/event",
     "pkg/handler",
     "pkg/internal/controller",
+    "pkg/internal/controller/metrics",
     "pkg/internal/recorder",
     "pkg/leaderelection",
     "pkg/manager",
+    "pkg/metrics",
     "pkg/patch",
     "pkg/predicate",
     "pkg/reconcile",
@@ -1294,8 +1354,7 @@
     "pkg/webhook/types",
   ]
   pruneopts = "UT"
-  revision = "5fd1e9e9fac5261e9ad9d47c375afc014fc31d21"
-  version = "v0.1.7"
+  revision = "5558165425ef09b6e5c3f61d3457fbeca0d6d579"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -1394,6 +1453,7 @@
     "k8s.io/code-generator/cmd/lister-gen",
     "k8s.io/kubernetes/pkg/apis/core",
     "sigs.k8s.io/controller-runtime/pkg/client",
+    "sigs.k8s.io/controller-runtime/pkg/client/fake",
     "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
     "sigs.k8s.io/controller-runtime/pkg/reconcile",
   ]
