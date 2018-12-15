@@ -234,7 +234,7 @@ export default class WorkflowParser {
   // by Argo to orchestrate the workflow. Such nodes are not generally
   // meaningful from a user's perspective.
   public static isVirtual(node: NodeStatus): boolean {
-    return (node.type === 'StepGroup' || node.type === 'DAG') && !!node.boundaryID;
+    return (node.type === 'StepGroup' || node.type === 'DAG' || node.type === 'TaskGroup') && !!node.boundaryID;
   }
 
   // Returns a workflow-level error string if found, empty string if none
