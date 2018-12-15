@@ -20,6 +20,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -37,6 +38,9 @@ type RunStoreInterface interface {
 
 	// Update run table. Only condition and runtime manifest is allowed to be updated.
 	UpdateRun(id string, condition string, workflowRuntimeManifest string) (err error)
+
+	// Archive a run
+	ArchiveRun(id string) error
 
 	// Delete a run entry from the database
 	DeleteRun(id string) error
@@ -320,6 +324,29 @@ func (s *RunStore) CreateOrUpdateRun(runDetail *model.RunDetail) error {
 			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
 			runDetail.Namespace, runDetail.Name, createError.Error(), updateError.Error()))
 	}
+	return nil
+}
+
+func (s *RunStore) ArchiveRun(runId string) error {
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to update run %s. error: '%v'", runId, err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to update run %s. error: '%v'", runId, err.Error())
+	}
+
 	return nil
 }
 

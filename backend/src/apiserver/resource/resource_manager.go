@@ -31,7 +31,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -228,6 +228,10 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 
 func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, opts *list.Options) (runs []*model.Run, nextPageToken string, err error) {
 	return r.runStore.ListRuns(filterContext, opts)
+}
+
+func (r *ResourceManager) ArchiveRun(runId string) error {
+	return r.runStore.ArchiveRun(runId)
 }
 
 func (r *ResourceManager) DeleteRun(runID string) error {
