@@ -122,7 +122,8 @@ export function getPodLogs(podName: string): Promise<string> {
     throw new Error('Cannot access kubernetes API');
   }
   return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any)
-    .then((response: any) => response.body.toString(), (error: any) => {
-      throw new Error(JSON.stringify(error.body));
-    });
+    .then(
+      (response: any) => (response && response.body) ? response.body.toString() : '',
+      (error: any) => { throw new Error(JSON.stringify(error.body)); }
+    );
 }
