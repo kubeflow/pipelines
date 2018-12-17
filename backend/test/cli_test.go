@@ -16,22 +16,13 @@ import (
 const (
 	defaultPageSize    = int32(10)
 	myUploadedPipeline = "my-uploaded-pipeline"
-	// If true, run as a unit test using a fake client.
-	// If false, run as an integration test calling the service.
-	// This is useful to test locally before running an e2e test (which takes a while).
-	// IMPORTANT: This should always be set to FALSE in the checked-in code.
-	runAsUnitTest = false
 )
 
 func GetRealRootCommand() (*cmd.RootCommand, cmd.ClientFactoryInterface) {
-	if runAsUnitTest {
-		return cmd.GetFakeRootCommand()
-	} else {
-		clientFactory := cmd.NewClientFactoryWithByteBuffer()
-		rootCmd := cmd.NewRootCmd(clientFactory)
-		rootCmd = cmd.CreateSubCommands(rootCmd, defaultPageSize)
-		return rootCmd, clientFactory
-	}
+	clientFactory := cmd.NewClientFactoryWithByteBuffer()
+	rootCmd := cmd.NewRootCmd(clientFactory)
+	rootCmd = cmd.CreateSubCommands(rootCmd, defaultPageSize)
+	return rootCmd, clientFactory
 }
 
 type CLIIntegrationTest struct {
@@ -41,15 +32,18 @@ type CLIIntegrationTest struct {
 
 // Check the cluster namespace has Kubeflow pipelines installed and ready.
 func (c *CLIIntegrationTest) SetupTest() {
+	if !*runIntegrationTests {
+		c.T().SkipNow()
+		return
+	}
+
 	c.namespace = *namespace
 
-	if !runAsUnitTest {
-		// Wait for the system to be ready.
-		err := waitForReady(c.namespace, *initializeTimeout)
-		if err != nil {
-			glog.Exitf("Cluster namespace '%s' is still not ready after timeout. Error: %s", c.namespace,
-				err.Error())
-		}
+	// Wait for the system to be ready.
+	err := waitForReady(c.namespace, *initializeTimeout)
+	if err != nil {
+		glog.Exitf("Cluster namespace '%s' is still not ready after timeout. Error: %s", c.namespace,
+			err.Error())
 	}
 }
 
