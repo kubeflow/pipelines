@@ -14,4 +14,4 @@
 # limitations under the License.
 
 cd $(dirname $0)
-python3 -m unittest --verbose
+python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
