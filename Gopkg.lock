@@ -176,7 +176,7 @@
   version = "v0.1.0"
 
 [[projects]]
-  digest = "1:761ef52ff27e92ff785cfaa62b9928963c880fa0560e88fcbfe4387e4f34f8d0"
+  digest = "1:c49164b7b1e34324258ae61deef2cba7912005ba9cb7a9ee4930fe6bdfec7b5d"
   name = "github.com/go-openapi/analysis"
   packages = [
     ".",
@@ -536,14 +536,6 @@
   version = "v10.6.7"
 
 [[projects]]
-  digest = "1:739e818b4c509075b56a7119d194b33ceaa1d0285c6b1aa30f993d58eefbaa7a"
-  name = "github.com/kubernetes-sigs/controller-runtime"
-  packages = ["pkg/builder"]
-  pruneopts = "UT"
-  revision = "5fd1e9e9fac5261e9ad9d47c375afc014fc31d21"
-  version = "v0.1.7"
-
-[[projects]]
   branch = "master"
   digest = "1:ca955a9cd5b50b0f43d2cc3aeb35c951473eeca41b34eb67507f1dbcc0542394"
   name = "github.com/kr/pretty"
@@ -558,6 +550,14 @@
   pruneopts = "UT"
   revision = "e2ffdb16a802fe2bb95e2e35ff34f0e53aeef34f"
   version = "v0.1.0"
+
+[[projects]]
+  digest = "1:739e818b4c509075b56a7119d194b33ceaa1d0285c6b1aa30f993d58eefbaa7a"
+  name = "github.com/kubernetes-sigs/controller-runtime"
+  packages = ["pkg/builder"]
+  pruneopts = "UT"
+  revision = "5fd1e9e9fac5261e9ad9d47c375afc014fc31d21"
+  version = "v0.1.7"
 
 [[projects]]
   branch = "master"
