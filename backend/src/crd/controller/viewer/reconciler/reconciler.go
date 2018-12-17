@@ -46,11 +46,20 @@ const viewerTargetPort = 6006
 type Reconciler struct {
 	client.Client
 	scheme *runtime.Scheme
+	opts   *Options
+}
+
+// Options are the set of options to configure the behaviour of Reconciler.
+type Options struct {
+	// MaxNumViewers sets an upper bound on the number of viewer instances allowed.
+	// When a user attempts to create one more viewer than this number, the oldest
+	// existing viewer will be deleted.
+	MaxNumViewers int
 }
 
 // New returns a new Reconciler.
-func New(cli client.Client, scheme *runtime.Scheme) *Reconciler {
-	return &Reconciler{Client: cli, scheme: scheme}
+func New(cli client.Client, scheme *runtime.Scheme, opts *Options) *Reconciler {
+	return &Reconciler{Client: cli, scheme: scheme, opts: opts}
 }
 
 // Reconcile runs the main logic for reconciling the state of a viewer with a
