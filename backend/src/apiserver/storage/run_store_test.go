@@ -673,6 +673,53 @@ func TestUnarchiveRun(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestUnarchiveRun_InternalError(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	db.Close()
+
+	err := runStore.UnarchiveRun("1")
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
+		"Expected unarchive run to return internal error")
+}
+
+func TestArchiveRun_IncludedInRunList(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Archive run
+	err := runStore.ArchiveRun("1")
+	assert.Nil(t, err)
+	run, getRunErr := runStore.GetRun("1")
+	assert.Nil(t, getRunErr)
+	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+
+	expectedRuns := []*model.Run{
+		{
+			UUID:             "1",
+			Name:             "run1",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_ARCHIVED.String(),
+			Conditions:       "running",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+					Relationship: common.Creator,
+				},
+			},
+		}}
+	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
+	runs, nextPageToken, err := runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRuns, runs)
+	assert.NotEmpty(t, nextPageToken)
+}
+
 func TestDeleteRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
