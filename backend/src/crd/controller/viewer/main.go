@@ -37,8 +37,11 @@ import (
 )
 
 var (
-	masterURL = flag.String("master_url", "", "Address of the Kubernetes API server.")
-	kubecfg   = flag.String("kubecfg", "", "Path to a valid kubeconfig.")
+	masterURL     = flag.String("master_url", "", "Address of the Kubernetes API server.")
+	kubecfg       = flag.String("kubecfg", "", "Path to a valid kubeconfig.")
+	maxNumViewers = flag.Int("max_num_viewers", 50,
+		"Maximum number of viewer instances allowed within "+
+			"the cluster before the controller starts deleting the oldest one.")
 )
 
 func main() {
@@ -55,7 +58,12 @@ func main() {
 	}
 
 	viewerV1alpha1.AddToScheme(scheme.Scheme)
-	reconciler := reconciler.New(cli, scheme.Scheme)
+	opts := &reconciler.Options{MaxNumViewers: *maxNumViewers}
+	reconciler, err := reconciler.New(cli, scheme.Scheme, opts)
+	if err != nil {
+		log.Fatalf("Failed to create a Viewer Controller: %v", err)
+
+	}
 
 	// Create a controller that is in charge of Viewer types, and also responds to
 	// changes to any deployment and services that is owned by any Viewer instance.

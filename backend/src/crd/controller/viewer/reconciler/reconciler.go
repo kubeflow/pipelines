@@ -58,8 +58,11 @@ type Options struct {
 }
 
 // New returns a new Reconciler.
-func New(cli client.Client, scheme *runtime.Scheme, opts *Options) *Reconciler {
-	return &Reconciler{Client: cli, scheme: scheme, opts: opts}
+func New(cli client.Client, scheme *runtime.Scheme, opts *Options) (*Reconciler, error) {
+	if opts.MaxNumViewers < 1 {
+		return nil, fmt.Errorf("MaxNumViewers should at least be 1. Got %d", opts.MaxNumViewers)
+	}
+	return &Reconciler{Client: cli, scheme: scheme, opts: opts}, nil
 }
 
 // Reconcile runs the main logic for reconciling the state of a viewer with a
@@ -85,6 +88,12 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		glog.Infof("Unsupported spec type: %q", view.Spec.Type)
 		// Return nil to indicate nothing more to do here.
 		return reconcile.Result{}, nil
+	}
+
+	// Check and maybe delete the oldest viewer before creating the next one.
+	if err := r.maybeDeleteOldestViewer(view.Spec.Type); err != nil {
+		// Couldn't delete. Requeue.
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Set up potential deployment.
@@ -230,4 +239,26 @@ func serviceFrom(v *viewerV1alpha1.Viewer, deploymentName string) *corev1.Servic
 			},
 		},
 	}
+}
+
+func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1alpha1.ViewerType) error {
+	list := &viewerV1alpha1.ViewerList{}
+
+	if err := r.Client.List(context.Background(), &client.ListOptions{}, list); err != nil {
+		return fmt.Errorf("failed to list viewers: %v", err)
+	}
+
+	if len(list.Items) <= r.opts.MaxNumViewers {
+		return nil
+	}
+
+	// Delete the oldest viewer by creation timestamp.
+	oldest := &list.Items[0] // MaxNumViewers must be at least one.
+	for i := range list.Items {
+		if list.Items[i].CreationTimestamp.Time.Before(oldest.CreationTimestamp.Time) {
+			oldest = &list.Items[i]
+		}
+	}
+
+	return r.Client.Delete(context.Background(), oldest, nil)
 }

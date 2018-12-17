@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	_ "github.com/google/go-cmp/cmp/cmpopts"
@@ -61,7 +62,7 @@ func getServices(t *testing.T, c client.Client) []*corev1.Service {
 	svcList := &corev1.ServiceList{}
 
 	if err := c.List(context.Background(), &client.ListOptions{}, svcList); err != nil {
-		t.Fatalf("Failed to list services from Fake client: %v", err)
+		t.Fatalf("Failed to list services with fake client: %v", err)
 	}
 
 	var svcs []*corev1.Service
@@ -70,6 +71,21 @@ func getServices(t *testing.T, c client.Client) []*corev1.Service {
 		svcs = append(svcs, &svc)
 	}
 	return svcs
+}
+
+func getViewers(t *testing.T, c client.Client) []*viewerV1alpha1.Viewer {
+	list := &viewerV1alpha1.ViewerList{}
+
+	if err := c.List(context.Background(), &client.ListOptions{}, list); err != nil {
+		t.Fatalf("Failed to list viewers with fake client: %v", err)
+	}
+
+	var items []*viewerV1alpha1.Viewer
+	for _, i := range list.Items {
+		i := i
+		items = append(items, &i)
+	}
+	return items
 }
 
 func deploymentNames(dpls []*appsv1.Deployment) []string {
@@ -85,6 +101,15 @@ func serviceNames(svcs []*corev1.Service) []string {
 	var ns []string
 
 	for _, s := range svcs {
+		ns = append(ns, s.ObjectMeta.Namespace+"/"+s.ObjectMeta.Name)
+	}
+	return ns
+}
+
+func viewerNames(items []*viewerV1alpha1.Viewer) []string {
+	var ns []string
+
+	for _, s := range items {
 		ns = append(ns, s.ObjectMeta.Namespace+"/"+s.ObjectMeta.Name)
 	}
 	return ns
@@ -109,7 +134,7 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 	}
 
 	cli := fake.NewFakeClient(viewer)
-	reconciler := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
@@ -177,7 +202,7 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 	}
 
 	cli := fake.NewFakeClient(viewer)
-	reconciler := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
@@ -242,7 +267,7 @@ func TestReconcile_UnknownViewerTypesAreIgnored(t *testing.T) {
 	}
 
 	cli := fake.NewFakeClient(viewer)
-	reconciler := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
@@ -272,7 +297,7 @@ func TestReconcile_UnknownViewerDoesNothing(t *testing.T) {
 	// Client with empty store.
 	cli := fake.NewFakeClient()
 
-	reconciler := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
@@ -299,8 +324,9 @@ func TestReconcile_UnknownViewerDoesNothing(t *testing.T) {
 func makeViewer(id int) (*types.NamespacedName, *viewerV1alpha1.Viewer) {
 	v := &viewerV1alpha1.Viewer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("viewer-%d", id),
-			Namespace: "kubeflow",
+			Name:              fmt.Sprintf("viewer-%d", id),
+			Namespace:         "kubeflow",
+			CreationTimestamp: metav1.Time{Time: time.Unix(int64(id), 0)},
 		},
 		Spec: viewerV1alpha1.ViewerSpec{
 			Type: viewerV1alpha1.ViewerTypeTensorboard,
@@ -319,7 +345,7 @@ func makeViewer(id int) (*types.NamespacedName, *viewerV1alpha1.Viewer) {
 
 func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 	cli := fake.NewFakeClient()
-	reconciler := New(cli, scheme.Scheme, &Options{MaxNumViewers: 5})
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 5})
 
 	ctx := context.Background()
 	for i := 0; i < 5; i++ {
@@ -333,6 +359,20 @@ func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 		}
 	}
 
+	// Check viewers.
+	wantViewers := []string{
+		"kubeflow/viewer-0",
+		"kubeflow/viewer-1",
+		"kubeflow/viewer-2",
+		"kubeflow/viewer-3",
+		"kubeflow/viewer-4",
+	}
+	gotViewers := viewerNames(getViewers(t, cli))
+	if !cmp.Equal(wantViewers, gotViewers) {
+		t.Errorf("Got viewers %v\n. Want %v", gotViewers, wantViewers)
+	}
+
+	// Check deployments.
 	wantDpls := []string{
 		"kubeflow/viewer-0-deployment",
 		"kubeflow/viewer-1-deployment",
@@ -346,7 +386,8 @@ func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 		t.Errorf("Got deployments %v\n. Want %v", gotDpls, wantDpls)
 	}
 
-	gotSvcs := []string{
+	// Check services.
+	wantSvcs := []string{
 		"kubeflow/viewer-0-service",
 		"kubeflow/viewer-1-service",
 		"kubeflow/viewer-2-service",
@@ -354,11 +395,73 @@ func TestReconcile_MaxNumViewersIsEnforced(t *testing.T) {
 		"kubeflow/viewer-4-service",
 	}
 
-	wantSvcs := serviceNames(getServices(t, cli))
+	gotSvcs := serviceNames(getServices(t, cli))
 	if !cmp.Equal(wantSvcs, gotSvcs) {
 		t.Errorf("Got services %v\n. Want %v", gotSvcs, wantSvcs)
 	}
 
-	// Now add another viewer. The oldest created service should be deleted, and the new one should
+	// Now add a 6th viewer. The oldest created service should be deleted, and
+	// the new one should launch a corresponding deployment and service.
 
+	n, v := makeViewer(5)
+	cli.Create(ctx, v)
+
+	req := reconcile.Request{NamespacedName: *n}
+	_, err := reconciler.Reconcile(req)
+
+	if err != nil {
+		t.Errorf("Reconcile(%+v) = %v; Want nil error", req, err)
+	}
+
+	// Check viewers. Viewer 0, which is the oldest, should be deleted, and we
+	// should see the newly created viewer 5.
+	wantViewers = []string{
+		"kubeflow/viewer-1",
+		"kubeflow/viewer-2",
+		"kubeflow/viewer-3",
+		"kubeflow/viewer-4",
+		"kubeflow/viewer-5",
+	}
+	gotViewers = viewerNames(getViewers(t, cli))
+	if !cmp.Equal(wantViewers, gotViewers) {
+		t.Errorf("Got viewers %v\n. Want %v", gotViewers, wantViewers)
+	}
+
+	// Check deployments.
+	wantDpls = []string{
+		// The fake client does not propagate deletion requests based on owner
+		// references, so the original deployment will still be present. In
+		// production, this is not the case as Kubernetes will ensure that the child
+		// resources are deleted as well.
+		"kubeflow/viewer-0-deployment",
+		"kubeflow/viewer-1-deployment",
+		"kubeflow/viewer-2-deployment",
+		"kubeflow/viewer-3-deployment",
+		"kubeflow/viewer-4-deployment",
+		"kubeflow/viewer-5-deployment",
+	}
+
+	gotDpls = deploymentNames(getDeployments(t, cli))
+	if !cmp.Equal(wantDpls, gotDpls) {
+		t.Errorf("Got deployments %v\n. Want %v", gotDpls, wantDpls)
+	}
+
+	// Check services.
+	wantSvcs = []string{
+		// The fake client does not propagate deletion requests based on owner
+		// references, so the original service will still be present. In
+		// production, this is not the case as Kubernetes will ensure that the child
+		// resources are deleted as well.
+		"kubeflow/viewer-0-service",
+		"kubeflow/viewer-1-service",
+		"kubeflow/viewer-2-service",
+		"kubeflow/viewer-3-service",
+		"kubeflow/viewer-4-service",
+		"kubeflow/viewer-5-service",
+	}
+
+	gotSvcs = serviceNames(getServices(t, cli))
+	if !cmp.Equal(wantSvcs, gotSvcs) {
+		t.Errorf("Got services %v\n. Want %v", gotSvcs, wantSvcs)
+	}
 }
