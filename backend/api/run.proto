@@ -23,6 +23,7 @@ import "google/protobuf/timestamp.proto";
 import "pipeline_spec.proto";
 import "resource_reference.proto";
 import "protoc-gen-swagger/options/annotations.proto";
+import "filter.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
@@ -121,6 +122,8 @@ message ListRunsRequest{
   // E.g. If listing run for an experiment, the query string would be
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
   ResourceKey resource_reference_key = 4;
+
+  Filter filter = 5;
 }
 
 message ListRunsResponse {

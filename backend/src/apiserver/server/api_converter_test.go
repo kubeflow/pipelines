@@ -156,7 +156,7 @@ func TestToApiRuns(t *testing.T) {
 		},
 		Metrics: []*model.RunMetric{metric2},
 	}
-	apiRuns := ToApiRuns([]model.Run{modelRun1, modelRun2})
+	apiRuns := ToApiRuns([]*model.Run{&modelRun1, &modelRun2})
 	expectedApiRun := []*api.Run{
 		{
 			Id:          "run1",
@@ -201,7 +201,7 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron: util.StringPointer("1 * *"),
+				Cron:                       util.StringPointer("1 * *"),
 			},
 		},
 		MaxConcurrency: 1,
@@ -345,7 +345,7 @@ func TestToApiJobs(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron: util.StringPointer("1 * *"),
+				Cron:                       util.StringPointer("1 * *"),
 			},
 		},
 		MaxConcurrency: 1,
@@ -364,7 +364,7 @@ func TestToApiJobs(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(2),
-				Cron: util.StringPointer("2 * *"),
+				Cron:                       util.StringPointer("2 * *"),
 			},
 		},
 		MaxConcurrency: 2,
@@ -375,7 +375,7 @@ func TestToApiJobs(t *testing.T) {
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
 	}
-	apiJobs := ToApiJobs([]model.Job{modelJob1, modeljob2})
+	apiJobs := ToApiJobs([]*model.Job{&modelJob1, &modeljob2})
 	expectedJobs := []*api.Job{
 		{
 			Id:             "job1",

@@ -28,6 +28,11 @@ type RunApiTestSuite struct {
 
 // Check the namespace have ML pipeline installed and ready
 func (s *RunApiTestSuite) SetupTest() {
+	if !*runIntegrationTests {
+		s.T().SkipNow()
+		return
+	}
+
 	err := waitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
@@ -144,9 +149,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- List the runs, sort by unsupported field ---------- */
 	_, _, err = s.runClient.List(&runparams.ListRunsParams{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
+		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to list runs")
 
 	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
 	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
