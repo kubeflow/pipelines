@@ -307,6 +307,7 @@ elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   export LANG=C.UTF-8
   papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
   jupyter nbconvert --to python notebook-lightweight.ipynb
+  pip3 install tensorflow==1.8.0
   ipython notebook-lightweight.py
   cd "${TEST_DIR}"
   python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE}
