@@ -42,6 +42,9 @@ type RunStoreInterface interface {
 	// Archive a run
 	ArchiveRun(id string) error
 
+	// Unarchive a run
+	UnarchiveRun(id string) error
+
 	// Delete a run entry from the database
 	DeleteRun(id string) error
 
@@ -354,13 +357,36 @@ func (s *RunStore) ArchiveRun(runId string) error {
 
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Failed to create query to update run %s. error: '%v'", runId, err.Error())
+			"Failed to create query to archive run %s. error: '%v'", runId, err.Error())
 	}
 
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
-			"Failed to update run %s. error: '%v'", runId, err.Error())
+			"Failed to archive run %s. error: '%v'", runId, err.Error())
+	}
+
+	return nil
+}
+
+func (s *RunStore) UnarchiveRun(runId string) error {
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to unarchive run %s. error: '%v'", runId, err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to unarchive run %s. error: '%v'", runId, err.Error())
 	}
 
 	return nil

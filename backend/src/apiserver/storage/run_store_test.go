@@ -645,6 +645,34 @@ func TestArchiveRun_InternalError(t *testing.T) {
 		"Expected archive run to return internal error")
 }
 
+func TestUnarchiveRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+	resourceReferenceStore := NewResourceReferenceStore(db)
+	// Check resource reference exists
+	r, err := resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
+
+	// Archive run
+	err = runStore.ArchiveRun("1")
+	assert.Nil(t, err)
+	run, getRunErr := runStore.GetRun("1")
+	assert.Nil(t, getRunErr)
+	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+
+	// Unarchive it back
+	err = runStore.UnarchiveRun("1")
+	assert.Nil(t, err)
+	run, getRunErr = runStore.GetRun("1")
+	assert.Nil(t, getRunErr)
+	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+
+	// Check resource reference wasn't deleted
+	_, err = resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	assert.Nil(t, err)
+}
+
 func TestDeleteRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()

@@ -32,49 +32,49 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewArchiveRunParams creates a new ArchiveRunParams object
+// NewUnarchiveRunParams creates a new UnarchiveRunParams object
 // with the default values initialized.
-func NewArchiveRunParams() *ArchiveRunParams {
+func NewUnarchiveRunParams() *UnarchiveRunParams {
 	var ()
-	return &ArchiveRunParams{
+	return &UnarchiveRunParams{
 
 		timeout: cr.DefaultTimeout,
 	}
 }
 
-// NewArchiveRunParamsWithTimeout creates a new ArchiveRunParams object
+// NewUnarchiveRunParamsWithTimeout creates a new UnarchiveRunParams object
 // with the default values initialized, and the ability to set a timeout on a request
-func NewArchiveRunParamsWithTimeout(timeout time.Duration) *ArchiveRunParams {
+func NewUnarchiveRunParamsWithTimeout(timeout time.Duration) *UnarchiveRunParams {
 	var ()
-	return &ArchiveRunParams{
+	return &UnarchiveRunParams{
 
 		timeout: timeout,
 	}
 }
 
-// NewArchiveRunParamsWithContext creates a new ArchiveRunParams object
+// NewUnarchiveRunParamsWithContext creates a new UnarchiveRunParams object
 // with the default values initialized, and the ability to set a context for a request
-func NewArchiveRunParamsWithContext(ctx context.Context) *ArchiveRunParams {
+func NewUnarchiveRunParamsWithContext(ctx context.Context) *UnarchiveRunParams {
 	var ()
-	return &ArchiveRunParams{
+	return &UnarchiveRunParams{
 
 		Context: ctx,
 	}
 }
 
-// NewArchiveRunParamsWithHTTPClient creates a new ArchiveRunParams object
+// NewUnarchiveRunParamsWithHTTPClient creates a new UnarchiveRunParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
-func NewArchiveRunParamsWithHTTPClient(client *http.Client) *ArchiveRunParams {
+func NewUnarchiveRunParamsWithHTTPClient(client *http.Client) *UnarchiveRunParams {
 	var ()
-	return &ArchiveRunParams{
+	return &UnarchiveRunParams{
 		HTTPClient: client,
 	}
 }
 
-/*ArchiveRunParams contains all the parameters to send to the API endpoint
-for the archive run operation typically these are written to a http.Request
+/*UnarchiveRunParams contains all the parameters to send to the API endpoint
+for the unarchive run operation typically these are written to a http.Request
 */
-type ArchiveRunParams struct {
+type UnarchiveRunParams struct {
 
 	/*ID*/
 	ID string
@@ -84,52 +84,52 @@ type ArchiveRunParams struct {
 	HTTPClient *http.Client
 }
 
-// WithTimeout adds the timeout to the archive run params
-func (o *ArchiveRunParams) WithTimeout(timeout time.Duration) *ArchiveRunParams {
+// WithTimeout adds the timeout to the unarchive run params
+func (o *UnarchiveRunParams) WithTimeout(timeout time.Duration) *UnarchiveRunParams {
 	o.SetTimeout(timeout)
 	return o
 }
 
-// SetTimeout adds the timeout to the archive run params
-func (o *ArchiveRunParams) SetTimeout(timeout time.Duration) {
+// SetTimeout adds the timeout to the unarchive run params
+func (o *UnarchiveRunParams) SetTimeout(timeout time.Duration) {
 	o.timeout = timeout
 }
 
-// WithContext adds the context to the archive run params
-func (o *ArchiveRunParams) WithContext(ctx context.Context) *ArchiveRunParams {
+// WithContext adds the context to the unarchive run params
+func (o *UnarchiveRunParams) WithContext(ctx context.Context) *UnarchiveRunParams {
 	o.SetContext(ctx)
 	return o
 }
 
-// SetContext adds the context to the archive run params
-func (o *ArchiveRunParams) SetContext(ctx context.Context) {
+// SetContext adds the context to the unarchive run params
+func (o *UnarchiveRunParams) SetContext(ctx context.Context) {
 	o.Context = ctx
 }
 
-// WithHTTPClient adds the HTTPClient to the archive run params
-func (o *ArchiveRunParams) WithHTTPClient(client *http.Client) *ArchiveRunParams {
+// WithHTTPClient adds the HTTPClient to the unarchive run params
+func (o *UnarchiveRunParams) WithHTTPClient(client *http.Client) *UnarchiveRunParams {
 	o.SetHTTPClient(client)
 	return o
 }
 
-// SetHTTPClient adds the HTTPClient to the archive run params
-func (o *ArchiveRunParams) SetHTTPClient(client *http.Client) {
+// SetHTTPClient adds the HTTPClient to the unarchive run params
+func (o *UnarchiveRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithID adds the id to the archive run params
-func (o *ArchiveRunParams) WithID(id string) *ArchiveRunParams {
+// WithID adds the id to the unarchive run params
+func (o *UnarchiveRunParams) WithID(id string) *UnarchiveRunParams {
 	o.SetID(id)
 	return o
 }
 
-// SetID adds the id to the archive run params
-func (o *ArchiveRunParams) SetID(id string) {
+// SetID adds the id to the unarchive run params
+func (o *UnarchiveRunParams) SetID(id string) {
 	o.ID = id
 }
 
 // WriteToRequest writes these params to a swagger request
-func (o *ArchiveRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
+func (o *UnarchiveRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
 	if err := r.SetTimeout(o.timeout); err != nil {
 		return err

@@ -234,6 +234,10 @@ func (r *ResourceManager) ArchiveRun(runId string) error {
 	return r.runStore.ArchiveRun(runId)
 }
 
+func (r *ResourceManager) UnarchiveRun(runId string) error {
+	return r.runStore.UnarchiveRun(runId)
+}
+
 func (r *ResourceManager) DeleteRun(runID string) error {
 	runDetail, err := r.checkRunExist(runID)
 	if err != nil {

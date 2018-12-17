@@ -85,6 +85,12 @@ service RunService {
     };
   }
 
+  rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}"
+    };
+  }
+
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/runs/{id}"
@@ -109,15 +115,15 @@ service RunService {
   }
 }
 
-message CreateRunRequest{
+message CreateRunRequest {
   Run run = 1;
 }
 
-message GetRunRequest{
+message GetRunRequest {
   string run_id = 1;
 }
 
-message ListRunsRequest{
+message ListRunsRequest {
   string page_token = 1;
   int32 page_size = 2;
   // Can be format of "field_name", "field_name asc" or "field_name des"
@@ -138,6 +144,10 @@ message ListRunsResponse {
 }
 
 message ArchiveRunRequest {
+  string id = 1;
+}
+
+message UnarchiveRunRequest {
   string id = 1;
 }
 
