@@ -61,7 +61,7 @@ TEST_DIR=backend/test
 cd "${BASE_DIR}/${TEST_DIR}"
 
 echo "Run integration test..."
-TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} 2>&1`
+TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true 2>&1`
 TEST_EXIT_CODE=$?
 
 # Log the test result
