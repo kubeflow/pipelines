@@ -369,6 +369,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			UUID:             runId,
 			DisplayName:      workflow.Name,
 			Name:             workflow.Name,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),

@@ -169,15 +169,29 @@ func (s *RunStore) selectRunDetails() sq.SelectBuilder {
 func (s *RunStore) scanRows(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
-		var uuid, displayName, name, namespace, description, pipelineId, pipelineSpecManifest, workflowSpecManifest,
-			parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
+		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineSpecManifest,
+			workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
-			&uuid, &displayName, &name, &namespace, &description, &createdAtInSec, &scheduledAtInSec,
-			&conditions, &pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
-			&pipelineRuntimeManifest, &workflowRuntimeManifest,
-			&metricsInString, &resourceReferencesInString)
+			&uuid,
+			&displayName,
+			&name,
+			&storageState,
+			&namespace,
+			&description,
+			&createdAtInSec,
+			&scheduledAtInSec,
+			&conditions,
+			&pipelineId,
+			&pipelineSpecManifest,
+			&workflowSpecManifest,
+			&parameters,
+			&pipelineRuntimeManifest,
+			&workflowRuntimeManifest,
+			&metricsInString,
+			&resourceReferencesInString,
+		)
 		if err != nil {
 			glog.Errorf("Failed to scan row: %v", err)
 			return runs, nil
@@ -198,6 +212,7 @@ func (s *RunStore) scanRows(rows *sql.Rows) ([]*model.RunDetail, error) {
 			UUID:               uuid,
 			DisplayName:        displayName,
 			Name:               name,
+			StorageState:       storageState,
 			Namespace:          namespace,
 			Description:        description,
 			CreatedAtInSec:     createdAtInSec,
@@ -248,6 +263,7 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 			"UUID":                    r.UUID,
 			"DisplayName":             r.DisplayName,
 			"Name":                    r.Name,
+			"StorageState":            r.StorageState,
 			"Namespace":               r.Namespace,
 			"Description":             r.Description,
 			"CreatedAtInSec":          r.CreatedAtInSec,

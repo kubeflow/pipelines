@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -38,6 +39,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -58,6 +60,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "2",
 			Name:             "run2",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -80,6 +83,7 @@ func initializeRunStore() (*DB, *RunStore) {
 			Name:             "run3",
 			Namespace:        "n3",
 			CreatedAtInSec:   3,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			ScheduledAtInSec: 3,
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
@@ -111,6 +115,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -127,6 +132,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -166,6 +172,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -182,6 +189,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -221,6 +229,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -236,6 +245,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -278,6 +288,7 @@ func TestGetRun(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -325,6 +336,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -345,6 +357,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 		Run: model.Run{
 			UUID:             "1",
 			ScheduledAtInSec: 2, // This is will be ignored
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1_done"},
@@ -359,6 +372,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -562,6 +576,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -578,6 +593,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -609,9 +625,9 @@ func TestArchiveRun(t *testing.T) {
 	// Archive run
 	err = runStore.ArchiveRun("1")
 	assert.Nil(t, err)
-	_, err = runStore.GetRun("1")
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Run 1 not found")
+	run, getRunErr := runStore.GetRun("1")
+	assert.Nil(t, getRunErr)
+	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
 
 	// Check resource reference wasn't deleted
 	_, err = resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
