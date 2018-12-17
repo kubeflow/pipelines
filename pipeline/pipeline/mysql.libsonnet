@@ -1,9 +1,9 @@
 {
-  parts(namespace):: {
+  parts(namespace, mysqlImage):: {
     all:: [
       $.parts(namespace).pvc,
       $.parts(namespace).service,
-      $.parts(namespace).deploy,
+      $.parts(namespace).deploy(mysqlImage),
     ],
 
     pvc: {
@@ -47,7 +47,7 @@
       },
     },  //service
 
-    deploy: {
+    deploy(image): {
       apiVersion: "apps/v1beta2",
       kind: "Deployment",
       metadata: {
@@ -72,7 +72,9 @@
           spec: {
             containers: [
               {
-                image: "mysql:5.6",
+                // Before bumping the mysql version, make sure version is also available for
+                // Google Cloud SQL. As of Dec-2018, only mysql 5.6 or 5.7 is supported in Cloud SQL.
+                image: image,
                 name: "mysql",
                 env: [
                   {
