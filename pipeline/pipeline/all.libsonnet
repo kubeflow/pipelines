@@ -17,6 +17,8 @@
     local scheduledWorkflowImage = params.scheduledWorkflowImage,
     local persistenceAgentImage = params.persistenceAgentImage,
     local uiImage = params.uiImage,
+    local mysqlImage = params.mysqlImage,
+    local minioImage = params.minioImage,
     local deployArgo = params.deployArgo,
     local reportUsage = params.reportUsage,
     local usageId = params.usageId,
@@ -26,8 +28,8 @@
     argo:: if (deployArgo == true) || (deployArgo == "true") then
       argo.parts(namespace).all
     else [],
-    all:: minio.parts(namespace).all +
-          mysql.parts(namespace).all +
+    all:: minio.parts(namespace, minioImage).all +
+          mysql.parts(namespace, mysqlImage).all +
           pipeline_apiserver.all(namespace, apiImage) +
           pipeline_scheduledworkflow.all(namespace, scheduledWorkflowImage) +
           pipeline_persistenceagent.all(namespace, persistenceAgentImage) +
