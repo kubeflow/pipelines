@@ -26,7 +26,7 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2 #TODO-release: update the release tag for the next release
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.4 #TODO-release: update the release tag for the next release
             command:
               - python
               - -m
@@ -38,7 +38,7 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2 #TODO-release: update the release tag for the next release
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.4 #TODO-release: update the release tag for the next release
             command:
               - python
               - -m
@@ -50,7 +50,7 @@ spec:
             spec:
               containers:
               - name: tensorflow
-                image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2 #TODO-release: update the release tag for the next release
+                image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.4 #TODO-release: update the release tag for the next release
                 command:
                   - python
                   - -m

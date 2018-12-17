@@ -21,7 +21,7 @@ import datetime
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--train', train_data,
             '--eval', evaluation_data,
@@ -32,13 +32,13 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
             '--output', transform_output,
         ],
         file_outputs = {'transformed': '/output.txt'}
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
 
 def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--transformed-data-dir', transformed_data_dir,
             '--schema', schema,
@@ -50,12 +50,12 @@ def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', l
             '--job-dir', training_output,
         ],
         file_outputs = {'train': '/output.txt'}
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--data', evaluation_data,
             '--schema', schema,
@@ -66,17 +66,17 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
             '--output', prediction_output,
         ],
         file_outputs = {'prediction': '/output.txt'}
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
 def confusion_matrix_op(predictions, output, step_name='confusionmatrix'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
           '--predictions', predictions,
           '--output', output,
         ]
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
 @dsl.pipeline(
   name='Pipeline TFJob',
@@ -97,10 +97,10 @@ def kubeflow_training(output, project,
   # TODO: use the argo job name as the workflow
   workflow = '{{workflow.name}}'
 
-  preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, '', '%s/%s/transformed' % (output, workflow))
-  training = kubeflow_tf_training_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, '', '%s/%s/train' % (output, workflow))
-  prediction = dataflow_tf_predict_op(evaluation, schema, target,  training.output, predict_mode, project, '%s/%s/predict' % (output, workflow))
-  confusion_matrix = confusion_matrix_op(prediction.output, '%s/%s/confusionmatrix' % (output, workflow))
+  preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, '', '%s/%s/transformed' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
+  training = kubeflow_tf_training_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, '', '%s/%s/train' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
+  prediction = dataflow_tf_predict_op(evaluation, schema, target,  training.output, predict_mode, project, '%s/%s/predict' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
+  confusion_matrix = confusion_matrix_op(prediction.output, '%s/%s/confusionmatrix' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 
 if __name__ == '__main__':

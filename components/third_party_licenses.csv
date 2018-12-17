@@ -177,3 +177,6 @@ Pillow,https://raw.githubusercontent.com/python-pillow/Pillow/master/LICENSE
 sklearn,https://raw.githubusercontent.com/scikit-learn/scikit-learn/master/COPYING,BSD
 tensorflow-gpu,https://raw.githubusercontent.com/tensorflow/tensorflow/master/LICENSE,Apache 2.0
 webencodings,https://raw.githubusercontent.com/gsnedders/python-webencodings/master/LICENSE,BSD
+google-api-core,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+google-resumable-media,https://raw.githubusercontent.com/googleapis/google-resumable-media-python/master/LICENSE,Apache 2.0
+
