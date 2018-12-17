@@ -49,7 +49,8 @@ def main():
   test_name = args.testname + ' Sample Test'
 
   ###### Initialization ######
-  client = Client(namespace=args.namespace)
+  host = 'ml-pipeline.%s.svc.cluster.local:8888' % args.namespace
+  client = Client(host=host)
 
   ###### Get experiments ######
   experiment_id = client.get_experiment(experiment_name=args.experiment).id
