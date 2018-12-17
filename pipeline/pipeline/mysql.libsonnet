@@ -1,11 +1,10 @@
 {
-  parts(namespace, mysqlImage):: {
-    all:: [
-      $.parts(namespace).pvc,
-      $.parts(namespace).service,
-      $.parts(namespace).deploy(mysqlImage),
-    ],
-
+  all(namespace, mysqlImage):: [
+    $.parts(namespace).pvc,
+    $.parts(namespace).service,
+    $.parts(namespace).deploy(mysqlImage),
+  ],
+  parts(namespace):: {
     pvc: {
       apiVersion: "v1",
       kind: "PersistentVolumeClaim",
@@ -73,7 +72,7 @@
             containers: [
               {
                 // Before bumping the mysql version, make sure version is also available for
-                // Google Cloud SQL. As of Dec-2018, only mysql 5.6 or 5.7 is supported in Cloud SQL.
+                // Google Cloud SQL. As of Dec 2018, only mysql 5.6 or 5.7 is supported in Cloud SQL.
                 image: image,
                 name: "mysql",
                 env: [

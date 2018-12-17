@@ -1,12 +1,12 @@
 {
-  parts(namespace, minioImage):: {
-    all:: [
-      $.parts(namespace).pvc,
-      $.parts(namespace).service,
-      $.parts(namespace).deploy(minioImage),
-      $.parts(namespace).secret,
-    ],
+  all(namespace, minioImage):: [
+    $.parts(namespace).pvc,
+    $.parts(namespace).service,
+    $.parts(namespace).deploy(minioImage),
+    $.parts(namespace).secret,
+  ],
 
+  parts(namespace):: {
     pvc: {
       apiVersion: "v1",
       kind: "PersistentVolumeClaim",
