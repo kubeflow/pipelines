@@ -185,6 +185,8 @@ func deploymentFrom(view *viewerV1alpha1.Viewer) (*appsv1.Deployment, error) {
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"deployment": name,
+					"app":        "viewer",
+					"viewer":     view.Name,
 				},
 			},
 			Template: view.Spec.PodTemplateSpec,
@@ -196,6 +198,8 @@ func deploymentFrom(view *viewerV1alpha1.Viewer) (*appsv1.Deployment, error) {
 		dpl.Spec.Template.ObjectMeta.Labels = make(map[string]string)
 	}
 	dpl.Spec.Template.ObjectMeta.Labels["deployment"] = name
+	dpl.Spec.Template.ObjectMeta.Labels["app"] = "viewer"
+	dpl.Spec.Template.ObjectMeta.Labels["viewer"] = view.Name
 
 	switch view.Spec.Type {
 	case viewerV1alpha1.ViewerTypeTensorboard:
@@ -226,10 +230,16 @@ func serviceFrom(v *viewerV1alpha1.Viewer, deploymentName string) *corev1.Servic
 			Name:        name,
 			Namespace:   v.Namespace,
 			Annotations: map[string]string{"getambassador.io/config": mapping},
+			Labels: map[string]string{
+				"app":    "viewer",
+				"viewer": v.Name,
+			},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
 				"deployment": deploymentName,
+				"app":        "viewer",
+				"viewer":     v.Name,
 			},
 			Ports: []corev1.ServicePort{
 				corev1.ServicePort{

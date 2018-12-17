@@ -1,6 +1,15 @@
-## Scheduled Workflow CRD/controller
+## CRD controller
+This directory contains code for custom Kubernetes CRDs and controllers used by
+the Kubeflow pipelines system. Currently there are 2 such systems:
 
-### How to generate the API client code from the API specification?
+* ScheduledWorkflow
+* Viewer
+
+The following are guidelines on developing and running these controllers.
+
+### Prerequisites
+
+First, we need to generate the API client code from the API specification.
 
 Get the dependencies:
 
@@ -15,7 +24,7 @@ Generate the API client code from the API specification:
 ./hack/update-codegen.sh
 ```
 
-### How to run the ScheduledWorkflow controller from the command line?
+### Running ScheduledWorkflow controller from the command line.
 
 The following assumes that your Kubernetes configuration file is located at '$HOME/.kube/config'.
 
@@ -149,4 +158,60 @@ Status:
       UID:           b0b63a82-692a-11e8-9fd5-42010a8a0021
       [...]
 ```
-###
+
+### Running Viewer controller from the command line.
+
+The following assumes that your Kubernetes configuration file is located at '$HOME/.kube/config'.
+
+To create the resource for the CRD, execute:
+
+```
+$ kubectl create -f ./install/manifests/viewer-crd.yaml
+customresourcedefinition.apiextensions.k8s.io/viewers.kubeflow.org created
+```
+
+To run the controller locally, execute:
+
+```
+go run ./controller/viewer/ -kubeconfig=$HOME/.kube/config -alsologtostderr=true
+```
+
+Now, let's create a simple Tensorboard viewer using the supplied sample:
+```
+$ kubectl create -f samples/viewer/mnist.yaml
+viewer.kubeflow.org/viewer-75tkf created
+
+$ kube getctl -n kubeflow vi
+NAME           AGE
+viewer-75tkf   108s
+```
+
+Verify that the viewer created a deployment and service to house the Tensorboard instance:
+```
+$ kube -n kubeflow get deployments -l app=viewer
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+viewer-75tkf-deployment   1/1     1            1           3m31s
+
+$ kubectl -n kubeflow get services -l app=viewer
+NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+viewer-75tkf-service   ClusterIP   10.35.249.82   <none>        80/TCP    3m45s
+```
+
+The Tensorboard instance should be accessible via Ambassador. Set up port
+forwarding to the Ambassador instance in your cluster:
+```
+$ kube port-forward -n kubeflow \
+  $(kube get pods -n kubeflow --selector service=ambassador -o jsonpath='{.items[0].metadata.name}')  \
+  8000:80
+Forwarding from 127.0.0.1:8000 -> 80
+Forwarding from [::1]:8000 -> 80
+```
+
+Note: The above assumes ambassador is installed under namespace `kubeflow`.
+
+The Tensorboard instance should now be accessible at
+http://localhost:8000/tensorboard/viewer-75tkf/. Note that the last path
+corresponds to the new viewer name, and the URL must end with the trailing
+slash.
+
+

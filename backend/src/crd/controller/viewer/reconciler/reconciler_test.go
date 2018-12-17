@@ -161,11 +161,15 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"deployment": "viewer-123-deployment",
+					"app":        "viewer",
+					"viewer":     "viewer-123",
 				}},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"deployment": "viewer-123-deployment",
+						"app":        "viewer",
+						"viewer":     "viewer-123",
 					}},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
@@ -231,7 +235,10 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 				Name:               "viewer-123",
 				Controller:         boolRef(true),
 				BlockOwnerDeletion: boolRef(true)}},
-		},
+			Labels: map[string]string{
+				"app":    "viewer",
+				"viewer": "viewer-123",
+			}},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{corev1.ServicePort{
 				Protocol:   corev1.ProtocolTCP,
@@ -240,6 +247,8 @@ func TestReconcile_EachViewerCreatesAService(t *testing.T) {
 			}},
 			Selector: map[string]string{
 				"deployment": "viewer-123-deployment",
+				"app":        "viewer",
+				"viewer":     "viewer-123",
 			},
 		}}}
 
