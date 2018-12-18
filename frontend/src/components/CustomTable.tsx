@@ -21,15 +21,15 @@ import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import IconButton from '@material-ui/core/IconButton';
+import Input from '../atoms/Input';
 import MenuItem from '@material-ui/core/MenuItem';
 import Radio from '@material-ui/core/Radio';
 import Separator from '../atoms/Separator';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
-import TextField from '@material-ui/core/TextField';
+import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import WarningIcon from '@material-ui/icons/WarningRounded';
 import { ListRequest } from '../lib/Apis';
-import { TextFieldProps } from '@material-ui/core/TextField';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -106,6 +106,12 @@ export const css = stylesheet({
     boxSizing: 'border-box',
     height: '40px !important',
   },
+  filterBox: {
+    margin: '16px 0'
+  },
+  filterLabel: {
+    transform: 'translate(14px, 26px) scale(1)',
+  },
   footer: {
     borderBottom: '1px solid ' + color.divider,
     fontFamily: fonts.secondary,
@@ -118,7 +124,6 @@ export const css = stylesheet({
     display: 'flex',
     flex: '0 0 40px',
     lineHeight: '40px', // must declare px
-    marginTop: 20,
   },
   icon: {
     color: color.alert,
@@ -158,6 +163,7 @@ interface CustomTableProps {
   disableSelection?: boolean;
   disableSorting?: boolean;
   emptyMessage?: string;
+  filterString?: string;
   getExpandComponent?: (index: number) => React.ReactNode;
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
@@ -171,6 +177,7 @@ interface CustomTableProps {
 
 interface CustomTableState {
   currentPage: number;
+  filterBy: string;
   isBusy: boolean;
   maxPageIndex: number;
   sortOrder: 'asc' | 'desc';
@@ -187,6 +194,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
     this.state = {
       currentPage: 0,
+      filterBy: '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
@@ -244,13 +252,20 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public render(): JSX.Element {
-    const { pageSize, sortBy, sortOrder } = this.state;
+    const { filterBy, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => total += (c.flex || 1), 0);
     const widths = this.props.columns.map(c => (c.flex || 1) / totalFlex * 100);
 
     return (
       <div className={commonCss.pageOverflowHidden}>
+
+        {/* Filter/Search bar */}
+        <div>
+          <Input label={this.props.filterString || 'Filter'} height={48} maxWidth={'100%'}
+            className={css.filterBox} InputLabelProps={{ classes: { root: css.filterLabel }}}
+            onChange={this.handleChange('filterBy')} value={filterBy} />
+        </div>
 
         {/* Header */}
         <div className={classes(
@@ -380,6 +395,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   public async reload(loadRequest?: ListRequest): Promise<string> {
     // Override the current state with incoming request
     const request: ListRequest = Object.assign({
+      filterBy: this.state.filterBy,
       orderAscending: this.state.sortOrder === 'asc',
       pageSize: this.state.pageSize,
       pageToken: this.state.tokenList[this.state.currentPage],
@@ -389,6 +405,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     let result = '';
     try {
       this.setStateSafe({
+        filterBy: request.filterBy,
         isBusy: true,
         pageSize: request.pageSize!,
         sortBy: request.sortBy!,
@@ -404,6 +421,25 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       this.setStateSafe({ isBusy: false });
     }
     return result;
+  }
+
+  private handleChange = (name: string) => (event: any) => {
+    // tslint:disable-next-line:no-console
+    console.log('change: ', name);
+    const value = (event.target as TextFieldProps).value;
+    this.setStateSafe({ [name]: value } as any, this._requestFilter.bind(this)(value));
+  }
+
+  private _requestFilter(filterBy?: string): void {
+    // tslint:disable-next-line:no-console
+    console.log('filter: ', filterBy);
+    if (filterBy) {
+      this.setStateSafe({ filterBy }, async () => {
+        this._resetToFirstPage(
+          await this.reload({ filterBy })
+        );
+      });
+    }
   }
 
   private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void): void {
