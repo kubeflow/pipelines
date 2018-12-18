@@ -21,7 +21,7 @@ import datetime
 def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:dev', #TODO-release: update the release tag for the next release
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:0.1.4', #TODO-release: update the release tag for the next release
         arguments = [
             '--csv-data-for-inference', inference_data,
             '--csv-data-to-validate', validation_data,
@@ -108,7 +108,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
 def confusion_matrix_op(predictions: 'GcsUri', output: 'GcsUri', step_name='confusion_matrix'):
   return dsl.ContainerOp(
       name=step_name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:dev', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.1.4', #TODO-release: update the release tag for the next release
       arguments=[
         '--output', '%s/{{workflow.name}}/confusionmatrix' % output,
         '--predictions', predictions,
@@ -119,7 +119,7 @@ def confusion_matrix_op(predictions: 'GcsUri', output: 'GcsUri', step_name='conf
 def roc_op(predictions: 'GcsUri', output: 'GcsUri', step_name='roc'):
   return dsl.ContainerOp(
       name=step_name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:dev', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:0.1.4', #TODO-release: update the release tag for the next release
       arguments=[
         '--output', '%s/{{workflow.name}}/roc' % output,
         '--predictions', predictions,
