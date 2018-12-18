@@ -39,35 +39,6 @@ type Client struct {
 }
 
 /*
-CreateRun create run API
-*/
-func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthInfoWriter) (*CreateRunOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCreateRunParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateRun",
-		Method:             "POST",
-		PathPattern:        "/apis/v1beta1/runs",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &CreateRunReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CreateRunOK), nil
-
-}
-
-/*
 DeleteRun delete run API
 */
 func (a *Client) DeleteRun(params *DeleteRunParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteRunOK, error) {
@@ -136,7 +107,7 @@ func (a *Client) ListRuns(params *ListRunsParams, authInfo runtime.ClientAuthInf
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListRuns",
-		Method:             "GET",
+		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},

@@ -39,35 +39,6 @@ type Client struct {
 }
 
 /*
-CreateExperiment create experiment API
-*/
-func (a *Client) CreateExperiment(params *CreateExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*CreateExperimentOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCreateExperimentParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateExperiment",
-		Method:             "POST",
-		PathPattern:        "/apis/v1beta1/experiments",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &CreateExperimentReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CreateExperimentOK), nil
-
-}
-
-/*
 DeleteExperiment delete experiment API
 */
 func (a *Client) DeleteExperiment(params *DeleteExperimentParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteExperimentOK, error) {
@@ -136,7 +107,7 @@ func (a *Client) ListExperiment(params *ListExperimentParams, authInfo runtime.C
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListExperiment",
-		Method:             "GET",
+		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/experiments",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
