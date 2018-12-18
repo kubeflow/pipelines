@@ -30,24 +30,24 @@ import (
 	pipeline_model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 )
 
-// ListPipelinesReader is a Reader for the ListPipelines structure.
-type ListPipelinesReader struct {
+// CreatePipelineReader is a Reader for the CreatePipeline structure.
+type CreatePipelineReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *ListPipelinesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *CreatePipelineReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewListPipelinesOK()
+		result := NewCreatePipelineOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
 
 	default:
-		result := NewListPipelinesDefault(response.Code())
+		result := NewCreatePipelineDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -58,26 +58,26 @@ func (o *ListPipelinesReader) ReadResponse(response runtime.ClientResponse, cons
 	}
 }
 
-// NewListPipelinesOK creates a ListPipelinesOK with default headers values
-func NewListPipelinesOK() *ListPipelinesOK {
-	return &ListPipelinesOK{}
+// NewCreatePipelineOK creates a CreatePipelineOK with default headers values
+func NewCreatePipelineOK() *CreatePipelineOK {
+	return &CreatePipelineOK{}
 }
 
-/*ListPipelinesOK handles this case with default header values.
+/*CreatePipelineOK handles this case with default header values.
 
 A successful response.
 */
-type ListPipelinesOK struct {
-	Payload *pipeline_model.APIListPipelinesResponse
+type CreatePipelineOK struct {
+	Payload *pipeline_model.APIPipeline
 }
 
-func (o *ListPipelinesOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/pipelines][%d] listPipelinesOK  %+v", 200, o.Payload)
+func (o *CreatePipelineOK) Error() string {
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines][%d] createPipelineOK  %+v", 200, o.Payload)
 }
 
-func (o *ListPipelinesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CreatePipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.APIListPipelinesResponse)
+	o.Payload = new(pipeline_model.APIPipeline)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,33 +87,33 @@ func (o *ListPipelinesOK) readResponse(response runtime.ClientResponse, consumer
 	return nil
 }
 
-// NewListPipelinesDefault creates a ListPipelinesDefault with default headers values
-func NewListPipelinesDefault(code int) *ListPipelinesDefault {
-	return &ListPipelinesDefault{
+// NewCreatePipelineDefault creates a CreatePipelineDefault with default headers values
+func NewCreatePipelineDefault(code int) *CreatePipelineDefault {
+	return &CreatePipelineDefault{
 		_statusCode: code,
 	}
 }
 
-/*ListPipelinesDefault handles this case with default header values.
+/*CreatePipelineDefault handles this case with default header values.
 
-ListPipelinesDefault list pipelines default
+CreatePipelineDefault create pipeline default
 */
-type ListPipelinesDefault struct {
+type CreatePipelineDefault struct {
 	_statusCode int
 
 	Payload *pipeline_model.APIStatus
 }
 
-// Code gets the status code for the list pipelines default response
-func (o *ListPipelinesDefault) Code() int {
+// Code gets the status code for the create pipeline default response
+func (o *CreatePipelineDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *ListPipelinesDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/pipelines][%d] ListPipelines default  %+v", o._statusCode, o.Payload)
+func (o *CreatePipelineDefault) Error() string {
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines][%d] CreatePipeline default  %+v", o._statusCode, o.Payload)
 }
 
-func (o *ListPipelinesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CreatePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(pipeline_model.APIStatus)
 
