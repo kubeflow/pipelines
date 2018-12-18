@@ -264,7 +264,7 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 		r.StorageState = api.Run_STORAGESTATE_AVAILABLE.String()
 	} else if r.StorageState != api.Run_STORAGESTATE_AVAILABLE.String() &&
 		r.StorageState != api.Run_STORAGESTATE_ARCHIVED.String() {
-		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %s.", r.StorageState)
+		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", r.StorageState)
 	}
 
 	runSql, runArgs, err := sq.

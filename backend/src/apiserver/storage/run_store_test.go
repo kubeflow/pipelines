@@ -473,19 +473,12 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 
 	runDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:             "1",
+			UUID:             "1000",
 			Name:             "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			Conditions:       "running",
-			ResourceReferences: []*model.ResourceReference{
-				{
-					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
-				},
-			},
 		},
 		PipelineRuntime: model.PipelineRuntime{
 			WorkflowRuntimeManifest: "workflow1",
