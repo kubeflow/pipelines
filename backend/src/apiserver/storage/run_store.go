@@ -262,7 +262,11 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	if r.StorageState == "" {
 		r.StorageState = api.Run_STORAGESTATE_AVAILABLE.String()
+	} else if r.StorageState != api.Run_STORAGESTATE_AVAILABLE.String() &&
+		r.StorageState != api.Run_STORAGESTATE_ARCHIVED.String() {
+		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %s.", r.StorageState)
 	}
+
 	runSql, runArgs, err := sq.
 		Insert("run_details").
 		SetMap(sq.Eq{

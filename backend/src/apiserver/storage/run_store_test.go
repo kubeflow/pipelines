@@ -267,9 +267,8 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 
 func TestListRunsError(t *testing.T) {
 	db, runStore := initializeRunStore()
-	defer db.Close()
-
 	db.Close()
+
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	_, _, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
@@ -317,7 +316,6 @@ func TestGetRun_NotFoundError(t *testing.T) {
 
 func TestGetRun_InternalError(t *testing.T) {
 	db, runStore := initializeRunStore()
-	defer db.Close()
 	db.Close()
 
 	_, err := runStore.GetRun("1")
@@ -456,7 +454,6 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 
 func TestCreateOrUpdateRun_UpdateNotFound(t *testing.T) {
 	db, runStore := initializeRunStore()
-	defer db.Close()
 	db.Close()
 
 	runDetail := &model.RunDetail{
@@ -468,6 +465,67 @@ func TestCreateOrUpdateRun_UpdateNotFound(t *testing.T) {
 	err := runStore.CreateOrUpdateRun(runDetail)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Error while creating or updating run")
+}
+
+func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	runDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "1",
+			Name:             "run1",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+					Relationship: common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+
+	run, err := runStore.CreateRun(runDetail)
+	assert.Nil(t, err)
+	assert.Equal(t, run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+}
+
+func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	runDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "1",
+			Name:             "run1",
+			StorageState:     "bad value",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+					Relationship: common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+
+	_, err := runStore.CreateRun(runDetail)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Invalid value for StorageState field")
 }
 
 func TestUpdateRun_RunNotExist(t *testing.T) {
@@ -744,8 +802,6 @@ func TestDeleteRun(t *testing.T) {
 
 func TestDeleteRun_InternalError(t *testing.T) {
 	db, runStore := initializeRunStore()
-	defer db.Close()
-
 	db.Close()
 
 	err := runStore.DeleteRun("1")
