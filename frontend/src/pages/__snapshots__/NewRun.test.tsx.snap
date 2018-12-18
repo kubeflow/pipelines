@@ -2298,7 +2298,7 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
       className="flex"
     >
       <BusyButton
-        busy={true}
+        busy={false}
         className="buttonAction"
         disabled={false}
         id="createNewRunBtn"
@@ -2745,7 +2745,7 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
       className="flex"
     >
       <BusyButton
-        busy={true}
+        busy={false}
         className="buttonAction"
         disabled={false}
         id="createNewRunBtn"
