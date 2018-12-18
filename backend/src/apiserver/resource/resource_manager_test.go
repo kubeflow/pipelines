@@ -247,6 +247,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			UUID:           "workflow1",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 3,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
@@ -284,6 +285,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			UUID:           "workflow1",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "",
 			PipelineSpec: model.PipelineSpec{
@@ -691,6 +693,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		UUID:           "workflow1",
 		DisplayName:    "run1",
 		Name:           "workflow-name",
+		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 		CreatedAtInSec: 2,
 		Conditions:     "Running",
 		PipelineSpec: model.PipelineSpec{

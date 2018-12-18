@@ -444,7 +444,7 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 					Relationship:  common.Owner,
 				},
 			},
-			StorageState: "",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE.String(),
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow_runtime_spec"},
 	}

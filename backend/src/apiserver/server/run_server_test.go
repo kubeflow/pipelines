@@ -32,10 +32,11 @@ func TestCreateRun(t *testing.T) {
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
-			Id:          "workflow1",
-			Name:        "123",
-			CreatedAt:   &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt: &timestamp.Timestamp{},
+			Id:           "workflow1",
+			Name:         "123",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			ScheduledAt:  &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
