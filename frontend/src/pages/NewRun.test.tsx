@@ -1021,8 +1021,6 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
-      await TestUtils.flushPromises();
 
       expect(tree.state('isBeingCreated')).toBe(true);
     });
