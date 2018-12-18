@@ -50,6 +50,8 @@ def main(argv=None):
   names = [x['name'] for x in schema]
 
   trueclass = next((x for x in names if x.lower() == 'true'), None)
+  if trueclass is None:
+    raise ValueError('trueclass is not provided, and there is no "true" column.')
 
   dfs = []
   files = file_io.get_matching_files(args.predictions)
