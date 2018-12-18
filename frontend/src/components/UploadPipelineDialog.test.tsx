@@ -15,69 +15,153 @@
  */
 
 import * as React from 'react';
-import { shallow } from 'enzyme';
-import UploadPipelineDialog from './UploadPipelineDialog';
+import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
+import UploadPipelineDialog, { ImportMethod } from './UploadPipelineDialog';
+import TestUtils from '../TestUtils';
 
 describe('UploadPipelineDialog', () => {
+  let tree: ReactWrapper | ShallowWrapper;
+
+  afterEach(() => {
+    tree.unmount();
+  });
+
   it('renders closed', () => {
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders open', () => {
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders an active dropzone', () => {
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
     tree.setState({ dropzoneActive: true });
     expect(tree).toMatchSnapshot();
   });
 
   it('renders with a selected file to upload', () => {
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
     tree.setState({ fileToUpload: true });
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders alternate UI for uploading via URL', () => {
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    tree.setState({ importMethod: ImportMethod.URL });
     expect(tree).toMatchSnapshot();
   });
 
   it('calls close callback with null and empty string when canceled', () => {
     const spy = jest.fn();
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     tree.find('#cancelUploadBtn').simulate('click');
-    expect(spy).toHaveBeenCalledWith('', null, '');
+    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, '');
   });
 
   it('calls close callback with null and empty string when dialog is closed', () => {
     const spy = jest.fn();
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     tree.find('WithStyles(Dialog)').simulate('close');
-    expect(spy).toHaveBeenCalledWith('', null, '');
+    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, '');
   });
 
-  it('calls close callback with file name, file object, and descriptio when confirmed', () => {
+  it('calls close callback with file name, file object, and description when confirmed', () => {
     const spy = jest.fn();
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     (tree.instance() as any)._dropzoneRef = { current: { open: () => null } };
     (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({ target: { value: 'test name' } });
     tree.find('#confirmUploadBtn').simulate('click');
-    expect(spy).toHaveBeenLastCalledWith('test name', null, '');
+    expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, '');
+  });
+
+  it('sets the import method based on which radio button is toggled', () => {
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    // Import method is LOCAL by default
+    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
+
+    // Click 'Import by URL'
+    tree.find('#uploadFromUrlBtn').simulate('change');
+    expect(tree.state('importMethod')).toBe(ImportMethod.URL);
+
+    // Click back to default, 'Upload a file'
+    tree.find('#uploadLocalFileBtn').simulate('change');
+    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
+  });
+
+  it('resets all state if the dialog is closed and the callback returns true', async () => {
+    const spy = jest.fn(() => true);
+
+    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
+    tree.setState({
+      busy: true,
+      dropzoneActive: true,
+      file: {},
+      fileName: 'test file name',
+      fileUrl: 'https://some.url.com',
+      importMethod: ImportMethod.URL,
+      uploadPipelineDescription: 'test description',
+      uploadPipelineName: 'test pipeline name',
+    });
+
+    tree.find('#confirmUploadBtn').simulate('click');
+    await TestUtils.flushPromises();
+
+    expect(tree.state('busy')).toBe(false);
+    expect(tree.state('dropzoneActive')).toBe(false);
+    expect(tree.state('file')).toBeNull();
+    expect(tree.state('fileName')).toBe('');
+    expect(tree.state('fileUrl')).toBe('');
+    expect(tree.state('importMethod')).toBe(ImportMethod.LOCAL);
+    expect(tree.state('uploadPipelineDescription')).toBe('');
+    expect(tree.state('uploadPipelineName')).toBe('');
+  });
+
+  it('does not reset the state if the dialog is closed and the callback returns false', async () => {
+    const spy = jest.fn(() => false);
+
+    tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
+    tree.setState({
+      busy: true,
+      dropzoneActive: true,
+      file: {},
+      fileName: 'test file name',
+      fileUrl: 'https://some.url.com',
+      importMethod: ImportMethod.URL,
+      uploadPipelineDescription: 'test description',
+      uploadPipelineName: 'test pipeline name',
+    });
+
+    tree.find('#confirmUploadBtn').simulate('click');
+    await TestUtils.flushPromises();
+
+    expect(tree.state('dropzoneActive')).toBe(true);
+    expect(tree.state('file')).toEqual({});
+    expect(tree.state('fileName')).toBe('test file name');
+    expect(tree.state('fileUrl')).toBe('https://some.url.com');
+    expect(tree.state('importMethod')).toBe(ImportMethod.URL);
+    expect(tree.state('uploadPipelineDescription')).toBe('test description');
+    expect(tree.state('uploadPipelineName')).toBe('test pipeline name');
+    // 'busy' is set to false regardless upon the callback returning
+    expect(tree.state('busy')).toBe(false);
   });
 
   it('sets an active dropzone on drag', () => {
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
     tree.find('#dropZone').simulate('dragEnter');
     expect(tree.state()).toHaveProperty('dropzoneActive', true);
   });
 
   it('sets an inactive dropzone on drag leave', () => {
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
     tree.find('#dropZone').simulate('dragLeave');
     expect(tree.state()).toHaveProperty('dropzoneActive', false);
   });
 
   it('sets a file object on drop', () => {
-    const tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
     const file = { name: 'test upload file' };
     tree.find('#dropZone').simulate('drop', [file]);
     expect(tree.state()).toHaveProperty('dropzoneActive', false);
