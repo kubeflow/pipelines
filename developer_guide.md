@@ -38,28 +38,28 @@ $ cd ml-pipeline && ks delete default
 ### GKE
 To be able to use GKE, the Docker images need to be uploaded to a public Docker repository, such as [GCR](https://cloud.google.com/container-registry/)
 
-To build the API server image and upload it to GCR: 
+To build the API server image and upload it to GCR:
 ```bash
-# Run in the repository root directory 
-$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile ./backend
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/api-server:latest -f backend/Dockerfile .
 # Push to GCR
 $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/api-server:latest
 ```
 
-To build the scheduled workflow controller image and upload it to GCR: 
+To build the scheduled workflow controller image and upload it to GCR:
 ```bash
-# Run in the repository root directory 
-$ docker build -t gcr.io/<your-gcp-project>/scheduledworkflow:latest -f backend/Dockerfile.scheduledworkflow ./backend
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/scheduledworkflow:latest -f backend/Dockerfile.scheduledworkflow .
 # Push to GCR
 $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/scheduledworkflow:latest
 ```
 
-To build the persistence agent image and upload it to GCR: 
+To build the persistence agent image and upload it to GCR:
 ```bash
-# Run in the repository root directory 
-$ docker build -t gcr.io/<your-gcp-project>/persistenceagent:latest -f backend/Dockerfile.persistenceagent ./backend
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/persistenceagent:latest -f backend/Dockerfile.persistenceagent .
 # Push to GCR
 $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/persistenceagent:latest
@@ -68,7 +68,7 @@ $ docker push gcr.io/<your-gcp-project>/persistenceagent:latest
 ### Minikube
 Minikube can pick your local Docker image so you don't need to upload to remote repository.
 
-For example, to build API server image  
+For example, to build API server image
 ```bash
 $ docker build -t ml-pipeline-api-server backend/src
 ```
@@ -138,7 +138,7 @@ API server logs are located at /tmp directory of the pod. To SSH into the pod, r
 kubectl exec -it -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) -- /bin/bash
 ```
 
-**Q: How to check my cluster status if I am using Minikube?**  
+**Q: How to check my cluster status if I am using Minikube?**
 
 Minikube provides dashboard for deployment
 ```bash
