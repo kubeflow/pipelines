@@ -573,17 +573,22 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     this.setStateSafe({ isBeingCreated: true }, async () => {
+      // TODO: there was previously a bug here where the await wasn't being applied to the API
+      // calls, so a run creation could fail, and the success path would still be taken. We need
+      // tests for this and other similar situations.
       try {
-        await isRecurringRun
-          ? Apis.jobServiceApi.createJob(newRun)
-          : Apis.runServiceApi.createRun(newRun);
+        isRecurringRun
+          ? await Apis.jobServiceApi.createJob(newRun)
+          : await Apis.runServiceApi.createRun(newRun);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         this.showErrorDialog('Run creation failed', errorMessage);
         logger.error('Error creating Run:', err);
-        this.setStateSafe({ isBeingCreated: false });
         return;
+      } finally {
+        this.setStateSafe({ isBeingCreated: false });
       }
+
       if (this.state.experiment) {
         this.props.history.push(
           RoutePage.EXPERIMENT_DETAILS.replace(
