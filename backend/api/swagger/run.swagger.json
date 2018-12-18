@@ -16,7 +16,7 @@
   ],
   "paths": {
     "/apis/v1beta1/runs": {
-      "get": {
+      "post": {
         "operationId": "ListRuns",
         "responses": {
           "200": {
@@ -34,73 +34,11 @@
         },
         "parameters": [
           {
-            "name": "page_token",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "page_size",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "resource_reference_key.type",
-            "description": "The type of the resource that referred to.",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "enum": [
-              "UNKNOWN_RESOURCE_TYPE",
-              "EXPERIMENT",
-              "JOB"
-            ],
-            "default": "UNKNOWN_RESOURCE_TYPE"
-          },
-          {
-            "name": "resource_reference_key.id",
-            "description": "The ID of the resource that referred to.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      },
-      "post": {
-        "operationId": "CreateRun",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiRunDetail"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiRun"
+              "$ref": "#/definitions/apiListRunsRequest"
             }
           }
         ],
@@ -404,6 +342,29 @@
             "type": "integer",
             "format": "int32"
           }
+        }
+      }
+    },
+    "apiListRunsRequest": {
+      "type": "object",
+      "properties": {
+        "page_token": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "sort_by": {
+          "type": "string",
+          "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default."
+        },
+        "resource_reference_key": {
+          "$ref": "#/definitions/apiResourceKey",
+          "title": "What resource reference to filter on.\nE.g. If listing run for an experiment, the query string would be\nresource_reference_key.type=EXPERIMENT\u0026resource_reference_key.id=123"
+        },
+        "filter": {
+          "$ref": "#/definitions/apiFilter"
         }
       }
     },

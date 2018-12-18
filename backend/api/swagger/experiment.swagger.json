@@ -16,7 +16,7 @@
   ],
   "paths": {
     "/apis/v1beta1/experiments": {
-      "get": {
+      "post": {
         "operationId": "ListExperiment",
         "responses": {
           "200": {
@@ -34,53 +34,11 @@
         },
         "parameters": [
           {
-            "name": "page_token",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "page_size",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "sort_by",
-            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "ExperimentService"
-        ]
-      },
-      "post": {
-        "operationId": "CreateExperiment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiExperiment"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiExperiment"
+              "$ref": "#/definitions/apiListExperimentsRequest"
             }
           }
         ],
@@ -208,6 +166,25 @@
             "type": "integer",
             "format": "int32"
           }
+        }
+      }
+    },
+    "apiListExperimentsRequest": {
+      "type": "object",
+      "properties": {
+        "page_token": {
+          "type": "string"
+        },
+        "page_size": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "sort_by": {
+          "type": "string",
+          "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name des\"\nAscending by default."
+        },
+        "filter": {
+          "$ref": "#/definitions/apiFilter"
         }
       }
     },

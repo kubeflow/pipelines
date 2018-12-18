@@ -39,35 +39,6 @@ type Client struct {
 }
 
 /*
-CreatePipeline create pipeline API
-*/
-func (a *Client) CreatePipeline(params *CreatePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*CreatePipelineOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCreatePipelineParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreatePipeline",
-		Method:             "POST",
-		PathPattern:        "/apis/v1beta1/pipelines",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &CreatePipelineReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CreatePipelineOK), nil
-
-}
-
-/*
 DeletePipeline delete pipeline API
 */
 func (a *Client) DeletePipeline(params *DeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*DeletePipelineOK, error) {
@@ -165,7 +136,7 @@ func (a *Client) ListPipelines(params *ListPipelinesParams, authInfo runtime.Cli
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListPipelines",
-		Method:             "GET",
+		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/pipelines",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
