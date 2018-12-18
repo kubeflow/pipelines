@@ -39,35 +39,6 @@ type Client struct {
 }
 
 /*
-CreateJob create job API
-*/
-func (a *Client) CreateJob(params *CreateJobParams, authInfo runtime.ClientAuthInfoWriter) (*CreateJobOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewCreateJobParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateJob",
-		Method:             "POST",
-		PathPattern:        "/apis/v1beta1/jobs",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &CreateJobReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*CreateJobOK), nil
-
-}
-
-/*
 DeleteJob delete job API
 */
 func (a *Client) DeleteJob(params *DeleteJobParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteJobOK, error) {
@@ -194,7 +165,7 @@ func (a *Client) ListJobs(params *ListJobsParams, authInfo runtime.ClientAuthInf
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListJobs",
-		Method:             "GET",
+		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/jobs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},

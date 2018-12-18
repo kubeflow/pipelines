@@ -76,7 +76,8 @@ service JobService {
 
   rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/jobs"
+      post: "/apis/v1beta1/jobs"
+      body: "*"
     };
   }
 

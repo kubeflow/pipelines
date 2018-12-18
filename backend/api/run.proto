@@ -75,7 +75,8 @@ service RunService {
 
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/runs"
+      post: "/apis/v1beta1/runs"
+      body: "*"
     };
   }
 

@@ -28,9 +28,10 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	pipeline_model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 )
 
 // NewListPipelinesParams creates a new ListPipelinesParams object
@@ -77,16 +78,8 @@ for the list pipelines operation typically these are written to a http.Request
 */
 type ListPipelinesParams struct {
 
-	/*PageSize*/
-	PageSize *int32
-	/*PageToken*/
-	PageToken *string
-	/*SortBy
-	  Can be format of "field_name", "field_name asc" or "field_name des"
-	Ascending by default.
-
-	*/
-	SortBy *string
+	/*Body*/
+	Body *pipeline_model.APIListPipelinesRequest
 
 	timeout    time.Duration
 	Context    context.Context
@@ -126,37 +119,15 @@ func (o *ListPipelinesParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithPageSize adds the pageSize to the list pipelines params
-func (o *ListPipelinesParams) WithPageSize(pageSize *int32) *ListPipelinesParams {
-	o.SetPageSize(pageSize)
+// WithBody adds the body to the list pipelines params
+func (o *ListPipelinesParams) WithBody(body *pipeline_model.APIListPipelinesRequest) *ListPipelinesParams {
+	o.SetBody(body)
 	return o
 }
 
-// SetPageSize adds the pageSize to the list pipelines params
-func (o *ListPipelinesParams) SetPageSize(pageSize *int32) {
-	o.PageSize = pageSize
-}
-
-// WithPageToken adds the pageToken to the list pipelines params
-func (o *ListPipelinesParams) WithPageToken(pageToken *string) *ListPipelinesParams {
-	o.SetPageToken(pageToken)
-	return o
-}
-
-// SetPageToken adds the pageToken to the list pipelines params
-func (o *ListPipelinesParams) SetPageToken(pageToken *string) {
-	o.PageToken = pageToken
-}
-
-// WithSortBy adds the sortBy to the list pipelines params
-func (o *ListPipelinesParams) WithSortBy(sortBy *string) *ListPipelinesParams {
-	o.SetSortBy(sortBy)
-	return o
-}
-
-// SetSortBy adds the sortBy to the list pipelines params
-func (o *ListPipelinesParams) SetSortBy(sortBy *string) {
-	o.SortBy = sortBy
+// SetBody adds the body to the list pipelines params
+func (o *ListPipelinesParams) SetBody(body *pipeline_model.APIListPipelinesRequest) {
+	o.Body = body
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -167,52 +138,10 @@ func (o *ListPipelinesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 	}
 	var res []error
 
-	if o.PageSize != nil {
-
-		// query param page_size
-		var qrPageSize int32
-		if o.PageSize != nil {
-			qrPageSize = *o.PageSize
+	if o.Body != nil {
+		if err := r.SetBodyParam(o.Body); err != nil {
+			return err
 		}
-		qPageSize := swag.FormatInt32(qrPageSize)
-		if qPageSize != "" {
-			if err := r.SetQueryParam("page_size", qPageSize); err != nil {
-				return err
-			}
-		}
-
-	}
-
-	if o.PageToken != nil {
-
-		// query param page_token
-		var qrPageToken string
-		if o.PageToken != nil {
-			qrPageToken = *o.PageToken
-		}
-		qPageToken := qrPageToken
-		if qPageToken != "" {
-			if err := r.SetQueryParam("page_token", qPageToken); err != nil {
-				return err
-			}
-		}
-
-	}
-
-	if o.SortBy != nil {
-
-		// query param sort_by
-		var qrSortBy string
-		if o.SortBy != nil {
-			qrSortBy = *o.SortBy
-		}
-		qSortBy := qrSortBy
-		if qSortBy != "" {
-			if err := r.SetQueryParam("sort_by", qSortBy); err != nil {
-				return err
-			}
-		}
-
 	}
 
 	if len(res) > 0 {

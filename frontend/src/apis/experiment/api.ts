@@ -111,6 +111,66 @@ export interface ApiExperiment {
 }
 
 /**
+ * Filter is used to filter resources returned from a ListXXX request.  Example filters: 1) Filter runs with status = 'Running' filter {   predicate {     key: \"status\"     op: EQUALS     string_value: \"Running\"   } }  2) Filter runs that succeeded since Dec 1, 2018 filter {   predicate {     key: \"status\"     op: EQUALS     string_value: \"Succeeded\"   }   predicate {     key: \"created_at\"     op: GREATER_THAN     timestamp_value {       seconds: 1543651200     }   } }  3) Filter runs with one of labels 'label_1' or 'label_2'  filter {   predicate {     key: \"label\"     op: IN     string_values {       value: 'label_1'       value: 'label_2'     }   } }
+ * @export
+ * @interface ApiFilter
+ */
+export interface ApiFilter {
+    /**
+     * All predicates are AND-ed when this filter is applied.
+     * @type {Array&lt;ApiPredicate&gt;}
+     * @memberof ApiFilter
+     */
+    predicates?: Array<ApiPredicate>;
+}
+
+/**
+ * 
+ * @export
+ * @interface ApiIntValues
+ */
+export interface ApiIntValues {
+    /**
+     * 
+     * @type {Array&lt;number&gt;}
+     * @memberof ApiIntValues
+     */
+    values?: Array<number>;
+}
+
+/**
+ * 
+ * @export
+ * @interface ApiListExperimentsRequest
+ */
+export interface ApiListExperimentsRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiListExperimentsRequest
+     */
+    page_token?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiListExperimentsRequest
+     */
+    page_size?: number;
+    /**
+     * Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
+     * @type {string}
+     * @memberof ApiListExperimentsRequest
+     */
+    sort_by?: string;
+    /**
+     * 
+     * @type {ApiFilter}
+     * @memberof ApiListExperimentsRequest
+     */
+    filter?: ApiFilter;
+}
+
+/**
  * 
  * @export
  * @interface ApiListExperimentsResponse
@@ -128,6 +188,82 @@ export interface ApiListExperimentsResponse {
      * @memberof ApiListExperimentsResponse
      */
     next_page_token?: string;
+}
+
+/**
+ * 
+ * @export
+ * @interface ApiLongValues
+ */
+export interface ApiLongValues {
+    /**
+     * 
+     * @type {Array&lt;string&gt;}
+     * @memberof ApiLongValues
+     */
+    values?: Array<string>;
+}
+
+/**
+ * Predicate captures individual conditions that must be true for a resource being filtered.
+ * @export
+ * @interface ApiPredicate
+ */
+export interface ApiPredicate {
+    /**
+     * 
+     * @type {PredicateOp}
+     * @memberof ApiPredicate
+     */
+    op?: PredicateOp;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiPredicate
+     */
+    key?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ApiPredicate
+     */
+    int_value?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiPredicate
+     */
+    long_value?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ApiPredicate
+     */
+    string_value?: string;
+    /**
+     * Timestamp values will be converted to Unix time (seconds since the epoch) prior to being used in a filtering operation.
+     * @type {Date}
+     * @memberof ApiPredicate
+     */
+    timestamp_value?: Date;
+    /**
+     * Array values below are only meant to be used by the IN operator.
+     * @type {ApiIntValues}
+     * @memberof ApiPredicate
+     */
+    int_values?: ApiIntValues;
+    /**
+     * 
+     * @type {ApiLongValues}
+     * @memberof ApiPredicate
+     */
+    long_values?: ApiLongValues;
+    /**
+     * 
+     * @type {ApiStringValues}
+     * @memberof ApiPredicate
+     */
+    string_values?: ApiStringValues;
 }
 
 /**
@@ -154,6 +290,36 @@ export interface ApiStatus {
      * @memberof ApiStatus
      */
     details?: Array<ProtobufAny>;
+}
+
+/**
+ * 
+ * @export
+ * @interface ApiStringValues
+ */
+export interface ApiStringValues {
+    /**
+     * 
+     * @type {Array&lt;string&gt;}
+     * @memberof ApiStringValues
+     */
+    values?: Array<string>;
+}
+
+/**
+ * Op is the operation to apply.   - EQUALS: Operators on scalar values. Only applies to one of |int_value|, |long_value|, |string_value| or |timestamp_value|.  - IN: Checks if the value is a member of a given array, which should be one of |int_values|, |long_values| or |string_values|.
+ * @export
+ * @enum {string}
+ */
+export enum PredicateOp {
+    UNKNOWN = <any> 'UNKNOWN',
+    EQUALS = <any> 'EQUALS',
+    NOTEQUALS = <any> 'NOT_EQUALS',
+    GREATERTHAN = <any> 'GREATER_THAN',
+    GREATERTHANEQUALS = <any> 'GREATER_THAN_EQUALS',
+    LESSTHAN = <any> 'LESS_THAN',
+    LESSTHANEQUALS = <any> 'LESS_THAN_EQUALS',
+    IN = <any> 'IN'
 }
 
 /**
@@ -191,45 +357,6 @@ export interface ProtobufEmpty {
  */
 export const ExperimentServiceApiFetchParamCreator = function (configuration?: Configuration) {
     return {
-        /**
-         * 
-         * @param {ApiExperiment} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        createExperiment(body: ApiExperiment, options: any = {}): FetchArgs {
-            // verify required parameter 'body' is not null or undefined
-            if (body === null || body === undefined) {
-                throw new RequiredError('body','Required parameter body was null or undefined when calling createExperiment.');
-            }
-            const localVarPath = `/apis/v1beta1/experiments`;
-            const localVarUrlObj = url.parse(localVarPath, true);
-            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication Bearer required
-            if (configuration && configuration.apiKey) {
-                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
-					? configuration.apiKey("authorization")
-					: configuration.apiKey;
-                localVarHeaderParameter["authorization"] = localVarApiKeyValue;
-            }
-
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-
-            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
-            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-            delete localVarUrlObj.search;
-            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
-            const needsSerialization = (<any>"ApiExperiment" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
-            localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
-
-            return {
-                url: url.format(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
         /**
          * 
          * @param {string} id 
@@ -304,16 +431,18 @@ export const ExperimentServiceApiFetchParamCreator = function (configuration?: C
         },
         /**
          * 
-         * @param {string} [page_token] 
-         * @param {number} [page_size] 
-         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {ApiListExperimentsRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listExperiment(page_token?: string, page_size?: number, sort_by?: string, options: any = {}): FetchArgs {
+        listExperiment(body: ApiListExperimentsRequest, options: any = {}): FetchArgs {
+            // verify required parameter 'body' is not null or undefined
+            if (body === null || body === undefined) {
+                throw new RequiredError('body','Required parameter body was null or undefined when calling listExperiment.');
+            }
             const localVarPath = `/apis/v1beta1/experiments`;
             const localVarUrlObj = url.parse(localVarPath, true);
-            const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
+            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
@@ -325,22 +454,14 @@ export const ExperimentServiceApiFetchParamCreator = function (configuration?: C
                 localVarHeaderParameter["authorization"] = localVarApiKeyValue;
             }
 
-            if (page_token !== undefined) {
-                localVarQueryParameter['page_token'] = page_token;
-            }
-
-            if (page_size !== undefined) {
-                localVarQueryParameter['page_size'] = page_size;
-            }
-
-            if (sort_by !== undefined) {
-                localVarQueryParameter['sort_by'] = sort_by;
-            }
+            localVarHeaderParameter['Content-Type'] = 'application/json';
 
             localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
             // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
             delete localVarUrlObj.search;
             localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+            const needsSerialization = (<any>"ApiListExperimentsRequest" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
+            localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
 
             return {
                 url: url.format(localVarUrlObj),
@@ -356,24 +477,6 @@ export const ExperimentServiceApiFetchParamCreator = function (configuration?: C
  */
 export const ExperimentServiceApiFp = function(configuration?: Configuration) {
     return {
-        /**
-         * 
-         * @param {ApiExperiment} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        createExperiment(body: ApiExperiment, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiExperiment> {
-            const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(configuration).createExperiment(body, options);
-            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
-                    if (response.status >= 200 && response.status < 300) {
-                        return response.json();
-                    } else {
-                        throw response;
-                    }
-                });
-            };
-        },
         /**
          * 
          * @param {string} id 
@@ -412,14 +515,12 @@ export const ExperimentServiceApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @param {string} [page_token] 
-         * @param {number} [page_size] 
-         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {ApiListExperimentsRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listExperiment(page_token?: string, page_size?: number, sort_by?: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListExperimentsResponse> {
-            const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(configuration).listExperiment(page_token, page_size, sort_by, options);
+        listExperiment(body: ApiListExperimentsRequest, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListExperimentsResponse> {
+            const localVarFetchArgs = ExperimentServiceApiFetchParamCreator(configuration).listExperiment(body, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -441,15 +542,6 @@ export const ExperimentServiceApiFactory = function (configuration?: Configurati
     return {
         /**
          * 
-         * @param {ApiExperiment} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        createExperiment(body: ApiExperiment, options?: any) {
-            return ExperimentServiceApiFp(configuration).createExperiment(body, options)(fetch, basePath);
-        },
-        /**
-         * 
          * @param {string} id 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -468,14 +560,12 @@ export const ExperimentServiceApiFactory = function (configuration?: Configurati
         },
         /**
          * 
-         * @param {string} [page_token] 
-         * @param {number} [page_size] 
-         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {ApiListExperimentsRequest} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listExperiment(page_token?: string, page_size?: number, sort_by?: string, options?: any) {
-            return ExperimentServiceApiFp(configuration).listExperiment(page_token, page_size, sort_by, options)(fetch, basePath);
+        listExperiment(body: ApiListExperimentsRequest, options?: any) {
+            return ExperimentServiceApiFp(configuration).listExperiment(body, options)(fetch, basePath);
         },
     };
 };
@@ -487,17 +577,6 @@ export const ExperimentServiceApiFactory = function (configuration?: Configurati
  * @extends {BaseAPI}
  */
 export class ExperimentServiceApi extends BaseAPI {
-    /**
-     * 
-     * @param {} body 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof ExperimentServiceApi
-     */
-    public createExperiment(body: ApiExperiment, options?: any) {
-        return ExperimentServiceApiFp(this.configuration).createExperiment(body, options)(this.fetch, this.basePath);
-    }
-
     /**
      * 
      * @param {} id 
@@ -522,15 +601,13 @@ export class ExperimentServiceApi extends BaseAPI {
 
     /**
      * 
-     * @param {} [page_token] 
-     * @param {} [page_size] 
-     * @param {} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @param {} body 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ExperimentServiceApi
      */
-    public listExperiment(page_token?: string, page_size?: number, sort_by?: string, options?: any) {
-        return ExperimentServiceApiFp(this.configuration).listExperiment(page_token, page_size, sort_by, options)(this.fetch, this.basePath);
+    public listExperiment(body: ApiListExperimentsRequest, options?: any) {
+        return ExperimentServiceApiFp(this.configuration).listExperiment(body, options)(this.fetch, this.basePath);
     }
 
 }
