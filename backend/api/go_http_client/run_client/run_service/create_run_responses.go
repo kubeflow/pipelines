@@ -30,24 +30,24 @@ import (
 	run_model "github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 )
 
-// ListRunsReader is a Reader for the ListRuns structure.
-type ListRunsReader struct {
+// CreateRunReader is a Reader for the CreateRun structure.
+type CreateRunReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *ListRunsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *CreateRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewListRunsOK()
+		result := NewCreateRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
 
 	default:
-		result := NewListRunsDefault(response.Code())
+		result := NewCreateRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -58,26 +58,26 @@ func (o *ListRunsReader) ReadResponse(response runtime.ClientResponse, consumer 
 	}
 }
 
-// NewListRunsOK creates a ListRunsOK with default headers values
-func NewListRunsOK() *ListRunsOK {
-	return &ListRunsOK{}
+// NewCreateRunOK creates a CreateRunOK with default headers values
+func NewCreateRunOK() *CreateRunOK {
+	return &CreateRunOK{}
 }
 
-/*ListRunsOK handles this case with default header values.
+/*CreateRunOK handles this case with default header values.
 
 A successful response.
 */
-type ListRunsOK struct {
-	Payload *run_model.APIListRunsResponse
+type CreateRunOK struct {
+	Payload *run_model.APIRunDetail
 }
 
-func (o *ListRunsOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/runs][%d] listRunsOK  %+v", 200, o.Payload)
+func (o *CreateRunOK) Error() string {
+	return fmt.Sprintf("[POST /apis/v1beta1/runs][%d] createRunOK  %+v", 200, o.Payload)
 }
 
-func (o *ListRunsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CreateRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.APIListRunsResponse)
+	o.Payload = new(run_model.APIRunDetail)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,33 +87,33 @@ func (o *ListRunsOK) readResponse(response runtime.ClientResponse, consumer runt
 	return nil
 }
 
-// NewListRunsDefault creates a ListRunsDefault with default headers values
-func NewListRunsDefault(code int) *ListRunsDefault {
-	return &ListRunsDefault{
+// NewCreateRunDefault creates a CreateRunDefault with default headers values
+func NewCreateRunDefault(code int) *CreateRunDefault {
+	return &CreateRunDefault{
 		_statusCode: code,
 	}
 }
 
-/*ListRunsDefault handles this case with default header values.
+/*CreateRunDefault handles this case with default header values.
 
-ListRunsDefault list runs default
+CreateRunDefault create run default
 */
-type ListRunsDefault struct {
+type CreateRunDefault struct {
 	_statusCode int
 
 	Payload *run_model.APIStatus
 }
 
-// Code gets the status code for the list runs default response
-func (o *ListRunsDefault) Code() int {
+// Code gets the status code for the create run default response
+func (o *CreateRunDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *ListRunsDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/runs][%d] ListRuns default  %+v", o._statusCode, o.Payload)
+func (o *CreateRunDefault) Error() string {
+	return fmt.Sprintf("[POST /apis/v1beta1/runs][%d] CreateRun default  %+v", o._statusCode, o.Payload)
 }
 
-func (o *ListRunsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CreateRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(run_model.APIStatus)
 
