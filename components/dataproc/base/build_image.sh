@@ -1,3 +1,4 @@
+#!/bin/bash -e
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,24 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from setuptools import setup, find_packages
 
+mkdir -p ./build/common
+rsync -arvp "../analyze/src"/ ./build/
+rsync -arvp "../train/src"/ ./build/
+rsync -arvp "../predict/src"/ ./build/
+rsync -arvp "../create_cluster/src"/ ./build/
+rsync -arvp "../delete_cluster/src"/ ./build/
+rsync -arvp "../transform/src"/ ./build/
+rsync -arvp "../common"/ ./build/common/
 
-setup(
-  name='XGBoostPipeline',
-  version='0.1.0',
-  packages=find_packages(),
-  description='XGBoost Pipeline with DataProc and Spark',
-  author='Google',
-  keywords=[
-  ],
-  license="Apache Software License",
-  long_description="""
-  """,
-  install_requires=[
-    'tensorflow==1.4.1',
-  ],
-  package_data={
-  },
-  data_files=[],
-)
+cp ../../license.sh ./build
+cp ../../third_party_licenses.csv ./build
+
+docker build -t ml-pipeline-dataproc-base .
+rm -rf ./build
+
