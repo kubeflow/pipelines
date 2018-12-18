@@ -345,11 +345,10 @@
     "RunStorageState": {
       "type": "string",
       "enum": [
-        "STORAGESTATE_UNSPECIFIED",
         "STORAGESTATE_AVAILABLE",
         "STORAGESTATE_ARCHIVED"
       ],
-      "default": "STORAGESTATE_UNSPECIFIED"
+      "default": "STORAGESTATE_AVAILABLE"
     },
     "apiFilter": {
       "type": "object",

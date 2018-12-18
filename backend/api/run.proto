@@ -164,9 +164,8 @@ message Run {
   string name = 2;
 
   enum StorageState {
-    STORAGESTATE_UNSPECIFIED = 0;
-    STORAGESTATE_AVAILABLE = 1;
-    STORAGESTATE_ARCHIVED = 2;
+    STORAGESTATE_AVAILABLE = 0;
+    STORAGESTATE_ARCHIVED = 1;
   }
 
   StorageState storageState = 10;

@@ -34,9 +34,6 @@ type RunStorageState string
 
 const (
 
-	// RunStorageStateSTORAGESTATEUNSPECIFIED captures enum value "STORAGESTATE_UNSPECIFIED"
-	RunStorageStateSTORAGESTATEUNSPECIFIED RunStorageState = "STORAGESTATE_UNSPECIFIED"
-
 	// RunStorageStateSTORAGESTATEAVAILABLE captures enum value "STORAGESTATE_AVAILABLE"
 	RunStorageStateSTORAGESTATEAVAILABLE RunStorageState = "STORAGESTATE_AVAILABLE"
 
@@ -49,7 +46,7 @@ var runStorageStateEnum []interface{}
 
 func init() {
 	var res []RunStorageState
-	if err := json.Unmarshal([]byte(`["STORAGESTATE_UNSPECIFIED","STORAGESTATE_AVAILABLE","STORAGESTATE_ARCHIVED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["STORAGESTATE_AVAILABLE","STORAGESTATE_ARCHIVED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
