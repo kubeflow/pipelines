@@ -79,72 +79,6 @@ export class RequiredError extends Error {
 }
 
 /**
- * Filter is used to filter resources returned from a ListXXX request.  Example filters: 1) Filter runs with status = 'Running' filter {   predicate {     key: \"status\"     op: EQUALS     string_value: \"Running\"   } }  2) Filter runs that succeeded since Dec 1, 2018 filter {   predicate {     key: \"status\"     op: EQUALS     string_value: \"Succeeded\"   }   predicate {     key: \"created_at\"     op: GREATER_THAN     timestamp_value {       seconds: 1543651200     }   } }  3) Filter runs with one of labels 'label_1' or 'label_2'  filter {   predicate {     key: \"label\"     op: IN     string_values {       value: 'label_1'       value: 'label_2'     }   } }
- * @export
- * @interface ApiFilter
- */
-export interface ApiFilter {
-    /**
-     * All predicates are AND-ed when this filter is applied.
-     * @type {Array&lt;ApiPredicate&gt;}
-     * @memberof ApiFilter
-     */
-    predicates?: Array<ApiPredicate>;
-}
-
-/**
- * 
- * @export
- * @interface ApiIntValues
- */
-export interface ApiIntValues {
-    /**
-     * 
-     * @type {Array&lt;number&gt;}
-     * @memberof ApiIntValues
-     */
-    values?: Array<number>;
-}
-
-/**
- * 
- * @export
- * @interface ApiListRunsRequest
- */
-export interface ApiListRunsRequest {
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiListRunsRequest
-     */
-    page_token?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ApiListRunsRequest
-     */
-    page_size?: number;
-    /**
-     * Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
-     * @type {string}
-     * @memberof ApiListRunsRequest
-     */
-    sort_by?: string;
-    /**
-     * 
-     * @type {ApiResourceKey}
-     * @memberof ApiListRunsRequest
-     */
-    resource_reference_key?: ApiResourceKey;
-    /**
-     * 
-     * @type {ApiFilter}
-     * @memberof ApiListRunsRequest
-     */
-    filter?: ApiFilter;
-}
-
-/**
  * 
  * @export
  * @interface ApiListRunsResponse
@@ -162,20 +96,6 @@ export interface ApiListRunsResponse {
      * @memberof ApiListRunsResponse
      */
     next_page_token?: string;
-}
-
-/**
- * 
- * @export
- * @interface ApiLongValues
- */
-export interface ApiLongValues {
-    /**
-     * 
-     * @type {Array&lt;string&gt;}
-     * @memberof ApiLongValues
-     */
-    values?: Array<string>;
 }
 
 /**
@@ -248,68 +168,6 @@ export interface ApiPipelineSpec {
      * @memberof ApiPipelineSpec
      */
     parameters?: Array<ApiParameter>;
-}
-
-/**
- * Predicate captures individual conditions that must be true for a resource being filtered.
- * @export
- * @interface ApiPredicate
- */
-export interface ApiPredicate {
-    /**
-     * 
-     * @type {PredicateOp}
-     * @memberof ApiPredicate
-     */
-    op?: PredicateOp;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiPredicate
-     */
-    key?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ApiPredicate
-     */
-    int_value?: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiPredicate
-     */
-    long_value?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiPredicate
-     */
-    string_value?: string;
-    /**
-     * Timestamp values will be converted to Unix time (seconds since the epoch) prior to being used in a filtering operation.
-     * @type {Date}
-     * @memberof ApiPredicate
-     */
-    timestamp_value?: Date;
-    /**
-     * Array values below are only meant to be used by the IN operator.
-     * @type {ApiIntValues}
-     * @memberof ApiPredicate
-     */
-    int_values?: ApiIntValues;
-    /**
-     * 
-     * @type {ApiLongValues}
-     * @memberof ApiPredicate
-     */
-    long_values?: ApiLongValues;
-    /**
-     * 
-     * @type {ApiStringValues}
-     * @memberof ApiPredicate
-     */
-    string_values?: ApiStringValues;
 }
 
 /**
@@ -569,36 +427,6 @@ export interface ApiStatus {
 }
 
 /**
- * 
- * @export
- * @interface ApiStringValues
- */
-export interface ApiStringValues {
-    /**
-     * 
-     * @type {Array&lt;string&gt;}
-     * @memberof ApiStringValues
-     */
-    values?: Array<string>;
-}
-
-/**
- * Op is the operation to apply.   - EQUALS: Operators on scalar values. Only applies to one of |int_value|, |long_value|, |string_value| or |timestamp_value|.  - IN: Checks if the value is a member of a given array, which should be one of |int_values|, |long_values| or |string_values|.
- * @export
- * @enum {string}
- */
-export enum PredicateOp {
-    UNKNOWN = <any> 'UNKNOWN',
-    EQUALS = <any> 'EQUALS',
-    NOTEQUALS = <any> 'NOT_EQUALS',
-    GREATERTHAN = <any> 'GREATER_THAN',
-    GREATERTHANEQUALS = <any> 'GREATER_THAN_EQUALS',
-    LESSTHAN = <any> 'LESS_THAN',
-    LESSTHANEQUALS = <any> 'LESS_THAN_EQUALS',
-    IN = <any> 'IN'
-}
-
-/**
  * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := ptypes.MarshalAny(foo)      ...      foo := &pb.Foo{}      if err := ptypes.UnmarshalAny(any, foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
  * @export
  * @interface ProtobufAny
@@ -691,6 +519,45 @@ export const RunServiceApiFetchParamCreator = function (configuration?: Configur
     return {
         /**
          * 
+         * @param {ApiRun} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRun(body: ApiRun, options: any = {}): FetchArgs {
+            // verify required parameter 'body' is not null or undefined
+            if (body === null || body === undefined) {
+                throw new RequiredError('body','Required parameter body was null or undefined when calling createRun.');
+            }
+            const localVarPath = `/apis/v1beta1/runs`;
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication Bearer required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["authorization"] = localVarApiKeyValue;
+            }
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+            const needsSerialization = (<any>"ApiRun" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
+            localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
          * @param {string} id 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -763,18 +630,19 @@ export const RunServiceApiFetchParamCreator = function (configuration?: Configur
         },
         /**
          * 
-         * @param {ApiListRunsRequest} body 
+         * @param {string} [page_token] 
+         * @param {number} [page_size] 
+         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [resource_reference_key_type] The type of the resource that referred to.
+         * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listRuns(body: ApiListRunsRequest, options: any = {}): FetchArgs {
-            // verify required parameter 'body' is not null or undefined
-            if (body === null || body === undefined) {
-                throw new RequiredError('body','Required parameter body was null or undefined when calling listRuns.');
-            }
+        listRuns(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options: any = {}): FetchArgs {
             const localVarPath = `/apis/v1beta1/runs`;
             const localVarUrlObj = url.parse(localVarPath, true);
-            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+            const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
@@ -786,14 +654,34 @@ export const RunServiceApiFetchParamCreator = function (configuration?: Configur
                 localVarHeaderParameter["authorization"] = localVarApiKeyValue;
             }
 
-            localVarHeaderParameter['Content-Type'] = 'application/json';
+            if (page_token !== undefined) {
+                localVarQueryParameter['page_token'] = page_token;
+            }
+
+            if (page_size !== undefined) {
+                localVarQueryParameter['page_size'] = page_size;
+            }
+
+            if (sort_by !== undefined) {
+                localVarQueryParameter['sort_by'] = sort_by;
+            }
+
+            if (resource_reference_key_type !== undefined) {
+                localVarQueryParameter['resource_reference_key.type'] = resource_reference_key_type;
+            }
+
+            if (resource_reference_key_id !== undefined) {
+                localVarQueryParameter['resource_reference_key.id'] = resource_reference_key_id;
+            }
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
+            }
 
             localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
             // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
             delete localVarUrlObj.search;
             localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
-            const needsSerialization = (<any>"ApiListRunsRequest" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
-            localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
 
             return {
                 url: url.format(localVarUrlObj),
@@ -905,6 +793,24 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     return {
         /**
          * 
+         * @param {ApiRun} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRun(body: ApiRun, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiRunDetail> {
+            const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).createRun(body, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
+        /**
+         * 
          * @param {string} id 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -941,12 +847,17 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @param {ApiListRunsRequest} body 
+         * @param {string} [page_token] 
+         * @param {number} [page_size] 
+         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [resource_reference_key_type] The type of the resource that referred to.
+         * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listRuns(body: ApiListRunsRequest, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListRunsResponse> {
-            const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).listRuns(body, options);
+        listRuns(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListRunsResponse> {
+            const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).listRuns(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -1008,6 +919,15 @@ export const RunServiceApiFactory = function (configuration?: Configuration, fet
     return {
         /**
          * 
+         * @param {ApiRun} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRun(body: ApiRun, options?: any) {
+            return RunServiceApiFp(configuration).createRun(body, options)(fetch, basePath);
+        },
+        /**
+         * 
          * @param {string} id 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1026,12 +946,17 @@ export const RunServiceApiFactory = function (configuration?: Configuration, fet
         },
         /**
          * 
-         * @param {ApiListRunsRequest} body 
+         * @param {string} [page_token] 
+         * @param {number} [page_size] 
+         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [resource_reference_key_type] The type of the resource that referred to.
+         * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listRuns(body: ApiListRunsRequest, options?: any) {
-            return RunServiceApiFp(configuration).listRuns(body, options)(fetch, basePath);
+        listRuns(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any) {
+            return RunServiceApiFp(configuration).listRuns(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options)(fetch, basePath);
         },
         /**
          * 
@@ -1067,6 +992,17 @@ export const RunServiceApiFactory = function (configuration?: Configuration, fet
 export class RunServiceApi extends BaseAPI {
     /**
      * 
+     * @param {} body 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RunServiceApi
+     */
+    public createRun(body: ApiRun, options?: any) {
+        return RunServiceApiFp(this.configuration).createRun(body, options)(this.fetch, this.basePath);
+    }
+
+    /**
+     * 
      * @param {} id 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1089,13 +1025,18 @@ export class RunServiceApi extends BaseAPI {
 
     /**
      * 
-     * @param {} body 
+     * @param {} [page_token] 
+     * @param {} [page_size] 
+     * @param {} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @param {} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {} [resource_reference_key_id] The ID of the resource that referred to.
+     * @param {} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof RunServiceApi
      */
-    public listRuns(body: ApiListRunsRequest, options?: any) {
-        return RunServiceApiFp(this.configuration).listRuns(body, options)(this.fetch, this.basePath);
+    public listRuns(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any) {
+        return RunServiceApiFp(this.configuration).listRuns(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options)(this.fetch, this.basePath);
     }
 
     /**

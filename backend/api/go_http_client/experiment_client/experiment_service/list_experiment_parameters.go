@@ -28,10 +28,9 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/swag"
 
 	strfmt "github.com/go-openapi/strfmt"
-
-	experiment_model "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 )
 
 // NewListExperimentParams creates a new ListExperimentParams object
@@ -78,8 +77,22 @@ for the list experiment operation typically these are written to a http.Request
 */
 type ListExperimentParams struct {
 
-	/*Body*/
-	Body *experiment_model.APIListExperimentsRequest
+	/*Filter
+	  A base-64 encoded, JSON-serialized Filter protocol buffer (see
+	filter.proto).
+
+	*/
+	Filter *string
+	/*PageSize*/
+	PageSize *int32
+	/*PageToken*/
+	PageToken *string
+	/*SortBy
+	  Can be format of "field_name", "field_name asc" or "field_name des"
+	Ascending by default.
+
+	*/
+	SortBy *string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -119,15 +132,48 @@ func (o *ListExperimentParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithBody adds the body to the list experiment params
-func (o *ListExperimentParams) WithBody(body *experiment_model.APIListExperimentsRequest) *ListExperimentParams {
-	o.SetBody(body)
+// WithFilter adds the filter to the list experiment params
+func (o *ListExperimentParams) WithFilter(filter *string) *ListExperimentParams {
+	o.SetFilter(filter)
 	return o
 }
 
-// SetBody adds the body to the list experiment params
-func (o *ListExperimentParams) SetBody(body *experiment_model.APIListExperimentsRequest) {
-	o.Body = body
+// SetFilter adds the filter to the list experiment params
+func (o *ListExperimentParams) SetFilter(filter *string) {
+	o.Filter = filter
+}
+
+// WithPageSize adds the pageSize to the list experiment params
+func (o *ListExperimentParams) WithPageSize(pageSize *int32) *ListExperimentParams {
+	o.SetPageSize(pageSize)
+	return o
+}
+
+// SetPageSize adds the pageSize to the list experiment params
+func (o *ListExperimentParams) SetPageSize(pageSize *int32) {
+	o.PageSize = pageSize
+}
+
+// WithPageToken adds the pageToken to the list experiment params
+func (o *ListExperimentParams) WithPageToken(pageToken *string) *ListExperimentParams {
+	o.SetPageToken(pageToken)
+	return o
+}
+
+// SetPageToken adds the pageToken to the list experiment params
+func (o *ListExperimentParams) SetPageToken(pageToken *string) {
+	o.PageToken = pageToken
+}
+
+// WithSortBy adds the sortBy to the list experiment params
+func (o *ListExperimentParams) WithSortBy(sortBy *string) *ListExperimentParams {
+	o.SetSortBy(sortBy)
+	return o
+}
+
+// SetSortBy adds the sortBy to the list experiment params
+func (o *ListExperimentParams) SetSortBy(sortBy *string) {
+	o.SortBy = sortBy
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -138,10 +184,68 @@ func (o *ListExperimentParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 	}
 	var res []error
 
-	if o.Body != nil {
-		if err := r.SetBodyParam(o.Body); err != nil {
-			return err
+	if o.Filter != nil {
+
+		// query param filter
+		var qrFilter string
+		if o.Filter != nil {
+			qrFilter = *o.Filter
 		}
+		qFilter := qrFilter
+		if qFilter != "" {
+			if err := r.SetQueryParam("filter", qFilter); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.PageSize != nil {
+
+		// query param page_size
+		var qrPageSize int32
+		if o.PageSize != nil {
+			qrPageSize = *o.PageSize
+		}
+		qPageSize := swag.FormatInt32(qrPageSize)
+		if qPageSize != "" {
+			if err := r.SetQueryParam("page_size", qPageSize); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.PageToken != nil {
+
+		// query param page_token
+		var qrPageToken string
+		if o.PageToken != nil {
+			qrPageToken = *o.PageToken
+		}
+		qPageToken := qrPageToken
+		if qPageToken != "" {
+			if err := r.SetQueryParam("page_token", qPageToken); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.SortBy != nil {
+
+		// query param sort_by
+		var qrSortBy string
+		if o.SortBy != nil {
+			qrSortBy = *o.SortBy
+		}
+		qSortBy := qrSortBy
+		if qSortBy != "" {
+			if err := r.SetQueryParam("sort_by", qSortBy); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	if len(res) > 0 {

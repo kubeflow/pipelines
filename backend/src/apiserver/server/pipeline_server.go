@@ -16,10 +16,12 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"net/url"
 	"path"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
@@ -77,7 +79,23 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 	if request.PageToken != "" {
 		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
 	} else {
-		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, request.Filter)
+		var f *api.Filter
+		if request.Filter != "" {
+			errorF := func(err error) (*api.ListPipelinesResponse, error) {
+				return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", request.Filter, err)
+			}
+			b, err := base64.StdEncoding.DecodeString(request.Filter)
+			if err != nil {
+				return errorF(err)
+			}
+
+			f = &api.Filter{}
+			if err := jsonpb.UnmarshalString(string(b), f); err != nil {
+				return errorF(err)
+			}
+		}
+
+		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, f)
 	}
 
 	if err != nil {

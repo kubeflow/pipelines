@@ -105,34 +105,6 @@ export interface ApiCronSchedule {
 }
 
 /**
- * Filter is used to filter resources returned from a ListXXX request.  Example filters: 1) Filter runs with status = 'Running' filter {   predicate {     key: \"status\"     op: EQUALS     string_value: \"Running\"   } }  2) Filter runs that succeeded since Dec 1, 2018 filter {   predicate {     key: \"status\"     op: EQUALS     string_value: \"Succeeded\"   }   predicate {     key: \"created_at\"     op: GREATER_THAN     timestamp_value {       seconds: 1543651200     }   } }  3) Filter runs with one of labels 'label_1' or 'label_2'  filter {   predicate {     key: \"label\"     op: IN     string_values {       value: 'label_1'       value: 'label_2'     }   } }
- * @export
- * @interface ApiFilter
- */
-export interface ApiFilter {
-    /**
-     * All predicates are AND-ed when this filter is applied.
-     * @type {Array&lt;ApiPredicate&gt;}
-     * @memberof ApiFilter
-     */
-    predicates?: Array<ApiPredicate>;
-}
-
-/**
- * 
- * @export
- * @interface ApiIntValues
- */
-export interface ApiIntValues {
-    /**
-     * 
-     * @type {Array&lt;number&gt;}
-     * @memberof ApiIntValues
-     */
-    values?: Array<number>;
-}
-
-/**
  * 
  * @export
  * @interface ApiJob
@@ -221,44 +193,6 @@ export interface ApiJob {
 /**
  * 
  * @export
- * @interface ApiListJobsRequest
- */
-export interface ApiListJobsRequest {
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiListJobsRequest
-     */
-    page_token?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ApiListJobsRequest
-     */
-    page_size?: number;
-    /**
-     * Can be format of \"field_name\", \"field_name asc\" or \"field_name des\" Ascending by default.
-     * @type {string}
-     * @memberof ApiListJobsRequest
-     */
-    sort_by?: string;
-    /**
-     * 
-     * @type {ApiResourceKey}
-     * @memberof ApiListJobsRequest
-     */
-    resource_reference_key?: ApiResourceKey;
-    /**
-     * 
-     * @type {ApiFilter}
-     * @memberof ApiListJobsRequest
-     */
-    filter?: ApiFilter;
-}
-
-/**
- * 
- * @export
  * @interface ApiListJobsResponse
  */
 export interface ApiListJobsResponse {
@@ -274,20 +208,6 @@ export interface ApiListJobsResponse {
      * @memberof ApiListJobsResponse
      */
     next_page_token?: string;
-}
-
-/**
- * 
- * @export
- * @interface ApiLongValues
- */
-export interface ApiLongValues {
-    /**
-     * 
-     * @type {Array&lt;string&gt;}
-     * @memberof ApiLongValues
-     */
-    values?: Array<string>;
 }
 
 /**
@@ -366,68 +286,6 @@ export interface ApiPipelineSpec {
      * @memberof ApiPipelineSpec
      */
     parameters?: Array<ApiParameter>;
-}
-
-/**
- * Predicate captures individual conditions that must be true for a resource being filtered.
- * @export
- * @interface ApiPredicate
- */
-export interface ApiPredicate {
-    /**
-     * 
-     * @type {PredicateOp}
-     * @memberof ApiPredicate
-     */
-    op?: PredicateOp;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiPredicate
-     */
-    key?: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof ApiPredicate
-     */
-    int_value?: number;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiPredicate
-     */
-    long_value?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiPredicate
-     */
-    string_value?: string;
-    /**
-     * Timestamp values will be converted to Unix time (seconds since the epoch) prior to being used in a filtering operation.
-     * @type {Date}
-     * @memberof ApiPredicate
-     */
-    timestamp_value?: Date;
-    /**
-     * Array values below are only meant to be used by the IN operator.
-     * @type {ApiIntValues}
-     * @memberof ApiPredicate
-     */
-    int_values?: ApiIntValues;
-    /**
-     * 
-     * @type {ApiLongValues}
-     * @memberof ApiPredicate
-     */
-    long_values?: ApiLongValues;
-    /**
-     * 
-     * @type {ApiStringValues}
-     * @memberof ApiPredicate
-     */
-    string_values?: ApiStringValues;
 }
 
 /**
@@ -521,20 +379,6 @@ export interface ApiStatus {
 /**
  * 
  * @export
- * @interface ApiStringValues
- */
-export interface ApiStringValues {
-    /**
-     * 
-     * @type {Array&lt;string&gt;}
-     * @memberof ApiStringValues
-     */
-    values?: Array<string>;
-}
-
-/**
- * 
- * @export
  * @interface ApiTrigger
  */
 export interface ApiTrigger {
@@ -561,22 +405,6 @@ export enum JobMode {
     UNKNOWNMODE = <any> 'UNKNOWN_MODE',
     ENABLED = <any> 'ENABLED',
     DISABLED = <any> 'DISABLED'
-}
-
-/**
- * Op is the operation to apply.   - EQUALS: Operators on scalar values. Only applies to one of |int_value|, |long_value|, |string_value| or |timestamp_value|.  - IN: Checks if the value is a member of a given array, which should be one of |int_values|, |long_values| or |string_values|.
- * @export
- * @enum {string}
- */
-export enum PredicateOp {
-    UNKNOWN = <any> 'UNKNOWN',
-    EQUALS = <any> 'EQUALS',
-    NOTEQUALS = <any> 'NOT_EQUALS',
-    GREATERTHAN = <any> 'GREATER_THAN',
-    GREATERTHANEQUALS = <any> 'GREATER_THAN_EQUALS',
-    LESSTHAN = <any> 'LESS_THAN',
-    LESSTHANEQUALS = <any> 'LESS_THAN_EQUALS',
-    IN = <any> 'IN'
 }
 
 /**
@@ -614,6 +442,45 @@ export interface ProtobufEmpty {
  */
 export const JobServiceApiFetchParamCreator = function (configuration?: Configuration) {
     return {
+        /**
+         * 
+         * @param {ApiJob} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createJob(body: ApiJob, options: any = {}): FetchArgs {
+            // verify required parameter 'body' is not null or undefined
+            if (body === null || body === undefined) {
+                throw new RequiredError('body','Required parameter body was null or undefined when calling createJob.');
+            }
+            const localVarPath = `/apis/v1beta1/jobs`;
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication Bearer required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["authorization"] = localVarApiKeyValue;
+            }
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+            const needsSerialization = (<any>"ApiJob" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
+            localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
         /**
          * 
          * @param {string} id 
@@ -760,18 +627,19 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
         },
         /**
          * 
-         * @param {ApiListJobsRequest} body 
+         * @param {string} [page_token] 
+         * @param {number} [page_size] 
+         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [resource_reference_key_type] The type of the resource that referred to.
+         * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listJobs(body: ApiListJobsRequest, options: any = {}): FetchArgs {
-            // verify required parameter 'body' is not null or undefined
-            if (body === null || body === undefined) {
-                throw new RequiredError('body','Required parameter body was null or undefined when calling listJobs.');
-            }
+        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options: any = {}): FetchArgs {
             const localVarPath = `/apis/v1beta1/jobs`;
             const localVarUrlObj = url.parse(localVarPath, true);
-            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+            const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
@@ -783,14 +651,34 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
                 localVarHeaderParameter["authorization"] = localVarApiKeyValue;
             }
 
-            localVarHeaderParameter['Content-Type'] = 'application/json';
+            if (page_token !== undefined) {
+                localVarQueryParameter['page_token'] = page_token;
+            }
+
+            if (page_size !== undefined) {
+                localVarQueryParameter['page_size'] = page_size;
+            }
+
+            if (sort_by !== undefined) {
+                localVarQueryParameter['sort_by'] = sort_by;
+            }
+
+            if (resource_reference_key_type !== undefined) {
+                localVarQueryParameter['resource_reference_key.type'] = resource_reference_key_type;
+            }
+
+            if (resource_reference_key_id !== undefined) {
+                localVarQueryParameter['resource_reference_key.id'] = resource_reference_key_id;
+            }
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
+            }
 
             localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
             // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
             delete localVarUrlObj.search;
             localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
-            const needsSerialization = (<any>"ApiListJobsRequest" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
-            localVarRequestOptions.body =  needsSerialization ? JSON.stringify(body || {}) : (body || "");
 
             return {
                 url: url.format(localVarUrlObj),
@@ -806,6 +694,24 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
  */
 export const JobServiceApiFp = function(configuration?: Configuration) {
     return {
+        /**
+         * 
+         * @param {ApiJob} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createJob(body: ApiJob, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiJob> {
+            const localVarFetchArgs = JobServiceApiFetchParamCreator(configuration).createJob(body, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
         /**
          * 
          * @param {string} id 
@@ -880,12 +786,17 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @param {ApiListJobsRequest} body 
+         * @param {string} [page_token] 
+         * @param {number} [page_size] 
+         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [resource_reference_key_type] The type of the resource that referred to.
+         * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listJobs(body: ApiListJobsRequest, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListJobsResponse> {
-            const localVarFetchArgs = JobServiceApiFetchParamCreator(configuration).listJobs(body, options);
+        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListJobsResponse> {
+            const localVarFetchArgs = JobServiceApiFetchParamCreator(configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -905,6 +816,15 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
  */
 export const JobServiceApiFactory = function (configuration?: Configuration, fetch?: FetchAPI, basePath?: string) {
     return {
+        /**
+         * 
+         * @param {ApiJob} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createJob(body: ApiJob, options?: any) {
+            return JobServiceApiFp(configuration).createJob(body, options)(fetch, basePath);
+        },
         /**
          * 
          * @param {string} id 
@@ -943,12 +863,17 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
         },
         /**
          * 
-         * @param {ApiListJobsRequest} body 
+         * @param {string} [page_token] 
+         * @param {number} [page_size] 
+         * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [resource_reference_key_type] The type of the resource that referred to.
+         * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listJobs(body: ApiListJobsRequest, options?: any) {
-            return JobServiceApiFp(configuration).listJobs(body, options)(fetch, basePath);
+        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any) {
+            return JobServiceApiFp(configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options)(fetch, basePath);
         },
     };
 };
@@ -960,6 +885,17 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
  * @extends {BaseAPI}
  */
 export class JobServiceApi extends BaseAPI {
+    /**
+     * 
+     * @param {} body 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof JobServiceApi
+     */
+    public createJob(body: ApiJob, options?: any) {
+        return JobServiceApiFp(this.configuration).createJob(body, options)(this.fetch, this.basePath);
+    }
+
     /**
      * 
      * @param {} id 
@@ -1006,13 +942,18 @@ export class JobServiceApi extends BaseAPI {
 
     /**
      * 
-     * @param {} body 
+     * @param {} [page_token] 
+     * @param {} [page_size] 
+     * @param {} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @param {} [resource_reference_key_type] The type of the resource that referred to.
+     * @param {} [resource_reference_key_id] The ID of the resource that referred to.
+     * @param {} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobServiceApi
      */
-    public listJobs(body: ApiListJobsRequest, options?: any) {
-        return JobServiceApiFp(this.configuration).listJobs(body, options)(this.fetch, this.basePath);
+    public listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any) {
+        return JobServiceApiFp(this.configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options)(this.fetch, this.basePath);
     }
 
 }

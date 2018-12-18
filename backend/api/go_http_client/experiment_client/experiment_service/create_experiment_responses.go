@@ -30,24 +30,24 @@ import (
 	experiment_model "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 )
 
-// ListExperimentReader is a Reader for the ListExperiment structure.
-type ListExperimentReader struct {
+// CreateExperimentReader is a Reader for the CreateExperiment structure.
+type CreateExperimentReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *ListExperimentReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *CreateExperimentReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewListExperimentOK()
+		result := NewCreateExperimentOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
 
 	default:
-		result := NewListExperimentDefault(response.Code())
+		result := NewCreateExperimentDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -58,26 +58,26 @@ func (o *ListExperimentReader) ReadResponse(response runtime.ClientResponse, con
 	}
 }
 
-// NewListExperimentOK creates a ListExperimentOK with default headers values
-func NewListExperimentOK() *ListExperimentOK {
-	return &ListExperimentOK{}
+// NewCreateExperimentOK creates a CreateExperimentOK with default headers values
+func NewCreateExperimentOK() *CreateExperimentOK {
+	return &CreateExperimentOK{}
 }
 
-/*ListExperimentOK handles this case with default header values.
+/*CreateExperimentOK handles this case with default header values.
 
 A successful response.
 */
-type ListExperimentOK struct {
-	Payload *experiment_model.APIListExperimentsResponse
+type CreateExperimentOK struct {
+	Payload *experiment_model.APIExperiment
 }
 
-func (o *ListExperimentOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/experiments][%d] listExperimentOK  %+v", 200, o.Payload)
+func (o *CreateExperimentOK) Error() string {
+	return fmt.Sprintf("[POST /apis/v1beta1/experiments][%d] createExperimentOK  %+v", 200, o.Payload)
 }
 
-func (o *ListExperimentOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CreateExperimentOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.APIListExperimentsResponse)
+	o.Payload = new(experiment_model.APIExperiment)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,33 +87,33 @@ func (o *ListExperimentOK) readResponse(response runtime.ClientResponse, consume
 	return nil
 }
 
-// NewListExperimentDefault creates a ListExperimentDefault with default headers values
-func NewListExperimentDefault(code int) *ListExperimentDefault {
-	return &ListExperimentDefault{
+// NewCreateExperimentDefault creates a CreateExperimentDefault with default headers values
+func NewCreateExperimentDefault(code int) *CreateExperimentDefault {
+	return &CreateExperimentDefault{
 		_statusCode: code,
 	}
 }
 
-/*ListExperimentDefault handles this case with default header values.
+/*CreateExperimentDefault handles this case with default header values.
 
-ListExperimentDefault list experiment default
+CreateExperimentDefault create experiment default
 */
-type ListExperimentDefault struct {
+type CreateExperimentDefault struct {
 	_statusCode int
 
 	Payload *experiment_model.APIStatus
 }
 
-// Code gets the status code for the list experiment default response
-func (o *ListExperimentDefault) Code() int {
+// Code gets the status code for the create experiment default response
+func (o *CreateExperimentDefault) Code() int {
 	return o._statusCode
 }
 
-func (o *ListExperimentDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/experiments][%d] ListExperiment default  %+v", o._statusCode, o.Payload)
+func (o *CreateExperimentDefault) Error() string {
+	return fmt.Sprintf("[POST /apis/v1beta1/experiments][%d] CreateExperiment default  %+v", o._statusCode, o.Payload)
 }
 
-func (o *ListExperimentDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *CreateExperimentDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(experiment_model.APIStatus)
 
