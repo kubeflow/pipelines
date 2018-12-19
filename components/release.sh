@@ -15,7 +15,8 @@
 # limitations under the License.
 
 # This script automated the process to release the component images.
-# To run it, provide a full github COMMIT SHA. E.g.
+# To run it, find a good release candidate commit SHA from ml-pipeline-staging project,
+# and provide a full github COMMIT SHA to the script. E.g.
 # ./release.sh 2118baf752d3d30a8e43141165e13573b20d85b8
 # The script copies the images from staging to prod, and update the local code.
 # You can then send a PR using your local branch.
