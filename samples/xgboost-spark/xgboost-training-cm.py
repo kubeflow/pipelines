@@ -153,11 +153,12 @@ class RocOp(dsl.ContainerOp):
   def __init__(self, name, predictions, trueclass, output):
     super(RocOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:0.1.4', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:dev', #TODO-release: update the release tag for the next release
       arguments=[
         '--output', output,
         '--predictions', predictions,
-        '--trueclass', trueclass
+        '--trueclass', trueclass,
+        '--true_score_column', trueclass,
      ])
 
 # =======================================================================
@@ -169,14 +170,14 @@ class RocOp(dsl.ContainerOp):
 def xgb_train_pipeline(
     output,
     project,
-    region=dsl.PipelineParam('region', value='us-central1'),
-    train_data=dsl.PipelineParam('train-data', value='gs://ml-pipeline-playground/sfpd/train.csv'),
-    eval_data=dsl.PipelineParam('eval-data', value='gs://ml-pipeline-playground/sfpd/eval.csv'),
-    schema=dsl.PipelineParam('schema', value='gs://ml-pipeline-playground/sfpd/schema.json'),
-    target=dsl.PipelineParam('target', value='resolution'),
-    rounds=dsl.PipelineParam('rounds', value=200),
-    workers=dsl.PipelineParam('workers', value=2),
-    true_label=dsl.PipelineParam('true-label', value='ACTION'),
+    region='us-central1',
+    train_data='gs://ml-pipeline-playground/sfpd/train.csv',
+    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
+    schema='gs://ml-pipeline-playground/sfpd/schema.json',
+    target='resolution',
+    rounds=200,
+    workers=2,
+    true_label='ACTION',
 ):
   delete_cluster_op = DeleteClusterOp('delete-cluster', project, region).apply(gcp.use_gcp_secret('user-gcp-sa'))
   with dsl.ExitHandler(exit_op=delete_cluster_op):
