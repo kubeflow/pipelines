@@ -152,8 +152,8 @@ func (c *RunClient) Unarchive(parameters *params.UnarchiveRunParams) error {
 		}
 
 		return util.NewUserError(err,
-			fmt.Sprintf("Failed to archive runs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to archive runs"))
+			fmt.Sprintf("Failed to unarchive runs. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to unarchive runs"))
 	}
 
 	return nil
