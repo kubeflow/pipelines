@@ -3,6 +3,7 @@ FROM golang:alpine as builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
+# Needed for github.com/mattn/go-sqlite3
 RUN apk add --no-cache gcc musl-dev
 RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 
