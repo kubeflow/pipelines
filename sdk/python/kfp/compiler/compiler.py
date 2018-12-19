@@ -14,16 +14,12 @@
 
 
 from collections import defaultdict
-import copy
 import inspect
 import re
-import string
 import tarfile
-import tempfile
 import yaml
 
 from .. import dsl
-
 
 class Compiler(object):
   """DSL Compiler. 
@@ -42,9 +38,17 @@ class Compiler(object):
   """
 
   def _sanitize_name(self, name):
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-') #from _make_kubernetes_name
+    """From _make_kubernetes_name
+    _sanitize_name cleans and converts the names in the workflow.
+    """
+    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
-  def _param_full_name(self, param):
+  def _pipelineparam_full_name(self, param):
+    """_pipelineparam_full_name
+
+    Args:
+      param(PipelineParam): pipeline parameter
+      """
     if param.op_name:
       return param.op_name + '-' + param.name
     return self._sanitize_name(param.name)
@@ -79,12 +83,12 @@ class Compiler(object):
       for i, _ in enumerate(processed_args):
         if op.argument_inputs:
           for param in op.argument_inputs:
-            full_name = self._param_full_name(param)
+            full_name = self._pipelineparam_full_name(param)
             processed_args[i] = re.sub(str(param), '{{inputs.parameters.%s}}' % full_name,
                                        processed_args[i])
     input_parameters = []
     for param in op.inputs:
-      one_parameter = {'name': self._param_full_name(param)}
+      one_parameter = {'name': self._pipelineparam_full_name(param)}
       if param.value:
         one_parameter['value'] = str(param.value)
       input_parameters.append(one_parameter)
@@ -94,7 +98,7 @@ class Compiler(object):
     output_parameters = []
     for param in op.outputs.values():
       output_parameters.append({
-          'name': self._param_full_name(param),
+          'name': self._pipelineparam_full_name(param),
           'valueFrom': {'path': op.file_outputs[param.name]}
       })
     output_parameters.sort(key=lambda x: x['name'])
@@ -222,7 +226,7 @@ class Compiler(object):
         if param.value:
           continue
 
-        full_name = self._param_full_name(param)
+        full_name = self._pipelineparam_full_name(param)
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
           upstream_groups, downstream_groups = self._get_uncommon_ancestors(
@@ -297,10 +301,16 @@ class Compiler(object):
         dependencies[downstream_groups[0]].add(upstream_groups[0])
     return dependencies
 
-  def _resolve_value_or_reference(self, value_or_reference, inputs):
+  def _resolve_value_or_reference(self, value_or_reference, potential_references):
+    """_resolve_value_or_reference resolves values and PipelineParams, which could be task parameters or input parameters.
+
+    Args:
+      value_or_reference: value or reference to be resolved. It could be basic python types or PipelineParam
+      potential_references(dict{str->str}): a dictionary of parameter names to task names
+      """
     if isinstance(value_or_reference, dsl.PipelineParam):
-      parameter_name = self._param_full_name(value_or_reference)
-      task_names = [task_name for param_name, task_name in inputs if param_name == parameter_name]
+      parameter_name = self._pipelineparam_full_name(value_or_reference)
+      task_names = [task_name for param_name, task_name in potential_references if param_name == parameter_name]
       if task_names:
         task_name = task_names[0]
         return '{{tasks.%s.outputs.parameters.%s}}' % (task_name, parameter_name)
@@ -381,7 +391,6 @@ class Compiler(object):
     template['dag'] = {'tasks': tasks}
     return template     
 
-    
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
@@ -418,6 +427,7 @@ class Compiler(object):
   def _create_pipeline_workflow(self, args, pipeline):
     """Create workflow for the pipeline."""
 
+    # Input Parameters
     input_params = []
     for arg in args:
       param = {'name': arg.name}
@@ -425,16 +435,21 @@ class Compiler(object):
         param['value'] = str(arg.value)
       input_params.append(param)
 
+    # Templates
     templates = self._create_templates(pipeline)
     templates.sort(key=lambda x: x['name'])
 
+    # Exit Handler
     exit_handler = None
     if pipeline.groups[0].groups:
       first_group = pipeline.groups[0].groups[0]
       if first_group.type == 'exit_handler':
         exit_handler = first_group.exit_op
 
+    # Volumes
     volumes = self._create_volumes(pipeline)
+
+    # The whole pipeline workflow
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
