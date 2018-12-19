@@ -32,7 +32,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -247,6 +247,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			UUID:           "workflow1",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 3,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
@@ -284,6 +285,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			UUID:           "workflow1",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
 			Conditions:     "",
 			PipelineSpec: model.PipelineSpec{
@@ -691,6 +693,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		UUID:           "workflow1",
 		DisplayName:    "run1",
 		Name:           "workflow-name",
+		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 		CreatedAtInSec: 2,
 		Conditions:     "Running",
 		PipelineSpec: model.PipelineSpec{
@@ -739,6 +742,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 		Run: model.Run{
 			UUID:             "WORKFLOW_1",
 			DisplayName:      "MY_NAME",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,

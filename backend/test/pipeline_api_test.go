@@ -70,7 +70,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body: &pipeline_model.APIPipeline{Name:"sequential", URL: &pipeline_model.APIURL{
+		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	assert.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)

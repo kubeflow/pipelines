@@ -20,6 +20,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -37,6 +38,12 @@ type RunStoreInterface interface {
 
 	// Update run table. Only condition and runtime manifest is allowed to be updated.
 	UpdateRun(id string, condition string, workflowRuntimeManifest string) (err error)
+
+	// Archive a run
+	ArchiveRun(id string) error
+
+	// Unarchive a run
+	UnarchiveRun(id string) error
 
 	// Delete a run entry from the database
 	DeleteRun(id string) error
@@ -165,15 +172,29 @@ func (s *RunStore) selectRunDetails() sq.SelectBuilder {
 func (s *RunStore) scanRows(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
-		var uuid, displayName, name, namespace, description, pipelineId, pipelineSpecManifest, workflowSpecManifest,
-			parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
+		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineSpecManifest,
+			workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
-			&uuid, &displayName, &name, &namespace, &description, &createdAtInSec, &scheduledAtInSec,
-			&conditions, &pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
-			&pipelineRuntimeManifest, &workflowRuntimeManifest,
-			&metricsInString, &resourceReferencesInString)
+			&uuid,
+			&displayName,
+			&name,
+			&storageState,
+			&namespace,
+			&description,
+			&createdAtInSec,
+			&scheduledAtInSec,
+			&conditions,
+			&pipelineId,
+			&pipelineSpecManifest,
+			&workflowSpecManifest,
+			&parameters,
+			&pipelineRuntimeManifest,
+			&workflowRuntimeManifest,
+			&metricsInString,
+			&resourceReferencesInString,
+		)
 		if err != nil {
 			glog.Errorf("Failed to scan row: %v", err)
 			return runs, nil
@@ -194,6 +215,7 @@ func (s *RunStore) scanRows(rows *sql.Rows) ([]*model.RunDetail, error) {
 			UUID:               uuid,
 			DisplayName:        displayName,
 			Name:               name,
+			StorageState:       storageState,
 			Namespace:          namespace,
 			Description:        description,
 			CreatedAtInSec:     createdAtInSec,
@@ -238,12 +260,20 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 }
 
 func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
+	if r.StorageState == "" {
+		r.StorageState = api.Run_STORAGESTATE_AVAILABLE.String()
+	} else if r.StorageState != api.Run_STORAGESTATE_AVAILABLE.String() &&
+		r.StorageState != api.Run_STORAGESTATE_ARCHIVED.String() {
+		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", r.StorageState)
+	}
+
 	runSql, runArgs, err := sq.
 		Insert("run_details").
 		SetMap(sq.Eq{
 			"UUID":                    r.UUID,
 			"DisplayName":             r.DisplayName,
 			"Name":                    r.Name,
+			"StorageState":            r.StorageState,
 			"Namespace":               r.Namespace,
 			"Description":             r.Description,
 			"CreatedAtInSec":          r.CreatedAtInSec,
@@ -320,6 +350,52 @@ func (s *RunStore) CreateOrUpdateRun(runDetail *model.RunDetail) error {
 			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
 			runDetail.Namespace, runDetail.Name, createError.Error(), updateError.Error()))
 	}
+	return nil
+}
+
+func (s *RunStore) ArchiveRun(runId string) error {
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to archive run %s. error: '%v'", runId, err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to archive run %s. error: '%v'", runId, err.Error())
+	}
+
+	return nil
+}
+
+func (s *RunStore) UnarchiveRun(runId string) error {
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to unarchive run %s. error: '%v'", runId, err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to unarchive run %s. error: '%v'", runId, err.Error())
+	}
+
 	return nil
 }
 
