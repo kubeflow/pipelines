@@ -171,6 +171,8 @@ elif [ "$TEST_NAME" == "tfx" ]; then
   sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.py
   sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.py
   sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.py
+   sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" taxi-cab-classification-pipeline.py
+  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" taxi-cab-classification-pipeline.py
 
   dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
   cd "${TEST_DIR}"
@@ -307,6 +309,7 @@ elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   export LANG=C.UTF-8
   papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
   jupyter nbconvert --to python notebook-lightweight.ipynb
+  pip3 install tensorflow==1.8.0
   ipython notebook-lightweight.py
   cd "${TEST_DIR}"
   python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE}
