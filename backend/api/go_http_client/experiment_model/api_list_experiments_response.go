@@ -32,6 +32,9 @@ import (
 // swagger:model apiListExperimentsResponse
 type APIListExperimentsResponse struct {
 
+	// count
+	Count int32 `json:"count,omitempty"`
+
 	// experiments
 	Experiments []*APIExperiment `json:"experiments"`
 
