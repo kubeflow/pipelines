@@ -20,6 +20,7 @@ import tarfile
 import yaml
 
 from .. import dsl
+from ._k8s_helper import K8sHelper
 
 class Compiler(object):
   """DSL Compiler. 
@@ -144,9 +145,9 @@ class Compiler(object):
       template['nodeSelector'] = op.node_selector
 
     if op.env_variables:
-      template['container']['env'] = list(map(self._convert_k8s_obj_to_dic, op.env_variables))
+      template['container']['env'] = list(map(K8sHelper.convert_k8s_obj_to_json, op.env_variables))
     if op.volume_mounts:
-      template['container']['volumeMounts'] = list(map(self._convert_k8s_obj_to_dic, op.volume_mounts))
+      template['container']['volumeMounts'] = list(map(K8sHelper.convert_k8s_obj_to_json, op.volume_mounts))
 
     if op.pod_annotations or op.pod_labels:
       template['metadata'] = {}
@@ -420,7 +421,7 @@ class Compiler(object):
           #TODO: check for duplicity based on the serialized volumes instead of just name.
           if v.name not in volume_name_set:
             volume_name_set.add(v.name)
-            volumes.append(self._convert_k8s_obj_to_dic(v))
+            volumes.append(K8sHelper.convert_k8s_obj_to_json(v))
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
@@ -517,54 +518,6 @@ class Compiler(object):
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
-
-  def _convert_k8s_obj_to_dic(self, obj):
-    """
-    Builds a JSON K8s object.
-
-    If obj is None, return None.
-    If obj is str, int, long, float, bool, return directly.
-    If obj is datetime.datetime, datetime.date
-        convert to string in iso8601 format.
-    If obj is list, sanitize each element in the list.
-    If obj is dict, return the dict.
-    If obj is swagger model, return the properties dict.
-
-    Args:
-      obj: The data to serialize.
-    Returns: The serialized form of data.
-    """
-
-    from six import text_type, integer_types, iteritems
-    PRIMITIVE_TYPES = (float, bool, bytes, text_type) + integer_types
-    from datetime import date, datetime
-    if obj is None:
-      return None
-    elif isinstance(obj, PRIMITIVE_TYPES):
-      return obj
-    elif isinstance(obj, list):
-      return [self._convert_k8s_obj_to_dic(sub_obj)
-              for sub_obj in obj]
-    elif isinstance(obj, tuple):
-      return tuple(self._convert_k8s_obj_to_dic(sub_obj)
-                   for sub_obj in obj)
-    elif isinstance(obj, (datetime, date)):
-      return obj.isoformat()
-
-    if isinstance(obj, dict):
-      obj_dict = obj
-    else:
-      # Convert model obj to dict except
-      # attributes `swagger_types`, `attribute_map`
-      # and attributes which value is not None.
-      # Convert attribute name to json key in
-      # model definition for request.
-      obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
-                  for attr, _ in iteritems(obj.swagger_types)
-                  if getattr(obj, attr) is not None}
-
-    return {key: self._convert_k8s_obj_to_dic(val)
-            for key, val in iteritems(obj_dict)}
 
   def compile(self, pipeline_func, package_path):
     """Compile the given pipeline function into workflow yaml.
