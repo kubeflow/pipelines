@@ -25,56 +25,56 @@ class CreateClusterOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, staging):
     super(CreateClusterOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:2118baf752d3d30a8e43141165e13573b20d85b8',
-      arguments=[
+        name=name,
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:2118baf752d3d30a8e43141165e13573b20d85b8',
+        arguments=[
           '--project', project,
           '--region', region,
           '--name', 'xgb-{{workflow.name}}',
           '--staging', staging
-     ],
-     file_outputs={'output': '/output.txt'})
+        ],
+        file_outputs={'output': '/output.txt'})
 
 
 class DeleteClusterOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region):
     super(DeleteClusterOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:2118baf752d3d30a8e43141165e13573b20d85b8',
-      arguments=[
+        name=name,
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:2118baf752d3d30a8e43141165e13573b20d85b8',
+        arguments=[
           '--project', project,
           '--region', region,
           '--name', 'xgb-{{workflow.name}}',
-      ],
-      is_exit_handler=True)
+        ],
+        is_exit_handler=True)
 
 
 class AnalyzeOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, cluster_name, schema, train_data, output):
     super(AnalyzeOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:2118baf752d3d30a8e43141165e13573b20d85b8',
-      arguments=[
+        name=name,
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:2118baf752d3d30a8e43141165e13573b20d85b8',
+        arguments=[
           '--project', project,
           '--region', region,
           '--cluster', cluster_name,
           '--schema', schema,
           '--train', train_data,
           '--output', output,
-     ],
-     file_outputs={'output': '/output.txt'})
+        ],
+        file_outputs={'output': '/output.txt'})
 
 
 class TransformOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, cluster_name, train_data, eval_data,
-               target, analysis, output):
+      target, analysis, output):
     super(TransformOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:2118baf752d3d30a8e43141165e13573b20d85b8',
-      arguments=[
+        name=name,
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:2118baf752d3d30a8e43141165e13573b20d85b8',
+        arguments=[
           '--project', project,
           '--region', region,
           '--cluster', cluster_name,
@@ -83,23 +83,23 @@ class TransformOp(dsl.ContainerOp):
           '--analysis', analysis,
           '--target', target,
           '--output', output,
-     ],
-     file_outputs={'train': '/output_train.txt', 'eval': '/output_eval.txt'})
+        ],
+        file_outputs={'train': '/output_train.txt', 'eval': '/output_eval.txt'})
 
 
 class TrainerOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, cluster_name, train_data, eval_data,
-               target, analysis, workers, rounds, output, is_classification=True):
+      target, analysis, workers, rounds, output, is_classification=True):
     if is_classification:
       config='gs://ml-pipeline-playground/trainconfcla.json'
     else:
       config='gs://ml-pipeline-playground/trainconfreg.json'
 
     super(TrainerOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:2118baf752d3d30a8e43141165e13573b20d85b8',
-      arguments=[
+        name=name,
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:2118baf752d3d30a8e43141165e13573b20d85b8',
+        arguments=[
           '--project', project,
           '--region', region,
           '--cluster', cluster_name,
@@ -112,17 +112,17 @@ class TrainerOp(dsl.ContainerOp):
           '--rounds', rounds,
           '--conf', config,
           '--output', output,
-      ],
-      file_outputs={'output': '/output.txt'})
+        ],
+        file_outputs={'output': '/output.txt'})
 
 
 class PredictOp(dsl.ContainerOp):
 
   def __init__(self, name, project, region, cluster_name, data, model, target, analysis, output):
     super(PredictOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:2118baf752d3d30a8e43141165e13573b20d85b8',
-      arguments=[
+        name=name,
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:2118baf752d3d30a8e43141165e13573b20d85b8',
+        arguments=[
           '--project', project,
           '--region', region,
           '--cluster', cluster_name,
@@ -132,51 +132,52 @@ class PredictOp(dsl.ContainerOp):
           '--package', 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
           '--model', model,
           '--output', output,
-      ],
-      file_outputs={'output': '/output.txt'})
+        ],
+        file_outputs={'output': '/output.txt'})
 
 
 class ConfusionMatrixOp(dsl.ContainerOp):
 
   def __init__(self, name, predictions, output):
     super(ConfusionMatrixOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:2118baf752d3d30a8e43141165e13573b20d85b8',
-      arguments=[
-        '--output', output,
-        '--predictions', predictions
-     ])
+        name=name,
+        image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:2118baf752d3d30a8e43141165e13573b20d85b8',
+        arguments=[
+          '--output', output,
+          '--predictions', predictions
+        ])
 
 
 class RocOp(dsl.ContainerOp):
 
   def __init__(self, name, predictions, trueclass, output):
     super(RocOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:2118baf752d3d30a8e43141165e13573b20d85b8',
-      arguments=[
-        '--output', output,
-        '--predictions', predictions,
-        '--trueclass', trueclass
-     ])
+        name=name,
+        image='gcr.io/ml-pipeline/ml-pipeline-local-roc:dev', #TODO-release: update the release tag for the next release
+        arguments=[
+          '--output', output,
+          '--predictions', predictions,
+          '--trueclass', trueclass,
+          '--true_score_column', trueclass,
+        ])
 
 # =======================================================================
 
 @dsl.pipeline(
-  name='XGBoost Trainer',
-  description='A trainer that does end-to-end distributed training for XGBoost models.'
+    name='XGBoost Trainer',
+    description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
     output,
     project,
-    region=dsl.PipelineParam('region', value='us-central1'),
-    train_data=dsl.PipelineParam('train-data', value='gs://ml-pipeline-playground/sfpd/train.csv'),
-    eval_data=dsl.PipelineParam('eval-data', value='gs://ml-pipeline-playground/sfpd/eval.csv'),
-    schema=dsl.PipelineParam('schema', value='gs://ml-pipeline-playground/sfpd/schema.json'),
-    target=dsl.PipelineParam('target', value='resolution'),
-    rounds=dsl.PipelineParam('rounds', value=200),
-    workers=dsl.PipelineParam('workers', value=2),
-    true_label=dsl.PipelineParam('true-label', value='ACTION'),
+    region='us-central1',
+    train_data='gs://ml-pipeline-playground/sfpd/train.csv',
+    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
+    schema='gs://ml-pipeline-playground/sfpd/schema.json',
+    target='resolution',
+    rounds=200,
+    workers=2,
+    true_label='ACTION',
 ):
   delete_cluster_op = DeleteClusterOp('delete-cluster', project, region).apply(gcp.use_gcp_secret('user-gcp-sa'))
   with dsl.ExitHandler(exit_op=delete_cluster_op):
