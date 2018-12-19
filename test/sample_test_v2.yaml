@@ -131,7 +131,7 @@ spec:
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-create-cluster-image-suffix}}"
           - name: build-script
-            value: components/dataproc/containers/create_cluster/build.sh
+            value: components/dataproc/create_cluster/build_image.sh
       - name: build-dataproc-delete-cluster-image
         template: build-image-by-script
         arguments:
@@ -139,7 +139,7 @@ spec:
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-delete-cluster-image-suffix}}"
           - name: build-script
-            value: components/dataproc/containers/delete_cluster/build.sh
+            value: components/dataproc/delete_cluster/build_image.sh
       - name: build-dataproc-analyze-image
         template: build-image-by-script
         arguments:
@@ -147,7 +147,7 @@ spec:
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-analyze-image-suffix}}"
           - name: build-script
-            value: components/dataproc/containers/analyze/build.sh
+            value: components/dataproc/analyze/build_image.sh
       - name: build-dataproc-transform-image
         template: build-image-by-script
         arguments:
@@ -155,7 +155,7 @@ spec:
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-transform-image-suffix}}"
           - name: build-script
-            value: components/dataproc/containers/transform/build.sh
+            value: components/dataproc/transform/build_image.sh
       - name: build-dataproc-train-image
         template: build-image-by-script
         arguments:
@@ -163,7 +163,7 @@ spec:
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-train-image-suffix}}"
           - name: build-script
-            value: components/dataproc/containers/train/build.sh
+            value: components/dataproc/train/build_image.sh
       - name: build-dataproc-predict-image
         template: build-image-by-script
         arguments:
@@ -171,7 +171,7 @@ spec:
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.dataproc-predict-image-suffix}}"
           - name: build-script
-            value: components/dataproc/containers/predict/build.sh
+            value: components/dataproc/predict/build_image.sh
       - name: build-kubeflow-dnntrainer-image
         template: build-image-by-script
         arguments:

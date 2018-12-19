@@ -24,16 +24,16 @@ import (
 	"net/http"
 	"time"
 
+	"fmt"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"os"
-	"github.com/pkg/errors"
-	"fmt"
 )
 
 var (
@@ -52,10 +52,17 @@ func main() {
 	initConfig()
 	clientManager := newClientManager()
 	resourceManager := resource.NewResourceManager(&clientManager)
-	err:= loadSamples(resourceManager)
-	if err!=nil{
-		glog.Fatalf("Failed to load samples. Err: %v", err.Error())
+
+	// If sample config path is not empty, this is a one time job to load samples to the system
+	// Load samples and terminate.
+	if *sampleConfigPath != "" {
+		err := loadSamples(resourceManager)
+		if err != nil {
+			glog.Fatalf("Failed to load samples. Err: %v", err.Error())
+		}
+		return
 	}
+
 	go startRpcServer(resourceManager)
 	startHttpProxy(resourceManager)
 
@@ -137,20 +144,20 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		File        string
 	}
 	var configs []config
-	if err:= json.Unmarshal(configBytes, &configs);err != nil {
+	if err := json.Unmarshal(configBytes, &configs); err != nil {
 		return errors.New(fmt.Sprintf("Failed to read sample configurations. Err: %v", err.Error()))
 	}
 	for _, config := range configs {
-		reader, err:= os.Open(config.File)
+		reader, err := os.Open(config.File)
 		if err != nil {
 			return errors.New(fmt.Sprintf("Failed to load sample %s. Error: %v", config.Name, err.Error()))
 		}
 		pipelineFile, err := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
-		if err!=nil{
+		if err != nil {
 			return errors.New(fmt.Sprintf("Failed to decompress the file %s. Error: %v", config.Name, err.Error()))
 		}
 		_, err = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
-		if err!=nil{
+		if err != nil {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
 			// In the future, we might consider loading samples during deployment, instead of when API server starts.
 			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error()))
@@ -159,7 +166,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 
 		// Since the default sorting is by create time,
 		// Sleep one second makes sure the samples are showing up in the same order as they are added.
-		time.Sleep(1*time.Second)
+		time.Sleep(1 * time.Second)
 	}
 	glog.Info("All samples are loaded.")
 	return nil

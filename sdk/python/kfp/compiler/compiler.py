@@ -403,10 +403,15 @@ class Compiler(object):
   def _create_volumes(self, pipeline):
     """Create volumes required for the templates"""
     volumes = []
+    volume_name_set = set()
     for op in pipeline.ops.values():
       if op.volumes:
         for v in op.volumes:
-          volumes.append(self._convert_k8s_obj_to_dic(v))
+          # Remove volume duplicates which have the same name
+          #TODO: check for duplicity based on the serialized volumes instead of just name.
+          if v.name not in volume_name_set:
+            volume_name_set.add(v.name)
+            volumes.append(self._convert_k8s_obj_to_dic(v))
     volumes.sort(key=lambda x: x['name'])
     return volumes
 

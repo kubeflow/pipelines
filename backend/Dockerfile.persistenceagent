@@ -1,13 +1,5 @@
 FROM golang:alpine as builder
 
-RUN apk add --no-cache curl git
-RUN curl -fsSL -o /bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 && chmod +x /bin/dep
-
-
-# Download and install the latest release of dep
-ADD https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 /usr/bin/dep
-RUN chmod +x /usr/bin/dep
-
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
@@ -15,12 +7,11 @@ COPY . .
 RUN apk add --update gcc musl-dev
 RUN go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 
-FROM alpine
+FROM alpine:3.8
 WORKDIR /bin
 
 COPY --from=builder /bin/persistence_agent /bin/persistence_agent
 COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.txt /bin/license.txt
-RUN chmod +x /bin/persistence_agent
 
 CMD persistence_agent \
   --alsologtostderr=true

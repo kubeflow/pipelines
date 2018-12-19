@@ -283,7 +283,6 @@ const runs: ApiRunDetail[] = [
         }
       ],
       name: 'coinflip-recursive-run-lknlfs3',
-      namespace: 'namespace',
       pipeline_spec: {
         parameters: [
           { name: 'paramName1', value: 'paramVal1' },
@@ -332,7 +331,6 @@ const runs: ApiRunDetail[] = [
         }
       ],
       name: 'coinflip-error-nklng2',
-      namespace: 'namespace',
       pipeline_spec: {
         parameters: [
           { name: 'paramName1', value: 'paramVal1' },
@@ -365,7 +363,6 @@ const runs: ApiRunDetail[] = [
         number_value: 0.5423,
       }],
       name: 'hello-world-7sm94',
-      namespace: 'namespace',
       pipeline_spec: {
         parameters: [
           { name: 'paramName1', value: 'paramVal1' },
@@ -398,7 +395,6 @@ const runs: ApiRunDetail[] = [
         number_value: 0.43,
       }],
       name: 'hello-world-with-steps-kajnkv4',
-      namespace: 'namespace',
       pipeline_spec: {
         parameters: [
           { name: 'paramName1', value: 'paramVal1' },
@@ -438,7 +434,6 @@ const runs: ApiRunDetail[] = [
         },
       ],
       name: 'xgboost-evaluation-asdlk2',
-      namespace: 'namespace',
       pipeline_spec: {
         parameters: [
           { name: 'paramName1', value: 'paramVal1' },
@@ -486,7 +481,6 @@ const runs: ApiRunDetail[] = [
       ],
       name: 'xgboost-run-with-a-veeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeery-' +
         'loooooooooooooooooooooooooooong-name-aifk298',
-      namespace: 'namespace',
       pipeline_spec: {
         parameters: [
           { name: 'paramName1', value: 'paramVal1' },
@@ -526,7 +520,6 @@ const runs: ApiRunDetail[] = [
         }
       ],
       name: 'hello-world-with-pipeline',
-      namespace: 'namespace',
       pipeline_spec: {
         parameters: [
           { name: 'paramName1', value: 'paramVal1' },
@@ -600,7 +593,6 @@ function generateNRuns(): ApiRunDetail[] {
           },
         ],
         name: 'dummy-coinflip-recursive-asdlx' + i,
-        namespace: 'namespace',
         pipeline_spec: {
           parameters: [
             { name: 'paramName1', value: 'paramVal1' },

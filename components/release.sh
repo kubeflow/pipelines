@@ -58,5 +58,6 @@ do
   ${FROM_GCR_PREFIX}${image}:${COMMIT_SHA} ${TARGET_IMAGE}
 
   # Update the code
-  find "${PARENT_PATH}/../samples" -name '*.py' -type f -exec sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" {} \;
+  find "${PARENT_PATH}/../samples" -type f -exec sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" {} \;
+  find "${PARENT_PATH}" -type f -exec sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" {} \;
 done

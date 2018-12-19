@@ -32,6 +32,11 @@ type PipelineApiTest struct {
 
 // Check the namespace have ML job installed and ready
 func (s *PipelineApiTest) SetupTest() {
+	if !*runIntegrationTests {
+		s.T().SkipNow()
+		return
+	}
+
 	err := waitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
