@@ -32,6 +32,9 @@ import (
 // swagger:model apiListPipelinesResponse
 type APIListPipelinesResponse struct {
 
+	// count
+	Count int32 `json:"count,omitempty"`
+
 	// next page token
 	NextPageToken string `json:"next_page_token,omitempty"`
 
