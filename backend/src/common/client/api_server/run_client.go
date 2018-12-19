@@ -16,9 +16,11 @@ import (
 )
 
 type RunInterface interface {
+	Archive(params *params.ArchiveRunParams) error
 	Get(params *params.GetRunParams) (*model.APIRunDetail, *workflowapi.Workflow, error)
 	List(params *params.ListRunsParams) ([]*model.APIRun, string, error)
 	ListAll(params *params.ListRunsParams, maxResultSize int) ([]*model.APIRun, error)
+	Unarchive(params *params.UnarchiveRunParams) error
 }
 
 type RunClient struct {
@@ -107,6 +109,54 @@ func (c *RunClient) Get(parameters *params.GetRunParams) (*model.APIRunDetail,
 	}
 
 	return response.Payload, &workflow, nil
+}
+
+func (c *RunClient) Archive(parameters *params.ArchiveRunParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.RunService.ArchiveRun(parameters, PassThroughAuth)
+
+	if err != nil {
+		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to archive runs. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to archive runs"))
+	}
+
+	return nil
+}
+
+func (c *RunClient) Unarchive(parameters *params.UnarchiveRunParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.RunService.UnarchiveRun(parameters, PassThroughAuth)
+
+	if err != nil {
+		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to unarchive runs. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to unarchive runs"))
+	}
+
+	return nil
 }
 
 func (c *RunClient) Delete(parameters *params.DeleteRunParams) error {

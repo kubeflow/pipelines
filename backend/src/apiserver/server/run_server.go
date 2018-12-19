@@ -73,6 +73,22 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	return &api.ListRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
 }
 
+func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.ArchiveRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.UnarchiveRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
 func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
 	err := s.resourceManager.DeleteRun(request.Id)
 	if err != nil {

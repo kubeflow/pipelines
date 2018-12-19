@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -159,6 +160,20 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, "hello world", runs[0].Name)
+
+	/* ---------- Archive a run ------------*/
+	err = s.runClient.Archive(&runparams.ArchiveRunParams{
+		ID: helloWorldRunDetail.Run.ID,
+	})
+
+	/* ---------- List runs for hello world experiment. The same run should still be returned, but should be archived ---------- */
+	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, "hello world", runs[0].Name)
+	assert.Equal(t, string(runs[0].StorageState), api.Run_STORAGESTATE_ARCHIVED.String())
 
 	/* ---------- Clean up ---------- */
 	deleteAllExperiments(s.experimentClient, t)
