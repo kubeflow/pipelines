@@ -81,13 +81,13 @@ service RunService {
 
   rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/runs/{id}"
+      post: "/apis/v1beta1/runs/{id}:archive"
     };
   }
 
   rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/runs/{id}"
+      post: "/apis/v1beta1/runs/{id}:unarchive"
     };
   }
 

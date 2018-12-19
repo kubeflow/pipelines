@@ -137,7 +137,39 @@
         "tags": [
           "RunService"
         ]
-      },
+      }
+    },
+    "/apis/v1beta1/runs/{id}:archive": {
+      "post": {
+        "operationId": "ArchiveRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/protobufEmpty"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
         "operationId": "UnarchiveRun",
         "responses": {
