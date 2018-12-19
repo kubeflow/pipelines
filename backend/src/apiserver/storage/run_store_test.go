@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -38,6 +39,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -58,6 +60,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "2",
 			Name:             "run2",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -80,6 +83,7 @@ func initializeRunStore() (*DB, *RunStore) {
 			Name:             "run3",
 			Namespace:        "n3",
 			CreatedAtInSec:   3,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			ScheduledAtInSec: 3,
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
@@ -111,6 +115,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -127,6 +132,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -166,6 +172,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -182,6 +189,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -221,6 +229,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -236,6 +245,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -257,9 +267,8 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 
 func TestListRunsError(t *testing.T) {
 	db, runStore := initializeRunStore()
-	defer db.Close()
-
 	db.Close()
+
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	_, _, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
@@ -278,6 +287,7 @@ func TestGetRun(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -306,7 +316,6 @@ func TestGetRun_NotFoundError(t *testing.T) {
 
 func TestGetRun_InternalError(t *testing.T) {
 	db, runStore := initializeRunStore()
-	defer db.Close()
 	db.Close()
 
 	_, err := runStore.GetRun("1")
@@ -325,6 +334,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -345,6 +355,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 		Run: model.Run{
 			UUID:             "1",
 			ScheduledAtInSec: 2, // This is will be ignored
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1_done"},
@@ -359,6 +370,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -430,6 +442,7 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 					Relationship:  common.Owner,
 				},
 			},
+			StorageState: api.Run_STORAGESTATE_AVAILABLE.String(),
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow_runtime_spec"},
 	}
@@ -441,7 +454,6 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 
 func TestCreateOrUpdateRun_UpdateNotFound(t *testing.T) {
 	db, runStore := initializeRunStore()
-	defer db.Close()
 	db.Close()
 
 	runDetail := &model.RunDetail{
@@ -453,6 +465,60 @@ func TestCreateOrUpdateRun_UpdateNotFound(t *testing.T) {
 	err := runStore.CreateOrUpdateRun(runDetail)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Error while creating or updating run")
+}
+
+func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	runDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "1000",
+			Name:             "run1",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+
+	run, err := runStore.CreateRun(runDetail)
+	assert.Nil(t, err)
+	assert.Equal(t, run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+}
+
+func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	runDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "1",
+			Name:             "run1",
+			StorageState:     "bad value",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+					Relationship: common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: "workflow1",
+		},
+	}
+
+	_, err := runStore.CreateRun(runDetail)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Invalid value for StorageState field")
 }
 
 func TestUpdateRun_RunNotExist(t *testing.T) {
@@ -561,6 +627,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "running",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -577,6 +644,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -594,6 +662,113 @@ func TestListRuns_WithMetrics(t *testing.T) {
 	runs, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
+}
+
+func TestArchiveRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+	resourceReferenceStore := NewResourceReferenceStore(db)
+	// Check resource reference exists
+	r, err := resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
+
+	// Archive run
+	err = runStore.ArchiveRun("1")
+	assert.Nil(t, err)
+	run, getRunErr := runStore.GetRun("1")
+	assert.Nil(t, getRunErr)
+	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+
+	// Check resource reference wasn't deleted
+	_, err = resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	assert.Nil(t, err)
+}
+
+func TestArchiveRun_InternalError(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	db.Close()
+
+	err := runStore.ArchiveRun("1")
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
+		"Expected archive run to return internal error")
+}
+
+func TestUnarchiveRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+	resourceReferenceStore := NewResourceReferenceStore(db)
+	// Check resource reference exists
+	r, err := resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
+
+	// Archive run
+	err = runStore.ArchiveRun("1")
+	assert.Nil(t, err)
+	run, getRunErr := runStore.GetRun("1")
+	assert.Nil(t, getRunErr)
+	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+
+	// Unarchive it back
+	err = runStore.UnarchiveRun("1")
+	assert.Nil(t, err)
+	run, getRunErr = runStore.GetRun("1")
+	assert.Nil(t, getRunErr)
+	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+
+	// Check resource reference wasn't deleted
+	_, err = resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	assert.Nil(t, err)
+}
+
+func TestUnarchiveRun_InternalError(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	db.Close()
+
+	err := runStore.UnarchiveRun("1")
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
+		"Expected unarchive run to return internal error")
+}
+
+func TestArchiveRun_IncludedInRunList(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Archive run
+	err := runStore.ArchiveRun("1")
+	assert.Nil(t, err)
+	run, getRunErr := runStore.GetRun("1")
+	assert.Nil(t, getRunErr)
+	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
+
+	expectedRuns := []*model.Run{
+		{
+			UUID:             "1",
+			Name:             "run1",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_ARCHIVED.String(),
+			Conditions:       "running",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+					Relationship: common.Creator,
+				},
+			},
+		}}
+	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
+	runs, nextPageToken, err := runStore.ListRuns(
+		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRuns, runs)
+	assert.NotEmpty(t, nextPageToken)
 }
 
 func TestDeleteRun(t *testing.T) {
@@ -620,8 +795,6 @@ func TestDeleteRun(t *testing.T) {
 
 func TestDeleteRun_InternalError(t *testing.T) {
 	db, runStore := initializeRunStore()
-	defer db.Close()
-
 	db.Close()
 
 	err := runStore.DeleteRun("1")

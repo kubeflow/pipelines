@@ -79,6 +79,18 @@ service RunService {
     };
   }
 
+  rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}:archive"
+    };
+  }
+
+  rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}:unarchive"
+    };
+  }
+
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/runs/{id}"
@@ -103,15 +115,15 @@ service RunService {
   }
 }
 
-message CreateRunRequest{
+message CreateRunRequest {
   Run run = 1;
 }
 
-message GetRunRequest{
+message GetRunRequest {
   string run_id = 1;
 }
 
-message ListRunsRequest{
+message ListRunsRequest {
   string page_token = 1;
   int32 page_size = 2;
   // Can be format of "field_name", "field_name asc" or "field_name des"
@@ -131,6 +143,14 @@ message ListRunsResponse {
   string next_page_token = 2;
 }
 
+message ArchiveRunRequest {
+  string id = 1;
+}
+
+message UnarchiveRunRequest {
+  string id = 1;
+}
+
 message DeleteRunRequest {
   string id = 1;
 }
@@ -142,6 +162,13 @@ message Run {
   // Required input field. Name provided by user,
   // or auto generated if run is created by scheduled job. Not unique.
   string name = 2;
+
+  enum StorageState {
+    STORAGESTATE_AVAILABLE = 0;
+    STORAGESTATE_ARCHIVED = 1;
+  }
+
+  StorageState storageState = 10;
 
   // Optional input field. Describing the purpose of the run
   string description = 3;
