@@ -186,6 +186,17 @@ steps:
   id:   'tagTrainerCommitSHA'
   waitFor: ['pullTrainer']
 - name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer-gpu:$COMMIT_SHA']
+  id:   'pullGpuTrainer'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer-gpu:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:$TAG_NAME']
+  id:   'tagGpuTrainerVersionNumber'
+  waitFor: ['pullGpuTrainer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf-trainer-gpu:$COMMIT_SHA', 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:$COMMIT_SHA']
+  id:   'tagGpuTrainerCommitSHA'
+  waitFor: ['pullGpuTrainer']
+- name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-tf:$COMMIT_SHA']
   id:   'pullLauncher'
 - name: 'gcr.io/cloud-builders/docker'
