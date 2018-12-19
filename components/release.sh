@@ -52,10 +52,10 @@ for image in "${images[@]}"
 do
   TARGET_IMAGE_BASE=${TO_GCR_PREFIX}${image}
   TARGET_IMAGE=${TARGET_IMAGE_BASE}:${COMMIT_SHA}
-#
-#  # Move image from staging to prod GCR
-#  gcloud container images add-tag --quiet \
-#  ${FROM_GCR_PREFIX}${image}:${COMMIT_SHA} ${TARGET_IMAGE}
+
+  # Move image from staging to prod GCR
+  gcloud container images add-tag --quiet \
+  ${FROM_GCR_PREFIX}${image}:${COMMIT_SHA} ${TARGET_IMAGE}
 
   # Update the code
   find "${PARENT_PATH}/../samples" -name '*.py' -type f -exec sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" {} \;
