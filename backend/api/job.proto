@@ -124,6 +124,7 @@ message ListJobsRequest{
 
 message ListJobsResponse {
   repeated Job jobs = 1;
+  int32 count = 3;
   string next_page_token = 2;
 }
 
