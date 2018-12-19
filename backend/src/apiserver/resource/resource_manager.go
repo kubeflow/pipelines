@@ -92,7 +92,7 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 }
 
 func (r *ResourceManager) ListExperiments(opts *list.Options) (
-	experiments []*model.Experiment, nextPageToken string, err error) {
+	experiments []*model.Experiment, count int32, nextPageToken string, err error) {
 	return r.experimentStore.ListExperiments(opts)
 }
 
@@ -105,7 +105,7 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 }
 
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
-	pipelines []*model.Pipeline, nextPageToken string, err error) {
+	pipelines []*model.Pipeline, count int32, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(opts)
 }
 
@@ -228,7 +228,8 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
 
-func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, opts *list.Options) (runs []*model.Run, nextPageToken string, err error) {
+func (r *ResourceManager) ListRuns(filterContext *common.FilterContext,
+	opts *list.Options) (runs []*model.Run, count int32, nextPageToken string, err error) {
 	return r.runStore.ListRuns(filterContext, opts)
 }
 
@@ -258,7 +259,8 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	return nil
 }
 
-func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, opts *list.Options) (jobs []*model.Job, nextPageToken string, err error) {
+func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
+	opts *list.Options) (jobs []*model.Job, count int32, nextPageToken string, err error) {
 	return r.jobStore.ListJobs(filterContext, opts)
 }
 

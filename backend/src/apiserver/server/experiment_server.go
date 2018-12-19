@@ -44,12 +44,13 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	experiments, nextPageToken, err := s.resourceManager.ListExperiments(opts)
+	experiments, count, nextPageToken, err := s.resourceManager.ListExperiments(opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List experiments failed.")
 	}
 	return &api.ListExperimentsResponse{
 			Experiments:   ToApiExperiments(experiments),
+			Count:         count,
 			NextPageToken: nextPageToken},
 		nil
 }

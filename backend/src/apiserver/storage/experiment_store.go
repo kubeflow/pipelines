@@ -13,7 +13,7 @@ import (
 )
 
 type ExperimentStoreInterface interface {
-	ListExperiments(opts *list.Options) ([]*model.Experiment, string, error)
+	ListExperiments(opts *list.Options) ([]*model.Experiment, int32, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
@@ -26,33 +26,71 @@ type ExperimentStore struct {
 	resourceReferenceStore *ResourceReferenceStore
 }
 
-func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, string, error) {
-	errorF := func(err error) ([]*model.Experiment, string, error) {
-		return nil, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
+// Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
+// count. The count does not reflect the page size.
+func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, int32, string, error) {
+	errorF := func(err error) ([]*model.Experiment, int32, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 
-	sql, args, err := opts.AddToSelect(sq.Select("*").From("experiments")).ToSql()
+	sqlBuilder := opts.AddFilterToSelect(sq.Select("*").From("experiments"))
+
+	// SQL for row count
+	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	rows, err := s.db.Query(sql, args...)
+	// SQL for row list
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
+		return errorF(err)
+	}
+
+	// Use a transaction to make sure we're returning the count of the same rows queried
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errorF(err)
+	}
+
+	rows, err := tx.Query(rowsSql, rowsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	defer rows.Close()
+
+	countRow, err := tx.Query(countSql, countArgs...)
+	if err != nil {
+		tx.Rollback()
 		return errorF(err)
 	}
 	defer rows.Close()
 
 	exps, err := s.scanRows(rows)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+
+	count, err := s.scanRowToCount(countRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+
+	tx.Commit()
+	if err != nil {
+		tx.Rollback()
 		return errorF(err)
 	}
 
 	if len(exps) <= opts.PageSize {
-		return exps, "", nil
+		return exps, count, "", nil
 	}
 
 	npt, err := opts.NextPageToken(exps[opts.PageSize])
-	return exps[:opts.PageSize], npt, err
+	return exps[:opts.PageSize], count, npt, err
 }
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
@@ -98,6 +136,16 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 		})
 	}
 	return experiments, nil
+}
+
+func (s *ExperimentStore) scanRowToCount(rows *sql.Rows) (int32, error) {
+	var count int32
+	rows.Next()
+	err := rows.Scan(&count)
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to scan row count")
+	}
+	return count, nil
 }
 
 func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
