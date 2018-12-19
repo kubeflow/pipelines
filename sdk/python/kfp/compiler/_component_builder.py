@@ -22,7 +22,6 @@ import tempfile
 import logging
 from collections import OrderedDict
 from pathlib import PurePath, Path
-from .. import dsl
 from ..components._components import _create_task_factory_from_component_spec
 
 class GCSHelper(object):

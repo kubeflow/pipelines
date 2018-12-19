@@ -30,7 +30,7 @@ __all__ = [
 
 import copy
 from collections import OrderedDict
-from typing import Union, List, Sequence, Mapping, Tuple
+from typing import Union, List, Mapping, Tuple
 
 
 class InputOrOutputSpec:
