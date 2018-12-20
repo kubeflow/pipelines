@@ -21,7 +21,7 @@ __all__ = [
 
 import sys
 from collections import OrderedDict
-from ._yaml_utils import load_yaml, dump_yaml
+from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 
 
