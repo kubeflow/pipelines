@@ -31,7 +31,7 @@ import (
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 
-	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, string, error)
+	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error)
 
 	// Create a run entry in the database
 	CreateRun(run *model.RunDetail) (*model.RunDetail, error)
@@ -62,31 +62,59 @@ type RunStore struct {
 }
 
 func (s *RunStore) ListRuns(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, string, error) {
-	errorF := func(err error) ([]*model.Run, string, error) {
-		return nil, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
+	errorF := func(err error) ([]*model.Run, int, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
 	sqlBuilder := s.selectRunDetails()
-	// Add filter condition
-	sqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
+	rowsSqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
 	if err != nil {
 		return errorF(err)
 	}
 
-	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
+	rowsSql, args, err := opts.AddFilterToSelect(opts.AddPaginationToSelect(rowsSqlBuilder)).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	rows, err := s.db.Query(sql, args...)
+	countSql, args, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
 	if err != nil {
+		return errorF(err)
+	}
+
+	// Use a transaction to make sure we're returning the count of the same rows queried
+	tx, err := s.db.Begin()
+
+	rows, err := tx.Query(rowsSql, args...)
+	if err != nil {
+		tx.Rollback()
 		return errorF(err)
 	}
 	defer rows.Close()
 
-	runDetails, err := s.scanRows(rows)
+	countRow, err := tx.Query(countSql, args...)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	defer countRow.Close()
+
+	runDetails, err := s.scanRowsToRunDetails(rows)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+
+	count, err := s.scanRowToCount(countRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+
+	tx.Commit()
+	if err != nil {
+		tx.Rollback()
 		return errorF(err)
 	}
 
@@ -97,11 +125,11 @@ func (s *RunStore) ListRuns(
 	}
 
 	if len(runs) <= opts.PageSize {
-		return runs, "", nil
+		return runs, count, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], npt, err
+	return runs[:opts.PageSize], count, npt, err
 }
 
 func (s *RunStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
@@ -136,7 +164,7 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
 	defer r.Close()
-	runs, err := s.scanRows(r)
+	runs, err := s.scanRowsToRunDetails(r)
 
 	if err != nil || len(runs) > 1 {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
@@ -168,7 +196,17 @@ func (s *RunStore) selectRunDetails() sq.SelectBuilder {
 		GroupBy("subq.UUID")
 }
 
-func (s *RunStore) scanRows(rows *sql.Rows) ([]*model.RunDetail, error) {
+func (s *RunStore) scanRowToCount(rows *sql.Rows) (int, error) {
+	var count int
+	rows.Next()
+	err := rows.Scan(&count)
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to scan row count")
+	}
+	return count, nil
+}
+
+func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
 		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineSpecManifest,

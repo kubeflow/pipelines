@@ -150,10 +150,10 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 	return &Options{PageSize: pageSize, token: token}, nil
 }
 
-// AddToSelect adds WHERE clauses with the sorting and filtering criteria in the
+// AddToSelect adds WHERE clauses with the sorting and pagination criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
@@ -178,10 +178,16 @@ func (o *Options) AddToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// Add one more item than what is requested.
 	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
 
+	return sqlBuilder
+}
+
+// AddToSelect adds WHERE clauses with the filtering criteria in the
+// Options o to the supplied SelectBuilder, and returns the new SelectBuilder
+// containing these.
+func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	if o.Filter != nil {
 		sqlBuilder = o.Filter.AddToSelect(sqlBuilder)
 	}
-
 	return sqlBuilder
 }
 
