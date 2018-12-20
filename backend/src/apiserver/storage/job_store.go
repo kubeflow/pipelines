@@ -53,7 +53,7 @@ func (s *JobStore) ListJobs(
 		return errorF(err)
 	}
 
-	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
+	sql, args, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}

@@ -45,7 +45,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, st
 	}
 
 	sqlBuilder := sq.Select("*").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
-	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
+	sql, args, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
