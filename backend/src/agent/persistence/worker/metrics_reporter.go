@@ -144,16 +144,14 @@ func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeID string)
 			"Unable to extract metrics tgz file read from (%+v): %v", artifactRequest, err)
 	}
 	//There needs to be exactly one metrics file in the artifact archive. We load that file.
-	if len(archivedFiles) != 1 {
-		return "", util.NewCustomErrorf(util.CUSTOM_CODE_PERMANENT,
-			"There needs to be exactly one metrics file in the artifact archive, but zero or multiple files were found")
-	}
-	for key := range archivedFiles { //There must be a single key
-		metricsJSON := archivedFiles[key]
-		return metricsJSON, nil
+	if len(archivedFiles) == 1 {
+		for key := range archivedFiles {
+			metricsJSON := archivedFiles[key]
+			return metricsJSON, nil
+		}
 	}
 	return "", util.NewCustomErrorf(util.CUSTOM_CODE_PERMANENT,
-		"There needs to be exactly one metrics file in the artifact archive, but zero files were found")
+		"There needs to be exactly one metrics file in the artifact archive, but zero or multiple files were found.")
 }
 
 func processReportMetricResults(
