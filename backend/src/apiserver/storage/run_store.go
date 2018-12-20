@@ -61,24 +61,30 @@ type RunStore struct {
 	time                   util.TimeInterface
 }
 
+// Runs two SQL queries in a transaction to return a list of matching runs, as well as their
+// count. The count does not reflect the page size, but it does reflec the number of runs
+// matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
 	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
-	sqlBuilder := s.selectRunDetails()
-	rowsSqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
+	sqlBuilder, err := s.addResourceReferenceToSelect(s.selectRunDetails(), filterContext)
 	if err != nil {
 		return errorF(err)
 	}
 
-	rowsSql, args, err := opts.AddFilterToSelect(opts.AddPaginationToSelect(rowsSqlBuilder)).ToSql()
-	if err != nil {
-		return errorF(err)
-	}
+	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
 
+	// SQL for row count
 	countSql, args, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
+	if err != nil {
+		return errorF(err)
+	}
+
+	// SQL for row list
+	rowsSql, args, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -132,7 +138,7 @@ func (s *RunStore) ListRuns(
 	return runs[:opts.PageSize], count, npt, err
 }
 
-func (s *RunStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+func (s *RunStore) addResourceReferenceToSelect(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
 	sql, args, err := selectBuilder.ToSql()
 	if err != nil {
 		return selectBuilder, util.NewInternalServerError(err, "Failed to append filter condition to list run: %v",

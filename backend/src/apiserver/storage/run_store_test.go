@@ -149,7 +149,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	runs, count, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, count, 3)
+	assert.Equal(t, 2, count)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
@@ -158,7 +158,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	runs, count, nextPageToken, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, count, 3)
+	assert.Equal(t, 2, count)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
