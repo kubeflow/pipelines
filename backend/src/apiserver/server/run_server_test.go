@@ -87,6 +87,22 @@ func TestValidateCreateRunRequest_EmptyName(t *testing.T) {
 	assert.Contains(t, err.Error(), "The run name is empty")
 }
 
+func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "123",
+		ResourceReferences: nil,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+}
+
 func TestValidateCreateRunRequest_EmptyPipelineSpec(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
