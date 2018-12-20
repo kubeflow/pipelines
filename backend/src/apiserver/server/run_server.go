@@ -134,10 +134,6 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	if run.Name == "" {
 		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
 	}
-	// Run must be created under an experiment.
-	if err := ValidateExperimentResourceReference(s.resourceManager, run.ResourceReferences); err != nil {
-		return util.Wrap(err, "The run must have a valid experiment resource reference.")
-	}
 
 	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {
 		return util.Wrap(err, "The pipeline spec is invalid.")
