@@ -118,3 +118,52 @@ class K8sHelper(object):
     # print(self._read_pod_log(pod_name, yaml_spec))
     self._delete_k8s_job(pod_name, yaml_spec)
     return succ
+
+  @staticmethod
+  def convert_k8s_obj_to_json(k8s_obj):
+    """
+    Builds a JSON K8s object.
+
+    If obj is None, return None.
+    If obj is str, int, long, float, bool, return directly.
+    If obj is datetime.datetime, datetime.date
+        convert to string in iso8601 format.
+    If obj is list, sanitize each element in the list.
+    If obj is dict, return the dict.
+    If obj is swagger model, return the properties dict.
+
+    Args:
+      obj: The data to serialize.
+    Returns: The serialized form of data.
+    """
+
+    from six import text_type, integer_types, iteritems
+    PRIMITIVE_TYPES = (float, bool, bytes, text_type) + integer_types
+    from datetime import date, datetime
+    if k8s_obj is None:
+      return None
+    elif isinstance(k8s_obj, PRIMITIVE_TYPES):
+      return k8s_obj
+    elif isinstance(k8s_obj, list):
+      return [K8sHelper.convert_k8s_obj_to_json(sub_obj)
+              for sub_obj in k8s_obj]
+    elif isinstance(k8s_obj, tuple):
+      return tuple(K8sHelper.convert_k8s_obj_to_json(sub_obj)
+                   for sub_obj in obj)
+    elif isinstance(k8s_obj, (datetime, date)):
+      return k8s_obj.isoformat()
+
+    if isinstance(k8s_obj, dict):
+      obj_dict = k8s_obj
+    else:
+      # Convert model obj to dict except
+      # attributes `swagger_types`, `attribute_map`
+      # and attributes which value is not None.
+      # Convert attribute name to json key in
+      # model definition for request.
+      obj_dict = {k8s_obj.attribute_map[attr]: getattr(k8s_obj, attr)
+                  for attr, _ in iteritems(k8s_obj.swagger_types)
+                  if getattr(k8s_obj, attr) is not None}
+
+    return {key: K8sHelper.convert_k8s_obj_to_json(val)
+            for key, val in iteritems(obj_dict)}

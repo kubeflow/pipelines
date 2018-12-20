@@ -14,16 +14,13 @@
 
 
 from collections import defaultdict
-import copy
 import inspect
 import re
-import string
 import tarfile
-import tempfile
 import yaml
 
 from .. import dsl
-
+from ._k8s_helper import K8sHelper
 
 class Compiler(object):
   """DSL Compiler. 
@@ -42,9 +39,17 @@ class Compiler(object):
   """
 
   def _sanitize_name(self, name):
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-') #from _make_kubernetes_name
+    """From _make_kubernetes_name
+    _sanitize_name cleans and converts the names in the workflow.
+    """
+    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
-  def _param_full_name(self, param):
+  def _pipelineparam_full_name(self, param):
+    """_pipelineparam_full_name
+
+    Args:
+      param(PipelineParam): pipeline parameter
+      """
     if param.op_name:
       return param.op_name + '-' + param.name
     return self._sanitize_name(param.name)
@@ -79,12 +84,12 @@ class Compiler(object):
       for i, _ in enumerate(processed_args):
         if op.argument_inputs:
           for param in op.argument_inputs:
-            full_name = self._param_full_name(param)
+            full_name = self._pipelineparam_full_name(param)
             processed_args[i] = re.sub(str(param), '{{inputs.parameters.%s}}' % full_name,
                                        processed_args[i])
     input_parameters = []
     for param in op.inputs:
-      one_parameter = {'name': self._param_full_name(param)}
+      one_parameter = {'name': self._pipelineparam_full_name(param)}
       if param.value:
         one_parameter['value'] = str(param.value)
       input_parameters.append(one_parameter)
@@ -94,7 +99,7 @@ class Compiler(object):
     output_parameters = []
     for param in op.outputs.values():
       output_parameters.append({
-          'name': self._param_full_name(param),
+          'name': self._pipelineparam_full_name(param),
           'valueFrom': {'path': op.file_outputs[param.name]}
       })
     output_parameters.sort(key=lambda x: x['name'])
@@ -140,9 +145,9 @@ class Compiler(object):
       template['nodeSelector'] = op.node_selector
 
     if op.env_variables:
-      template['container']['env'] = list(map(self._convert_k8s_obj_to_dic, op.env_variables))
+      template['container']['env'] = list(map(K8sHelper.convert_k8s_obj_to_json, op.env_variables))
     if op.volume_mounts:
-      template['container']['volumeMounts'] = list(map(self._convert_k8s_obj_to_dic, op.volume_mounts))
+      template['container']['volumeMounts'] = list(map(K8sHelper.convert_k8s_obj_to_json, op.volume_mounts))
 
     if op.pod_annotations or op.pod_labels:
       template['metadata'] = {}
@@ -222,7 +227,7 @@ class Compiler(object):
         if param.value:
           continue
 
-        full_name = self._param_full_name(param)
+        full_name = self._pipelineparam_full_name(param)
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
           upstream_groups, downstream_groups = self._get_uncommon_ancestors(
@@ -297,10 +302,16 @@ class Compiler(object):
         dependencies[downstream_groups[0]].add(upstream_groups[0])
     return dependencies
 
-  def _resolve_value_or_reference(self, value_or_reference, inputs):
+  def _resolve_value_or_reference(self, value_or_reference, potential_references):
+    """_resolve_value_or_reference resolves values and PipelineParams, which could be task parameters or input parameters.
+
+    Args:
+      value_or_reference: value or reference to be resolved. It could be basic python types or PipelineParam
+      potential_references(dict{str->str}): a dictionary of parameter names to task names
+      """
     if isinstance(value_or_reference, dsl.PipelineParam):
-      parameter_name = self._param_full_name(value_or_reference)
-      task_names = [task_name for param_name, task_name in inputs if param_name == parameter_name]
+      parameter_name = self._pipelineparam_full_name(value_or_reference)
+      task_names = [task_name for param_name, task_name in potential_references if param_name == parameter_name]
       if task_names:
         task_name = task_names[0]
         return '{{tasks.%s.outputs.parameters.%s}}' % (task_name, parameter_name)
@@ -381,7 +392,6 @@ class Compiler(object):
     template['dag'] = {'tasks': tasks}
     return template     
 
-    
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
@@ -411,13 +421,14 @@ class Compiler(object):
           #TODO: check for duplicity based on the serialized volumes instead of just name.
           if v.name not in volume_name_set:
             volume_name_set.add(v.name)
-            volumes.append(self._convert_k8s_obj_to_dic(v))
+            volumes.append(K8sHelper.convert_k8s_obj_to_json(v))
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
   def _create_pipeline_workflow(self, args, pipeline):
     """Create workflow for the pipeline."""
 
+    # Input Parameters
     input_params = []
     for arg in args:
       param = {'name': arg.name}
@@ -425,16 +436,21 @@ class Compiler(object):
         param['value'] = str(arg.value)
       input_params.append(param)
 
+    # Templates
     templates = self._create_templates(pipeline)
     templates.sort(key=lambda x: x['name'])
 
+    # Exit Handler
     exit_handler = None
     if pipeline.groups[0].groups:
       first_group = pipeline.groups[0].groups[0]
       if first_group.type == 'exit_handler':
         exit_handler = first_group.exit_op
 
+    # Volumes
     volumes = self._create_volumes(pipeline)
+
+    # The whole pipeline workflow
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
@@ -502,54 +518,6 @@ class Compiler(object):
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
-
-  def _convert_k8s_obj_to_dic(self, obj):
-    """
-    Builds a JSON K8s object.
-
-    If obj is None, return None.
-    If obj is str, int, long, float, bool, return directly.
-    If obj is datetime.datetime, datetime.date
-        convert to string in iso8601 format.
-    If obj is list, sanitize each element in the list.
-    If obj is dict, return the dict.
-    If obj is swagger model, return the properties dict.
-
-    Args:
-      obj: The data to serialize.
-    Returns: The serialized form of data.
-    """
-
-    from six import text_type, integer_types, iteritems
-    PRIMITIVE_TYPES = (float, bool, bytes, text_type) + integer_types
-    from datetime import date, datetime
-    if obj is None:
-      return None
-    elif isinstance(obj, PRIMITIVE_TYPES):
-      return obj
-    elif isinstance(obj, list):
-      return [self._convert_k8s_obj_to_dic(sub_obj)
-              for sub_obj in obj]
-    elif isinstance(obj, tuple):
-      return tuple(self._convert_k8s_obj_to_dic(sub_obj)
-                   for sub_obj in obj)
-    elif isinstance(obj, (datetime, date)):
-      return obj.isoformat()
-
-    if isinstance(obj, dict):
-      obj_dict = obj
-    else:
-      # Convert model obj to dict except
-      # attributes `swagger_types`, `attribute_map`
-      # and attributes which value is not None.
-      # Convert attribute name to json key in
-      # model definition for request.
-      obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
-                  for attr, _ in iteritems(obj.swagger_types)
-                  if getattr(obj, attr) is not None}
-
-    return {key: self._convert_k8s_obj_to_dic(val)
-            for key, val in iteritems(obj_dict)}
 
   def compile(self, pipeline_func, package_path):
     """Compile the given pipeline function into workflow yaml.
