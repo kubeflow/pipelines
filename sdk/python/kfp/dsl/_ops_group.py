@@ -28,7 +28,7 @@ class OpsGroup(object):
   def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
-      group_type: usually one of 'exit_handler', 'condition', and 'loop'.
+      group_type: one of 'pipeline', 'exit_handler', 'condition', and 'loop'.
     """
     self.type = group_type
     self.ops = list()
