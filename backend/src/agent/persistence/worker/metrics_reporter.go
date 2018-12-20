@@ -145,9 +145,8 @@ func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeID string)
 	}
 	//There needs to be exactly one metrics file in the artifact archive. We load that file.
 	if len(archivedFiles) == 1 {
-		for key := range archivedFiles {
-			metricsJSON := archivedFiles[key]
-			return metricsJSON, nil
+		for _, value := range archivedFiles {
+			return value, nil
 		}
 	}
 	return "", util.NewCustomErrorf(util.CUSTOM_CODE_PERMANENT,
