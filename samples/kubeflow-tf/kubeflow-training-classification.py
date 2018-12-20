@@ -52,7 +52,7 @@ def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', l
         file_outputs = {'train': '/output.txt'}
     )
     if use_gpu:
-        kubeflow_tf_training_op.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:dev', #TODO-release: update the release tag for the next release
+        kubeflow_tf_training_op.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:85c6413a2e13da4b8f198aeac1abc2f3a74fe789',
         kubeflow_tf_training_op.set_gpu_limit(1)
     
     return kubeflow_tf_training_op
