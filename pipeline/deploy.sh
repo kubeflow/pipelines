@@ -35,6 +35,9 @@ API_SERVER_IMAGE="${API_SERVER_IMAGE:-gcr.io/ml-pipeline/api-server:${RELEASE_VE
 # Default ml pipeline scheduledworkflow CRD controller image
 SCHEDULED_WORKFLOW_IMAGE="${SCHEDULED_WORKFLOW_IMAGE:-gcr.io/ml-pipeline/scheduledworkflow:${RELEASE_VERSION}}"
 
+# Default ml pipeline viewer CRD controller image.
+VIEWER_CRD_CONTROLLER_IMAGE="${VIEWER_CRD_CONTROLLER_IMAGE:-gcr.io/ml-pipeline/viewer-crd-controller:${RELEASE_VERSION}}"
+
 # Default ml pipeline persistence agent image
 PERSISTENCE_AGENT_IMAGE="${PERSISTENCE_AGENT_IMAGE:-gcr.io/ml-pipeline/persistenceagent:${RELEASE_VERSION}}"
 
@@ -83,6 +86,9 @@ while [ "$1" != "" ]; do
                                              ;;
         -w | --scheduled_workflow_image )    shift
                                              SCHEDULED_WORKFLOW_IMAGE=$1
+                                             ;;
+        -v | --viewer_crd_controller_image)  shift
+                                             VIEWER_CRD_CONTROLLER_IMAGE=$1
                                              ;;
         -p | --persistence_agent_image )     shift
                                              PERSISTENCE_AGENT_IMAGE=$1
@@ -156,6 +162,7 @@ fi
 ( cd ${APP_DIR} && ks env set default --namespace ${NAMESPACE} )
 ( cd ${APP_DIR} && ks param set pipeline apiImage ${API_SERVER_IMAGE} )
 ( cd ${APP_DIR} && ks param set pipeline scheduledWorkflowImage ${SCHEDULED_WORKFLOW_IMAGE} )
+( cd ${APP_DIR} && ks param set pipeline viewerCrdControllerImage ${VIEWER_CRD_CONTROLLER_IMAGE} )
 ( cd ${APP_DIR} && ks param set pipeline persistenceAgentImage ${PERSISTENCE_AGENT_IMAGE} )
 ( cd ${APP_DIR} && ks param set pipeline uiImage ${UI_IMAGE} )
 ( cd ${APP_DIR} && ks param set pipeline deployArgo ${DEPLOY_ARGO} )
