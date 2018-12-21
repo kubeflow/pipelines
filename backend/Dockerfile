@@ -4,6 +4,8 @@ WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
 RUN apk add --no-cache gcc musl-dev
+# turn on go module
+RUN export GO111MODULE=on
 RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 
 FROM python:3.5 as compiler
