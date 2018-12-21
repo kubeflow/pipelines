@@ -35,8 +35,8 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
     )
 
 
-def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
-    return dsl.ContainerOp(
+def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training', use_gpu=False):
+    kubeflow_tf_training_op = dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:85c6413a2e13da4b8f198aeac1abc2f3a74fe789',
         arguments = [
@@ -51,6 +51,11 @@ def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', l
         ],
         file_outputs = {'train': '/output.txt'}
     )
+    if use_gpu:
+        kubeflow_tf_training_op.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:85c6413a2e13da4b8f198aeac1abc2f3a74fe789',
+        kubeflow_tf_training_op.set_gpu_limit(1)
+    
+    return kubeflow_tf_training_op
 
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
     return dsl.ContainerOp(
@@ -96,9 +101,11 @@ def kubeflow_training(output, project,
   predict_mode='local'):
   # TODO: use the argo job name as the workflow
   workflow = '{{workflow.name}}'
+  # set the flag to use GPU trainer
+  use_gpu = True
 
   preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, '', '%s/%s/transformed' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
-  training = kubeflow_tf_training_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, '', '%s/%s/train' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
+  training = kubeflow_tf_training_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, '', '%s/%s/train' % (output, workflow), use_gpu=use_gpu).apply(gcp.use_gcp_secret('user-gcp-sa'))
   prediction = dataflow_tf_predict_op(evaluation, schema, target,  training.output, predict_mode, project, '%s/%s/predict' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
   confusion_matrix = confusion_matrix_op(prediction.output, '%s/%s/confusionmatrix' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
