@@ -33,6 +33,12 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
 })
 
+var testWorkflow2 = util.NewWorkflow(&v1alpha1.Workflow{
+	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow2"},
+	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+})
+
 var validReference = []*api.ResourceReference{
 	{
 		Key: &api.ResourceKey{
