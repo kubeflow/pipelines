@@ -95,7 +95,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 		},
 	})
 	metricsJSON := `{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "logloss", "numberValue": 1.2}]}`
-	artifactData, _ := util.ArchiveTgz(map[string]string{"mlpipeline-metrics.json": metricsJSON})
+	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
@@ -130,6 +130,82 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	assert.Equal(t, expectedMetricsRequest, pipelineFake.GetReportedMetricsRequest())
 }
 
+func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
+	pipelineFake := client.NewPipelineClientFake()
+	reporter := NewMetricsReporter(pipelineFake)
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			UID:       types.UID("run-1"),
+		},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-1": workflowapi.NodeStatus{
+					ID:    "node-1",
+					Phase: workflowapi.NodeSucceeded,
+				},
+			},
+		},
+	})
+	artifactData, _ := util.ArchiveTgz(map[string]string{})
+	pipelineFake.StubArtifact(
+		&api.ReadArtifactRequest{
+			RunId:        "run-1",
+			NodeId:       "node-1",
+			ArtifactName: "mlpipeline-metrics",
+		},
+		&api.ReadArtifactResponse{
+			Data: []byte(artifactData),
+		})
+
+	err := reporter.ReportMetrics(workflow)
+
+	assert.NotNil(t, err)
+	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
+	// Verify that ReportRunMetrics is not called.
+	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
+}
+
+func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
+	pipelineFake := client.NewPipelineClientFake()
+	reporter := NewMetricsReporter(pipelineFake)
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name:      "MY_NAME",
+			UID:       types.UID("run-1"),
+		},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-1": workflowapi.NodeStatus{
+					ID:    "node-1",
+					Phase: workflowapi.NodeSucceeded,
+				},
+			},
+		},
+	})
+	validMetricsJSON := `{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "logloss", "numberValue": 1.2}]}`
+	invalidMetricsJSON := `invalid JSON`
+	artifactData, _ := util.ArchiveTgz(map[string]string{"file1": validMetricsJSON, "file2": invalidMetricsJSON})
+	pipelineFake.StubArtifact(
+		&api.ReadArtifactRequest{
+			RunId:        "run-1",
+			NodeId:       "node-1",
+			ArtifactName: "mlpipeline-metrics",
+		},
+		&api.ReadArtifactResponse{
+			Data: []byte(artifactData),
+		})
+
+	err := reporter.ReportMetrics(workflow)
+
+	assert.NotNil(t, err)
+	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
+	// Verify that ReportRunMetrics is not called.
+	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
+}
+
 func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 	reporter := NewMetricsReporter(pipelineFake)
@@ -149,7 +225,7 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 		},
 	})
 	metricsJSON := `invalid JSON`
-	artifactData, _ := util.ArchiveTgz(map[string]string{"mlpipeline-metrics.json": metricsJSON})
+	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
@@ -192,8 +268,8 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	})
 	validMetricsJSON := `{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "logloss", "numberValue": 1.2}]}`
 	invalidMetricsJSON := `invalid JSON`
-	validArtifactData, _ := util.ArchiveTgz(map[string]string{"mlpipeline-metrics.json": validMetricsJSON})
-	invalidArtifactData, _ := util.ArchiveTgz(map[string]string{"mlpipeline-metrics.json": invalidMetricsJSON})
+	validArtifactData, _ := util.ArchiveTgz(map[string]string{"file": validMetricsJSON})
+	invalidArtifactData, _ := util.ArchiveTgz(map[string]string{"file": invalidMetricsJSON})
 	// Stub two artifacts, node-1 is invalid, node-2 is valid.
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
@@ -293,7 +369,7 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 	})
 	metricsJSON :=
 		`{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "log loss", "numberValue": 1.2}, {"name": "accuracy", "numberValue": 1.2}]}`
-	artifactData, _ := util.ArchiveTgz(map[string]string{"mlpipeline-metrics.json": metricsJSON})
+	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
