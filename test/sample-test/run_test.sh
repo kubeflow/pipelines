@@ -146,7 +146,7 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
   # Compile samples
   cd ${BASE_DIR}/samples/kubeflow-tf
 
-  if [ -n ${DATAFLOW_TFT_IMAGE} ];then
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" kubeflow-training-classification.py
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" kubeflow-training-classification.py
@@ -167,7 +167,7 @@ elif [ "$TEST_NAME" == "tfx" ]; then
   # Compile samples
   cd ${BASE_DIR}/samples/tfx
 
-  if [ -n ${DATAFLOW_TFT_IMAGE} ];then
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.py
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" taxi-cab-classification-pipeline.py
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.py
@@ -255,7 +255,7 @@ elif [ "$TEST_NAME" == "xgboost" ]; then
   # Compile samples
   cd ${BASE_DIR}/samples/xgboost-spark
 
-  if [ -n ${DATAPROC_CREATE_CLUSTER_IMAGE} ];then
+  if [ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ];then
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.py
@@ -286,7 +286,7 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   cd ${BASE_DIR}/samples/notebooks
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
-  if [ -n ${DATAFLOW_TFT_IMAGE} ];then
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
     papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
       -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE ${TARGET_IMAGE_PREFIX}pusher:dev \
       -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEV_DEPLOYER_MODEL ${DEV_DEPLOYER_MODEL}.${MODEL_VERSION} -p PROD_DEPLOYER_MODEL ${PROD_DEPLOYER_MODEL}.${MODEL_VERSION} \
