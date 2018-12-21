@@ -28,7 +28,6 @@ import (
 
 const (
 	metricsArtifactName = "mlpipeline-metrics"
-	metricsJSONFileName = metricsArtifactName + ".json"
 	// More than 50 metrics is not scalable with current UI design.
 	maxMetricsCountLimit = 50
 )
@@ -144,11 +143,14 @@ func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeID string)
 		return "", util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT,
 			"Unable to extract metrics tgz file read from (%+v): %v", artifactRequest, err)
 	}
-	metricsJSON, found := archivedFiles[metricsJSONFileName]
-	if !found {
-		return "", nil
+	//There needs to be exactly one metrics file in the artifact archive. We load that file.
+	if len(archivedFiles) == 1 {
+		for _, value := range archivedFiles {
+			return value, nil
+		}
 	}
-	return metricsJSON, nil
+	return "", util.NewCustomErrorf(util.CUSTOM_CODE_PERMANENT,
+		"There needs to be exactly one metrics file in the artifact archive, but zero or multiple files were found.")
 }
 
 func processReportMetricResults(
