@@ -62,7 +62,7 @@ type RunStore struct {
 }
 
 // Runs two SQL queries in a transaction to return a list of matching runs, as well as their
-// count. The count does not reflect the page size, but it does reflec the number of runs
+// count. The count does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
 	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
@@ -91,6 +91,9 @@ func (s *RunStore) ListRuns(
 
 	// Use a transaction to make sure we're returning the count of the same rows queried
 	tx, err := s.db.Begin()
+	if err != nil {
+		return errorF(err)
+	}
 
 	rows, err := tx.Query(rowsSql, args...)
 	if err != nil {
