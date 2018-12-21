@@ -164,8 +164,7 @@ func (s *RunStore) selectRunDetails() sq.SelectBuilder {
 		Select("subq.*", resourceRefConcatQuery+" AS refs").
 		FromSelect(subQ, "subq").
 		// Append all the resource references for the run as a json column
-		LeftJoin("resource_references AS r ON subq.UUID=r.ResourceUUID").
-		Where(sq.Eq{"r.ResourceType": common.Run}).
+		LeftJoin("(select * from resource_references where ResourceType='Run') AS r ON subq.UUID=r.ResourceUUID").
 		GroupBy("subq.UUID")
 }
 
