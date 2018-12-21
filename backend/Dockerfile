@@ -1,12 +1,13 @@
-FROM golang:1.11 as builder
+FROM golang:1.11-alpine3.7 as builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
-# Needed for github.com/mattn/go-sqlite3
-RUN apt-get update && apt-get install gcc musl-dev
+# Needed musl-dev for github.com/mattn/go-sqlite3
+RUN apk update && apk upgrade && \
+    apk add --no-cache bash git openssh gcc musl-dev
 
-RUN export GO111MODULE=on && go build -o /bin/apiserver backend/src/apiserver/*.go
+RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
 FROM python:3.5 as compiler
 
