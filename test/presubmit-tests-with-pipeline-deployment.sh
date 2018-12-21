@@ -113,10 +113,12 @@ KFAPP=${TEST_CLUSTER}
 function clean_up {
   echo "Clean up..."
   cd ${KFAPP}
-  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
+  time ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
 }
 trap clean_up EXIT
 
+echo "Deploying kubeflow"
+time {
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT} --skipInitProject
 
 cd ${KFAPP}
@@ -133,6 +135,7 @@ ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
 popd
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
+}
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
 
