@@ -22,6 +22,7 @@ import datetime
 import json
 import logging
 import os
+from pathlib import Path
 from tensorflow.python.lib.io import file_io
 
 
@@ -60,6 +61,14 @@ def parse_arguments():
                       type=int,
                       default=32,
                       help='Batch size used in prediction.')
+  parser.add_argument('--prediction-results-uri-pattern-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing prediction results URI pattern.')
+  parser.add_argument('--ui-metadata-output-path',
+                      type=str,
+                      default='/mlpipeline-ui-metadata.json',
+                      help='Local output path for the file containing UI metadata JSON structure.')
 
   args = parser.parse_args()
   return args
@@ -236,9 +245,10 @@ def main():
 
   run_predict(args.output, args.data, schema, args.target, model_export_dir,
               args.project, args.mode, args.batchsize)
-  prediction_results = os.path.join(args.output, 'prediction_results-*')
-  with open('/output.txt', 'w') as f:
-    f.write(prediction_results)
+  prediction_results_uri_pattern = os.path.join(args.output, 'prediction_results-*')
+  Path(args.prediction_results_uri_pattern_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.prediction_results_uri_pattern_output_path).write_text(prediction_results_uri_pattern)
+
 
   with file_io.FileIO(os.path.join(args.output, 'schema.json'), 'r') as f:
     schema = json.load(f)
@@ -249,11 +259,11 @@ def main():
       'storage': 'gcs',
       'format': 'csv',
       'header': [x['name'] for x in schema],
-      'source': prediction_results
+      'source': prediction_results_uri_pattern
     }]
   }
-  with open('/mlpipeline-ui-metadata.json', 'w') as f:
-    json.dump(metadata, f)
+  Path(args.ui_metadata_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.ui_metadata_output_path).write_text(json.dumps(metadata))
 
 
 if __name__== "__main__":

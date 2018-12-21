@@ -21,6 +21,7 @@ import argparse
 import os
 import subprocess
 import logging
+from pathlib import Path
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -47,6 +48,10 @@ def parse_arguments():
                       type = str,
                       default = 'gs://flowers_resnet/labels.txt',
                       help = 'Path to labels.txt.')
+  parser.add_argument('--output-dir-uri-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing the output dir URI.')
   args = parser.parse_args()
   return args
 
@@ -56,8 +61,8 @@ if __name__== "__main__":
 
   output_dir = args.output + '/tpu/preprocessed'
 
-  with open("/output.txt", "w") as output_file:
-    output_file.write(output_dir)
+  Path(args.output_dir_uri_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_dir_uri_output_path).write_text(output_dir)
 
   logging.info('Removing old data from ' + output_dir)
   subprocess.call('gsutil -m rm -rf ' + output_dir, shell=True)

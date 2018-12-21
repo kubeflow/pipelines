@@ -20,6 +20,7 @@ import csv
 import json
 import logging
 import os
+from pathlib import Path
 import tensorflow as tf
 import tensorflow_transform as tft
 
@@ -80,6 +81,10 @@ def parse_arguments():
                       required=False,
                       help=('GCS path to a python file defining '
                             '"preprocess" and "get_feature_columns" functions.'))
+  parser.add_argument('--output-dir-uri-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing the output dir URI.')
 
   args = parser.parse_args()
   return args
@@ -296,8 +301,8 @@ def main():
 
   run_transform(args.output, schema, args.train, args.eval,
                 args.project, args.mode, preprocessing_fn=preprocessing_fn)
-  with open('/output.txt', 'w') as f:
-    f.write(args.output)
+  Path(args.output_dir_uri_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_dir_uri_output_path).write_text(args.output)
 
 if __name__== "__main__":
   main()

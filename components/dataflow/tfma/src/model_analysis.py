@@ -21,6 +21,7 @@ import argparse
 import datetime
 import json
 import os
+from pathlib import Path
 
 import apache_beam as beam
 from ipywidgets.embed import embed_data
@@ -117,6 +118,14 @@ def parse_arguments():
                       action='append',
                       required=True,
                       help='one or more columns on which to slice for analysis.')
+  parser.add_argument('--ui-metadata-output-path',
+                      type=str,
+                      default='/mlpipeline-ui-metadata.json',
+                      help='Local output path for the file containing UI metadata JSON structure.')
+  parser.add_argument('--output-dir-uri-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing output dir URI.')
 
   return parser.parse_args()
 
@@ -207,19 +216,7 @@ def generate_static_html_output(output_dir, slicing_columns):
       views_html += _SINGLE_WIDGET_TEMPLATE.format(idx, view)
   rendered_template = _STATIC_HTML_TEMPLATE.format(
       manager_state=manager_state, widget_views=views_html)
-  static_html_path = os.path.join(output_dir, _OUTPUT_HTML_FILE)
-  file_io.write_string_to_file(static_html_path, rendered_template)
-
-  metadata = {
-    'outputs' : [{
-      'type': 'web-app',
-      'storage': 'gcs',
-      'source': static_html_path,
-    }]
-  }
-  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
-    json.dump(metadata, f)
-
+  return rendered_template
 
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -229,9 +226,25 @@ def main():
   model_export_dir = os.path.join(eval_model_parent_dir, file_io.list_directory(eval_model_parent_dir)[0])
   run_analysis(args.output, model_export_dir, args.eval, schema,
                args.project, args.mode, args.slice_columns)
-  generate_static_html_output(args.output, args.slice_columns)
-  with open('/output.txt', 'w') as f:
-    f.write(args.output)
+  rendered_template = generate_static_html_output(args.output, args.slice_columns)
+
+  static_html_path = os.path.join(args.output, _OUTPUT_HTML_FILE)
+  file_io.write_string_to_file(static_html_path, rendered_template)
+
+  metadata = {
+    'outputs' : [{
+      'type': 'web-app',
+      'storage': 'gcs',
+      'source': static_html_path,
+    }]
+  }
+  ui_metadata_text = json.dumps(metadata)
+
+  Path(args.ui_metadata_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.ui_metadata_output_path).write_text(ui_metadata_text)
+
+  Path(args.output_dir_uri_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_dir_uri_output_path).write_text(args.output)
 
 if __name__== "__main__":
   main()

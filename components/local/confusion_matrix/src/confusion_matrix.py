@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import pandas as pd
+from pathlib import Path
 from sklearn.metrics import confusion_matrix, accuracy_score
 from tensorflow.python.lib.io import file_io
 
@@ -38,6 +39,15 @@ def main(argv=None):
                       help='a lambda function as a string to compute target.' +
                            'For example, "lambda x: x[\'a\'] + x[\'b\']"' +
                            'If not set, the input must include a "target" column.')
+  parser.add_argument('--ui-metadata-output-path',
+                      type=str,
+                      default='/mlpipeline-ui-metadata.json',
+                      help='Local output path for the file containing UI metadata JSON structure.')
+  parser.add_argument('--metrics-output-path',
+                      type=str,
+                      default='/mlpipeline-metrics.json',
+                      help='Local output path for the file containing metrics JSON structure.')
+
   args = parser.parse_args()
 
   schema_file = os.path.join(os.path.dirname(args.predictions), 'schema.json')
@@ -80,8 +90,8 @@ def main(argv=None):
       'labels': list(map(str, vocab)),
     }]
   }
-  with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:
-    json.dump(metadata, f)
+  Path(args.ui_metadata_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.ui_metadata_output_path).write_text(json.dumps(metadata))
 
   accuracy = accuracy_score(df['target'], df['predicted'])
   metrics = {
@@ -91,8 +101,8 @@ def main(argv=None):
       'format': "PERCENTAGE",
     }]
   }
-  with file_io.FileIO('/mlpipeline-metrics.json', 'w') as f:
-    json.dump(metrics, f)
+  Path(args.metrics_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.metrics_output_path).write_text(json.dumps(metrics))
 
 if __name__== "__main__":
   main()

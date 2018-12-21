@@ -36,6 +36,7 @@ import datetime
 import json
 import os
 import logging
+from pathlib import Path
 import requests
 import subprocess
 import six
@@ -100,7 +101,15 @@ def main(argv=None):
                       default=10,
                       help='Time in minutes to wait for the TFJob to complete')
   parser.add_argument('--output-dir', type=str)
+  parser.add_argument('--output-dir-uri-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing the output dir URI.')
   parser.add_argument('--ui-metadata-type', type=str, default='tensorboard')
+  parser.add_argument('--ui-metadata-output-path',
+                      type=str,
+                      default='/mlpipeline-ui-metadata.json',
+                      help='Local output path for the file containing UI metadata JSON structure.')
   import sys
   all_args = sys.argv[1:]
   separator_idx = all_args.index('--')
@@ -153,8 +162,8 @@ def main(argv=None):
         'source': args.output_dir,
       }]
     }
-    with open('/mlpipeline-ui-metadata.json', 'w') as f:
-      json.dump(metadata, f)
+    Path(args.ui_metadata_output_path).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.ui_metadata_output_path).write_text(json.dumps(metadata))
 
   wait_response = tf_job_client.wait_for_job(
       api_client, tfjob_ns, job_name, kf_version,
@@ -190,8 +199,8 @@ def main(argv=None):
     logging.info('Training success.')
 
   tf_job_client.delete_tf_job(api_client, tfjob_ns, job_name, version=kf_version)
-  with open('/output.txt', 'w') as f:
-    f.write(args.output_dir)
+  Path(args.output_dir_uri_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_dir_uri_output_path).write_text(args.output_dir)
 
 if __name__== "__main__":
   main()

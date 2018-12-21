@@ -20,6 +20,7 @@ import tensorflow as tf
 import argparse
 import json
 import os
+from pathlib import Path
 from time import gmtime, strftime
 import subprocess
 import logging
@@ -76,6 +77,14 @@ def parse_arguments():
                       type = str,
                       default = '1.9',
                       help = 'Version of TensorFlow to use.')
+  parser.add_argument('--output-dir-uri-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing the output dir URI.')
+  parser.add_argument('--ui-metadata-output-path',
+                      type=str,
+                      default='/mlpipeline-ui-metadata.json',
+                      help='Local output path for the file containing UI metadata JSON structure.')
   args = parser.parse_args()
   return args
 
@@ -104,8 +113,8 @@ if __name__== "__main__":
   --num_train_images=' + str(args.num_train_images) + '  --num_eval_images=' + str(args.num_eval_images) + '  --num_label_classes=' + str(args.num_label_classes) + ' \
   --export_dir=' + output_dir + '/export', shell=True)
 
-  with open("/output.txt", "w") as output_file:
-    output_file.write(output_dir)
+  Path(args.output_dir_uri_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_dir_uri_output_path).write_text(output_dir)
 
   metadata = {
     'outputs' : [{
@@ -113,5 +122,5 @@ if __name__== "__main__":
       'source': output_dir,
     }]
   }
-  with open('/mlpipeline-ui-metadata.json', 'w') as f:
-    json.dump(metadata, f)
+  Path(args.ui_metadata_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.ui_metadata_output_path).write_text(json.dumps(metadata))

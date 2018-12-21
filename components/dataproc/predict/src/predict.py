@@ -32,6 +32,7 @@
 import argparse
 import json
 import os
+from pathlib import Path
 
 from common import _utils
 import logging
@@ -50,6 +51,15 @@ def main(argv=None):
   parser.add_argument('--predict', type=str, help='GCS path of prediction libsvm file.')
   parser.add_argument('--analysis', type=str, help='GCS path of the analysis input.')
   parser.add_argument('--target', type=str, help='Target column name.')
+  parser.add_argument('--prediction-results-uri-pattern-output-path',
+                      type=str,
+                      default='/output.txt',
+                      help='Local output path for the file containing prediction results URI pattern.')
+  parser.add_argument('--ui-metadata-output-path',
+                      type=str,
+                      default='/mlpipeline-ui-metadata.json',
+                      help='Local output path for the file containing UI metadata JSON structure.')
+
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
@@ -61,9 +71,9 @@ def main(argv=None):
       'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor', spark_args)
   logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_job(api, args.project, args.region, job_id)
-  prediction_results = os.path.join(args.output, 'part-*.csv')
-  with open('/output.txt', 'w') as f:
-    f.write(prediction_results)
+  prediction_results_uri_pattern = os.path.join(args.output, 'part-*.csv')
+  Path(args.prediction_results_uri_pattern_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.prediction_results_uri_pattern_output_path).write_text(prediction_results_uri_pattern)
 
   with file_io.FileIO(os.path.join(args.output, 'schema.json'), 'r') as f:
     schema = json.load(f)
@@ -74,11 +84,11 @@ def main(argv=None):
       'storage': 'gcs',
       'format': 'csv',
       'header': [x['name'] for x in schema],
-      'source': prediction_results
+      'source': prediction_results_uri_pattern
     }]
   }
-  with open('/mlpipeline-ui-metadata.json', 'w') as f:
-    json.dump(metadata, f)
+  Path(args.ui_metadata_output_path).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.ui_metadata_output_path).write_text(json.dumps(metadata))
   logging.info('Job completed.')
 
 
