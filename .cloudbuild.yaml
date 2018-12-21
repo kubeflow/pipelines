@@ -50,6 +50,10 @@ steps:
          '/workspace/backend/Dockerfile.scheduledworkflow', '/workspace']
   id:   'buildScheduledWorkflow'
 - name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', '-f',
+         '/workspace/backend/Dockerfile.viewercontroller', '/workspace']
+  id:   'buildViewerCrdController'
+- name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.persistenceagent', '/workspace']
   id:   'buildPersistenceAgent'
@@ -57,6 +61,7 @@ steps:
   args: ['build', '--build-arg', 'RELEASE_VERSION=$COMMIT_SHA',
          '--build-arg', 'API_SERVER_IMAGE=gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA',
          '--build-arg', 'SCHEDULED_WORKFLOW_IMAGE=gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA',
+         '--build-arg', 'VIEWER_CRD_CONTROLLER_IMAGE=gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA',
          '--build-arg', 'PERSISTENCE_AGENT_IMAGE=gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA',
          '--build-arg', 'UI_IMAGE=gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
          '-t', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA', '/workspace/pipeline']
@@ -118,7 +123,7 @@ steps:
          '/workspace/components/kubeflow/deployer']
   id: 'buildDeployer'
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/launcher && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildLauncher'
 
@@ -187,6 +192,7 @@ images:
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA'
 

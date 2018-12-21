@@ -7,6 +7,7 @@
     local mysql = import "pipeline/pipeline/mysql.libsonnet",
     local pipeline_apiserver = import "pipeline/pipeline/pipeline-apiserver.libsonnet",
     local pipeline_scheduledworkflow = import "pipeline/pipeline/pipeline-scheduledworkflow.libsonnet",
+    local pipeline_viewercrd = import "pipeline/pipeline/pipeline-viewercrd.libsonnet",
     local pipeline_persistenceagent = import "pipeline/pipeline/pipeline-persistenceagent.libsonnet",
     local pipeline_ui = import "pipeline/pipeline/pipeline-ui.libsonnet",
     local spartakus = import "pipeline/pipeline/spartakus.libsonnet",
@@ -15,6 +16,7 @@
     local namespace = params.namespace,
     local apiImage = params.apiImage,
     local scheduledWorkflowImage = params.scheduledWorkflowImage,
+    local viewerCrdControllerImage = params.viewerCrdControllerImage,
     local persistenceAgentImage = params.persistenceAgentImage,
     local uiImage = params.uiImage,
     local deployArgo = params.deployArgo,
@@ -31,6 +33,7 @@
           pipeline_apiserver.all(namespace, apiImage) +
           pipeline_scheduledworkflow.all(namespace, scheduledWorkflowImage) +
           pipeline_persistenceagent.all(namespace, persistenceAgentImage) +
+          pipeline_viewercrd.all(namespace, viewerCrdControllerImage) +
           pipeline_ui.all(namespace, uiImage) +
           $.parts(_env, _params).argo +
           $.parts(_env, _params).reporting,
