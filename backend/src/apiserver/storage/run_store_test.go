@@ -39,6 +39,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
@@ -60,6 +61,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
@@ -81,6 +83,7 @@ func initializeRunStore() (*DB, *RunStore) {
 		Run: model.Run{
 			UUID:             "3",
 			Name:             "run3",
+			DisplayName:      "run3",
 			Namespace:        "n3",
 			CreatedAtInSec:   3,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -161,6 +164,43 @@ func TestListRuns_Pagination(t *testing.T) {
 	assert.Equal(t, 2, count)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
+}
+
+func TestListRuns_CountWithNoFilter(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	opts, _ := list.NewOptions(&model.Run{}, 1, "", nil)
+
+	// No filter
+	runs, count, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 3, count)
+}
+
+func TestListRuns_CountWithFilter(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Add a filter
+	opts, _ := list.NewOptions(&model.Run{}, 1, "", &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key: "name",
+				Op:  api.Predicate_IN,
+				Value: &api.Predicate_StringValues{
+					StringValues: &api.StringValues{
+						Values: []string{"run1", "run3"},
+					},
+				},
+			},
+		},
+	})
+	runs, count, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 2, count)
 }
 
 func TestListRuns_Pagination_Descend(t *testing.T) {
