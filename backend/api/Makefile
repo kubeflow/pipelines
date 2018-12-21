@@ -52,10 +52,10 @@ all: dependencies
 		--grpc-gateway_out=logtostderr=true:go_client \
 		*.proto
 
-  # Filter.proto is implicitly used by clients and server, and transmitted as a
-  # serialized string in ListXXX requests. This hack defines a dummy service to
-  # coerce protoc-gen-swagger to generate Swagger JSON definitions for
-  # filter.proto.
+	# Filter.proto is implicitly used by clients and server, and transmitted as a
+	# serialized string in ListXXX requests. This hack defines a dummy service to
+	# coerce protoc-gen-swagger to generate Swagger JSON definitions for
+	# filter.proto.
 	cp -f filter.proto filter.proto.bak
 	printf "service DummyFilterService {\nrpc GetFilter(Filter) returns (Filter) {}}" >> filter.proto
 
