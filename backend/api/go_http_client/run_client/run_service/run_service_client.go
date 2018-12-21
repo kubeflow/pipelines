@@ -39,6 +39,35 @@ type Client struct {
 }
 
 /*
+ArchiveRun archive run API
+*/
+func (a *Client) ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewArchiveRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ArchiveRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{id}:archive",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ArchiveRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ArchiveRunOK), nil
+
+}
+
+/*
 CreateRun create run API
 */
 func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthInfoWriter) (*CreateRunOK, error) {
