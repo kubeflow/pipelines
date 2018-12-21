@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:1.11-alpine3.7 as builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
