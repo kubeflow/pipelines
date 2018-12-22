@@ -60,6 +60,9 @@ TEST_DIR=backend/test
 
 cd "${BASE_DIR}/${TEST_DIR}"
 
+# turn on go module
+export GO111MODULE=on
+
 echo "Run integration test..."
 TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true 2>&1`
 TEST_EXIT_CODE=$?

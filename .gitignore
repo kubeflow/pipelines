@@ -41,3 +41,6 @@ ml.iml
 
 .ipynb_checkpoints
 *.egg-info
+
+# go vendor
+vendor
