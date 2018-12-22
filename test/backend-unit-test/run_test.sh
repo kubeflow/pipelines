@@ -49,6 +49,9 @@ TEST_DIR=backend/src
 
 cd "${BASE_DIR}/${TEST_DIR}"
 
+# turn on go module
+export GO111MODULE=on
+
 # Run test and store the exit code.
 echo "Run unit test..."
 TEST_RESULT=`go test -v ./... 2>&1`
