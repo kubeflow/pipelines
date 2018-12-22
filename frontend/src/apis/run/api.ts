@@ -300,6 +300,12 @@ export interface ApiRun {
     name?: string;
     /**
      * 
+     * @type {RunStorageState}
+     * @memberof ApiRun
+     */
+    storageState?: RunStorageState;
+    /**
+     * 
      * @type {string}
      * @memberof ApiRun
      */
@@ -510,6 +516,16 @@ export enum RunMetricFormat {
     PERCENTAGE = <any> 'PERCENTAGE'
 }
 
+/**
+ * 
+ * @export
+ * @enum {string}
+ */
+export enum RunStorageState {
+    AVAILABLE = <any> 'STORAGESTATE_AVAILABLE',
+    ARCHIVED = <any> 'STORAGESTATE_ARCHIVED'
+}
+
 
 /**
  * RunServiceApi - fetch parameter creator
@@ -517,6 +533,42 @@ export enum RunMetricFormat {
  */
 export const RunServiceApiFetchParamCreator = function (configuration?: Configuration) {
     return {
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        archiveRun(id: string, options: any = {}): FetchArgs {
+            // verify required parameter 'id' is not null or undefined
+            if (id === null || id === undefined) {
+                throw new RequiredError('id','Required parameter id was null or undefined when calling archiveRun.');
+            }
+            const localVarPath = `/apis/v1beta1/runs/{id}:archive`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication Bearer required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["authorization"] = localVarApiKeyValue;
+            }
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
         /**
          * 
          * @param {ApiRun} body 
@@ -782,6 +834,42 @@ export const RunServiceApiFetchParamCreator = function (configuration?: Configur
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        unarchiveRun(id: string, options: any = {}): FetchArgs {
+            // verify required parameter 'id' is not null or undefined
+            if (id === null || id === undefined) {
+                throw new RequiredError('id','Required parameter id was null or undefined when calling unarchiveRun.');
+            }
+            const localVarPath = `/apis/v1beta1/runs/{id}:unarchive`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            const localVarUrlObj = url.parse(localVarPath, true);
+            const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication Bearer required
+            if (configuration && configuration.apiKey) {
+                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
+					? configuration.apiKey("authorization")
+					: configuration.apiKey;
+                localVarHeaderParameter["authorization"] = localVarApiKeyValue;
+            }
+
+            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+            delete localVarUrlObj.search;
+            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+
+            return {
+                url: url.format(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -791,6 +879,24 @@ export const RunServiceApiFetchParamCreator = function (configuration?: Configur
  */
 export const RunServiceApiFp = function(configuration?: Configuration) {
     return {
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        archiveRun(id: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ProtobufEmpty> {
+            const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).archiveRun(id, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
         /**
          * 
          * @param {ApiRun} body 
@@ -908,6 +1014,24 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
                 });
             };
         },
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        unarchiveRun(id: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ProtobufEmpty> {
+            const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).unarchiveRun(id, options);
+            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+                    if (response.status >= 200 && response.status < 300) {
+                        return response.json();
+                    } else {
+                        throw response;
+                    }
+                });
+            };
+        },
     }
 };
 
@@ -917,6 +1041,15 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
  */
 export const RunServiceApiFactory = function (configuration?: Configuration, fetch?: FetchAPI, basePath?: string) {
     return {
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        archiveRun(id: string, options?: any) {
+            return RunServiceApiFp(configuration).archiveRun(id, options)(fetch, basePath);
+        },
         /**
          * 
          * @param {ApiRun} body 
@@ -980,6 +1113,15 @@ export const RunServiceApiFactory = function (configuration?: Configuration, fet
         reportRunMetrics(run_id: string, body: ApiReportRunMetricsRequest, options?: any) {
             return RunServiceApiFp(configuration).reportRunMetrics(run_id, body, options)(fetch, basePath);
         },
+        /**
+         * 
+         * @param {string} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        unarchiveRun(id: string, options?: any) {
+            return RunServiceApiFp(configuration).unarchiveRun(id, options)(fetch, basePath);
+        },
     };
 };
 
@@ -990,6 +1132,17 @@ export const RunServiceApiFactory = function (configuration?: Configuration, fet
  * @extends {BaseAPI}
  */
 export class RunServiceApi extends BaseAPI {
+    /**
+     * 
+     * @param {} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RunServiceApi
+     */
+    public archiveRun(id: string, options?: any) {
+        return RunServiceApiFp(this.configuration).archiveRun(id, options)(this.fetch, this.basePath);
+    }
+
     /**
      * 
      * @param {} body 
@@ -1063,6 +1216,17 @@ export class RunServiceApi extends BaseAPI {
      */
     public reportRunMetrics(run_id: string, body: ApiReportRunMetricsRequest, options?: any) {
         return RunServiceApiFp(this.configuration).reportRunMetrics(run_id, body, options)(this.fetch, this.basePath);
+    }
+
+    /**
+     * 
+     * @param {} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof RunServiceApi
+     */
+    public unarchiveRun(id: string, options?: any) {
+        return RunServiceApiFp(this.configuration).unarchiveRun(id, options)(this.fetch, this.basePath);
     }
 
 }
