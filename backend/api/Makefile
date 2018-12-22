@@ -57,7 +57,7 @@ all: dependencies
 	# coerce protoc-gen-swagger to generate Swagger JSON definitions for
 	# filter.proto.
 	cp -f filter.proto filter.proto.bak
-	printf "service DummyFilterService {\nrpc GetFilter(Filter) returns (Filter) {}}" >> filter.proto
+	printf "service DummyFilterService {\nrpc DoFilter(Filter) returns (Filter) {\n option (google.api.http) = { \nget: \"/apis/v1beta1/filters\"\n};\n }}" >> filter.proto
 
   # Compile the *.proto files into *.swagger.json (swagger specification).
 	$(protocompiler) -I$(protoinclude) -I/usr/local/include -I. \

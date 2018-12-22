@@ -14,7 +14,24 @@
   "produces": [
     "application/json"
   ],
-  "paths": {},
+  "paths": {
+    "/apis/v1beta1/filters": {
+      "get": {
+        "operationId": "DoFilter",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiFilter"
+            }
+          }
+        },
+        "tags": [
+          "DummyFilterService"
+        ]
+      }
+    }
+  },
   "definitions": {
     "PredicateOp": {
       "type": "string",
