@@ -20,8 +20,8 @@ import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import ChipInput from 'material-ui-chip-input';
 import IconButton from '@material-ui/core/IconButton';
-import Input from '../atoms/Input';
 import MenuItem from '@material-ui/core/MenuItem';
 import Radio from '@material-ui/core/Radio';
 import Separator from '../atoms/Separator';
@@ -33,6 +33,7 @@ import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
 import { logger } from '../lib/Utils';
+import Chip from '@material-ui/core/Chip';
 
 export enum ExpandState {
   COLLAPSED,
@@ -157,6 +158,14 @@ export const css = stylesheet({
   },
 });
 
+interface FilterChip {
+  key: string;
+  value: {
+    type: 'Name' | 'CreatedAt';
+    x: number | string;
+  };
+}
+
 interface CustomTableProps {
   columns: Column[];
   disablePaging?: boolean;
@@ -178,6 +187,7 @@ interface CustomTableProps {
 interface CustomTableState {
   currentPage: number;
   filterBy: string;
+  filterChips: FilterChip[];
   isBusy: boolean;
   maxPageIndex: number;
   sortOrder: 'asc' | 'desc';
@@ -195,6 +205,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.state = {
       currentPage: 0,
       filterBy: '',
+      filterChips: [
+        { key: 'Chip 1', value: { type: 'Name', x: 'test' } },
+        { key: 'Chip 2', value: { type: 'Name', x: 'pipeline' } },
+      ],
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
@@ -252,7 +266,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public render(): JSX.Element {
-    const { filterBy, pageSize, sortBy, sortOrder } = this.state;
+    const { filterChips, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => total += (c.flex || 1), 0);
     const widths = this.props.columns.map(c => (c.flex || 1) / totalFlex * 100);
@@ -262,9 +276,40 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
         {/* Filter/Search bar */}
         <div>
-          <Input label={this.props.filterString || 'Filter'} height={48} maxWidth={'100%'}
-            className={css.filterBox} InputLabelProps={{ classes: { root: css.filterLabel }}}
-            onChange={this.handleChange('filterBy')} value={filterBy} />
+          <ChipInput
+            classes={{}}
+            // dataSource={[{ key: 'resource_name', value: 'name' }, { key: 'created_at', value: 'CreatedAt' }]}
+            // dataSourceConfig={{ text: 'key', value: 'value.x' }}
+            value={filterChips}
+            onAdd={(chip) => this._handleAddChip(chip)}
+            onDelete={(chip, index) => this._handleDeleteChip(chip, index)}
+            chipRenderer={(
+              {
+                value,
+                isFocused,
+                isDisabled,
+                handleClick,
+                handleDelete,
+              },
+              key
+            ) => {
+              // tslint:disable-next-line:no-console
+              console.log('key', key);
+              // tslint:disable-next-line:no-console
+              console.log('value', value);
+              return (
+              <Chip
+                key={key}
+                style={{
+                  backgroundColor: isFocused ? 'red' : 'green',
+                  pointerEvents: isDisabled ? 'none' : undefined,
+                }}
+                onClick={handleClick}
+                onDelete={handleDelete}
+                label={(value as any).value.x}
+              />
+            );}}
+          />
         </div>
 
         {/* Header */}
@@ -423,22 +468,44 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     return result;
   }
 
-  private handleChange = (name: string) => (event: any) => {
+  // private _handleChange = (name: string) => (event: any) => {
+  //   // TODO: add rate-limiting here, or within _requestFilter()
+  //   // tslint:disable-next-line:no-console
+  //   console.log('change: ', name);
+  //   const value = (event.target as TextFieldProps).value;
+  //   this.setStateSafe({ [name]: value } as any, this._requestFilter.bind(this)(value));
+  // }
+
+  
+  private _handleAddChip(chip: string): void {
     // tslint:disable-next-line:no-console
-    console.log('change: ', name);
-    const value = (event.target as TextFieldProps).value;
-    this.setStateSafe({ [name]: value } as any, this._requestFilter.bind(this)(value));
+    console.log('_handleAddChip');
+    // tslint:disable-next-line:no-console
+    console.log(JSON.stringify(chip));
+    // tslint:disable-next-line:no-console
+    console.log(chip);
+    const chips = this.state.filterChips;
+    chips.push({ key: chips.length + '', value: { type: 'Name', x: `Name:${chip}` } });
+    // tslint:disable-next-line:no-console
+    console.log(chips);
+    this.setStateSafe({ filterChips: chips }, async () => this._requestFilter());
   }
 
-  private _requestFilter(filterBy?: string): void {
+  private _handleDeleteChip(chip: FilterChip, index: number): void {
     // tslint:disable-next-line:no-console
-    console.log('filter: ', filterBy);
-    if (filterBy) {
-      this.setStateSafe({ filterBy }, async () => {
-        this._resetToFirstPage(
-          await this.reload({ filterBy })
-        );
-      });
+    console.log('_handleDeleteChip', chip, index);
+    const chips = this.state.filterChips;
+    chips.splice(index, 1);
+    this.setStateSafe({ filterChips: chips }, async () => this._requestFilter());
+  }
+  
+
+  private async _requestFilter(): Promise<void> {
+    if (this.state.filterChips.length) {
+      this._resetToFirstPage(
+        // TODO: convert this to actual filter, not just JSON string.
+        await this.reload({ filterBy: JSON.stringify(this.state.filterChips) })
+      );
     }
   }
 
