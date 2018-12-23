@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -59,6 +59,7 @@ func TestToApiRunDetail(t *testing.T) {
 		Run: model.Run{
 			UUID:             "run123",
 			Name:             "name123",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			DisplayName:      "displayName123",
 			Namespace:        "ns123",
 			CreatedAtInSec:   1,
@@ -77,11 +78,12 @@ func TestToApiRunDetail(t *testing.T) {
 	apiRun := ToApiRunDetail(modelRun)
 	expectedApiRun := &api.RunDetail{
 		Run: &api.Run{
-			Id:          "run123",
-			Name:        "displayName123",
-			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
-			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
-			Status:      "running",
+			Id:           "run123",
+			Name:         "displayName123",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
+			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
 			},
@@ -125,6 +127,7 @@ func TestToApiRuns(t *testing.T) {
 	modelRun1 := model.Run{
 		UUID:             "run1",
 		Name:             "name1",
+		StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 		DisplayName:      "displayName1",
 		Namespace:        "ns1",
 		CreatedAtInSec:   1,
@@ -142,6 +145,7 @@ func TestToApiRuns(t *testing.T) {
 	modelRun2 := model.Run{
 		UUID:             "run2",
 		Name:             "name2",
+		StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 		DisplayName:      "displayName2",
 		Namespace:        "ns2",
 		CreatedAtInSec:   2,
@@ -159,11 +163,12 @@ func TestToApiRuns(t *testing.T) {
 	apiRuns := ToApiRuns([]*model.Run{&modelRun1, &modelRun2})
 	expectedApiRun := []*api.Run{
 		{
-			Id:          "run1",
-			Name:        "displayName1",
-			CreatedAt:   &timestamp.Timestamp{Seconds: 1},
-			ScheduledAt: &timestamp.Timestamp{Seconds: 1},
-			Status:      "running",
+			Id:           "run1",
+			Name:         "displayName1",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
+			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
 			},
@@ -174,11 +179,12 @@ func TestToApiRuns(t *testing.T) {
 			Metrics: []*api.RunMetric{apiMetric1, apiMetric2},
 		},
 		{
-			Id:          "run2",
-			Name:        "displayName2",
-			CreatedAt:   &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt: &timestamp.Timestamp{Seconds: 2},
-			Status:      "done",
+			Id:           "run2",
+			Name:         "displayName2",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			ScheduledAt:  &timestamp.Timestamp{Seconds: 2},
+			Status:       "done",
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job2"},
 					Relationship: api.Relationship_CREATOR},

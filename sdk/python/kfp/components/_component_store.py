@@ -4,7 +4,6 @@ __all__ = [
 
 from pathlib import Path
 import requests
-import warnings
 from . import _components as comp
 
 class ComponentStore:

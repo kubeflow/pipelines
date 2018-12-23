@@ -8,5 +8,5 @@
     "SecretAccessKey": "minio123",
     "BucketName": "mlpipeline"
   },
-  "InitConnectionTimeout": "3m"
+  "InitConnectionTimeout": "6m"
 }

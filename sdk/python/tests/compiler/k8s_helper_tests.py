@@ -12,21 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import sys
+from kfp.compiler._k8s_helper import K8sHelper
+from datetime import datetime
 import unittest
 
-import compiler_tests
-import component_builder_test
-import k8s_helper_tests
 
-
-if __name__ == '__main__':
-  suite = unittest.TestSuite()
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(compiler_tests))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(component_builder_test))
-  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(k8s_helper_tests))
-  runner = unittest.TextTestRunner()
-  if not runner.run(suite).wasSuccessful():
-    sys.exit(1)
-
+class TestCompiler(unittest.TestCase):
+  def test_convert_k8s_obj_to_dic_accepts_dict(self):
+    now = datetime.now()
+    converted = K8sHelper.convert_k8s_obj_to_json({
+      "ENV": "test",
+      "number": 3,
+      "list": [1,2,3],
+      "time": now
+    })
+    self.assertEqual(converted, {
+      "ENV": "test",
+      "number": 3,
+      "list": [1,2,3],
+      "time": now.isoformat()
+    })

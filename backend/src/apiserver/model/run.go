@@ -18,6 +18,7 @@ type Run struct {
 	UUID               string `gorm:"column:UUID; not null; primary_key"`
 	DisplayName        string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
 	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
+	StorageState       string `gorm:"column:StorageState; not null;"`
 	Namespace          string `gorm:"column:Namespace; not null;"`
 	Description        string `gorm:"column:Description; not null"`
 	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null"`
