@@ -171,7 +171,7 @@ func parseAPIFilter(encoded string) (*api.Filter, error) {
 		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 	}
 
-	b, err := base64.URLEncoding.DecodeString(encoded)
+	b, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return errorF(err)
 	}
