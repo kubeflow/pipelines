@@ -23,6 +23,7 @@ import sys
 from collections import OrderedDict
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
+from ._structures import *
 
 
 _default_component_name = 'Component'
@@ -238,15 +239,10 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                 return None
             if isinstance(arg, (str, int, float, bool)):
                 return str(arg)
-            elif isinstance(arg, dict):
-                if len(arg) != 1:
-                    raise ValueError('Failed to parse argument dict: "{}"'.format(arg))
-                (func_name, func_argument) = list(arg.items())[0]
-                func_name=func_name.lower()
+            else:
 
-                if func_name == 'value':
-                    assert isinstance(func_argument, str)
-                    port_name = func_argument
+                if isinstance(arg, InputValuePlaceholder):
+                    port_name = arg.input_name
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
                     if input_value is not None:
                         return str(input_value)
@@ -259,9 +255,8 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                         else:
                             raise ValueError('No value provided for input {}'.format(port_name))
 
-                elif func_name == 'file':
-                    assert isinstance(func_argument, str)
-                    port_name = func_argument
+                if isinstance(arg, InputPathPlaceholder):
+                    port_name = arg.input_name
                     input_filename = _generate_input_file_name(port_name)
                     input_key = input_name_to_kubernetes[port_name]
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
@@ -276,9 +271,8 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                         else:
                             raise ValueError('No value provided for input {}'.format(port_name))
 
-                elif func_name == 'output':
-                    assert isinstance(func_argument, str)
-                    port_name = func_argument
+                elif isinstance(arg, OutputPathPlaceholder):
+                    port_name = arg.output_name
                     output_filename = _generate_output_file_name(port_name)
                     output_key = output_name_to_kubernetes[port_name]
                     if output_key in file_outputs:
@@ -289,21 +283,16 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     
                     return output_filename
 
-                elif func_name == 'concat':
-                    assert isinstance(func_argument, list)
-                    items_to_concatenate = func_argument
-                    expanded_argument_strings = expand_argument_list(items_to_concatenate)
+                elif isinstance(arg, ConcatPlaceholder):
+                    expanded_argument_strings = expand_argument_list(arg.items)
                     return ''.join(expanded_argument_strings)
                 
-                elif func_name == 'if':
-                    assert isinstance(func_argument, dict)
-                    condition_node = func_argument['cond']
-                    then_node = func_argument['then']
-                    else_node = func_argument.get('else', None)
-                    condition_result = expand_command_part(condition_node)
+                elif isinstance(arg, IfPlaceholder):
+                    arg = arg.if_structure
+                    condition_result = expand_command_part(arg.condition)
                     from distutils.util import strtobool
                     condition_result_bool = condition_result and strtobool(condition_result) #Python gotcha: bool('False') == True; Need to use strtobool; Also need to handle None and []
-                    result_node = then_node if condition_result_bool else else_node
+                    result_node = arg.then_value if condition_result_bool else arg.else_value
                     if result_node is None:
                         return []
                     if isinstance(result_node, list):
@@ -312,14 +301,12 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                         expanded_result = expand_command_part(result_node)
                     return expanded_result
 
-                elif func_name == 'ispresent':
-                    assert isinstance(func_argument, str)
-                    input_name = func_argument
-                    pythonic_input_name = input_name_to_pythonic[input_name]
+                elif isinstance(arg, IsPresentPlaceholder):
+                    pythonic_input_name = input_name_to_pythonic[arg.input_name]
                     argument_is_present = pythonic_input_argument_values[pythonic_input_name] is not None
                     return str(argument_is_present)
-            else:
-                raise TypeError('Unrecognized argument type: {}'.format(arg))
+                else:
+                    raise TypeError('Unrecognized argument type: {}'.format(arg))
         
         def expand_argument_list(argument_list):
             expanded_list = []
