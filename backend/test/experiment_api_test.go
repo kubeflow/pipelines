@@ -130,8 +130,6 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(experiments))
-	assert.Equal(t, nil, experiments)
-	t.Errorf("experimemts: %+v", experiments)
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "prediction", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
