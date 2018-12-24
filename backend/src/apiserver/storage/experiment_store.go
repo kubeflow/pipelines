@@ -33,12 +33,16 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 
-	rowsSql, args, err := opts.AddPaginationToSelect(sq.Select("*").From("experiments")).ToSql()
+	sqlBuilder := opts.AddFilterToSelect(sq.Select("*").From("experiments"))
+
+	// SQL for row count
+	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	countSql, args, err := sq.Select("count(*)").From("experiments").ToSql()
+	// SQL for row list
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -49,14 +53,14 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 		return errorF(err)
 	}
 
-	rows, err := tx.Query(rowsSql, args...)
+	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
 	defer rows.Close()
 
-	countRow, err := tx.Query(countSql, args...)
+	countRow, err := tx.Query(countSql, countArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
