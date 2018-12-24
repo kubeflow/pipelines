@@ -63,7 +63,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 	}
 	return &api.ListExperimentsResponse{
 			Experiments:   ToApiExperiments(experiments),
-			Count:         int32(count),
+			Count:         count,
 			NextPageToken: nextPageToken},
 		nil
 }
