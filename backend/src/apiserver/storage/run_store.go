@@ -78,13 +78,13 @@ func (s *RunStore) ListRuns(
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
 
 	// SQL for row count
-	countSql, args, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
+	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
 	// SQL for row list
-	rowsSql, args, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -95,14 +95,14 @@ func (s *RunStore) ListRuns(
 		return errorF(err)
 	}
 
-	rows, err := tx.Query(rowsSql, args...)
+	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
 	defer rows.Close()
 
-	countRow, err := tx.Query(countSql, args...)
+	countRow, err := tx.Query(countSql, countArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)

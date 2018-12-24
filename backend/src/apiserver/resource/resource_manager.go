@@ -259,7 +259,7 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	return nil
 }
 
-func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, opts *list.Options) (jobs []*model.Job, nextPageToken string, err error) {
+func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, opts *list.Options) (jobs []*model.Job, count int, nextPageToken string, err error) {
 	return r.jobStore.ListJobs(filterContext, opts)
 }
 
