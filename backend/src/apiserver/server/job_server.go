@@ -56,7 +56,8 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 	if request.PageToken != "" {
 		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
 	} else {
-		f, err := parseAPIFilter(request.Filter)
+		var f *api.Filter
+		f, err = parseAPIFilter(request.Filter)
 		if err != nil {
 			return nil, err
 		}
