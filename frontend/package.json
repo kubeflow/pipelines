@@ -6,6 +6,7 @@
     "@material-ui/core": "^3.1.0",
     "@material-ui/icons": "^3.0.1",
     "@types/js-yaml": "^3.11.2",
+    "autosuggest-highlight": "^3.1.1",
     "codemirror": "^5.40.2",
     "d3": "^5.7.0",
     "d3-dsv": "^1.0.10",
@@ -17,6 +18,7 @@
     "portable-fetch": "^3.0.0",
     "re-resizable": "^4.9.0",
     "react": "^16.5.2",
+    "react-autosuggest": "^9.4.2",
     "react-codemirror2": "^5.1.0",
     "react-dom": "^16.5.2",
     "react-dropzone": "^5.1.0",
@@ -49,6 +51,7 @@
     "vr-test": "ts-node -O '{\"module\": \"commonjs\"}' backstop.ts"
   },
   "devDependencies": {
+    "@types/autosuggest-highlight": "^3.1.0",
     "@types/codemirror": "0.0.60",
     "@types/d3": "^5.0.0",
     "@types/d3-dsv": "^1.0.33",
@@ -62,6 +65,7 @@
     "@types/lodash": "^4.14.117",
     "@types/node": "^10.10.1",
     "@types/react": "^16.4.14",
+    "@types/react-autosuggest": "^9.3.6",
     "@types/react-dom": "^16.0.7",
     "@types/react-router-dom": "^4.3.1",
     "@types/react-test-renderer": "^16.0.2",
