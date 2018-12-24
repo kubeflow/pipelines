@@ -84,12 +84,12 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	pipelines, nextPageToken, err := s.resourceManager.ListPipelines(opts)
+	pipelines, count, nextPageToken, err := s.resourceManager.ListPipelines(opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List pipelines failed.")
 	}
 	apiPipelines := ToApiPipelines(pipelines)
-	return &api.ListPipelinesResponse{Pipelines: apiPipelines, NextPageToken: nextPageToken}, nil
+	return &api.ListPipelinesResponse{Pipelines: apiPipelines, Count: int32(count), NextPageToken: nextPageToken}, nil
 }
 
 func (s *PipelineServer) DeletePipeline(ctx context.Context, request *api.DeletePipelineRequest) (*empty.Empty, error) {

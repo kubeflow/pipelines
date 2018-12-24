@@ -71,8 +71,8 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time: clientManager.Time(),
-		uuid: clientManager.UUID(),
+		time:                    clientManager.Time(),
+		uuid:                    clientManager.UUID(),
 	}
 }
 
@@ -102,7 +102,7 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 }
 
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
-	pipelines []*model.Pipeline, nextPageToken string, err error) {
+	pipelines []*model.Pipeline, count int, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(opts)
 }
 

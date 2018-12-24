@@ -25,7 +25,7 @@ import (
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines(opts *list.Options) ([]*model.Pipeline, string, error)
+	ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
 	GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error)
 	DeletePipeline(pipelineId string) error
@@ -39,34 +39,69 @@ type PipelineStore struct {
 	uuid util.UUIDGeneratorInterface
 }
 
-func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, string, error) {
-	errorF := func(err error) ([]*model.Pipeline, string, error) {
-		return nil, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
+func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error) {
+	errorF := func(err error) ([]*model.Pipeline, int, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
 	}
 
 	sqlBuilder := sq.Select("*").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
-	sql, args, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+
+	// SQL for row count
+	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	rows, err := s.db.Query(sql, args...)
+	// SQL for row list
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
+		return errorF(err)
+	}
+
+	// Use a transaction to make sure we're returning the count of the same rows queried
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errorF(err)
+	}
+
+	rows, err := tx.Query(rowsSql, rowsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	defer rows.Close()
+
+	countRow, err := tx.Query(countSql, countArgs...)
+	if err != nil {
+		tx.Rollback()
 		return errorF(err)
 	}
 	defer rows.Close()
 
 	pipelines, err := s.scanRows(rows)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+
+	count, err := s.scanRowToCount(countRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+
+	tx.Commit()
+	if err != nil {
+		tx.Rollback()
 		return errorF(err)
 	}
 
 	if len(pipelines) <= opts.PageSize {
-		return pipelines, "", nil
+		return pipelines, count, "", nil
 	}
 
 	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
-	return pipelines[:opts.PageSize], npt, err
+	return pipelines[:opts.PageSize], count, npt, err
 }
 
 func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
@@ -87,6 +122,16 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 			Status:         status})
 	}
 	return pipelines, nil
+}
+
+func (s *PipelineStore) scanRowToCount(rows *sql.Rows) (int, error) {
+	var count int
+	rows.Next()
+	err := rows.Scan(&count)
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to scan row count")
+	}
+	return count, nil
 }
 
 func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {
