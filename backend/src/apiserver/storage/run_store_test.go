@@ -115,6 +115,7 @@ func TestListRuns_Pagination(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -132,6 +133,7 @@ func TestListRuns_Pagination(t *testing.T) {
 		{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -211,6 +213,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 		{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -228,6 +231,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -248,7 +252,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 
 	assert.Nil(t, err)
-	assert.Equal(t, count, 3)
+	assert.Equal(t, 2, count)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
@@ -257,7 +261,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	runs, count, nextPageToken, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, count, 3)
+	assert.Equal(t, 2, count)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
@@ -270,6 +274,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -286,6 +291,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 		{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -305,7 +311,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 	runs, count, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, count, 1)
+	assert.Equal(t, 2, count)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
@@ -329,6 +335,7 @@ func TestGetRun(t *testing.T) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -376,6 +383,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -412,6 +420,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 		Run: model.Run{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -669,6 +678,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -686,6 +696,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 		{
 			UUID:             "2",
 			Name:             "run2",
+			DisplayName:      "run2",
 			Namespace:        "n2",
 			CreatedAtInSec:   2,
 			ScheduledAtInSec: 2,
@@ -705,7 +716,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 2, "", nil)
 	assert.Nil(t, err)
 	runs, count, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
-	assert.Equal(t, count, 2)
+	assert.Equal(t, 3, count)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 }
@@ -796,6 +807,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 		{
 			UUID:             "1",
 			Name:             "run1",
+			DisplayName:      "run1",
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
@@ -813,7 +825,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 	runs, count, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, count, 1)
+	assert.Equal(t, 2, count)
 	assert.Equal(t, expectedRuns, runs)
 	assert.NotEmpty(t, nextPageToken)
 }

@@ -348,7 +348,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEqual(t, "", nextPageToken)
 	assert.Equal(t, expected, experiments)
-	assert.Equal(t, 4, count)
+	assert.Equal(t, 3, count)
 
 	// Next page should give experiment4.
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)

@@ -364,7 +364,7 @@ func TestNewOptions_InvalidFilter(t *testing.T) {
 	}
 }
 
-func TestAddToSelect(t *testing.T) {
+func TestAddPaginationAndFilterToSelect(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			&api.Predicate{
@@ -471,7 +471,7 @@ func TestAddToSelect(t *testing.T) {
 
 	for _, test := range tests {
 		sql := sq.Select("*").From("MyTable")
-		gotSQL, gotArgs, err := test.in.AddToSelect(sql).ToSql()
+		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql)).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",
