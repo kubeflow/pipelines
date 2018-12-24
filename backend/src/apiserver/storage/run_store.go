@@ -31,7 +31,7 @@ import (
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 
-	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error)
+	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int32, string, error)
 
 	// Create a run entry in the database
 	CreateRun(run *model.RunDetail) (*model.RunDetail, error)
@@ -65,8 +65,8 @@ type RunStore struct {
 // count. The count does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
-	errorF := func(err error) ([]*model.Run, int, string, error) {
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int32, string, error) {
+	errorF := func(err error) ([]*model.Run, int32, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
@@ -205,8 +205,8 @@ func (s *RunStore) selectRunDetails() sq.SelectBuilder {
 		GroupBy("subq.UUID")
 }
 
-func (s *RunStore) scanRowToCount(rows *sql.Rows) (int, error) {
-	var count int
+func (s *RunStore) scanRowToCount(rows *sql.Rows) (int32, error) {
+	var count int32
 	rows.Next()
 	err := rows.Scan(&count)
 	if err != nil {

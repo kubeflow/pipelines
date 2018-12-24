@@ -26,7 +26,7 @@ import (
 )
 
 type JobStoreInterface interface {
-	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
+	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int32, string, error)
 	GetJob(id string) (*model.Job, error)
 	CreateJob(*model.Job) (*model.Job, error)
 	DeleteJob(id string) error
@@ -40,9 +40,11 @@ type JobStore struct {
 	time                   util.TimeInterface
 }
 
+// Runs two SQL queries in a transaction to return a list of matching jobs, as well as their
+// count. The count does not reflect the page size.
 func (s *JobStore) ListJobs(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
-	errorF := func(err error) ([]*model.Job, int, string, error) {
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int32, string, error) {
+	errorF := func(err error) ([]*model.Job, int32, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 
@@ -162,8 +164,8 @@ func (s *JobStore) selectJob() sq.SelectBuilder {
 		GroupBy("jobs.UUID")
 }
 
-func (s *JobStore) scanRowToCount(rows *sql.Rows) (int, error) {
-	var count int
+func (s *JobStore) scanRowToCount(rows *sql.Rows) (int32, error) {
+	var count int32
 	rows.Next()
 	err := rows.Scan(&count)
 	if err != nil {

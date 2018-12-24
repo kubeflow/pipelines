@@ -25,7 +25,7 @@ import (
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error)
+	ListPipelines(opts *list.Options) ([]*model.Pipeline, int32, string, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
 	GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error)
 	DeletePipeline(pipelineId string) error
@@ -39,8 +39,10 @@ type PipelineStore struct {
 	uuid util.UUIDGeneratorInterface
 }
 
-func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error) {
-	errorF := func(err error) ([]*model.Pipeline, int, string, error) {
+// Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
+// count. The count does not reflect the page size.
+func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, int32, string, error) {
+	errorF := func(err error) ([]*model.Pipeline, int32, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
 	}
 
@@ -124,8 +126,8 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 	return pipelines, nil
 }
 
-func (s *PipelineStore) scanRowToCount(rows *sql.Rows) (int, error) {
-	var count int
+func (s *PipelineStore) scanRowToCount(rows *sql.Rows) (int32, error) {
+	var count int32
 	rows.Next()
 	err := rows.Scan(&count)
 	if err != nil {
