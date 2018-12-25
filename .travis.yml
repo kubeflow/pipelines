@@ -22,24 +22,8 @@ addons:
       - wget
   chrome: stable
 
-before_install: npm i -g npm@latest
-
 script:
-  # Frontend tests
-  - cd $TRAVIS_BUILD_DIR/frontend
-  - nvm install node
-  - node -v
-  - npm i
-  - npm run test:coveralls
-
-  # DSL tests
-  - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
-  - cd $TRAVIS_BUILD_DIR/sdk/python
-  - ./build.sh /tmp/kfp.tar.gz
-  - pip install /tmp/kfp.tar.gz
-  - python tests/dsl/main.py
-  - python tests/compiler/main.py
-
-  # SDK Components tests
-  - cd $TRAVIS_BUILD_DIR/sdk/python
-  - python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
+  - gimme -f 1.11.4
+  - source ~/.gimme/envs/go1.11.4.env
+  - cd backend
+  - go build ./...
